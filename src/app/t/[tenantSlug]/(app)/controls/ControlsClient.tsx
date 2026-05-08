@@ -754,7 +754,7 @@ function ControlsPageInner({
             filters={{
                 defs: liveFilterDefs,
                 searchId: 'control-search',
-                searchPlaceholder: 'Search controls… (Enter)',
+                searchPlaceholder: 'Search controls…',
                 toolbarActions: (
                     <ColumnsDropdown
                         columns={columnDropdownItems}

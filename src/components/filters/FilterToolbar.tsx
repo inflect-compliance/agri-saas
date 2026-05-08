@@ -46,7 +46,7 @@ export interface FilterToolbarProps {
      * locate it. The id IS the page-specific part of this toolbar.
      */
     searchId: string;
-    /** Placeholder text (usually "Search {entity}… (Enter)"). */
+    /** Placeholder text (usually "Search {entityPlural}…"). */
     searchPlaceholder: string;
     /** Optional label for the FilterSelect trigger button. Defaults to "Filter". */
     triggerLabel?: ReactNode;

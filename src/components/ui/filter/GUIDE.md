@@ -366,7 +366,7 @@ function MyEntityPageInner({ initialRows, tenantSlug }) {
       <FilterToolbar
         filters={liveFilters}
         searchId="my-entity-search"
-        searchPlaceholder="Search… (Enter)"
+        searchPlaceholder="Search…"
       />
       <DataTable ... />
     </>

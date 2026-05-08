@@ -365,7 +365,7 @@ function PoliciesPageInner({
             filters={{
                 defs: liveFilters,
                 searchId: 'policy-search',
-                searchPlaceholder: 'Search policies… (Enter)',
+                searchPlaceholder: 'Search policies…',
                 toolbarActions: (
                     <ColumnsDropdown
                         columns={policyColumnDropdown}

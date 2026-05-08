@@ -805,7 +805,7 @@ function EvidenceFilterToolbar({
         <FilterToolbar
             filters={filters}
             searchId="evidence-search"
-            searchPlaceholder="Search evidence… (Enter)"
+            searchPlaceholder="Search evidence…"
             actions={columnsDropdown}
         />
     );

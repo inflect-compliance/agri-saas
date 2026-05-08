@@ -601,7 +601,7 @@ function RisksFilterToolbar({
         <FilterToolbar
             filters={filters}
             searchId="risk-search"
-            searchPlaceholder="Search risks… (Enter)"
+            searchPlaceholder="Search risks…"
             actions={columnsDropdown}
         />
     );

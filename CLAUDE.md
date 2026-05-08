@@ -669,6 +669,15 @@ stands for that PR only — not as a precedent.
       `Link Control`, `Link Asset` on the traceability panel). The
       thing already exists; you're connecting it.
   Forward enforcement at `tests/guards/action-label-vocabulary.test.ts`.
+- **Search placeholder vocabulary** (PR-9): every `<FilterToolbar
+  searchPlaceholder>` value follows `Search {entityPlural}…`. One
+  ellipsis (`…`, single character — not `...`). NEVER append a
+  parenthetical hint like `(Enter)` / `(Press Enter)` — the
+  `type="search"` input plus the FilterToolbar's commit-on-Enter +
+  blur semantics are discoverable on their own; the parenthetical
+  added visual noise without informational value. Forward enforcement
+  at `tests/guards/search-placeholder-vocabulary.test.ts`. The same
+  format applies to i18n `searchPlaceholder` values in `messages/`.
 
 ## Implementation notes
 
