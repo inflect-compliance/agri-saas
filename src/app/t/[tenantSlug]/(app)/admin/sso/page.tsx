@@ -6,6 +6,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { Card } from '@/components/ui/card';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { Shield, CheckCircle, XCircle, AlertTriangle, ExternalLink, Trash2, Save, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -258,11 +259,11 @@ export default function SsoAdminPage() {
         return (
             <div className="space-y-6 animate-fadeIn">
                 <Heading level={1}>SSO &amp; Identity</Heading>
-                <div className="glass-card p-8 space-y-4">
+                <Card className="space-y-4">
                     <div className="h-4 bg-bg-elevated/50 rounded w-1/3 animate-pulse" />
                     <div className="h-4 bg-bg-elevated/50 rounded w-2/3 animate-pulse" />
                     <div className="h-4 bg-bg-elevated/50 rounded w-1/2 animate-pulse" />
-                </div>
+                </Card>
             </div>
         );
     }

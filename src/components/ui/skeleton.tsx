@@ -1,3 +1,4 @@
+import { Card } from '@/components/ui/card';
 /**
  * Reusable skeleton loading primitives for the dark-themed UI.
  *
@@ -192,10 +193,10 @@ export function SkeletonFilterToolbar() {
 
 export function SkeletonKpiCard() {
     return (
-        <div className="glass-card p-5 text-center" aria-hidden="true">
+        <Card className="text-center" aria-hidden="true">
             <Skeleton className="h-3 w-20 mx-auto" />
             <Skeleton className="h-8 w-12 mx-auto mt-3" />
-        </div>
+        </Card>
     );
 }
 
@@ -227,15 +228,15 @@ export function SkeletonDashboard() {
 
             {/* Clause progress + Alerts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="glass-card p-5 space-y-3">
+                <Card className="space-y-3">
                     <Skeleton className="h-4 w-32" />
                     <div className="flex items-center gap-3">
                         <Skeleton className="flex-1 h-3 rounded-full" />
                         <Skeleton className="h-4 w-12" />
                     </div>
                     <Skeleton className="h-3 w-24 mt-1" />
-                </div>
-                <div className="glass-card p-5 space-y-3">
+                </Card>
+                <Card className="space-y-3">
                     <Skeleton className="h-4 w-36" />
                     <div className="space-y-2">
                         {Array.from({ length: 3 }).map((_, i) => (
@@ -245,20 +246,20 @@ export function SkeletonDashboard() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </Card>
             </div>
 
             {/* Quick actions + Recent activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="glass-card p-5 space-y-3">
+                <Card className="space-y-3">
                     <Skeleton className="h-4 w-28" />
                     <div className="grid grid-cols-2 gap-2">
                         {Array.from({ length: 6 }).map((_, i) => (
                             <Skeleton key={i} className="h-8 rounded" />
                         ))}
                     </div>
-                </div>
-                <div className="glass-card p-5 space-y-3">
+                </Card>
+                <Card className="space-y-3">
                     <Skeleton className="h-4 w-32" />
                     <div className="space-y-2">
                         {Array.from({ length: 4 }).map((_, i) => (
@@ -268,7 +269,7 @@ export function SkeletonDashboard() {
                             </div>
                         ))}
                     </div>
-                </div>
+                </Card>
             </div>
         </div>
     );

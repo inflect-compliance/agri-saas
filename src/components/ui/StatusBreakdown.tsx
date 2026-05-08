@@ -53,7 +53,7 @@ export default function StatusBreakdown({
     const total = items.reduce((sum, item) => sum + item.value, 0);
 
     return (
-        <div id={id} className={`glass-card p-5 ${className}`}>
+        <div id={id} className={`glass-card p-6 ${className}`}>
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
                 <Heading level={3}>{label}</Heading>

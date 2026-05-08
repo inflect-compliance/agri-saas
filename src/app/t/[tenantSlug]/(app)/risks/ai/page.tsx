@@ -9,6 +9,7 @@ import { RequirePermission } from '@/components/require-permission';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 const SCALE_OPTIONS: ComboboxOption[] = [1,2,3,4,5].map(v => ({ value: String(v), label: String(v) }));
 
@@ -402,7 +403,7 @@ export default function AIRiskAssessmentPage() {
                             <div
                                 key={item.id}
                                 id={`suggestion-${idx}`}
-                                className={`glass-card p-5 transition-all ${
+                                className={`glass-card p-6 transition-all ${
                                     dec === 'accept' ? 'ring-1 ring-[var(--border-success)] bg-bg-success' :
                                     dec === 'reject' ? 'ring-1 ring-[var(--border-error)] opacity-60' : ''
                                 }`}
@@ -612,7 +613,7 @@ export default function AIRiskAssessmentPage() {
 
             {/* ═══ PHASE: DONE ═══ */}
             {phase === 'done' && (
-                <div className="glass-card p-8 text-center space-y-4" id="ai-done">
+                <Card className="text-center space-y-4" id="ai-done">
                     <div className="text-4xl">Done</div>
                     <Heading level={2}>
                         {appliedCount} risk{appliedCount !== 1 ? 's' : ''} added to your register
@@ -628,7 +629,7 @@ export default function AIRiskAssessmentPage() {
                             New Assessment
                         </Button>
                     </div>
-                </div>
+                </Card>
             )}
         </div>
     );

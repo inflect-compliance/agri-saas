@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { StatusBreakdown } from '@/components/ui/status-breakdown';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 type Risk = {
     id: string;
@@ -83,27 +84,27 @@ export default function RiskDashboardPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="glass-card p-5 text-center">
+                <Card className="text-center">
                     <p className="text-xs text-content-muted uppercase tracking-wider">{t('totalRisks')}</p>
                     <p className="text-3xl font-bold mt-2">{total}</p>
-                </div>
-                <div className="glass-card p-5 text-center">
+                </Card>
+                <Card className="text-center">
                     <p className="text-xs text-content-muted uppercase tracking-wider">{t('avgScore')}</p>
                     <p className="text-3xl font-bold mt-2 text-content-warning">{avgScore}</p>
-                </div>
-                <div className="glass-card p-5 text-center">
+                </Card>
+                <Card className="text-center">
                     <p className="text-xs text-content-muted uppercase tracking-wider">{t('openRisks')}</p>
                     <p className="text-3xl font-bold mt-2 text-content-success">{openCount}</p>
-                </div>
-                <div className="glass-card p-5 text-center">
+                </Card>
+                <Card className="text-center">
                     <p className="text-xs text-content-muted uppercase tracking-wider">{t('overdueReviews')}</p>
                     <p className="text-3xl font-bold mt-2 text-content-error">{overdueRisks.length}</p>
-                </div>
+                </Card>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Status Breakdown — Epic 59: StatusBreakdown primitive. */}
-                <div className="glass-card p-5">
+                <Card>
                     <Heading level={3} className="mb-4">{t('statusBreakdown')}</Heading>
                     <StatusBreakdown
                         ariaLabel="Risk status breakdown"
@@ -123,10 +124,10 @@ export default function RiskDashboardPage() {
                                 variant: 'brand' as const,
                             }))}
                     />
-                </div>
+                </Card>
 
                 {/* Heatmap */}
-                <div className="glass-card p-5">
+                <Card>
                     <Heading level={3} className="mb-4">{t('heatmapTitle')}</Heading>
                     <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 text-xs">
                         <div></div>
@@ -154,12 +155,12 @@ export default function RiskDashboardPage() {
                         <div className="text-content-subtle text-[10px] mt-1">L↑</div>
                         <div className="col-span-5 text-center text-content-subtle text-[10px] mt-1">Impact →</div>
                     </div>
-                </div>
+                </Card>
             </div>
 
             {/* Overdue */}
             {overdueRisks.length > 0 && (
-                <div className="glass-card p-5 border-border-error">
+                <Card className="border-border-error">
                     <Heading level={2} className="mb-3 text-content-error">{t('overdueReviewsTitle')}</Heading>
                     <div className="space-y-2">
                         {overdueRisks.map(r => {
@@ -172,7 +173,7 @@ export default function RiskDashboardPage() {
                             );
                         })}
                     </div>
-                </div>
+                </Card>
             )}
         </div>
     );

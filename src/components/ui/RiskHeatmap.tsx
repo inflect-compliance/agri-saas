@@ -85,7 +85,7 @@ export default function RiskHeatmap({
         return (
             <div
                 id={id}
-                className={`glass-card p-5 ${className}`}
+                className={`glass-card p-6 ${className}`}
                 data-heatmap-loading
             >
                 <Heading level={3} className="mb-3">
@@ -113,7 +113,7 @@ export default function RiskHeatmap({
     // Empty state
     if (totalRisks === 0) {
         return (
-            <div id={id} className={`glass-card p-5 ${className}`}>
+            <div id={id} className={`glass-card p-6 ${className}`}>
                 <Heading level={3} className="mb-3">Risk Heatmap</Heading>
                 <p className="text-xs text-content-subtle">No risks registered yet.</p>
             </div>
@@ -125,7 +125,7 @@ export default function RiskHeatmap({
     const cols = Array.from({ length: scale }, (_, i) => i + 1);     // 1,2,3,4,5
 
     return (
-        <div id={id} className={`glass-card p-5 ${className}`}>
+        <div id={id} className={`glass-card p-6 ${className}`}>
             <div className="flex items-center justify-between mb-3">
                 <Heading level={3}>Risk Heatmap</Heading>
                 <span className="text-xs text-content-subtle tabular-nums">{totalRisks} risks</span>

@@ -94,7 +94,7 @@ export default function ExpiryCalendar({
     // Empty state
     if (!items || items.length === 0) {
         return (
-            <div id={id} className={`glass-card p-5 ${className}`}>
+            <div id={id} className={`glass-card p-6 ${className}`}>
                 <Heading level={3} className="mb-3">Evidence Expiry</Heading>
                 <p className="text-xs text-content-subtle">No upcoming evidence expirations.</p>
             </div>
@@ -113,7 +113,7 @@ export default function ExpiryCalendar({
     const orderedGroups: Urgency[] = ['overdue', 'urgent', 'upcoming', 'normal'];
 
     return (
-        <div id={id} className={`glass-card p-5 ${className}`}>
+        <div id={id} className={`glass-card p-6 ${className}`}>
             <div className="flex items-center justify-between mb-3">
                 <Heading level={3}>Evidence Expiry</Heading>
                 <span className="text-xs text-content-subtle tabular-nums">{items.length} item{items.length !== 1 ? 's' : ''}</span>

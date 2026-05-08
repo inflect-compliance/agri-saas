@@ -5,6 +5,7 @@ import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function MappingPage() {
@@ -40,7 +41,7 @@ export default function MappingPage() {
 
             <div className="space-y-3">
                 {items.map((item: any) => (
-                    <div key={item.code} className="glass-card p-5">
+                    <Card key={item.code}>
                         <div className="flex items-center justify-between mb-2">
                             <div>
                                 <span className="text-xs font-mono text-[var(--brand-default)] mr-2">{item.code}</span>
@@ -69,7 +70,7 @@ export default function MappingPage() {
                             </div>
                             <span className="text-xs text-content-subtle">{t('controls', { implemented: item.implementedCount, total: item.controlCount })}</span>
                         </div>
-                    </div>
+                    </Card>
                 ))}
             </div>
         </div>

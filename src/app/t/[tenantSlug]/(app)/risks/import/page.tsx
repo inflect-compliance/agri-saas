@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 type ParsedRow = {
     title: string;
@@ -117,12 +118,12 @@ export default function RiskImportPage() {
     if (!canWrite) {
         return (
             <div className="space-y-6 animate-fadeIn">
-                <div className="glass-card p-8 text-center">
+                <Card className="text-center">
                     <p className="text-content-muted">{t('noImportPermission')}</p>
                     <Link href={href('/risks')} className={buttonVariants({ variant: 'secondary', className: 'mt-4' })}>
                         {t('backToRisks')}
                     </Link>
-                </div>
+                </Card>
             </div>
         );
     }

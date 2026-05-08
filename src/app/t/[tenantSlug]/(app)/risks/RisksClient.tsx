@@ -48,6 +48,7 @@ import { resolveBandForScore } from '@/lib/risk-matrix/scoring';
 import type { RiskMatrixConfigShape } from '@/lib/risk-matrix/types';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 interface RiskListItem {
     id: string;
@@ -500,28 +501,24 @@ function RisksPageInner({
             <ListPageShell.Filters className="space-y-6">
                 {/* KPI Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div
-                        className="glass-card p-5 text-center cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition"
-                        onClick={() => filterCtx.clearAll()}
+                    <Card className="text-center cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition" onClick={() => filterCtx.clearAll()}
                     >
                         <p className="text-xs text-content-muted uppercase tracking-wider">{t.totalRisks}</p>
                         <p className="text-3xl font-bold mt-2">{total}</p>
-                    </div>
-                    <div className="glass-card p-5 text-center">
+                    </Card>
+                    <Card className="text-center">
                         <p className="text-xs text-content-muted uppercase tracking-wider">{t.avgScore}</p>
                         <p className="text-3xl font-bold mt-2 text-content-warning">{avgScore}</p>
-                    </div>
-                    <div
-                        className="glass-card p-5 text-center cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition"
-                        onClick={() => filterCtx.set('status', 'OPEN')}
+                    </Card>
+                    <Card className="text-center cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition" onClick={() => filterCtx.set('status', 'OPEN')}
                     >
                         <p className="text-xs text-content-muted uppercase tracking-wider">{t.openRisks}</p>
                         <p className="text-3xl font-bold mt-2 text-content-success">{openCount}</p>
-                    </div>
-                    <div className="glass-card p-5 text-center">
+                    </Card>
+                    <Card className="text-center">
                         <p className="text-xs text-content-muted uppercase tracking-wider">{t.overdueReviews}</p>
                         <p className="text-3xl font-bold mt-2 text-content-error">{overdueRisks.length}</p>
-                    </div>
+                    </Card>
                 </div>
 
                 <RisksFilterToolbar

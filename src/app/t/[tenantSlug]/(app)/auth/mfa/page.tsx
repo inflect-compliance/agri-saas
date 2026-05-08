@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { ShieldCheck, KeyRound, AlertTriangle } from 'lucide-react';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 /**
  * MFA Challenge Page — shown when mfaPending is true.
@@ -96,7 +97,7 @@ export default function MfaChallengePage() {
     if (enrolled === false) {
         return (
             <div className="min-h-[60vh] flex items-center justify-center">
-                <div className="glass-card p-8 max-w-md w-full space-y-5 text-center">
+                <Card className="max-w-md w-full space-y-5 text-center">
                     <div className="flex justify-center">
                         <div className="w-16 h-16 rounded-full bg-bg-warning flex items-center justify-center">
                             <AlertTriangle className="w-8 h-8 text-content-warning" />
@@ -115,14 +116,14 @@ export default function MfaChallengePage() {
                         <KeyRound className="w-4 h-4" />
                         Set Up MFA
                     </a>
-                </div>
+                </Card>
             </div>
         );
     }
 
     return (
         <div className="min-h-[60vh] flex items-center justify-center">
-            <div className="glass-card p-8 max-w-md w-full space-y-5">
+            <Card className="max-w-md w-full space-y-5">
                 <div className="flex justify-center">
                     <div className="w-16 h-16 rounded-full bg-[var(--brand-subtle)] flex items-center justify-center">
                         <ShieldCheck className="w-8 h-8 text-[var(--brand-default)]" />
@@ -171,7 +172,7 @@ export default function MfaChallengePage() {
                 <p className="text-xs text-content-subtle text-center">
                     Can&apos;t access your authenticator? Contact your organization administrator.
                 </p>
-            </div>
+            </Card>
         </div>
     );
 }

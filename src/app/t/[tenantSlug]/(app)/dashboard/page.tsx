@@ -11,6 +11,7 @@ import {
 
 import DashboardClient from './DashboardClient';
 import RecentActivityCard from './RecentActivityCard';
+import { Card } from '@/components/ui/card';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,9 +81,9 @@ export default async function DashboardPage({
         >
             <Suspense
                 fallback={
-                    <div className="glass-card p-5 space-y-3">
+                    <Card className="space-y-3">
                         <Skeleton className="h-4 w-full sm:w-32" />
-                    </div>
+                    </Card>
                 }
             >
                 <RecentActivityCard

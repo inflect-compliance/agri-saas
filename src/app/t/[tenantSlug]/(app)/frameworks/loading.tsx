@@ -4,6 +4,7 @@ import {
     SkeletonLine,
     SkeletonButton,
 } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
 
 /**
  * Frameworks loading skeleton — title + card grid.
@@ -18,12 +19,12 @@ export default function FrameworksLoading() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="glass-card p-5 space-y-3">
+                    <Card className="space-y-3" key={i}>
                         <SkeletonLine className="w-3/4" />
                         <SkeletonLine className="w-full" />
                         <SkeletonLine className="w-1/2" />
                         <Skeleton className="h-2 w-full rounded-full" />
-                    </div>
+                    </Card>
                 ))}
             </div>
         </div>

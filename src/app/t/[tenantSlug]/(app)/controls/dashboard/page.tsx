@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/status-breakdown';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 const STATUS_LABELS: Record<string, string> = {
     NOT_STARTED: 'Not Started', IN_PROGRESS: 'In Progress', IMPLEMENTED: 'Implemented', NEEDS_REVIEW: 'Needs Review',
@@ -138,7 +139,7 @@ export default function ControlsDashboard() {
 
             {/* Status Distribution */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="glass-card p-5">
+                <Card>
                     <Heading level={3} className="mb-4">Status Distribution</Heading>
                     {/* Epic 59 — StatusBreakdown primitive. Bar widths are
                         proportional to the row's share of `total`
@@ -162,8 +163,8 @@ export default function ControlsDashboard() {
                             }))}
                         />
                     </div>
-                </div>
-                <div className="glass-card p-5">
+                </Card>
+                <Card>
                     <Heading level={3} className="mb-4">Top Owners by Open Tasks</Heading>
                     {data.topOwners?.length > 0 ? (
                         <div className="space-y-2" id="top-owners">
@@ -177,12 +178,12 @@ export default function ControlsDashboard() {
                     ) : (
                         <p className="text-sm text-content-subtle">No assigned owners yet</p>
                     )}
-                </div>
+                </Card>
             </div>
 
             {/* Consistency Check */}
             {showConsistency && consistency && (
-                <div className="glass-card p-5" id="consistency-results">
+                <Card id="consistency-results">
                     <Heading level={3} className="mb-3"><AppIcon name="search" size={16} className="inline-block mr-1" /> Consistency Check Results</Heading>
                     <div className="grid grid-cols-3 gap-4 mb-4">
                         <div className="text-center">
@@ -207,7 +208,7 @@ export default function ControlsDashboard() {
                     {consistency.summary.missingCodeCount === 0 && consistency.summary.duplicateCodeCount === 0 && consistency.summary.overdueTaskCount === 0 && (
                         <p className="text-sm text-content-success text-center"><AppIcon name="success" size={16} className="inline-block mr-1" /> All checks passed — no issues found</p>
                     )}
-                </div>
+                </Card>
             )}
         </div>
     );

@@ -87,6 +87,7 @@ import type { ExecutiveDashboardPayload } from '@/app-layer/repositories/Dashboa
 import type { TrendPayload } from '@/app-layer/usecases/compliance-trends';
 import type { RiskMatrixConfigShape } from '@/lib/risk-matrix/types';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 // ─── KPI trend bundle ─────────────────────────────────────────────────
 
@@ -340,7 +341,7 @@ export default function DashboardClient({
 
             {/* ─── Quick Actions + Recent Activity ─── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="glass-card p-5">
+                <Card>
                     <Heading level={3} className="mb-3">
                         {t('quickActions')}
                     </Heading>
@@ -382,12 +383,12 @@ export default function DashboardClient({
                             {t('exportReports')}
                         </Link>
                     </div>
-                </div>
+                </Card>
 
                 {/* RecentActivityCard remains a server component;
                     rendered by the parent page and passed in here. */}
                 {children ?? (
-                    <div className="glass-card p-5 space-y-3">
+                    <Card className="space-y-3">
                         <Skeleton className="h-4 w-full sm:w-32" />
                         <div className="space-y-2">
                             {Array.from({ length: 4 }).map((_, i) => (
@@ -399,7 +400,7 @@ export default function DashboardClient({
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </Card>
                 )}
             </div>
         </div>
@@ -415,7 +416,7 @@ function RiskDistributionSection({
 }) {
     const { riskBySeverity, riskByStatus } = exec;
     return (
-        <div className="glass-card p-5" id="risk-distribution">
+        <Card id="risk-distribution">
             <Heading level={3} className="mb-3">
                 Risk Distribution
             </Heading>
@@ -468,7 +469,7 @@ function RiskDistributionSection({
                     </div>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 }
 
@@ -513,7 +514,7 @@ function ComplianceAlerts({ exec, t }: { exec: ExecutiveDashboardPayload; t: (ke
         alerts.push({ color: 'bg-purple-500', text: t('openAuditFindings', { count: stats.openFindings }) });
 
     return (
-        <div className="glass-card p-5" id="compliance-alerts">
+        <Card id="compliance-alerts">
             <Heading level={3} className="mb-3">
                 {t('complianceAlerts')}
             </Heading>
@@ -531,7 +532,7 @@ function ComplianceAlerts({ exec, t }: { exec: ExecutiveDashboardPayload; t: (ke
                     ))
                 )}
             </div>
-        </div>
+        </Card>
     );
 }
 
@@ -555,7 +556,7 @@ function TrendSection({ trends }: { trends: TrendPayload }) {
         value: d.findingsOpen,
     }));
     return (
-        <div className="glass-card p-5" id="trend-section">
+        <Card id="trend-section">
             <div className="flex items-center justify-between mb-4">
                 <Heading level={3}>
                     Compliance Trends
@@ -591,7 +592,7 @@ function TrendSection({ trends }: { trends: TrendPayload }) {
                     colorClassName="text-content-info"
                 />
             </div>
-        </div>
+        </Card>
     );
 }
 

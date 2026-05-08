@@ -16,6 +16,7 @@ import { CopyButton } from '@/components/ui/copy-button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 interface ScimToken {
     id: string;
@@ -303,7 +304,7 @@ export default function ScimAdminPage() {
             )}
 
             {/* Setup guide */}
-            <div className="glass-card p-5">
+            <Card>
                 <Heading level={3} className="mb-3">Setup Guide</Heading>
                 <ol className="space-y-2 text-xs text-content-muted list-decimal list-inside">
                     <li>Generate a SCIM token above and copy it securely.</li>
@@ -318,7 +319,7 @@ export default function ScimAdminPage() {
                     Editors and Auditors can be mapped via your IdP&apos;s group/role assignment.
                     Admin role cannot be assigned via SCIM — it must be set manually.
                 </div>
-            </div>
+            </Card>
             <ConfirmDialog
                 showModal={tokenIdToRevoke !== null}
                 setShowModal={(open) => {

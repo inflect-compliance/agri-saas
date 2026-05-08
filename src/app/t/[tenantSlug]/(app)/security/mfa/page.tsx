@@ -5,6 +5,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { formatDate } from '@/lib/format-date';
+import { Card } from '@/components/ui/card';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
@@ -146,12 +147,12 @@ export default function UserMfaPage() {
                     <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
                     Multi-Factor Authentication
                 </Heading>
-                <div className="glass-card p-8">
+                <Card>
                     <div className="animate-pulse space-y-4">
                         <div className="h-4 bg-bg-elevated rounded w-1/3" />
                         <div className="h-20 bg-bg-elevated rounded w-full" />
                     </div>
-                </div>
+                </Card>
             </div>
         );
     }

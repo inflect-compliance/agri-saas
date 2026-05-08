@@ -8,6 +8,7 @@ import { DataTable, createColumns } from '@/components/ui/table';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -198,7 +199,7 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
             </div>
 
             {/* ── Summary Bar ─────────────────────────────────────── */}
-            <div className="glass-card p-5" id="coverage-summary-bar">
+            <Card id="coverage-summary-bar">
                 <Heading level={3} className="mb-4">Overall Coverage</Heading>
                 <div className="space-y-3">
                     <CoverageBar
@@ -217,12 +218,12 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                         detail={`${data.controlsWithRisksCount}/${data.totalControls}`}
                     />
                 </div>
-            </div>
+            </Card>
 
             {/* ── Tables: Gaps ─────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Uncovered Critical Assets */}
-                <div className="glass-card p-5" id="uncovered-assets-section">
+                <Card id="uncovered-assets-section">
                     <div className="flex items-center gap-2 mb-4">
                         <Cpu className="w-4 h-4 text-content-error" />
                         <Heading level={3}>
@@ -243,10 +244,10 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                         resourceName={(p) => p ? 'assets' : 'asset'}
                         data-testid="uncovered-assets-table"
                     />
-                </div>
+                </Card>
 
                 {/* Unmapped Risks */}
-                <div className="glass-card p-5" id="unmapped-risks-section">
+                <Card id="unmapped-risks-section">
                     <div className="flex items-center gap-2 mb-4">
                         <AlertTriangle className="w-4 h-4 text-content-warning" />
                         <Heading level={3}>
@@ -267,12 +268,12 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                         resourceName={(p) => p ? 'risks' : 'risk'}
                         data-testid="unmapped-risks-table"
                     />
-                </div>
+                </Card>
             </div>
 
             {/* ── Hot Controls ─────────────────────────────────────── */}
             {data.hotControls.length > 0 && (
-                <div className="glass-card p-5" id="hot-controls-section">
+                <Card id="hot-controls-section">
                     <div className="flex items-center gap-2 mb-4">
                         <Flame className="w-4 h-4 text-orange-400" />
                         <Heading level={3}>
@@ -308,7 +309,7 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                             </Link>
                         ))}
                     </div>
-                </div>
+                </Card>
             )}
         </>
     );
@@ -337,7 +338,7 @@ function CoverageKpiCard({
     const gradientClass = pctGradient(pct);
 
     return (
-        <div id={id} className="glass-card p-5 hover:scale-[1.02] transition-transform">
+        <Card className="hover:scale-[1.02] transition-transform" id={id}>
             <div className="flex items-center gap-2 mb-3">
                 <span className="text-content-muted">{icon}</span>
                 <span className="text-xs text-content-muted uppercase tracking-wide font-medium">
@@ -364,7 +365,7 @@ function CoverageKpiCard({
                     <p className="text-xs text-content-subtle mt-1">{subtitle}</p>
                 </div>
             </div>
-        </div>
+        </Card>
     );
 }
 

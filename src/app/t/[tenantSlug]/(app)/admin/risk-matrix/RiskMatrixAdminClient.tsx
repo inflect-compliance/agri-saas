@@ -43,6 +43,7 @@ import type {
     RiskMatrixConfigShape,
 } from '@/lib/risk-matrix/types';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 interface RiskMatrixAdminClientProps {
     tenantSlug: string;
@@ -320,7 +321,7 @@ export function RiskMatrixAdminClient({
                 {/* ── Editor ─────────────────────────────────────── */}
                 <section className="space-y-6">
                     {/* Dimensions */}
-                    <div className="glass-card space-y-4 p-5">
+                    <Card className="space-y-4">
                         <Heading level={3}>
                             Dimensions
                         </Heading>
@@ -355,10 +356,10 @@ export function RiskMatrixAdminClient({
                         <p className="text-xs text-content-subtle">
                             Total cells: {totalCells}.
                         </p>
-                    </div>
+                    </Card>
 
                     {/* Axis titles */}
-                    <div className="glass-card space-y-4 p-5">
+                    <Card className="space-y-4">
                         <Heading level={3}>
                             Axis titles
                         </Heading>
@@ -400,10 +401,10 @@ export function RiskMatrixAdminClient({
                                 />
                             </label>
                         </div>
-                    </div>
+                    </Card>
 
                     {/* Per-level labels */}
-                    <div className="glass-card space-y-4 p-5">
+                    <Card className="space-y-4">
                         <Heading level={3}>
                             Per-level labels
                         </Heading>
@@ -459,10 +460,10 @@ export function RiskMatrixAdminClient({
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Card>
 
                     {/* Bands */}
-                    <div className="glass-card space-y-3 p-5">
+                    <Card className="space-y-3">
                         <div className="flex items-center justify-between">
                             <Heading level={3}>
                                 Severity bands
@@ -561,7 +562,7 @@ export function RiskMatrixAdminClient({
                                 </li>
                             ))}
                         </ul>
-                    </div>
+                    </Card>
                 </section>
 
                 {/* ── Live preview ───────────────────────────────── */}

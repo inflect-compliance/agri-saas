@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FileText, SearchX } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 export default function TemplatesPage() {
     const apiUrl = useTenantApiUrl();
@@ -120,7 +121,7 @@ export default function TemplatesPage() {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="template-grid">
                     {filtered.map(tpl => (
-                        <div key={tpl.id} className="glass-card p-5 flex flex-col justify-between hover:ring-1 hover:ring-[var(--brand-default)]/30 transition">
+                        <Card className="flex flex-col justify-between hover:ring-1 hover:ring-[var(--brand-default)]/30 transition" key={tpl.id}>
                             <div>
                                 <Heading level={3} className="mb-1">{tpl.title}</Heading>
                                 <div className="flex gap-2 mb-2">
@@ -152,7 +153,7 @@ export default function TemplatesPage() {
                                     {creating === tpl.id ? 'Creating...' : 'Use Template'}
                                 </Button>
                             )}
-                        </div>
+                        </Card>
                     ))}
                 </div>
             )}

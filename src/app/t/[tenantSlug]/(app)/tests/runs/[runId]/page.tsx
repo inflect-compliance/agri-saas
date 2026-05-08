@@ -17,6 +17,7 @@ import { buttonVariants } from '@/components/ui/button-variants';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 const EV_KIND_OPTIONS: ComboboxOption[] = [
     { value: 'FILE_UPLOAD', label: 'Upload File' },
@@ -256,7 +257,7 @@ export default function TestRunPage() {
         >
             {/* Complete Form — only if not completed */}
             {!isCompleted && permissions.canWrite && (
-                <div className="glass-card p-5 space-y-4 border-l-4 border-[var(--brand-default)]">
+                <Card className="space-y-4 border-l-4 border-[var(--brand-default)]">
                     <Heading level={3}>Complete This Test Run</Heading>
 
                     <div>
@@ -308,7 +309,7 @@ export default function TestRunPage() {
                     >
                         {completing ? 'Completing...' : `Complete as ${result}`}
                     </Button>
-                </div>
+                </Card>
             )}
 
             {/* Completed Info */}

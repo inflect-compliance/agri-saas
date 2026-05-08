@@ -19,6 +19,7 @@
  */
 
 import { formatDate } from '@/lib/format-date';
+import { Card } from '@/components/ui/card';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import {
@@ -608,11 +609,11 @@ export default function MembersAdminPage() {
                     <Users className="w-6 h-6 text-[var(--brand-default)]" />
                     Members &amp; Roles
                 </Heading>
-                <div className="glass-card p-8 space-y-4">
+                <Card className="space-y-4">
                     <div className="h-4 bg-bg-subtle rounded w-1/3 animate-pulse" />
                     <div className="h-4 bg-bg-subtle rounded w-2/3 animate-pulse" />
                     <div className="h-4 bg-bg-subtle rounded w-1/2 animate-pulse" />
-                </div>
+                </Card>
             </div>
         );
     }

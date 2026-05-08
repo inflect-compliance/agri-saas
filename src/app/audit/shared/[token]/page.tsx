@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { AppIcon, type AppIconName } from '@/components/icons/AppIcon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const ENTITY_ICON: Record<string, AppIconName> = {
@@ -42,11 +43,11 @@ export default function SharedPackPage() {
 
     if (error) return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-            <div className="glass-card p-8 max-w-md text-center">
+            <Card className="max-w-md text-center">
                 <div className="mb-4"><AppIcon name="lock" size={48} className="text-slate-400" /></div>
                 <Heading level={1} className="mb-2">Access Denied</Heading>
                 <p className="text-slate-400 text-sm">{error}</p>
-            </div>
+            </Card>
         </div>
     );
 

@@ -64,7 +64,7 @@ export default function ProgressCard({
     const percent = max > 0 ? Math.min((value / max) * 100, 100) : 0;
 
     return (
-        <div id={id} className={`glass-card p-5 ${className}`}>
+        <div id={id} className={`glass-card p-6 ${className}`}>
             <Heading level={3} className="mb-3">{label}</Heading>
 
             {/* Main progress bar */}

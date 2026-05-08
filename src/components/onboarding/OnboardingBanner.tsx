@@ -5,6 +5,7 @@ import { Sparkles } from 'lucide-react';
 import { useTenantContext, useTenantHref } from '@/lib/tenant-context-provider';
 import { buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 /**
  * Dashboard card that shows "Complete Setup" when onboarding is not complete.
@@ -17,7 +18,7 @@ export default function OnboardingBanner() {
     if (!permissions.canAdmin) return null;
 
     return (
-        <div className="glass-card p-5 border-[var(--brand-default)]/30 bg-gradient-to-r from-[var(--brand-subtle)] to-[var(--brand-subtle)]">
+        <Card className="border-[var(--brand-default)]/30 bg-gradient-to-r from-[var(--brand-subtle)] to-[var(--brand-subtle)]">
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand-emphasis)] to-[var(--brand-default)] flex items-center justify-center flex-shrink-0">
                     <Sparkles className="w-5 h-5 text-white" />
@@ -30,6 +31,6 @@ export default function OnboardingBanner() {
                     <Sparkles className="w-3.5 h-3.5" /> Continue Setup
                 </Link>
             </div>
-        </div>
+        </Card>
     );
 }

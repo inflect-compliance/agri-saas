@@ -6,6 +6,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { Card } from '@/components/ui/card';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { ShieldCheck, Save, AlertTriangle, CheckCircle, LogOut, Users, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -160,14 +161,14 @@ export default function AdminSecurityPage() {
                     <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
                     Security & MFA
                 </Heading>
-                <div className="glass-card p-8">
+                <Card>
                     <div className="animate-pulse space-y-4">
                         <div className="h-4 bg-bg-elevated rounded w-1/3" />
                         <div className="h-10 bg-bg-elevated rounded w-full" />
                         <div className="h-10 bg-bg-elevated rounded w-full" />
                         <div className="h-10 bg-bg-elevated rounded w-full" />
                     </div>
-                </div>
+                </Card>
             </div>
         );
     }

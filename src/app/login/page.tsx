@@ -5,6 +5,7 @@ import { getProviders, signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/typography';
 
 function extractErrorMessage(value: unknown, fallback: string): string {
@@ -176,7 +177,7 @@ function LoginForm() {
                 </div>
 
                 {/* Form */}
-                <div className="glass-card p-8 animate-fadeIn">
+                <Card className="animate-fadeIn">
                     <Heading level={2} className="mb-6">
                         {mode === 'login' ? t('signIn') : t('register')}
                     </Heading>
@@ -336,7 +337,7 @@ function LoginForm() {
                             </div>
                         </>
                     )}
-                </div>
+                </Card>
             </div>
         </div>
     );

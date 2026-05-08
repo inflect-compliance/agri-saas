@@ -27,6 +27,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Card } from '@/components/ui/card';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { getPermissionsForRole, type PermissionSet } from '@/lib/permissions';
 import {
@@ -548,11 +549,11 @@ export default function CustomRolesPage() {
                     <Shield className="w-6 h-6 text-[var(--brand-default)]" />
                     Custom Roles
                 </Heading>
-                <div className="glass-card p-8 space-y-4">
+                <Card className="space-y-4">
                     <div className="h-4 bg-bg-elevated/50 rounded w-1/3 animate-pulse" />
                     <div className="h-4 bg-bg-elevated/50 rounded w-2/3 animate-pulse" />
                     <div className="h-4 bg-bg-elevated/50 rounded w-1/2 animate-pulse" />
-                </div>
+                </Card>
             </div>
         );
     }

@@ -191,7 +191,7 @@ export function RiskMatrix({
             data-testid={dataTestId}
             data-swap-axes={swapAxes ? 'true' : 'false'}
             data-mode={mode}
-            className={`glass-card p-5 ${className}`.trim()}
+            className={`glass-card p-6 ${className}`.trim()}
         >
             {showHeader && (
                 <div className="mb-3 flex items-center justify-between">

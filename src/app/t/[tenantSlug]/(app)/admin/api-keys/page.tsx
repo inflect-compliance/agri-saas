@@ -6,6 +6,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Card } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { VALID_SCOPES } from '@/lib/auth/api-key-auth';
@@ -473,10 +474,10 @@ export default function ApiKeysPage() {
                     <KeyRound className="w-6 h-6 text-[var(--brand-default)]" />
                     API Keys
                 </Heading>
-                <div className="glass-card p-8 space-y-4">
+                <Card className="space-y-4">
                     <div className="h-4 bg-bg-elevated/50 rounded w-1/3 animate-pulse" />
                     <div className="h-4 bg-bg-elevated/50 rounded w-2/3 animate-pulse" />
-                </div>
+                </Card>
             </div>
         );
     }

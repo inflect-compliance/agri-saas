@@ -3,6 +3,7 @@ import { getTenantCtx } from '@/app-layer/context';
 import { runInTenantContext } from '@/lib/db-context';
 import { DashboardRepository } from '@/app-layer/repositories/DashboardRepository';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 interface RecentActivityCardProps {
     tenantSlug: string;
@@ -27,7 +28,7 @@ export default async function RecentActivityCard({
     });
 
     return (
-        <div className="glass-card p-5">
+        <Card>
             <Heading level={3} className="mb-3" id="recent-activity-heading">
                 {label}
             </Heading>
@@ -56,6 +57,6 @@ export default async function RecentActivityCard({
                 ))}
                 {recentActivity.length === 0 && <p className="text-content-subtle text-xs">{noActivityLabel}</p>}
             </div>
-        </div>
+        </Card>
     );
 }

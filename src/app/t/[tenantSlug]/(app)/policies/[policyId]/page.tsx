@@ -28,6 +28,7 @@ import { ApprovalBanner } from '@/components/ui/ApprovalBanner';
 import { VersionDiff } from '@/components/ui/VersionDiff';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 // Lazy-load Tiptap. The editor + ProseMirror chunks land at
 // ~200KB gzipped; deferring the import means the static parts of
@@ -576,7 +577,7 @@ export default function PolicyDetailPage() {
                         />
                     )}
                     {versions.length === 0 ? (
-                        <div className="glass-card p-8 text-center text-content-subtle">No versions yet.</div>
+                        <Card className="text-center text-content-subtle">No versions yet.</Card>
                     ) : versions.map((v: PolicyVersionDTO) => {
                         const vApprovals = (v.approvals || []).filter((a) => a.status === 'PENDING' || a.status === 'APPROVED' || a.status === 'REJECTED');
                         const hasPending = vApprovals.some((a) => a.status === 'PENDING');

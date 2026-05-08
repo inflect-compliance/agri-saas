@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Card } from '@/components/ui/card';
 
 // ─── Step Definitions ───
 
@@ -202,11 +203,11 @@ export default function OnboardingWizard() {
     if (!permissions.canAdmin) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="glass-card p-8 text-center max-w-md">
+                <Card className="text-center max-w-md">
                     <ShieldCheck className="w-12 h-12 text-slate-500 mx-auto mb-4" />
                     <Heading level={2} className="text-slate-200 mb-2">Access Restricted</Heading>
                     <p className="text-sm text-slate-400">Only tenant administrators can access the onboarding wizard.</p>
-                </div>
+                </Card>
             </div>
         );
     }
