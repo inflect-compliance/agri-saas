@@ -56,8 +56,18 @@ const tableCellClassName = (
     columnId === "menu" && "bg-bg-page border-l-transparent py-0 px-1",
     !["select", "menu"].includes(columnId) &&
       (hasSelectBefore ? "pl-1 pr-4" : "px-4"),
-    clickable && "group-hover/row:bg-bg-subtle transition-colors duration-75",
+    // PR-7 row hover — bg-bg-muted is the solid hover surface (was
+    // bg-bg-subtle, ~7% alpha which read as nearly invisible on dark
+    // theme). Pairs with `cursor-pointer` on the row itself to make
+    // clickability unambiguous.
+    clickable && "group-hover/row:bg-bg-muted transition-colors duration-75",
+    // PR-7 selected-row signal — left-edge brand accent via inset
+    // box-shadow on the leftmost cell. Renders only on the first
+    // non-utility cell so the accent reads as a single 2-px stroke
+    // along the row, not a per-cell border.
     "group-data-[selected=true]/row:bg-[var(--brand-subtle)]",
+    !["select", "menu"].includes(columnId) &&
+      "group-data-[selected=true]/row:first-of-type:shadow-[inset_2px_0_0_var(--brand-default)]",
   ]);
 
 const resizingClassName = cn([
@@ -739,6 +749,14 @@ export function Table<T>({
                                 header.column.id === "select"
                                   ? "flex size-full items-center justify-center"
                                   : "flex items-center gap-2",
+                                // PR-7 — keyboard-focus ring on
+                                // sortable column headers. Without
+                                // this, Tab through the table header
+                                // produced no visible focus state;
+                                // sort columns were dead-zones for
+                                // keyboard users.
+                                isSortableColumn &&
+                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:rounded-sm",
                               )}
                               {...(isSortableColumn && {
                                 type: "button",
@@ -975,7 +993,7 @@ export function Table<T>({
         </div>
       )}
       {pagination && !error && !!data?.length && !!rowCount && (
-        <div className="border-border-subtle bg-bg-default text-content-default sticky bottom-0 z-10 mx-auto -mt-px flex w-full max-w-full items-center justify-between rounded-b-[inherit] border-t px-4 py-3.5 text-sm leading-6">
+        <div className="border-border-subtle bg-bg-default text-content-default sticky bottom-0 z-10 mx-auto -mt-px flex w-full max-w-full items-center justify-between rounded-b-[inherit] border-t px-4 py-3.5 text-sm leading-6 before:pointer-events-none before:absolute before:bottom-full before:left-0 before:right-0 before:h-6 before:bg-gradient-to-t before:from-bg-default before:to-transparent">
           <div>
             <span className="hidden sm:inline-block">Viewing</span>{" "}
             <span className="font-medium">

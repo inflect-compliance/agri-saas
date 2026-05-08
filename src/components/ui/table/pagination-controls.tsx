@@ -80,6 +80,13 @@ export function PaginationControls({
       className={cn(
         "border-border-subtle bg-bg-default text-content-default",
         "sticky bottom-0 z-10 mx-auto -mt-px flex w-full max-w-full",
+        // PR-7 — `before:` pseudo-element renders a 24-px gradient
+        // fade ABOVE the sticky footer so the last visible row never
+        // butts directly against the footer's top edge during a
+        // scroll. The gradient goes from transparent to bg-default
+        // so it visually merges into the footer's solid background
+        // and gives the row underneath a soft scroll-fade indicator.
+        "before:pointer-events-none before:absolute before:bottom-full before:left-0 before:right-0 before:h-6 before:bg-gradient-to-t before:from-bg-default before:to-transparent",
         "items-center justify-between rounded-b-[inherit] border-t",
         "px-4 py-3.5 text-sm leading-6",
         className,
