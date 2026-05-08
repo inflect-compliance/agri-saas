@@ -380,7 +380,7 @@ export default function NewTaskPage() {
                                     <span className="badge badge-info text-xs">{l.entityType}</span>
                                     <span className="font-mono text-xs flex-1">{l.entityId}</span>
                                     <Tooltip content="Remove linked item">
-                                        <button type="button" className="text-red-400 text-xs hover:text-red-300" onClick={() => removePendingLink(i)} aria-label="Remove link">×</button>
+                                        <button type="button" className="text-content-error text-xs hover:text-content-error" onClick={() => removePendingLink(i)} aria-label="Remove link">×</button>
                                     </Tooltip>
                                 </div>
                             ))}

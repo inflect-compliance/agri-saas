@@ -155,21 +155,21 @@ export default function TestDashboardPage() {
                             <div className="flex-1 space-y-3">
                             <div>
                                 <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-green-400">Pass</span>
+                                    <span className="text-content-success">Pass</span>
                                     <span className="text-content-muted">{metrics.passRuns} ({metrics.passRate}%)</span>
                                 </div>
                                 <ProgressBar value={metrics.passRate} variant="success" aria-label="Pass rate" />
                             </div>
                             <div>
                                 <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-red-400">Fail</span>
+                                    <span className="text-content-error">Fail</span>
                                     <span className="text-content-muted">{metrics.failRuns} ({metrics.failRate}%)</span>
                                 </div>
                                 <ProgressBar value={metrics.failRate} variant="error" aria-label="Fail rate" />
                             </div>
                             <div>
                                 <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-amber-400">Inconclusive</span>
+                                    <span className="text-content-warning">Inconclusive</span>
                                     <span className="text-content-muted">{metrics.inconclusiveRuns}</span>
                                 </div>
                                 <ProgressBar
@@ -283,9 +283,9 @@ export default function TestDashboardPage() {
 
 function MetricCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
     const colorMap: Record<string, string> = {
-        green: 'text-green-400',
-        red: 'text-red-400',
-        amber: 'text-amber-400',
+        green: 'text-content-success',
+        red: 'text-content-error',
+        amber: 'text-content-warning',
         brand: 'text-[var(--brand-default)]',
     };
     return (

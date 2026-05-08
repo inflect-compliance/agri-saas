@@ -124,7 +124,7 @@ export default function ScimAdminPage() {
                 </div>
                 <div className={`px-3 py-1 rounded-full text-xs font-medium ${
                     activeTokens.length > 0
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        ? 'bg-bg-success text-content-success border border-border-success'
                         : 'bg-bg-elevated/50 text-content-muted border border-border-emphasis'
                 }`}>
                     {activeTokens.length > 0 ? 'Enabled' : 'Not Configured'}
@@ -158,12 +158,12 @@ export default function ScimAdminPage() {
 
             {/* New Token Alert - Only shown once */}
             {newTokenPlaintext && (
-                <div className="glass-card p-4 border-2 border-amber-500/50 bg-amber-500/5" id="new-token-alert">
+                <div className="glass-card p-4 border-2 border-border-warning bg-bg-warning" id="new-token-alert">
                     <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-5 h-5 text-content-warning shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-bold text-amber-300">Copy your SCIM token now</h3>
-                            <p className="text-xs text-amber-400/80 mt-1">
+                            <h3 className="text-sm font-bold text-content-warning">Copy your SCIM token now</h3>
+                            <p className="text-xs text-content-warning/80 mt-1">
                                 This token will not be shown again. Store it securely in your identity provider.
                             </p>
                             <div className="flex items-center gap-2 mt-3 bg-bg-page/60 rounded px-3 py-2">
@@ -171,7 +171,7 @@ export default function ScimAdminPage() {
                                     {newTokenPlaintext}
                                 </code>
                                 <Button variant="secondary" size="sm" onClick={copyToken} className="shrink-0" id="copy-token-btn">
-                                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                    {copied ? <Check className="w-3.5 h-3.5 text-content-success" /> : <Copy className="w-3.5 h-3.5" />}
                                     {copied ? 'Copied' : 'Copy'}
                                 </Button>
                             </div>
@@ -228,7 +228,7 @@ export default function ScimAdminPage() {
                 )}
 
                 {error && (
-                    <div className="p-3 text-xs text-red-400 bg-red-500/10 border-b border-red-500/20">
+                    <div className="p-3 text-xs text-content-error bg-bg-error border-b border-border-error">
                         {error}
                     </div>
                 )}

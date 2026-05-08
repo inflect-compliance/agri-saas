@@ -54,7 +54,7 @@ function GapBadges({ entry }: { entry: SoAEntryDTO }) {
     const gaps: React.JSX.Element[] = [];
     if (entry.applicable === null) {
         gaps.push(
-            <span key="unmapped" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/20 text-red-300 border border-red-500/30">
+            <span key="unmapped" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-bg-error text-content-error border border-border-error">
                 <AlertTriangle className="w-3 h-3" /> Unmapped
             </span>
         );
@@ -63,7 +63,7 @@ function GapBadges({ entry }: { entry: SoAEntryDTO }) {
         const hasMissing = entry.mappedControls.some(c => c.applicability === 'NOT_APPLICABLE' && !c.justification);
         if (hasMissing) {
             gaps.push(
-                <span key="justification" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span key="justification" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-bg-warning text-content-warning border border-border-warning">
                     <MessageSquare className="w-3 h-3" /> Justification missing
                 </span>
             );
@@ -206,19 +206,19 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
             {/* Summary cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <SummaryCard label="Total" value={summary.total} icon={<FileText className="w-4 h-4 text-content-muted" />} />
-                <SummaryCard label="Applicable" value={summary.applicable} icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />} />
+                <SummaryCard label="Applicable" value={summary.applicable} icon={<CheckCircle2 className="w-4 h-4 text-content-success" />} />
                 <SummaryCard label="Not Applicable" value={summary.notApplicable} icon={<XCircle className="w-4 h-4 text-content-muted" />} />
-                <SummaryCard label="Unmapped" value={summary.unmapped} icon={<HelpCircle className="w-4 h-4 text-red-400" />} accent={summary.unmapped > 0 ? 'danger' : undefined} />
-                <SummaryCard label="Implemented" value={summary.implemented} icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />} />
-                <SummaryCard label="Missing Justification" value={summary.missingJustification} icon={<AlertTriangle className="w-4 h-4 text-amber-400" />} accent={summary.missingJustification > 0 ? 'warning' : undefined} />
+                <SummaryCard label="Unmapped" value={summary.unmapped} icon={<HelpCircle className="w-4 h-4 text-content-error" />} accent={summary.unmapped > 0 ? 'danger' : undefined} />
+                <SummaryCard label="Implemented" value={summary.implemented} icon={<CheckCircle2 className="w-4 h-4 text-content-success" />} />
+                <SummaryCard label="Missing Justification" value={summary.missingJustification} icon={<AlertTriangle className="w-4 h-4 text-content-warning" />} accent={summary.missingJustification > 0 ? 'warning' : undefined} />
             </div>
 
             {/* Readiness banner */}
             {(summary.unmapped > 0 || summary.missingJustification > 0) && (
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 flex items-center justify-between" id="soa-readiness-banner">
+                <div className="rounded-xl border border-border-error bg-bg-error px-4 py-3 flex items-center justify-between" id="soa-readiness-banner">
                     <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                        <div className="text-xs text-red-200">
+                        <AlertTriangle className="w-4 h-4 text-content-error flex-shrink-0" />
+                        <div className="text-xs text-content-error">
                             <span className="font-semibold">SoA not audit-ready:</span>
                             {summary.unmapped > 0 && <span className="ml-1">{summary.unmapped} unmapped requirement{summary.unmapped > 1 ? 's' : ''}</span>}
                             {summary.unmapped > 0 && summary.missingJustification > 0 && <span>, </span>}
@@ -482,7 +482,7 @@ function SoARow({
 
     return (
         <>
-            <tr className={`${hasGap ? 'bg-red-500/5' : ''} cursor-pointer hover:bg-bg-elevated/30`} onClick={onToggle}>
+            <tr className={`${hasGap ? 'bg-bg-error' : ''} cursor-pointer hover:bg-bg-elevated/30`} onClick={onToggle}>
                 <td className="text-xs font-mono text-[var(--brand-default)]">{entry.requirementCode}</td>
                 <td className="text-sm text-content-emphasis">
                     <div>{entry.requirementTitle}</div>
@@ -560,11 +560,11 @@ function SoARow({
                                 <div className="text-[10px] text-content-subtle">Evidence: {entry.evidenceCount} items</div>
                             )}
                             {entry.openTaskCount > 0 && (
-                                <div className="text-[10px] text-amber-400">Open tasks: {entry.openTaskCount}</div>
+                                <div className="text-[10px] text-content-warning">Open tasks: {entry.openTaskCount}</div>
                             )}
                             {entry.lastTestResult && (
                                 <div className="text-[10px] text-content-subtle">
-                                    Last test: <span className={entry.lastTestResult === 'PASS' ? 'text-emerald-400' : 'text-red-400'}>{entry.lastTestResult}</span>
+                                    Last test: <span className={entry.lastTestResult === 'PASS' ? 'text-content-success' : 'text-content-error'}>{entry.lastTestResult}</span>
                                 </div>
                             )}
                         </div>
@@ -578,7 +578,7 @@ function SoARow({
 // ─── Summary Card ───
 
 function SummaryCard({ label, value, icon, accent }: { label: string; value: number; icon: React.ReactNode; accent?: 'danger' | 'warning' }) {
-    const border = accent === 'danger' ? 'border-red-500/30' : accent === 'warning' ? 'border-amber-500/30' : 'border-border-default/50';
+    const border = accent === 'danger' ? 'border-border-error' : accent === 'warning' ? 'border-border-warning' : 'border-border-default/50';
     return (
         <div className={`glass-card px-4 py-3 border ${border}`}>
             <div className="flex items-center justify-between">

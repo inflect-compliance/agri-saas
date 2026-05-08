@@ -110,8 +110,8 @@ function nextRunTone(nextRunAtIso: string | null): NextRunTone {
 }
 
 const TONE_CLASS: Record<NextRunTone, string> = {
-    overdue: 'text-red-400 font-semibold',
-    today: 'text-amber-400 font-semibold',
+    overdue: 'text-content-error font-semibold',
+    today: 'text-content-warning font-semibold',
     normal: 'text-content-default',
     none: 'text-content-subtle',
 };
@@ -278,7 +278,7 @@ export function TestPlanScheduleSection({
                     )}
                     {pendingCadence === 'CUSTOM' && (
                         <p
-                            className="text-xs text-amber-400 mt-1"
+                            className="text-xs text-content-warning mt-1"
                             data-testid="test-plan-custom-schedule-warning"
                         >
                             This plan has a custom schedule that doesn&apos;t
@@ -324,7 +324,7 @@ export function TestPlanScheduleSection({
                 <div className="flex items-center justify-between border-t border-border-default/40 pt-3">
                     {error ? (
                         <span
-                            className="text-xs text-red-400"
+                            className="text-xs text-content-error"
                             role="alert"
                             data-testid="test-plan-schedule-error"
                         >

@@ -72,7 +72,7 @@ export default function LinkedTasksPanel({ apiBase, entityType, entityId, tenant
                         <span className={`badge ${SEVERITY_BADGE[task.severity] || 'badge-neutral'} text-xs`}>{task.severity}</span>
                     )}
                     {task.dueAt && (
-                        <span className={`text-xs ${new Date(task.dueAt) < new Date() ? 'text-red-400' : 'text-content-muted'}`}>
+                        <span className={`text-xs ${new Date(task.dueAt) < new Date() ? 'text-content-error' : 'text-content-muted'}`}>
                             {formatDate(task.dueAt)}
                         </span>
                     )}

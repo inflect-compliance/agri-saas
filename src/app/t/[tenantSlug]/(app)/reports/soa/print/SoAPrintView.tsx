@@ -39,7 +39,7 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
                 <div className="flex gap-2">
                     <button
                         onClick={() => window.print()}
-                        className="px-4 py-2 bg-blue-600 text-content-emphasis rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                        className="px-4 py-2 bg-bg-info-emphasis text-content-emphasis rounded-lg text-sm font-medium hover:bg-bg-info-emphasis transition-colors"
                     >
                         Print / Save as PDF
                     </button>
@@ -122,16 +122,16 @@ function PrintRow({ entry }: { entry: SoAEntryDTO }) {
         : entry.applicable === false ? 'No'
         : 'Unmapped';
 
-    const applicableClass = entry.applicable === true ? 'text-green-700'
+    const applicableClass = entry.applicable === true ? 'text-content-success'
         : entry.applicable === false ? 'text-gray-600'
-        : 'text-red-600 font-semibold';
+        : 'text-content-error font-semibold';
 
     const controlRefs = entry.mappedControls
         .map(c => `${c.code || '—'} — ${c.title}`)
         .join('\n');
 
     return (
-        <tr className={entry.applicable === null ? 'bg-red-50' : ''}>
+        <tr className={entry.applicable === null ? 'bg-bg-error-emphasis' : ''}>
             <td className="border border-gray-300 px-2 py-1.5 font-mono text-xs">{entry.requirementCode}</td>
             <td className="border border-gray-300 px-2 py-1.5">{entry.requirementTitle}</td>
             <td className={`border border-gray-300 px-2 py-1.5 font-medium ${applicableClass}`}>{applicable}</td>
@@ -147,10 +147,10 @@ function PrintRow({ entry }: { entry: SoAEntryDTO }) {
 function SummaryBox({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
     const percent = total > 0 ? Math.round((value / total) * 100) : 0;
     const colorMap: Record<string, string> = {
-        green: 'border-green-500 bg-green-50',
+        green: 'border-border-success bg-bg-success-emphasis',
         gray: 'border-gray-400 bg-gray-50',
-        red: 'border-red-500 bg-red-50',
-        amber: 'border-amber-500 bg-amber-50',
+        red: 'border-border-error bg-bg-error-emphasis',
+        amber: 'border-border-warning bg-bg-warning-emphasis',
     };
 
     return (

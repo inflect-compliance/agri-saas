@@ -193,7 +193,7 @@ export function TestDashboardG2Section({
                                         </div>
                                     </div>
                                     <div className="text-right shrink-0 ml-3">
-                                        <div className="text-xs text-red-400 font-semibold">
+                                        <div className="text-xs text-content-error font-semibold">
                                             {Math.abs(row.daysUntilRun)}d overdue
                                         </div>
                                         <div className="text-xs text-content-subtle">

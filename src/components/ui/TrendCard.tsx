@@ -20,7 +20,7 @@
  *       value={75.3}
  *       format="%"
  *       points={[{ date, value }, ...]}
- *       colorClassName="text-emerald-500"
+ *       colorClassName="text-content-success"
  *   />
  */
 

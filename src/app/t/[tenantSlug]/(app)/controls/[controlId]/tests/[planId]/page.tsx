@@ -142,7 +142,7 @@ export default function TestPlanDetailPage() {
     };
 
     if (loading) return <div className="p-12 text-center text-content-subtle animate-pulse">Loading test plan...</div>;
-    if (error) return <div className="p-12 text-center text-red-400">{error}</div>;
+    if (error) return <div className="p-12 text-center text-content-error">{error}</div>;
     if (!plan) return <div className="p-12 text-center text-content-subtle">Plan not found.</div>;
 
     return (
@@ -168,7 +168,7 @@ export default function TestPlanDetailPage() {
                         {plan.nextDueAt && (
                             <>
                                 <span className="text-xs text-content-subtle">•</span>
-                                <span className={`text-xs ${new Date(plan.nextDueAt) < new Date() ? 'text-red-400 font-semibold' : 'text-content-muted'}`}>
+                                <span className={`text-xs ${new Date(plan.nextDueAt) < new Date() ? 'text-content-error font-semibold' : 'text-content-muted'}`}>
                                     Due: {formatDate(plan.nextDueAt)}
                                 </span>
                             </>
@@ -238,13 +238,13 @@ export default function TestPlanDetailPage() {
                     <div className="text-xs text-content-muted mt-1">Total Runs</div>
                 </div>
                 <div className="glass-card p-4 text-center">
-                    <div className="text-2xl font-bold text-green-400">
+                    <div className="text-2xl font-bold text-content-success">
                         {plan.runs?.filter(r => r.result === 'PASS').length ?? 0}
                     </div>
                     <div className="text-xs text-content-muted mt-1">Passed</div>
                 </div>
                 <div className="glass-card p-4 text-center">
-                    <div className="text-2xl font-bold text-red-400">
+                    <div className="text-2xl font-bold text-content-error">
                         {plan.runs?.filter(r => r.result === 'FAIL').length ?? 0}
                     </div>
                     <div className="text-xs text-content-muted mt-1">Failed</div>

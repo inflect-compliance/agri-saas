@@ -300,13 +300,13 @@ export function EvidenceBulkImportModal({
                             )}
                             {isTerminal && result && (
                                 <ul className="mt-2 space-y-0.5 text-xs">
-                                    <li className="text-emerald-300">
+                                    <li className="text-content-success">
                                         Extracted: {result.extracted ?? 0}
                                     </li>
-                                    <li className="text-amber-300">
+                                    <li className="text-content-warning">
                                         Skipped: {result.skipped ?? 0}
                                     </li>
-                                    <li className="text-rose-300">
+                                    <li className="text-content-error">
                                         Errored: {result.errored ?? 0}
                                     </li>
                                     {result.firstError && (

@@ -107,7 +107,7 @@ export default function CycleReadinessPage() {
                     <div className="space-y-2">
                         {result.recommendations.map((r: string, i: number) => (
                             <div key={i} className="flex items-start gap-2 text-sm">
-                                <span className="text-amber-400 flex-shrink-0">→</span>
+                                <span className="text-content-warning flex-shrink-0">→</span>
                                 <span className="text-content-default">{r}</span>
                             </div>
                         ))}

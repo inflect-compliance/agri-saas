@@ -169,10 +169,10 @@ export default function PackDetailPage() {
 
             {/* Share Link */}
             {shareLink && (
-                <div className="glass-card p-4 border border-emerald-500/30 bg-emerald-500/5 animate-fadeIn" id="share-link-card">
+                <div className="glass-card p-4 border border-border-success bg-bg-success animate-fadeIn" id="share-link-card">
                     <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                            <p className="text-sm font-medium text-emerald-400">Share Link Generated</p>
+                            <p className="text-sm font-medium text-content-success">Share Link Generated</p>
                             <p className="text-xs text-content-muted mt-1 break-all" id="share-link-url">{shareLink}</p>
                         </div>
                         <CopyButton

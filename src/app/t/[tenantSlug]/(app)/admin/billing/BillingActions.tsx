@@ -75,7 +75,7 @@ export function BillingActions({
                     {!loading && <ExternalLink className="w-4 h-4" />}
                     Manage Billing
                 </Button>
-                {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+                {error && <p className="text-xs text-content-error mt-2">{error}</p>}
             </div>
         );
     }
@@ -92,7 +92,7 @@ export function BillingActions({
                 {!loading && <CreditCard className="w-4 h-4" />}
                 Upgrade to {plan}
             </Button>
-            {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+            {error && <p className="text-xs text-content-error mt-2">{error}</p>}
         </div>
     );
 }

@@ -315,7 +315,7 @@ export function VendorTemplateBuilderClient({
     if (loading) return <SkeletonDetailPage />;
     if (!tree)
         return (
-            <div className="p-12 text-center text-red-400">
+            <div className="p-12 text-center text-content-error">
                 {error ?? 'Template not found.'}
             </div>
         );
@@ -363,7 +363,7 @@ export function VendorTemplateBuilderClient({
 
             {tree.isPublished && (
                 <div
-                    className="glass-card p-4 border border-amber-400/40"
+                    className="glass-card p-4 border border-border-warning"
                     role="alert"
                     data-testid="published-banner"
                 >
@@ -391,7 +391,7 @@ export function VendorTemplateBuilderClient({
 
             {error && (
                 <p
-                    className="text-xs text-red-400"
+                    className="text-xs text-content-error"
                     role="alert"
                     data-testid="builder-error"
                 >

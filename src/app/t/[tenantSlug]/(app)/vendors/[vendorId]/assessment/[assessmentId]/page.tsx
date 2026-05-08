@@ -97,7 +97,7 @@ export default function AssessmentPage(
     };
 
     if (loading) return <SkeletonDetailPage />;
-    if (!assessment) return <div className="text-red-400 py-8 text-center">Assessment not found</div>;
+    if (!assessment) return <div className="text-content-error py-8 text-center">Assessment not found</div>;
 
     const isDraft = assessment.status === 'DRAFT';
     const isInReview = assessment.status === 'IN_REVIEW';
@@ -184,7 +184,7 @@ export default function AssessmentPage(
             </div>
 
             {/* Saved message */}
-            {savedMessage && <div className="bg-green-500/20 text-green-300 p-2 rounded text-sm" id="save-success">{savedMessage}</div>}
+            {savedMessage && <div className="bg-bg-success text-content-success p-2 rounded text-sm" id="save-success">{savedMessage}</div>}
 
             {/* Questions by section */}
             {Object.entries(sections).map(([section, sQuestions]) => (
@@ -195,7 +195,7 @@ export default function AssessmentPage(
                             <div className="flex items-start gap-2">
                                 <span className="text-xs text-content-subtle font-mono mt-0.5">{q.sortOrder}.</span>
                                 <div className="flex-1">
-                                    <p className="text-sm font-medium">{q.prompt}{q.required && <span className="text-red-400 ml-1">*</span>}</p>
+                                    <p className="text-sm font-medium">{q.prompt}{q.required && <span className="text-content-error ml-1">*</span>}</p>
                                     <div className="mt-1.5">{renderInput(q)}</div>
                                 </div>
                                 <Tooltip content="Question weight — multiplies the response score in the overall risk calculation.">
@@ -233,7 +233,7 @@ export default function AssessmentPage(
                 )}
                 {isDecided && (
                     <div className="text-sm text-content-muted">
-                        Assessment is <strong className={assessment.status === 'APPROVED' ? 'text-green-400' : 'text-red-400'}>{assessment.status}</strong>.
+                        Assessment is <strong className={assessment.status === 'APPROVED' ? 'text-content-success' : 'text-content-error'}>{assessment.status}</strong>.
                         {assessment.riskRating && <span className="ml-2">Risk Rating: <span className={`badge ${CRIT_BADGE[assessment.riskRating]}`}>{assessment.riskRating}</span></span>}
                     </div>
                 )}

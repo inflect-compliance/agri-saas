@@ -120,15 +120,15 @@ export default function DueQueuePage() {
             <ListPageShell.Filters className="space-y-6">
                 {/* Planning result */}
             {planningResult && (
-                <div className="glass-card p-4 border border-green-500/30 bg-green-500/5" id="planning-result">
-                    <p className="text-sm text-green-400">
+                <div className="glass-card p-4 border border-border-success bg-bg-success" id="planning-result">
+                    <p className="text-sm text-content-success">
                         Due planning complete: checked {planningResult.checked} plans,
                         created {planningResult.created} new runs,
                         {planningResult.alreadyPending} already had pending runs.
                     </p>
                 </div>
             )}
-            {error && <div className="glass-card p-4 border border-red-500/30 text-red-400 text-sm">{error}</div>}
+            {error && <div className="glass-card p-4 border border-border-error text-content-error text-sm">{error}</div>}
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
@@ -137,11 +137,11 @@ export default function DueQueuePage() {
                     <div className="text-xs text-content-muted mt-1">Due / Due Soon</div>
                 </div>
                 <div className="glass-card p-4 text-center">
-                    <div className={`text-2xl font-bold ${overdueCount > 0 ? 'text-red-400' : 'text-green-400'}`}>{overdueCount}</div>
+                    <div className={`text-2xl font-bold ${overdueCount > 0 ? 'text-content-error' : 'text-content-success'}`}>{overdueCount}</div>
                     <div className="text-xs text-content-muted mt-1">Overdue</div>
                 </div>
                 <div className="glass-card p-4 text-center">
-                    <div className={`text-2xl font-bold ${pendingCount > 0 ? 'text-amber-400' : 'text-content-subtle'}`}>{pendingCount}</div>
+                    <div className={`text-2xl font-bold ${pendingCount > 0 ? 'text-content-warning' : 'text-content-subtle'}`}>{pendingCount}</div>
                     <div className="text-xs text-content-muted mt-1">Pending Runs</div>
                 </div>
             </div>
@@ -172,7 +172,7 @@ export default function DueQueuePage() {
                     {
                         id: 'dueDate', header: 'Due Date', accessorKey: 'nextDueAt',
                         cell: ({ row }) => (
-                            <span className={row.original.isOverdue ? 'text-red-400 font-semibold' : 'text-amber-400'}>
+                            <span className={row.original.isOverdue ? 'text-content-error font-semibold' : 'text-content-warning'}>
                                 {formatDate(row.original.nextDueAt)}
                                 {row.original.isOverdue && ' !'}
                             </span>

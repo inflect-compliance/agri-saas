@@ -139,8 +139,8 @@ function kpiFormatToAnimated(format: KpiFormat): AnimatedNumberFormat {
 // flips light/dark in lockstep.
 
 const SEMANTIC_TEXT_TOKEN = {
-    good: 'text-emerald-400',
-    bad: 'text-red-400',
+    good: 'text-content-success',
+    bad: 'text-content-error',
     neutral: 'text-content-subtle',
 } as const;
 

@@ -133,7 +133,9 @@ describe('ConfirmDialog', () => {
     it('paints the destructive button class when tone="danger"', async () => {
         render(<Harness onConfirm={() => undefined} tone="danger" />);
         const confirm = await screen.findByRole('button', { name: 'Revoke' });
-        expect(confirm.className).toMatch(/bg-red-600/);
+        // PR-1 migrated the danger button variant from bg-red-600/80 to the
+        // semantic bg-bg-error-emphasis token.
+        expect(confirm.className).toMatch(/bg-bg-error-emphasis/);
     });
 
     it('keeps the modal open when onConfirm rejects', async () => {

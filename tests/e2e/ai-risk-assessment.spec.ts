@@ -34,7 +34,8 @@ test.describe('AI-Assisted Risk Assessment', () => {
 
         // Select ISO27001 framework
         await page.click('#fw-iso27001');
-        await expect(page.locator('#fw-iso27001')).toHaveClass(/bg-blue-600/);
+        // Selected framework chip uses the semantic info-emphasis token after PR-1 migration.
+        await expect(page.locator('#fw-iso27001')).toHaveClass(/bg-bg-info-emphasis/);
 
         // Generate suggestions
         await page.click('#ai-generate-btn');

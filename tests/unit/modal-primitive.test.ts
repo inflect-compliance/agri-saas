@@ -127,9 +127,14 @@ describe('Modal.Confirm — tone-driven confirmation dialog', () => {
         expect(MODAL_SRC).toMatch(/text-content-info/);
     });
 
-    it('danger tone drives a btn-danger primary action', () => {
-        expect(MODAL_SRC).toMatch(/tonePrimaryClass/);
-        expect(MODAL_SRC).toMatch(/btn btn-danger/);
+    it('danger tone drives a danger Button variant', () => {
+        // Legacy `.btn .btn-danger` CSS classes were retired in the
+        // .btn → <Button> migration; the modal Confirm now wires
+        // `variant={tonePrimaryVariant[tone]}` where tone='danger'
+        // resolves to the danger <Button> variant (which itself paints
+        // bg-bg-error-emphasis after PR-1).
+        expect(MODAL_SRC).toMatch(/tonePrimaryVariant/);
+        expect(MODAL_SRC).toMatch(/danger.*\|.*primary/);
     });
 
     it('handles async onConfirm with success-to-close semantics', () => {

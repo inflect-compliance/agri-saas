@@ -266,7 +266,7 @@ export default function TaskDetailPage() {
             <SkeletonCard lines={4} />
         </div>
     );
-    if (error) return <div className="p-12 text-center text-red-400">{error}</div>;
+    if (error) return <div className="p-12 text-center text-content-error">{error}</div>;
     if (!task) return <div className="p-12 text-center text-content-subtle">Task not found.</div>;
 
     const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
@@ -419,7 +419,7 @@ export default function TaskDetailPage() {
                         {task.completedAt && (
                             <div>
                                 <span className="text-xs text-content-subtle uppercase">Completed At</span>
-                                <p className="text-sm text-emerald-400 mt-1">{formatDateTime(task.completedAt)}</p>
+                                <p className="text-sm text-content-success mt-1">{formatDateTime(task.completedAt)}</p>
                             </div>
                         )}
                         {task.resolution && (
@@ -498,7 +498,7 @@ export default function TaskDetailPage() {
                                             <td className="text-xs text-content-muted">{formatDate(l.createdAt)}</td>
                                             {permissions.canWrite && (
                                                 <td>
-                                                    <button className="text-red-400 text-xs hover:text-red-300" onClick={() => removeLink(l.id)}>
+                                                    <button className="text-content-error text-xs hover:text-content-error" onClick={() => removeLink(l.id)}>
                                                         × Remove
                                                     </button>
                                                 </td>

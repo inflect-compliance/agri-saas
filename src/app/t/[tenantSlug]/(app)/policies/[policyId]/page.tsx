@@ -316,7 +316,7 @@ export default function PolicyDetailPage() {
 
     if (loading) return <div className="p-12 text-center text-content-subtle animate-pulse">Loading policy...</div>;
     if (error && !policy) return (
-        <div className="glass-card p-12 text-center text-red-400 animate-fadeIn">
+        <div className="glass-card p-12 text-center text-content-error animate-fadeIn">
             <p className="text-lg">{error}</p>
             <Link href={tenantHref('/policies')} className={buttonVariants({ variant: 'secondary', className: 'mt-4' })}>← Back to Policies</Link>
         </div>
@@ -381,9 +381,9 @@ export default function PolicyDetailPage() {
             </div>
 
             {error && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                <div className="p-3 rounded-lg bg-bg-error border border-border-error text-content-error text-sm">
                     {error}
-                    <button onClick={() => setError('')} className="ml-2 text-red-300 hover:text-content-emphasis" aria-label="Dismiss error">×</button>
+                    <button onClick={() => setError('')} className="ml-2 text-content-error hover:text-content-emphasis" aria-label="Dismiss error">×</button>
                 </div>
             )}
 
@@ -401,7 +401,7 @@ export default function PolicyDetailPage() {
                             {policy.category && <span>{policy.category}</span>}
                             {policy.owner && <span>{policy.owner.name}</span>}
                             {policy.nextReviewAt && (
-                                <span className={isOverdue ? 'text-red-400' : ''}>
+                                <span className={isOverdue ? 'text-content-error' : ''}>
                                     Review: {formatDate(policy.nextReviewAt)}
                                 </span>
                             )}
@@ -500,7 +500,7 @@ export default function PolicyDetailPage() {
                                 className={buttonVariants({ variant: 'primary', size: 'sm' })} id="new-version-btn">New Version</button>
                         )}
                         {canAdmin && policy.status !== 'ARCHIVED' && (
-                            <Button variant="ghost" size="sm" className="text-content-muted hover:text-red-400" onClick={archivePolicy} disabled={actionLoading === 'archive'} id="archive-btn">
+                            <Button variant="ghost" size="sm" className="text-content-muted hover:text-content-error" onClick={archivePolicy} disabled={actionLoading === 'archive'} id="archive-btn">
                                 {actionLoading === 'archive' ? '...' : 'Archive'}
                             </Button>
                         )}

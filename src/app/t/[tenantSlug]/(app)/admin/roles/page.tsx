@@ -157,7 +157,7 @@ function PermissionGrid({
                                                 className={`
                                                     inline-flex items-center justify-center w-5 h-5 rounded transition
                                                     ${granted
-                                                        ? 'bg-emerald-500/30 text-emerald-400 hover:bg-emerald-500/50'
+                                                        ? 'bg-bg-success text-content-success hover:bg-bg-success'
                                                         : 'bg-bg-elevated/50 text-content-subtle hover:bg-bg-elevated/80'
                                                     }
                                                     ${readonly ? 'cursor-default' : 'cursor-pointer'}
@@ -585,19 +585,19 @@ export default function CustomRolesPage() {
             <ListPageShell.Filters className="space-y-4">
                 {/* Messages */}
                 {error && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2" id="roles-error">
-                        <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                        <span className="text-sm text-red-400">{error}</span>
-                        <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300">
+                    <div className="p-3 bg-bg-error border border-border-error rounded-lg flex items-center gap-2" id="roles-error">
+                        <XCircle className="w-4 h-4 text-content-error flex-shrink-0" />
+                        <span className="text-sm text-content-error">{error}</span>
+                        <button onClick={() => setError(null)} className="ml-auto text-content-error hover:text-content-error">
                             <XCircle className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 )}
                 {success && (
-                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2" id="roles-success">
-                        <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                        <span className="text-sm text-emerald-400">{success}</span>
-                        <button onClick={() => setSuccess(null)} className="ml-auto text-emerald-400 hover:text-emerald-300">
+                    <div className="p-3 bg-bg-success border border-border-success rounded-lg flex items-center gap-2" id="roles-success">
+                        <CheckCircle className="w-4 h-4 text-content-success flex-shrink-0" />
+                        <span className="text-sm text-content-success">{success}</span>
+                        <button onClick={() => setSuccess(null)} className="ml-auto text-content-success hover:text-content-success">
                             <XCircle className="w-3.5 h-3.5" />
                         </button>
                     </div>

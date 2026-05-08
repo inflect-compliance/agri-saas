@@ -8,7 +8,7 @@ export default function NotFound() {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
             <div className="max-w-md w-full text-center space-y-6">
-                <div className="text-blue-600 dark:text-blue-400 font-bold text-6xl tracking-tighter">
+                <div className="text-content-info dark:text-content-info font-bold text-6xl tracking-tighter">
                     404
                 </div>
 
@@ -24,7 +24,7 @@ export default function NotFound() {
                 <div className="pt-6">
                     <Link
                         href="/dashboard"
-                        className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-sm"
+                        className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-bg-info-emphasis hover:bg-bg-info-emphasis focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--border-info)]0 transition-all shadow-sm"
                     >
                         Return to Dashboard
                     </Link>

@@ -910,7 +910,7 @@ export default function ControlDetailPage() {
                         {control.applicability === 'NOT_APPLICABLE' && control.applicabilityJustification && (
                             <div className="col-span-2">
                                 <span className="text-xs text-content-subtle uppercase">N/A Justification</span>
-                                <p className="text-sm text-yellow-400 mt-1">{control.applicabilityJustification}</p>
+                                <p className="text-sm text-content-warning mt-1">{control.applicabilityJustification}</p>
                             </div>
                         )}
                         <div>
@@ -966,8 +966,8 @@ export default function ControlDetailPage() {
                         {/* Sync result flash */}
                         {syncResult && (
                             <div className={`mb-3 p-2.5 rounded text-xs flex items-start gap-2 ${
-                                syncResult.status === 'PASSED' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                                : syncResult.status === 'FAILED' || syncResult.status === 'ERROR' ? 'bg-red-500/10 border border-red-500/30 text-red-400'
+                                syncResult.status === 'PASSED' ? 'bg-bg-success border border-border-success text-content-success'
+                                : syncResult.status === 'FAILED' || syncResult.status === 'ERROR' ? 'bg-bg-error border border-border-error text-content-error'
                                 : 'bg-bg-elevated/50 border border-border-emphasis text-content-default'
                             }`} id="sync-result-banner">
                                 <span className="font-semibold">{syncResult.status}</span>
@@ -1019,7 +1019,7 @@ export default function ControlDetailPage() {
                                             )}
                                         </div>
                                         {syncError && syncStatus !== 'SYNCED' && (
-                                            <p className="text-xs text-red-400 mt-1 truncate" title={syncError}>{syncError}</p>
+                                            <p className="text-xs text-content-error mt-1 truncate" title={syncError}>{syncError}</p>
                                         )}
                                     </div>
                                 )}
@@ -1171,7 +1171,7 @@ export default function ControlDetailPage() {
 
             {/* Success toast */}
             {editSuccess && (
-                <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-content-emphasis px-4 py-2 rounded-lg shadow-lg animate-fadeIn text-sm" id="edit-success-toast">
+                <div className="fixed bottom-6 right-6 z-50 bg-bg-success-emphasis text-content-emphasis px-4 py-2 rounded-lg shadow-lg animate-fadeIn text-sm" id="edit-success-toast">
                     Control updated
                 </div>
             )}
@@ -1289,7 +1289,7 @@ export default function ControlDetailPage() {
                                 id="control-upload-title"
                             />
                             {fileUploadError && (
-                                <div className="text-red-400 text-sm bg-red-900/20 rounded px-3 py-2">{fileUploadError}</div>
+                                <div className="text-content-error text-sm bg-bg-error rounded px-3 py-2">{fileUploadError}</div>
                             )}
                             {fileUploading && (
                                 // Epic 59 — ProgressBar primitive. The actual
@@ -1343,7 +1343,7 @@ export default function ControlDetailPage() {
                                                 <td className="text-xs text-content-muted">{el.createdAt ? formatDate(el.createdAt) : '—'}</td>
                                                 {permissions.canWrite && (
                                                     <td>
-                                                        <button className="text-red-400 text-xs hover:text-red-300" onClick={() => unlinkEvidence(el.id)} id={`unlink-${el.id}`}>
+                                                        <button className="text-content-error text-xs hover:text-content-error" onClick={() => unlinkEvidence(el.id)} id={`unlink-${el.id}`}>
                                                             × Remove
                                                         </button>
                                                     </td>
@@ -1437,7 +1437,7 @@ export default function ControlDetailPage() {
                                             </td>
                                             {permissions.canWrite && (
                                                 <td>
-                                                    <button className="text-red-400 text-xs hover:text-red-300" onClick={() => unmapRequirement(m.fromRequirement?.id || m.fromRequirementId || '')} id={`unmap-${m.id}`}>
+                                                    <button className="text-content-error text-xs hover:text-content-error" onClick={() => unmapRequirement(m.fromRequirement?.id || m.fromRequirementId || '')} id={`unmap-${m.id}`}>
                                                         × Remove
                                                     </button>
                                                 </td>

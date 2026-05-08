@@ -11,8 +11,8 @@
  *     value={75.3}
  *     max={100}
  *     segments={[
- *         { label: 'Implemented', value: 15, color: 'bg-emerald-500' },
- *         { label: 'In Progress', value: 3, color: 'bg-amber-500' },
+ *         { label: 'Implemented', value: 15, color: 'bg-bg-success-emphasis' },
+ *         { label: 'In Progress', value: 3, color: 'bg-bg-warning-emphasis' },
  *         { label: 'Not Started', value: 2, color: 'bg-slate-600' },
  *     ]}
  * />

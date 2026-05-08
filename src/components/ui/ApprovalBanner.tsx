@@ -101,27 +101,27 @@ export function ApprovalBanner({
         switch (approval.status) {
             case 'APPROVED':
                 return {
-                    border: 'border-emerald-500/40',
-                    bg: 'bg-emerald-500/10',
-                    fg: 'text-emerald-300',
-                    icon: <CheckCircle2 size={16} className="text-emerald-400" />,
+                    border: 'border-border-success',
+                    bg: 'bg-bg-success',
+                    fg: 'text-content-success',
+                    icon: <CheckCircle2 size={16} className="text-content-success" />,
                     label: 'Approved',
                 };
             case 'REJECTED':
                 return {
-                    border: 'border-rose-500/40',
-                    bg: 'bg-rose-500/10',
-                    fg: 'text-rose-300',
-                    icon: <XCircle size={16} className="text-rose-400" />,
+                    border: 'border-border-error',
+                    bg: 'bg-bg-error',
+                    fg: 'text-content-error',
+                    icon: <XCircle size={16} className="text-content-error" />,
                     label: 'Rejected',
                 };
             case 'PENDING':
             default:
                 return {
-                    border: 'border-amber-500/40',
-                    bg: 'bg-amber-500/10',
-                    fg: 'text-amber-300',
-                    icon: <Clock size={16} className="text-amber-400" />,
+                    border: 'border-border-warning',
+                    bg: 'bg-bg-warning',
+                    fg: 'text-content-warning',
+                    icon: <Clock size={16} className="text-content-warning" />,
                     label: 'Pending Review',
                 };
         }

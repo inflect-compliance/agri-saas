@@ -130,9 +130,9 @@ export function CoverageBar({
 }) {
     const width = percent === null ? 0 : Math.min(100, Math.max(0, percent));
     const colorClass =
-        rag === 'GREEN' ? 'bg-emerald-500'
-        : rag === 'AMBER' ? 'bg-amber-500'
-        : rag === 'RED' ? 'bg-rose-500'
+        rag === 'GREEN' ? 'bg-bg-success-emphasis'
+        : rag === 'AMBER' ? 'bg-bg-warning-emphasis'
+        : rag === 'RED' ? 'bg-bg-error-emphasis'
         : 'bg-border-emphasis';
     return (
         <div className="mt-1 h-1.5 rounded-full bg-bg-muted overflow-hidden">

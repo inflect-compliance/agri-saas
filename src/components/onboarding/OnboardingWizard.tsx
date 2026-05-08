@@ -295,10 +295,10 @@ export default function OnboardingWizard() {
             </div>
 
             {error && (
-                <div className="glass-card border-red-500/30 p-3 text-sm text-red-400 flex items-center gap-2">
+                <div className="glass-card border-border-error p-3 text-sm text-content-error flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                     {error}
-                    <button onClick={() => setError(null)} className="ml-auto text-red-300 hover:text-white text-xs">&times;</button>
+                    <button onClick={() => setError(null)} className="ml-auto text-content-error hover:text-white text-xs">&times;</button>
                 </div>
             )}
 
@@ -329,10 +329,10 @@ export default function OnboardingWizard() {
                                     }`}
                                 >
                                     <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                        completed ? 'bg-emerald-500/20' : active ? `bg-gradient-to-br ${step.color} opacity-80` : 'bg-slate-700/50'
+                                        completed ? 'bg-bg-success' : active ? `bg-gradient-to-br ${step.color} opacity-80` : 'bg-slate-700/50'
                                     }`}>
                                         {completed ? (
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                            <CheckCircle2 className="w-4 h-4 text-content-success" />
                                         ) : (
                                             <Icon className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-slate-500'}`} />
                                         )}
@@ -539,7 +539,7 @@ function FrameworkSelectionStep({ data, onUpdate }: { data: StepData; onUpdate: 
                     );
                 })}
             </div>
-            {selected.length === 0 && <p className="text-xs text-amber-400">Select at least one framework to continue.</p>}
+            {selected.length === 0 && <p className="text-xs text-content-warning">Select at least one framework to continue.</p>}
         </div>
     );
 }
@@ -584,7 +584,7 @@ function AssetSetupStep({ data, onUpdate }: { data: StepData; onUpdate: (d: Step
                                 <Server className="w-3.5 h-3.5 text-slate-500" />
                                 <span className="text-slate-200">{a}</span>
                             </div>
-                            <button onClick={() => removeAsset(a)} className="text-slate-500 hover:text-red-400 text-xs">&times;</button>
+                            <button onClick={() => removeAsset(a)} className="text-slate-500 hover:text-content-error text-xs">&times;</button>
                         </div>
                     ))}
                 </div>
@@ -604,7 +604,7 @@ function ControlInstallStep({ data, onUpdate, allData }: { data: StepData; onUpd
         <div className="space-y-4 max-w-lg animate-fadeIn">
             <p className="text-sm text-slate-400 mb-4">We&apos;ll install baseline controls from your selected frameworks. This creates your initial control register.</p>
             {selectedFrameworks.length === 0 ? (
-                <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm text-amber-400">
+                <div className="p-4 rounded-lg bg-bg-warning border border-border-warning text-sm text-content-warning">
                     No frameworks selected. Go back to the Frameworks step to select at least one.
                 </div>
             ) : (
@@ -616,7 +616,7 @@ function ControlInstallStep({ data, onUpdate, allData }: { data: StepData; onUpd
                                 <span className="text-sm font-medium text-slate-200">{fwLabels[fw] || fw}</span>
                                 <p className="text-xs text-slate-500">Baseline controls will be installed</p>
                             </div>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 ml-auto" />
+                            <CheckCircle2 className="w-4 h-4 text-content-success ml-auto" />
                         </div>
                     ))}
                 </div>
@@ -636,9 +636,9 @@ function RiskRegisterStep({ data, onUpdate }: { data: StepData; onUpdate: (d: St
     return (
         <div className="space-y-4 max-w-lg animate-fadeIn">
             <p className="text-sm text-slate-400 mb-4">Generate a starter risk register based on your assets and selected frameworks.</p>
-            <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+            <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-border-warning">
                 <div className="flex items-center gap-3 mb-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-400" />
+                    <AlertTriangle className="w-5 h-5 text-content-warning" />
                     <span className="font-medium text-white text-sm">Starter Risk Register</span>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">We&apos;ll generate common information security risks based on industry best practices. You can customize, add, or remove risks later.</p>
@@ -689,7 +689,7 @@ function TeamSetupStep({ data, onUpdate }: { data: StepData; onUpdate: (d: StepD
                                 <Users className="w-3.5 h-3.5 text-slate-500" />
                                 <span className="text-slate-200">{e}</span>
                             </div>
-                            <button onClick={() => removeEmail(e)} className="text-slate-500 hover:text-red-400 text-xs">&times;</button>
+                            <button onClick={() => removeEmail(e)} className="text-slate-500 hover:text-content-error text-xs">&times;</button>
                         </div>
                     ))}
                 </div>
@@ -720,7 +720,7 @@ function ReviewStep({ completedSteps, allData }: { completedSteps: string[]; all
                     return (
                         <div key={item.key} className="flex items-center gap-3 p-3 bg-slate-800/30 rounded-lg" data-testid={`review-${item.key}`}>
                             {done ? (
-                                <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                                <CheckCircle2 className="w-5 h-5 text-content-success flex-shrink-0" />
                             ) : (
                                 <div className="w-5 h-5 rounded-full border-2 border-slate-600 flex-shrink-0" />
                             )}
@@ -732,7 +732,7 @@ function ReviewStep({ completedSteps, allData }: { completedSteps: string[]; all
                     );
                 })}
             </div>
-            <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-400">
+            <div className="p-4 rounded-lg bg-bg-success border border-border-success text-sm text-content-success">
                 Click &quot;Complete Setup&quot; below to finish onboarding and go to your dashboard.
             </div>
         </div>

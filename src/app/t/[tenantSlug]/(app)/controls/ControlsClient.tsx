@@ -642,7 +642,7 @@ function ControlsPageInner({
             cell: ({ row }) => {
                 const ts = taskStats(row.original);
                 return (
-                    <span className={ts.total > 0 && ts.done === ts.total ? 'text-emerald-400 text-xs' : 'text-content-muted text-xs'}>
+                    <span className={ts.total > 0 && ts.done === ts.total ? 'text-content-success text-xs' : 'text-content-muted text-xs'}>
                         {ts.done}/{ts.total}
                     </span>
                 );
@@ -661,7 +661,7 @@ function ControlsPageInner({
                     >
                         <Paperclip
                             size={12}
-                            className={n > 0 ? 'text-emerald-400' : 'text-content-subtle'}
+                            className={n > 0 ? 'text-content-success' : 'text-content-subtle'}
                             aria-hidden
                         />
                         {n}

@@ -218,9 +218,9 @@ function DiffChunk({
                 {effective.map((line, i) => (
                     <span
                         key={i}
-                        className="block bg-emerald-500/10 text-emerald-300"
+                        className="block bg-bg-success text-content-success"
                     >
-                        <span className="inline-block w-4 select-none text-emerald-400">
+                        <span className="inline-block w-4 select-none text-content-success">
                             +
                         </span>
                         {line}
@@ -235,9 +235,9 @@ function DiffChunk({
                 {effective.map((line, i) => (
                     <span
                         key={i}
-                        className="block bg-rose-500/10 text-rose-300"
+                        className="block bg-bg-error text-content-error"
                     >
-                        <span className="inline-block w-4 select-none text-rose-400">
+                        <span className="inline-block w-4 select-none text-content-error">
                             −
                         </span>
                         {line}

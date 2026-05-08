@@ -67,21 +67,21 @@ const LEVEL_STYLES: Record<
     { dot: string; text: string; bg: string; border: string; label: string }
 > = {
     fresh: {
-        dot: 'bg-emerald-500',
+        dot: 'bg-bg-success-emphasis',
         text: 'text-content-success',
         bg: 'bg-success',
         border: 'border-success',
         label: 'Fresh',
     },
     stale: {
-        dot: 'bg-amber-500',
+        dot: 'bg-bg-warning-emphasis',
         text: 'text-content-warning',
         bg: 'bg-warning',
         border: 'border-warning',
         label: 'Stale',
     },
     outdated: {
-        dot: 'bg-rose-500',
+        dot: 'bg-bg-error-emphasis',
         text: 'text-content-error',
         bg: 'bg-error',
         border: 'border-error',

@@ -189,7 +189,7 @@ export default function TestPlansPanel({ controlId }: { controlId: string }) {
                                         {plan.nextDueAt && (
                                             <>
                                                 <span className="text-xs text-content-subtle">•</span>
-                                                <span className={`text-xs ${isOverdue(plan.nextDueAt) ? 'text-red-400 font-semibold' : 'text-content-muted'}`}>
+                                                <span className={`text-xs ${isOverdue(plan.nextDueAt) ? 'text-content-error font-semibold' : 'text-content-muted'}`}>
                                                     Due: {formatDate(plan.nextDueAt)}
                                                 </span>
                                             </>

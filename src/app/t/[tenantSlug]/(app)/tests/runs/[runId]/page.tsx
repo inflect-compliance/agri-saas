@@ -195,7 +195,7 @@ export default function TestRunPage() {
     };
 
     if (loading) return <div className="p-12 text-center text-content-subtle animate-pulse"><div className="h-6 w-full sm:w-48 bg-bg-elevated rounded mx-auto" /></div>;
-    if (error) return <div className="p-12 text-center text-red-400">{error}</div>;
+    if (error) return <div className="p-12 text-center text-content-error">{error}</div>;
     if (!run) return <div className="p-12 text-center text-content-subtle">Run not found.</div>;
 
     const isCompleted = run.status === 'COMPLETED';
@@ -247,7 +247,7 @@ export default function TestRunPage() {
                             {(['PASS', 'FAIL', 'INCONCLUSIVE'] as const).map(r => (
                                 <button
                                     key={r}
-                                    className={buttonVariants({ variant: result === r ? (r === 'FAIL' ? 'danger' : r === 'PASS' ? 'success' : 'primary') : 'ghost', size: 'sm', className: result === r ? (r === 'PASS' ? 'bg-green-600 text-content-emphasis' : r === 'FAIL' ? 'bg-red-600 text-content-emphasis' : 'bg-yellow-600 text-content-emphasis') : '' })}
+                                    className={buttonVariants({ variant: result === r ? (r === 'FAIL' ? 'danger' : r === 'PASS' ? 'success' : 'primary') : 'ghost', size: 'sm', className: result === r ? (r === 'PASS' ? 'bg-bg-success-emphasis text-content-emphasis' : r === 'FAIL' ? 'bg-bg-error-emphasis text-content-emphasis' : 'bg-bg-warning-emphasis text-content-emphasis') : '' })}
                                     onClick={() => setResult(r)}
                                     id={`result-btn-${r}`}
                                 >
@@ -304,8 +304,8 @@ export default function TestRunPage() {
                     )}
                     {run.findingSummary && (
                         <div>
-                            <span className="text-xs text-red-400">Finding Summary:</span>
-                            <p className="text-sm text-red-300 whitespace-pre-wrap mt-1">{run.findingSummary}</p>
+                            <span className="text-xs text-content-error">Finding Summary:</span>
+                            <p className="text-sm text-content-error whitespace-pre-wrap mt-1">{run.findingSummary}</p>
                         </div>
                     )}
                     {run.executedBy && (
@@ -452,7 +452,7 @@ export default function TestRunPage() {
                                         <Button
                                             variant="ghost"
                                             size="xs"
-                                            className="text-red-400 opacity-0 group-hover:opacity-100 transition"
+                                            className="text-content-error opacity-0 group-hover:opacity-100 transition"
                                             onClick={() => unlinkEvidence(ev.id)}
                                             disabled={unlinkingId === ev.id}
                                             aria-label="Unlink evidence"

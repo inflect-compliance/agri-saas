@@ -181,7 +181,7 @@ function LoginForm() {
                     </h2>
 
                     {error && (
-                        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                        <div className="mb-4 p-3 rounded-lg bg-bg-error border border-border-error text-content-error text-sm">
                             {error}
                         </div>
                     )}
@@ -189,7 +189,7 @@ function LoginForm() {
                     {verifyStatus === 'verified' && (
                         <div
                             role="status"
-                            className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 text-sm"
+                            className="mb-4 p-3 rounded-lg bg-bg-success border border-border-success text-content-success text-sm"
                         >
                             Email verified — you can sign in now.
                         </div>
@@ -197,7 +197,7 @@ function LoginForm() {
                     {verifyStatus === 'expired' && (
                         <div
                             role="status"
-                            className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm"
+                            className="mb-4 p-3 rounded-lg bg-bg-warning border border-border-warning text-content-warning text-sm"
                         >
                             That verification link has expired. Request a new one below.
                         </div>
@@ -205,7 +205,7 @@ function LoginForm() {
                     {verifyStatus === 'invalid' && (
                         <div
                             role="status"
-                            className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm"
+                            className="mb-4 p-3 rounded-lg bg-bg-warning border border-border-warning text-content-warning text-sm"
                         >
                             That verification link is not valid. Request a new one below.
                         </div>

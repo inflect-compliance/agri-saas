@@ -294,7 +294,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                                 {canWrite && (
                                                     <td>
                                                         <Tooltip content="Unlink risk">
-                                                            <button className="text-red-400 text-xs hover:text-red-300" onClick={() => handleUnlink('risk', r?.id)} id={`unlink-risk-${r?.id}`} aria-label="Unlink risk">×</button>
+                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('risk', r?.id)} id={`unlink-risk-${r?.id}`} aria-label="Unlink risk">×</button>
                                                         </Tooltip>
                                                     </td>
                                                 )}
@@ -352,7 +352,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                                 {canWrite && (
                                                     <td>
                                                         <Tooltip content="Unlink control">
-                                                            <button className="text-red-400 text-xs hover:text-red-300" onClick={() => handleUnlink('control', c?.id)} id={`unlink-control-${c?.id}`} aria-label="Unlink control">×</button>
+                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('control', c?.id)} id={`unlink-control-${c?.id}`} aria-label="Unlink control">×</button>
                                                         </Tooltip>
                                                     </td>
                                                 )}
@@ -410,7 +410,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                                 {canWrite && (
                                                     <td>
                                                         <Tooltip content="Unlink asset">
-                                                            <button className="text-red-400 text-xs hover:text-red-300" onClick={() => handleUnlink('asset', a?.id)} id={`unlink-asset-${a?.id}`} aria-label="Unlink asset">×</button>
+                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('asset', a?.id)} id={`unlink-asset-${a?.id}`} aria-label="Unlink asset">×</button>
                                                         </Tooltip>
                                                     </td>
                                                 )}

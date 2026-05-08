@@ -79,7 +79,7 @@ export default function ControlsDashboard() {
     if (!data) return (
         <div className="space-y-6 animate-fadeIn">
             <h1 className="text-2xl font-bold" id="dashboard-heading"><AppIcon name="dashboard" className="inline-block mr-2 align-text-bottom" /> Controls Dashboard</h1>
-            <div className="p-12 text-center text-red-400">Failed to load dashboard.</div>
+            <div className="p-12 text-center text-content-error">Failed to load dashboard.</div>
         </div>
     );
 
@@ -107,7 +107,7 @@ export default function ControlsDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4" id="dashboard-stats">
                 <div className="glass-card p-4">
                     <p className="text-xs text-content-subtle uppercase">Implementation Progress</p>
-                    <p className="text-3xl font-bold text-emerald-400 mt-1" id="implementation-progress">{data.implementationProgress}%</p>
+                    <p className="text-3xl font-bold text-content-success mt-1" id="implementation-progress">{data.implementationProgress}%</p>
                     <p className="text-xs text-content-subtle mt-1">{data.implementedCount}/{data.applicableCount} applicable controls</p>
                     <ProgressBar
                         value={data.implementationProgress}
@@ -119,17 +119,17 @@ export default function ControlsDashboard() {
                 </div>
                 <div className="glass-card p-4">
                     <p className="text-xs text-content-subtle uppercase">Overdue Tasks</p>
-                    <p className={`text-3xl font-bold mt-1 ${data.overdueTasks > 0 ? 'text-red-400' : 'text-content-muted'}`} id="overdue-tasks">{data.overdueTasks}</p>
+                    <p className={`text-3xl font-bold mt-1 ${data.overdueTasks > 0 ? 'text-content-error' : 'text-content-muted'}`} id="overdue-tasks">{data.overdueTasks}</p>
                     <p className="text-xs text-content-subtle mt-1">tasks past due date</p>
                 </div>
                 <div className="glass-card p-4">
                     <p className="text-xs text-content-subtle uppercase">Controls Due Soon</p>
-                    <p className={`text-3xl font-bold mt-1 ${data.controlsDueSoon > 0 ? 'text-yellow-400' : 'text-content-muted'}`} id="due-soon">{data.controlsDueSoon}</p>
+                    <p className={`text-3xl font-bold mt-1 ${data.controlsDueSoon > 0 ? 'text-content-warning' : 'text-content-muted'}`} id="due-soon">{data.controlsDueSoon}</p>
                     <p className="text-xs text-content-subtle mt-1">within next 30 days</p>
                 </div>
                 <div className="glass-card p-4">
                     <p className="text-xs text-content-subtle uppercase">Applicability</p>
-                    <p className="text-3xl font-bold text-blue-400 mt-1">{data.applicabilityDistribution.applicable}</p>
+                    <p className="text-3xl font-bold text-content-info mt-1">{data.applicabilityDistribution.applicable}</p>
                     <p className="text-xs text-content-subtle mt-1">{data.applicabilityDistribution.notApplicable} excluded (N/A)</p>
                 </div>
             </div>
@@ -184,26 +184,26 @@ export default function ControlsDashboard() {
                     <h3 className="text-sm font-semibold text-content-default mb-3"><AppIcon name="search" size={16} className="inline-block mr-1" /> Consistency Check Results</h3>
                     <div className="grid grid-cols-3 gap-4 mb-4">
                         <div className="text-center">
-                            <p className={`text-xl font-bold ${consistency.summary.missingCodeCount > 0 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                            <p className={`text-xl font-bold ${consistency.summary.missingCodeCount > 0 ? 'text-content-warning' : 'text-content-success'}`}>
                                 {consistency.summary.missingCodeCount}
                             </p>
                             <p className="text-xs text-content-subtle">Missing Code</p>
                         </div>
                         <div className="text-center">
-                            <p className={`text-xl font-bold ${consistency.summary.duplicateCodeCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            <p className={`text-xl font-bold ${consistency.summary.duplicateCodeCount > 0 ? 'text-content-error' : 'text-content-success'}`}>
                                 {consistency.summary.duplicateCodeCount}
                             </p>
                             <p className="text-xs text-content-subtle">Duplicate Codes</p>
                         </div>
                         <div className="text-center">
-                            <p className={`text-xl font-bold ${consistency.summary.overdueTaskCount > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            <p className={`text-xl font-bold ${consistency.summary.overdueTaskCount > 0 ? 'text-content-error' : 'text-content-success'}`}>
                                 {consistency.summary.overdueTaskCount}
                             </p>
                             <p className="text-xs text-content-subtle">Overdue Tasks</p>
                         </div>
                     </div>
                     {consistency.summary.missingCodeCount === 0 && consistency.summary.duplicateCodeCount === 0 && consistency.summary.overdueTaskCount === 0 && (
-                        <p className="text-sm text-emerald-400 text-center"><AppIcon name="success" size={16} className="inline-block mr-1" /> All checks passed — no issues found</p>
+                        <p className="text-sm text-content-success text-center"><AppIcon name="success" size={16} className="inline-block mr-1" /> All checks passed — no issues found</p>
                     )}
                 </div>
             )}

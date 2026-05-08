@@ -90,7 +90,7 @@ export default function InstallWizardPage() {
     };
 
     if (loading) return <div className="p-8 animate-pulse text-content-muted">Loading install wizard...</div>;
-    if (!framework) return <div className="p-8 text-red-400">Framework not found</div>;
+    if (!framework) return <div className="p-8 text-content-error">Framework not found</div>;
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
@@ -113,8 +113,8 @@ export default function InstallWizardPage() {
                     <div key={s} className="flex items-center gap-2">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 && step === 'select' ? 'bg-brand-600 text-content-emphasis' :
                                 i === 1 && step === 'preview' ? 'bg-brand-600 text-content-emphasis' :
-                                    i === 2 && step === 'done' ? 'bg-emerald-600 text-content-emphasis' :
-                                        step === 'done' || (step === 'preview' && i === 0) ? 'bg-emerald-600/30 text-emerald-400' :
+                                    i === 2 && step === 'done' ? 'bg-bg-success-emphasis text-content-emphasis' :
+                                        step === 'done' || (step === 'preview' && i === 0) ? 'bg-bg-success text-content-success' :
                                             'bg-bg-elevated text-content-subtle'
                             }`}>{i + 1}</div>
                         <span className="text-content-muted">{s}</span>
@@ -164,7 +164,7 @@ export default function InstallWizardPage() {
                                 <div className="text-xs text-content-muted">New Controls</div>
                             </div>
                             <div className="text-center p-3 rounded-lg bg-bg-default/50">
-                                <div className="text-2xl font-bold text-amber-400">{preview.existingControls}</div>
+                                <div className="text-2xl font-bold text-content-warning">{preview.existingControls}</div>
                                 <div className="text-xs text-content-muted">Already Exist</div>
                             </div>
                             <div className="text-center p-3 rounded-lg bg-bg-default/50">
@@ -177,10 +177,10 @@ export default function InstallWizardPage() {
                         <div className="max-h-64 overflow-y-auto space-y-1 border-t border-border-default/50 pt-3">
                             {preview.templates?.map((t: any) => (
                                 <div key={t.code} className="flex items-center gap-3 px-3 py-1.5 rounded-md text-sm">
-                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.alreadyInstalled ? 'bg-emerald-500' : 'bg-[var(--brand-default)]'}`} />
+                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.alreadyInstalled ? 'bg-bg-success-emphasis' : 'bg-[var(--brand-default)]'}`} />
                                     <code className="text-xs text-content-subtle font-mono w-24 flex-shrink-0">{t.code}</code>
                                     <span className="text-content-default flex-1">{t.title}</span>
-                                    {t.alreadyInstalled && <span className="text-xs text-emerald-500">exists</span>}
+                                    {t.alreadyInstalled && <span className="text-xs text-content-success">exists</span>}
                                     {!t.alreadyInstalled && <span className="text-xs text-[var(--brand-default)]">{t.tasks} tasks</span>}
                                 </div>
                             ))}
@@ -188,7 +188,7 @@ export default function InstallWizardPage() {
                     </div>
 
                     {error && (
-                        <div className="glass-card border-red-500/50 bg-red-500/10 text-red-400 text-sm">{error}</div>
+                        <div className="glass-card border-border-error bg-bg-error text-content-error text-sm">{error}</div>
                     )}
 
                     <div className="flex gap-3">
@@ -222,8 +222,8 @@ export default function InstallWizardPage() {
                     <div className="text-4xl"></div>
                     <h2 className="text-xl font-bold text-content-emphasis">Pack Installed Successfully!</h2>
                     <div className="grid grid-cols-3 gap-4">
-                        <div className="p-3 rounded-lg bg-emerald-500/10">
-                            <div className="text-2xl font-bold text-emerald-400" id="result-controls">{result.controlsCreated}</div>
+                        <div className="p-3 rounded-lg bg-bg-success">
+                            <div className="text-2xl font-bold text-content-success" id="result-controls">{result.controlsCreated}</div>
                             <div className="text-xs text-content-muted">Controls Created</div>
                         </div>
                         <div className="p-3 rounded-lg bg-[var(--brand-subtle)]">

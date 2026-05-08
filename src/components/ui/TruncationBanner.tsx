@@ -36,9 +36,9 @@ export function TruncationBanner({ truncated, cap = LIST_BACKFILL_CAP }: Props) 
             role="status"
             aria-live="polite"
             data-testid="list-truncation-banner"
-            className="mb-3 flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-300"
+            className="mb-3 flex items-start gap-3 rounded-md border border-border-warning bg-bg-warning px-3 py-2 text-sm text-content-warning"
         >
-            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-content-warning" aria-hidden="true" />
             <div>
                 <span className="font-medium">
                     Showing the first {cap.toLocaleString()} results.

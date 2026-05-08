@@ -61,15 +61,15 @@ export function resolveFileTypeIcon(
         ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'heic', 'avif'].includes(ext) ||
         m.startsWith('image/')
     ) {
-        return { Icon: FileImage, colorClass: 'text-emerald-400', label: 'Image' };
+        return { Icon: FileImage, colorClass: 'text-content-success', label: 'Image' };
     }
     if (ext === 'pdf' || m === 'application/pdf') {
-        return { Icon: FileType, colorClass: 'text-rose-400', label: 'PDF' };
+        return { Icon: FileType, colorClass: 'text-content-error', label: 'PDF' };
     }
     if (ext === 'csv' || m === 'text/csv') {
         return {
             Icon: FileSpreadsheet,
-            colorClass: 'text-emerald-400',
+            colorClass: 'text-content-success',
             label: 'CSV',
         };
     }
@@ -80,7 +80,7 @@ export function resolveFileTypeIcon(
     ) {
         return {
             Icon: FileSpreadsheet,
-            colorClass: 'text-emerald-400',
+            colorClass: 'text-content-success',
             label: 'Spreadsheet',
         };
     }
@@ -89,10 +89,10 @@ export function resolveFileTypeIcon(
         m.includes('wordprocessing') ||
         m === 'application/msword'
     ) {
-        return { Icon: FileText, colorClass: 'text-sky-400', label: 'Document' };
+        return { Icon: FileText, colorClass: 'text-content-info', label: 'Document' };
     }
     if (ext === 'json' || m === 'application/json') {
-        return { Icon: FileJson, colorClass: 'text-amber-400', label: 'JSON' };
+        return { Icon: FileJson, colorClass: 'text-content-warning', label: 'JSON' };
     }
     if (
         ['zip', 'tar', 'gz', '7z', 'rar'].includes(ext) ||
@@ -101,7 +101,7 @@ export function resolveFileTypeIcon(
     ) {
         return {
             Icon: FileArchive,
-            colorClass: 'text-amber-400',
+            colorClass: 'text-content-warning',
             label: 'Archive',
         };
     }

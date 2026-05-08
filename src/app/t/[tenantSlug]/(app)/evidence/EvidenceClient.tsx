@@ -726,7 +726,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
 
                 {/* Archived warning */}
                 {retentionFilter === 'archived' && archivedEvidence.length > 0 && (
-                    <div className="bg-amber-900/20 border border-amber-700/30 rounded-lg px-4 py-3 text-sm text-amber-300 flex items-start gap-2">
+                    <div className="bg-bg-warning border border-border-warning rounded-lg px-4 py-3 text-sm text-content-warning flex items-start gap-2">
                         <span className="text-lg">!</span>
                         <div>
                             <strong>Archived evidence</strong> should not be used in active audit packs or compliance assessments.

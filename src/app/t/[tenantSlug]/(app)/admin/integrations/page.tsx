@@ -190,8 +190,8 @@ export default function AdminIntegrationsPage() {
                 {message && (
                     <div className={`p-3 rounded-lg text-sm flex items-center gap-2 ${
                         message.type === 'success'
-                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                            : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                            ? 'bg-bg-success border border-border-success text-content-success'
+                            : 'bg-bg-error border border-border-error text-content-error'
                     }`}>
                         {message.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                         {message.text}
@@ -243,7 +243,7 @@ export default function AdminIntegrationsPage() {
                                     id: 'lastTest', header: 'Last Test', accessorKey: 'lastTestedAt',
                                     cell: ({ row }: any) => row.original.lastTestedAt ? (
                                         <span className="flex items-center gap-1 text-xs text-content-muted">
-                                            {row.original.lastTestStatus === 'ok' ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <XCircle className="w-3 h-3 text-red-400" />}
+                                            {row.original.lastTestStatus === 'ok' ? <CheckCircle className="w-3 h-3 text-content-success" /> : <XCircle className="w-3 h-3 text-content-error" />}
                                             {formatDate(row.original.lastTestedAt)}
                                         </span>
                                     ) : <span className="text-content-subtle text-xs">—</span>,
@@ -325,7 +325,7 @@ export default function AdminIntegrationsPage() {
                                 {selectedProvider.configSchema.configFields.map(field => (
                                     <div key={field.key}>
                                         <label className="block text-xs text-content-muted mb-1">
-                                            {field.label} {field.required && <span className="text-red-400">*</span>}
+                                            {field.label} {field.required && <span className="text-content-error">*</span>}
                                         </label>
                                         <input
                                             type="text"
@@ -356,15 +356,15 @@ export default function AdminIntegrationsPage() {
                                         {showSecrets ? 'Hide' : 'Show'}
                                     </Button>
                                 </div>
-                                <div className="p-3 rounded border border-amber-500/20 bg-amber-500/5">
-                                    <p className="text-xs text-amber-400">
+                                <div className="p-3 rounded border border-border-warning bg-bg-warning">
+                                    <p className="text-xs text-content-warning">
                                         Secrets are encrypted at rest. They cannot be viewed after saving.
                                     </p>
                                 </div>
                                 {selectedProvider.configSchema.secretFields.map(field => (
                                     <div key={field.key}>
                                         <label className="block text-xs text-content-muted mb-1">
-                                            {field.label} {field.required && <span className="text-red-400">*</span>}
+                                            {field.label} {field.required && <span className="text-content-error">*</span>}
                                         </label>
                                         <input
                                             type={showSecrets ? 'text' : 'password'}

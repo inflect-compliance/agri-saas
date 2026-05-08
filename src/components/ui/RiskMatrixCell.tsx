@@ -224,7 +224,7 @@ export function RiskMatrixCell({
                     : {
                           // Direct hex from `band.color` (RiskMatrixConfig)
                           // — Epic 44 deliberately moves away from the
-                          // legacy `bg-emerald-900/50` Tailwind dark-with-
+                          // legacy `bg-bg-success` Tailwind dark-with-
                           // 50%-opacity classes the pre-config heatmap
                           // used. The new colours are brighter at high
                           // opacity (default Low/Medium/High/Critical

@@ -72,7 +72,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
                 </p>
 
                 {errorParam && (
-                    <div className="mb-4 rounded-md bg-red-900/20 border border-red-700 p-3 text-sm text-red-400 text-center">
+                    <div className="mb-4 rounded-md bg-bg-error border border-border-error p-3 text-sm text-content-error text-center">
                         {errorParam}
                     </div>
                 )}

@@ -203,7 +203,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
     };
 
     if (loading) return <SkeletonDetailPage />;
-    if (!vendor) return <div className="text-red-400 py-8 text-center">Vendor not found</div>;
+    if (!vendor) return <div className="text-content-error py-8 text-center">Vendor not found</div>;
 
     const fmtDate = (d: string | null) => d ? formatDate(d) : '—';
 
@@ -233,7 +233,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
             <div className="flex gap-1 border-b border-border-default">
                 {(['overview', 'documents', 'assessments', 'links', 'bundles', 'subprocessors'] as Tab[]).map(t => (
                     <button key={t} onClick={() => setTab(t)}
-                        className={`px-4 py-2 text-sm capitalize ${tab === t ? 'border-b-2 border-blue-500 text-content-emphasis' : 'text-content-muted hover:text-content-emphasis'}`}
+                        className={`px-4 py-2 text-sm capitalize ${tab === t ? 'border-b-2 border-border-info text-content-emphasis' : 'text-content-muted hover:text-content-emphasis'}`}
                         id={`tab-${t}`}>
                         {t} {t === 'documents' ? `(${vendor._count?.documents || 0})` : t === 'assessments' ? `(${vendor._count?.assessments || 0})` : ''}
                     </button>
@@ -246,7 +246,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div><span className="text-content-muted">Legal Name:</span> <span className="ml-2">{vendor.legalName || '—'}</span></div>
                         <div><span className="text-content-muted">Domain:</span> <span className="ml-2">{vendor.domain || '—'}</span></div>
-                        <div><span className="text-content-muted">Website:</span> <span className="ml-2">{normaliseHref(vendor.websiteUrl) ? <a href={normaliseHref(vendor.websiteUrl)!} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">{vendor.websiteUrl}</a> : '—'}</span></div>
+                        <div><span className="text-content-muted">Website:</span> <span className="ml-2">{normaliseHref(vendor.websiteUrl) ? <a href={normaliseHref(vendor.websiteUrl)!} target="_blank" rel="noopener noreferrer" className="text-content-info underline">{vendor.websiteUrl}</a> : '—'}</span></div>
                         <div><span className="text-content-muted">Country:</span> <span className="ml-2">{vendor.country || '—'}</span></div>
                         <div><span className="text-content-muted">Owner:</span> <span className="ml-2">{vendor.owner?.name || '—'}</span></div>
                         <div><span className="text-content-muted">Data Access:</span> <span className="ml-2">{vendor.dataAccess || '—'}</span></div>
@@ -260,8 +260,8 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                         <div className="border-t border-border-default pt-3 mt-3 space-y-2">
                             <h3 className="text-sm font-semibold text-content-default">Enrichment Data</h3>
                             <div className="grid grid-cols-2 gap-3 text-sm">
-                                {normaliseHref(vendor.privacyPolicyUrl) && <div><span className="text-content-muted">Privacy Policy:</span> <a href={normaliseHref(vendor.privacyPolicyUrl)!} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline ml-1" id="enrichment-privacy">View ↗</a></div>}
-                                {normaliseHref(vendor.securityPageUrl) && <div><span className="text-content-muted">Security Page:</span> <a href={normaliseHref(vendor.securityPageUrl)!} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline ml-1" id="enrichment-security">View ↗</a></div>}
+                                {normaliseHref(vendor.privacyPolicyUrl) && <div><span className="text-content-muted">Privacy Policy:</span> <a href={normaliseHref(vendor.privacyPolicyUrl)!} target="_blank" rel="noopener noreferrer" className="text-content-info underline ml-1" id="enrichment-privacy">View ↗</a></div>}
+                                {normaliseHref(vendor.securityPageUrl) && <div><span className="text-content-muted">Security Page:</span> <a href={normaliseHref(vendor.securityPageUrl)!} target="_blank" rel="noopener noreferrer" className="text-content-info underline ml-1" id="enrichment-security">View ↗</a></div>}
                                 {vendor.certificationsJson && Array.isArray(vendor.certificationsJson) && (
                                     <div className="col-span-2"><span className="text-content-muted">Certifications:</span> {(vendor.certificationsJson as string[]).map((c: string) => <span key={c} className="badge badge-info ml-1">{c}</span>)}</div>
                                 )}
@@ -358,9 +358,9 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                                         <td className="p-3">{d.validTo ? formatDate(d.validTo) : '—'}</td>
                                         <td className="p-3 text-content-muted">{d.uploadedBy?.name || '—'}</td>
                                         <td className="p-3">
-                                            {normaliseHref(d.externalUrl) && <a href={normaliseHref(d.externalUrl)!} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline text-xs">Open ↗</a>}
+                                            {normaliseHref(d.externalUrl) && <a href={normaliseHref(d.externalUrl)!} target="_blank" rel="noopener noreferrer" className="text-content-info underline text-xs">Open ↗</a>}
                                         </td>
-                                        {canWrite && <td className="p-3"><button className="text-red-400 text-xs hover:underline" onClick={() => removeDoc(d.id)}>Remove</button></td>}
+                                        {canWrite && <td className="p-3"><button className="text-content-error text-xs hover:underline" onClick={() => removeDoc(d.id)}>Remove</button></td>}
                                     </tr>
                                 ))}
                                 {docs.length === 0 && <tr><td colSpan={6} className="text-center text-content-subtle py-8">No documents</td></tr>}
@@ -417,7 +417,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                                         <td className="p-3">{a.riskRating ? <span className={`badge ${CRIT_BADGE[a.riskRating]}`}>{a.riskRating}</span> : '—'}</td>
                                         <td className="p-3 text-content-muted">{formatDate(a.startedAt)}</td>
                                         <td className="p-3">
-                                            <Link href={tenantHref(`/vendors/${params.vendorId}/assessment/${a.id}`)} className="text-blue-400 hover:underline text-xs" id={`open-assessment-${a.id}`}>
+                                            <Link href={tenantHref(`/vendors/${params.vendorId}/assessment/${a.id}`)} className="text-content-info hover:underline text-xs" id={`open-assessment-${a.id}`}>
                                                 Open →
                                             </Link>
                                         </td>
@@ -471,8 +471,8 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                                 <h3 className="text-sm font-semibold text-content-default">{type}s ({typeLinks.length})</h3>
                                 {typeLinks.map((l: any) => (
                                     <div key={l.id} className="flex items-center justify-between text-sm border-b border-border-subtle py-1">
-                                        <span><code className="text-xs text-blue-400">{l.entityId}</code> <span className="badge badge-neutral text-xs ml-1">{l.relation}</span></span>
-                                        {canWrite && <button className="text-red-400 text-xs" onClick={async () => {
+                                        <span><code className="text-xs text-content-info">{l.entityId}</code> <span className="badge badge-neutral text-xs ml-1">{l.relation}</span></span>
+                                        {canWrite && <button className="text-content-error text-xs" onClick={async () => {
                                             await fetch(apiUrl(`/vendors/${params.vendorId}/links/${l.id}`), { method: 'DELETE' }); fetchLinks();
                                         }}>Remove</button>}
                                     </div>
@@ -563,7 +563,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                                         <td className="p-3"><span className={`badge ${CRIT_BADGE[s.subprocessor?.criticality] || 'badge-neutral'}`}>{s.subprocessor?.criticality || '—'}</span></td>
                                         <td className="p-3">{s.subprocessor?.inherentRisk ? <span className={`badge ${CRIT_BADGE[s.subprocessor.inherentRisk]}`}>{s.subprocessor.inherentRisk}</span> : '—'}</td>
                                         <td className="p-3 text-content-muted text-xs">{s.purpose || '—'}</td>
-                                        {canWrite && <td className="p-3"><button className="text-red-400 text-xs" onClick={async () => {
+                                        {canWrite && <td className="p-3"><button className="text-content-error text-xs" onClick={async () => {
                                             await fetch(apiUrl(`/vendors/${params.vendorId}/subprocessors?relationId=${s.id}`), { method: 'DELETE' }); fetchSubs();
                                         }}>Remove</button></td>}
                                     </tr>

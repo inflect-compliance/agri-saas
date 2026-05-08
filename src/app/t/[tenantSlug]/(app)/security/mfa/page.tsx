@@ -163,9 +163,9 @@ export default function UserMfaPage() {
             </h1>
 
             {error && (
-                <div className="glass-card p-4 border border-red-500/50 bg-red-500/10 flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-red-400 shrink-0" />
-                    <span className="text-sm text-red-300">{error}</span>
+                <div className="glass-card p-4 border border-border-error bg-bg-error flex items-center gap-2">
+                    <XCircle className="w-4 h-4 text-content-error shrink-0" />
+                    <span className="text-sm text-content-error">{error}</span>
                     <button onClick={() => setError(null)} className="ml-auto text-xs text-content-muted hover:text-content-emphasis">
                         <X className="w-4 h-4" />
                     </button>
@@ -173,9 +173,9 @@ export default function UserMfaPage() {
             )}
 
             {success && (
-                <div className="glass-card p-4 border border-green-500/50 bg-green-500/10 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                    <span className="text-sm text-green-300">{success}</span>
+                <div className="glass-card p-4 border border-border-success bg-bg-success flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-content-success shrink-0" />
+                    <span className="text-sm text-content-success">{success}</span>
                 </div>
             )}
 
@@ -191,7 +191,7 @@ export default function UserMfaPage() {
                         </div>
                         <div>
                             {status.isVerified ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-green-500/20 text-green-300 border border-green-500/30">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-bg-success text-content-success border border-border-success">
                                     <CheckCircle className="w-4 h-4" />
                                     Enrolled
                                 </span>
@@ -210,9 +210,9 @@ export default function UserMfaPage() {
                     )}
 
                     {status.mfaRequired && !status.isVerified && (
-                        <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 flex items-start gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                            <p className="text-sm text-amber-300">
+                        <div className="p-3 rounded-lg border border-border-warning bg-bg-warning flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-content-warning mt-0.5 shrink-0" />
+                            <p className="text-sm text-content-warning">
                                 Your organization requires MFA. You must enroll to continue using the application.
                             </p>
                         </div>
@@ -283,7 +283,7 @@ export default function UserMfaPage() {
                                 size="xs"
                                 className="shrink-0"
                                 onClick={copySecret}
-                                icon={copied ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                icon={copied ? <CheckCircle className="w-3.5 h-3.5 text-content-success" /> : <Copy className="w-3.5 h-3.5" />}
                             >
                                 {copied ? 'Copied!' : 'Copy'}
                             </Button>

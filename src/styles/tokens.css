@@ -62,24 +62,28 @@
   --brand-subtle:   rgba(255, 205, 17, 0.18); /* yellow @ 18% — brand tint backgrounds */
 
   /* ── Status: Success ───────────────────────────────────────────── */
-  --bg-success:      rgba(16, 185, 129, 0.15);  /* emerald-500 @ 15% */
-  --content-success: #34d399;                    /* emerald-400 */
-  --border-success:  rgba(16, 185, 129, 0.30);  /* emerald-500 @ 30% */
+  --bg-success:          rgba(16, 185, 129, 0.15);  /* emerald-500 @ 15% — badge tint */
+  --bg-success-emphasis: #059669;                    /* emerald-600 — solid actionable surface (success buttons, indicator dots) */
+  --content-success:     #34d399;                    /* emerald-400 */
+  --border-success:      rgba(16, 185, 129, 0.30);  /* emerald-500 @ 30% */
 
   /* ── Status: Warning ───────────────────────────────────────────── */
-  --bg-warning:      rgba(245, 158, 11, 0.15);  /* amber-500 @ 15% */
-  --content-warning: #fbbf24;                    /* amber-400 */
-  --border-warning:  rgba(245, 158, 11, 0.30);  /* amber-500 @ 30% */
+  --bg-warning:          rgba(245, 158, 11, 0.15);  /* amber-500 @ 15% — badge tint */
+  --bg-warning-emphasis: #D97706;                    /* amber-600 — solid actionable surface */
+  --content-warning:     #fbbf24;                    /* amber-400 */
+  --border-warning:      rgba(245, 158, 11, 0.30);  /* amber-500 @ 30% */
 
   /* ── Status: Error / Danger ────────────────────────────────────── */
-  --bg-error:      rgba(239, 68, 68, 0.15);     /* red-500 @ 15% */
-  --content-error: #f87171;                      /* red-400 */
-  --border-error:  rgba(239, 68, 68, 0.30);      /* red-500 @ 30% */
+  --bg-error:          rgba(239, 68, 68, 0.15);     /* red-500 @ 15% — badge tint */
+  --bg-error-emphasis: #DC2626;                      /* red-600 — solid actionable surface (danger buttons, indicator dots) */
+  --content-error:     #f87171;                      /* red-400 */
+  --border-error:      rgba(239, 68, 68, 0.30);      /* red-500 @ 30% */
 
   /* ── Status: Info ──────────────────────────────────────────────── */
-  --bg-info:      rgba(59, 130, 246, 0.15);      /* blue-500 @ 15% */
-  --content-info: #60a5fa;                       /* blue-400 */
-  --border-info:  rgba(59, 130, 246, 0.30);      /* blue-500 @ 30% */
+  --bg-info:          rgba(59, 130, 246, 0.15);      /* blue-500 @ 15% — badge tint */
+  --bg-info-emphasis: #2563EB;                       /* blue-600 — solid actionable surface */
+  --content-info:     #60a5fa;                       /* blue-400 */
+  --border-info:      rgba(59, 130, 246, 0.30);      /* blue-500 @ 30% */
 
   /* ── Status: Attention (pending / needs-action) ────────────────── */
   --bg-attention:      rgba(251, 191, 36, 0.15); /* amber-400 @ 15% */
@@ -177,24 +181,28 @@
    * codebase paints over the tinted surface — which is darker than
    * cream and breaks the contrast assumption.
    */
-  --bg-success:      rgba(22, 128, 57, 0.07);   /* forest green @ 7% */
-  --content-success: #0E6332;                    /* green-800 — darker for badge tint AA (5.4:1) */
-  --border-success:  rgba(22, 128, 57, 0.20);
+  --bg-success:          rgba(22, 128, 57, 0.07);   /* forest green @ 7% — badge tint */
+  --bg-success-emphasis: #047857;                    /* green-700 — solid actionable surface, AA on white */
+  --content-success:     #0E6332;                    /* green-800 — darker for badge tint AA (5.4:1) */
+  --border-success:      rgba(22, 128, 57, 0.20);
 
   /* ── Status: Warning ───────────────────────────────────────────── */
-  --bg-warning:      rgba(180, 83, 9, 0.07);    /* warm amber @ 7% */
-  --content-warning: #92420A;                    /* amber-800 — darker for badge tint AA (5.6:1) */
-  --border-warning:  rgba(180, 83, 9, 0.20);
+  --bg-warning:          rgba(180, 83, 9, 0.07);    /* warm amber @ 7% — badge tint */
+  --bg-warning-emphasis: #B45309;                    /* amber-700 — solid actionable surface */
+  --content-warning:     #92420A;                    /* amber-800 — darker for badge tint AA (5.6:1) */
+  --border-warning:      rgba(180, 83, 9, 0.20);
 
   /* ── Status: Error / Danger ────────────────────────────────────── */
-  --bg-error:      rgba(185, 28, 28, 0.07);     /* deep red @ 7% */
-  --content-error: #991616;                      /* red-800 — darker for badge tint AA (6.2:1) */
-  --border-error:  rgba(185, 28, 28, 0.20);
+  --bg-error:          rgba(185, 28, 28, 0.07);     /* deep red @ 7% — badge tint */
+  --bg-error-emphasis: #B91C1C;                      /* red-700 — solid actionable surface, AA on white */
+  --content-error:     #991616;                      /* red-800 — darker for badge tint AA (6.2:1) */
+  --border-error:      rgba(185, 28, 28, 0.20);
 
   /* ── Status: Info ──────────────────────────────────────────────── */
-  --bg-info:      rgba(29, 78, 216, 0.07);       /* steel blue @ 7% */
-  --content-info: #1A41B8;                       /* blue-800 — darker for badge tint AA (6.0:1) */
-  --border-info:  rgba(29, 78, 216, 0.20);
+  --bg-info:          rgba(29, 78, 216, 0.07);       /* steel blue @ 7% — badge tint */
+  --bg-info-emphasis: #1D4ED8;                       /* blue-700 — solid actionable surface */
+  --content-info:     #1A41B8;                       /* blue-800 — darker for badge tint AA (6.0:1) */
+  --border-info:      rgba(29, 78, 216, 0.20);
 
   /* ── Status: Attention ─────────────────────────────────────────── */
   --bg-attention:      rgba(180, 83, 9, 0.07);

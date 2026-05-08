@@ -105,10 +105,10 @@ export default function ControlTemplatesPage() {
             </div>
 
             {error && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>
+                <div className="p-3 rounded-lg bg-bg-error border border-border-error text-content-error text-sm">{error}</div>
             )}
             {success && (
-                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm" id="install-success">{success}</div>
+                <div className="p-3 rounded-lg bg-bg-success border border-border-success text-content-success text-sm" id="install-success">{success}</div>
             )}
 
             {/* Filters + Install bar */}

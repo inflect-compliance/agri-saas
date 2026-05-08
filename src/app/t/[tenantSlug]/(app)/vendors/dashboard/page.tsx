@@ -33,17 +33,17 @@ function BreakdownBar({ data, colors }: { data: Record<string, number>; colors: 
             id: key,
             label: key,
             value,
-            colorClass: colors[key] ?? 'bg-blue-500/60',
+            colorClass: colors[key] ?? 'bg-bg-info',
         }),
     );
     return <StatusBreakdown items={items} size="sm" showDot={false} />;
 }
 
 const CRIT_COLORS: Record<string, string> = {
-    LOW: 'bg-green-500/60', MEDIUM: 'bg-yellow-500/60', HIGH: 'bg-orange-500/60', CRITICAL: 'bg-red-500/60',
+    LOW: 'bg-bg-success', MEDIUM: 'bg-bg-warning', HIGH: 'bg-orange-500/60', CRITICAL: 'bg-bg-error',
 };
 const STATUS_COLORS: Record<string, string> = {
-    ACTIVE: 'bg-green-500/60', ONBOARDING: 'bg-blue-500/60', OFFBOARDING: 'bg-yellow-500/60', OFFBOARDED: 'bg-border-emphasis',
+    ACTIVE: 'bg-bg-success', ONBOARDING: 'bg-bg-info', OFFBOARDING: 'bg-bg-warning', OFFBOARDED: 'bg-border-emphasis',
 };
 
 export default function VendorDashboardPage() {
@@ -64,7 +64,7 @@ export default function VendorDashboardPage() {
     useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
 
     if (loading) return <div className="text-content-muted py-8 text-center">Loading dashboard…</div>;
-    if (!metrics) return <div className="text-red-400 py-8 text-center">Failed to load metrics</div>;
+    if (!metrics) return <div className="text-content-error py-8 text-center">Failed to load metrics</div>;
 
     return (
         <div className="space-y-6">
@@ -79,12 +79,12 @@ export default function VendorDashboardPage() {
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <MetricCard label="Total Vendors" value={metrics.totalVendors} />
-                <MetricCard label="Overdue Reviews" value={metrics.overdueReview} badge={metrics.overdueReview > 0 ? 'text-red-400' : 'text-green-400'}
+                <MetricCard label="Overdue Reviews" value={metrics.overdueReview} badge={metrics.overdueReview > 0 ? 'text-content-error' : 'text-content-success'}
                     href={tenantHref('/vendors?reviewDue=overdue')} />
-                <MetricCard label="Upcoming Reviews" value={metrics.upcomingReview} badge="text-yellow-400" />
-                <MetricCard label="Overdue Renewals" value={metrics.overdueRenewal} badge={metrics.overdueRenewal > 0 ? 'text-red-400' : 'text-green-400'} />
-                <MetricCard label="Upcoming Renewals" value={metrics.upcomingRenewal} badge="text-yellow-400" />
-                <MetricCard label="High Risk (No Assessment)" value={metrics.highRiskNoAssessment} badge={metrics.highRiskNoAssessment > 0 ? 'text-red-400' : 'text-green-400'} />
+                <MetricCard label="Upcoming Reviews" value={metrics.upcomingReview} badge="text-content-warning" />
+                <MetricCard label="Overdue Renewals" value={metrics.overdueRenewal} badge={metrics.overdueRenewal > 0 ? 'text-content-error' : 'text-content-success'} />
+                <MetricCard label="Upcoming Renewals" value={metrics.upcomingRenewal} badge="text-content-warning" />
+                <MetricCard label="High Risk (No Assessment)" value={metrics.highRiskNoAssessment} badge={metrics.highRiskNoAssessment > 0 ? 'text-content-error' : 'text-content-success'} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -201,9 +201,9 @@ function resolveTrendContent(
     });
 
     const colorMap: Record<string, string> = {
-        'risks-open': 'text-rose-500',
-        'controls-coverage': 'text-emerald-500',
-        'evidence-overdue': 'text-amber-500',
+        'risks-open': 'text-content-error',
+        'controls-coverage': 'text-content-success',
+        'evidence-overdue': 'text-content-warning',
     };
 
     return {

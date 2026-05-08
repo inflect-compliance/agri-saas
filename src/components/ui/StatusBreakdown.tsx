@@ -9,10 +9,10 @@
  * <StatusBreakdown
  *     label="Risks by Severity"
  *     items={[
- *         { label: 'Critical', value: 3, color: 'bg-red-500' },
+ *         { label: 'Critical', value: 3, color: 'bg-bg-error-emphasis' },
  *         { label: 'High', value: 8, color: 'bg-orange-500' },
- *         { label: 'Medium', value: 12, color: 'bg-amber-500' },
- *         { label: 'Low', value: 5, color: 'bg-emerald-500' },
+ *         { label: 'Medium', value: 12, color: 'bg-bg-warning-emphasis' },
+ *         { label: 'Low', value: 5, color: 'bg-bg-success-emphasis' },
  *     ]}
  * />
  * ```

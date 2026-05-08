@@ -181,7 +181,7 @@ export default function NotificationSettingsPage() {
                         <Button variant="primary" onClick={handleSave} disabled={saving} loading={saving}>
                             {saving ? 'Saving...' : 'Save Settings'}
                         </Button>
-                        {saved && <span className="text-sm text-green-400">Saved successfully</span>}
+                        {saved && <span className="text-sm text-content-success">Saved successfully</span>}
                     </div>
                 </div>
             ) : (

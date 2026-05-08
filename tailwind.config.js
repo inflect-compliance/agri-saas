@@ -29,9 +29,13 @@ module.exports = {
                     inverted: 'var(--bg-inverted)',
                     overlay: 'var(--bg-overlay)',
                     success: 'var(--bg-success)',
+                    'success-emphasis': 'var(--bg-success-emphasis)',
                     warning: 'var(--bg-warning)',
+                    'warning-emphasis': 'var(--bg-warning-emphasis)',
                     error: 'var(--bg-error)',
+                    'error-emphasis': 'var(--bg-error-emphasis)',
                     info: 'var(--bg-info)',
+                    'info-emphasis': 'var(--bg-info-emphasis)',
                     attention: 'var(--bg-attention)',
                 },
 

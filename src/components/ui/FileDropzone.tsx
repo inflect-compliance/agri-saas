@@ -594,7 +594,7 @@ function FileDropzoneInner(
                             {entry.status === 'success' && (
                                 <CheckCircle2
                                     size={16}
-                                    className="text-emerald-400"
+                                    className="text-content-success"
                                     aria-label="Uploaded"
                                 />
                             )}
@@ -648,11 +648,11 @@ function ProgressBar({ entry }: { entry: FileUploadEntry }) {
         entry.status === 'uploading' && entry.percent === null;
     const colorClass =
         entry.status === 'error'
-            ? 'bg-rose-500'
+            ? 'bg-bg-error-emphasis'
             : entry.status === 'aborted'
               ? 'bg-content-subtle'
               : entry.status === 'success'
-                ? 'bg-emerald-500'
+                ? 'bg-bg-success-emphasis'
                 : 'bg-[var(--brand-default)]';
     return (
         <div
@@ -698,7 +698,7 @@ function StatusLabel({ entry }: { entry: FileUploadEntry }) {
                 entry.status === 'error'
                     ? 'text-content-error'
                     : entry.status === 'success'
-                      ? 'text-emerald-400'
+                      ? 'text-content-success'
                       : 'text-content-muted'
             }`}
             data-testid={`file-dropzone-status-${entry.id}`}

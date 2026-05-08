@@ -268,7 +268,7 @@ export function VendorAssessmentReviewClient({
     if (loading) return <SkeletonDetailPage />;
     if (!view)
         return (
-            <div className="p-12 text-center text-red-400">
+            <div className="p-12 text-center text-content-error">
                 {error ?? 'Assessment not found'}
             </div>
         );
@@ -319,7 +319,7 @@ export function VendorAssessmentReviewClient({
 
             {error && (
                 <p
-                    className="text-xs text-red-400"
+                    className="text-xs text-content-error"
                     role="alert"
                     data-testid="review-error"
                 >
@@ -482,7 +482,7 @@ export function VendorAssessmentReviewClient({
                                                 />
                                             ) : (
                                                 ov.points !== null && (
-                                                    <p className="text-xs text-amber-400 mt-1">
+                                                    <p className="text-xs text-content-warning mt-1">
                                                         Override:{' '}
                                                         {fmtNum(ov.points)}
                                                     </p>
@@ -648,9 +648,9 @@ function Stat({
             <p
                 className={`text-sm font-semibold ${
                     tone === 'success'
-                        ? 'text-green-400'
+                        ? 'text-content-success'
                         : tone === 'danger'
-                            ? 'text-red-400'
+                            ? 'text-content-error'
                             : 'text-content-emphasis'
                 }`}
             >

@@ -41,21 +41,21 @@ interface StatusVisual {
 const STATUS_VISUALS: Record<ComplianceStatus, StatusVisual> = {
     compliant: {
         label: 'Compliant',
-        bg: 'bg-emerald-500/15',
-        fg: 'text-emerald-300',
-        solid: 'bg-emerald-500',
+        bg: 'bg-bg-success',
+        fg: 'text-content-success',
+        solid: 'bg-bg-success-emphasis',
     },
     partial: {
         label: 'Partial',
-        bg: 'bg-amber-500/15',
-        fg: 'text-amber-300',
-        solid: 'bg-amber-500',
+        bg: 'bg-bg-warning',
+        fg: 'text-content-warning',
+        solid: 'bg-bg-warning-emphasis',
     },
     gap: {
         label: 'Gap',
-        bg: 'bg-rose-500/15',
-        fg: 'text-rose-300',
-        solid: 'bg-rose-500',
+        bg: 'bg-bg-error',
+        fg: 'text-content-error',
+        solid: 'bg-bg-error-emphasis',
     },
     na: {
         label: 'N/A',

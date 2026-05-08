@@ -222,7 +222,7 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                 {/* Uncovered Critical Assets */}
                 <div className="glass-card p-5" id="uncovered-assets-section">
                     <div className="flex items-center gap-2 mb-4">
-                        <Cpu className="w-4 h-4 text-red-400" />
+                        <Cpu className="w-4 h-4 text-content-error" />
                         <h3 className="text-sm font-semibold text-content-emphasis">
                             Uncovered Critical Assets
                         </h3>
@@ -246,7 +246,7 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                 {/* Unmapped Risks */}
                 <div className="glass-card p-5" id="unmapped-risks-section">
                     <div className="flex items-center gap-2 mb-4">
-                        <AlertTriangle className="w-4 h-4 text-amber-400" />
+                        <AlertTriangle className="w-4 h-4 text-content-warning" />
                         <h3 className="text-sm font-semibold text-content-emphasis">
                             Unmapped Risks
                         </h3>

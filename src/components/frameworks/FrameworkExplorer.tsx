@@ -532,7 +532,7 @@ function RequirementDetail({
                         Mapped Controls ({controls.length})
                     </p>
                     {controls.length === 0 && (
-                        <span className="text-[10px] text-amber-400">Unmapped</span>
+                        <span className="text-[10px] text-content-warning">Unmapped</span>
                     )}
                 </div>
                 {controls.length === 0 ? (

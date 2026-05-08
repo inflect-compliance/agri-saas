@@ -179,16 +179,16 @@ export default function AdminSecurityPage() {
             </h1>
 
             {error && (
-                <div className="glass-card p-4 border border-red-500/50 bg-red-500/10 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-                    <span className="text-sm text-red-300">{error}</span>
+                <div className="glass-card p-4 border border-border-error bg-bg-error flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-content-error shrink-0" />
+                    <span className="text-sm text-content-error">{error}</span>
                 </div>
             )}
 
             {success && (
-                <div className="glass-card p-4 border border-green-500/50 bg-green-500/10 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                    <span className="text-sm text-green-300">{success}</span>
+                <div className="glass-card p-4 border border-border-success bg-bg-success flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-content-success shrink-0" />
+                    <span className="text-sm text-content-success">{success}</span>
                 </div>
             )}
 
@@ -232,7 +232,7 @@ export default function AdminSecurityPage() {
                                 }`}>
                                     {option.label}
                                     {option.value === 'REQUIRED' && (
-                                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                        <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-bg-warning text-content-warning border border-border-warning">
                                             Strict
                                         </span>
                                     )}
@@ -244,12 +244,12 @@ export default function AdminSecurityPage() {
                 </div>
 
                 {settings.mfaPolicy === 'REQUIRED' && (
-                    <div className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/10">
+                    <div className="p-4 rounded-lg border border-border-warning bg-bg-warning">
                         <div className="flex items-start gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                            <AlertTriangle className="w-4 h-4 text-content-warning mt-0.5 shrink-0" />
                             <div>
-                                <p className="text-sm text-amber-300 font-medium">Before enabling Required MFA:</p>
-                                <ul className="text-xs text-amber-200/70 mt-1 list-disc pl-4 space-y-1">
+                                <p className="text-sm text-content-warning font-medium">Before enabling Required MFA:</p>
+                                <ul className="text-xs text-content-warning/70 mt-1 list-disc pl-4 space-y-1">
                                     <li>Ensure you (the admin) have enrolled in MFA first</li>
                                     <li>Users without MFA will be redirected to enrollment on their next login</li>
                                     <li>Break-glass admin access is preserved via SSO if configured</li>
@@ -336,12 +336,12 @@ export default function AdminSecurityPage() {
                     <button
                         onClick={handleRevokeAllTenant}
                         disabled={revoking}
-                        className="p-4 border border-red-500/30 rounded-lg hover:border-red-500/60 transition text-left flex items-start gap-3 group"
+                        className="p-4 border border-border-error rounded-lg hover:border-border-error transition text-left flex items-start gap-3 group"
                         id="revoke-all-sessions-btn"
                     >
-                        <Users className="w-5 h-5 text-red-400/70 group-hover:text-red-400 transition mt-0.5 shrink-0" />
+                        <Users className="w-5 h-5 text-content-error/70 group-hover:text-content-error transition mt-0.5 shrink-0" />
                         <div>
-                            <span className="text-sm font-medium text-red-300">Revoke All User Sessions</span>
+                            <span className="text-sm font-medium text-content-error">Revoke All User Sessions</span>
                             <p className="text-xs text-content-subtle mt-1">Force all organization members to sign in again. Use for incidents.</p>
                         </div>
                     </button>

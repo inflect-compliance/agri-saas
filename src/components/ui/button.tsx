@@ -127,8 +127,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 "bg-bg-elevated text-content-muted":
                   variant === "secondary" || variant === "outline",
                 "bg-bg-muted text-content-muted": variant === "ghost",
-                "bg-red-700 text-red-200": variant === "danger",
-                "bg-emerald-700 text-emerald-200": variant === "success",
+                "bg-black/25 text-white/80":
+                  variant === "danger" || variant === "success",
               },
               shortcutClassName,
             )}

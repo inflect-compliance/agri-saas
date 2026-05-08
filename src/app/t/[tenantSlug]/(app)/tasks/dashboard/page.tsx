@@ -121,16 +121,16 @@ export default function TaskDashboardPage() {
                     <div className="text-3xl font-bold text-content-emphasis">{metrics.total}</div>
                     <div className="text-xs text-content-muted mt-1">Total Tasks</div>
                 </div>
-                <div className="glass-card p-4 text-center border-red-500/30">
-                    <div className="text-3xl font-bold text-red-400">{metrics.overdue}</div>
+                <div className="glass-card p-4 text-center border-border-error">
+                    <div className="text-3xl font-bold text-content-error">{metrics.overdue}</div>
                     <div className="text-xs text-content-muted mt-1">Overdue</div>
                 </div>
-                <div className="glass-card p-4 text-center border-amber-500/30">
-                    <div className="text-3xl font-bold text-amber-400">{metrics.dueIn7d}</div>
+                <div className="glass-card p-4 text-center border-border-warning">
+                    <div className="text-3xl font-bold text-content-warning">{metrics.dueIn7d}</div>
                     <div className="text-xs text-content-muted mt-1">Due in 7 days</div>
                 </div>
-                <div className="glass-card p-4 text-center border-blue-500/30">
-                    <div className="text-3xl font-bold text-blue-400">{metrics.dueIn30d}</div>
+                <div className="glass-card p-4 text-center border-border-info">
+                    <div className="text-3xl font-bold text-content-info">{metrics.dueIn30d}</div>
                     <div className="text-xs text-content-muted mt-1">Due in 30 days</div>
                 </div>
             </div>
@@ -152,7 +152,7 @@ export default function TaskDashboardPage() {
                                 <span className="flex-1 text-content-emphasis truncate">{task.title}</span>
                                 <span className={`badge ${TASK_STATUS_BADGE[task.status] || 'badge-neutral'} text-xs`}>{task.status}</span>
                                 {task.dueAt && (
-                                    <span className={`text-xs ${new Date(task.dueAt) < new Date() ? 'text-red-400' : 'text-content-muted'}`}>
+                                    <span className={`text-xs ${new Date(task.dueAt) < new Date() ? 'text-content-error' : 'text-content-muted'}`}>
                                         {formatDate(task.dueAt)}
                                     </span>
                                 )}
@@ -207,18 +207,18 @@ export default function TaskDashboardPage() {
                     <h3 className="text-sm font-semibold mb-3 text-content-default">30-Day Trend</h3>
                     <div className="flex items-end gap-4 h-24 mt-4">
                         <div className="flex-1 flex flex-col items-center gap-1">
-                            <div className="w-full bg-blue-500/20 rounded-t" style={{ height: `${(metrics.trend.created30d / maxBar) * 80}px` }}>
-                                <div className="w-full h-full bg-blue-500/60 rounded-t" />
+                            <div className="w-full bg-bg-info rounded-t" style={{ height: `${(metrics.trend.created30d / maxBar) * 80}px` }}>
+                                <div className="w-full h-full bg-bg-info rounded-t" />
                             </div>
                             <span className="text-xs text-content-muted">Created</span>
-                            <span className="text-sm font-bold text-blue-400">{metrics.trend.created30d}</span>
+                            <span className="text-sm font-bold text-content-info">{metrics.trend.created30d}</span>
                         </div>
                         <div className="flex-1 flex flex-col items-center gap-1">
-                            <div className="w-full bg-green-500/20 rounded-t" style={{ height: `${(metrics.trend.resolved30d / maxBar) * 80}px` }}>
-                                <div className="w-full h-full bg-green-500/60 rounded-t" />
+                            <div className="w-full bg-bg-success rounded-t" style={{ height: `${(metrics.trend.resolved30d / maxBar) * 80}px` }}>
+                                <div className="w-full h-full bg-bg-success rounded-t" />
                             </div>
                             <span className="text-xs text-content-muted">Resolved</span>
-                            <span className="text-sm font-bold text-green-400">{metrics.trend.resolved30d}</span>
+                            <span className="text-sm font-bold text-content-success">{metrics.trend.resolved30d}</span>
                         </div>
                     </div>
                 </div>
@@ -281,7 +281,7 @@ export default function TaskDashboardPage() {
             {/* Overdue Tasks */}
             {overdueTasks.length > 0 && (
                 <div className="glass-card p-4" id="overdue-tasks-section">
-                    <h3 className="text-sm font-semibold mb-3 text-red-400"><AlertOctagon size={14} className="inline-block mr-1" /> Overdue Tasks</h3>
+                    <h3 className="text-sm font-semibold mb-3 text-content-error"><AlertOctagon size={14} className="inline-block mr-1" /> Overdue Tasks</h3>
                     <div className="space-y-2">
                         {overdueTasks.slice(0, 10).map((task: any) => (
                             <Link
@@ -292,7 +292,7 @@ export default function TaskDashboardPage() {
                                 <span className="font-mono text-xs text-content-subtle">{task.key}</span>
                                 <span className="flex-1 text-content-emphasis truncate">{task.title}</span>
                                 <span className="badge badge-danger text-xs">{task.severity}</span>
-                                <span className="text-xs text-red-400">
+                                <span className="text-xs text-content-error">
                                     Due {formatDate(task.dueAt)}
                                 </span>
                             </Link>

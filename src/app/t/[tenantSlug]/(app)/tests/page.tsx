@@ -110,19 +110,19 @@ export default function TestsRollupPage() {
                     <div className="text-xs text-content-muted mt-1">Total Plans</div>
                 </div>
                 <div className="glass-card p-4 text-center cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition" onClick={() => setFilter('due')}>
-                    <div className={`text-2xl font-bold ${duePlans.length > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    <div className={`text-2xl font-bold ${duePlans.length > 0 ? 'text-content-error' : 'text-content-success'}`}>
                         {duePlans.length}
                     </div>
                     <div className="text-xs text-content-muted mt-1">Overdue</div>
                 </div>
                 <div className="glass-card p-4 text-center cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition" onClick={() => setFilter('failed')}>
-                    <div className={`text-2xl font-bold ${failedPlans.length > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    <div className={`text-2xl font-bold ${failedPlans.length > 0 ? 'text-content-error' : 'text-content-success'}`}>
                         {failedPlans.length}
                     </div>
                     <div className="text-xs text-content-muted mt-1">Last Failed</div>
                 </div>
                 <div className="glass-card p-4 text-center cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition" onClick={() => setFilter('passed')}>
-                    <div className="text-2xl font-bold text-green-400">
+                    <div className="text-2xl font-bold text-content-success">
                         {plans.filter(p => getLastResult(p) === 'PASS').length}
                     </div>
                     <div className="text-xs text-content-muted mt-1">Last Passed</div>
@@ -175,7 +175,7 @@ export default function TestsRollupPage() {
                     {
                         id: 'nextDue', header: 'Next Due', accessorKey: 'nextDueAt',
                         cell: ({ row }) => row.original.nextDueAt ? (
-                            <span className={isOverdue(row.original.nextDueAt) ? 'text-red-400 font-semibold' : 'text-content-muted'}>
+                            <span className={isOverdue(row.original.nextDueAt) ? 'text-content-error font-semibold' : 'text-content-muted'}>
                                 {formatDate(row.original.nextDueAt)}
                             </span>
                         ) : <span className="text-content-subtle">—</span>,

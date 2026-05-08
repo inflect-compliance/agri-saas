@@ -81,11 +81,11 @@ export default async function BillingPage({
             {/* Trial banner */}
             {isTrialing && trialDaysRemaining !== null && (
                 <div className={`glass-card p-4 border ${
-                    trialDaysRemaining <= 3 ? 'border-red-500/40 bg-red-500/5' : 'border-amber-500/40 bg-amber-500/5'
+                    trialDaysRemaining <= 3 ? 'border-border-error bg-bg-error' : 'border-border-warning bg-bg-warning'
                 }`} id="trial-banner">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className={`text-sm font-semibold ${trialDaysRemaining <= 3 ? 'text-red-400' : 'text-amber-400'}`}>
+                            <p className={`text-sm font-semibold ${trialDaysRemaining <= 3 ? 'text-content-error' : 'text-content-warning'}`}>
                                 {trialDaysRemaining === 0
                                     ? 'Your trial expires today!'
                                     : `${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left in your trial`}
@@ -141,7 +141,7 @@ export default async function BillingPage({
                                 <>
                                     {formatDate(trialEnd)}
                                     {trialDaysRemaining !== null && (
-                                        <span className={`ml-1 text-xs ${trialDaysRemaining <= 3 ? 'text-red-400' : 'text-amber-400'}`}>
+                                        <span className={`ml-1 text-xs ${trialDaysRemaining <= 3 ? 'text-content-error' : 'text-content-warning'}`}>
                                             ({trialDaysRemaining}d left)
                                         </span>
                                     )}
@@ -153,8 +153,8 @@ export default async function BillingPage({
 
                 {/* Past due warning */}
                 {status === 'PAST_DUE' && (
-                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                        <p className="text-sm text-red-400 font-medium">Payment issue detected</p>
+                    <div className="mt-4 p-3 bg-bg-error border border-border-error rounded-lg">
+                        <p className="text-sm text-content-error font-medium">Payment issue detected</p>
                         <p className="text-xs text-content-muted mt-1">Please update your payment method to avoid service interruption.</p>
                     </div>
                 )}
@@ -166,10 +166,10 @@ export default async function BillingPage({
                 Stripe-backed buttons would 403 with "billing_unavailable". */}
             {billingMode === 'SELFHOSTED' && (
                 <div
-                    className="glass-card p-4 border border-amber-500/40 bg-amber-500/5"
+                    className="glass-card p-4 border border-border-warning bg-bg-warning"
                     id="billing-self-hosted-banner"
                 >
-                    <p className="text-sm font-semibold text-amber-400">
+                    <p className="text-sm font-semibold text-content-warning">
                         Self-hosted deployment
                     </p>
                     <p className="text-xs text-content-muted mt-1">

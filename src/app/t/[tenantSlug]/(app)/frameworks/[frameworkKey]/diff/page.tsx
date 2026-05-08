@@ -65,26 +65,26 @@ export default function DiffPage() {
                 </div>
             )}
 
-            {error && <div className="glass-card text-red-400">{error}</div>}
+            {error && <div className="glass-card text-content-error">{error}</div>}
 
             {diff && (
                 <>
                     {/* Summary cards */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4" id="diff-summary">
                         <div className="glass-card text-center">
-                            <div className="text-3xl font-bold text-emerald-400">{diff.summary.added}</div>
+                            <div className="text-3xl font-bold text-content-success">{diff.summary.added}</div>
                             <div className="text-xs text-content-muted mt-1">Added</div>
                         </div>
                         <div className="glass-card text-center">
-                            <div className="text-3xl font-bold text-red-400">{diff.summary.removed}</div>
+                            <div className="text-3xl font-bold text-content-error">{diff.summary.removed}</div>
                             <div className="text-xs text-content-muted mt-1">Removed</div>
                         </div>
                         <div className="glass-card text-center">
-                            <div className="text-3xl font-bold text-amber-400">{diff.summary.changed}</div>
+                            <div className="text-3xl font-bold text-content-warning">{diff.summary.changed}</div>
                             <div className="text-xs text-content-muted mt-1">Changed</div>
                         </div>
                         <div className="glass-card text-center">
-                            <div className={`text-3xl font-bold ${diff.summary.unmappedNewRequirements > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            <div className={`text-3xl font-bold ${diff.summary.unmappedNewRequirements > 0 ? 'text-content-error' : 'text-content-success'}`}>
                                 {diff.summary.unmappedNewRequirements}
                             </div>
                             <div className="text-xs text-content-muted mt-1">New Unmapped</div>
@@ -110,7 +110,7 @@ export default function DiffPage() {
                     <div className="space-y-2" id="diff-content">
                         {activeTab === 'added' && diff.added.map((r: any, i: number) => (
                             <div key={i} className="glass-card flex items-center gap-3">
-                                <span className="text-emerald-500 text-lg font-bold">+</span>
+                                <span className="text-content-success text-lg font-bold">+</span>
                                 <code className="text-xs text-[var(--brand-default)] font-mono w-28 flex-shrink-0">{r.code}</code>
                                 <span className="text-sm text-content-default">{r.title}</span>
                                 {r.section && <span className="text-xs text-content-subtle ml-auto">{r.section}</span>}
@@ -119,8 +119,8 @@ export default function DiffPage() {
 
                         {activeTab === 'removed' && diff.removed.map((r: any, i: number) => (
                             <div key={i} className="glass-card flex items-center gap-3">
-                                <span className="text-red-500 text-lg font-bold">−</span>
-                                <code className="text-xs text-red-400/60 font-mono w-28 flex-shrink-0 line-through">{r.code}</code>
+                                <span className="text-content-error text-lg font-bold">−</span>
+                                <code className="text-xs text-content-error/60 font-mono w-28 flex-shrink-0 line-through">{r.code}</code>
                                 <span className="text-sm text-content-subtle line-through">{r.title}</span>
                                 {r.section && <span className="text-xs text-content-subtle ml-auto">{r.section}</span>}
                             </div>
@@ -129,24 +129,24 @@ export default function DiffPage() {
                         {activeTab === 'changed' && diff.changed.map((r: any, i: number) => (
                             <div key={i} className="glass-card">
                                 <div className="flex items-center gap-3 mb-2">
-                                    <span className="text-amber-500 text-lg font-bold">~</span>
+                                    <span className="text-content-warning text-lg font-bold">~</span>
                                     <code className="text-xs text-[var(--brand-default)] font-mono">{r.code}</code>
                                     <span className="text-xs text-content-subtle">Changed: {r.changes.join(', ')}</span>
                                 </div>
                                 <div className="ml-8 space-y-1">
                                     {r.changes.includes('title') && (
                                         <div className="text-xs">
-                                            <span className="text-red-400 line-through">{r.from.title}</span>
+                                            <span className="text-content-error line-through">{r.from.title}</span>
                                             <span className="text-content-subtle mx-2">→</span>
-                                            <span className="text-emerald-400">{r.to.title}</span>
+                                            <span className="text-content-success">{r.to.title}</span>
                                         </div>
                                     )}
                                     {r.changes.includes('section') && (
                                         <div className="text-xs">
                                             <span className="text-content-subtle">Section: </span>
-                                            <span className="text-red-400">{r.from.section || '(none)'}</span>
+                                            <span className="text-content-error">{r.from.section || '(none)'}</span>
                                             <span className="text-content-subtle mx-2">→</span>
-                                            <span className="text-emerald-400">{r.to.section || '(none)'}</span>
+                                            <span className="text-content-success">{r.to.section || '(none)'}</span>
                                         </div>
                                     )}
                                 </div>

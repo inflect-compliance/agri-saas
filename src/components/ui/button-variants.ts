@@ -29,16 +29,16 @@ export const buttonVariants = cva(
           "hover:bg-bg-muted hover:text-content-emphasis",
         ],
         danger: [
-          "bg-red-600/80 border-red-600 text-white",
-          "hover:bg-red-500 hover:border-red-500",
+          "bg-bg-error-emphasis border-bg-error-emphasis text-white",
+          "hover:brightness-110",
         ],
         "danger-outline": [
           "bg-transparent border-border-error text-content-error",
           "hover:bg-bg-error hover:text-content-error",
         ],
         success: [
-          "bg-emerald-600/80 border-emerald-600 text-white",
-          "hover:bg-emerald-500 hover:border-emerald-500",
+          "bg-bg-success-emphasis border-bg-success-emphasis text-white",
+          "hover:brightness-110",
         ],
       },
       size: {

@@ -54,6 +54,12 @@ function getUrgency(daysUntil: number): Urgency {
     return 'normal';
 }
 
+// EXEMPT from PR-1 status-color migration: this widget uses a 3-tier
+// urgency gradient (red → amber → yellow) for at-a-glance scanning of
+// expiry urgency. The token system has only one warning tier (amber),
+// so collapsing urgent + upcoming to `bg-warning` would erase the
+// yellow vs amber visual distinction. Listed in EXEMPT_FILES of
+// `tests/guards/raw-color-eradication.test.ts`.
 function urgencyConfig(u: Urgency) {
     switch (u) {
         case 'overdue':  return { color: 'text-red-400', bg: 'bg-red-500/20', badge: 'bg-red-500/30 text-red-300', label: 'Overdue' };

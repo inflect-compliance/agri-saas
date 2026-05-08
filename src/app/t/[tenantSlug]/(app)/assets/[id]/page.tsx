@@ -92,7 +92,7 @@ export default function AssetDetailPage() {
     };
 
     if (loading) return <div className="p-12 text-center text-content-subtle animate-pulse">Loading asset…</div>;
-    if (error && !asset) return <div className="glass-card p-8 text-center text-red-400">{error}<div className="mt-4"><Link href={tenantHref('/assets')} className={buttonVariants({ variant: 'secondary' })}>← Back</Link></div></div>;
+    if (error && !asset) return <div className="glass-card p-8 text-center text-content-error">{error}<div className="mt-4"><Link href={tenantHref('/assets')} className={buttonVariants({ variant: 'secondary' })}>← Back</Link></div></div>;
     if (!asset) return null;
 
     const TYPES = ['INFORMATION', 'APPLICATION', 'SYSTEM', 'SERVICE', 'DATA_STORE', 'INFRASTRUCTURE', 'VENDOR', 'PROCESS', 'PEOPLE_PROCESS', 'OTHER'];
@@ -125,7 +125,7 @@ export default function AssetDetailPage() {
                 )}
             </div>
 
-            {error && <div className="glass-card p-4 border-red-500/50 text-red-400 text-sm">{error}</div>}
+            {error && <div className="glass-card p-4 border-border-error text-content-error text-sm">{error}</div>}
 
             {/* Detail card */}
             <div className="glass-card p-6 space-y-5" id="asset-detail">

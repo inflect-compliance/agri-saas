@@ -23,6 +23,13 @@ const statusBadgeVariants = cva(
         pending: "bg-bg-attention text-content-attention",
         warning: "bg-bg-warning text-content-warning",
         error: "bg-bg-error text-content-error",
+        // Subtle variants — neutral surface with status-tinted text only.
+        // For tertiary status displays (draft / low-risk / passive states)
+        // where the standard variant would feel too loud.
+        "info-subtle": "bg-bg-subtle text-content-info",
+        "success-subtle": "bg-bg-subtle text-content-success",
+        "warning-subtle": "bg-bg-subtle text-content-warning",
+        "error-subtle": "bg-bg-subtle text-content-error",
       },
       size: {
         sm: "px-1.5 py-0.5 text-[10px]",
@@ -43,6 +50,10 @@ const defaultIcons: Record<string, Icon> = {
   pending: CircleHalfDottedClock,
   warning: CircleWarning,
   error: CircleWarning,
+  "info-subtle": CircleHalfDottedCheck,
+  "success-subtle": CircleCheck,
+  "warning-subtle": CircleWarning,
+  "error-subtle": CircleWarning,
 };
 
 interface StatusBadgeProps

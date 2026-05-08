@@ -124,7 +124,7 @@ export interface TimeSeriesConfig {
     points: ReadonlyArray<{ date: Date; value: number }>;
     /** Stable id for the series; defaults to "series". */
     seriesId?: string;
-    /** Token-backed colour class (e.g. `text-emerald-500`). */
+    /** Token-backed colour class (e.g. `text-content-success`). */
     seriesColorClassName?: string;
     /** Series label rendered in the tooltip. */
     seriesLabel?: string;

@@ -136,7 +136,7 @@ export default async function RbacPage({
                                         return (
                                             <td key={role} className="text-center">
                                                 {granted ? (
-                                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-400"><Check size={10} /></span>
+                                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-bg-success text-content-success"><Check size={10} /></span>
                                                 ) : (
                                                     <span className="inline-block w-4 h-4 rounded-full bg-bg-elevated/50 text-content-subtle text-[10px] leading-4">—</span>
                                                 )}

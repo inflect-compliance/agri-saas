@@ -21,10 +21,10 @@ type Risk = {
 };
 
 const HEATMAP_COLOR = (s: number) => {
-    if (s <= 5) return 'bg-emerald-900/60 text-emerald-300';
-    if (s <= 12) return 'bg-amber-900/60 text-amber-300';
+    if (s <= 5) return 'bg-bg-success text-content-success';
+    if (s <= 12) return 'bg-bg-warning text-content-warning';
     if (s <= 18) return 'bg-orange-900/60 text-orange-300';
-    return 'bg-red-900/60 text-red-300';
+    return 'bg-bg-error text-content-error';
 };
 
 export default function RiskDashboardPage() {
@@ -88,15 +88,15 @@ export default function RiskDashboardPage() {
                 </div>
                 <div className="glass-card p-5 text-center">
                     <p className="text-xs text-content-muted uppercase tracking-wider">{t('avgScore')}</p>
-                    <p className="text-3xl font-bold mt-2 text-amber-400">{avgScore}</p>
+                    <p className="text-3xl font-bold mt-2 text-content-warning">{avgScore}</p>
                 </div>
                 <div className="glass-card p-5 text-center">
                     <p className="text-xs text-content-muted uppercase tracking-wider">{t('openRisks')}</p>
-                    <p className="text-3xl font-bold mt-2 text-emerald-400">{openCount}</p>
+                    <p className="text-3xl font-bold mt-2 text-content-success">{openCount}</p>
                 </div>
                 <div className="glass-card p-5 text-center">
                     <p className="text-xs text-content-muted uppercase tracking-wider">{t('overdueReviews')}</p>
-                    <p className="text-3xl font-bold mt-2 text-red-400">{overdueRisks.length}</p>
+                    <p className="text-3xl font-bold mt-2 text-content-error">{overdueRisks.length}</p>
                 </div>
             </div>
 
@@ -158,15 +158,15 @@ export default function RiskDashboardPage() {
 
             {/* Overdue */}
             {overdueRisks.length > 0 && (
-                <div className="glass-card p-5 border-red-500/30">
-                    <h2 className="font-semibold mb-3 text-red-400">{t('overdueReviewsTitle')}</h2>
+                <div className="glass-card p-5 border-border-error">
+                    <h2 className="font-semibold mb-3 text-content-error">{t('overdueReviewsTitle')}</h2>
                     <div className="space-y-2">
                         {overdueRisks.map(r => {
                             const daysOverdue = Math.floor((now.getTime() - new Date(r.nextReviewAt!).getTime()) / 86400000);
                             return (
-                                <Link key={r.id} href={href(`/risks/${r.id}`)} className="flex justify-between items-center p-2 rounded hover:bg-red-900/20 transition">
+                                <Link key={r.id} href={href(`/risks/${r.id}`)} className="flex justify-between items-center p-2 rounded hover:bg-bg-error transition">
                                     <span className="text-sm text-content-emphasis">{r.title}</span>
-                                    <span className="text-xs text-red-400">{t('daysOverdue', { days: daysOverdue })} · {r.treatmentOwner || t('noOwner')}</span>
+                                    <span className="text-xs text-content-error">{t('daysOverdue', { days: daysOverdue })} · {r.treatmentOwner || t('noOwner')}</span>
                                 </Link>
                             );
                         })}

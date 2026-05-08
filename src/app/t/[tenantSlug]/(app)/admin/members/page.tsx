@@ -476,7 +476,7 @@ export default function MembersAdminPage() {
                             className={cn(
                                 'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium border transition-colors',
                                 count > 0
-                                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
+                                    ? 'bg-bg-success text-content-success border-border-success hover:bg-bg-success'
                                     : 'bg-bg-muted text-content-subtle border-border-subtle hover:bg-bg-elevated',
                             )}
                             id={`sessions-count-${m.id}`}

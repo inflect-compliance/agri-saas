@@ -218,8 +218,8 @@ export default function AIRiskAssessmentPage() {
 
     const confidenceBadge = (c: string | null) => {
         switch (c) {
-            case 'high': return <span className="text-xs px-2 py-0.5 rounded bg-emerald-900/40 text-emerald-300 ring-1 ring-emerald-500/30">● High confidence</span>;
-            case 'medium': return <span className="text-xs px-2 py-0.5 rounded bg-amber-900/40 text-amber-300 ring-1 ring-amber-500/30">● Medium confidence</span>;
+            case 'high': return <span className="text-xs px-2 py-0.5 rounded bg-bg-success text-content-success ring-1 ring-[var(--border-success)]">● High confidence</span>;
+            case 'medium': return <span className="text-xs px-2 py-0.5 rounded bg-bg-warning text-content-warning ring-1 ring-[var(--border-warning)]">● Medium confidence</span>;
             case 'low': return <span className="text-xs px-2 py-0.5 rounded bg-bg-elevated/40 text-content-muted ring-1 ring-slate-500/30">● Low confidence</span>;
             default: return null;
         }
@@ -253,9 +253,9 @@ export default function AIRiskAssessmentPage() {
             </div>
 
             {error && (
-                <div className="glass-card p-4 border-red-500/50 text-red-400 text-sm" id="ai-error">
+                <div className="glass-card p-4 border-border-error text-content-error text-sm" id="ai-error">
                     {error}
-                    <button onClick={() => setError('')} className="ml-4 text-red-300 hover:text-content-emphasis">x</button>
+                    <button onClick={() => setError('')} className="ml-4 text-content-error hover:text-content-emphasis">x</button>
                 </div>
             )}
 
@@ -275,7 +275,7 @@ export default function AIRiskAssessmentPage() {
                                     onClick={() => toggleFramework(fw)}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                                         frameworks.includes(fw)
-                                            ? 'bg-blue-600 text-content-emphasis ring-2 ring-blue-400/50'
+                                            ? 'bg-bg-info-emphasis text-content-emphasis ring-2 ring-[var(--border-info)]'
                                             : 'bg-bg-elevated/50 text-content-default hover:bg-bg-muted/50'
                                     }`}
                                 >
@@ -365,7 +365,7 @@ export default function AIRiskAssessmentPage() {
                                 {session.items.length} suggestions • Provider: <strong className="text-content-default">{session.provider}</strong>
                             </span>
                             {session.isFallback ? (
-                                <span className="text-xs px-2 py-1 rounded bg-amber-900/30 text-amber-300 ring-1 ring-amber-500/20" id="fallback-notice">
+                                <span className="text-xs px-2 py-1 rounded bg-bg-warning text-content-warning ring-1 ring-[var(--border-warning)]" id="fallback-notice">
                                     [Fallback] Baseline suggestions (AI unavailable)
                                 </span>
                             ) : (
@@ -382,8 +382,8 @@ export default function AIRiskAssessmentPage() {
 
                     {/* Decision summary */}
                     <div className="flex gap-3 text-sm">
-                        <span className="text-emerald-400" id="accepted-count">[+] {acceptedCount} accepted</span>
-                        <span className="text-red-400" id="rejected-count">[-] {rejectedCount} rejected</span>
+                        <span className="text-content-success" id="accepted-count">[+] {acceptedCount} accepted</span>
+                        <span className="text-content-error" id="rejected-count">[-] {rejectedCount} rejected</span>
                         <span className="text-content-muted" id="pending-count">○ {pendingCount} pending</span>
                     </div>
 
@@ -401,8 +401,8 @@ export default function AIRiskAssessmentPage() {
                                 key={item.id}
                                 id={`suggestion-${idx}`}
                                 className={`glass-card p-5 transition-all ${
-                                    dec === 'accept' ? 'ring-1 ring-emerald-500/50 bg-emerald-900/10' :
-                                    dec === 'reject' ? 'ring-1 ring-red-500/30 opacity-60' : ''
+                                    dec === 'accept' ? 'ring-1 ring-[var(--border-success)] bg-bg-success' :
+                                    dec === 'reject' ? 'ring-1 ring-[var(--border-error)] opacity-60' : ''
                                 }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
@@ -524,7 +524,7 @@ export default function AIRiskAssessmentPage() {
                                             <div className="flex flex-wrap gap-1.5">
                                                 <span className="text-xs text-content-subtle mr-1">Suggested controls:</span>
                                                 {controls.map((c, ci) => (
-                                                    <span key={ci} className="text-xs bg-blue-900/30 text-blue-300 px-2 py-0.5 rounded">{c}</span>
+                                                    <span key={ci} className="text-xs bg-bg-info text-content-info px-2 py-0.5 rounded">{c}</span>
                                                 ))}
                                             </div>
                                         )}
@@ -549,7 +549,7 @@ export default function AIRiskAssessmentPage() {
                                                 <Button
                                                     variant={dec === 'accept' ? 'primary' : 'secondary'}
                                                     size="xs"
-                                                    className={dec === 'accept' ? 'bg-emerald-700 text-content-emphasis' : ''}
+                                                    className={dec === 'accept' ? 'bg-bg-success-emphasis text-content-emphasis' : ''}
                                                     onClick={() => setDecision(item.id, 'accept')}
                                                     id={`accept-${idx}`}
                                                 >
@@ -558,7 +558,7 @@ export default function AIRiskAssessmentPage() {
                                                 <Button
                                                     variant={dec === 'reject' ? 'danger' : 'secondary'}
                                                     size="xs"
-                                                    className={dec === 'reject' ? 'bg-red-700 text-content-emphasis' : ''}
+                                                    className={dec === 'reject' ? 'bg-bg-error-emphasis text-content-emphasis' : ''}
                                                     onClick={() => setDecision(item.id, 'reject')}
                                                     id={`reject-${idx}`}
                                                 >

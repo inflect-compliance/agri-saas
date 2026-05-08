@@ -97,8 +97,8 @@ export default function MfaChallengePage() {
             <div className="min-h-[60vh] flex items-center justify-center">
                 <div className="glass-card p-8 max-w-md w-full space-y-5 text-center">
                     <div className="flex justify-center">
-                        <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center">
-                            <AlertTriangle className="w-8 h-8 text-amber-400" />
+                        <div className="w-16 h-16 rounded-full bg-bg-warning flex items-center justify-center">
+                            <AlertTriangle className="w-8 h-8 text-content-warning" />
                         </div>
                     </div>
                     <h1 className="text-xl font-bold text-content-emphasis">MFA Enrollment Required</h1>
@@ -136,7 +136,7 @@ export default function MfaChallengePage() {
                 </div>
 
                 {error && (
-                    <div className="p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-sm text-red-300 text-center">
+                    <div className="p-3 rounded-lg border border-border-error bg-bg-error text-sm text-content-error text-center">
                         {error}
                     </div>
                 )}

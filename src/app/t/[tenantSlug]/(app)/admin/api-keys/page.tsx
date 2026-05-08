@@ -113,7 +113,7 @@ function ScopePicker({
                     onClick={toggleFullAccess}
                     className={`text-xs px-3 py-1.5 rounded-md transition font-medium ${
                         isFullAccess
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            ? 'bg-bg-warning text-content-warning border border-border-warning'
                             : 'bg-bg-elevated/50 text-content-muted border border-border-emphasis/50 hover:border-border-emphasis'
                     }`}
                     id="scope-full-access"
@@ -126,7 +126,7 @@ function ScopePicker({
                     content="Gives this key read + write on every resource — evidence, controls, admin settings. Prefer narrow scopes for automation."
                 />
                 {isFullAccess && (
-                    <span className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                    <span className="text-[10px] text-content-warning/80 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         Grants all permissions
                     </span>
@@ -186,13 +186,13 @@ export function KeyDisplay({ plaintext }: { plaintext: string }) {
     };
 
     return (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-2" id="key-display">
-            <div className="flex items-center gap-2 text-amber-300 text-sm font-medium">
+        <div className="p-4 bg-bg-warning border border-border-warning rounded-lg space-y-2" id="key-display">
+            <div className="flex items-center gap-2 text-content-warning text-sm font-medium">
                 <AlertTriangle className="w-4 h-4" />
                 Copy this key now — it will never be shown again!
             </div>
             <div className="flex items-center gap-2">
-                <code className="flex-1 bg-bg-page px-3 py-2 rounded text-sm font-mono text-emerald-300 select-all break-all">
+                <code className="flex-1 bg-bg-page px-3 py-2 rounded text-sm font-mono text-content-success select-all break-all">
                     {visible ? plaintext : plaintext.slice(0, 13) + '•'.repeat(40)}
                 </code>
                 <Tooltip content={visible ? 'Hide key' : 'Show key'}>
@@ -511,17 +511,17 @@ export default function ApiKeysPage() {
 
             {/* Messages */}
             {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2" id="api-keys-error">
-                    <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                    <span className="text-sm text-red-400">{error}</span>
-                    <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300"><XCircle className="w-3.5 h-3.5" /></button>
+                <div className="p-3 bg-bg-error border border-border-error rounded-lg flex items-center gap-2" id="api-keys-error">
+                    <XCircle className="w-4 h-4 text-content-error flex-shrink-0" />
+                    <span className="text-sm text-content-error">{error}</span>
+                    <button onClick={() => setError(null)} className="ml-auto text-content-error hover:text-content-error"><XCircle className="w-3.5 h-3.5" /></button>
                 </div>
             )}
             {success && (
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2" id="api-keys-success">
-                    <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    <span className="text-sm text-emerald-400">{success}</span>
-                    <button onClick={() => setSuccess(null)} className="ml-auto text-emerald-400 hover:text-emerald-300"><XCircle className="w-3.5 h-3.5" /></button>
+                <div className="p-3 bg-bg-success border border-border-success rounded-lg flex items-center gap-2" id="api-keys-success">
+                    <CheckCircle className="w-4 h-4 text-content-success flex-shrink-0" />
+                    <span className="text-sm text-content-success">{success}</span>
+                    <button onClick={() => setSuccess(null)} className="ml-auto text-content-success hover:text-content-success"><XCircle className="w-3.5 h-3.5" /></button>
                 </div>
             )}
 

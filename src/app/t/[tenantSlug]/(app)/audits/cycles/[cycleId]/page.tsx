@@ -101,16 +101,16 @@ export default function CycleDetailPage() {
                             <div className="text-2xl font-bold text-indigo-400" id="preview-controls">{preview.selection?.controls?.count || 0}</div>
                             <div className="text-xs text-content-muted">Controls</div>
                         </div>
-                        <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                            <div className="text-2xl font-bold text-blue-400" id="preview-policies">{preview.selection?.policies?.count || 0}</div>
+                        <div className="p-4 rounded-lg bg-bg-info border border-border-info">
+                            <div className="text-2xl font-bold text-content-info" id="preview-policies">{preview.selection?.policies?.count || 0}</div>
                             <div className="text-xs text-content-muted">Policies</div>
                         </div>
-                        <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                            <div className="text-2xl font-bold text-emerald-400" id="preview-evidence">{preview.selection?.evidence?.count || 0}</div>
+                        <div className="p-4 rounded-lg bg-bg-success border border-border-success">
+                            <div className="text-2xl font-bold text-content-success" id="preview-evidence">{preview.selection?.evidence?.count || 0}</div>
                             <div className="text-xs text-content-muted">Evidence</div>
                         </div>
-                        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                            <div className="text-2xl font-bold text-amber-400" id="preview-issues">{preview.selection?.issues?.count || 0}</div>
+                        <div className="p-4 rounded-lg bg-bg-warning border border-border-warning">
+                            <div className="text-2xl font-bold text-content-warning" id="preview-issues">{preview.selection?.issues?.count || 0}</div>
                             <div className="text-xs text-content-muted">Issues</div>
                         </div>
                     </div>

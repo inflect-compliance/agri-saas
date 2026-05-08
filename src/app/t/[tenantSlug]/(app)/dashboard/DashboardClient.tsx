@@ -283,12 +283,12 @@ export default function DashboardClient({
                         {
                             label: 'Implemented',
                             value: exec.controlCoverage.implemented,
-                            color: 'bg-emerald-500',
+                            color: 'bg-bg-success-emphasis',
                         },
                         {
                             label: 'In Progress',
                             value: exec.controlCoverage.inProgress,
-                            color: 'bg-amber-500',
+                            color: 'bg-bg-warning-emphasis',
                         },
                         {
                             label: 'Not Started',
@@ -439,10 +439,10 @@ function RiskDistributionSection({
                 />
                 <div className="space-y-2">
                     {[
-                        { label: 'Critical', value: riskBySeverity.critical, color: 'bg-red-500' },
+                        { label: 'Critical', value: riskBySeverity.critical, color: 'bg-bg-error-emphasis' },
                         { label: 'High', value: riskBySeverity.high, color: 'bg-orange-500' },
-                        { label: 'Medium', value: riskBySeverity.medium, color: 'bg-amber-500' },
-                        { label: 'Low', value: riskBySeverity.low, color: 'bg-emerald-500' },
+                        { label: 'Medium', value: riskBySeverity.medium, color: 'bg-bg-warning-emphasis' },
+                        { label: 'Low', value: riskBySeverity.low, color: 'bg-bg-success-emphasis' },
                     ].map((item) => (
                         <div
                             key={item.label}
@@ -480,10 +480,10 @@ function EvidenceStatusSection({ exec }: { exec: ExecutiveDashboardPayload }) {
             id="evidence-status"
             label="Evidence Status"
             items={[
-                { label: 'Overdue', value: evidenceExpiry.overdue, color: 'bg-red-500' },
-                { label: 'Due ≤7d', value: evidenceExpiry.dueSoon7d, color: 'bg-amber-500' },
-                { label: 'Due ≤30d', value: evidenceExpiry.dueSoon30d, color: 'bg-yellow-500' },
-                { label: 'Current', value: evidenceExpiry.current, color: 'bg-emerald-500' },
+                { label: 'Overdue', value: evidenceExpiry.overdue, color: 'bg-bg-error-emphasis' },
+                { label: 'Due ≤7d', value: evidenceExpiry.dueSoon7d, color: 'bg-bg-warning-emphasis' },
+                { label: 'Due ≤30d', value: evidenceExpiry.dueSoon30d, color: 'bg-bg-warning-emphasis' },
+                { label: 'Current', value: evidenceExpiry.current, color: 'bg-bg-success-emphasis' },
             ]}
         />
     );
@@ -497,15 +497,15 @@ function ComplianceAlerts({ exec, t }: { exec: ExecutiveDashboardPayload; t: (ke
     const alerts: { color: string; text: string }[] = [];
 
     if (evidenceExpiry.overdue > 0)
-        alerts.push({ color: 'bg-red-500', text: t('overdueEvidence', { count: evidenceExpiry.overdue }) });
+        alerts.push({ color: 'bg-bg-error-emphasis', text: t('overdueEvidence', { count: evidenceExpiry.overdue }) });
     if (stats.pendingEvidence > 0)
-        alerts.push({ color: 'bg-amber-500', text: t('evidenceAwaitingReview', { count: stats.pendingEvidence }) });
+        alerts.push({ color: 'bg-bg-warning-emphasis', text: t('evidenceAwaitingReview', { count: stats.pendingEvidence }) });
     if (stats.highRisks > 0)
         alerts.push({ color: 'bg-orange-500', text: t('highCriticalRisks', { count: stats.highRisks }) });
     if (taskSummary.overdue > 0)
-        alerts.push({ color: 'bg-red-400', text: `${taskSummary.overdue} overdue tasks` });
+        alerts.push({ color: 'bg-bg-error-emphasis', text: `${taskSummary.overdue} overdue tasks` });
     if (policySummary.overdueReview > 0)
-        alerts.push({ color: 'bg-yellow-500', text: `${policySummary.overdueReview} policies need review` });
+        alerts.push({ color: 'bg-bg-warning-emphasis', text: `${policySummary.overdueReview} policies need review` });
     if (vendorSummary.overdueReview > 0)
         alerts.push({ color: 'bg-purple-500', text: `${vendorSummary.overdueReview} vendors need review` });
     if (stats.openFindings > 0)

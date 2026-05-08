@@ -128,7 +128,7 @@ export default function TemplateLibraryPage() {
                     </h1>
                     <div className="flex gap-3 mt-1 text-xs text-content-subtle">
                         <span>{templates.length} templates</span>
-                        <span className="text-emerald-500">{installed} installed</span>
+                        <span className="text-content-success">{installed} installed</span>
                         <span className="text-[var(--brand-default)]">{available} available</span>
                     </div>
                 </div>

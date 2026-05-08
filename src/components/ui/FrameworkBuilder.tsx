@@ -229,7 +229,7 @@ export function FrameworkBuilder({
             </div>
 
             {error && (
-                <div className="glass-card border-rose-500/30 bg-rose-500/5 p-3 text-xs text-rose-300">
+                <div className="glass-card border-border-error bg-bg-error p-3 text-xs text-content-error">
                     {error}
                 </div>
             )}

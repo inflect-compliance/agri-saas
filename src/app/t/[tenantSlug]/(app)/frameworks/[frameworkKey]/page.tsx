@@ -77,7 +77,7 @@ export default function FrameworkDetailPage() {
     }, [apiUrl, frameworkKey]);
 
     if (loading) return <div className="p-8 animate-pulse text-content-muted" id="framework-detail-loading">Loading framework...</div>;
-    if (error || !framework) return <div className="p-8 text-red-400" id="framework-detail-error">{error ?? 'Framework not found'}</div>;
+    if (error || !framework) return <div className="p-8 text-content-error" id="framework-detail-error">{error ?? 'Framework not found'}</div>;
 
     const tabs: { key: Tab; label: string; count?: number }[] = [
         { key: 'requirements', label: 'Requirements', count: tree?.totals.requirements },
@@ -202,11 +202,11 @@ export default function FrameworkDetailPage() {
                             <div className="text-xs text-content-muted mt-1">Total Requirements</div>
                         </div>
                         <div className="glass-card text-center">
-                            <div className="text-3xl font-bold text-emerald-400">{coverage.mapped}</div>
+                            <div className="text-3xl font-bold text-content-success">{coverage.mapped}</div>
                             <div className="text-xs text-content-muted mt-1">Mapped</div>
                         </div>
                         <div className="glass-card text-center">
-                            <div className={`text-3xl font-bold ${coverage.unmapped > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>{coverage.unmapped}</div>
+                            <div className={`text-3xl font-bold ${coverage.unmapped > 0 ? 'text-content-warning' : 'text-content-success'}`}>{coverage.unmapped}</div>
                             <div className="text-xs text-content-muted mt-1">Unmapped</div>
                         </div>
                     </div>
@@ -215,7 +215,7 @@ export default function FrameworkDetailPage() {
                     <div className="glass-card">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-content-emphasis">Overall Coverage</h3>
-                            <span className={`text-2xl font-bold ${coverage.coveragePercent === 100 ? 'text-emerald-400' : 'text-[var(--brand-default)]'}`}>
+                            <span className={`text-2xl font-bold ${coverage.coveragePercent === 100 ? 'text-content-success' : 'text-[var(--brand-default)]'}`}>
                                 {coverage.coveragePercent}%
                             </span>
                         </div>
@@ -259,7 +259,7 @@ export default function FrameworkDetailPage() {
                     {/* Unmapped requirements */}
                     {coverage.unmappedRequirements?.length > 0 && (
                         <div className="glass-card">
-                            <h3 className="text-sm font-semibold text-amber-400 mb-3">
+                            <h3 className="text-sm font-semibold text-content-warning mb-3">
                                 Unmapped Requirements ({coverage.unmappedRequirements.length})
                             </h3>
                             <div className="space-y-1 max-h-64 overflow-y-auto">

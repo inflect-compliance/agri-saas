@@ -201,20 +201,20 @@ export default function RiskImportPage() {
                 catches up. */}
             {/* eslint-disable-next-line react-hooks/refs */}
             {rows.length === 0 && fileRef.current?.files?.length ? (
-                <div className="glass-card p-4 text-sm text-amber-400">{t('noValidRows')}</div>
+                <div className="glass-card p-4 text-sm text-content-warning">{t('noValidRows')}</div>
             ) : null}
 
             {/* Result */}
             {result && (
                 <div className="glass-card p-6 space-y-4">
-                    <p className="text-lg font-semibold text-emerald-400">
+                    <p className="text-lg font-semibold text-content-success">
                         {t('importComplete', { created: result.created, total: rows.length })}
                     </p>
                     {result.errors.length > 0 && (
                         <div className="space-y-1">
-                            <p className="text-sm text-red-400 font-medium">{t('errors')}:</p>
+                            <p className="text-sm text-content-error font-medium">{t('errors')}:</p>
                             {result.errors.map((e, i) => (
-                                <p key={i} className="text-xs text-red-300">{e}</p>
+                                <p key={i} className="text-xs text-content-error">{e}</p>
                             ))}
                         </div>
                     )}
