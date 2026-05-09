@@ -88,10 +88,19 @@ export interface EntityListPageFilters {
     /** Optional override for the FilterSelect trigger label. */
     triggerLabel?: ReactNode;
     /**
-     * Right-aligned actions inside the toolbar — typically a
-     * `<ColumnsDropdown>`. Same shape as `<FilterToolbar actions>`.
+     * Secondary cluster inside the toolbar — typically a
+     * `<ColumnsDropdown>`, bulk-edit / export icons. Same shape as
+     * `<FilterToolbar actions>`.
      */
     toolbarActions?: ReactNode;
+    /**
+     * Primary action inside the toolbar (right edge — v2-PR-7).
+     * Reserved for the SINGLE primary action of the page (the
+     * "Create X" button). Pages should prefer this over
+     * `header.actions` so headers stay navigational and the toolbar
+     * is the only place that mutates the list.
+     */
+    toolbarPrimary?: ReactNode;
 }
 
 // ─── Public props ────────────────────────────────────────────────
@@ -192,6 +201,7 @@ export function EntityListPage<TRow>(props: EntityListPageProps<TRow>) {
                         searchPlaceholder={filters.searchPlaceholder}
                         triggerLabel={filters.triggerLabel}
                         actions={filters.toolbarActions}
+                        primary={filters.toolbarPrimary}
                     />
                 </ListPageShell.Filters>
             )}

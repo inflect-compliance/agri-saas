@@ -51,12 +51,37 @@ export interface FilterToolbarProps {
     /** Optional label for the FilterSelect trigger button. Defaults to "Filter". */
     triggerLabel?: ReactNode;
     /**
-     * Slot rendered on the right side of the toolbar — typically the
-     * DataTable's `<EditColumnsButton>` so column visibility lives at the
-     * same eye-line as the filter controls. Pass a React element or a
-     * render-prop function for more flexibility.
+     * Secondary slot (right side of the toolbar, before the primary
+     * cluster) — typically the DataTable's `<EditColumnsButton>` so
+     * column visibility lives at the same eye-line as the filter
+     * controls. Use this for icon-only ghost actions: bulk edit,
+     * export, column visibility, settings.
+     *
+     * v2-PR-7 — was the only right-edge slot. The new `primary` slot
+     * sits to the right of this one for the single primary action
+     * (the "Create X" button). Existing call sites keep working
+     * unchanged; new code reaching for a primary action should use
+     * `primary` instead of crowding it into `actions`.
      */
     actions?: ReactNode;
+    /**
+     * Primary slot (rightmost — anchored to the right edge of the
+     * toolbar). Reserved for the SINGLE primary action of the page —
+     * typically a `<Button variant="primary">{action}</Button>`. The
+     * lock to one slot is deliberate: list pages should not present
+     * two co-equal primary actions.
+     *
+     * v2-PR-7 added this slot so the canonical reading order on
+     * every list page is:
+     *
+     *   [search + filter button] [active pills (flex-1)] [secondary] [primary]
+     *
+     * Header-level "Create" buttons that used to live in
+     * `EntityListPage header.actions` (right of the title) should
+     * migrate here over time — keeping page headers navigational and
+     * the toolbar mutate-only.
+     */
+    primary?: ReactNode;
     /** Optional className forwarded to the outer container. */
     className?: string;
 }
@@ -92,6 +117,7 @@ export function FilterToolbar({
     searchPlaceholder,
     triggerLabel,
     actions,
+    primary,
     className,
 }: FilterToolbarProps) {
     const ctx = useFilters();
@@ -146,7 +172,22 @@ export function FilterToolbar({
                     onRemoveAll={clearAll}
                 />
             </div>
-            {actions ? <div className="flex items-center gap-tight">{actions}</div> : null}
+            {actions ? (
+                <div
+                    className="flex items-center gap-tight"
+                    data-testid="filter-toolbar-secondary"
+                >
+                    {actions}
+                </div>
+            ) : null}
+            {primary ? (
+                <div
+                    className="flex items-center gap-tight"
+                    data-testid="filter-toolbar-primary"
+                >
+                    {primary}
+                </div>
+            ) : null}
         </div>
     );
 }
