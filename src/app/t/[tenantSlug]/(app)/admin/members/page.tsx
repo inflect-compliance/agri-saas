@@ -21,7 +21,7 @@
 import { formatDate } from '@/lib/format-date';
 import { Card } from '@/components/ui/card';
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import {
     Users, UserPlus, ChevronDown, Shield, XCircle, CheckCircle,
     Search, MoreVertical, UserMinus, Mail, Monitor,
@@ -37,6 +37,7 @@ import { DataTable, createColumns } from '@/components/ui/table';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { cn } from '@dub/utils';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 // ─── Types ───
 
@@ -105,6 +106,7 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'neutral'
 
 export default function MembersAdminPage() {
     const apiUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
 
     // ─── State ───
     const [members, setMembers] = useState<Member[]>([]);
@@ -606,6 +608,14 @@ export default function MembersAdminPage() {
     if (loading) {
         return (
             <div className="space-y-section animate-fadeIn">
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: 'Admin', href: tenantHref('/admin') },
+                        { label: 'Members & Roles' },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1} className="flex items-center gap-tight">
                     <Users className="w-6 h-6 text-[var(--brand-default)]" />
                     Members &amp; Roles

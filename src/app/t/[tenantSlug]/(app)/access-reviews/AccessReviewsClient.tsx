@@ -25,6 +25,7 @@ import type { CappedList } from '@/lib/list-backfill-cap';
 import { TruncationBanner } from '@/components/ui/TruncationBanner';
 import { formatDate } from '@/lib/format-date';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 /// SSR returns Prisma rows with native Date instances; the SWR
 /// fetcher returns the same shape but the dates round-trip through
@@ -166,6 +167,13 @@ export function AccessReviewsClient({ tenantSlug, initialReviews }: Props) {
             <ListPageShell.Header>
                 <div className="flex items-center justify-between">
                     <div>
+                        <Breadcrumbs
+                            items={[
+                                { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                                { label: 'Access Reviews' },
+                            ]}
+                            className="mb-1"
+                        />
                         <Heading level={1} data-testid="access-reviews-title">
                             Access Reviews
                         </Heading>

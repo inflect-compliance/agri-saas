@@ -28,7 +28,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { getPermissionsForRole, type PermissionSet } from '@/lib/permissions';
 import {
     Shield, Plus, Pencil, Trash2, XCircle, CheckCircle, Check,
@@ -43,6 +43,7 @@ import { InlineNotice } from '@/components/ui/inline-notice';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading, Eyebrow } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 // ─── Types ───
 
@@ -321,6 +322,7 @@ function RoleForm({
 
 export default function CustomRolesPage() {
     const apiUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
 
     const [roles, setRoles] = useState<CustomRole[]>([]);
     const [loading, setLoading] = useState(true);
@@ -546,6 +548,14 @@ export default function CustomRolesPage() {
     if (loading) {
         return (
             <div className="space-y-section animate-fadeIn">
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: 'Admin', href: tenantHref('/admin') },
+                        { label: 'Custom Roles' },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1} className="flex items-center gap-tight">
                     <Shield className="w-6 h-6 text-[var(--brand-default)]" />
                     Custom Roles

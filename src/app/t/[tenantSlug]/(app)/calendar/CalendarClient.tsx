@@ -32,6 +32,7 @@ import type {
     CalendarResponse,
 } from '@/app-layer/schemas/calendar.schemas';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 const DAY_MS = 86_400_000;
 
@@ -165,6 +166,13 @@ export function CalendarClient({
             {/* Header */}
             <header className="flex items-start justify-between gap-default flex-wrap">
                 <div className="min-w-0">
+                    <Breadcrumbs
+                        items={[
+                            { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                            { label: 'Calendar' },
+                        ]}
+                        className="mb-1"
+                    />
                     <Heading level={1} className="flex items-center gap-tight">
                         <CalIcon className="size-6 text-content-muted" aria-hidden="true" />
                         Compliance Calendar

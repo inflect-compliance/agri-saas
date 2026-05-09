@@ -7,7 +7,7 @@
 import { formatDate } from '@/lib/format-date';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { CloudCog, Plus, Trash2, Copy, Check, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { InlineNotice } from '@/components/ui/inline-notice';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { Card } from '@/components/ui/card';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 interface ScimToken {
     id: string;
@@ -35,6 +36,7 @@ interface ScimState {
 
 export default function ScimAdminPage() {
     const apiUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
     const [state, setState] = useState<ScimState | null>(null);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
@@ -118,6 +120,14 @@ export default function ScimAdminPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
+                    <Breadcrumbs
+                        items={[
+                            { label: 'Dashboard', href: tenantHref('/dashboard') },
+                            { label: 'Admin', href: tenantHref('/admin') },
+                            { label: 'SCIM Provisioning' },
+                        ]}
+                        className="mb-1"
+                    />
                     <Heading level={1} className="flex items-center gap-tight">
                         <CloudCog className="w-6 h-6 text-[var(--brand-default)]" />
                         SCIM Provisioning

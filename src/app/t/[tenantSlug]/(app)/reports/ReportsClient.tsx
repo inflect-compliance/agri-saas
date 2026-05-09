@@ -11,6 +11,7 @@ import { ListPageShell } from '@/components/layout/ListPageShell';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 interface ControlOption {
     id: string;
@@ -105,7 +106,17 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
         <ListPageShell className="gap-default">
             <ListPageShell.Header>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-compact">
-                    <div><Heading level={1} id="reports-heading">{t.title}</Heading><p className="text-content-muted text-sm">{t.subtitle}</p></div>
+                    <div>
+                        <Breadcrumbs
+                            items={[
+                                { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                                { label: t.title },
+                            ]}
+                            className="mb-1"
+                        />
+                        <Heading level={1} id="reports-heading">{t.title}</Heading>
+                        <p className="text-content-muted text-sm">{t.subtitle}</p>
+                    </div>
                     <RequirePermission resource="reports" action="export">
                         <div className="flex flex-wrap gap-tight">
                             <Button variant="secondary" onClick={() => downloadCSV(data.riskRegister, 'risk-register.csv')} id="export-risks-btn">{t.exportRisks}</Button>

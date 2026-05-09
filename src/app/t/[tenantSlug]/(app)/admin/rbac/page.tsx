@@ -8,6 +8,7 @@ import type { Role } from '@prisma/client';
 import { Check } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,6 +66,14 @@ export default async function RbacPage({
         <div className="space-y-page animate-fadeIn">
             {/* Header */}
             <div>
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                        { label: 'Admin', href: `/t/${tenantSlug}/admin` },
+                        { label: 'Roles & Access' },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1}>Roles &amp; Access</Heading>
                 <p className="text-sm text-content-muted mt-1">
                     Permission matrix for <span className="text-content-emphasis font-medium">{tenantCtx.tenant.name}</span>.

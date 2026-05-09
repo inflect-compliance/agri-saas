@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button-variants';
 import { AdminClient } from './AdminClient';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,7 +53,16 @@ export default async function AdminPage({
     return (
         <div className="space-y-section animate-fadeIn">
             <div className="flex items-center justify-between">
-                <Heading level={1}>{t('title')}</Heading>
+                <div>
+                    <Breadcrumbs
+                        items={[
+                            { label: 'Dashboard', href: tenantHref('/dashboard') },
+                            { label: t('title') },
+                        ]}
+                        className="mb-1"
+                    />
+                    <Heading level={1}>{t('title')}</Heading>
+                </div>
                 <div className="flex items-center gap-compact glass-card px-4 py-2" id="admin-theme-section">
                     <Palette className="w-4 h-4 text-content-muted" />
                     <span className="text-sm text-content-muted">Theme</span>

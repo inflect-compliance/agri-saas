@@ -341,6 +341,10 @@ function PoliciesPageInner({
             className="animate-fadeIn gap-section"
             banner={<TruncationBanner truncated={truncated} />}
             header={{
+                breadcrumbs: [
+                    { label: 'Dashboard', href: tenantHref('/dashboard') },
+                    { label: t.title },
+                ],
                 title: t.title,
                 count: `${policies.length} polic${policies.length === 1 ? 'y' : 'ies'}`,
                 actions: permissions.canWrite ? (

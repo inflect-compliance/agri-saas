@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { Shield, CheckCircle, XCircle, AlertTriangle, ExternalLink, Trash2, Save, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -17,6 +17,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 interface SsoProvider {
     id: string;
@@ -50,6 +51,7 @@ function ProviderStatusBadge({ existingProvider }: { existingProvider: SsoProvid
 
 export default function SsoAdminPage() {
     const apiUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
     const [providers, setProviders] = useState<SsoProvider[]>([]);
     const [tab, setTab] = useState<Tab>('OIDC');
     const [loading, setLoading] = useState(true);
@@ -259,6 +261,14 @@ export default function SsoAdminPage() {
     if (loading) {
         return (
             <div className="space-y-section animate-fadeIn">
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: 'Admin', href: tenantHref('/admin') },
+                        { label: 'SSO & Identity' },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1}>SSO &amp; Identity</Heading>
                 <Card className="space-y-default">
                     <div className="h-4 bg-bg-elevated/50 rounded w-1/3 animate-pulse" />
@@ -273,6 +283,14 @@ export default function SsoAdminPage() {
         <div className="space-y-section animate-fadeIn">
             {/* Header */}
             <div>
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: 'Admin', href: tenantHref('/admin') },
+                        { label: 'SSO & Identity' },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1} className="flex items-center gap-tight">
                     <Shield className="w-6 h-6 text-[var(--brand-default)]" />
                     SSO &amp; Identity

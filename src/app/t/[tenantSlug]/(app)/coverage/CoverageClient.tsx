@@ -9,6 +9,7 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { Card } from '@/components/ui/card';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -157,6 +158,13 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                         <ArrowLeft className="w-5 h-5" aria-hidden="true" />
                     </Link>
                     <div>
+                        <Breadcrumbs
+                            items={[
+                                { label: 'Dashboard', href: tenantHref('/dashboard') },
+                                { label: 'Coverage' },
+                            ]}
+                            className="mb-1"
+                        />
                         <Heading level={1} id="coverage-heading">
                             Coverage Dashboard
                         </Heading>

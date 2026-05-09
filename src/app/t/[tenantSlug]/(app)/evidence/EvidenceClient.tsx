@@ -60,6 +60,7 @@ import {
     EVIDENCE_FILTER_KEYS,
 } from './filter-defs';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 interface Permissions {
     canRead: boolean;
@@ -608,6 +609,13 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
             <ListPageShell.Header>
                 <div className="flex items-center justify-between">
                     <div>
+                        <Breadcrumbs
+                            items={[
+                                { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                                { label: t.title },
+                            ]}
+                            className="mb-1"
+                        />
                         <Heading level={1}>{t.title}</Heading>
                         <p className="text-content-muted text-sm">{evidence.length} evidence items</p>
                     </div>

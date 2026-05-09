@@ -14,6 +14,7 @@ import { buttonVariants } from '@/components/ui/button-variants';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 interface TestPlanSummary {
     id: string;
@@ -93,6 +94,13 @@ export default function TestsRollupPage() {
             <ListPageShell.Header>
                 <div className="flex items-center justify-between">
                     <div>
+                        <Breadcrumbs
+                            items={[
+                                { label: 'Dashboard', href: tenantHref('/dashboard') },
+                                { label: 'Tests' },
+                            ]}
+                            className="mb-1"
+                        />
                         <Heading level={1} id="tests-page-title">Tests</Heading>
                         <p className="text-sm text-content-muted mt-1">Test plans and recent results across all controls</p>
                     </div>

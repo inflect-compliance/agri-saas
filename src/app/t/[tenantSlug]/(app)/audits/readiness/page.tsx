@@ -36,6 +36,7 @@ import { getTenantCtx } from '@/app-layer/context';
 import { getReadinessOverview } from '@/app-layer/usecases/audit-readiness';
 import type { ReadinessResult } from '@/app-layer/usecases/audit-readiness-scoring';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,6 +105,14 @@ export default async function ReadinessOverviewPage({
         <div className="space-y-section animate-fadeIn">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-compact">
                 <div>
+                    <Breadcrumbs
+                        items={[
+                            { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                            { label: 'Audits', href: `/t/${tenantSlug}/audits` },
+                            { label: 'Readiness' },
+                        ]}
+                        className="mb-1"
+                    />
                     <Heading level={1} id="readiness-heading">
                         Audit Readiness
                     </Heading>

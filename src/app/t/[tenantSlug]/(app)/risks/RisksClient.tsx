@@ -49,6 +49,7 @@ import type { RiskMatrixConfigShape } from '@/lib/risk-matrix/types';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { Card } from '@/components/ui/card';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 interface RiskListItem {
     id: string;
@@ -470,6 +471,13 @@ function RisksPageInner({
             <ListPageShell.Header>
                 <div className="flex items-center justify-between">
                     <div>
+                        <Breadcrumbs
+                            items={[
+                                { label: 'Dashboard', href: tenantHref('/dashboard') },
+                                { label: t.title },
+                            ]}
+                            className="mb-1"
+                        />
                         <Heading level={1}>{t.title}</Heading>
                         <p className="text-content-muted text-sm">{t.risksIdentified}</p>
                     </div>

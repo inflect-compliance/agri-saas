@@ -40,6 +40,7 @@ import {
 import { useHydratedNow } from '@/lib/hooks/use-hydrated-now';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     OPEN: 'neutral', TRIAGED: 'info', IN_PROGRESS: 'info',
@@ -428,6 +429,13 @@ function TasksPageInner({
             <ListPageShell.Header>
                 <div className="flex items-center justify-between">
                     <div>
+                        <Breadcrumbs
+                            items={[
+                                { label: 'Dashboard', href: tenantHref('/dashboard') },
+                                { label: 'Tasks' },
+                            ]}
+                            className="mb-1"
+                        />
                         <Heading level={1}>Tasks</Heading>
                         <p className="text-content-muted text-sm">{tasks.length} tasks in register</p>
                     </div>

@@ -2,11 +2,12 @@
 import { formatDateTime } from '@/lib/format-date';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { useOptimisticUpdate } from '@/components/ui/hooks';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 type Notification = {
     id: string;
@@ -18,6 +19,7 @@ type Notification = {
 
 export default function NotificationsPage() {
     const apiUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
     const t = useTranslations('notifications');
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -68,7 +70,17 @@ export default function NotificationsPage() {
 
     return (
         <div className="space-y-section animate-fadeIn">
-            <Heading level={1}>{t('title')}</Heading>
+            <div>
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: t('title') },
+                    ]}
+                    className="mb-1"
+                />
+                <Heading level={1}>{t('title')}</Heading>
+                <p className="text-sm text-content-muted mt-1">Recent activity across your compliance program</p>
+            </div>
             <div className="space-y-tight">
                 {optimisticList.map(n => (
                     <div key={n.id} className={`glass-card p-4 flex items-start gap-compact ${!n.read ? 'border-l-2 border-[var(--brand-default)]' : 'opacity-60'}`}>

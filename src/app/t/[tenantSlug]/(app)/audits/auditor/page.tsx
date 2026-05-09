@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { AppIcon, type AppIconName } from '@/components/icons/AppIcon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 const FW_META: Record<string, { icon: AppIconName; label: string }> = {
     ISO27001: { icon: 'shield', label: 'ISO/IEC 27001:2022' },
@@ -44,6 +45,14 @@ export default function AuditorPortalPage() {
     return (
         <div className="space-y-section animate-fadeIn">
             <div>
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                        { label: 'Audits', href: `/t/${tenantSlug}/audits` },
+                        { label: 'Auditor Portal' },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1} id="auditor-heading">Auditor Portal</Heading>
                 <p className="text-content-muted text-sm">Review assigned audit packs</p>
             </div>

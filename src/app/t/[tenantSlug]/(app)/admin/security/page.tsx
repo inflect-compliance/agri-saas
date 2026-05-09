@@ -7,12 +7,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { ShieldCheck, Save, AlertTriangle, CheckCircle, LogOut, Users, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InfoTooltip } from '@/components/ui/tooltip';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 type MfaPolicy = 'DISABLED' | 'OPTIONAL' | 'REQUIRED';
 
@@ -41,6 +42,7 @@ const POLICY_OPTIONS: { value: MfaPolicy; label: string; description: string }[]
 
 export default function AdminSecurityPage() {
     const apiUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
     const [settings, setSettings] = useState<SecuritySettings>({ mfaPolicy: 'DISABLED', sessionMaxAgeMinutes: null });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -158,6 +160,14 @@ export default function AdminSecurityPage() {
     if (loading) {
         return (
             <div className="space-y-section animate-fadeIn">
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: 'Admin', href: tenantHref('/admin') },
+                        { label: 'Security & MFA' },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1} className="flex items-center gap-tight">
                     <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
                     Security & MFA
@@ -176,10 +186,20 @@ export default function AdminSecurityPage() {
 
     return (
         <div className="space-y-section animate-fadeIn">
-            <Heading level={1} className="flex items-center gap-tight">
-                <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
-                Security & MFA
-            </Heading>
+            <div>
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: 'Admin', href: tenantHref('/admin') },
+                        { label: 'Security & MFA' },
+                    ]}
+                    className="mb-1"
+                />
+                <Heading level={1} className="flex items-center gap-tight">
+                    <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
+                    Security & MFA
+                </Heading>
+            </div>
 
             {error && (
                 <InlineNotice variant="error" icon={AlertTriangle}>{error}</InlineNotice>

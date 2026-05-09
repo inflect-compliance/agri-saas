@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataTable, createColumns } from '@/components/ui/table';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 interface NotificationSettings {
     enabled: boolean;
@@ -23,6 +24,7 @@ interface OutboxStats {
 
 export default function NotificationSettingsPage() {
     const apiUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
     const [tab, setTab] = useState<'settings' | 'stats'>('settings');
     const [settings, setSettings] = useState<NotificationSettings | null>(null);
     const [stats, setStats] = useState<OutboxStats | null>(null);
@@ -86,6 +88,16 @@ export default function NotificationSettingsPage() {
 
     return (
         <div className="space-y-section animate-fadeIn">
+            <div>
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: 'Admin', href: tenantHref('/admin') },
+                        { label: 'Email Notifications' },
+                    ]}
+                    className="mb-1"
+                />
+            </div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-default">
                 <div className="flex flex-wrap items-center gap-compact">
                     <Heading level={1}>Email Notifications</Heading>

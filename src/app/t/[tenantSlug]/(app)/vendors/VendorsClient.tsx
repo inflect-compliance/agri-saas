@@ -26,6 +26,7 @@ import { toApiSearchParams } from '@/lib/filters/url-sync';
 import { useHydratedNow } from '@/lib/hooks/use-hydrated-now';
 import { buildVendorFilters, VENDOR_FILTER_KEYS } from './filter-defs';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 const STATUS_VARIANT: Record<string, 'success' | 'info' | 'warning' | 'neutral'> = {
     ACTIVE: 'success', ONBOARDING: 'info',
@@ -186,6 +187,13 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
             <ListPageShell.Header>
                 <div className="flex items-center justify-between">
                     <div>
+                        <Breadcrumbs
+                            items={[
+                                { label: 'Dashboard', href: tenantHref('/dashboard') },
+                                { label: 'Vendor Register' },
+                            ]}
+                            className="mb-1"
+                        />
                         <Heading level={1}>Vendor Register</Heading>
                         <p className="text-content-muted text-sm">{vendors.length} vendors</p>
                     </div>

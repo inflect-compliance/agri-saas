@@ -8,6 +8,7 @@ import type { CappedList } from '@/lib/list-backfill-cap';
 import { TruncationBanner } from '@/components/ui/TruncationBanner';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
@@ -127,7 +128,17 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
     return (
         <>
             <div className="flex flex-wrap items-center justify-between gap-compact">
-                <div><Heading level={1}>{t.title}</Heading><p className="text-content-muted text-sm">{audits.length} audits</p></div>
+                <div>
+                    <Breadcrumbs
+                        items={[
+                            { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                            { label: t.title },
+                        ]}
+                        className="mb-1"
+                    />
+                    <Heading level={1}>{t.title}</Heading>
+                    <p className="text-content-muted text-sm">{audits.length} audits</p>
+                </div>
                 <Button variant="primary" onClick={() => setShowForm(!showForm)} id="new-audit-btn">{t.newAudit}</Button>
             </div>
 

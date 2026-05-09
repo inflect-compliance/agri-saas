@@ -1,15 +1,17 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Heading } from '@/components/ui/typography';
 import { Card } from '@/components/ui/card';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function MappingPage() {
     const apiUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
     const t = useTranslations('mapping');
     const [data, setData] = useState<any>(null);
     const [tab, setTab] = useState<'soc2' | 'nis2'>('soc2');
@@ -23,6 +25,13 @@ export default function MappingPage() {
     return (
         <div className="space-y-section animate-fadeIn">
             <div>
+                <Breadcrumbs
+                    items={[
+                        { label: 'Dashboard', href: tenantHref('/dashboard') },
+                        { label: t('title') },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1}>{t('title')}</Heading>
                 <p className="text-content-muted text-sm">{t('subtitle')}</p>
             </div>
