@@ -1,29 +1,33 @@
 /**
- * Card primitive — PR-6.
+ * Card primitive — PR-6 + v2-PR-9.
  *
- * Wraps the legacy `.glass-card` CSS class with a typed `density` prop
- * so consumers stop hand-rolling `<div className="glass-card p-5">`
- * and `<div className="glass-card p-8">` (visual drift between the
- * canonical `p-4` and `p-6` rungs).
+ * Wraps the legacy `.glass-card` CSS class with two typed axes:
  *
- * Density rungs (deliberately small — two visible plus a no-padding
- * escape hatch for cards whose children own their own padding):
+ *   density   — internal padding rung (PR-6):
+ *     "comfortable" (default)   p-6   — content cards, panels
+ *     "compact"                 p-4   — stat cards, inline cards
+ *     "none"                    p-0   — children own padding
  *
- *   density="comfortable" (default)   p-6   — content cards, panels
- *   density="compact"                 p-4   — stat cards, inline cards
- *   density="none"                    p-0   — children own padding
+ *   elevation — visual depth (v2-PR-9). Three levels expressed via
+ *               background tone — never via shadow:
+ *     "flat"     — bg-bg-page; matches the page background. Use for
+ *                  nested sub-cards inside a `raised` card so the
+ *                  inner card reads as part of the outer plane.
+ *     "raised" (default) — the glass-card recipe (bg-bg-default +
+ *                  backdrop-blur + glass border). The standard
+ *                  section-level card.
+ *     "floating" — bg-bg-elevated. Sits above `raised`; use for
+ *                  modal panels, popovers, and active-state surfaces.
  *
- * Why three only (no `p-5`/`p-8`)? The audit's call: a finite scale.
- * Pages that reached for `p-5` or `p-8` were drifting between the two
- * canonical rungs without a documented reason; they're collapsed onto
- * `comfortable` (`p-6`) by PR-6's migration. The `card-density-discipline`
- * ratchet at `tests/guards/card-density-discipline.test.ts` blocks
- * reintroduction.
+ * Why no shadows? Premium products (Linear, Stripe, Vercel) express
+ * depth through background-tone changes on dark surfaces, not via
+ * box-shadow. Shadows on glass / blurred surfaces look uncertain;
+ * tone-based elevation reads as deliberate and quiet.
  *
  * Why keep `.glass-card` underneath? It's the existing visual recipe
  * (backdrop-blur + glass-bg + glass-border) that already paints
  * correctly on both themes. The primitive is a typed wrapper, not a
- * replacement.
+ * replacement — `raised` (the default) maps directly to it.
  */
 
 "use client";
@@ -32,8 +36,19 @@ import { cn } from "@dub/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef, type ElementType, type HTMLAttributes } from "react";
 
-const cardVariants = cva("glass-card", {
+const cardVariants = cva("", {
   variants: {
+    elevation: {
+      // Matches page background — for nested sub-cards.
+      flat: "bg-bg-page border border-border-subtle rounded-lg",
+      // Default section-level card. Maps to the existing glass-card
+      // recipe so the visual is unchanged for every consumer that
+      // doesn't pass `elevation`.
+      raised: "glass-card",
+      // Above the `raised` plane — modal panels, popovers, active-
+      // state surfaces.
+      floating: "bg-bg-elevated border border-border-default rounded-lg",
+    },
     density: {
       comfortable: "p-6",
       compact: "p-4",
@@ -41,6 +56,7 @@ const cardVariants = cva("glass-card", {
     },
   },
   defaultVariants: {
+    elevation: "raised",
     density: "comfortable",
   },
 });
@@ -58,14 +74,14 @@ interface CardProps
 }
 
 const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
-  { as = "div", density, className, children, ...rest },
+  { as = "div", density, elevation, className, children, ...rest },
   ref,
 ) {
   const Tag = as as ElementType;
   return (
     <Tag
       ref={ref}
-      className={cn(cardVariants({ density }), className)}
+      className={cn(cardVariants({ density, elevation }), className)}
       {...rest}
     >
       {children}
