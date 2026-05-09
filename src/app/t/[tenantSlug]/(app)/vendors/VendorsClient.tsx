@@ -195,7 +195,9 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                             className="mb-1"
                         />
                         <Heading level={1}>Vendor Register</Heading>
-                        <p className="text-content-muted text-sm">{vendors.length} vendors</p>
+                        <p className="text-sm text-content-muted mt-1">
+                            Third-party relationships, assessed and renewed on a cadence.
+                        </p>
                     </div>
                     <div className="flex gap-tight">
                         <Link href={tenantHref('/vendors/dashboard')} className={cn(buttonVariants({ variant: 'secondary', size: 'md' }))} id="vendor-dashboard-btn">

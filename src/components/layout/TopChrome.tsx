@@ -1,14 +1,16 @@
 'use client';
 
 /**
- * TopChrome — Roadmap-2 PR-2.
+ * TopChrome — Roadmap-2 PR-2 (PR-11 simplification).
  *
- * The 56-px sticky bar that sits at the top of every authenticated
- * surface. Three regions:
+ * The sticky bar at the top of every authenticated surface. Two
+ * regions after PR-11:
  *
- *   • Left   — breadcrumbs (consumed from `useCurrentBreadcrumbs`).
- *   • Center — `<SearchAnchor>` opening the command palette.
- *   • Right  — context identity pill (tenant or org name).
+ *   • Left  — breadcrumbs (consumed from `useCurrentBreadcrumbs`).
+ *   • Right — context identity pill (tenant or org name).
+ *
+ * The center search-anchor was retired in PR-11 — the sidebar's
+ * inline command opener (PR-3) is the canonical search affordance.
  *
  * The chrome is mounted once by `<AppShell>` and reads page-scoped
  * data via two contexts:
@@ -27,7 +29,6 @@
  */
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useCurrentBreadcrumbs } from './breadcrumbs-store';
-import { SearchAnchor } from './SearchAnchor';
 import { TenantIdentityPill, OrgIdentityPill } from './IdentityPill';
 import type { AppShellVariant } from './AppShell';
 
@@ -50,13 +51,11 @@ export function TopChrome({ variant }: TopChromeProps) {
         // mobile-equivalent. z-30 sits ABOVE row-sticky headers
         // (z-20) but BELOW modal overlays (z-50).
         <header
-            className="hidden md:flex sticky top-0 z-30 h-14 items-center gap-default border-b border-border-subtle bg-bg-page/80 backdrop-blur-sm px-4 md:px-6"
+            className="hidden md:flex sticky top-0 z-30 h-14 items-center justify-between gap-default border-b border-border-subtle bg-bg-page/80 backdrop-blur-sm px-4 md:px-6"
             role="banner"
             data-testid="top-chrome"
         >
-            {/* Left — breadcrumbs.
-                The min-w-0 + flex-1 lets the label truncate when a
-                deep trail collides with the center region. */}
+            {/* Left — breadcrumbs. */}
             <div className="flex min-w-0 flex-1 items-center">
                 {breadcrumbs.length > 0 ? (
                     <Breadcrumbs
@@ -64,25 +63,16 @@ export function TopChrome({ variant }: TopChromeProps) {
                         data-testid="top-chrome-breadcrumbs"
                     />
                 ) : (
-                    // No breadcrumbs pushed yet — render an empty
-                    // sentinel for layout stability. Avoids the
-                    // chrome's height jumping when a page resolves
-                    // its breadcrumbs after first paint.
+                    // No breadcrumbs pushed yet — empty sentinel
+                    // for layout stability so the chrome's height
+                    // doesn't jump when a page resolves its
+                    // breadcrumbs after first paint.
                     <span className="sr-only">No breadcrumbs</span>
                 )}
             </div>
 
-            {/* Center — search anchor.
-                Sized to a fixed width so it stays centered under
-                changing left/right region widths. */}
-            <div className="flex w-72 shrink-0 items-center justify-center">
-                <SearchAnchor />
-            </div>
-
-            {/* Right — identity pill. Width matches center for
-                visual balance; flex-1 + justify-end pulls the pill
-                to the far edge. */}
-            <div className="flex flex-1 items-center justify-end">
+            {/* Right — identity pill. */}
+            <div className="flex shrink-0 items-center justify-end">
                 <Identity />
             </div>
         </header>

@@ -20,7 +20,7 @@ import { NumberStepper } from '@/components/ui/number-stepper';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Heading, Caption } from '@/components/ui/typography';
+import { Heading } from '@/components/ui/typography';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 const ASSET_TYPES = ['INFORMATION', 'APPLICATION', 'SYSTEM', 'SERVICE', 'DATA_STORE', 'INFRASTRUCTURE', 'VENDOR', 'PROCESS', 'PEOPLE_PROCESS', 'OTHER'];
@@ -180,9 +180,8 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                         />
                         <Heading level={1}>{t.title}</Heading>
                         {t.listDescription && (
-                            <Caption className="mt-1">{t.listDescription}</Caption>
+                            <p className="text-sm text-content-muted mt-1">{t.listDescription}</p>
                         )}
-                        <p className="text-content-muted text-sm">{assets.length} assets</p>
                     </div>
                     <div className="flex gap-tight">
                         <Link href={tenantHref('/coverage')} className={buttonVariants({ variant: 'secondary' })}>Coverage</Link>

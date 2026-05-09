@@ -50,7 +50,7 @@
         "assets": "Asset",
         "risks": "Risk",
         "controls": "Control",
-        "evidence": "Evidence",
+        "evidence": "Docs",
         "policies": "Policy",
         "audits": "Audits",
         "findings": "Findings",

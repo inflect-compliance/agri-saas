@@ -437,7 +437,9 @@ function TasksPageInner({
                             className="mb-1"
                         />
                         <Heading level={1}>Tasks</Heading>
-                        <p className="text-content-muted text-sm">{tasks.length} tasks in register</p>
+                        <p className="text-sm text-content-muted mt-1">
+                            Compliance work prioritised, assigned, and tracked to closure.
+                        </p>
                     </div>
                     <div className="flex gap-tight">
                         <Link href={tenantHref('/tasks/dashboard')} className={buttonVariants({ variant: 'secondary', className: 'inline-flex items-center gap-tight' })} id="dashboard-btn"><AppIcon name="dashboard" size={16} /> Dashboard</Link>

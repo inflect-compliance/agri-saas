@@ -47,7 +47,7 @@ import { RiskMatrix } from '@/components/ui/RiskMatrix';
 import { resolveBandForScore } from '@/lib/risk-matrix/scoring';
 import type { RiskMatrixConfigShape } from '@/lib/risk-matrix/types';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
-import { Heading, Caption } from '@/components/ui/typography';
+import { Heading } from '@/components/ui/typography';
 import { Card } from '@/components/ui/card';
 import { KPIStat } from '@/components/ui/metric';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -482,9 +482,8 @@ function RisksPageInner({
                         />
                         <Heading level={1}>{t.title}</Heading>
                         {t.listDescription && (
-                            <Caption className="mt-1">{t.listDescription}</Caption>
+                            <p className="text-sm text-content-muted mt-1">{t.listDescription}</p>
                         )}
-                        <p className="text-content-muted text-sm">{t.risksIdentified}</p>
                     </div>
                     <div className="flex gap-tight">
                         <Button variant="secondary" onClick={() => setView(view === 'register' ? 'heatmap' : 'register')}>

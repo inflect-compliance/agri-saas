@@ -76,25 +76,34 @@ describe('List-page editorial descriptions (Roadmap-2 PR-4)', () => {
         const offenders: string[] = [];
         for (const { entity, file } of CLIENTS) {
             const src = read(file);
-            // Either the EntityListPage `description:` slot OR a
-            // <Caption> mount carrying t.listDescription / a literal
-            // editorial string. Both shapes are valid — the ratchet
-            // only locks "the slot is filled".
+            // Three valid shapes:
+            //   (a) EntityListPage `description:` slot — used by
+            //       controls + policies.
+            //   (b) PR-11 Calendar-style `<p>` subtitle directly
+            //       under the heading — used by every raw-Heading
+            //       page after PR-11 retired the count chip.
+            //   (c) Legacy `<Caption>` mount — preserved as a
+            //       valid shape for pages that haven't yet
+            //       migrated to (b).
             const usesEntityListPageDescription =
                 /description:\s*(t\.listDescription|t\(['"]listDescription['"]\)|['"][^'"]+['"])/.test(
+                    src,
+                );
+            const usesPSubtitle =
+                /<p[^>]*text-content-muted[^>]*>\s*\{?\s*(t\.listDescription|t\(['"]listDescription['"]\))/.test(
                     src,
                 );
             const usesCaptionMount =
                 /<Caption[^>]*>\s*\{?\s*(t\.listDescription|t\(['"]listDescription['"]\))/.test(
                     src,
                 );
-            if (!usesEntityListPageDescription && !usesCaptionMount) {
+            if (!usesEntityListPageDescription && !usesPSubtitle && !usesCaptionMount) {
                 offenders.push(`${entity} (${file})`);
             }
         }
         if (offenders.length > 0) {
             throw new Error(
-                `These list pages do not render the editorial description slot:\n  ${offenders.join('\n  ')}\n\nAdd either: (a) <EntityListPage header={{ description: ... }}> OR (b) a <Caption> below the <Heading> referencing t.listDescription.`,
+                `These list pages do not render the editorial description slot:\n  ${offenders.join('\n  ')}\n\nAdd either: (a) <EntityListPage header={{ description: ... }}>, (b) a <p className="text-sm text-content-muted mt-1"> below the <Heading> referencing t.listDescription, OR (c) the legacy <Caption> mount.`,
             );
         }
         expect(offenders).toEqual([]);

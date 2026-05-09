@@ -349,7 +349,6 @@ function PoliciesPageInner({
                 title: t.title,
                 // Roadmap-2 PR-4 — editorial framing.
                 description: t.listDescription,
-                count: `${policies.length} polic${policies.length === 1 ? 'y' : 'ies'}`,
                 actions: permissions.canWrite ? (
                     <>
                         <Link

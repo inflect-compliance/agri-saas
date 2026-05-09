@@ -16,7 +16,7 @@ import {
     toYMD,
 } from '@/components/ui/date-picker/date-utils';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
-import { Heading, Caption } from '@/components/ui/typography';
+import { Heading } from '@/components/ui/typography';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 const SEV_BADGE: Record<string, StatusBadgeVariant> = { LOW: 'info', MEDIUM: 'warning', HIGH: 'error', CRITICAL: 'error' };
@@ -218,10 +218,8 @@ export function FindingsClient({ initialFindings, tenantSlug, translations: t }:
                         />
                         <Heading level={1}>{t.title}</Heading>
                         {t.listDescription && (
-                            <Caption className="mt-1">{t.listDescription}</Caption>
+                            <p className="text-sm text-content-muted mt-1">{t.listDescription}</p>
                         )}
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        <p className="text-content-muted text-sm">{findings.filter((f: any) => f.status !== 'CLOSED').length} {t.open.toLowerCase()}</p>
                     </div>
                     <Button variant="primary" onClick={() => setShowForm(!showForm)}>{t.newFinding}</Button>
                 </div>

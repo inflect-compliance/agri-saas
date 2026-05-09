@@ -717,13 +717,13 @@ function ControlsPageInner({
                         Controls
                     </>
                 ),
-                // Roadmap-2 PR-4 — editorial framing for the list
-                // page. The description wins over count in
-                // EntityListPageHeader's render path, so the count
-                // is preserved separately for the chip below.
+                // Roadmap-2 PR-4 + PR-11 — editorial framing
+                // replaces the count chip. Pages still surface
+                // the count in the table body (DataTable shows
+                // row count); the header line carries the
+                // editorial intent.
                 description:
                     'Every control mapped to its requirements and evidence.',
-                count: `${controls.length} controls in register`,
                 actions: (
                     <>
                         {/* Sankey is read-only and informational — keep it
