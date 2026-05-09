@@ -17,6 +17,7 @@
 import * as React from 'react';
 import { cn } from '@dub/utils';
 import type { CalendarEvent } from '@/app-layer/schemas/calendar.schemas';
+import { getIntensityTone } from '@/lib/design/status-tone';
 
 // ─── Public props ─────────────────────────────────────────────────────
 
@@ -76,13 +77,10 @@ function bucketIntensity(count: number, max: number): 0 | 1 | 2 | 3 | 4 {
     return 4;
 }
 
-const INTENSITY_CLASS: Record<0 | 1 | 2 | 3 | 4, string> = {
-    0: 'bg-bg-muted/40',
-    1: 'bg-[var(--brand-default)]/20',
-    2: 'bg-[var(--brand-default)]/40',
-    3: 'bg-[var(--brand-default)]/60',
-    4: 'bg-[var(--brand-default)]/85',
-};
+// Polish PR-7 — intensity bg delegated to `getIntensityTone` from
+// `@/lib/design/status-tone`. The shared helper ensures any future
+// activity-density chart gets the same brand-alpha staircase for
+// free.
 
 // ─── Component ───────────────────────────────────────────────────────
 
@@ -200,7 +198,7 @@ export function CalendarHeatmap({
                                         data-intensity={intensity}
                                         className={cn(
                                             'h-[10px] w-[10px] rounded-[2px] transition-colors',
-                                            INTENSITY_CLASS[intensity],
+                                            getIntensityTone(intensity),
                                             'hover:ring-1 hover:ring-content-emphasis/40',
                                             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
                                         )}
@@ -220,7 +218,7 @@ export function CalendarHeatmap({
                         key={i}
                         className={cn(
                             'h-[10px] w-[10px] rounded-[2px]',
-                            INTENSITY_CLASS[i],
+                            getIntensityTone(i),
                         )}
                         aria-hidden="true"
                     />

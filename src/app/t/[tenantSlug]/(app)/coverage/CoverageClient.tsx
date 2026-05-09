@@ -10,6 +10,7 @@ import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-bad
 import { Heading } from '@/components/ui/typography';
 import { Card } from '@/components/ui/card';
 import { KPIStat } from '@/components/ui/metric';
+import { getStatusTone } from '@/lib/design/status-tone';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -43,17 +44,13 @@ function pctColor(pct: number): string {
 }
 
 /**
- * GAP-CI-77: text variant of pctColor — returns a Tailwind class that
- * targets a semantic status token. Hex Tailwind mid-tones above fail
- * WCAG AA against light-theme cream (~3.0:1); the semantic tokens are
- * tuned to ≥4.5:1 in both themes. Used wherever the colour is applied
- * to actual text; DonutChart segments still use the hex directly via
- * `pctColor` because SVG fills aren't gated by WCAG text rules.
+ * Polish PR-7 — text class delegates to the shared `getStatusTone`
+ * helper (`pct-0-100` scale). DonutChart SVG fills still use the hex
+ * `pctColor` above because SVG fill colours aren't gated by the
+ * WCAG text rules.
  */
 function pctTextClass(pct: number): string {
-    if (pct >= 80) return 'text-content-success';
-    if (pct >= 50) return 'text-content-warning';
-    return 'text-content-error';
+    return getStatusTone(pct, 'pct-0-100').content;
 }
 
 function statusBadge(status: string): StatusBadgeVariant {

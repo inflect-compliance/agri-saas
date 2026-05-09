@@ -22,8 +22,8 @@ import Link from 'next/link';
 import { cn } from '@dub/utils';
 import type {
     CalendarEvent,
-    CalendarEventCategory,
 } from '@/app-layer/schemas/calendar.schemas';
+import { getCategoryTone } from '@/lib/design/status-tone';
 
 // ─── Public props ─────────────────────────────────────────────────────
 
@@ -43,17 +43,11 @@ export interface GanttTimelineProps {
 }
 
 // ─── Token map (mirrors CalendarMonth) ───────────────────────────────
-
-const CATEGORY_BAR_CLASS: Record<CalendarEventCategory, string> = {
-    evidence: 'bg-status-info/70 border-status-info',
-    policy: 'bg-status-warning/70 border-status-warning',
-    vendor: 'bg-[var(--brand-default)]/70 border-[var(--brand-default)]',
-    audit: 'bg-content-emphasis/70 border-content-emphasis',
-    control: 'bg-status-success/70 border-status-success',
-    task: 'bg-content-muted/70 border-content-muted',
-    risk: 'bg-status-danger/70 border-status-danger',
-    finding: 'bg-status-warning/70 border-status-warning',
-};
+//
+// Polish PR-7 — bar tone delegates to `getCategoryTone` from
+// `@/lib/design/status-tone`. The Gantt bar uses the bg/border slots
+// of the shared bundle with `/70` opacity for the fill, so calendar
+// + gantt feel like one system.
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -223,7 +217,12 @@ export function GanttTimeline({
                                     'absolute top-1 bottom-1 rounded border px-1 flex items-center text-[10px] font-medium text-content-emphasis truncate min-w-[8px]',
                                     'hover:ring-1 hover:ring-content-emphasis/40 transition-all',
                                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
-                                    CATEGORY_BAR_CLASS[ev.category],
+                                    // Polish PR-7 — getCategoryTone gives the
+                                    // canonical bg + border for this category;
+                                    // /70 opacity matches the prior CATEGORY_BAR
+                                    // fill rhythm.
+                                    `${getCategoryTone(ev.category).bg}/70`,
+                                    getCategoryTone(ev.category).border,
                                     ev.status === 'overdue' && 'border-status-danger',
                                     ev.status === 'done' && 'opacity-50',
                                 )}

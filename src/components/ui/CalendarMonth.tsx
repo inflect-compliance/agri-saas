@@ -22,8 +22,8 @@ import Link from 'next/link';
 import { cn } from '@dub/utils';
 import type {
     CalendarEvent,
-    CalendarEventCategory,
 } from '@/app-layer/schemas/calendar.schemas';
+import { getCategoryTone } from '@/lib/design/status-tone';
 
 // ─── Public props ─────────────────────────────────────────────────────
 
@@ -44,20 +44,10 @@ export interface CalendarMonthProps {
 
 // ─── Category token map ──────────────────────────────────────────────
 //
-// Single place to map calendar category → semantic dot color. Keep in
-// sync with the heatmap's intensity colors so the two views feel like
-// one system.
-
-const CATEGORY_DOT_CLASS: Record<CalendarEventCategory, string> = {
-    evidence: 'bg-status-info',
-    policy: 'bg-status-warning',
-    vendor: 'bg-[var(--brand-default)]',
-    audit: 'bg-content-emphasis',
-    control: 'bg-status-success',
-    task: 'bg-content-muted',
-    risk: 'bg-status-danger',
-    finding: 'bg-status-warning',
-};
+// Polish PR-7 — calendar dot colour delegates to the shared
+// `getCategoryTone` helper in `@/lib/design/status-tone`. The
+// CalendarMonth / GanttTimeline / future calendar surfaces all read
+// the same vocabulary.
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -243,7 +233,7 @@ export function CalendarMonth({
                                                 <span
                                                     className={cn(
                                                         'inline-block size-2 rounded-full shrink-0',
-                                                        CATEGORY_DOT_CLASS[ev.category],
+                                                        getCategoryTone(ev.category).bg,
                                                         ev.status === 'done' && 'opacity-40',
                                                     )}
                                                     aria-hidden="true"

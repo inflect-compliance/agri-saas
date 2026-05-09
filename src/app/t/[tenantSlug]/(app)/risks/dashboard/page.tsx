@@ -10,6 +10,7 @@ import { Heading } from '@/components/ui/typography';
 import { Card } from '@/components/ui/card';
 import { KPIStat } from '@/components/ui/metric';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { getStatusTone } from '@/lib/design/status-tone';
 
 type Risk = {
     id: string;
@@ -24,11 +25,11 @@ type Risk = {
     nextReviewAt: string | null;
 };
 
+// Polish PR-7 — risk heatmap tone delegates to `getStatusTone` with
+// the `score-0-25` scale (5×5 likelihood × impact).
 const HEATMAP_COLOR = (s: number) => {
-    if (s <= 5) return 'bg-bg-success text-content-success';
-    if (s <= 12) return 'bg-bg-warning text-content-warning';
-    if (s <= 18) return 'bg-orange-900/60 text-orange-300';
-    return 'bg-bg-error text-content-error';
+    const tone = getStatusTone(s, 'score-0-25');
+    return `${tone.bg} ${tone.content}`;
 };
 
 export default function RiskDashboardPage() {
