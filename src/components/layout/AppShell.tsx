@@ -7,6 +7,8 @@ import { Menu } from 'lucide-react';
 import { SidebarContent, MobileDrawer } from '@/components/layout/SidebarNav';
 import { OrgSidebarContent } from '@/components/layout/OrgSidebarNav';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { BreadcrumbsProvider } from './breadcrumbs-store';
+import { TopChrome } from './TopChrome';
 
 // ─── Types ───
 
@@ -126,6 +128,14 @@ export function AppShell({
 
             {/* Main content */}
             <main className="flex-1 overflow-auto md:overflow-hidden md:flex md:flex-col min-w-0 md:min-h-0">
+                {/* Roadmap-2 PR-2 — sticky top chrome on desktop.
+                    Hidden on mobile (the existing mobile top bar
+                    below carries the equivalent affordances). The
+                    BreadcrumbsProvider wraps the chrome AND the
+                    page tree so pages can push breadcrumbs from
+                    any depth. */}
+                <BreadcrumbsProvider>
+                    <TopChrome variant={variant} />
                 {/* Mobile top bar — visible on <md only */}
                 <div className="md:hidden sticky top-0 z-30 flex items-center gap-compact px-4 py-2 bg-bg-page/80 backdrop-blur-sm border-b border-border-subtle">
                     <button
@@ -160,6 +170,7 @@ export function AppShell({
                 <div className="p-4 md:p-6 max-w-7xl mx-auto md:flex md:flex-col md:flex-1 md:min-h-0 md:overflow-y-auto md:w-full">
                     {children}
                 </div>
+                </BreadcrumbsProvider>
             </main>
         </div>
     );

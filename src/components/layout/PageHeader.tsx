@@ -11,11 +11,14 @@
  *
  * Composition slots (top → bottom inside the title column):
  *
- *   1. breadcrumbs   — `<Breadcrumbs items=[…]>` trail above the
- *                       eyebrow / back link / title. Optional.
- *   2. back          — `← Label` text link, rendered when no
- *                       breadcrumbs are supplied (or in addition to,
- *                       when both are passed). Optional.
+ *   1. breadcrumbs   — Roadmap-2 PR-2 LIFTED these out of the page
+ *                       header into the persistent top chrome. The
+ *                       prop is still accepted for backward
+ *                       compatibility — `useBreadcrumbs` pushes the
+ *                       items into the shell-scoped context that
+ *                       `<TopChrome>` consumes.
+ *   2. back          — `← Label` text link rendered above the
+ *                       title. Optional.
  *   3. eyebrow       — small uppercase label above the title (e.g.
  *                       resource name). Optional.
  *   4. title         — `<Heading level={1}>` (required).
@@ -60,6 +63,7 @@ import {
     Breadcrumbs,
     type BreadcrumbItem,
 } from "@/components/ui/breadcrumbs";
+import { useBreadcrumbs } from "@/components/layout/breadcrumbs-store";
 import {
     Caption,
     Eyebrow,
@@ -117,6 +121,20 @@ export function PageHeader({
     className,
     "data-testid": dataTestId,
 }: PageHeaderProps) {
+    // Roadmap-2 PR-2 — breadcrumbs are ALSO pushed into the
+    // shell-scoped context that `<TopChrome>` consumes, so they
+    // render in the persistent top chrome on desktop. The local
+    // render below is kept for two reasons:
+    //   1. Mobile (<md): the top chrome is hidden — the in-page
+    //      breadcrumbs are the user's wayfinding cue.
+    //   2. Backward compatibility: rendered tests and existing
+    //      `data-testid="page-header-breadcrumbs"` E2E selectors
+    //      keep working unchanged.
+    // On desktop the local breadcrumbs render is hidden via the
+    // `md:hidden` class on its wrapper so we don't show two
+    // breadcrumb trails at once.
+    useBreadcrumbs(breadcrumbs);
+
     return (
         <header
             className={cn(
@@ -127,11 +145,13 @@ export function PageHeader({
         >
             <div className="min-w-0">
                 {breadcrumbs && breadcrumbs.length > 0 && (
-                    <Breadcrumbs
-                        items={breadcrumbs}
-                        className="mb-1"
-                        data-testid="page-header-breadcrumbs"
-                    />
+                    <div className="md:hidden">
+                        <Breadcrumbs
+                            items={breadcrumbs}
+                            className="mb-1"
+                            data-testid="page-header-breadcrumbs"
+                        />
+                    </div>
                 )}
                 {back && (
                     <Link
