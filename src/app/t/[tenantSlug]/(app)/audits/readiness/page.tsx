@@ -163,7 +163,7 @@ export default async function ReadinessOverviewPage({
                             <Link
                                 key={c.id}
                                 href={`/t/${tenantSlug}/audits/cycles/${c.id}/readiness`}
-                                className="glass-card p-6 hover:bg-bg-elevated/30 transition group"
+                                className="glass-card p-6 hover:bg-bg-muted/50 transition group"
                                 id={`readiness-card-${c.id}`}
                             >
                                 <div className="flex items-start gap-section">

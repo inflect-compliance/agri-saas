@@ -464,7 +464,7 @@ function SoARow({
 
     return (
         <>
-            <tr className={`${hasGap ? 'bg-bg-error' : ''} cursor-pointer hover:bg-bg-elevated/30`} onClick={onToggle}>
+            <tr className={`${hasGap ? 'bg-bg-error' : ''} cursor-pointer hover:bg-bg-muted/50`} onClick={onToggle}>
                 <td className="text-xs font-mono text-[var(--brand-default)]">{entry.requirementCode}</td>
                 <td className="text-sm text-content-emphasis">
                     <div>{entry.requirementTitle}</div>

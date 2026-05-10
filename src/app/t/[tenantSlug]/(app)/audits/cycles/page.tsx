@@ -225,7 +225,7 @@ export default function AuditCyclesPage() {
                         const meta = FW_META[c.frameworkKey] || { icon: 'shield' as AppIconName, label: c.frameworkKey, color: 'from-gray-500 to-gray-600' };
                         return (
                             <Link key={c.id} href={`/t/${tenantSlug}/audits/cycles/${c.id}`} id={`cycle-link-${c.id}`}
-                                className="glass-card p-6 hover:bg-bg-elevated/30 transition group">
+                                className="glass-card p-6 hover:bg-bg-muted/50 transition group">
                                 <div className="flex items-start justify-between mb-3">
                                     <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${meta.color} flex items-center justify-center text-lg`}>
                                         <AppIcon name={meta.icon} size={20} />

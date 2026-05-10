@@ -155,7 +155,7 @@ export default function TaskDashboardPage() {
                             <Link
                                 key={task.id}
                                 href={tenantHref(`/tasks/${task.id}`)}
-                                className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-elevated/30 transition text-sm"
+                                className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-muted/50 transition text-sm"
                             >
                                 <span className="font-mono text-xs text-content-subtle w-16 truncate">{task.key}</span>
                                 <span className="flex-1 text-content-emphasis truncate">{task.title}</span>
@@ -255,7 +255,7 @@ export default function TaskDashboardPage() {
                             <Link
                                 key={ctrl.controlId}
                                 href={tenantHref(`/controls/${ctrl.controlId}`)}
-                                className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-elevated/30 transition text-sm"
+                                className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-muted/50 transition text-sm"
                             >
                                 <span className="font-mono text-xs text-content-subtle w-20 truncate">{ctrl.code}</span>
                                 <span className="flex-1 text-content-emphasis truncate">{ctrl.name}</span>
@@ -296,7 +296,7 @@ export default function TaskDashboardPage() {
                             <Link
                                 key={task.id}
                                 href={tenantHref(`/tasks/${task.id}`)}
-                                className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-elevated/30 transition text-sm"
+                                className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-muted/50 transition text-sm"
                             >
                                 <span className="font-mono text-xs text-content-subtle">{task.key}</span>
                                 <span className="flex-1 text-content-emphasis truncate">{task.title}</span>

@@ -199,7 +199,7 @@ export default function TestDashboardPage() {
                                 <Link
                                     key={f.controlId}
                                     href={tenantHref(`/controls/${f.controlId}`)}
-                                    className="flex justify-between items-center p-2 rounded hover:bg-bg-default/30 transition"
+                                    className="flex justify-between items-center p-2 rounded hover:bg-bg-muted/50 transition"
                                 >
                                     <div>
                                         <span className="text-content-emphasis text-sm font-medium">{f.controlCode || f.controlName}</span>

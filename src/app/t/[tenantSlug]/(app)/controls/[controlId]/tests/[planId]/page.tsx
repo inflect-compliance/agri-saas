@@ -307,7 +307,7 @@ export default function TestPlanDetailPage() {
                             <Link
                                 key={run.id}
                                 href={tenantHref(`/tests/runs/${run.id}`)}
-                                className="flex items-center justify-between py-2.5 hover:bg-bg-default/30 px-2 rounded transition group"
+                                className="flex items-center justify-between py-2.5 hover:bg-bg-muted/50 px-2 rounded transition group"
                                 id={`test-run-link-${run.id}`}
                             >
                                 <div className="flex items-center gap-compact">

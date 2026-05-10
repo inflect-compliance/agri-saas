@@ -171,7 +171,7 @@ export default function TestPlansPanel({ controlId }: { controlId: string }) {
                     {plans.map(plan => {
                         const lastRun = getLastRun(plan);
                         return (
-                            <div key={plan.id} className="py-3 flex items-center justify-between group hover:bg-bg-default/30 px-2 rounded transition">
+                            <div key={plan.id} className="py-3 flex items-center justify-between group hover:bg-bg-muted/50 px-2 rounded transition">
                                 <div className="flex-1 min-w-0">
                                     <Link
                                         href={tenantHref(`/controls/${controlId}/tests/${plan.id}`)}

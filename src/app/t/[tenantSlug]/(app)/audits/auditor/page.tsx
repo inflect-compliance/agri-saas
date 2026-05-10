@@ -70,7 +70,7 @@ export default function AuditorPortalPage() {
                             const meta = FW_META[p.cycle?.frameworkKey] || { icon: 'shield' as AppIconName, label: p.cycle?.frameworkKey || '' };
                             return (
                                 <button key={p.id} onClick={() => loadPack(p.id)}
-                                    className={`w-full text-left glass-card p-4 hover:bg-bg-elevated/30 transition ${selectedPack?.id === p.id ? 'ring-2 ring-[var(--ring)]' : ''}`}>
+                                    className={`w-full text-left glass-card p-4 hover:bg-bg-muted/50 transition ${selectedPack?.id === p.id ? 'ring-2 ring-[var(--ring)]' : ''}`}>
                                     <div className="flex items-center gap-compact">
                                         <AppIcon name={meta.icon} size={20} />
                                         <div className="min-w-0">

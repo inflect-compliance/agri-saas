@@ -57,7 +57,7 @@ export function ClausesBrowser({ clauses: initialClauses, tenantSlug }: ClausesB
             <div className="lg:col-span-1 space-y-tight">
                 {clauses.map(c => (
                     <button key={c.id} onClick={() => setSelected(c)}
-                        className={`w-full text-left glass-card p-4 hover:bg-bg-elevated/30 transition ${selected?.id === c.id ? 'ring-2 ring-[var(--ring)]' : ''}`}>
+                        className={`w-full text-left glass-card p-4 hover:bg-bg-muted/50 transition ${selected?.id === c.id ? 'ring-2 ring-[var(--ring)]' : ''}`}>
                         <div className="flex items-center justify-between">
                             <span className="font-medium text-sm">{t('clause')} {c.number}</span>
                             <StatusBadge variant={STATUS_COLORS[c.status]}>{statusLabel(c.status)}</StatusBadge>

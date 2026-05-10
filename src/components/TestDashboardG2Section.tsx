@@ -178,7 +178,7 @@ export function TestDashboardG2Section({
                                     href={tenantHref(
                                         `/controls/${row.controlId}/tests/${row.planId}`,
                                     )}
-                                    className="flex items-center justify-between p-2 rounded hover:bg-bg-default/30 transition group"
+                                    className="flex items-center justify-between p-2 rounded hover:bg-bg-muted/50 transition group"
                                     data-testid={`test-dashboard-g2-overdue-row-${row.planId}`}
                                 >
                                     <div className="min-w-0">

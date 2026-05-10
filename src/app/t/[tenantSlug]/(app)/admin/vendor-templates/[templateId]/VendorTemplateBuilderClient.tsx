@@ -503,7 +503,7 @@ function SectionCard({
                 {section.questions.map((q) => (
                     <div
                         key={q.id}
-                        className="flex items-center gap-compact px-2 py-1.5 rounded hover:bg-bg-default/30"
+                        className="flex items-center gap-compact px-2 py-1.5 rounded hover:bg-bg-muted/50"
                         draggable={editable}
                         onDragStart={(e) => {
                             e.stopPropagation();

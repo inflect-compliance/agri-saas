@@ -74,8 +74,8 @@ const imageUploadVariants = cva(
     variants: {
       variant: {
         default:
-          "aspect-[1200/630] rounded-md border border-neutral-300 bg-white shadow-sm hover:bg-neutral-50",
-        plain: "aspect-[1200/630] bg-white hover:bg-neutral-50",
+          "aspect-[1200/630] rounded-md border border-neutral-300 bg-white shadow-sm hover:bg-bg-muted/50",
+        plain: "aspect-[1200/630] bg-white hover:bg-bg-muted/50",
         // Document-oriented dropzone for file-evidence / modal contexts.
         // Uses semantic tokens so the same component works in Epic 54
         // modals without importing the image-centric Dub palette.
@@ -304,7 +304,7 @@ export function FileUpload({
                 !disabled &&
                   (isDoc
                     ? "group-hover:bg-[inherit]"
-                    : "group-hover:bg-neutral-50"),
+                    : "group-hover:bg-bg-muted/50"),
               ),
         )}
       >

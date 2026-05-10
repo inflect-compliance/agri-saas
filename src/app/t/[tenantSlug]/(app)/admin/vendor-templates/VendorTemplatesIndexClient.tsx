@@ -194,7 +194,7 @@ export function VendorTemplatesIndexClient() {
                                 href={tenantHref(
                                     `/admin/vendor-templates/${t.id}`,
                                 )}
-                                className="flex items-center justify-between py-3 hover:bg-bg-default/30 px-2 rounded transition"
+                                className="flex items-center justify-between py-3 hover:bg-bg-muted/50 px-2 rounded transition"
                                 data-testid={`template-row-${t.id}`}
                             >
                                 <div>

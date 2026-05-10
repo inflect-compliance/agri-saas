@@ -63,7 +63,7 @@ export default function LinkedTasksPanel({ apiBase, entityType, entityId, tenant
                 <Link
                     key={task.id}
                     href={tenantHref(`/tasks/${task.id}`)}
-                    className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-elevated/30 transition text-sm"
+                    className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-muted/50 transition text-sm"
                     id={`linked-task-${task.id}`}
                 >
                     {task.key && <span className="font-mono text-xs text-content-subtle w-16 truncate">{task.key}</span>}

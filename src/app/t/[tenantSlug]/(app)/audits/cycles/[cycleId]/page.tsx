@@ -152,7 +152,7 @@ export default function CycleDetailPage() {
                     <Heading level={2}>Packs</Heading>
                     {cycle.packs.map((p: any) => (
                         <Link key={p.id} href={`/t/${tenantSlug}/audits/packs/${p.id}`}
-                            className="glass-card p-4 flex items-center justify-between hover:bg-bg-elevated/30 transition block" id={`pack-link-${p.id}`}>
+                            className="glass-card p-4 flex items-center justify-between hover:bg-bg-muted/50 transition block" id={`pack-link-${p.id}`}>
                             <div>
                                 <span className="font-medium text-sm">{p.name}</span>
                                 <StatusBadge variant={p.status === 'DRAFT' ? 'neutral' : p.status === 'FROZEN' ? 'info' : 'success'} className="ml-2">{p.status}</StatusBadge>

@@ -310,7 +310,7 @@ export default function AIRiskAssessmentPage() {
                             <div className="mt-2 max-h-48 overflow-y-auto space-y-1" id="ai-asset-list">
                                 {assets.length === 0 && <p className="text-sm text-content-subtle">No assets found. Suggestions will be general.</p>}
                                 {assets.map(a => (
-                                    <label key={a.id} className="flex items-center gap-tight px-3 py-2 rounded-lg hover:bg-bg-elevated/30 cursor-pointer text-sm">
+                                    <label key={a.id} className="flex items-center gap-tight px-3 py-2 rounded-lg hover:bg-bg-muted/50 cursor-pointer text-sm">
                                         <input
                                             type="checkbox"
                                             checked={selectedAssetIds.includes(a.id)}
