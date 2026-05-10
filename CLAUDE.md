@@ -654,6 +654,22 @@ stands for that PR only — not as a precedent.
 - **i18n**: UI strings go through `next-intl`. Message files are in `messages/`. Server components use `getTranslations()`, client components use `useTranslations()`.
 - **Path alias**: `@/` maps to `src/`. Always use this alias — never relative paths crossing layer boundaries.
 - **Two `DATABASE_URL` vars**: `DATABASE_URL` points to PgBouncer (transaction-mode, used at runtime). `DIRECT_DATABASE_URL` points directly to Postgres (used for Prisma migrations).
+- **Border tone discipline** (Roadmap-5 PR-10): three semantic
+  border tones, each with a clear role.
+    - **`border-border-subtle`** — DEFAULT. Structural separators
+      (form-field outlines, table-cell separators, quiet panel
+      boundaries, sidebar item dividers). If you have to ask
+      "default or subtle?", the answer is subtle.
+    - **`border-border-default`** — Reserved for surfaces that need
+      explicit containment: card outer border, table outer border,
+      modal/sheet boundary, popover/tooltip outline. The "this is a
+      discrete surface" statement.
+    - **`border-border-emphasis`** — Reserved for state: selected
+      card, active panel, focused field, hovered click target. Tone
+      that says "this is the one you mean".
+  Forward enforcement at `tests/guards/border-tone-budget.test.ts`
+  (budget ratchet that locks the current count and only ratchets
+  down).
 - **Action button vocabulary** (PR-5): three verbs, one per intent.
   Pick the one that matches what the click actually does. Never lead a
   label with `+ ` — the icon belongs to the button's `icon` slot, not

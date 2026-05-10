@@ -1,0 +1,109 @@
+/**
+ * Roadmap-5 PR-10 — border-tone budget.
+ *
+ * The product had no clear default border tone:
+ *   • `border-border-default` × 133
+ *   • `border-border-subtle`  × 113
+ *
+ * 50/50 split with no documented rule. Most structural lines
+ * read better at the quieter tone — `border-border-default` is
+ * a stronger signal than the average border deserves.
+ *
+ * Policy (locked here, also documented in CLAUDE.md)
+ *
+ *   subtle    — DEFAULT border tone for structural separators
+ *               (form-field outlines, table-cell separators,
+ *               quiet panel boundaries, sidebar item dividers).
+ *               If you have to ask "default or subtle?", the
+ *               answer is subtle.
+ *
+ *   default   — Reserved for surfaces that need explicit
+ *               containment: card outer border, table outer
+ *               border, modal/sheet boundary, popover/tooltip
+ *               outline. The "this is a discrete surface"
+ *               statement.
+ *
+ *   emphasis  — Reserved for state: selected card, active panel,
+ *               focused field, hovered click target, error /
+ *               warning state's border.
+ *
+ * What this ratchet locks
+ *
+ *   The total `border-border-default` count under
+ *   `src/app` + `src/components` may NOT exceed today's count.
+ *   New uses force net-down migrations elsewhere — the budget
+ *   only ratchets DOWN.
+ *
+ *   This is the "freeze the regression boundary" strategy.
+ *   The full migration to subtle-by-default happens in
+ *   incremental follow-up PRs that bring the count down rung
+ *   by rung. Each follow-up PR drops the budget number here.
+ *
+ * What this ratchet does NOT police
+ *
+ *   - Per-site choice between subtle / default / emphasis.
+ *     That's a judgement call by the contributor; the policy
+ *     above guides it but isn't structurally enforced.
+ *
+ *   - The 113 existing `border-border-subtle` sites — those
+ *     read correctly today and don't need touching.
+ *
+ *   - Other border tokens (`border-border-emphasis`,
+ *     `border-border-error`, `border-border-warning`, …) —
+ *     those carry semantic state and aren't subject to this
+ *     budget.
+ */
+import * as fs from 'fs';
+import * as path from 'path';
+
+const ROOT = path.resolve(__dirname, '../..');
+
+/**
+ * Locked at the count when this ratchet landed
+ * (Roadmap-5 PR-10, 2026-05-10). Future PRs that migrate
+ * `border-border-default` → `border-border-subtle` MUST
+ * decrement this number to lock in the win.
+ */
+const BORDER_DEFAULT_BUDGET = 133;
+
+function countMatches(re: RegExp): number {
+    let total = 0;
+    const walk = (dir: string) => {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, e.name);
+            if (e.isDirectory()) {
+                if (e.name === 'node_modules' || e.name === '.next') continue;
+                walk(full);
+                continue;
+            }
+            if (!/\.tsx$/.test(e.name)) continue;
+            const src = fs.readFileSync(full, 'utf-8');
+            const stripped = src
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/\/\/[^\n]*/g, '');
+            const matches = stripped.match(re);
+            if (matches) total += matches.length;
+        }
+    };
+    walk(path.join(ROOT, 'src/app'));
+    walk(path.join(ROOT, 'src/components'));
+    return total;
+}
+
+describe('Border-tone budget (Roadmap-5 PR-10)', () => {
+    it('border-border-default count does not exceed the documented budget', () => {
+        const count = countMatches(/\bborder-border-default\b/g);
+        expect(count).toBeLessThanOrEqual(BORDER_DEFAULT_BUDGET);
+    });
+
+    it('budget is realistic (not vacuous)', () => {
+        // Sanity check: the budget shouldn't be astronomically
+        // higher than the actual count. If a future PR migrates
+        // 50 sites but forgets to drop the budget, this test
+        // makes the win visible.
+        const count = countMatches(/\bborder-border-default\b/g);
+        // Allow 10-instance slack so a small follow-up cleanup
+        // doesn't have to drop the budget on every PR.
+        expect(BORDER_DEFAULT_BUDGET).toBeLessThanOrEqual(count + 10);
+    });
+});
