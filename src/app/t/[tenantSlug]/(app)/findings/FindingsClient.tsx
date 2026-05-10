@@ -184,7 +184,11 @@ export function FindingsClient({ initialFindings, tenantSlug, translations: t }:
             accessorKey: 'status',
             header: t.status,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            cell: ({ row }: any) => <StatusBadge variant={STATUS_BADGE[row.original.status]}>{statusLabel(row.original.status)}</StatusBadge>,
+            // R8-PR5 — secondary (workflow) badge demotes to `tone="subtle"`
+            // so the loud severity badge in the prior column reads as the
+            // primary state signal. Keeps the workflow tone visible without
+            // creating a two-loud-badge wall per row.
+            cell: ({ row }: any) => <StatusBadge tone="subtle" variant={STATUS_BADGE[row.original.status]}>{statusLabel(row.original.status)}</StatusBadge>,
         },
         {
             id: 'actions',

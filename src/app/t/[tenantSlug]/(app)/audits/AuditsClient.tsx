@@ -205,7 +205,8 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
                                                 <p className="text-sm text-content-default">{item.prompt}</p>
                                                 {item.notes && <p className="text-xs text-content-subtle mt-1">{item.notes}</p>}
                                             </div>
-                                            <StatusBadge variant={RESULT_BADGE[item.result]}>{resultLabel(item.result)}</StatusBadge>
+                                            {/* R8-PR5 — checklist result restates the Combobox above it. Demote to `tone="subtle"` so the row reads as one state signal, not two competing pills. */}
+                                            <StatusBadge tone="subtle" variant={RESULT_BADGE[item.result]}>{resultLabel(item.result)}</StatusBadge>
                                         </div>
                                     ))}
                                 </div>
