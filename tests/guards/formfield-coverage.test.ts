@@ -49,11 +49,16 @@ const EXEMPT_FILE_PATTERNS: RegExp[] = [
 
 /**
  * Locked at the file count when this ratchet landed
- * (Roadmap-7 PR-7, 2026-05-10). Future PRs that migrate raw
- * `<label>` → `<FormField>` MUST decrement this number to lock in
- * the win.
+ * (Roadmap-7 PR-7, 2026-05-10) at 34. Roadmap-8 PR-10 narrowed the
+ * detection regex to only `<label htmlFor=>` (the actual <FormField>-
+ * replaceable shape) — the budget drops to 2 as a result
+ * (login/page.tsx + EditControlModal). The 32 false-positives the
+ * original regex caught were display labels and radio/checkbox-
+ * wrapper labels, neither of which need <FormField>. Future PRs
+ * migrate the two genuine htmlFor offenders and drop the budget
+ * toward 0.
  */
-const RAW_LABEL_FILE_BUDGET = 34;
+const RAW_LABEL_FILE_BUDGET = 2;
 
 function isExempt(rel: string): boolean {
     const segments = rel.split(path.sep);
@@ -76,10 +81,18 @@ function walk(dir: string): string[] {
 }
 
 function hasRawLabel(content: string): boolean {
-    // Match <label htmlFor=...> or <label className=...>.
-    // The bare <label> (no attrs) form is uncommon; the htmlFor /
-    // className forms are the actual offending shapes.
-    return /<label\s+(?:htmlFor|className)/.test(content);
+    // R8-PR10 audit narrowed the regex from
+    // `<label\s+(htmlFor|className)>` to `<label\s+htmlFor=>` only.
+    // The original definition over-counted: most "raw labels" in
+    // the codebase were either DISPLAY labels (above stat values,
+    // above code blocks, above metadata strips) — which don't need
+    // <FormField> because they're not form labels at all — or
+    // RADIO/CHECKBOX wrappers `<label><input type="radio"></label>`
+    // which is a valid pattern (the label wraps its control). The
+    // narrowed regex matches the actual offending shape: a label
+    // pointing at a separate control via htmlFor — that's the
+    // pattern <FormField> replaces.
+    return /<label\s+htmlFor=/.test(content);
 }
 
 describe("FormField coverage", () => {
