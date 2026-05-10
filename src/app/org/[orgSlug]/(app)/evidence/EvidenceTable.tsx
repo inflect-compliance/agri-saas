@@ -20,15 +20,15 @@ interface Props {
     orgSlug?: string;
 }
 
-const STATUS_VARIANTS: Record<OverdueEvidenceRow['status'], 'pending' | 'info' | 'error'> = {
-    DRAFT: 'pending',
+const STATUS_VARIANTS: Record<OverdueEvidenceRow['status'], 'warning' | 'info' | 'error'> = {
+    DRAFT: 'warning',
     SUBMITTED: 'info',
     REJECTED: 'error',
 };
 
 function OverdueBadge({ days }: { days: number }) {
     // 30+ days → critical, 7+ → warning, otherwise pending.
-    const variant = days >= 30 ? 'error' : days >= 7 ? 'warning' : 'pending';
+    const variant = days >= 30 ? 'error' : days >= 7 ? 'warning' : 'warning';
     return (
         <StatusBadge variant={variant}>
             {days}d overdue

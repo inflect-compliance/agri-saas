@@ -2,7 +2,7 @@
  * v2-PR-3 — StatusBadge override eradication ratchet.
  *
  * The StatusBadge primitive owns three visual axes:
- *   - variant (neutral | info | success | pending | warning | error)
+ *   - variant (neutral | info | success | warning | error) — Roadmap-6 PR-10 retired `pending`
  *   - tone    (solid | subtle)
  *   - size    (sm | md)
  *
@@ -167,7 +167,10 @@ describe("v2-PR-3 StatusBadge override eradication", () => {
             expect(src).toMatch(/cva\(\s*["'][^"']*\brounded-full\b/);
         });
 
-        it("declares the 6 main variants and no `*-subtle` legacy variants", () => {
+        it("declares the 5 main variants and no `*-subtle` legacy variants", () => {
+            // Roadmap-6 PR-10 — `pending` retired. Zero callsites
+            // ever used it; the semantic was redundant with
+            // `warning` (needs-attention) or `info` (in-progress).
             const variantBlock = src.match(
                 /variant:\s*\{([\s\S]*?)\},\s*tone:/,
             );
@@ -177,12 +180,13 @@ describe("v2-PR-3 StatusBadge override eradication", () => {
                 "neutral",
                 "info",
                 "success",
-                "pending",
                 "warning",
                 "error",
             ]) {
                 expect(inner).toContain(`${v}:`);
             }
+            // The retired `pending` variant must not come back.
+            expect(inner).not.toMatch(/\bpending:/);
             // Legacy `*-subtle` variants must NOT be back.
             for (const v of [
                 "info-subtle",
@@ -217,7 +221,6 @@ describe("v2-PR-3 StatusBadge override eradication", () => {
                 "neutral",
                 "info",
                 "success",
-                "pending",
                 "warning",
                 "error",
             ];

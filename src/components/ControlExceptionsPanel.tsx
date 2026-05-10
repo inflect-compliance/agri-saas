@@ -65,8 +65,8 @@ interface Props {
     canAdmin: boolean;
 }
 
-const STATUS_VARIANT: Record<Status, 'pending' | 'success' | 'error' | 'warning'> = {
-    REQUESTED: 'pending',
+const STATUS_VARIANT: Record<Status, 'warning' | 'success' | 'error'> = {
+    REQUESTED: 'warning',
     APPROVED: 'success',
     REJECTED: 'error',
     EXPIRED: 'warning',

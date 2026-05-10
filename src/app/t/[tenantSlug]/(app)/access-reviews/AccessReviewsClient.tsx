@@ -50,9 +50,9 @@ interface AccessReviewSummary {
 
 const STATUS_VARIANT: Record<
     AccessReviewSummary['status'],
-    'pending' | 'info' | 'success'
+    'warning' | 'info' | 'success'
 > = {
-    OPEN: 'pending',
+    OPEN: 'warning',
     IN_REVIEW: 'info',
     CLOSED: 'success',
 };

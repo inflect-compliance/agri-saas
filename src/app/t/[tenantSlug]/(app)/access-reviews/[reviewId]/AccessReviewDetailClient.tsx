@@ -85,8 +85,8 @@ interface Props {
     isAdmin: boolean;
 }
 
-const STATUS_VARIANT: Record<Status, 'pending' | 'info' | 'success'> = {
-    OPEN: 'pending',
+const STATUS_VARIANT: Record<Status, 'warning' | 'info' | 'success'> = {
+    OPEN: 'warning',
     IN_REVIEW: 'info',
     CLOSED: 'success',
 };

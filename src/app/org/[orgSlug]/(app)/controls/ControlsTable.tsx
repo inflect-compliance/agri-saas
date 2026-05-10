@@ -25,9 +25,9 @@ interface Props {
     orgSlug?: string;
 }
 
-const STATUS_VARIANTS: Record<NonPerformingControlRow['status'], 'warning' | 'pending' | 'info' | 'error'> = {
+const STATUS_VARIANTS: Record<NonPerformingControlRow['status'], 'warning' | 'info' | 'error'> = {
     NOT_STARTED: 'error',
-    PLANNED: 'pending',
+    PLANNED: 'warning',
     IN_PROGRESS: 'info',
     IMPLEMENTING: 'info',
     NEEDS_REVIEW: 'warning',

@@ -84,8 +84,8 @@ const STRATEGY_VARIANT: Record<Strategy, 'info' | 'success' | 'warning' | 'neutr
     AVOID: 'success',
 };
 
-const STATUS_VARIANT: Record<Status, 'pending' | 'info' | 'success' | 'error'> = {
-    DRAFT: 'pending',
+const STATUS_VARIANT: Record<Status, 'warning' | 'info' | 'success' | 'error'> = {
+    DRAFT: 'warning',
     ACTIVE: 'info',
     COMPLETED: 'success',
     OVERDUE: 'error',

@@ -5,7 +5,6 @@ import { cva, type VariantProps } from "class-variance-authority";
 import {
   CircleCheck,
   CircleHalfDottedCheck,
-  CircleHalfDottedClock,
   CircleInfo,
   CircleWarning,
   Icon,
@@ -19,11 +18,15 @@ const statusBadgeVariants = cva(
   "inline-flex gap-1.5 items-center max-w-fit rounded-full font-medium whitespace-nowrap",
   {
     variants: {
+      // Roadmap-6 PR-10 — `pending` retired. Zero callsites used it
+      // across ~80 StatusBadge usages. The "pending" semantic is
+      // expressible via `info` (in-progress / awaiting) or
+      // `warning` (overdue / needs-attention) — `pending` was a
+      // third name for one of those tones. Subtraction.
       variant: {
         neutral: "",
         info: "",
         success: "",
-        pending: "",
         warning: "",
         error: "",
       },
@@ -47,14 +50,12 @@ const statusBadgeVariants = cva(
       { variant: "neutral", tone: "solid", class: "bg-bg-subtle text-content-muted" },
       { variant: "info", tone: "solid", class: "bg-bg-info text-content-info" },
       { variant: "success", tone: "solid", class: "bg-bg-success text-content-success" },
-      { variant: "pending", tone: "solid", class: "bg-bg-attention text-content-attention" },
       { variant: "warning", tone: "solid", class: "bg-bg-warning text-content-warning" },
       { variant: "error", tone: "solid", class: "bg-bg-error text-content-error" },
       // ── Subtle — neutral bg already applied; only the text color picks the tone ──
       { variant: "neutral", tone: "subtle", class: "text-content-muted" },
       { variant: "info", tone: "subtle", class: "text-content-info" },
       { variant: "success", tone: "subtle", class: "text-content-success" },
-      { variant: "pending", tone: "subtle", class: "text-content-attention" },
       { variant: "warning", tone: "subtle", class: "text-content-warning" },
       { variant: "error", tone: "subtle", class: "text-content-error" },
     ],
@@ -70,7 +71,6 @@ const defaultIcons: Record<string, Icon> = {
   neutral: CircleInfo,
   info: CircleHalfDottedCheck,
   success: CircleCheck,
-  pending: CircleHalfDottedClock,
   warning: CircleWarning,
   error: CircleWarning,
 };
