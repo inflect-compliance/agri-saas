@@ -94,7 +94,7 @@ export default function NotificationsPage() {
                         {!n.read && <Button variant="ghost" size="sm" className="text-xs" onClick={() => markRead(n.id)}>{t('markRead')}</Button>}
                     </div>
                 ))}
-                {optimisticList.length === 0 && <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center text-content-subtle')}>{t('noNotifications')}</div>}
+                {optimisticList.length === 0 && <div className={cn(cardVariants({ density: 'spacious' }), 'text-center text-content-subtle')}>{t('noNotifications')}</div>}
             </div>
         </div>
     );

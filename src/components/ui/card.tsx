@@ -1,11 +1,17 @@
 /**
- * Card primitive — PR-6 + v2-PR-9.
+ * Card primitive — PR-6 + v2-PR-9 + Roadmap-5 PR-2.
  *
  * Wraps the legacy `.glass-card` CSS class with two typed axes:
  *
- *   density   — internal padding rung (PR-6):
+ *   density   — internal padding rung:
  *     "comfortable" (default)   p-6   — content cards, panels
- *     "compact"                 p-4   — stat cards, inline cards
+ *     "compact"                 p-4   — stat cards, inline cards,
+ *                                       dense interaction rows
+ *     "spacious"                p-12  — empty / loading / permission
+ *                                       states (Roadmap-5 PR-2);
+ *                                       the inner content is just a
+ *                                       short message, the breathing
+ *                                       room IS the affordance
  *     "none"                    p-0   — children own padding
  *
  *   elevation — visual depth (v2-PR-9). Four levels expressed via
@@ -61,6 +67,7 @@ const cardVariants = cva("", {
     density: {
       comfortable: "p-6",
       compact: "p-4",
+      spacious: "p-12",
       none: "",
     },
   },

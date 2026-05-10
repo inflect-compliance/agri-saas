@@ -264,7 +264,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                         )}
                     </div>
                     {showAddRisk && canWrite && (
-                        <div className={cn(cardVariants({ density: 'none' }), 'p-3 mb-3 space-y-tight')}>
+                        <div className={cn(cardVariants({ density: 'compact' }), 'mb-3 space-y-tight')}>
                             <Combobox
                                 id="risk-select"
                                 selected={availableRisks.map((r: any) => ({ value: r.id, label: `${r.title} (${r.status})` })).find((o: { value: string }) => o.value === addId) ?? null}
@@ -322,7 +322,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                         )}
                     </div>
                     {showAddControl && canWrite && (
-                        <div className={cn(cardVariants({ density: 'none' }), 'p-3 mb-3 space-y-tight')}>
+                        <div className={cn(cardVariants({ density: 'compact' }), 'mb-3 space-y-tight')}>
                             <Combobox
                                 id="control-select"
                                 selected={availableControls.map((c: any) => ({ value: c.id, label: `${c.code ? `${c.code} — ` : ''}${c.name} (${c.status})` })).find((o: { value: string }) => o.value === addId) ?? null}
@@ -380,7 +380,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                         )}
                     </div>
                     {showAddAsset && canWrite && (
-                        <div className={cn(cardVariants({ density: 'none' }), 'p-3 mb-3 space-y-tight')}>
+                        <div className={cn(cardVariants({ density: 'compact' }), 'mb-3 space-y-tight')}>
                             <Combobox
                                 id="asset-select"
                                 selected={availableAssets.map((a: any) => ({ value: a.id, label: `${a.name} (${a.type})` })).find((o: { value: string }) => o.value === addId) ?? null}

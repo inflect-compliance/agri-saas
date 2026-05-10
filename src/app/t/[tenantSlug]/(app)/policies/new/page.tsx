@@ -112,7 +112,7 @@ export default function NewPolicyPage() {
 
     if (!tenant.permissions.canWrite) {
         return (
-            <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center text-content-subtle animate-fadeIn')}>
+            <div className={cn(cardVariants({ density: 'spacious' }), 'text-center text-content-subtle animate-fadeIn')}>
                 <p className="text-lg mb-2">Permission Denied</p>
                 <p className="text-sm">You do not have permission to create policies.</p>
             </div>

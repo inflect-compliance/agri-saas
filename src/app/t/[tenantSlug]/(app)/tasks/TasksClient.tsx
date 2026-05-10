@@ -465,7 +465,7 @@ function TasksPageInner({
             {/* Bulk Actions Toolbar — flex-shrink-0 so it keeps its
                 natural height in the ListPageShell column. */}
             {appPermissions.tasks.edit && selected.size > 0 && (
-                <div className={cn(cardVariants({ density: 'none' }), 'p-3 flex items-center gap-compact border border-[var(--brand-default)]/30 flex-shrink-0')} id="bulk-toolbar">
+                <div className={cn(cardVariants({ density: 'compact' }), 'flex items-center gap-compact border border-[var(--brand-default)]/30 flex-shrink-0')} id="bulk-toolbar">
                     <span className="text-sm text-[var(--brand-default)] font-medium">{selected.size} selected</span>
                     <Combobox
                         hideSearch

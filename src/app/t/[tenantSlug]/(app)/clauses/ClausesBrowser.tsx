@@ -109,7 +109,7 @@ export function ClausesBrowser({ clauses: initialClauses, tenantSlug }: ClausesB
                         </div>
                     </div>
                 ) : (
-                    <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center text-content-subtle')}>
+                    <div className={cn(cardVariants({ density: 'spacious' }), 'text-center text-content-subtle')}>
                         <p>{t('selectClause')}</p>
                     </div>
                 )}

@@ -138,7 +138,7 @@ export default async function ReadinessOverviewPage({
                 // for client-page empty states; this server-rendered
                 // page renders the icon JSX inline so the SSR
                 // boundary only sees serialised React nodes.
-                <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center')}>
+                <div className={cn(cardVariants({ density: 'spacious' }), 'text-center')}>
                     <div className="mb-4">
                         <BarChart3 className="size-10 text-content-muted mx-auto" aria-hidden="true" />
                     </div>

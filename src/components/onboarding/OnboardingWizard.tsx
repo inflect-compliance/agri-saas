@@ -234,7 +234,7 @@ export default function OnboardingWizard() {
     if (successBanner) {
         return (
             <div className="flex items-center justify-center min-h-[60vh] animate-fadeIn">
-                <div className={cn(cardVariants({ density: 'none' }), 'p-10 text-center max-w-lg')}>
+                <div className={cn(cardVariants({ density: 'spacious' }), 'text-center max-w-lg')}>
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-bg-success-emphasis flex items-center justify-center">
                         <CheckCircle2 className="w-8 h-8 text-content-inverted" />
                     </div>
@@ -252,7 +252,7 @@ export default function OnboardingWizard() {
     if (!state || state.status === 'NOT_STARTED') {
         return (
             <div className="flex items-center justify-center min-h-[60vh] animate-fadeIn">
-                <div className={cn(cardVariants({ density: 'none' }), 'p-10 text-center max-w-lg')}>
+                <div className={cn(cardVariants({ density: 'spacious' }), 'text-center max-w-lg')}>
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--brand-default)] flex items-center justify-center">
                         <Sparkles className="w-8 h-8 text-content-inverted" />
                     </div>
@@ -271,7 +271,7 @@ export default function OnboardingWizard() {
     if (state.status === 'COMPLETED') {
         return (
             <div className="flex items-center justify-center min-h-[60vh] animate-fadeIn">
-                <div className={cn(cardVariants({ density: 'none' }), 'p-10 text-center max-w-lg')}>
+                <div className={cn(cardVariants({ density: 'spacious' }), 'text-center max-w-lg')}>
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-bg-success-emphasis flex items-center justify-center">
                         <CheckCircle2 className="w-8 h-8 text-content-inverted" />
                     </div>
@@ -303,7 +303,7 @@ export default function OnboardingWizard() {
             </div>
 
             {error && (
-                <div className={cn(cardVariants({ density: 'none' }), 'border-border-error p-3 text-sm text-content-error flex items-center gap-tight')}>
+                <div className={cn(cardVariants({ density: 'compact' }), 'border-border-error text-sm text-content-error flex items-center gap-tight')}>
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                     {error}
                     <button onClick={() => setError(null)} className="ml-auto text-content-error hover:text-content-inverted text-xs">&times;</button>
@@ -312,7 +312,7 @@ export default function OnboardingWizard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-section">
                 {/* ─── Progress Sidebar ─── */}
-                <div className={cn(cardVariants({ density: 'none' }), 'p-0 overflow-hidden')}>
+                <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                     <div className="p-4 border-b border-border-subtle">
                         <p className="text-xs text-content-muted font-medium uppercase tracking-wider">Progress</p>
                         <div className="flex items-center gap-tight mt-2">

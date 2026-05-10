@@ -226,7 +226,7 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
                             )}
                         </div>
                     ) : (
-                        <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center text-content-subtle')}>{t.selectAudit}</div>
+                        <div className={cn(cardVariants({ density: 'spacious' }), 'text-center text-content-subtle')}>{t.selectAudit}</div>
                     )}
                 </div>
             </div>

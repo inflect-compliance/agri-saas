@@ -60,7 +60,7 @@ export default function AuditorPortalPage() {
             </div>
 
             {packs.length === 0 ? (
-                <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center')}>
+                <div className={cn(cardVariants({ density: 'spacious' }), 'text-center')}>
                     <div className="mb-4"><AppIcon name="lock" size={48} className="text-content-muted" /></div>
                     <Heading level={2} className="mb-2">No assigned packs</Heading>
                     <p className="text-content-muted text-sm">You have not been assigned any audit packs yet.</p>
@@ -128,7 +128,7 @@ export default function AuditorPortalPage() {
                                 })()}
                             </div>
                         ) : (
-                            <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center text-content-subtle')}>
+                            <div className={cn(cardVariants({ density: 'spacious' }), 'text-center text-content-subtle')}>
                                 Select a pack to review
                             </div>
                         )}

@@ -357,7 +357,7 @@ export default function AIRiskAssessmentPage() {
 
             {/* ═══ PHASE: GENERATING ═══ */}
             {phase === 'generating' && (
-                <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center')} id="ai-generating">
+                <div className={cn(cardVariants({ density: 'spacious' }), 'text-center')} id="ai-generating">
                     <div className="animate-pulse text-4xl mb-4">...</div>
                     <Heading level={2}>Analyzing your environment…</Heading>
                     <p className="text-content-muted text-sm mt-2">The AI is generating risk suggestions based on your assets, frameworks, and context.</p>
@@ -609,7 +609,7 @@ export default function AIRiskAssessmentPage() {
 
             {/* ═══ PHASE: APPLYING ═══ */}
             {phase === 'applying' && (
-                <div className={cn(cardVariants({ density: 'none' }), 'p-12 text-center')}>
+                <div className={cn(cardVariants({ density: 'spacious' }), 'text-center')}>
                     <div className="animate-pulse text-4xl mb-4">...</div>
                     <Heading level={2}>Creating risk records…</Heading>
                     <p className="text-content-muted text-sm mt-2">Adding accepted suggestions to your Risk Register.</p>

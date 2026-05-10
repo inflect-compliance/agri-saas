@@ -559,7 +559,7 @@ function AddSectionForm({ onSubmit }: { onSubmit: (title: string) => void }) {
     const [title, setTitle] = useState('');
     return (
         <form
-            className={cn(cardVariants({ density: 'none' }), 'p-3 flex items-center gap-tight')}
+            className={cn(cardVariants({ density: 'compact' }), 'flex items-center gap-tight')}
             onSubmit={(e) => {
                 e.preventDefault();
                 if (title.trim()) {
