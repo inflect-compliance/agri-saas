@@ -77,11 +77,11 @@ const DASHBOARDS: DashboardEntry[] = [
         note: "Vendors portfolio dashboard with risk-rating breakdown + assessment status.",
     },
 
-    // ── Pending migration ──
+    // ── Migrated R8-PR9 ──
     {
         file: "src/app/t/[tenantSlug]/(app)/coverage/CoverageClient.tsx",
-        adopted: false,
-        note: "Multi-section coverage dashboard — currently hand-rolls space-y-section + animate-fadeIn instead of <DashboardLayout>. Migration scheduled for R8-PR9; once flipped, the FilterToolbar EXEMPTION 'multi-section dashboard' becomes correct-by-design.",
+        adopted: true,
+        note: "Multi-section coverage dashboard — migrated R8-PR9. Page header (breadcrumbs + title + description + back-to-Assets) flows through DashboardLayout's header slot. The FilterToolbar EXEMPTION 'multi-section dashboard' is now correct-by-design.",
     },
 ];
 
