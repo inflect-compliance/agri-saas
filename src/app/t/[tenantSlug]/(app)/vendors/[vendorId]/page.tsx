@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { SkeletonDetailPage } from '@/components/ui/skeleton';
+import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { useToastWithUndo } from '@/components/ui/hooks';
 import { normaliseHref } from '@/lib/security/safe-url';
@@ -535,7 +536,12 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                             </div>
                         );
                     })}
-                    {links.length === 0 && <div className={cn(cardVariants(), 'text-center text-content-subtle')}>No linked entities</div>}
+                    {links.length === 0 && (
+                        <InlineEmptyState
+                            title="No linked entities"
+                            description="Link this vendor to controls, risks, or evidence to surface them here."
+                        />
+                    )}
                 </div>
             )}
 
@@ -574,7 +580,12 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                             <div className="text-xs text-content-muted">Created by {b.createdBy?.name || '—'} on {formatDate(b.createdAt)}</div>
                         </div>
                     ))}
-                    {bundles.length === 0 && <div className={cn(cardVariants(), 'text-center text-content-subtle')}>No evidence bundles</div>}
+                    {bundles.length === 0 && (
+                        <InlineEmptyState
+                            title="No evidence bundles"
+                            description="Generate evidence bundles to share assessment artefacts with this vendor."
+                        />
+                    )}
                 </div>
             )}
 

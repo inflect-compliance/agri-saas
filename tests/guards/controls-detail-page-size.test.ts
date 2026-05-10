@@ -33,7 +33,15 @@ const PAGE = 'src/app/t/[tenantSlug]/(app)/controls/[controlId]/page.tsx';
 // MetaStrip primitive across all detail pages, +42 lines net here).
 // Anything else MUST shrink the page or extract a sub-component
 // instead.
-const MAX_LINES = 1430;
+//
+// R8-PR2 raised by 20 (1430 → 1450) to accommodate the
+// InlineEmptyState migration on four tab-body empty states (Tasks /
+// Evidence / Frameworks / Activity). Each call expands from a
+// one-line inline `<div className="p-8 text-center
+// text-content-subtle text-sm">No X yet</div>` to a 4-line
+// `<InlineEmptyState title=... description=...>` block. Visual
+// uniformity gain is real; line cost is the trade.
+const MAX_LINES = 1450;
 
 describe('Controls detail page size ratchet (Elevation PR-2)', () => {
     it('controls/[controlId]/page.tsx stays at or below the size floor', () => {

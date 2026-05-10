@@ -6,6 +6,7 @@
 
 import { formatDate, formatDateTime } from '@/lib/format-date';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSWRConfig } from 'swr';
 import { useParams } from 'next/navigation';
@@ -1128,7 +1129,10 @@ export default function ControlDetailPage() {
                     )}
                     <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                         {(control.controlTasks?.length ?? 0) === 0 ? (
-                            <div className="p-8 text-center text-content-subtle text-sm">No tasks yet</div>
+                            <InlineEmptyState
+                                title="No tasks yet"
+                                description="Tasks linked to this control show up here once any are created."
+                            />
                         ) : (
                             <table className="data-table" id="tasks-table">
                                 <thead>
@@ -1242,7 +1246,14 @@ export default function ControlDetailPage() {
                             const hasLinks = (control.evidenceLinks?.length ?? 0) > 0;
                             const hasEvidence = directEvidence.length > 0;
                             if (!hasLinks && !hasEvidence) {
-                                return <div className="p-8 text-center text-content-subtle text-sm" id="no-evidence">No evidence linked</div>;
+                                return (
+                                    <div id="no-evidence">
+                                        <InlineEmptyState
+                                            title="No evidence linked"
+                                            description="Link existing evidence or upload new files to satisfy this control."
+                                        />
+                                    </div>
+                                );
                             }
                             return (
                                 <table className="data-table" id="evidence-table">
@@ -1329,7 +1340,10 @@ export default function ControlDetailPage() {
                     )}
                     <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                         {(control.frameworkMappings?.length ?? 0) === 0 ? (
-                            <div className="p-8 text-center text-content-subtle text-sm">No framework mappings</div>
+                            <InlineEmptyState
+                                title="No framework mappings"
+                                description="Map this control to specific framework requirements to track coverage."
+                            />
                         ) : (
                             <table className="data-table" id="mappings-table">
                                 <thead>
@@ -1383,7 +1397,10 @@ export default function ControlDetailPage() {
                     {activityLoading ? (
                         <div className="p-8 text-center text-content-subtle animate-pulse">Loading activity…</div>
                     ) : activity.length === 0 ? (
-                        <div className="p-8 text-center text-content-subtle text-sm">No activity recorded</div>
+                        <InlineEmptyState
+                            title="No activity recorded"
+                            description="Status changes, link updates, and edits show up here once anything moves."
+                        />
                     ) : (
                         <div className="divide-y divide-border-default/50" id="activity-feed">
                             {activity.map((ev: AuditLogEntry) => (

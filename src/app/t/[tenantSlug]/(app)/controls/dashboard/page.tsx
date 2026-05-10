@@ -14,6 +14,7 @@ import {
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { Card, cardVariants } from '@/components/ui/card';
+import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { KPIStat } from '@/components/ui/metric';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SkeletonDashboard } from '@/components/ui/skeleton';
@@ -187,7 +188,7 @@ export default function ControlsDashboard() {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-sm text-content-subtle">No assigned owners yet</p>
+                        <InlineEmptyState title="No assigned owners yet" />
                     )}
                 </Card>
             </div>

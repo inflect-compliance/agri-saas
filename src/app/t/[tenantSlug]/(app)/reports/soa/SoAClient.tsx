@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { textLinkVariants } from '@/components/ui/typography';
 import { StatusBadge as StatusBadgePrimitive, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { cardVariants } from '@/components/ui/card';
+import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { cn } from '@dub/utils';
 
 // ─── Types ───
@@ -365,9 +366,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                             </button>
                         ))}
                         {mapFilteredControls.length === 0 && (
-                            <p className="py-4 text-center text-xs text-content-muted">
-                                No controls found
-                            </p>
+                            <InlineEmptyState title="No controls match" />
                         )}
                     </div>
                 </Modal.Body>

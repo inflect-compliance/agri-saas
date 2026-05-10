@@ -14,6 +14,7 @@ import { Heading } from '@/components/ui/typography';
 import { KPIStat, type MetricTone } from '@/components/ui/metric';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SkeletonDashboard } from '@/components/ui/skeleton';
+import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@dub/utils';
 
@@ -112,7 +113,7 @@ export default function VendorDashboardPage() {
                     <Heading level={3}>By Risk Rating</Heading>
                     {Object.keys(metrics.byRiskRating).length > 0
                         ? <BreakdownBar data={metrics.byRiskRating} colors={CRIT_COLORS} />
-                        : <div className="text-sm text-content-subtle">No assessments completed yet</div>}
+                        : <InlineEmptyState title="No assessments completed yet" />}
                 </div>
             </div>
 

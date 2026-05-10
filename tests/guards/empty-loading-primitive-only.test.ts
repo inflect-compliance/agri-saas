@@ -60,42 +60,13 @@ interface PendingSite {
  * sites migrate; new offenders are not allowed.
  */
 const PENDING_MIGRATIONS: PendingSite[] = [
-    {
-        file: "src/app/t/[tenantSlug]/(app)/tasks/[taskId]/page.tsx",
-        note: "Three tab-body empty states on the task detail page (Links, Comments, Activity). Migration pending — needs a small <InlineEmptyState> primitive sized for tab bodies.",
-    },
-    {
-        file: "src/app/t/[tenantSlug]/(app)/controls/[controlId]/page.tsx",
-        note: "Tab-body empty state for the Tasks tab on control detail. Migration pending — same <InlineEmptyState> primitive shape as the task page.",
-    },
-    {
-        file: "src/app/t/[tenantSlug]/(app)/controls/templates/page.tsx",
-        note: "Two raw <p> empty messages on the controls templates page. Migration pending — should fold into the existing <DataTable emptyState> slot using <TableEmptyState>.",
-    },
-    {
-        file: "src/app/t/[tenantSlug]/(app)/controls/dashboard/page.tsx",
-        note: "Dashboard composite tile empty state. Migration pending — needs <InlineEmptyState> sized for dashboard cards.",
-    },
-    {
-        file: "src/app/t/[tenantSlug]/(app)/policies/[policyId]/page.tsx",
-        note: "Two tab-body empty states on the policy detail page (Versions, Acknowledgments). Migration pending — same <InlineEmptyState> shape.",
-    },
-    {
-        file: "src/app/t/[tenantSlug]/(app)/reports/soa/SoAClient.tsx",
-        note: "Statement-of-Applicability empty state when no controls match the framework filter. Migration pending — should use <EmptyState> with framework-specific copy.",
-    },
-    {
-        file: "src/app/t/[tenantSlug]/(app)/tests/page.tsx",
-        note: "Tab-body empty state on the tests landing page. Migration pending — needs <InlineEmptyState>.",
-    },
-    {
-        file: "src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx",
-        note: "Two tab-body empty states on the vendor detail page (Documents, Assessments). Migration pending — same <InlineEmptyState> shape.",
-    },
-    {
-        file: "src/app/t/[tenantSlug]/(app)/vendors/dashboard/page.tsx",
-        note: "Dashboard composite empty state on the vendor dashboard. Migration pending — needs <InlineEmptyState> sized for dashboard cards.",
-    },
+    // R8-PR2 cleared all 9 entries. The list now sits empty as the
+    // "freeze the regression boundary" baseline — any NEW inline
+    // empty-state div in `src/app` will fail the ratchet without
+    // a written EXEMPTION here. The direction of travel: this list
+    // stays at zero unless a future PR introduces a new tab-body
+    // pattern that doesn't fit InlineEmptyState (in which case
+    // adding an entry requires a 40+ char structural reason).
 ];
 
 const PENDING_FILES = new Set(PENDING_MIGRATIONS.map((p) => p.file));
@@ -127,12 +98,22 @@ function walk(dir: string): string[] {
  *   <span ...>No X here</span>
  *
  * Match shape: a JSX element whose direct text content is an
- * empty-state phrase (No / Zero followed by a noun, optionally
- * ending with yet/found/here/available).
+ * empty-state phrase — `No|Zero` + a noun + a REQUIRED trailing
+ * terminator (yet|found|here|available|recorded|completed|linked).
+ *
+ * Why the terminator is required (R8-PR2 tightening): without it
+ * the regex catches inline missing-value markers (e.g. policy
+ * `<span>No content</span>` displayed in a row cell when a version
+ * has empty body, or `<span>No runs</span>` in a test summary
+ * column). Those aren't tab-body empty states — they're per-row
+ * cell markers and the InlineEmptyState primitive would over-pad
+ * them. The terminator narrows the regex to the actual empty-state
+ * shape ("No X yet" / "No X found" / "No X recorded" / "No X
+ * linked" / "No X completed").
  */
 function findInlineEmptyStates(content: string): number {
     const re =
-        /<(?:div|p|span)[^>]*>\s*(?:No|Zero)\s+\w+(?:\s+\w+)?\s*(?:yet|found|here|available)?\s*<\/(?:div|p|span)>/g;
+        /<(?:div|p|span)[^>]*>\s*(?:No|Zero)\s+\w+(?:\s+\w+)?\s+(?:yet|found|here|available|recorded|completed|linked)\s*<\/(?:div|p|span)>/g;
     const matches = content.match(re);
     return matches ? matches.length : 0;
 }

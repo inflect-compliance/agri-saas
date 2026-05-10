@@ -12,7 +12,8 @@ import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-c
 import { AppIcon } from '@/components/icons/AppIcon';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
-import { DataTable, createColumns } from '@/components/ui/table';
+import { DataTable, createColumns, TableEmptyState } from '@/components/ui/table';
+import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
@@ -147,10 +148,10 @@ export default function ControlTemplatesPage() {
                 {loading ? (
                     <div className="p-12 text-center text-content-subtle animate-pulse">Loading templates…</div>
                 ) : filtered.length === 0 ? (
-                    <div className="p-12 text-center text-content-subtle">
-                        <p className="text-lg mb-2">No templates found</p>
-                        <p className="text-sm">Templates are seeded by your admin.</p>
-                    </div>
+                    <InlineEmptyState
+                        title="No templates yet"
+                        description="Templates are seeded by your admin."
+                    />
                 ) : (
                     (() => {
                         const templateCols = createColumns<any>([
@@ -180,7 +181,12 @@ export default function ControlTemplatesPage() {
                                 columns={templateCols}
                                 getRowId={(t: any) => t.id}
                                 onRowClick={(row) => toggle(row.original.id)}
-                                emptyState={<div className="text-center"><p className="text-lg mb-2">No templates found</p><p className="text-sm">Templates are seeded by your admin.</p></div>}
+                                emptyState={
+                                    <TableEmptyState
+                                        title="No templates yet"
+                                        description="Templates are seeded by your admin."
+                                    />
+                                }
                                 resourceName={(p) => p ? 'templates' : 'template'}
                                 data-testid="templates-table"
                             />
