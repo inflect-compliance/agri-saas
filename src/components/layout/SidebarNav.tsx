@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTenantContext, useTenantHref, usePermissions } from '@/lib/tenant-context-provider';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
-import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useKeyboardShortcut } from '@/lib/hooks/use-keyboard-shortcut';
 import { StartTourButton } from '@/components/ui/OnboardingTour';
@@ -270,9 +269,13 @@ export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentPro
                 </span>
             </button>
 
-            {/* User */}
+            {/* User. The right column stretches to match the three
+                identity lines on the left, so the three icons (Admin
+                gear, Theme toggle, Sign out) distribute via
+                justify-between — the bottom-most icon (Sign out)
+                aligns horizontally with the role line. */}
             <div className="p-3 border-t border-border-subtle">
-                <div className="mb-2 flex items-start justify-between gap-tight">
+                <div className="mb-1 flex items-stretch justify-between gap-tight">
                     <div className="min-w-0">
                         <p className="text-xs font-medium text-content-default truncate">{user.name}</p>
                         <p className="text-xs text-content-muted truncate">{tenant.tenantName}</p>
@@ -283,21 +286,34 @@ export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentPro
                             accent. */}
                         <p className="text-xs text-content-muted">{tenant.role}</p>
                     </div>
-                    <div className="flex items-center gap-tight">
-                        {perms.admin.view && (
-                            <Tooltip content="Admin">
-                                <Link
-                                    href={tenantHref('/admin')}
-                                    aria-label="Admin"
-                                    id="admin-icon-link-desktop"
-                                    data-testid="nav-admin-icon"
-                                    className="icon-btn icon-btn-sm"
-                                >
-                                    <Settings className="size-4" aria-hidden="true" />
-                                </Link>
-                            </Tooltip>
-                        )}
-                        <ThemeToggle id="theme-toggle-desktop" />
+                    <div className="flex flex-col items-end justify-between">
+                        <div className="flex items-center gap-tight">
+                            {perms.admin.view && (
+                                <Tooltip content="Admin">
+                                    <Link
+                                        href={tenantHref('/admin')}
+                                        aria-label="Admin"
+                                        id="admin-icon-link-desktop"
+                                        data-testid="nav-admin-icon"
+                                        className="icon-btn icon-btn-sm"
+                                    >
+                                        <Settings className="size-4" aria-hidden="true" />
+                                    </Link>
+                                </Tooltip>
+                            )}
+                            <ThemeToggle id="theme-toggle-desktop" />
+                        </div>
+                        <Tooltip content={tc('signOut')}>
+                            <button
+                                type="button"
+                                onClick={onLogout}
+                                aria-label={tc('signOut')}
+                                data-testid="nav-logout"
+                                className="icon-btn icon-btn-sm"
+                            >
+                                <LogOut className="size-4" aria-hidden="true" />
+                            </button>
+                        </Tooltip>
                     </div>
                 </div>
                 {/* Driver.js product tour — manual restart entry.
@@ -306,19 +322,7 @@ export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentPro
                     shell). The auto-trigger handles first-login;
                     this button is for the "I want to see it again"
                     case. */}
-                <div className="mb-1">
-                    <StartTourButton />
-                </div>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onLogout}
-                    className="w-full text-xs"
-                    data-testid="nav-logout"
-                >
-                    <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-                    {tc('signOut')}
-                </Button>
+                <StartTourButton />
             </div>
         </div>
     );
