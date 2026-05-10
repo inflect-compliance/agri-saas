@@ -14,6 +14,7 @@ import { useTenantContext, useTenantApiUrl, useTenantHref } from '@/lib/tenant-c
 import dynamic from 'next/dynamic';
 import LinkedTasksPanel from '@/components/LinkedTasksPanel';
 import { Heading, Eyebrow } from '@/components/ui/typography';
+import { CardHeader } from '@/components/ui/card-header';
 import { KPIStat } from '@/components/ui/metric';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import {
@@ -525,7 +526,19 @@ export default function RiskDetailPage() {
 
             {/* Traceability */}
             <div className="glass-card p-6">
-                <Heading level={2} className="mb-4 inline-flex items-center gap-tight"><AppIcon name="link" size={18} /> Traceability</Heading>
+                {/* Roadmap-3 PR-5 — `<CardHeader>` replaces the
+                    inline level=2 heading. Card heading level
+                    drops to 3 (the canonical for cards inside
+                    pages) and the rhythm matches every other
+                    card-header instance. */}
+                <CardHeader
+                    title={
+                        <span className="inline-flex items-center gap-tight">
+                            <AppIcon name="link" size={18} /> Traceability
+                        </span>
+                    }
+                    className="mb-default"
+                />
                 <TraceabilityPanel
                     apiBase={apiUrl('')}
                     entityType="risk"
