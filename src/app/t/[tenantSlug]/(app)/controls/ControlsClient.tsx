@@ -744,14 +744,13 @@ function ControlsPageInner({
                                 <Link href={tenantHref('/controls/templates')} className={buttonVariants({ variant: 'secondary', size: 'sm' })} id="install-templates-btn">
                                     <AppIcon name="templates" size={14} /> Install from Templates
                                 </Link>
-                                <button
-                                    type="button"
-                                    className={buttonVariants({ variant: 'primary' })}
+                                <Button
+                                    variant="primary"
                                     id="new-control-btn"
                                     onClick={() => setIsCreateOpen(true)}
                                 >
                                     + Control
-                                </button>
+                                </Button>
                             </>
                         )}
                     </>

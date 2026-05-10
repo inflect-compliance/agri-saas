@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@dub/utils';
 
-import { buttonVariants } from '@/components/ui/button-variants';
+import { Button } from '@/components/ui/button';
 import { CalendarHeatmap } from '@/components/ui/CalendarHeatmap';
 import { CalendarMonth } from '@/components/ui/CalendarMonth';
 import { GanttTimeline } from '@/components/ui/GanttTimeline';
@@ -205,14 +205,14 @@ export function CalendarClient({
                     className={cn(cardVariants({ density: 'none' }), 'flex items-center justify-between px-4 py-2')}
                     data-testid="calendar-month-nav"
                 >
-                    <button
+                    <Button
                         type="button"
+                        variant="ghost"
                         onClick={handlePrev}
-                        className={buttonVariants({ variant: 'ghost', size: 'sm' })}
                         aria-label="Previous month"
                     >
                         <ChevronLeft className="size-4" />
-                    </button>
+                    </Button>
                     <span
                         className="text-sm font-semibold text-content-emphasis"
                         data-testid="calendar-current-month"
@@ -220,14 +220,14 @@ export function CalendarClient({
                         {MONTH_NAMES[monthCursor.getUTCMonth()]}{' '}
                         {monthCursor.getUTCFullYear()}
                     </span>
-                    <button
+                    <Button
                         type="button"
+                        variant="ghost"
                         onClick={handleNext}
-                        className={buttonVariants({ variant: 'ghost', size: 'sm' })}
                         aria-label="Next month"
                     >
                         <ChevronRight className="size-4" />
-                    </button>
+                    </Button>
                 </div>
             )}
 

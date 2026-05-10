@@ -95,6 +95,13 @@ const PRIMARY_BUDGET: Record<string, number> = {
     "src/app/t/[tenantSlug]/(app)/admin/roles/page.tsx": 2,
     "src/app/t/[tenantSlug]/(app)/admin/risk-matrix/RiskMatrixAdminClient.tsx": 2,
     "src/app/t/[tenantSlug]/(app)/admin/integrations/page.tsx": 2,
+
+    // R9-PR6 migrated the `+ Control` button-shape buttonVariants()
+    // to <Button>, which makes the existing primary visible to this
+    // ratchet. Plus the templates-install Link in the same row (also
+    // primary). Two header CTAs side-by-side is the controls list
+    // page's canonical shape.
+    "src/app/t/[tenantSlug]/(app)/controls/ControlsClient.tsx": 2,
 };
 
 const DEFAULT_BUDGET = 1;
