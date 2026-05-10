@@ -34,7 +34,7 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
             {/* ─── Print toolbar (screen only) ─── */}
             <div className="no-print flex items-center justify-between mb-6 p-4 bg-bg-muted rounded-lg">
                 <div>
-                    <h2 className="text-lg font-bold text-content-emphasis">SoA Print Preview</h2>
+                    <Heading level={2}>SoA Print Preview</Heading>
                     <p className="text-xs text-content-muted">Use Ctrl+P (or Cmd+P) to print or save as PDF</p>
                 </div>
                 <div className="flex gap-tight">
@@ -70,7 +70,7 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
                 </table>
 
                 {/* Summary */}
-                <h2 className="text-lg font-bold text-content-emphasis mb-3 border-b border-border-default pb-1">Summary</h2>
+                <Heading level={2} className="mb-3 border-b border-border-default pb-1">Summary</Heading>
                 <div className="grid grid-cols-3 gap-default mb-8">
                     <SummaryBox label="Applicable" value={summary.applicable} total={summary.total} color="green" />
                     <SummaryBox label="Not Applicable" value={summary.notApplicable} total={summary.total} color="gray" />
@@ -83,10 +83,10 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
             {/* ─── Detail tables per section ─── */}
             {bySection.map(section => (
                 <div key={section.name} className="print-page">
-                    <h2 className="text-lg font-bold text-content-emphasis mb-3 border-b border-border-default pb-1">
+                    <Heading level={2} className="mb-3 border-b border-border-default pb-1">
                         {section.name} Controls
                         <span className="text-sm font-normal text-content-muted ml-2">({section.entries.length})</span>
-                    </h2>
+                    </Heading>
 
                     <table className="print-table w-full text-xs border-collapse mb-6">
                         <thead>

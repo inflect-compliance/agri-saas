@@ -237,7 +237,7 @@ export default function OnboardingWizard() {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-bg-success-emphasis flex items-center justify-center">
                         <CheckCircle2 className="w-8 h-8 text-content-inverted" />
                     </div>
-                    <h2 className="text-xl font-bold text-content-inverted mb-2">Onboarding Complete!</h2>
+                    <Heading level={2} className="text-content-inverted mb-2">Onboarding Complete!</Heading>
                     <p className="text-content-muted text-sm">Your workspace is ready. Redirecting to dashboard...</p>
                     <div className="mt-4">
                         <Loader2 className="w-5 h-5 mx-auto text-brand-400 animate-spin" />
@@ -255,7 +255,7 @@ export default function OnboardingWizard() {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--brand-default)] flex items-center justify-center">
                         <Sparkles className="w-8 h-8 text-content-inverted" />
                     </div>
-                    <h2 className="text-xl font-bold text-content-inverted mb-2">Welcome! Let&apos;s set up your workspace.</h2>
+                    <Heading level={2} className="text-content-inverted mb-2">Welcome! Let&apos;s set up your workspace.</Heading>
                     <p className="text-content-muted text-sm mb-6">This wizard will guide you through configuring your compliance platform in just a few steps.</p>
                     <Button variant="primary" size="lg" onClick={handleStart} disabled={saving}>
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
@@ -274,7 +274,7 @@ export default function OnboardingWizard() {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-bg-success-emphasis flex items-center justify-center">
                         <CheckCircle2 className="w-8 h-8 text-content-inverted" />
                     </div>
-                    <h2 className="text-xl font-bold text-content-inverted mb-2">Onboarding Complete</h2>
+                    <Heading level={2} className="text-content-inverted mb-2">Onboarding Complete</Heading>
                     <p className="text-content-muted text-sm mb-6">Your workspace has been configured. You can always update settings from the admin panel.</p>
                     <Button variant="primary" size="lg" onClick={() => router.push(tenantHref('/dashboard'))}>
                         Go to Dashboard

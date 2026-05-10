@@ -28,6 +28,7 @@
 import { useState } from 'react';
 import { CheckCircle2, XCircle, Clock, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Heading } from '@/components/ui/typography';
 
 export interface ApprovalBannerUserRef {
     id: string;
@@ -139,12 +140,13 @@ export function ApprovalBanner({
                 <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-center gap-tight">
                         {tone.icon}
-                        <h3
-                            className={`text-sm font-semibold ${tone.fg}`}
+                        <Heading
+                            level={3}
+                            className={tone.fg}
                             data-testid="approval-banner-status"
                         >
                             {tone.label}
-                        </h3>
+                        </Heading>
                         {approval.versionNumber != null && (
                             <span className="text-[11px] text-content-muted">
                                 · Version {approval.versionNumber}
