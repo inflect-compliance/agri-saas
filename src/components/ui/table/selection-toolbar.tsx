@@ -81,7 +81,7 @@ export const BatchActionButton = forwardRef<
     type="button"
     className={cn(
       "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--ring-offset-background)]",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       "disabled:pointer-events-none disabled:opacity-50",
       variant === "default" &&
         "bg-bg-elevated text-content-emphasis hover:bg-bg-muted active:bg-bg-subtle border border-border-subtle",

@@ -51,10 +51,13 @@ describe("PR-7 interaction state discipline", () => {
     it("sortable column header carries the focus-visible recipe", () => {
       // The header `<ButtonOrDiv>` block applies the focus-ring utility
       // when `isSortableColumn` is true. We check the structural shape
-      // of the recipe (ring-2 + ring-ring + offset).
+      // of the recipe (ring-2 + ring-ring + offset). Roadmap-6 PR-3
+      // upgraded the page-level offset from 1 → 2 + ring-offset-background
+      // so the ring sits one extra px clear of the surface.
       expect(tableSrc).toMatch(/focus-visible:ring-2/);
       expect(tableSrc).toMatch(/focus-visible:ring-ring/);
-      expect(tableSrc).toMatch(/focus-visible:ring-offset-1/);
+      expect(tableSrc).toMatch(/focus-visible:ring-offset-2/);
+      expect(tableSrc).toMatch(/focus-visible:ring-offset-background/);
     });
   });
 

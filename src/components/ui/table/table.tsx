@@ -765,7 +765,7 @@ export function Table<T>({
                                 // sort columns were dead-zones for
                                 // keyboard users.
                                 isSortableColumn &&
-                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:rounded-sm",
+                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:rounded-sm",
                               )}
                               {...(isSortableColumn && {
                                 type: "button",
