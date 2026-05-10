@@ -71,7 +71,7 @@ export function ClausesBrowser({ clauses: initialClauses, tenantSlug }: ClausesB
 
             <div className="lg:col-span-2">
                 {selected ? (
-                    <div className={cn(cardVariants(), 'animate-slideIn')}>
+                    <div className={cn(cardVariants(), 'animate-fadeIn')}>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-compact mb-4">
                             <Heading level={2}>{t('clause')} {selected.number}: {selected.title}</Heading>
                             <div className="w-full sm:w-48">

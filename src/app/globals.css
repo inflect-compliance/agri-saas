@@ -195,8 +195,15 @@ textarea.input { @apply resize-y min-h-[80px]; }
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-@keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-.animate-slideIn { animation: slideIn 0.3s ease-out; }
+/* Roadmap-6 PR-1 — `slideIn` retired (translateX-based detail-pane
+ * reveal). Master-detail panes now use `animate-fadeIn` for the
+ * subtle 8px upward enter. The remaining canonical motion set:
+ *   - animate-fadeIn        (page-level + content enter, 0.3s)
+ *   - animate-fade-in       (overlay backdrop, opacity-only, 0.15s)
+ *   - animate-slide-up-fade (popover/tooltip, 0.2s)
+ *   - animate-scale-in      (modal panel, 0.15s)
+ *   - animate-pulse         (skeletons)
+ *   - animate-spin          (loaders) */
 
 /* Sidebar nav — Elevation PR-3 retired the .nav-link CSS class.
    The state language now lives inline in SidebarNav.tsx as Tailwind

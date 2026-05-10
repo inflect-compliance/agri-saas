@@ -176,7 +176,7 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
 
                 <div className="lg:col-span-2">
                     {selected ? (
-                        <div className={cn(cardVariants(), 'animate-slideIn space-y-default')}>
+                        <div className={cn(cardVariants(), 'animate-fadeIn space-y-default')}>
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-compact">
                                 <Heading level={2}>{selected.title}</Heading>
                                 <div className="flex flex-wrap gap-tight">
