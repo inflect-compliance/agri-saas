@@ -1,4 +1,5 @@
-import { Card, cardVariants } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { cardVariants } from '@/components/ui/card-variants';
 import { cn } from '@dub/utils';
 /**
  * Reusable skeleton loading primitives for the dark-themed UI.

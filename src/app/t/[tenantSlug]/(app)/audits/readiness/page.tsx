@@ -37,7 +37,7 @@ import { getReadinessOverview } from '@/app-layer/usecases/audit-readiness';
 import type { ReadinessResult } from '@/app-layer/usecases/audit-readiness-scoring';
 import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
-import { cardVariants } from '@/components/ui/card';
+import { cardVariants } from '@/components/ui/card-variants';
 import { cn } from '@dub/utils';
 
 export const dynamic = 'force-dynamic';

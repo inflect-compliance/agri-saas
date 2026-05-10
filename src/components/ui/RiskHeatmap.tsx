@@ -23,7 +23,7 @@
  * ```
  */
 import { Fragment } from 'react';
-import { cardVariants } from '@/components/ui/card';
+import { cardVariants } from '@/components/ui/card-variants';
 import { cn } from '@dub/utils';
 
 import { ShimmerDots } from '@/components/ui/shimmer-dots';

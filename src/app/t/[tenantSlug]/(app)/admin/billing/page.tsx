@@ -10,7 +10,7 @@ import { InlineNotice } from '@/components/ui/inline-notice';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
-import { cardVariants } from '@/components/ui/card';
+import { cardVariants } from '@/components/ui/card-variants';
 import { cn } from '@dub/utils';
 
 export const dynamic = 'force-dynamic';

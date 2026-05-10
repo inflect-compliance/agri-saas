@@ -1,5 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import { cardVariants } from '@/components/ui/card';
+import { cardVariants } from '@/components/ui/card-variants';
 import { cn } from '@dub/utils';
 
 /**

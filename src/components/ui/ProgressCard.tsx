@@ -21,7 +21,7 @@
 
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { Heading } from '@/components/ui/typography';
-import { cardVariants } from '@/components/ui/card';
+import { cardVariants } from '@/components/ui/card-variants';
 import { cn } from '@dub/utils';
 
 // ─── Props ──────────────────────────────────────────────────────────
