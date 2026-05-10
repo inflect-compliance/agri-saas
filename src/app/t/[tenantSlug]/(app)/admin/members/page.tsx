@@ -396,7 +396,7 @@ export default function MembersAdminPage() {
                                         variant="secondary"
                                         size="xs"
                                         onClick={() => setEditingRoleId(null)}
-                                        icon={<XCircle className="w-3 h-3" />}
+                                        icon={<XCircle className="w-3.5 h-3.5" />}
                                     />
                                 </div>
                                 {customRoles.length > 0 && (
@@ -437,7 +437,7 @@ export default function MembersAdminPage() {
                                     id={`role-badge-${m.id}`}
                                 >
                                     {m.role}
-                                    {m.status === 'ACTIVE' && <ChevronDown className="w-3 h-3 ml-0.5" />}
+                                    {m.status === 'ACTIVE' && <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
                                 </button>
                             </Tooltip>
                             {m.customRole && (
@@ -487,7 +487,7 @@ export default function MembersAdminPage() {
                             id={`sessions-count-${m.id}`}
                             aria-label={`View ${count} active sessions for ${m.user.email}`}
                         >
-                            <Monitor className="w-3 h-3" />
+                            <Monitor className="w-3.5 h-3.5" />
                             {count}
                         </button>
                     );
@@ -527,7 +527,7 @@ export default function MembersAdminPage() {
                                         className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
                                         id={`action-change-role-${m.id}`}
                                     >
-                                        <Shield className="w-3 h-3" />
+                                        <Shield className="w-3.5 h-3.5" />
                                         Change Role
                                     </button>
                                     <button
@@ -538,7 +538,7 @@ export default function MembersAdminPage() {
                                         className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
                                         id={`action-view-sessions-${m.id}`}
                                     >
-                                        <Monitor className="w-3 h-3" />
+                                        <Monitor className="w-3.5 h-3.5" />
                                         View Sessions
                                     </button>
                                     <button
@@ -546,7 +546,7 @@ export default function MembersAdminPage() {
                                         className="w-full text-left px-3 py-2 text-xs text-content-error hover:bg-bg-error flex items-center gap-tight"
                                         id={`action-deactivate-${m.id}`}
                                     >
-                                        <UserMinus className="w-3 h-3" />
+                                        <UserMinus className="w-3.5 h-3.5" />
                                         Deactivate
                                     </button>
                                 </div>

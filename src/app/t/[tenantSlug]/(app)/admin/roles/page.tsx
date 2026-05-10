@@ -488,7 +488,7 @@ export default function CustomRolesPage() {
                 accessorFn: (r) => r._count.memberships,
                 cell: ({ row }) => (
                     <span className="flex items-center gap-1 text-xs text-content-default">
-                        <Users className="w-3 h-3" />
+                        <Users className="w-3.5 h-3.5" />
                         {row.original._count.memberships}
                     </span>
                 ),
@@ -521,7 +521,7 @@ export default function CustomRolesPage() {
                                     aria-label="Edit role"
                                     id={`edit-role-${role.id}`}
                                 >
-                                    <Pencil className="w-3 h-3" />
+                                    <Pencil className="w-3.5 h-3.5" />
                                 </Button>
                             </Tooltip>
                             <Tooltip content="Delete role">
@@ -532,7 +532,7 @@ export default function CustomRolesPage() {
                                     aria-label="Delete role"
                                     id={`delete-role-${role.id}`}
                                 >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                             </Tooltip>
                         </div>

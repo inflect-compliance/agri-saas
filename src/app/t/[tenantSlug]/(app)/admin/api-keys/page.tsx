@@ -131,7 +131,7 @@ function ScopePicker({
                 />
                 {isFullAccess && (
                     <span className="text-[10px] text-content-warning/80 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
+                        <AlertTriangle className="w-3.5 h-3.5" />
                         Grants all permissions
                     </span>
                 )}
@@ -162,7 +162,7 @@ function ScopePicker({
                                         id={`scope-${scope.replace(':', '-')}`}
                                     >
                                         <span className="capitalize">{action}</span>
-                                        {isSelected && <Check className="w-3 h-3 inline ml-1" />}
+                                        {isSelected && <Check className="w-3.5 h-3.5 inline ml-1" />}
                                     </button>
                                 );
                             })}
@@ -379,7 +379,7 @@ export default function ApiKeysPage() {
                     cell: ({ row }) =>
                         row.original.expiresAt ? (
                             <span className="flex items-center gap-1 text-xs text-content-muted">
-                                <Clock className="w-3 h-3" />
+                                <Clock className="w-3.5 h-3.5" />
                                 {formatDate(row.original.expiresAt)}
                             </span>
                         ) : (
@@ -419,7 +419,7 @@ export default function ApiKeysPage() {
                                     aria-label="Revoke key"
                                     id={`revoke-key-${row.original.id}`}
                                 >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                             </Tooltip>
                         </div>

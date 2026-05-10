@@ -271,7 +271,7 @@ export default function ScimAdminPage() {
                                         </span>
                                         {token.lastUsedAt && (
                                             <span className="text-xs text-content-muted flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
+                                                <Clock className="w-3.5 h-3.5" />
                                                 Last used {formatDate(token.lastUsedAt)}
                                             </span>
                                         )}

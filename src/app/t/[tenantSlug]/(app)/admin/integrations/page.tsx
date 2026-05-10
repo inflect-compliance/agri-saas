@@ -250,7 +250,7 @@ export default function AdminIntegrationsPage() {
                                     id: 'lastTest', header: 'Last Test', accessorKey: 'lastTestedAt',
                                     cell: ({ row }: any) => row.original.lastTestedAt ? (
                                         <span className="flex items-center gap-1 text-xs text-content-muted">
-                                            {row.original.lastTestStatus === 'ok' ? <CheckCircle className="w-3 h-3 text-content-success" /> : <XCircle className="w-3 h-3 text-content-error" />}
+                                            {row.original.lastTestStatus === 'ok' ? <CheckCircle className="w-3.5 h-3.5 text-content-success" /> : <XCircle className="w-3.5 h-3.5 text-content-error" />}
                                             {formatDate(row.original.lastTestedAt)}
                                         </span>
                                     ) : <span className="text-content-subtle text-xs">—</span>,
@@ -262,12 +262,12 @@ export default function AdminIntegrationsPage() {
                                         <div className="flex gap-1">
                                             <Tooltip content="Test connection">
                                                 <Button variant="secondary" size="xs" onClick={() => handleTest(row.original)} disabled={testing === row.original.id} aria-label="Test connection">
-                                                    {testing === row.original.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
+                                                    {testing === row.original.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
                                                 </Button>
                                             </Tooltip>
                                             <Tooltip content="Disable integration">
                                                 <Button variant="destructive-outline" size="xs" onClick={() => handleDisable(row.original.id)} aria-label="Disable integration">
-                                                    <Trash2 className="w-3 h-3" />
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </Button>
                                             </Tooltip>
                                         </div>
@@ -359,7 +359,7 @@ export default function AdminIntegrationsPage() {
                                         size="xs"
                                         onClick={() => setShowSecrets(!showSecrets)}
                                     >
-                                        {showSecrets ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                        {showSecrets ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                         {showSecrets ? 'Hide' : 'Show'}
                                     </Button>
                                 </div>

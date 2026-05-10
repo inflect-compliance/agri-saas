@@ -56,7 +56,7 @@ function GapBadges({ entry }: { entry: SoAEntryDTO }) {
     if (entry.applicable === null) {
         gaps.push(
             <StatusBadgePrimitive key="unmapped" variant="error">
-                <AlertTriangle className="w-3 h-3" /> Unmapped
+                <AlertTriangle className="w-3.5 h-3.5" /> Unmapped
             </StatusBadgePrimitive>
         );
     }
@@ -65,7 +65,7 @@ function GapBadges({ entry }: { entry: SoAEntryDTO }) {
         if (hasMissing) {
             gaps.push(
                 <StatusBadgePrimitive key="justification" variant="warning">
-                    <MessageSquare className="w-3 h-3" /> Justification missing
+                    <MessageSquare className="w-3.5 h-3.5" /> Justification missing
                 </StatusBadgePrimitive>
             );
         }
@@ -475,7 +475,7 @@ function SoARow({
                 <td className="text-xs text-content-muted">
                     {entry.mappedControls.length > 0 ? (
                         <span className="inline-flex items-center gap-1">
-                            <Link2 className="w-3 h-3" /> {entry.mappedControls.length}
+                            <Link2 className="w-3.5 h-3.5" /> {entry.mappedControls.length}
                         </span>
                     ) : '—'}
                 </td>
@@ -491,7 +491,7 @@ function SoARow({
                                         onClick={onMap}
                                         aria-label="Map control"
                                     >
-                                        <Plus className="w-3 h-3" />
+                                        <Plus className="w-3.5 h-3.5" />
                                     </Button>
                                 </Tooltip>
                             )}
@@ -532,7 +532,7 @@ function SoARow({
                                                 size="xs"
                                                 onClick={(e) => { e.stopPropagation(); onJustify(c.controlId, c.code || c.controlId.slice(0, 8)); }}
                                             >
-                                                <MessageSquare className="w-3 h-3" /> Justify
+                                                <MessageSquare className="w-3.5 h-3.5" /> Justify
                                             </Button>
                                         )}
                                     </div>
