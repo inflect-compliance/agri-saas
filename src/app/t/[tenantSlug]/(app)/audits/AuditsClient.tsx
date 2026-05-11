@@ -1,9 +1,11 @@
 'use client';
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import type { CappedList } from '@/lib/list-backfill-cap';
 import { TruncationBanner } from '@/components/ui/TruncationBanner';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -139,7 +141,16 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
                 title={t.title}
                 description={t.listDescription || undefined}
                 actions={
-                    <Button variant="primary" onClick={() => setShowForm(!showForm)} id="new-audit-btn">{t.newAudit}</Button>
+                    <div className="flex flex-wrap gap-tight">
+                        <Link
+                            href={`/t/${tenantSlug}/frameworks`}
+                            className={cn(buttonVariants({ variant: 'secondary' }), 'rounded-full')}
+                            id="audits-frameworks-link"
+                        >
+                            Frameworks
+                        </Link>
+                        <Button variant="primary" onClick={() => setShowForm(!showForm)} id="new-audit-btn">{t.newAudit}</Button>
+                    </div>
                 }
             />
 
