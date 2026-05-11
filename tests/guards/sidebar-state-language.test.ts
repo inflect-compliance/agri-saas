@@ -67,16 +67,18 @@ describe('Sidebar state-language ratchet (Elevation PR-3)', () => {
 
     it('the NavItem primitive uses the canonical hover/active state shape', () => {
         // R12-PR1 extracted the state recipe from `SidebarNav.tsx`
-        // into `nav-item.tsx` (the primitive). Assertions follow.
-        // Later Roadmap-12 PRs will tighten these tokens — when
-        // they do, this ratchet's expected patterns update in step.
+        // into `nav-item.tsx`. R12-PR4 dropped the `/50` alpha on
+        // the hover background — alpha-tinted hovers blend with
+        // page-bg noise and read as unsure. Solid `bg-bg-muted`
+        // is the locked recipe.
         const navItem = fs.readFileSync(
             path.resolve(ROOT, 'src/components/layout/nav-item.tsx'),
             'utf8',
         );
-        // Hover on nav items: bg-bg-muted/50 (the canonical PR-8
-        // hover-state token, not the legacy bg-bg-muted).
-        expect(navItem).toMatch(/hover:bg-bg-muted\/50/);
+        // Hover on nav items: solid bg-bg-muted (no alpha — see
+        // R12-PR4 doc-comment in nav-item.tsx for rationale).
+        expect(navItem).toMatch(/hover:bg-bg-muted\b/);
+        expect(navItem).not.toMatch(/hover:bg-bg-muted\/\d/);
         // Active: 2px brand left-border accent.
         expect(navItem).toMatch(/border-l-\[var\(--brand-default\)\]/);
         // Motion: transition-colors duration-150 (motion-language).

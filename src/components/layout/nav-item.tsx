@@ -124,11 +124,41 @@ export const NAV_ITEM_BASE = [
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
 ].join(' ');
 
-/** Default state — humble, ready, quiet. */
+/**
+ * Default state — humble, ready, quiet. (R12-PR4 lock.)
+ *
+ * Two tokens drive what default → hover feels like:
+ *
+ *   `text-content-muted` → `text-content-emphasis`
+ *       The label brightens by one rung on hover. Sub-perceptual
+ *       on light theme, clearly readable on dark theme. Done via
+ *       the `transition-colors duration-150 ease-out` in
+ *       `NAV_ITEM_BASE` — never via a hard step.
+ *
+ *   transparent bg → `bg-bg-muted` (solid, no alpha)
+ *       PRE-R12-PR4 this was `bg-bg-muted/50` (50% alpha). Alpha
+ *       on hover backgrounds is what makes UIs look unsure of
+ *       themselves — the colour shifts AND blends with whatever
+ *       is behind, so two adjacent rows can hover-paint slightly
+ *       differently if the page bg has any noise. Solid token,
+ *       no alpha, deliberate.
+ *
+ * No `transform`, no `scale`, no `translate`. Motion language is
+ * colour-only — locked by the motion-language ratchet.
+ */
 export const NAV_ITEM_DEFAULT =
-    'text-content-muted hover:text-content-emphasis hover:bg-bg-muted/50';
+    'text-content-muted hover:text-content-emphasis hover:bg-bg-muted';
 
-/** Active state — conviction. Brand-subtle bg + 2px brand left-edge. */
+/**
+ * Active state — conviction. (R12-PR6 will tighten further.)
+ *
+ *   - Background: `bg-brand-subtle` (the canonical brand-tinted
+ *     surface, ~10% brand tone over the page bg).
+ *   - Left edge: 2px brand-default, painted into the
+ *     `border-l-transparent` slot from `NAV_ITEM_BASE`.
+ *   - Text: `text-content-emphasis` (one rung up from muted) +
+ *     `font-medium` (one weight up from regular).
+ */
 export const NAV_ITEM_ACTIVE =
     'text-content-emphasis bg-[var(--brand-subtle)] border-l-[var(--brand-default)] font-medium';
 
