@@ -59,37 +59,56 @@ describe('admin + reports DataTable shell (R13-PR5)', () => {
             for (const file of walk(dir)) {
                 const raw = fs.readFileSync(file, 'utf8');
                 const src = stripComments(raw);
-                if (!/<DataTable\s/.test(src)) continue;
+                if (!/<DataTable\b/.test(src)) continue;
 
-                // Find every `<DataTable` start tag. For each, scan
-                // backwards (up to 10 lines / 800 chars) for a
-                // `cardVariants(` invocation. If we land on one
-                // before finding a closing `</…>` for a non-card
-                // parent, that's a double-card wrap.
+                // For each `<DataTable` start tag, walk backwards
+                // through the file tracking JSX `<div>` /
+                // `</div>` balance. When the running counter goes
+                // positive, we've located an unclosed `<div>`
+                // ancestor of the DataTable. If that ancestor's
+                // line contains `cardVariants(`, it's a double-card
+                // wrap regardless of how many lines of intermediate
+                // column-def / IIFE code sit between the wrapper
+                // and the table mount.
+                //
+                // We climb up to MAX_ANCESTORS levels — three is
+                // enough to cover the typical `<ListPageShell.Body>`
+                // → `<div>` → `<DataTable>` chain plus form-card
+                // siblings on admin dashboards.
                 const lines = src.split('\n');
-                for (let i = 0; i < lines.length; i++) {
-                    if (!/<DataTable\s/.test(lines[i]!)) continue;
+                const MAX_ANCESTORS = 5;
+                const MAX_WALK = 400;
 
-                    // Look backwards: find the nearest open
-                    // `<div ... className={... cardVariants(...) ...}>`.
-                    // Stop at any line that closes a block (a bare
-                    // `</…>` at line start) — that means we've
-                    // walked past the DataTable's immediate parent.
-                    for (let j = i - 1; j >= Math.max(0, i - 10); j--) {
+                for (let i = 0; i < lines.length; i++) {
+                    if (!/<DataTable\b/.test(lines[i]!)) continue;
+
+                    let depth = 0;
+                    let foundAncestors = 0;
+                    for (
+                        let j = i - 1;
+                        j >= Math.max(0, i - MAX_WALK) && foundAncestors < MAX_ANCESTORS;
+                        j--
+                    ) {
                         const line = lines[j]!;
-                        if (/cardVariants\(/.test(line) && /<div\b/.test(line)) {
-                            offenders.push({
-                                file: path.relative(ROOT, file),
-                                line: j + 1,
-                                text: line.trim().slice(0, 200),
-                            });
-                            break;
+                        const opens = (line.match(/<div\b/g) ?? []).length;
+                        const closes = (line.match(/<\/div>/g) ?? []).length;
+                        depth += closes - opens;
+                        if (depth < 0) {
+                            // Hit an unclosed `<div` ancestor on
+                            // this line. Inspect it.
+                            foundAncestors += 1;
+                            if (/cardVariants\(/.test(line)) {
+                                offenders.push({
+                                    file: path.relative(ROOT, file),
+                                    line: j + 1,
+                                    text: line.trim().slice(0, 200),
+                                });
+                                break;
+                            }
+                            // Reset depth at this level so the next
+                            // climb finds the NEXT ancestor.
+                            depth = 0;
                         }
-                        // Closing-tag heuristic — if we hit a line
-                        // that just closes a JSX element, stop the
-                        // back-scan (we've left the DataTable's
-                        // direct ancestor chain).
-                        if (/^\s*<\/\w+>\s*$/.test(line)) break;
                     }
                 }
             }
@@ -113,7 +132,7 @@ describe('admin + reports DataTable shell (R13-PR5)', () => {
             const dir = path.join(ROOT, glob);
             for (const file of walk(dir)) {
                 const src = fs.readFileSync(file, 'utf8');
-                datatableCount += (src.match(/<DataTable\s/g) ?? []).length;
+                datatableCount += (src.match(/<DataTable\b/g) ?? []).length;
             }
         }
         // 8+ admin DataTables expected (notifications, integrations,

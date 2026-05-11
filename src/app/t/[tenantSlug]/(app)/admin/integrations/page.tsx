@@ -217,9 +217,14 @@ export default function AdminIntegrationsPage() {
                     </div>
                 )}
 
-                {/* Connections list */}
-                <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
-                    <div className="flex justify-between items-center p-4 border-b border-border-default">
+                {/* Connections list. R13-PR6 — outer
+                    `cardVariants({ density: 'none' })` wrapper
+                    dropped so the DataTable primitive's own bordered
+                    card is the only one (matches Controls list
+                    visually). The "Configured Connections" heading +
+                    Add button hoist above the table. */}
+                <div>
+                    <div className="flex justify-between items-center mb-3">
                         <Heading level={2}>Configured Connections</Heading>
                         <Button
                             variant="primary"

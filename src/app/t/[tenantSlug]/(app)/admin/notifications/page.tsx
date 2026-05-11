@@ -201,7 +201,10 @@ export default function NotificationSettingsPage() {
                     </div>
                 </div>
             ) : (
-                <div className={cardVariants()}>
+                /* R13-PR6 — outer `cardVariants()` wrapper dropped
+                   so the DataTable primitive's own bordered card is
+                   the only one (matches Controls list visually). */
+                <div>
                     {stats ? (() => {
                         const statsColumns = createColumns<{ label: string; pending: number; sent: number; failed: number; total: number }>([
                             { accessorKey: 'label', header: 'Period', cell: ({ getValue }: any) => <span className="font-medium">{getValue()}</span> },
