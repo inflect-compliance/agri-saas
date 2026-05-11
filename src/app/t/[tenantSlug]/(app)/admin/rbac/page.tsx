@@ -1,4 +1,3 @@
-import { formatDate } from '@/lib/format-date';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { resolveTenantContext } from '@/lib/tenant-context';
@@ -11,6 +10,7 @@ import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { cardVariants } from '@/components/ui/card-variants';
 import { cn } from '@dub/utils';
+import { MembersTable, type MembersTableRow } from './MembersTable';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,11 +40,19 @@ export default async function RbacPage({
 
 
     // ─── Data fetching ───
-    const members = await prisma.tenantMembership.findMany({
+    const memberRecords = await prisma.tenantMembership.findMany({
         where: { tenantId: tenantCtx.tenant.id },
         include: { user: { select: { id: true, name: true, email: true } } },
         orderBy: { createdAt: 'asc' },
     });
+
+    const members: MembersTableRow[] = memberRecords.map((m) => ({
+        id: m.id,
+        name: m.user.name,
+        email: m.user.email,
+        role: m.role,
+        createdAtIso: m.createdAt.toISOString(),
+    }));
 
     const roles: Role[] = ['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER'];
     const permissionMatrix: Record<Role, PermissionSet> = {
@@ -86,40 +94,7 @@ export default async function RbacPage({
             {/* Members Table */}
             <section>
                 <Heading level={2} className="mb-3">Team Members</Heading>
-                <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Joined</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {members.map((m) => (
-                                <tr key={m.id}>
-                                    <td className="text-sm font-medium text-content-emphasis">
-                                        {m.user.name || '—'}
-                                    </td>
-                                    <td className="text-xs text-content-muted">{m.user.email}</td>
-                                    <td>
-                                        <StatusBadge variant={m.role === 'ADMIN' ? 'error' :
-                                            m.role === 'EDITOR' ? 'info' :
-                                            m.role === 'AUDITOR' ? 'warning' :
-                                            'neutral'}>{m.role}</StatusBadge>
-                                    </td>
-                                    <td className="text-xs text-content-subtle">{formatDate(m.createdAt)}</td>
-                                </tr>
-                            ))}
-                            {members.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="text-center text-content-subtle py-8">No members found.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <MembersTable members={members} />
             </section>
 
             {/* Permission Matrix */}
