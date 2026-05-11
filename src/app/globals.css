@@ -180,17 +180,24 @@ textarea.input { @apply resize-y min-h-[80px]; }
  * For list pages, use <DataTable> from @/components/ui/table.
  * See: src/components/ui/table/GUIDE.md
  * Do NOT extend these rules for new list pages. */
+/* R13-PR3 — legacy `.data-table` cells visually mirror the
+ * shared `<DataTable>` primitive so the three remaining raw-<table>
+ * sites (admin RBAC permission matrix, admin custom-role permission
+ * editor, reports SoA report) read at the same row height + hover
+ * tone as every other list page in the product. The CSS class is
+ * still legacy — see the comment above; new list pages MUST use
+ * `<DataTable>`. */
 .data-table { @apply w-full text-sm text-left; }
 .data-table th {
-  @apply px-4 py-3 text-xs font-semibold uppercase tracking-wider;
+  @apply px-4 py-2.5 text-xs font-semibold uppercase tracking-wider leading-6;
   color: var(--content-muted);
-  background: var(--bg-subtle);
+  background: var(--bg-muted);
 }
 .data-table td {
-  @apply px-4 py-3 border-t;
+  @apply px-4 py-2.5 text-sm leading-6 border-b;
   border-color: var(--border-subtle);
 }
-.data-table tr:hover td { background: var(--bg-subtle); }
+.data-table tr:hover td { background: var(--bg-muted); }
 
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
