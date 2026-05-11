@@ -70,10 +70,10 @@ const EXEMPTIONS: Record<string, string> = {
     'controls/[controlId]/page.tsx':
         '(b) detail-page sub-table with bespoke inline-edit affordances',
 
-    // Vendor detail page sub-tables — documents, assessments. Mixed
-    // with detail-page chrome that doesn't fit the list-page model.
+    // Vendor detail page — documents migrated to DataTable in
+    // R11-PR7. Assessments + risk sub-tables remain as exemptions.
     'vendors/[vendorId]/page.tsx':
-        '(b) detail-page sub-table (documents / assessments)',
+        '(b) detail-page sub-tables (assessments / risks) — documents migrated R11-PR7',
 
     // Task detail page sub-tables — comments, attachments, linked
     // tasks. Each is small, contextual, and pre-dates the DataTable

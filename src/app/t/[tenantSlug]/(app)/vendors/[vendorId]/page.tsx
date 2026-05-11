@@ -6,10 +6,11 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { formatDate } from '@/lib/format-date';
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useMemo, useState, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
+import { DataTable, createColumns } from '@/components/ui/table';
 import { SkeletonDetailPage } from '@/components/ui/skeleton';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
@@ -394,35 +395,11 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                             <Button type="submit" variant="primary" id="submit-doc-btn">+ Document</Button>
                         </form>
                     )}
-                    <div className={cn(cardVariants({ density: 'none' }), 'overflow-x-auto')}>
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-border-default text-left text-xs uppercase text-content-muted">
-                                    <th className="p-3">Type</th>
-                                    <th className="p-3">Title</th>
-                                    <th className="p-3">Valid To</th>
-                                    <th className="p-3">Uploaded By</th>
-                                    <th className="p-3">Link</th>
-                                    {canWrite && <th className="p-3"></th>}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {docs.map(d => (
-                                    <tr key={d.id} className="border-b border-border-subtle">
-                                        <td className="p-3"><StatusBadge variant="info">{DOC_TYPE_LABELS[d.type] || d.type}</StatusBadge></td>
-                                        <td className="p-3">{d.title || '—'}</td>
-                                        <td className="p-3">{d.validTo ? formatDate(d.validTo) : '—'}</td>
-                                        <td className="p-3 text-content-muted">{d.uploadedBy?.name || '—'}</td>
-                                        <td className="p-3">
-                                            {normaliseHref(d.externalUrl) && <a href={normaliseHref(d.externalUrl)!} target="_blank" rel="noopener noreferrer" className="text-content-info underline text-xs">Open ↗</a>}
-                                        </td>
-                                        {canWrite && <td className="p-3"><button className="text-content-error text-xs hover:underline" onClick={() => removeDoc(d.id)}>Remove</button></td>}
-                                    </tr>
-                                ))}
-                                {docs.length === 0 && <tr><td colSpan={6} className="text-center text-content-subtle py-8">No documents</td></tr>}
-                            </tbody>
-                        </table>
-                    </div>
+                    <VendorDocsTable
+                        docs={docs}
+                        canWrite={canWrite}
+                        onRemove={removeDoc}
+                    />
                 </div>
             )}
 
@@ -641,5 +618,110 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                 </div>
             )}
         </EntityDetailLayout>
+    );
+}
+
+// R11-PR7 — vendor documents sub-table routed through DataTable.
+// Inline columns derive from the same fields the prior raw <table>
+// rendered; canWrite gates the Remove action column.
+interface VendorDocRow {
+    id: string;
+    type: string;
+    title?: string | null;
+    validTo?: string | null;
+    uploadedBy?: { name?: string | null } | null;
+    externalUrl?: string | null;
+}
+
+function VendorDocsTable({
+    docs,
+    canWrite,
+    onRemove,
+}: {
+    docs: VendorDocRow[];
+    canWrite: boolean;
+    onRemove: (id: string) => void;
+}) {
+    const columns = useMemo(
+        () =>
+            createColumns<VendorDocRow>([
+                {
+                    id: 'type',
+                    header: 'Type',
+                    cell: ({ row }) => (
+                        <StatusBadge variant="info">
+                            {DOC_TYPE_LABELS[row.original.type] || row.original.type}
+                        </StatusBadge>
+                    ),
+                },
+                {
+                    id: 'title',
+                    header: 'Title',
+                    cell: ({ row }) => (
+                        <span>{row.original.title || '—'}</span>
+                    ),
+                },
+                {
+                    id: 'validTo',
+                    header: 'Valid To',
+                    cell: ({ row }) =>
+                        row.original.validTo ? formatDate(row.original.validTo) : '—',
+                },
+                {
+                    id: 'uploadedBy',
+                    header: 'Uploaded By',
+                    cell: ({ row }) => (
+                        <span className="text-content-muted">
+                            {row.original.uploadedBy?.name || '—'}
+                        </span>
+                    ),
+                },
+                {
+                    id: 'link',
+                    header: 'Link',
+                    cell: ({ row }) => {
+                        const href = normaliseHref(row.original.externalUrl);
+                        return href ? (
+                            <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-content-info underline text-xs"
+                            >
+                                Open ↗
+                            </a>
+                        ) : (
+                            <span>—</span>
+                        );
+                    },
+                },
+                ...(canWrite
+                    ? [
+                          {
+                              id: 'actions',
+                              header: '',
+                              cell: ({ row }) => (
+                                  <button
+                                      className="text-content-error text-xs hover:underline"
+                                      onClick={() => onRemove(row.original.id)}
+                                  >
+                                      Remove
+                                  </button>
+                              ),
+                          } as Parameters<typeof createColumns<VendorDocRow>>[0][number],
+                      ]
+                    : []),
+            ]),
+        [canWrite, onRemove],
+    );
+    return (
+        <DataTable
+            data={docs}
+            columns={columns}
+            getRowId={(d) => d.id}
+            emptyState="No documents"
+            resourceName={(p) => (p ? 'documents' : 'document')}
+            data-testid="vendor-docs-table"
+        />
     );
 }

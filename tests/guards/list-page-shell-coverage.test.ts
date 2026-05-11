@@ -98,6 +98,11 @@ const EXEMPTIONS: Record<string, string> = {
     'access-reviews/[reviewId]/AccessReviewDetailClient.tsx':
         'detail page — DataTable is the inner roster sub-table',
 
+    // R11-PR7 — vendor detail page now mounts DataTable for the
+    // documents sub-table. Detail page (EntityDetailLayout).
+    'vendors/[vendorId]/page.tsx':
+        'detail page — DataTable is the inner documents sub-table (R11-PR7)',
+
     // Browse-and-install template picker — multi-section browser,
     // not a list page in the perf-complaint sense.
     'controls/templates/page.tsx':
