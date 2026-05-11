@@ -67,20 +67,27 @@ describe('Sidebar state-language ratchet (Elevation PR-3)', () => {
 
     it('the NavItem primitive uses the canonical hover/active state shape', () => {
         // R12-PR1 extracted the state recipe from `SidebarNav.tsx`
-        // into `nav-item.tsx`. R12-PR4 dropped the `/50` alpha on
-        // the hover background — alpha-tinted hovers blend with
-        // page-bg noise and read as unsure. Solid `bg-bg-muted`
-        // is the locked recipe.
+        // into `nav-item.tsx`.
+        // R12-PR4 dropped the `/50` alpha on the hover bg.
+        // R12-PR5 retired the full-row hover bg entirely —
+        //   the hover signal is now a 3px brand-gradient capsule
+        //   band on the left, faded in via opacity transition on
+        //   a `::before` pseudo-element. Both hover AND active
+        //   states reveal the band; active adds the bg-brand-
+        //   subtle wash for "settled in" conviction.
         const navItem = fs.readFileSync(
             path.resolve(ROOT, 'src/components/layout/nav-item.tsx'),
             'utf8',
         );
-        // Hover on nav items: solid bg-bg-muted (no alpha — see
-        // R12-PR4 doc-comment in nav-item.tsx for rationale).
-        expect(navItem).toMatch(/hover:bg-bg-muted\b/);
-        expect(navItem).not.toMatch(/hover:bg-bg-muted\/\d/);
-        // Active: 2px brand left-border accent.
-        expect(navItem).toMatch(/border-l-\[var\(--brand-default\)\]/);
+        // The brand-gradient band recipe (the `::before` element).
+        expect(navItem).toMatch(
+            /before:bg-gradient-to-b\s+before:from-\[var\(--brand-default\)\]\s+before:to-\[var\(--brand-emphasis\)\]/,
+        );
+        // Hover: band fades in via opacity 100 on `::before`.
+        expect(navItem).toMatch(/hover:before:opacity-100/);
+        // Active: band stays visible + brand-subtle background.
+        expect(navItem).toMatch(/\bbefore:opacity-100\b/);
+        expect(navItem).toMatch(/bg-\[var\(--brand-subtle\)\]/);
         // Motion: transition-colors duration-150 (motion-language).
         expect(navItem).toMatch(/transition-colors\s+duration-150/);
     });

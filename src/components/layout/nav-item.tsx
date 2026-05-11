@@ -104,63 +104,117 @@ export interface NavItemProps {
 }
 
 /**
+ * **The brand-gradient band** — R12-PR5.
+ *
+ * A 3-px wide capsule-shaped pseudo-element pinned to the left of
+ * the row. Vertical gradient from `--brand-default` (top) to
+ * `--brand-emphasis` (bottom) — both are the SAME hue family
+ * (yellow→yellow or orange→orange depending on theme), so the
+ * gradient reads as a quiet fluid deepening rather than a
+ * rainbow stunt.
+ *
+ * Why a pseudo-element, not a border-left?
+ *   - `border-image: linear-gradient(...)` works but doesn't
+ *     animate opacity cleanly across browsers.
+ *   - A real `<span>` adds DOM weight + a tab-stop edge case.
+ *   - Pseudo-element is the canonical CSS recipe for decorative
+ *     state signals (no DOM, no a11y noise, full transition
+ *     control).
+ *
+ * Why 6px inset top/bottom (`top-1.5 bottom-1.5`)?
+ *   - Full-height rules feel architectural (a divider). A
+ *     CAPSULE feels like jewellery. The band reads as a piece of
+ *     deliberate ornament, not row chrome.
+ *
+ * Why opacity 0 → 1 transition?
+ *   - The motion-language ratchet bans transform / scale /
+ *     translate. Opacity is the canonical "fade in/out" motion
+ *     for tone-only design systems. 200ms ease-out is one rung
+ *     slower than the row's colour transition (150ms) so the
+ *     band feels like it lights up just AFTER the text wakes —
+ *     a tiny choreography the eye doesn't consciously notice but
+ *     reads as deliberate.
+ *
+ * The DEFAULT state holds the band at opacity 0 — invisible.
+ * The HOVER state fades it to opacity 100 — visible.
+ * The ACTIVE state holds it at opacity 100 + adds a brand-subtle
+ * background for conviction (see NAV_ITEM_ACTIVE).
+ */
+const NAV_ITEM_BAND_BASE = [
+    'before:absolute before:left-0 before:top-1.5 before:bottom-1.5',
+    'before:w-[3px] before:rounded-r-full',
+    'before:bg-gradient-to-b before:from-[var(--brand-default)] before:to-[var(--brand-emphasis)]',
+    'before:opacity-0 before:transition-opacity before:duration-200 before:ease-out',
+].join(' ');
+
+/**
  * Geometry + structural-state base — shared by every state. The
  * five geometry tokens above compose into this string; the
  * remaining tokens are structural (flex / text size / motion /
- * focus ring / active-state left-border slot).
+ * focus ring / brand-gradient band pseudo-element).
  */
 export const NAV_ITEM_BASE = [
-    'flex items-center',
+    // `relative` anchors the brand-gradient `::before` band.
+    'relative flex items-center',
     NAV_ITEM_GAP,
     NAV_ITEM_PADDING,
     NAV_ITEM_HEIGHT_MIN,
     NAV_ITEM_RADIUS,
     'text-sm transition-colors duration-150 ease-out',
-    // Active-state slot: 2px left-border, transparent by default,
-    // brand-default when active (filled in NAV_ITEM_ACTIVE below).
-    'border-l-2 border-l-transparent',
+    NAV_ITEM_BAND_BASE,
     // Focus-visible — keyboard story. R12-PR7 will tighten the
     // ring + offset.
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
 ].join(' ');
 
 /**
- * Default state — humble, ready, quiet. (R12-PR4 lock.)
+ * Default state — humble, ready, quiet. (R12-PR5 evolution.)
  *
- * Two tokens drive what default → hover feels like:
+ * R12-PR4 had `hover:bg-bg-muted` as the hover signal — a solid
+ * full-row tint. R12-PR5 retires that. The hover signal is now
+ * the brand-gradient band on the left (see `NAV_ITEM_BAND_BASE`),
+ * which appears via the `::before` opacity-0 → opacity-100
+ * transition.
  *
- *   `text-content-muted` → `text-content-emphasis`
- *       The label brightens by one rung on hover. Sub-perceptual
- *       on light theme, clearly readable on dark theme. Done via
- *       the `transition-colors duration-150 ease-out` in
- *       `NAV_ITEM_BASE` — never via a hard step.
+ * What hover STILL changes:
+ *   - text: `text-content-muted` → `text-content-emphasis`
+ *     (one rung brighter — the label wakes up).
+ *   - band: opacity 0 → 100 (the brand-gradient ornament).
  *
- *   transparent bg → `bg-bg-muted` (solid, no alpha)
- *       PRE-R12-PR4 this was `bg-bg-muted/50` (50% alpha). Alpha
- *       on hover backgrounds is what makes UIs look unsure of
- *       themselves — the colour shifts AND blends with whatever
- *       is behind, so two adjacent rows can hover-paint slightly
- *       differently if the page bg has any noise. Solid token,
- *       no alpha, deliberate.
+ * What hover NO LONGER changes:
+ *   - background: stays transparent. The full-row bg felt
+ *     "claimed" — like the row was being asserted on. The band
+ *     is a quieter "noticed" — the row is acknowledged, not
+ *     conquered.
  *
- * No `transform`, no `scale`, no `translate`. Motion language is
- * colour-only — locked by the motion-language ratchet.
+ * No `transform`, no `scale`, no `translate`. Motion is opacity +
+ * colour only — locked by the motion-language ratchet.
  */
 export const NAV_ITEM_DEFAULT =
-    'text-content-muted hover:text-content-emphasis hover:bg-bg-muted';
+    'text-content-muted hover:text-content-emphasis hover:before:opacity-100';
 
 /**
- * Active state — conviction. (R12-PR6 will tighten further.)
+ * Active state — conviction. (R12-PR5 evolution.)
  *
+ *   - Band: opacity 100 (the brand-gradient capsule from
+ *     `NAV_ITEM_BAND_BASE`). Replaces the pre-R12-PR5 solid 2px
+ *     `border-l-[var(--brand-default)]` — same visual function,
+ *     unified mechanism with hover.
  *   - Background: `bg-brand-subtle` (the canonical brand-tinted
- *     surface, ~10% brand tone over the page bg).
- *   - Left edge: 2px brand-default, painted into the
- *     `border-l-transparent` slot from `NAV_ITEM_BASE`.
+ *     surface, ~9-18% brand tone over the page bg depending on
+ *     theme). This is what distinguishes ACTIVE from HOVER —
+ *     hover shows just the band; active commits with the wash.
  *   - Text: `text-content-emphasis` (one rung up from muted) +
  *     `font-medium` (one weight up from regular).
+ *
+ * Visual progression — default → hover → active:
+ *   default  no band, muted text, no bg
+ *   hover    band fades in, text brightens, NO bg
+ *   active   band stays, text + weight stay, brand-subtle bg
+ *            arrives (the "settled in" surface)
  */
 export const NAV_ITEM_ACTIVE =
-    'text-content-emphasis bg-[var(--brand-subtle)] border-l-[var(--brand-default)] font-medium';
+    'text-content-emphasis bg-[var(--brand-subtle)] before:opacity-100 font-medium';
 
 export function NavItem({ href, icon: Icon, label, active, badge, onClick }: NavItemProps) {
     const slug = href.split('/').pop() ?? '';

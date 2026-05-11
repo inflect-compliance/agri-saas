@@ -35,10 +35,12 @@ const SRC = fs.readFileSync(
     'utf8',
 );
 
-describe('Roadmap-12 PR-4 — NavItem default-state discipline', () => {
+describe('Roadmap-12 PR-4/5 — NavItem default-state discipline', () => {
     it('exports `NAV_ITEM_DEFAULT` with the locked recipe', () => {
-        // Match the string literal of NAV_ITEM_DEFAULT and verify
-        // it carries all three tokens.
+        // R12-PR5 retired the full-row `hover:bg-bg-muted` and
+        // replaced it with a left-edge brand-gradient band on a
+        // `::before` pseudo-element. The default recipe now drives
+        // two things on hover: text brightens AND band fades in.
         const match = SRC.match(
             /export\s+const\s+NAV_ITEM_DEFAULT\s*=\s*['"]([^'"]+)['"]/,
         );
@@ -48,21 +50,20 @@ describe('Roadmap-12 PR-4 — NavItem default-state discipline', () => {
         expect(recipe).toMatch(/\btext-content-muted\b/);
         // Hover text colour — one rung up.
         expect(recipe).toMatch(/\bhover:text-content-emphasis\b/);
-        // Hover background — SOLID, no alpha.
-        expect(recipe).toMatch(/\bhover:bg-bg-muted\b/);
+        // Hover band — opacity 0 → 100 on the `::before` element.
+        expect(recipe).toMatch(/\bhover:before:opacity-100\b/);
     });
 
-    it('hover background is solid (no `/N` alpha)', () => {
-        // The whole point of R12-PR4 is to drop the alpha. If a
-        // future PR sneaks `bg-bg-muted/50` (or any alpha variant)
-        // back in, fail it.
+    it('hover has NO full-row background (the band replaces it — R12-PR5)', () => {
+        // The whole point of R12-PR5 is to retire the full-row
+        // hover bg. Any reappearance of `hover:bg-bg-*` in the
+        // default recipe regresses the "band, not row" UX.
         const match = SRC.match(
             /export\s+const\s+NAV_ITEM_DEFAULT\s*=\s*['"]([^'"]+)['"]/,
         );
         expect(match).not.toBeNull();
         const recipe = match![1];
-        expect(recipe).not.toMatch(/\bbg-bg-muted\/\d+/);
-        expect(recipe).not.toMatch(/\bbg-bg-subtle\b/);
+        expect(recipe).not.toMatch(/\bhover:bg-bg-/);
     });
 
     it('default-state recipe has no transform / scale / translate', () => {
