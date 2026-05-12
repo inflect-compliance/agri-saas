@@ -89,7 +89,13 @@ describe('Top-chrome discipline (Roadmap-2 PR-2)', () => {
         // The chrome is the desktop affordance; mobile already has
         // the in-shell mobile top bar. Stacking both eats vertical
         // space the mobile UX cannot spare.
-        const src = read('src/components/layout/TopChrome.tsx');
+        //
+        // R14-PR1 extracted the shell into `<NavBar>` — the
+        // `hidden md:flex` responsibility moved with it. The
+        // assertion follows: it now checks `nav-bar.tsx`'s
+        // SHELL recipe, not `TopChrome.tsx`. R14-PR12 will unify
+        // mobile + desktop and retire this assertion entirely.
+        const src = read('src/components/layout/nav-bar.tsx');
         expect(src).toMatch(/hidden\s+md:flex/);
     });
 });

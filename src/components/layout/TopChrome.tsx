@@ -1,36 +1,40 @@
 'use client';
 
 /**
- * TopChrome — Roadmap-2 PR-2 (PR-11 simplification).
+ * TopChrome — Roadmap-2 PR-2 (PR-11 simplification, R14-PR1
+ * primitive extraction).
  *
- * The sticky bar at the top of every authenticated surface. Two
- * regions after PR-11:
+ * Thin consumer of the `<NavBar>` primitive. Reads page-scoped
+ * data via two contexts and fills the structural slots:
  *
- *   • Left  — breadcrumbs (consumed from `useCurrentBreadcrumbs`).
- *   • Right — context identity pill (tenant or org name).
+ *   • Left slot   — breadcrumbs (from `useCurrentBreadcrumbs`).
+ *     R14-PR3 adds the brand mark before breadcrumbs.
+ *     R14-PR9 adds the env badge between brand + breadcrumbs.
  *
- * The center search-anchor was retired in PR-11 — the sidebar's
- * inline command opener (PR-3) is the canonical search affordance.
+ *   • Centre slot — empty in PR-1.
+ *     R14-PR6 fills with the ⌘K search anchor.
  *
- * The chrome is mounted once by `<AppShell>` and reads page-scoped
- * data via two contexts:
- *   1. `BreadcrumbsContext` — pages push their trail via
- *      `useBreadcrumbs(items)`; `<PageHeader>` does this for them.
- *   2. The variant-specific identity context — `<TenantIdentityPill>`
- *      reads `useTenantContext`; `<OrgIdentityPill>` reads
- *      `useOrgContext`. AppShell renders the right pill based on
- *      its `variant` prop, so each pill calls its hook
- *      unconditionally and never throws.
+ *   • Right slot  — context identity pill (tenant or org name).
+ *     R14-PR4 replaces this with the workspace switcher.
+ *     R14-PR5 adds the user menu.
+ *     R14-PR7 adds the notifications bell.
+ *
+ * The chrome is mounted once by `<AppShell>` and routes through
+ * the variant-specific identity context — `<TenantIdentityPill>`
+ * reads `useTenantContext`; `<OrgIdentityPill>` reads
+ * `useOrgContext`. AppShell picks based on its `variant` prop, so
+ * each pill calls its hook unconditionally and never throws.
  *
  * Mobile (<md): the chrome is hidden — the pre-existing mobile top
  * bar inside `<AppShell>` continues to handle nav-toggle + theme.
- * Adding a second chrome layer on mobile would steal vertical
- * space the mobile UX cannot spare.
+ * R14-PR12 unifies the two; until then the mobile bar is the
+ * authoritative mobile surface.
  */
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useCurrentBreadcrumbs } from './breadcrumbs-store';
 import { TenantIdentityPill, OrgIdentityPill } from './IdentityPill';
 import type { AppShellVariant } from './AppShell';
+import { NavBar } from './nav-bar';
 
 interface TopChromeProps {
     variant: AppShellVariant;
@@ -47,34 +51,22 @@ export function TopChrome({ variant }: TopChromeProps) {
         variant === 'org' ? OrgIdentityPill : TenantIdentityPill;
 
     return (
-        // Hidden below md — `<AppShell>`'s mobile top bar is the
-        // mobile-equivalent. z-30 sits ABOVE row-sticky headers
-        // (z-20) but BELOW modal overlays (z-50).
-        <header
-            className="hidden md:flex sticky top-0 z-30 h-14 items-center justify-between gap-default border-b border-border-subtle bg-bg-page/80 backdrop-blur-sm px-4 md:px-6"
-            role="banner"
-            data-testid="top-chrome"
-        >
-            {/* Left — breadcrumbs. */}
-            <div className="flex min-w-0 flex-1 items-center">
-                {breadcrumbs.length > 0 ? (
+        <NavBar
+            left={
+                breadcrumbs.length > 0 ? (
                     <Breadcrumbs
                         items={breadcrumbs}
                         data-testid="top-chrome-breadcrumbs"
                     />
                 ) : (
-                    // No breadcrumbs pushed yet — empty sentinel
-                    // for layout stability so the chrome's height
+                    // No breadcrumbs pushed yet — empty sentinel for
+                    // layout stability so the chrome's height
                     // doesn't jump when a page resolves its
                     // breadcrumbs after first paint.
                     <span className="sr-only">No breadcrumbs</span>
-                )}
-            </div>
-
-            {/* Right — identity pill. */}
-            <div className="flex shrink-0 items-center justify-end">
-                <Identity />
-            </div>
-        </header>
+                )
+            }
+            right={<Identity />}
+        />
     );
 }
