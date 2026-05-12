@@ -298,16 +298,35 @@ export const NAV_ITEM_BASE = [
     // returns to baseline the instant the click ends — no
     // lingering displacement.
     //
-    // This is the ONE transform the sidebar allows. Hover lift,
-    // scale-on-hover, translate on focus — all still banned. The
-    // mousedown press is the canonical "real button" feedback;
-    // anything else is decorative motion that the R12 motion-
-    // language ratchet correctly rejects.
+    // R15-PR10 — weighty press feedback. R13-PR8's 1px translate
+    // gave the click a "you pressed something" cue. R15-PR10 adds
+    // a 1% scale-down (`active:scale-[0.99]`) that fires
+    // CONCURRENTLY on the same mousedown. The combination reads
+    // as a real physical button compressing AND moving down — two
+    // dimensions of tactile feedback in 75ms.
     //
-    // `motion-reduce:active:translate-y-0` is the safety net for
-    // users who've opted out of motion at the OS level — they get
-    // no displacement at all.
-    'transition-transform duration-75 ease-out active:translate-y-px motion-reduce:active:translate-y-0',
+    // Why 0.99 (not 0.95)? A larger scale would visibly shrink
+    // the row's text and icon, which feels like "the row is
+    // running away from the cursor". 0.99 is just enough that
+    // the eye registers the compression without the content
+    // changing perceivably. Combined with the 1px translate, it's
+    // the canonical "real button" feedback every premium product
+    // converges on.
+    //
+    // These two transforms are the ONLY transforms the sidebar
+    // allows. Hover lift, scale-on-hover, translate on focus —
+    // all still banned. The mousedown press is the canonical
+    // "real button" feedback; anything else is decorative motion
+    // that the R12 motion-language ratchet correctly rejects.
+    //
+    // Both transforms have explicit `motion-reduce:` overrides
+    // that snap them back to identity (`scale-100` / `translate-
+    // y-0`). Users who've opted out of motion at the OS level
+    // get a static row — no displacement, no compression. The
+    // motion-reduce override on EACH transform property
+    // independently is load-bearing: without the scale override,
+    // a motion-reduced user would still get the 1% compression.
+    'transition-transform duration-75 ease-out active:translate-y-px active:scale-[0.99] motion-reduce:active:translate-y-0 motion-reduce:active:scale-100',
     NAV_ITEM_BAND_BASE,
     NAV_ITEM_GLOSS_BASE,
     // Focus-visible — keyboard story. (R12-PR7 lock.)
