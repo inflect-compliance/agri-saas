@@ -433,7 +433,7 @@ export const NAV_ITEM_DEFAULT =
  * five secondary-brand override classes + the navy-glow plumbing.
  */
 export const NAV_ITEM_ACTIVE =
-    'text-[var(--brand-default)] bg-[radial-gradient(circle_at_left,_var(--brand-secondary-subtle),_transparent_75%)] before:opacity-100 before:animate-nav-band-alive before:top-1! before:bottom-1! before:w-[4px]! before:from-[var(--brand-secondary-default)]! before:via-[var(--brand-secondary-muted)]! before:to-[var(--brand-secondary-emphasis)]! before:shadow-[var(--nav-band-glow-active)]! after:opacity-100 shadow-[var(--nav-bevel-shadow)] font-medium';
+    'text-[var(--brand-default)] bg-[radial-gradient(circle_at_left,_var(--brand-secondary-subtle),_transparent_75%)] before:opacity-100 before:animate-nav-band-active-alive before:top-1! before:bottom-1! before:w-[4px]! before:from-[var(--brand-secondary-default)]! before:via-[var(--brand-secondary-muted)]! before:to-[var(--brand-secondary-emphasis)]! before:shadow-[var(--nav-band-glow-active)]! after:opacity-100 shadow-[var(--nav-bevel-shadow)] font-medium';
 
 /**
  * Badge recipe — aligned + breathing. (R12-PR8 lock.)

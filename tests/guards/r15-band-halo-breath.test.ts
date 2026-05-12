@@ -196,12 +196,17 @@ describe('Roadmap-15 PR-2 — band halo breath', () => {
         it('NAV_ITEM_ACTIVE applies the composed alive animation unconditionally', () => {
             // The active row holds both timelines permanently —
             // that's the "current page feels alive" signal.
+            // R15-PR4 introduced `nav-band-active-alive` (adds the
+            // starburst bloom as the first track); its definition
+            // includes both `nav-band-shimmer` and
+            // `nav-band-halo-breath` as later tracks, so the halo-
+            // breath contract still holds. Accept either variant.
             const activeRecipe =
                 NAV_ITEM_SRC.match(
                     /export\s+const\s+NAV_ITEM_ACTIVE\s*=\s*['"]([^'"]+)['"]/,
                 )?.[1] ?? '';
             expect(activeRecipe).toMatch(
-                /(?<!hover:)before:animate-nav-band-alive/,
+                /(?<!hover:)before:animate-nav-band-(?:active-)?alive\b/,
             );
         });
 

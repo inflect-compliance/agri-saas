@@ -250,6 +250,45 @@ module.exports = {
                     '0%': { 'clip-path': 'inset(100% 0 0 0)' },
                     '100%': { 'clip-path': 'inset(0 0 0 0)' },
                 },
+                // R15-PR4 — one-shot starburst bloom on the active
+                // row's band. Fires when a row BECOMES active (i.e.
+                // when the user navigates). Animates `box-shadow`
+                // outward from the baseline glow (6px blur) to a
+                // dramatic peak (24px blur + 4px spread) at 30%,
+                // then contracts back to baseline by 100%. The eye
+                // reads it as a celebration — "the page changed,
+                // this is where you are now".
+                //
+                // Mechanism note: the keyframe ANIMATES box-shadow
+                // during playback; after the animation ends the
+                // declared `before:shadow-[var(--nav-band-glow-
+                // active)]` resumes (no animation-fill-mode:
+                // forwards). The 100% keyframe matches the resting
+                // shadow shape exactly so there's no visible jump
+                // when the animation hands back to the declared
+                // value.
+                //
+                // Why brand-secondary-default (navy) as the glow
+                // colour? The active row's band is already navy
+                // (R13-PR4 secondary-brand band overrides). The
+                // starburst is the same hue family — it reads as
+                // "the existing band, but momentarily blooming".
+                // A different colour would feel like a different
+                // signal.
+                'nav-band-starburst': {
+                    '0%': {
+                        'box-shadow':
+                            '0 0 6px var(--brand-secondary-default)',
+                    },
+                    '30%': {
+                        'box-shadow':
+                            '0 0 24px 4px var(--brand-secondary-default)',
+                    },
+                    '100%': {
+                        'box-shadow':
+                            '0 0 6px var(--brand-secondary-default)',
+                    },
+                },
             },
             animation: {
                 'slide-up-fade': 'slide-up-fade 0.2s ease-out',
@@ -321,6 +360,37 @@ module.exports = {
                 // all three animations composed.
                 'nav-band-alive':
                     'nav-band-reveal-sweep 450ms ease-out, nav-band-shimmer 4s ease-in-out infinite, nav-band-halo-breath 6s ease-in-out infinite',
+                // R15-PR4 — 700ms ease-out one-shot. The bloom peaks
+                // at ~30% (210ms in) and settles back to baseline by
+                // 700ms. The slow-out curve makes the peak feel
+                // earned and the fade-back feel like a settling
+                // breath, not a snap.
+                'nav-band-starburst':
+                    'nav-band-starburst 700ms ease-out',
+                // R15-PR4 — combined "alive" animation for the
+                // ACTIVE row. Adds the starburst bloom as the first
+                // track ahead of the three R15-PR1..3 tracks. All
+                // four animations start at the same instant when
+                // the row engages:
+                //
+                //   nav-band-starburst     700ms ease-out (one-shot)
+                //   nav-band-reveal-sweep  450ms ease-out (one-shot)
+                //   nav-band-shimmer       4s ease-in-out infinite
+                //   nav-band-halo-breath   6s ease-in-out infinite
+                //
+                // The two one-shot tracks (starburst + reveal) end
+                // at 700ms and 450ms respectively; the two infinite
+                // tracks continue forever. Visually the band
+                // materializes (reveal) WHILE blooming (starburst),
+                // then settles into perpetual drift (shimmer) +
+                // pulse (halo-breath).
+                //
+                // Default rows use `nav-band-alive` (without
+                // starburst) — the bloom is reserved for the
+                // "this is now where you are" signal of becoming
+                // active.
+                'nav-band-active-alive':
+                    'nav-band-starburst 700ms ease-out, nav-band-reveal-sweep 450ms ease-out, nav-band-shimmer 4s ease-in-out infinite, nav-band-halo-breath 6s ease-in-out infinite',
             },
         },
     },

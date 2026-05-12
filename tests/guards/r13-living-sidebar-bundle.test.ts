@@ -152,8 +152,14 @@ describe('Roadmap-13 PR-12 — Living Sidebar capstone bundle', () => {
                 /(?<!hover:)before:animate-nav-band-shimmer\b/.test(
                     activeRecipe,
                 );
+            // R15-PR4 introduced `nav-band-active-alive` (adds the
+            // starburst bloom for the active row); its tailwind
+            // entry still embeds the 4s shimmer track so the
+            // visual contract holds either way.
             const activeAlive =
-                /(?<!hover:)before:animate-nav-band-alive\b/.test(activeRecipe);
+                /(?<!hover:)before:animate-nav-band-(?:active-)?alive\b/.test(
+                    activeRecipe,
+                );
             expect(activeShimmer || activeAlive).toBe(true);
         });
     });

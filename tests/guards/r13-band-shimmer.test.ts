@@ -193,7 +193,13 @@ describe('Roadmap-13 PR-3 — band shimmer animation', () => {
             const shimmerForm = /before:animate-nav-band-shimmer\b/.test(
                 activeRecipe,
             );
-            const aliveForm = /before:animate-nav-band-alive\b/.test(
+            // R15-PR2 introduced `nav-band-alive`; R15-PR4
+            // introduced `nav-band-active-alive` (adds the
+            // starburst bloom for the active row). Both embed
+            // `nav-band-shimmer 4s ease-in-out infinite` as a
+            // track inside their Tailwind animation entries, so
+            // the underlying R13-PR3 visual contract still holds.
+            const aliveForm = /before:animate-nav-band-(?:active-)?alive\b/.test(
                 activeRecipe,
             );
             expect(shimmerForm || aliveForm).toBe(true);
@@ -203,7 +209,7 @@ describe('Roadmap-13 PR-3 — band shimmer animation', () => {
                 /hover:before:animate-nav-band-shimmer\b/,
             );
             expect(activeRecipe).not.toMatch(
-                /hover:before:animate-nav-band-alive\b/,
+                /hover:before:animate-nav-band-(?:active-)?alive\b/,
             );
         });
     });
