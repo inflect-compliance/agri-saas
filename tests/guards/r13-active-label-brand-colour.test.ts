@@ -128,12 +128,18 @@ describe('Roadmap-13 PR-5 — active label takes brand colour', () => {
     });
 
     describe('preserved R12-PR6 conviction tokens', () => {
-        it('active still carries brand-subtle bg + opacity-100 band + font-medium', () => {
+        it('active still carries a brand wash + opacity-100 band + font-medium', () => {
             // R13-PR5 only replaces ONE conviction token (the text
-            // colour). The other three stay — bg-brand-subtle wash,
-            // permanent band, +1 font weight.
+            // colour). The other three stay — a brand wash (form
+            // evolved by R13-PR11 to a radial gradient from
+            // brand-secondary-subtle), permanent band, +1 font
+            // weight.
             const recipe = activeRecipe();
-            expect(recipe).toMatch(/\bbg-\[var\(--brand-subtle\)\]/);
+            const r12Wash = /\bbg-\[var\(--brand-subtle\)\]/.test(recipe);
+            const r13Wash =
+                /bg-\[radial-gradient\(/.test(recipe) &&
+                /var\(--brand(-secondary)?-subtle\)/.test(recipe);
+            expect(r12Wash || r13Wash).toBe(true);
             expect(recipe).toMatch(/(?<!hover:)\bbefore:opacity-100\b/);
             expect(recipe).toMatch(/\bfont-medium\b/);
         });

@@ -174,14 +174,30 @@ describe('Roadmap-13 PR-4 — active band swaps to secondary brand', () => {
             );
         });
 
-        it('preserves the R12-PR6 conviction tokens', () => {
+        it('preserves the R12-PR6 + R13-PR5 conviction tokens', () => {
             // R13-PR4 is purely additive on top of R12-PR6's four
             // tokens. If a future regression drops one of them,
             // the active state collapses to "just the band changed"
             // — not what we want.
+            //
+            // Text colour: R12-PR6 originally locked `text-content-
+            // emphasis`; R13-PR5 evolved to `text-[var(--brand-
+            // default)]`. Either form is accepted here so the
+            // "active has a distinct text colour" contract stays
+            // intact across the R12 → R13 evolution.
             const recipe = activeRecipe();
-            expect(recipe).toMatch(/\btext-content-emphasis\b/);
-            expect(recipe).toMatch(/\bbg-\[var\(--brand-subtle\)\]/);
+            const r12Text = /\btext-content-emphasis\b/.test(recipe);
+            const r13Text = /\btext-\[var\(--brand-default\)\]/.test(
+                recipe,
+            );
+            expect(r12Text || r13Text).toBe(true);
+            // Wash: R13-PR11 evolved from uniform brand-subtle to
+            // a radial gradient from brand-secondary-subtle.
+            const r12Wash = /\bbg-\[var\(--brand-subtle\)\]/.test(recipe);
+            const r13Wash =
+                /bg-\[radial-gradient\(/.test(recipe) &&
+                /var\(--brand(-secondary)?-subtle\)/.test(recipe);
+            expect(r12Wash || r13Wash).toBe(true);
             expect(recipe).toMatch(/(?<!hover:)\bbefore:opacity-100\b/);
             expect(recipe).toMatch(/\bfont-medium\b/);
         });

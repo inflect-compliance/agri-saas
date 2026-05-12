@@ -158,16 +158,22 @@ describe('Roadmap-13 PR-2 — band gradient richness + glow', () => {
     });
 
     describe('preserved R12-PR5 invariants', () => {
-        it('still opacity-only transition (no transform / scale)', () => {
-            // R13-PR2 is a visual-richness PR — it does NOT relax
-            // the motion-language rule. The band still appears via
-            // opacity 0 → 100; the gradient + glow are static
-            // visual properties, not motion.
+        it('still transitions only allowed properties (R13-PR9 broadening: opacity + top/bottom/width)', () => {
+            // R13-PR2 was opacity-only motion; R13-PR9 broadened
+            // the transition-property list to include band-geometry
+            // (`transition-[opacity,top,bottom,width]`) so the band
+            // can reach toward the cursor on hover. The motion-
+            // language contract is preserved at the principle
+            // level — no transform, no scale, no translate — and
+            // we accept either the original `transition-opacity`
+            // or the broadened arbitrary-value form here.
             const baseRegion =
                 NAV_ITEM_SRC.match(
                     /const\s+NAV_ITEM_BAND_BASE\s*=\s*\[[\s\S]+?\]\.join\(/,
                 )?.[0] ?? '';
-            expect(baseRegion).toMatch(/before:transition-opacity/);
+            expect(baseRegion).toMatch(
+                /before:transition-(opacity\b|\[opacity[^\]]*\])/,
+            );
             expect(baseRegion).not.toMatch(/before:transition-transform/);
             expect(baseRegion).not.toMatch(/before:scale-/);
             expect(baseRegion).not.toMatch(/before:translate-/);

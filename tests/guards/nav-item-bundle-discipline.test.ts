@@ -131,7 +131,7 @@ describe('Roadmap-12 PR-10 — NavItem bundle discipline (capstone)', () => {
         });
     });
 
-    describe('ACTIVE recipe — four conviction tokens intact', () => {
+    describe('ACTIVE recipe — conviction tokens intact (R13 evolved)', () => {
         const match = SRC.match(
             /export\s+const\s+NAV_ITEM_ACTIVE\s*=\s*['"]([^'"]+)['"]/,
         );
@@ -142,13 +142,32 @@ describe('Roadmap-12 PR-10 — NavItem bundle discipline (capstone)', () => {
 
         const recipe = match![1];
 
-        it.each([
-            ['text-content-emphasis'],
-            ['bg-[var(--brand-subtle)]'],
-            ['before:opacity-100'],
-            ['font-medium'],
-        ])('ACTIVE contains %s', (token) => {
-            expect(recipe).toContain(token);
+        // Tokens that survived the R13 evolution unchanged.
+        it.each([['before:opacity-100'], ['font-medium']])(
+            'ACTIVE contains %s',
+            (token) => {
+                expect(recipe).toContain(token);
+            },
+        );
+
+        it('ACTIVE carries an emphasised text colour', () => {
+            // R12-PR6: `text-content-emphasis`.
+            // R13-PR5:  `text-[var(--brand-default)]` (brand-coloured
+            //           letters — yellow on METRO, orange on PwC).
+            const r12 = /\btext-content-emphasis\b/.test(recipe);
+            const r13 = /\btext-\[var\(--brand-default\)\]/.test(recipe);
+            expect(r12 || r13).toBe(true);
+        });
+
+        it('ACTIVE carries a brand wash', () => {
+            // R12-PR6: uniform `bg-[var(--brand-subtle)]`.
+            // R13-PR11: radial gradient from
+            //           `--brand-secondary-subtle` fading right.
+            const r12 = /\bbg-\[var\(--brand-subtle\)\]/.test(recipe);
+            const r13 =
+                /bg-\[radial-gradient\(/.test(recipe) &&
+                /var\(--brand(-secondary)?-subtle\)/.test(recipe);
+            expect(r12 || r13).toBe(true);
         });
     });
 

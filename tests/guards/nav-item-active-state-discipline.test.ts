@@ -64,8 +64,18 @@ describe('Roadmap-12 PR-6 — NavItem active-state discipline', () => {
         //     METRO, orange on PwC, both via `var(--brand-default)`.
         expect(recipe).toMatch(/\btext-\[var\(--brand-default\)\]/);
 
-        // (2) Background: brand-subtle wash.
-        expect(recipe).toMatch(/\bbg-\[var\(--brand-subtle\)\]/);
+        // (2) Background: brand wash. R12-PR6 originally locked the
+        //     uniform `bg-[var(--brand-subtle)]` (warm tint).
+        //     R13-PR11 evolved it to a radial gradient from
+        //     `--brand-secondary-subtle` (cool tint, coherent with
+        //     the navy band) fading right. Either form is accepted —
+        //     a regression that drops BOTH would render no wash at
+        //     all, which we still catch.
+        const r12Wash = /\bbg-\[var\(--brand-subtle\)\]/.test(recipe);
+        const r13Wash =
+            /bg-\[radial-gradient\(/.test(recipe) &&
+            /var\(--brand(-secondary)?-subtle\)/.test(recipe);
+        expect(r12Wash || r13Wash).toBe(true);
 
         // (3) Band: held visible (opacity 100, not hover-gated).
         expect(recipe).toMatch(/(?<!hover:)\bbefore:opacity-100\b/);

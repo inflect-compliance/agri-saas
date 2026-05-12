@@ -370,10 +370,17 @@ export const NAV_ITEM_DEFAULT =
  *       deep-navy + 18%-yellow wash reads at >10:1; PwC orange
  *       `#D04A02` on cream + 9%-orange wash at ~5.5:1.
  *
- *   (2) `bg-[var(--brand-subtle)]`
- *       A primary-brand-tinted wash, ~9% (PwC) or ~18% (METRO).
- *       Cool band + warm wash = the temperature contrast the eye
- *       reads as "lit on a surface".
+ *   (2) Radial brand-secondary wash (R13-PR11 evolution)
+ *       `bg-[radial-gradient(circle_at_left, --brand-secondary-
+ *       subtle, transparent 75%)]`. Originally the wash was a
+ *       uniform `bg-[var(--brand-subtle)]` (warm primary tint).
+ *       R13-PR11 evolved it to a radial gradient ORIGINATING from
+ *       the band's left edge, fading to transparent at the right.
+ *       The navy radial bleeds out from the band — feels like the
+ *       band is leaking light into the row. The wash is now COOL
+ *       (matches the band's hue family), not WARM as in R12-PR6;
+ *       the warm/cool contrast moved to band-cool + label-warm
+ *       (label is `text-[var(--brand-default)]`).
  *
  *   (3) `before:opacity-100 before:animate-nav-band-shimmer`
  *       Band held visible permanently + slow-pulsing.
@@ -404,7 +411,7 @@ export const NAV_ITEM_DEFAULT =
  * five secondary-brand override classes + the navy-glow plumbing.
  */
 export const NAV_ITEM_ACTIVE =
-    'text-[var(--brand-default)] bg-[var(--brand-subtle)] before:opacity-100 before:animate-nav-band-shimmer before:top-1! before:bottom-1! before:w-[4px]! before:from-[var(--brand-secondary-default)]! before:via-[var(--brand-secondary-muted)]! before:to-[var(--brand-secondary-emphasis)]! before:shadow-[var(--nav-band-glow-active)]! after:opacity-100 shadow-[var(--nav-bevel-shadow)] font-medium';
+    'text-[var(--brand-default)] bg-[radial-gradient(circle_at_left,_var(--brand-secondary-subtle),_transparent_75%)] before:opacity-100 before:animate-nav-band-shimmer before:top-1! before:bottom-1! before:w-[4px]! before:from-[var(--brand-secondary-default)]! before:via-[var(--brand-secondary-muted)]! before:to-[var(--brand-secondary-emphasis)]! before:shadow-[var(--nav-band-glow-active)]! after:opacity-100 shadow-[var(--nav-bevel-shadow)] font-medium';
 
 /**
  * Badge recipe — aligned + breathing. (R12-PR8 lock.)
