@@ -33,10 +33,16 @@
  *   - `text-content-subtle` — one rung quieter than the page-level
  *     Eyebrow. Section headers are scaffolding; row labels are
  *     content.
- *   - 1px hairline above at `border-border-subtle/40` — defines the
- *     section boundary without a hard line. The `/40` alpha keeps
- *     it as a whisper. Skipped on the FIRST section so the very top
- *     of the sidebar doesn't pick up an accidental rule.
+ *   - 1px soft gradient hairline above (R13-PR10 evolution from
+ *     R12-PR3's flat `border-border-subtle/40`). The divider now
+ *     fades in from transparent at the row edges to
+ *     `--border-subtle` at center and back to transparent —
+ *     `linear-gradient(90deg, transparent, --border-subtle,
+ *     transparent)`. The fade reads as breath, not architecture;
+ *     section breaks feel like the sidebar inhaling, not as
+ *     architectural seams stamped into chrome.
+ *     Skipped on the FIRST section so the very top of the sidebar
+ *     doesn't pick up an accidental rule.
  */
 
 import type { ReactNode } from 'react';
@@ -63,9 +69,35 @@ export interface NavSectionProps {
 export const NAV_SECTION_HEADER =
     'block px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-content-subtle select-none';
 
-/** Subtle hairline above the section (skipped on the first section). */
+/**
+ * Soft-gradient hairline above the section (skipped on the first
+ * section). R13-PR10 replaces the R12-PR3 hard `border-t border-
+ * border-subtle/40` with a `::before` pseudo-element carrying a
+ * horizontal gradient that fades from transparent at each edge to
+ * `--border-subtle` at center.
+ *
+ * Why not just `border-image: linear-gradient(...)`?
+ *   - `border-image` works but doesn't support the `border-style`
+ *     alpha tuning we relied on with `/40`. A `::before` overlay
+ *     gives full control over both the line's shape and its
+ *     opacity profile.
+ *
+ * Why peak at `--border-subtle` (not `/40`)?
+ *   - `--border-subtle` is already alpha-tuned per theme (METRO
+ *     navy @ 50%, PwC warm gray @ 60%). The gradient fade at edges
+ *     drops effective brightness to ~25-30% at peak — quieter than
+ *     R12-PR3's flat ~20%, but the in-and-out fade is what makes
+ *     it feel like breath rather than rule.
+ *
+ * Why absolute-positioned `::before` (not block)?
+ *   - The line sits on the wrapper's exact top edge regardless of
+ *     content. A `before:block before:h-px` flow-positioned approach
+ *     would push content down by 1px on the divided sections only,
+ *     creating a 1px alignment drift between first-section
+ *     (undivided) and later sections (divided).
+ */
 export const NAV_SECTION_DIVIDER =
-    'mt-2 pt-2 border-t border-border-subtle/40';
+    'relative mt-2 pt-2 before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-[linear-gradient(90deg,_transparent,_var(--border-subtle),_transparent)]';
 
 export function NavSection({ title, isFirst = false, children }: NavSectionProps) {
     return (

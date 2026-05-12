@@ -93,14 +93,34 @@ describe('Roadmap-12 PR-3 — NavSection discipline', () => {
             expect(recipe).toMatch(/text-content-subtle/);
         });
 
-        it('divider recipe is a 1-px hairline at subtle/40 alpha', () => {
+        it('divider recipe is a 1-px hairline (R13-PR10: soft gradient)', () => {
+            // R12-PR3 originally locked `border-t border-border-
+            // subtle/40` here. R13-PR10 evolves the divider to a
+            // `::before` pseudo-element painted with a horizontal
+            // gradient (transparent → --border-subtle → transparent).
+            // The line is still 1px tall and quiet, but now fades in
+            // and out across the row width — reads as breath rather
+            // than architecture.
+            //
+            // Both forms are accepted here:
+            //   • R12: `border-t border-border-subtle/40`
+            //   • R13: `before:bg-[linear-gradient(...,--border-subtle,...)]`
+            //
+            // A future PR that drops BOTH leaves no divider — caught.
             const dividerLine = SECTION_SRC.match(
                 /export\s+const\s+NAV_SECTION_DIVIDER\s*=\s*['"]([^'"]+)['"]/,
             );
             expect(dividerLine).not.toBeNull();
             const recipe = dividerLine![1];
-            expect(recipe).toMatch(/border-t/);
-            expect(recipe).toMatch(/border-border-subtle\/40/);
+            const r12Form =
+                /border-t/.test(recipe) &&
+                /border-border-subtle\/40/.test(recipe);
+            const r13Form =
+                /before:absolute/.test(recipe) &&
+                /before:h-px/.test(recipe) &&
+                /before:bg-\[linear-gradient\(/.test(recipe) &&
+                /var\(--border-subtle\)/.test(recipe);
+            expect(r12Form || r13Form).toBe(true);
         });
 
         it('`isFirst` suppresses the divider', () => {
