@@ -38,6 +38,7 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useCurrentBreadcrumbs } from './breadcrumbs-store';
 import { OrgIdentityPill } from './IdentityPill';
 import { TenantSwitcher } from './tenant-switcher';
+import { UserMenu } from './user-menu';
 import type { AppShellVariant } from './AppShell';
 import { NavBar, NavBarBrand } from './nav-bar';
 
@@ -98,7 +99,12 @@ export function TopChrome({ variant }: TopChromeProps) {
                     )}
                 </>
             }
-            right={<Identity />}
+            right={
+                <>
+                    <Identity />
+                    <UserMenu />
+                </>
+            }
         />
     );
 }
