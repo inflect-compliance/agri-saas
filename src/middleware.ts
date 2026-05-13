@@ -242,6 +242,25 @@ export default async function middleware(
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set(CSP_NONCE_HEADER, nonce);
     requestHeaders.set('x-request-id', requestId);
+    // 2026-05-14 — Next.js 15 reads the FULL CSP policy from the
+    // request headers (NOT just our `x-csp-nonce` request header)
+    // to drive its internal auto-nonce-application. Specifically,
+    // Next's chunk-preload `<link>` tags and the webpack runtime's
+    // chunk-loader `<script>` tags get stamped with the nonce only
+    // when the framework can extract it from a `Content-Security-
+    // Policy` request header at SSR time.
+    //
+    // Without this, `strict-dynamic` blocks every chunk that
+    // wasn't statically server-rendered with the matching nonce
+    // — the failure mode that R16's visx + motion dynamic imports
+    // surfaced.
+    //
+    // The canonical Next.js CSP-middleware pattern in the official
+    // docs sets the policy as a request header for exactly this
+    // reason; our middleware was setting it only on the response.
+    // Add both — response for browser enforcement, request for
+    // Next's auto-nonce machinery.
+    requestHeaders.set(cspHeaderName, cspHeader);
 
     const origin = req.headers.get('origin') ?? '';
 

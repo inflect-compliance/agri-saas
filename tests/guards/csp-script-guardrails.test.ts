@@ -25,6 +25,18 @@ const CSP_ALLOWLIST = new Set([
     // funnel through the same DOMPurify allowlist; widening the
     // allowlist requires a security review.
     'app/t/[tenantSlug]/(app)/policies/[policyId]/page.tsx',
+    // 2026-05-14 — CSP `strict-dynamic` webpack chunk loader bridge.
+    // The root layout renders an inline <script nonce={nonce}> that
+    // sets `__webpack_nonce__` so webpack stamps the same nonce on
+    // every dynamic chunk it injects (R16 charts, code-split
+    // components). The script is:
+    //   • Always nonced (CSP allows it via the per-request nonce).
+    //   • Deterministic — body is `__webpack_nonce__='<nonce>'` with
+    //     JSON.stringify-escaped nonce; no user input, no XSS surface.
+    //   • Load-bearing — without it, strict-dynamic blocks every
+    //     `_next/static/chunks/*.js` URL and the app is broken.
+    // The shape is locked by tests/guards/csp-webpack-nonce-bridge.test.ts.
+    'app/layout.tsx',
 ]);
 
 // ── Helpers ──────────────────────────────────────────────────────────
