@@ -37,6 +37,7 @@ import { Bell, CheckCheck } from 'lucide-react';
 
 import { Popover } from '@/components/ui/popover';
 import { EmptyState } from '@/components/ui/empty-state';
+import { formatDateCompact } from '@/lib/format-date';
 import { NAV_BAR_SLOT_PRESS } from './nav-bar';
 
 // ─── Types ─────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ interface NotificationRow {
 // ─── Recipes ───────────────────────────────────────────────────────
 
 const BELL_BUTTON_CLASS =
-    `relative inline-flex items-center justify-center h-8 w-8 rounded-full text-content-muted transition-colors hover:bg-bg-muted/60 hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${NAV_BAR_SLOT_PRESS}`;
+    `relative inline-flex items-center justify-center h-8 w-8 rounded-full text-content-muted transition-colors hover:bg-bg-muted/50 hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${NAV_BAR_SLOT_PRESS}`;
 
 const BADGE_OVERLAY_CLASS =
     // Pill chip pinned to the bell's top-right corner. Negative
@@ -63,7 +64,7 @@ const BADGE_OVERLAY_CLASS =
     'absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-bg-error-emphasis text-[10px] font-semibold text-content-inverted tabular-nums leading-none';
 
 const ROW_CLASS =
-    'flex flex-col gap-tight rounded-md px-2.5 py-2 transition-colors hover:bg-bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]';
+    'flex flex-col gap-tight rounded-md px-2.5 py-2 transition-colors hover:bg-bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]';
 
 const ROW_UNREAD_CLASS = 'bg-bg-subtle';
 
@@ -85,10 +86,7 @@ function formatRelativeTime(iso: string): string {
     if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d`;
-    return new Date(iso).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-    });
+    return formatDateCompact(iso);
 }
 
 // ─── Component ─────────────────────────────────────────────────────

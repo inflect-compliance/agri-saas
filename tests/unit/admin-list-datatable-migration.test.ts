@@ -65,8 +65,10 @@ describe('admin/members — DataTable migration', () => {
             'invite-email-input',
             'invite-role-select',
             'send-invite-btn',
-            // search + table
-            'member-search',
+            // table cards. The `member-search` input id was
+            // retired by the FilterToolbar text-search kill sweep
+            // (the sidebar palette + global search now own
+            // textual search on every list page).
             'members-table-card',
             'invites-table-card',
             // sessions modal list

@@ -91,9 +91,18 @@ const LEGACY_LUCIDE_USERS = new Set<string>([
     'src/components/ForbiddenPage.tsx',
     'src/components/frameworks/FrameworkExplorer.tsx',
     'src/components/icons/iconMap.ts',
-    'src/components/layout/AppShell.tsx',
     'src/components/layout/OrgSidebarNav.tsx',
     'src/components/layout/SidebarNav.tsx',
+    // Roadmap-14 (top-bar chrome) — the NavBar primitive + its
+    // slot family (notifications bell, tenant switcher, user
+    // menu) all import lucide icons directly. Same rationale as
+    // nav-item.tsx — the top-bar's icon contract is `LucideIcon`,
+    // and migrating the top-bar's icon family to Nucleo is a
+    // bounded follow-up.
+    'src/components/layout/nav-bar.tsx',
+    'src/components/layout/notifications-bell.tsx',
+    'src/components/layout/tenant-switcher.tsx',
+    'src/components/layout/user-menu.tsx',
     // R12-PR1 — `nav-item.tsx` carries the `LucideIcon` type
     // import for the `icon` prop. The sidebar's icon contract
     // is `LucideIcon` (callers pass `LayoutDashboard` /
