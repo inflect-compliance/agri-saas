@@ -46,7 +46,7 @@ import {
     type Table as TableType,
 } from "@tanstack/react-table";
 import { FixedSizeList } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
+import { AutoSizer } from "react-virtualized-auto-sizer";
 
 import { SortOrder } from "../icons";
 import { Tooltip } from "../tooltip";
@@ -476,12 +476,19 @@ export function VirtualTable<T>({
             )}
             style={{ minHeight: 0 }}
         >
-            <AutoSizer>
-                {({ height: h, width: w }: { height: number; width: number }) => {
-                    if (h === 0 || w === 0) return null;
+            {/*
+                react-virtualized-auto-sizer v2.x — `renderProp`
+                replaces function-as-children. Same callback
+                shape; width/height arrive as `number | undefined`
+                during the initial pre-measure render, hence the
+                falsy guard.
+            */}
+            <AutoSizer
+                renderProp={({ height: h, width: w }) => {
+                    if (!h || !w) return null;
                     return renderInner(h, w);
                 }}
-            </AutoSizer>
+            />
         </div>
     );
 }

@@ -52,7 +52,7 @@ import {
     VariableSizeList,
     type ListChildComponentProps,
 } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
+import { AutoSizer } from "react-virtualized-auto-sizer";
 
 export interface VirtualizedListRenderArgs {
     /** Logical index of the item being rendered. */
@@ -264,29 +264,49 @@ export const VirtualizedList = React.forwardRef<
                 minHeight: 0,
             }}
         >
+            {/*
+                react-virtualized-auto-sizer v2.x changed two
+                things from v1:
+
+                  1. Child API: function-as-children → `renderProp`
+                     prop. Same callback signature; same shape of
+                     parameters.
+                  2. Disable axes: v1's `disableHeight` /
+                     `disableWidth` props are GONE. v2 always
+                     measures both axes and reports each as
+                     `number | undefined`. To "disable" an axis
+                     we now just ignore the measured value and
+                     use the consumer-supplied explicit dimension
+                     instead.
+
+                The three branches below model the same
+                "explicit-dimension / measured-dimension" matrix
+                as before; the only difference is the disable
+                hints are gone.
+            */}
             {hasExplicitHeight && !hasExplicitWidth && (
-                <AutoSizer disableHeight>
-                    {({ width: w }: { width: number }) => {
-                        if (w === 0) return null;
+                <AutoSizer
+                    renderProp={({ width: w }) => {
+                        if (!w) return null;
                         return renderList(height as number, w);
                     }}
-                </AutoSizer>
+                />
             )}
             {!hasExplicitHeight && hasExplicitWidth && (
-                <AutoSizer disableWidth>
-                    {({ height: h }: { height: number }) => {
-                        if (h === 0) return null;
+                <AutoSizer
+                    renderProp={({ height: h }) => {
+                        if (!h) return null;
                         return renderList(h, width as number | string);
                     }}
-                </AutoSizer>
+                />
             )}
             {!hasExplicitHeight && !hasExplicitWidth && (
-                <AutoSizer>
-                    {({ height: h, width: w }: { height: number; width: number }) => {
-                        if (h === 0 || w === 0) return null;
+                <AutoSizer
+                    renderProp={({ height: h, width: w }) => {
+                        if (!h || !w) return null;
                         return renderList(h, w);
                     }}
-                </AutoSizer>
+                />
             )}
         </div>
     );
