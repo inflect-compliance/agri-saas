@@ -120,6 +120,13 @@ export { LineChart } from './line-chart';
 export { RadarChart } from './radar-chart';
 export type { RadarAxisDatum } from './radar-chart';
 
+// ─── Roadmap-16 — GanttChart primitive ──────────────────────────────
+//
+// Horizontal Gantt with gradient bars + dependency arrows. Phase 5.
+
+export { GanttChart } from './gantt-chart';
+export type { GanttRow } from './gantt-chart';
+
 // ─── Shared scale / layout helpers (Epic 59) ─────────────────────────
 //
 // Pure helpers charts (and non-chart consumers that need to speak the
