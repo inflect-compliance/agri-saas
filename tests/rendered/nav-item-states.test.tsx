@@ -60,9 +60,12 @@ describe('<NavItem>', () => {
             expect(link.className).toContain('text-content-muted');
             expect(link.className).toContain('hover:text-content-emphasis');
             expect(link.className).toContain('hover:before:opacity-100');
-            // R13 hover additions wired.
+            // R13 hover additions wired. R15-PR2 broadened the
+            // single-track `nav-band-shimmer` to the composed
+            // `nav-band-alive` (shimmer + halo-breath); the
+            // composed entry still embeds the shimmer track.
             expect(link.className).toContain(
-                'hover:before:animate-nav-band-shimmer',
+                'hover:before:animate-nav-band-alive',
             );
             expect(link.className).toContain('hover:after:opacity-100');
             expect(link.className).toContain(
@@ -149,24 +152,39 @@ describe('<NavItem>', () => {
             expect(link.className).toContain('before:opacity-100');
             // Weight bump (R12-PR6 preserved).
             expect(link.className).toContain('font-medium');
-            // Navy band overrides (R13-PR4).
-            expect(link.className).toContain(
+            // Band overrides — R13-PR4 originally locked navy
+            // (brand-secondary) stops; 2026-05-13 the tone was
+            // swapped to `--bg-page` so the active band reads as
+            // a cut-out of the page surface. Either form
+            // satisfies the "band overrides exist" contract.
+            const bandStopBgPage = link.className.includes(
+                'before:from-[var(--bg-page)]!',
+            );
+            const bandStopSecondary = link.className.includes(
                 'before:from-[var(--brand-secondary-default)]!',
             );
+            expect(bandStopBgPage || bandStopSecondary).toBe(true);
             expect(link.className).toContain(
                 'before:shadow-[var(--nav-band-glow-active)]!',
             );
             // Reach geometry (R13-PR9).
             expect(link.className).toContain('before:top-1!');
             expect(link.className).toContain('before:w-[4px]!');
-            // Gloss + bevel held visible (R13-PR6 + PR-7).
+            // Gloss + bevel held visible (R13-PR6 + PR-7). R15-PR9
+            // stacked an outer brand-secondary aura ahead of the
+            // bevel inside one multi-shadow value, so the bevel
+            // token may sit inside a comma-separated stack rather
+            // than as the sole shadow value.
             expect(link.className).toContain('after:opacity-100');
+            expect(link.className).toContain('var(--nav-bevel-shadow)');
+            // Band shimmer animation un-gated (R13-PR3). R15-PR4
+            // broadened the active animation utility from the
+            // single-track `nav-band-shimmer` to the composed
+            // `nav-band-active-alive` (starburst + reveal +
+            // shimmer + halo-breath); the composed entry still
+            // embeds the shimmer track.
             expect(link.className).toContain(
-                'shadow-[var(--nav-bevel-shadow)]',
-            );
-            // Band shimmer animation un-gated (R13-PR3).
-            expect(link.className).toContain(
-                'before:animate-nav-band-shimmer',
+                'before:animate-nav-band-active-alive',
             );
             // BASE is still present.
             expect(link.className).toContain('min-h-[44px]');

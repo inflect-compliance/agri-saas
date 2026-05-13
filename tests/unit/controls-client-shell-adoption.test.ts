@@ -54,11 +54,13 @@ describe('ControlsClient — EntityListPage adoption', () => {
         );
     });
 
-    it('threads filters through the shell (defs + searchId + searchPlaceholder)', () => {
+    it('threads filters through the shell (defs)', () => {
         // Whitespace-tolerant — the prop literal can wrap across lines.
+        // The `searchId` / `searchPlaceholder` props were retired
+        // by the FilterToolbar text-search kill sweep (#443) — the
+        // sidebar Search pill + global ⌘K palette own textual
+        // search now. Only the filter `defs` thread through.
         expect(source).toMatch(/filters\s*=\s*\{\{/);
-        expect(source).toContain("searchId: 'control-search'");
-        expect(source).toMatch(/searchPlaceholder:\s*['"]Search controls/);
         expect(source).toContain('defs: liveFilterDefs');
     });
 

@@ -238,9 +238,9 @@ describe('OI-1 part 4 — secret hygiene', () => {
         }
     });
 
-    it('uses configure-aws-credentials@v4 (latest stable)', () => {
+    it('uses configure-aws-credentials@v6 (latest stable)', () => {
         const text = fs.readFileSync(WORKFLOW, 'utf-8');
-        expect(text).toMatch(/aws-actions\/configure-aws-credentials@v4/);
+        expect(text).toMatch(/aws-actions\/configure-aws-credentials@v6/);
     });
 });
 

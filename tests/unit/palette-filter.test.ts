@@ -98,6 +98,11 @@ describe('toggleKind', () => {
 
 describe('countHitsByKind', () => {
     it('zero-fills every kind so callers do not have to defensive-check', () => {
+        // The SearchHitType union expanded in #442 to include
+        // `asset`, `task`, and `test` (tasks + tests palette
+        // entries). The zero-fill must cover every member of
+        // the union so callers can index by any literal without
+        // a defensive existence check.
         const out = countHitsByKind([], getKind);
         expect(out).toEqual({
             control: 0,
@@ -105,6 +110,9 @@ describe('countHitsByKind', () => {
             policy: 0,
             framework: 0,
             evidence: 0,
+            asset: 0,
+            task: 0,
+            test: 0,
         });
     });
 
