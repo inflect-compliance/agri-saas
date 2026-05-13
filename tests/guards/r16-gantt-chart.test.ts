@@ -174,15 +174,21 @@ describe('Roadmap-16 PR-11 — GanttChart primitive', () => {
             expect(GANTT_SRC).toMatch(/` C \$\{up\.x2\s*\+\s*dx\}/);
         });
 
-        it('arrows are muted (--content-muted at 0.5 opacity)', () => {
+        it('arrows are muted (--content-muted resting tone)', () => {
             // Arrows are auxiliary affordances — the bars are
-            // the story. Muted tone keeps the eye on the data.
+            // the story. Resting tone is muted; PR-12 added a
+            // ternary so hovered-chain arrows brighten to the
+            // series end-stop. The muted side of the ternary
+            // is what we lock here.
             const depBlock = GANTT_SRC.match(
                 /data\.flatMap[\s\S]*?return\s*null[\s\S]*?return\s*\([\s\S]*?<path[\s\S]*?\/>/,
             );
             expect(depBlock).not.toBeNull();
-            expect(depBlock![0]).toMatch(/stroke="var\(--content-muted\)"/);
-            expect(depBlock![0]).toMatch(/opacity=\{0\.5\}/);
+            expect(depBlock![0]).toMatch(/'var\(--content-muted\)'/);
+            // Resting opacity defaults to 0.5 when nothing is
+            // hovered (PR-11 baseline preserved in the PR-12
+            // ternary's hoveredKey === null branch).
+            expect(depBlock![0]).toMatch(/\?\s*0\.5\s*:/);
         });
 
         it('arrows are fill="none" + bezier curve only', () => {

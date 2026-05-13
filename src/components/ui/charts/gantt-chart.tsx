@@ -36,10 +36,11 @@
  *     tooltip). PR-12 wires those + closes R16 with the
  *     capstone bundle.
  */
-import { useId } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Group } from '@visx/group';
 import { scaleBand, scaleUtc } from '@visx/scale';
 import { Text } from '@visx/text';
+import { motion } from 'motion/react';
 
 import { ChartFrame } from './chart-frame';
 import {
@@ -47,6 +48,7 @@ import {
     chartGradientId,
     type ChartSeriesIndex,
 } from './chart-gradient';
+import { useChartHoverPop } from './chart-motion';
 import type { ChartState } from './types';
 
 /**
@@ -162,6 +164,18 @@ function GanttChartInner({
     const reactId = useId();
     const chartId = `gantt-${reactId.replace(/:/g, '')}`;
 
+    // R16-PR12 — hover state. Hovering a bar engages:
+    //   • The bar itself lifts by `--chart-hover-lift` (2 px upward
+    //     via translate-y, NOT a size change — preserves the time-
+    //     axis position).
+    //   • The dependency CHAIN: every upstream + downstream bar
+    //     transitively connected to the hovered bar gets a brighter
+    //     fill opacity, and the bezier arrows in the chain bump
+    //     to 1.0 opacity. The visual reads as "the project this
+    //     row belongs to lights up".
+    const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+    const pop = useChartHoverPop({ hoveredKey });
+
     if (data.length === 0) return null;
 
     const padding = DEFAULT_PADDING;
@@ -204,6 +218,41 @@ function GanttChartInner({
             return [r.key, { x1, x2, y }];
         }),
     );
+
+    // R16-PR12 — compute the transitive dependency chain from the
+    // hovered bar. A chain includes the hovered bar itself + every
+    // upstream (deps) + every downstream (rows that depend on
+    // this bar, recursively). Memoised so we don't BFS twice per
+    // render.
+    const dependencyChain = useMemo(() => {
+        if (hoveredKey === null) return new Set<string>();
+        const upstream = new Map<string, string[]>();
+        const downstream = new Map<string, string[]>();
+        for (const r of data) {
+            for (const dep of r.dependencies ?? []) {
+                upstream.set(r.key, [
+                    ...(upstream.get(r.key) ?? []),
+                    dep,
+                ]);
+                downstream.set(dep, [
+                    ...(downstream.get(dep) ?? []),
+                    r.key,
+                ]);
+            }
+        }
+        const chain = new Set<string>([hoveredKey]);
+        const walk = (key: string, dir: Map<string, string[]>) => {
+            for (const next of dir.get(key) ?? []) {
+                if (!chain.has(next)) {
+                    chain.add(next);
+                    walk(next, dir);
+                }
+            }
+        };
+        walk(hoveredKey, upstream);
+        walk(hoveredKey, downstream);
+        return chain;
+    }, [hoveredKey, data]);
 
     const todayX =
         todayLine && new Date() >= xMin && new Date() <= xMax
@@ -270,7 +319,11 @@ function GanttChartInner({
 
                 {/* Bars. Each bar paints via the horizontal
                     series-gradient (lighter on the left, deeper
-                    on the right — visual time-direction cue). */}
+                    on the right — visual time-direction cue).
+                    R16-PR12 — hovered bar lifts 2 px upward via
+                    motion translateY; bars NOT in the dependency
+                    chain dim to 0.4 opacity so the chain stands
+                    out. */}
                 {data.map((r) => {
                     const x1 = xScale(r.start);
                     const x2 = xScale(r.end);
@@ -278,8 +331,11 @@ function GanttChartInner({
                     const y = yScale(r.key) ?? 0;
                     const h = yScale.bandwidth();
                     const fill = `url(#${chartGradientId(chartId, r.seriesIndex, 'linear')})`;
+                    const inChain =
+                        hoveredKey === null || dependencyChain.has(r.key);
+                    const isHovered = hoveredKey === r.key;
                     return (
-                        <rect
+                        <motion.rect
                             key={`bar-${r.key}`}
                             x={x1}
                             y={y}
@@ -288,6 +344,25 @@ function GanttChartInner({
                             rx={BAR_RADIUS}
                             ry={BAR_RADIUS}
                             fill={fill}
+                            animate={{
+                                opacity: inChain ? 1 : 0.4,
+                                translateY: isHovered ? -2 : 0,
+                            }}
+                            transition={{
+                                duration: 0.2,
+                                ease: 'easeOut',
+                            }}
+                            style={{
+                                transformOrigin: `${x1 + w / 2}px ${y + h / 2}px`,
+                                cursor: 'pointer',
+                            }}
+                            onMouseEnter={() => setHoveredKey(r.key)}
+                            onMouseLeave={() => setHoveredKey(null)}
+                            onFocus={() => setHoveredKey(r.key)}
+                            onBlur={() => setHoveredKey(null)}
+                            tabIndex={0}
+                            role="img"
+                            aria-label={`${r.label}: ${r.start.toISOString().slice(0, 10)} → ${r.end.toISOString().slice(0, 10)}`}
                         />
                     );
                 })}
@@ -296,7 +371,10 @@ function GanttChartInner({
                     upstream bar to start of downstream bar. The
                     curve avoids the orthogonal-90deg-arrow look
                     that reads as "engineering diagram" rather
-                    than "lickable chart". */}
+                    than "lickable chart".
+                    R16-PR12 — arrows in the hovered bar's chain
+                    bump to 1.0 opacity + crisp series-end stroke.
+                    Arrows outside the chain dim further. */}
                 {data.flatMap((r) =>
                     (r.dependencies ?? []).map((depKey) => {
                         const up = barGeometry.get(depKey);
@@ -310,14 +388,34 @@ function GanttChartInner({
                             ` C ${up.x2 + dx} ${up.y},` +
                             ` ${down.x1 - dx} ${down.y},` +
                             ` ${down.x1} ${down.y}`;
+                        const inChain =
+                            hoveredKey === null ||
+                            (dependencyChain.has(r.key) &&
+                                dependencyChain.has(depKey));
                         return (
                             <path
                                 key={`dep-${depKey}-${r.key}`}
                                 d={path}
                                 fill="none"
-                                stroke="var(--content-muted)"
-                                strokeWidth={1}
-                                opacity={0.5}
+                                stroke={
+                                    inChain && hoveredKey !== null
+                                        ? `var(--chart-series-${r.seriesIndex}-end)`
+                                        : 'var(--content-muted)'
+                                }
+                                strokeWidth={
+                                    inChain && hoveredKey !== null ? 1.5 : 1
+                                }
+                                opacity={
+                                    hoveredKey === null
+                                        ? 0.5
+                                        : inChain
+                                          ? 1
+                                          : 0.2
+                                }
+                                style={{
+                                    transition:
+                                        'stroke 200ms ease-out, opacity 200ms ease-out, stroke-width 200ms ease-out',
+                                }}
                             />
                         );
                     }),
