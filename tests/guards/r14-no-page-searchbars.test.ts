@@ -169,7 +169,7 @@ describe('Roadmap-14 PR-7 — no standalone search inputs on pages', () => {
                 .map((o) => `  ${o.file}:${o.line}\n    ${o.text}`)
                 .join('\n');
             throw new Error(
-                `Found ${offenders.length} \`searchPlaceholder\` use(s) in the 7 list-page Client files. The user directive 'remove search bars from all pages' retired the FilterToolbar text-search input on these pages — the global ⌘K palette (sidebar Search pill / Ctrl+K) is the canonical cross-entity search. If a NEW need for in-page search arises, consider whether a dedicated `<Combobox>` picker fits better than reviving the toolbar input.\n\nOffenders:\n${sample}`,
+                `Found ${offenders.length} \`searchPlaceholder\` use(s) in the 7 list-page Client files. The user directive 'remove search bars from all pages' retired the FilterToolbar text-search input on these pages — the global ⌘K palette (sidebar Search pill / Ctrl+K) is the canonical cross-entity search. If a NEW need for in-page search arises, consider whether a dedicated \`<Combobox>\` picker fits better than reviving the toolbar input.\n\nOffenders:\n${sample}`,
             );
         }
         expect(offenders).toEqual([]);
