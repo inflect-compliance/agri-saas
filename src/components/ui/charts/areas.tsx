@@ -5,6 +5,7 @@ import { Area, AreaClosed, Circle } from "@visx/shape";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo } from "react";
 import { useChartContext, useChartTooltipContext } from "./chart-context";
+import { ChartGloss, chartGlossId } from "./chart-gloss";
 
 export function Areas({
   seriesStyles,
@@ -71,6 +72,18 @@ export function Areas({
                   />
                 </mask>
 
+                {/* R18 visible-uplift — gloss def for the area
+                    fill. The TrendCard ×4 row on the executive
+                    dashboard is built on <Areas>; R18 polished
+                    LineChart + MiniAreaChart but missed THIS
+                    primitive entirely. `default` intensity — a
+                    full TrendCard tile, not a tiny sparkline. */}
+                <ChartGloss
+                  id={chartGlossId(s.id)}
+                  direction="vertical"
+                  intensity="default"
+                />
+
                 {/* Area */}
                 <AreaClosed
                   data={data}
@@ -80,16 +93,34 @@ export function Areas({
                 >
                   {({ path }) => {
                     return (
-                      <motion.path
-                        initial={{ d: path(zeroedData) || "", opacity: 0 }}
-                        animate={{ d: path(data) || "", opacity: 1 }}
-                        className={cn(
-                          s.colorClassName ?? "text-brand-default",
-                          seriesStyle?.gradientClassName,
-                        )}
-                        mask={`url(#${s.id}-mask)`}
-                        fill={seriesStyle?.areaFill ?? "currentColor"}
-                      />
+                      <>
+                        {/* Colour layer — the series area fill. */}
+                        <motion.path
+                          initial={{ d: path(zeroedData) || "", opacity: 0 }}
+                          animate={{ d: path(data) || "", opacity: 1 }}
+                          className={cn(
+                            s.colorClassName ?? "text-brand-default",
+                            seriesStyle?.gradientClassName,
+                          )}
+                          mask={`url(#${s.id}-mask)`}
+                          fill={seriesStyle?.areaFill ?? "currentColor"}
+                        />
+                        {/* R18 visible-uplift — gloss layer. SAME
+                            `d` morph, painted on top, filled with
+                            the gloss def — the two-layer paint
+                            from chart-gloss.tsx. The white→
+                            transparent ramp gives the area fill a
+                            glass sheen near its top edge. Tracks
+                            the colour layer's `d` morph so the
+                            sheen rises with the fill. Inert. */}
+                        <motion.path
+                          initial={{ d: path(zeroedData) || "" }}
+                          animate={{ d: path(data) || "" }}
+                          fill={`url(#${chartGlossId(s.id)})`}
+                          aria-hidden="true"
+                          style={{ pointerEvents: "none" }}
+                        />
+                      </>
                     );
                   }}
                 </AreaClosed>

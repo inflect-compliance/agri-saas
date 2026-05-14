@@ -343,13 +343,20 @@ export default function DonutChart({
                         sheen. Each segment paints a second <path>
                         (same `d`) filled with this gloss on top of
                         its colour layer — the two-layer paint from
-                        chart-gloss.tsx. `default` intensity: the
-                        donut is a mid-weight dashboard widget, not a
-                        hero surface. */}
+                        chart-gloss.tsx.
+
+                        R18 visible-uplift — intensity `default →
+                        bright`. The Risk Distribution donut is the
+                        single most-looked-at chart on the executive
+                        dashboard; the `default` 0.32-peak sheen was
+                        too quiet to register at a glance. `bright`
+                        (0.48 peak) makes the glass read
+                        unmistakably without tipping into "shiny
+                        plastic." */}
                     <ChartGloss
                         id={chartGlossId(chartId)}
                         direction="vertical"
-                        intensity="default"
+                        intensity="bright"
                     />
                     {/* R18-PR10 — periodic sheen sweep def. The
                         ref attaches here so `useChartSheen` can

@@ -69,9 +69,21 @@ export default function ProgressCard({
         <div id={id} className={cn(cardVariants(), className)}>
             <Heading level={3} className="mb-3">{label}</Heading>
 
-            {/* Main progress bar */}
+            {/* Main progress bar.
+
+                R18 visible-uplift — the track is now `relative`
+                and carries a `::after` gloss sheen (a top-down
+                white→transparent CSS ramp) so the filled bar
+                reads as a glossy surface, not a flat painted
+                strip. The Control Coverage ProgressCard is one of
+                the dashboard's most-looked-at charts and R18
+                missed it entirely (it polished the SVG chart
+                primitives, not this HTML-div bar). The `::after`
+                is `inset-0` + `rounded-full` (tracks the track
+                shape) + `pointer-events-none`, and sits ABOVE the
+                fill divs but is purely decorative. */}
             <div className="flex items-center gap-compact">
-                <div className="flex-1 bg-bg-subtle rounded-full h-3 overflow-hidden">
+                <div className="relative flex-1 bg-bg-subtle rounded-full h-3 overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-full after:pointer-events-none after:bg-[linear-gradient(180deg,rgba(255,255,255,0.28)_0%,rgba(255,255,255,0.04)_45%,transparent_100%)]">
                     {segments && segments.length > 0 ? (
                         // Stacked segments
                         <div className="flex h-full">
