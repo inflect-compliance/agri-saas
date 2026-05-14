@@ -52,6 +52,10 @@ import {
     type ChartSeriesIndex,
 } from '@/components/ui/charts/chart-gradient';
 import {
+    ChartGloss,
+    chartGlossId,
+} from '@/components/ui/charts/chart-gloss';
+import {
     useChartFlow,
     useChartHoverPop,
 } from '@/components/ui/charts/chart-motion';
@@ -306,6 +310,21 @@ export default function DonutChart({
                             ref={flowRef}
                         />
                     )}
+                    {/* R18-PR4 — donut gloss sheen. ONE shared
+                        gloss def for the whole donut: every segment
+                        is on the same ring under the same light
+                        source, so they all catch the same vertical
+                        sheen. Each segment paints a second <path>
+                        (same `d`) filled with this gloss on top of
+                        its colour layer — the two-layer paint from
+                        chart-gloss.tsx. `default` intensity: the
+                        donut is a mid-weight dashboard widget, not a
+                        hero surface. */}
+                    <ChartGloss
+                        id={chartGlossId(chartId)}
+                        direction="vertical"
+                        intensity="default"
+                    />
                 </defs>
 
                 {/* Background ring — quiet bg-muted underneath the
@@ -424,6 +443,9 @@ export default function DonutChart({
                                     }}
                                     aria-label={`${seg.label}: ${seg.value}`}
                                 >
+                                    {/* Colour layer — the segment's
+                                        series gradient (or legacy
+                                        hex). */}
                                     <path
                                         d={path}
                                         fill={fill}
@@ -431,6 +453,26 @@ export default function DonutChart({
                                     >
                                         <title>{`${seg.label}: ${seg.value} (${(segPercent * 100).toFixed(1)}%)`}</title>
                                     </path>
+                                    {/* R18-PR4 — gloss layer. SAME
+                                        `d`, painted on top, filled
+                                        with the shared vertical
+                                        gloss def. The white→
+                                        transparent ramp lets the
+                                        colour layer show through
+                                        everywhere except the sheen
+                                        band near the top edge — the
+                                        segment reads as glass
+                                        catching light. pointer-
+                                        events-none so the gloss
+                                        overlay never intercepts the
+                                        hover that belongs to the
+                                        colour layer's <g>. */}
+                                    <path
+                                        d={path}
+                                        fill={`url(#${chartGlossId(chartId)})`}
+                                        pointerEvents="none"
+                                        aria-hidden="true"
+                                    />
                                 </g>
                             );
                         })

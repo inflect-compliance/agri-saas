@@ -51,13 +51,28 @@ describe('DonutChart geometry — arcs land inside the viewBox', () => {
         // The arc <path> elements must be DESCENDANTS of the
         // centring group — otherwise the transform doesn't move
         // them.
-        const arcPaths = centringGroup!.querySelectorAll('path');
+        //
+        // R18-PR4 — each segment now renders TWO <path>s: the
+        // colour layer (series gradient / hex) + the gloss
+        // overlay (`fill="url(#...-gloss)"`). Count the COLOUR
+        // paths only — the gloss overlays share their `d` and
+        // are aria-hidden light, not geometry.
+        const allPaths = Array.from(
+            centringGroup!.querySelectorAll('path'),
+        );
+        const colourPaths = allPaths.filter(
+            (p) => !(p.getAttribute('fill') ?? '').includes('-gloss'),
+        );
+        const glossPaths = allPaths.filter((p) =>
+            (p.getAttribute('fill') ?? '').includes('-gloss'),
+        );
         // 3 non-zero segments (Low=0 is filtered out by the
-        // zero-value guard).
-        expect(arcPaths.length).toBe(3);
+        // zero-value guard) → 3 colour paths + 3 gloss overlays.
+        expect(colourPaths.length).toBe(3);
+        expect(glossPaths.length).toBe(3);
     });
 
-    it('renders one arc per non-zero segment (zero-value filtered)', () => {
+    it('renders one colour arc + one gloss overlay per non-zero segment', () => {
         const { container } = render(
             <DonutChart
                 id="test-donut-2"
@@ -69,9 +84,16 @@ describe('DonutChart geometry — arcs land inside the viewBox', () => {
                 ]}
             />,
         );
-        // 2 non-zero (A, C); B is filtered.
-        const paths = container.querySelectorAll('svg path');
-        expect(paths.length).toBe(2);
+        // 2 non-zero (A, C); B is filtered. Each gets a colour
+        // path + a gloss overlay → 4 total, 2 of each.
+        const allPaths = Array.from(
+            container.querySelectorAll('svg path'),
+        );
+        const colourPaths = allPaths.filter(
+            (p) => !(p.getAttribute('fill') ?? '').includes('-gloss'),
+        );
+        expect(colourPaths.length).toBe(2);
+        expect(allPaths.length).toBe(4);
     });
 
     it('arc path coordinates are origin-centred (the visx d3-shape contract)', () => {
