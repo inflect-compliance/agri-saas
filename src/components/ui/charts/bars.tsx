@@ -4,34 +4,43 @@ import { RectClipPath } from "@visx/clip-path";
 import { Group } from "@visx/group";
 import { BarRounded } from "@visx/shape";
 import { AnimatePresence, motion } from "motion/react";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useChartContext } from "./chart-context";
 import { ChartGloss, chartGlossId } from "./chart-gloss";
 
 /**
- * R18-PR8 — bubbly bars.
+ * R18-PR8 + PR-9 — bubbly bars.
  *
- * Three changes to the Epic-59 `<Bars>` primitive:
+ * Four changes to the Epic-59 `<Bars>` primitive:
  *
- *   1. SETTLE-BOUNCE on mount. Each date-column grows up from the
- *      x-axis baseline through a SPRING (`scaleY` 0 → overshoot →
- *      1), staggered left-to-right by column index. The bars
- *      "bubble up" instead of just fading in.
+ *   1. SETTLE-BOUNCE on mount (PR-8). Each date-column grows up
+ *      from the x-axis baseline through a SPRING (`scaleY` 0 →
+ *      overshoot → 1), staggered left-to-right by column index.
  *
- *   2. GLOSS. A shared vertical `<ChartGloss>` def; every bar
- *      paints a second `<BarRounded>` overlay with the gloss
+ *   2. GLOSS (PR-8). A shared vertical `<ChartGloss>` def; every
+ *      bar paints a second `<BarRounded>` overlay with the gloss
  *      fill — the two-layer paint from chart-gloss.tsx.
  *
- *   3. ROUNDER TOPS. The default corner radius bumps 2 → 3 — a
- *      hair bubblier without rounding away the bar's read.
+ *   3. ROUNDER TOPS (PR-8). The default corner radius bumps
+ *      2 → 3.
  *
- * The scaleY spring pivots at the column's BOTTOM (the x-axis
- * baseline) via `transformOrigin`, so a stacked column grows as
- * one unit rather than each segment scaling from its own centre.
+ *   4. HOVER BUBBLE-OUT (PR-9). Each individual bar springs its
+ *      `scale` 1 → ~1.06 on hover — it "bubbles out" toward the
+ *      pointer. The hover scale pivots at the bar's CENTRE (so
+ *      it pops symmetrically toward the viewer), distinct from
+ *      the PR-8 settle-bounce which pivots at the column bottom.
+ *
+ * The PR-8 scaleY spring pivots at the column's BOTTOM (the
+ * x-axis baseline); the PR-9 hover scale pivots at each bar's
+ * CENTRE. Two transforms, two pivots, two motion.g layers — the
+ * column-level settle-bounce wraps the per-bar hover bubble.
  */
 
 /** Per-column stagger (ms) so the bars bubble up left-to-right. */
 const BAR_STAGGER_MS = 45;
+
+/** Hover bubble-out scale — the bar pops to 106% toward the pointer. */
+const BAR_HOVER_SCALE = 1.06;
 
 export function Bars({
   seriesStyles,
@@ -47,6 +56,11 @@ export function Bars({
   const clipPathId = useId();
   const reactId = useId();
   const chartId = `bars-${reactId.replace(/:/g, "")}`;
+
+  // R18-PR9 — hover state. Keyed by `${date}|${seriesId}` so each
+  // bar in a stacked column bubbles independently. `null` when
+  // nothing is hovered.
+  const [hoveredBarKey, setHoveredBarKey] = useState<string | null>(null);
   const {
     data,
     series,
@@ -142,12 +156,40 @@ export function Bars({
                     idx === bars.length - 1
                       ? { top: true, radius }
                       : { radius: 0 };
+                  const barTop = height - b.height - b.y;
+                  // R18-PR9 — hover bubble-out. Key + the bar's
+                  // geometric centre (for the scale pivot).
+                  const barKey = `${d.date.toString()}|${b.id}`;
+                  const isHovered = hoveredBarKey === barKey;
+                  const barCenterX = x + barWidth / 2;
+                  const barCenterY = barTop + b.height / 2;
                   return (
-                    <g key={b.id}>
+                    <motion.g
+                      key={b.id}
+                      onMouseEnter={() => setHoveredBarKey(barKey)}
+                      onMouseLeave={() => setHoveredBarKey(null)}
+                      animate={{ scale: isHovered ? BAR_HOVER_SCALE : 1 }}
+                      transition={{
+                        // Spring, not duration/ease — the
+                        // overshoot is the "bubble-out." Tuned
+                        // to settle inside a brisk hover window.
+                        type: "spring",
+                        stiffness: 480,
+                        damping: 18,
+                      }}
+                      style={{
+                        // Pivot at the bar's CENTRE — the bar
+                        // pops symmetrically toward the viewer.
+                        // (PR-8's column settle-bounce pivots at
+                        // the baseline; this is the inner layer.)
+                        transformOrigin: `${barCenterX}px ${barCenterY}px`,
+                        cursor: "pointer",
+                      }}
+                    >
                       {/* Colour layer — the series fill. */}
                       <BarRounded
                         x={x}
-                        y={height - b.height - b.y}
+                        y={barTop}
                         width={barWidth}
                         height={b.height}
                         className={cn(
@@ -162,11 +204,11 @@ export function Bars({
                           gloss def. The white→transparent ramp
                           gives each bar a glass sheen down its
                           length. aria-hidden + pointer-events:none
-                          — light, not data; never intercepts a
-                          hover. */}
+                          — light, not data; never intercepts the
+                          hover that belongs to the motion.g. */}
                       <BarRounded
                         x={x}
-                        y={height - b.height - b.y}
+                        y={barTop}
                         width={barWidth}
                         height={b.height}
                         fill={`url(#${chartGlossId(chartId)})`}
@@ -174,7 +216,7 @@ export function Bars({
                         pointerEvents="none"
                         {...rounding}
                       />
-                    </g>
+                    </motion.g>
                   );
                 })}
               </motion.g>
