@@ -173,10 +173,16 @@ export function HeroMetric({
                 // R17-PR1 — ambient brand glow behind the 72px value.
                 // Soft radial wash anchored under the value (left bias,
                 // vertical centre), brand-subtle alpha that fades to
-                // transparent. Static for PR-1; PR-2 introduces the
-                // breath animation on top of this same gradient.
+                // transparent. R17-PR2 animates the glow's opacity
+                // through a 6-second breath on top of the same gradient.
                 "before:content-[''] before:absolute before:inset-0 before:-z-10 before:pointer-events-none",
                 "before:bg-[radial-gradient(ellipse_640px_400px_at_18%_60%,var(--brand-subtle)_0%,transparent_72%)]",
+                // R17-PR2 — 6s opacity breath on the glow. The mast-
+                // head reads as gently alive — same identity-tier
+                // rhythm as the R14 brand pulse and the R15 nav-band
+                // halo-breath. prefers-reduced-motion auto-flattens
+                // via tokens.css.
+                "before:animate-hero-glow-breath",
                 className,
             )}
             data-hero-metric

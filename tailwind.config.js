@@ -309,6 +309,27 @@ module.exports = {
                     '0%': { 'background-position': '-100% 0%' },
                     '100%': { 'background-position': '100% 0%' },
                 },
+                // R17-PR2 — slow ambient breath on the HeroMetric
+                // glow's `::before` pseudo-element. Opacity drifts
+                // from 0.65 to 1 and back over 6 seconds. The eye
+                // reads the masthead as gently alive — the glow is
+                // "breathing", not flickering. 6s tempo matches the
+                // R14-PR3 brand-mark pulse and the R15-PR2 nav-band
+                // halo-breath; same identity-tier rhythm, deliberately
+                // slower than the 4s state-tier shimmer.
+                //
+                // Why opacity, not filter or transform? The glow is
+                // a radial wash painted by `bg-[radial-gradient(...)]`
+                // on `::before`. Opacity scales the entire painted
+                // surface uniformly — the gradient stays in the same
+                // place, just dims and brightens. Transform would
+                // physically move the glow (distracting). Filter
+                // brightness would shift the colour temperature.
+                // Opacity is the calm option.
+                'hero-glow-breath': {
+                    '0%, 100%': { opacity: '0.65' },
+                    '50%': { opacity: '1' },
+                },
             },
             animation: {
                 'slide-up-fade': 'slide-up-fade 0.2s ease-out',
@@ -415,6 +436,15 @@ module.exports = {
                 // when hover engages.
                 'nav-row-liquid-sweep':
                     'nav-row-liquid-sweep 1.2s ease-out',
+                // R17-PR2 — 6s breath. Slow enough to fall below
+                // the threshold of conscious attention, fast enough
+                // that the eye registers the warmth shifting if you
+                // look. ease-in-out gives the breath its natural
+                // curve (slower at peaks, faster through the middle).
+                // The global `prefers-reduced-motion: reduce` rule
+                // in tokens.css flattens this to 1ms automatically.
+                'hero-glow-breath':
+                    'hero-glow-breath 6s ease-in-out infinite',
                 // R15-PR4 — combined "alive" animation for the
                 // ACTIVE row. Adds the starburst bloom as the first
                 // track ahead of the three R15-PR1..3 tracks. All
