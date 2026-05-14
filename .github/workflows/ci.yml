@@ -849,7 +849,15 @@ jobs:
     name: "Trivy Image Scan"
     needs: [docker]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # The in-job Docker rebuild ("Build Docker image for scanning")
+    # consistently takes ~7.5 min — the `cache-from: type=gha` layer
+    # cache from the `docker` job barely helps here. That + the
+    # critical+high gate scan (~1.5 min) left under a minute for the
+    # SARIF-report step, so the job was hitting the 10-min ceiling and
+    # dying as `cancelled` mid-SARIF — even though the security gate
+    # itself had already passed. 20 min gives real headroom; the
+    # gating scan was never the slow part.
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v6
