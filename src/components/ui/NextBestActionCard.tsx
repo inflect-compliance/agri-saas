@@ -35,6 +35,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { cn } from "@dub/utils";
 
 import { Card } from "./card";
 import { Heading } from "./typography";
@@ -44,6 +45,44 @@ import {
     type NextBestAction,
     type NextBestActionInput,
 } from "./next-best-action-logic";
+
+// ─── R17-PR10 — Urgency-tinted glow ──────────────────────────────────
+//
+// The next-best-action card carries one of five action.ids. Each
+// represents a different urgency tier:
+//
+//   • overdue-evidence + overdue-tasks → URGENT. Something is
+//     already past its deadline. Warm red-orange tint pulls the
+//     eye in the same emotional register as a Stripe "verify
+//     bank account" prompt — "this is the next thing you should
+//     fix."
+//   • high-risks                       → ATTENTION. Severity is
+//     elevated but no SLA has been missed yet. Warmer amber tint.
+//   • low-coverage                     → INFORMATIONAL. Coverage
+//     is below target but it's a marathon, not a sprint. Cool
+//     info-blue tint that reads as "here's the long road."
+//   • readiness-check                  → CALM. Nothing urgent;
+//     suggest a low-cost confirmation action. Brand-default tint
+//     ties this state to the rest of the dashboard's resting
+//     warmth.
+//
+// The glow is always a corner radial wash (240px) anchored at
+// the upper-right — opposite to MetricCard's upper-left glow,
+// so the eye reads "this card has its OWN visual identity, not
+// a sibling tile." Static, no breath; the mast-head is the only
+// breathing surface.
+const URGENCY_GLOW_BY_ID: Record<NextBestAction["id"], string> = {
+    "overdue-evidence":
+        "before:bg-[radial-gradient(circle_240px_at_95%_5%,var(--bg-error)_0%,transparent_55%)]",
+    "overdue-tasks":
+        "before:bg-[radial-gradient(circle_240px_at_95%_5%,var(--bg-error)_0%,transparent_55%)]",
+    "high-risks":
+        "before:bg-[radial-gradient(circle_240px_at_95%_5%,var(--bg-warning)_0%,transparent_55%)]",
+    "low-coverage":
+        "before:bg-[radial-gradient(circle_240px_at_95%_5%,var(--bg-info)_0%,transparent_55%)]",
+    "readiness-check":
+        "before:bg-[radial-gradient(circle_240px_at_95%_5%,var(--brand-subtle)_0%,transparent_55%)]",
+};
 
 export {
     resolveNextBestAction,
@@ -78,9 +117,20 @@ export function NextBestActionCard({
 
     return (
         <Card
-            className={className}
+            className={cn(
+                "relative isolate overflow-hidden",
+                // R17-PR10 — urgency-tinted corner glow. The radial
+                // wash colour comes from the action.id → token map
+                // above; the layering classes are stable across all
+                // ids so the only thing that varies between urgency
+                // tiers is the tone.
+                "before:content-[''] before:absolute before:inset-0 before:-z-10 before:pointer-events-none",
+                URGENCY_GLOW_BY_ID[action.id],
+                className,
+            )}
             data-next-best-action
             data-next-best-action-id={action.id}
+            data-next-best-action-urgency-glow
         >
             <Heading level={3} className="mb-1">
                 {action.label}
