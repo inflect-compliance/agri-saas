@@ -242,18 +242,18 @@ describe("R20-PR-A — Liquid Elegance foundation", () => {
         it("--btn-carbon-overlay still exists", () => {
             expect(TOKENS).toMatch(/--btn-carbon-overlay:/);
         });
-        it("--btn-carbon-bevel still exists", () => {
-            expect(TOKENS).toMatch(/--btn-carbon-bevel:/);
+        it("--btn-glass-inner still exists", () => {
+            expect(TOKENS).toMatch(/--btn-glass-inner:/);
         });
-        it("--btn-carbon-border still exists", () => {
-            expect(TOKENS).toMatch(/--btn-carbon-border:/);
+        it("--btn-glass-edge still exists", () => {
+            expect(TOKENS).toMatch(/--btn-glass-edge:/);
         });
         it("--btn-carbon-grain still exists", () => {
             expect(TOKENS).toMatch(/--btn-carbon-grain:/);
         });
-        it("button-variants.ts still exports carbonSurface + carbonOnHover + carbonStates", () => {
-            expect(BUTTON_VARIANTS).toMatch(/const\s+carbonSurface\s*=\s*\[/);
-            expect(BUTTON_VARIANTS).toMatch(/const\s+carbonOnHover\s*=\s*\[/);
+        it("button-variants.ts still exports glassSurface + glassOnHover + carbonStates", () => {
+            expect(BUTTON_VARIANTS).toMatch(/const\s+glassSurface\s*=\s*\[/);
+            expect(BUTTON_VARIANTS).toMatch(/const\s+glassOnHover\s*=\s*\[/);
             expect(BUTTON_VARIANTS).toMatch(/const\s+carbonStates\s*=\s*\[/);
         });
     });

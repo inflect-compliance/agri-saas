@@ -55,14 +55,16 @@ describe('Button primitive', () => {
     it('uses semantic tokens for secondary variant', () => {
         expect(variantsSrc).toContain('bg-bg-default');
         expect(variantsSrc).toContain('text-content-emphasis');
-        // R19-PR-B — `secondary` now takes the shared liquid-carbon
-        // surface recipe, so its border is the `--btn-carbon-border`
-        // token (the meniscus edge), NOT `border-border-subtle`.
-        // Still token-backed + semantic — the intent of this test
-        // ("no hex literals on the secondary variant") holds; the
-        // specific token changed.
-        expect(variantsSrc).toContain('border-[var(--btn-carbon-border)]');
-        expect(variantsSrc).toMatch(/secondary:\s*\[[\s\S]*?\.\.\.carbonSurface/);
+        // R24-PR-B — `secondary` now takes the shared liquid-glass
+        // surface recipe (which replaces R19-PR-B's carbonSurface).
+        // The literal border is `border-transparent` because glass
+        // paints its edge via the `--btn-glass-edge` gradient stroke,
+        // not a CSS `border` (gradient borders aren't possible
+        // directly — they'd require mask-composite, which the recipe
+        // owns separately). Intent of this test ("no hex literals")
+        // holds; both the surface recipe and the edge mechanism
+        // changed across the carbon → glass material swap.
+        expect(variantsSrc).toMatch(/secondary:\s*\[[\s\S]*?\.\.\.glassSurface/);
     });
 
     it('uses semantic tokens for ghost variant', () => {

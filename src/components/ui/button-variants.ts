@@ -30,24 +30,64 @@ import { cva } from "class-variance-authority";
  * Spread into a variant's class array AFTER the variant's own
  * `bg-` / `hover:` classes.
  */
-const carbonSurface = [
-  "border-[var(--btn-carbon-border)]",
-  "shadow-[var(--btn-carbon-bevel)]",
-  // R20-PR-D — state-conditional ambient elevation. The REST shadow
-  // stays bevel-only (the R19 contract — solid carbon at rest); on
-  // press the ambient COLLAPSES into one tight stop so the surface
-  // reads as depressed; on focus the ambient EXPANDS with a brand-
-  // tinted ring so the surface reads as deliberately raised. Each
-  // override is a comma-composed `bevel,ambient-*` so the inset
-  // highlights survive (bevel insets are the volume FROM the
-  // inside; ambient is the volume FROM the outside — both are
-  // wanted in every state). Hover stays unannotated because PR-B's
-  // aura wash on `::after` is the hover indicator; pinning a
-  // second shadow there would over-compete with the aura.
-  "active:shadow-[var(--btn-carbon-bevel),var(--btn-ambient-press)]",
-  "focus-visible:shadow-[var(--btn-carbon-bevel),var(--btn-ambient-focus)]",
+/**
+ * R24-PR-B — liquid-glass surface recipe.
+ *
+ * Replaces R19-PR-B's `carbonSurface` for the solid-fill variants
+ * (`primary`, `secondary`, `destructive`). Same composition seams
+ * (R19's `::before` depth + R20's `::after` finish), new MATERIAL
+ * inside. The R24-PR-A token suite (`--btn-glass-*`) is the
+ * underlying surface; this recipe layers it.
+ *
+ *   • `border-[var(--btn-glass-edge)]` — REPLACED with a 1px
+ *     gradient stroke painted as a `background-image` on a thin
+ *     mask, not a CSS `border`. Borders can't be gradients
+ *     directly; the recipe paints the edge sheen via the variant's
+ *     `bg-[image:...]` stack instead, and zeroes the literal border.
+ *
+ *   • `backdrop-blur-[var(--btn-glass-blur)]` — the translucent
+ *     base reads as glass only when the underlying page tone is
+ *     softly blurred. 8px (the R24-PR-A token default) is
+ *     restrained — wider blurs feel "ground-glass" / heavy.
+ *
+ *   • `bg-[image:var(--btn-glass-tint)]` — the alpha-tinted base
+ *     FILL. Variants compose their own colour on top by spreading
+ *     a second gradient before this one (primary brand-tinted,
+ *     secondary neutral, destructive red-tinted).
+ *
+ *   • `shadow-[var(--btn-glass-inner),var(--btn-glass-shadow)]` —
+ *     inner highlight + outer drop, comma-composed. R20-PR-D's
+ *     state-conditional ambient elevation pattern is preserved:
+ *     on press the ambient collapses (depressed); on focus the
+ *     ambient expands with a brand-tinted ring (raised). The
+ *     glass shadow replaces the carbon bevel as the rest-state
+ *     volume cue.
+ *
+ *   • `::before` depth-overlay — the R19 layer is RETAINED but the
+ *     content swaps: instead of the carbon grain + light pool, the
+ *     `::before` paints a subtle radial inner-glow that brightens
+ *     the top half of the glass (where the light enters). Same
+ *     `inset-0` + `rounded-[inherit]` + `pointer-events-none`
+ *     positioning.
+ */
+const glassSurface = [
+  "border-transparent",
+  "backdrop-blur-[var(--btn-glass-blur)]",
+  "bg-[image:var(--btn-glass-tint)]",
+  "shadow-[var(--btn-glass-inner),var(--btn-glass-shadow)]",
+  // R20-PR-D — state-conditional ambient elevation (preserved across
+  // the R24 material swap). REST = inner+shadow only. PRESS = ambient
+  // collapses to one tight stop (depressed). FOCUS = ambient expands
+  // with the brand-tinted halo (raised + signposted). Hover stays
+  // unannotated because R20-PR-B's aura on `::after` is the hover
+  // indicator; a second shadow would over-compete.
+  "active:shadow-[var(--btn-glass-inner),var(--btn-ambient-press)]",
+  "focus-visible:shadow-[var(--btn-glass-inner),var(--btn-ambient-focus)]",
+  // R19 `::before` depth seam — retained, content swapped. Instead of
+  // the carbon grain + light pool, R24 paints a subtle inner radial
+  // glow that brightens the top half of the glass.
   "before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none",
-  "before:bg-[image:var(--btn-carbon-grain),var(--btn-carbon-overlay)]",
+  "before:bg-[radial-gradient(ellipse_140%_60%_at_50%_0%,rgba(255,255,255,0.10)_0%,rgba(255,255,255,0.00)_70%)]",
 ];
 
 /**
@@ -78,10 +118,27 @@ const carbonSurface = [
  * transition (the end state — carbon visible on hover — still
  * holds, it just arrives instantly).
  */
-const carbonOnHover = [
+/**
+ * R24-PR-B — liquid-glass on-hover recipe (transparent variants).
+ *
+ * Replaces R19-PR-C's `carbonOnHover` for `ghost` and
+ * `destructive-outline`. At rest, transparent variants stay flat
+ * + quiet (their `bg-transparent` has no surface to pool light
+ * on). On hover the glass material emerges: the `::before` lifts
+ * from opacity-0 to opacity-100, carrying the glass inner-glow +
+ * tint + shadow as ONE smooth fade.
+ *
+ * Border deliberately untouched — `ghost` stays borderless,
+ * `destructive-outline` keeps its red danger edge. Glass emerges
+ * as DEPTH, not as a new outline (same R19 contract).
+ *
+ * `before:transition-opacity` makes the glass emerge as a smooth
+ * fade rather than a snap; `motion-reduce` drops the transition.
+ */
+const glassOnHover = [
   "before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none",
-  "before:bg-[image:var(--btn-carbon-grain),var(--btn-carbon-overlay)]",
-  "before:shadow-[var(--btn-carbon-bevel)]",
+  "before:bg-[image:var(--btn-glass-tint)]",
+  "before:shadow-[var(--btn-glass-inner),var(--btn-glass-shadow)]",
   "before:opacity-0 before:transition-opacity before:duration-150",
   "hover:before:opacity-100",
   "motion-reduce:before:transition-none",
@@ -378,7 +435,7 @@ export const buttonVariants = cva(
         primary: [
           "bg-[var(--brand-emphasis)] text-white",
           "hover:bg-[var(--brand-default)]",
-          ...carbonSurface,
+          ...glassSurface,
           // R20-PR-B — iridescent meniscus always visible (material
           // finish), primary aura halo on hover (warm hover lift).
           ...iridescentEdge,
@@ -387,7 +444,7 @@ export const buttonVariants = cva(
         secondary: [
           "bg-bg-default text-content-emphasis",
           "hover:bg-bg-muted",
-          ...carbonSurface,
+          ...glassSurface,
           // R20-PR-B — neutral aura on hover. No iridescent edge —
           // secondary is quiet by intent; iridescent on a muted
           // surface would over-claim attention.
@@ -400,18 +457,18 @@ export const buttonVariants = cva(
           // rides ::before; the glass effect rides the hover fill.
           "bg-transparent border-transparent text-content-default",
           "hover:bg-bg-muted/75 hover:text-content-emphasis",
-          ...carbonOnHover,
+          ...glassOnHover,
           ...ghostGlass,
         ],
         destructive: [
           "bg-bg-error-emphasis text-white",
           "hover:brightness-110",
-          ...carbonSurface,
+          ...glassSurface,
         ],
         "destructive-outline": [
           "bg-transparent border-border-error text-content-error",
           "hover:bg-bg-error hover:text-content-error",
-          ...carbonOnHover,
+          ...glassOnHover,
         ],
       },
       size: {

@@ -142,9 +142,9 @@ describe('R20-PR-B — Liquid edges', () => {
     });
 
     describe('variant wiring', () => {
-        it('primary carries iridescentEdge + auraPrimary on top of carbonSurface', () => {
+        it('primary carries iridescentEdge + auraPrimary on top of glassSurface', () => {
             const body = variantBlock('primary');
-            expect(body).toMatch(/\.\.\.carbonSurface/);
+            expect(body).toMatch(/\.\.\.glassSurface/);
             expect(body).toMatch(/\.\.\.iridescentEdge/);
             expect(body).toMatch(/\.\.\.auraPrimary/);
         });
@@ -181,12 +181,12 @@ describe('R20-PR-B — Liquid edges', () => {
             // The interaction-state material (carbonStates) stays
             // in the base; the surface recipes still ride their
             // existing variants.
-            expect(variantBlock('primary')).toMatch(/\.\.\.carbonSurface/);
-            expect(variantBlock('secondary')).toMatch(/\.\.\.carbonSurface/);
-            expect(variantBlock('destructive')).toMatch(/\.\.\.carbonSurface/);
-            expect(variantBlock('ghost')).toMatch(/\.\.\.carbonOnHover/);
+            expect(variantBlock('primary')).toMatch(/\.\.\.glassSurface/);
+            expect(variantBlock('secondary')).toMatch(/\.\.\.glassSurface/);
+            expect(variantBlock('destructive')).toMatch(/\.\.\.glassSurface/);
+            expect(variantBlock('ghost')).toMatch(/\.\.\.glassOnHover/);
             expect(variantBlock('destructive-outline')).toMatch(
-                /\.\.\.carbonOnHover/,
+                /\.\.\.glassOnHover/,
             );
         });
     });

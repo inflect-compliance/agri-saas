@@ -323,11 +323,17 @@
    *     the page surface (so it doesn't read as "floating off"). Two
    *     stops: a tight inner shadow + a soft outer bloom; lower alpha
    *     than carbon because glass shouldn't cast a heavy shadow. */
-  --btn-glass-tint: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
-  --btn-glass-blur: 8px;
-  --btn-glass-edge: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.08) 45%, rgba(0, 0, 0, 0.10) 100%);
-  --btn-glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
-  --btn-glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.10);
+  /* R24-PR-B alpha calibration — the R24-PR-A defaults (tint 0.07,
+   * inner 0.12) tested too subtle on the dark METRO navy surface to
+   * read as glass at all. Bumped to the alpha range native OS
+   * vibrancy materials use (tint 0.18–0.28, inner highlight 0.28,
+   * blur 12px). The translucency now clearly communicates "glass
+   * surface" rather than "navy panel with a faint highlight". */
+  --btn-glass-tint: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 100%);
+  --btn-glass-blur: 12px;
+  --btn-glass-edge: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.16) 45%, rgba(0, 0, 0, 0.18) 100%);
+  --btn-glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1px 0 rgba(0, 0, 0, 0.24);
+  --btn-glass-shadow: 0 1px 3px rgba(0, 0, 0, 0.28), 0 6px 14px rgba(0, 0, 0, 0.18);
 
   /* ── Transitions ───────────────────────────────────────────────── */
   --duration-fast:    100ms;
@@ -699,11 +705,16 @@
    * highlight + outer shadow drop their alphas (light surfaces need
    * less depth contrast). Blur radius matches the dark theme — it's
    * a perceptual constant, not a brightness-dependent value. */
-  --btn-glass-tint: linear-gradient(180deg, rgba(255, 252, 248, 0.42) 0%, rgba(255, 252, 248, 0.20) 100%);
-  --btn-glass-blur: 8px;
-  --btn-glass-edge: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.18) 45%, rgba(60, 50, 40, 0.12) 100%);
-  --btn-glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.60), inset 0 -1px 0 rgba(60, 50, 40, 0.08);
-  --btn-glass-shadow: 0 1px 2px rgba(60, 50, 40, 0.08), 0 4px 10px rgba(60, 50, 40, 0.05);
+  /* R24-PR-B alpha calibration — light theme tint stays high (cream
+   * surfaces need more material density than dark to read as glass)
+   * but inner highlight + outer shadow bumped in proportion so the
+   * light + dark experiences are equally visible. Blur matches at
+   * 12px. */
+  --btn-glass-tint: linear-gradient(180deg, rgba(255, 252, 248, 0.55) 0%, rgba(255, 252, 248, 0.28) 100%);
+  --btn-glass-blur: 12px;
+  --btn-glass-edge: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.26) 45%, rgba(60, 50, 40, 0.18) 100%);
+  --btn-glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.80), inset 0 -1px 0 rgba(60, 50, 40, 0.14);
+  --btn-glass-shadow: 0 1px 3px rgba(60, 50, 40, 0.14), 0 6px 14px rgba(60, 50, 40, 0.10);
 
   /* ── Sidebar band glow (R13-PR2) ───────────────────────────────── */
   /*

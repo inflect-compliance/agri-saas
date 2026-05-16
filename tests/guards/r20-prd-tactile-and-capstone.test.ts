@@ -13,7 +13,7 @@
  *      lives in the cva BASE so every variant inherits the
  *      tactile direction (the press shrinks AND descends).
  *
- *   2. State-conditional ambient elevation in `carbonSurface`:
+ *   2. State-conditional ambient elevation in `glassSurface`:
  *      - REST stays bevel-only (R19 contract — locked by
  *        r19-pra-carbon-surface.test.ts).
  *      - press composes `bevel,ambient-press` so the surface
@@ -109,34 +109,34 @@ describe('R20-PR-D — Tactile press', () => {
         });
     });
 
-    describe('state-conditional ambient elevation in `carbonSurface`', () => {
+    describe('state-conditional ambient elevation in `glassSurface`', () => {
         it('REST shadow is bevel-only — R19 contract preserved', () => {
             // The R19-PR-A ratchet asserts this directly; we
             // assert it again from R20's vantage so a future PR
             // that adds rest ambient breaks BOTH ratchets and the
             // intent of either is unmissable.
-            expect(recipeBlock('carbonSurface')).toMatch(
-                /shadow-\[var\(--btn-carbon-bevel\)\]/,
+            expect(recipeBlock('glassSurface')).toMatch(
+                /shadow-\[var\(--btn-glass-inner\),var\(--btn-glass-shadow\)\]/,
             );
         });
 
         it('press composes bevel,ambient-press — the surface depresses', () => {
-            expect(recipeBlock('carbonSurface')).toMatch(
-                /active:shadow-\[var\(--btn-carbon-bevel\),var\(--btn-ambient-press\)\]/,
+            expect(recipeBlock('glassSurface')).toMatch(
+                /active:shadow-\[var\(--btn-glass-inner\),var\(--btn-ambient-press\)\]/,
             );
         });
 
         it('focus composes bevel,ambient-focus — the surface lifts with the brand ring', () => {
-            expect(recipeBlock('carbonSurface')).toMatch(
-                /focus-visible:shadow-\[var\(--btn-carbon-bevel\),var\(--btn-ambient-focus\)\]/,
+            expect(recipeBlock('glassSurface')).toMatch(
+                /focus-visible:shadow-\[var\(--btn-glass-inner\),var\(--btn-ambient-focus\)\]/,
             );
         });
 
-        it('hover is NOT annotated in carbonSurface — PR-B aura is the hover indicator', () => {
+        it('hover is NOT annotated in glassSurface — PR-B aura is the hover indicator', () => {
             // Adding a hover shadow here would compete with the
             // aura wash painted on `::after` by PR-B. Two hover
             // signals would over-claim the moment.
-            expect(recipeBlock('carbonSurface')).not.toMatch(
+            expect(recipeBlock('glassSurface')).not.toMatch(
                 /hover:shadow-/,
             );
         });
@@ -145,7 +145,7 @@ describe('R20-PR-D — Tactile press', () => {
             // Same defensive guard as for translate — if a future
             // PR moves ambient to hover (e.g. for a "lift on hover"
             // effect), this fires first.
-            for (const recipe of ['carbonSurface', 'iridescentEdge', 'auraPrimary', 'auraNeutral', 'ghostGlass']) {
+            for (const recipe of ['glassSurface', 'iridescentEdge', 'auraPrimary', 'auraNeutral', 'ghostGlass']) {
                 const body = recipeBlock(recipe);
                 // Allow `hover:after:shadow-*` (the PR-B aura
                 // route — `after:` between `hover:` and `shadow-`).
@@ -231,7 +231,7 @@ describe('R20 capstone — the Liquid Elegance system is whole', () => {
         // Co-presence assertions — the R19 ratchets are still the
         // substantive lock for each piece. We just check from R20's
         // vantage that R20 didn't accidentally strip anything.
-        for (const name of ['carbonSurface', 'carbonOnHover', 'carbonStates']) {
+        for (const name of ['glassSurface', 'glassOnHover', 'carbonStates']) {
             it(`${name} still exists`, () => {
                 expect(VARIANTS).toMatch(
                     new RegExp(`const\\s+${name}\\s*=\\s*\\[`),
@@ -240,8 +240,8 @@ describe('R20 capstone — the Liquid Elegance system is whole', () => {
         }
         for (const token of [
             '--btn-carbon-overlay',
-            '--btn-carbon-bevel',
-            '--btn-carbon-border',
+            '--btn-glass-inner',
+            '--btn-glass-edge',
             '--btn-carbon-grain',
         ]) {
             it(`${token} still exists`, () => {

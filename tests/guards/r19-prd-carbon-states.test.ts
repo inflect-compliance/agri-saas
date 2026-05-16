@@ -2,7 +2,7 @@
  * R19-PR-D — carbon interaction states + the Roadmap-19 capstone.
  *
  * R19-PR-A/B/C built the liquid-carbon SURFACE — tokens, the
- * `carbonSurface` recipe (solid fills), the `carbonOnHover` recipe
+ * `glassSurface` recipe (solid fills), the `glassOnHover` recipe
  * (transparent fills), the micro-grain layer. PR-D closes the
  * roadmap by making the three INTERACTION states read as the same
  * material, and locks the whole R19 system as a capstone.
@@ -33,11 +33,11 @@
  * Part 2 — R19 capstone (the full system is whole):
  *
  *   8. All four `--btn-carbon-*` tokens are defined in tokens.css.
- *   9. Both surface recipes exist (`carbonSurface`,
- *      `carbonOnHover`).
+ *   9. Both surface recipes exist (`glassSurface`,
+ *      `glassOnHover`).
  *  10. Every one of the five variants is carboned — the three
- *      solid fills via `...carbonSurface`, the two transparent
- *      fills via `...carbonOnHover`. No variant is left flat.
+ *      solid fills via `...glassSurface`, the two transparent
+ *      fills via `...glassOnHover`. No variant is left flat.
  *  11. The liquid-carbon system is documented in
  *      `docs/ui-buttons.md`.
  */
@@ -143,29 +143,29 @@ describe('R19 capstone — the liquid-carbon system is whole', () => {
     it('all four --btn-carbon-* tokens are defined in tokens.css', () => {
         for (const token of [
             '--btn-carbon-overlay',
-            '--btn-carbon-bevel',
-            '--btn-carbon-border',
+            '--btn-glass-inner',
+            '--btn-glass-edge',
             '--btn-carbon-grain',
         ]) {
             expect(TOKENS).toMatch(new RegExp(`${token}:`));
         }
     });
 
-    it('both surface recipes exist (`carbonSurface` + `carbonOnHover`)', () => {
-        expect(VARIANTS).toMatch(/const\s+carbonSurface\s*=\s*\[/);
-        expect(VARIANTS).toMatch(/const\s+carbonOnHover\s*=\s*\[/);
+    it('both surface recipes exist (`glassSurface` + `glassOnHover`)', () => {
+        expect(VARIANTS).toMatch(/const\s+glassSurface\s*=\s*\[/);
+        expect(VARIANTS).toMatch(/const\s+glassOnHover\s*=\s*\[/);
     });
 
-    it('every variant is carboned — solid fills via carbonSurface, transparent via carbonOnHover', () => {
+    it('every variant is carboned — solid fills via glassSurface, transparent via glassOnHover', () => {
         // The three solid-background variants pool light at rest.
         for (const v of ['primary', 'secondary', 'destructive']) {
-            expect(variantBlock(v)).toMatch(/\.\.\.carbonSurface/);
-            expect(variantBlock(v)).not.toMatch(/\.\.\.carbonOnHover/);
+            expect(variantBlock(v)).toMatch(/\.\.\.glassSurface/);
+            expect(variantBlock(v)).not.toMatch(/\.\.\.glassOnHover/);
         }
         // The two transparent variants gain carbon on hover/focus.
         for (const v of ['ghost', 'destructive-outline']) {
-            expect(variantBlock(v)).toMatch(/\.\.\.carbonOnHover/);
-            expect(variantBlock(v)).not.toMatch(/\.\.\.carbonSurface/);
+            expect(variantBlock(v)).toMatch(/\.\.\.glassOnHover/);
+            expect(variantBlock(v)).not.toMatch(/\.\.\.glassSurface/);
         }
     });
 
@@ -173,8 +173,8 @@ describe('R19 capstone — the liquid-carbon system is whole', () => {
         // The capstone doc section — a future contributor must be
         // able to find the carbon system from the buttons guide.
         expect(UI_BUTTONS_DOC).toMatch(/liquid.carbon/i);
-        expect(UI_BUTTONS_DOC).toMatch(/carbonSurface/);
-        expect(UI_BUTTONS_DOC).toMatch(/carbonOnHover/);
+        expect(UI_BUTTONS_DOC).toMatch(/(?:carbon|glass)Surface/);
+        expect(UI_BUTTONS_DOC).toMatch(/(?:carbon|glass)OnHover/);
         expect(UI_BUTTONS_DOC).toMatch(/carbonStates/);
     });
 });
