@@ -272,6 +272,63 @@
    * wears. */
   --ctrl-edge-focus: 0 0 0 3px rgba(255, 205, 17, 0.20), 0 1px 2px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.16);
 
+  /* ── R24 liquid-glass button material (DARK theme) ──────────────────
+   *
+   * R19–R22 built the SOLID/machined "carved carbon" button. R24 swaps
+   * the MATERIAL — from carbon to glass — while reusing the existing
+   * composition seams (R19's `::before` depth + R20's `::after` finish).
+   * Architecture lives at `src/components/ui/button-variants.ts`; this
+   * block ships the underlying token surface so the cva recipes have
+   * something to layer.
+   *
+   * External reference: callstack/liquid-glass. Portable techniques:
+   *   - alpha-tinted backdrop + `backdrop-filter: blur(...)` for the
+   *     translucent base
+   *   - 1px gradient edge-sheen for the meniscus catching light
+   *   - layered inner-glow + outer-rim composition
+   * NOT portable (and deliberately rejected for IC's web stack):
+   *   - SwiftUI / iOS Material API bridges
+   *   - native vibrancy rendering hooks
+   *   - React Native LiquidGlass wrapper
+   *
+   * Five tokens, one per layer of the glass material:
+   *
+   *   --btn-glass-tint — the alpha-tinted base FILL the surface paints.
+   *     Holds the translucent material colour. Dark theme uses cool
+   *     gray-white at low alpha so the underlying page tone shows
+   *     through; light theme inverts to a warm darker tint (defined in
+   *     the `:root.light` block below). Variants COMPOSE this with
+   *     their own colour (primary brand-tinted, secondary neutral,
+   *     destructive red-tinted) by stacking gradients in the cva.
+   *
+   *   --btn-glass-blur — the backdrop-filter blur radius. Restrained
+   *     by intent — 8px gives the surface a watery softness without
+   *     the visually noisy "ground-glass" feel of larger blurs.
+   *     Performance-bounded by PR-F's hardening pass (interactive
+   *     surfaces only; not list-row buttons).
+   *
+   *   --btn-glass-edge — the 1px gradient stroke painted via `::after`
+   *     mask-composite (replaces R20's `--btn-iridescent-gradient`
+   *     when the variant is glass-mode). Cooler tint than the carbon
+   *     iridescent so it reads as "light catching a glass edge" not
+   *     "rainbow finish". Top-left bright, bottom-right shadowed —
+   *     a directional cue that the glass has volume.
+   *
+   *   --btn-glass-inner — the inner highlight that appears on the top
+   *     edge of the glass (specular highlight where the surface meets
+   *     ambient light). 1px inset rgba-white at low alpha; lives in
+   *     the same `::before` shadow channel as R19's bevel.
+   *
+   *   --btn-glass-shadow — the outer drop that anchors the glass to
+   *     the page surface (so it doesn't read as "floating off"). Two
+   *     stops: a tight inner shadow + a soft outer bloom; lower alpha
+   *     than carbon because glass shouldn't cast a heavy shadow. */
+  --btn-glass-tint: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
+  --btn-glass-blur: 8px;
+  --btn-glass-edge: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.08) 45%, rgba(0, 0, 0, 0.10) 100%);
+  --btn-glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  --btn-glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.10);
+
   /* ── Transitions ───────────────────────────────────────────────── */
   --duration-fast:    100ms;
   --duration-default: 150ms;
@@ -630,6 +687,23 @@
    * subtle on cream surfaces). See the dark-theme block above for
    * the rationale. */
   --ctrl-edge-focus: 0 0 0 3px rgba(208, 74, 2, 0.20), 0 1px 2px rgba(60, 50, 40, 0.10), 0 2px 6px rgba(60, 50, 40, 0.06);
+
+  /* ── R24 liquid-glass button material (LIGHT theme) ─────────────────
+   *
+   * Light-theme glass tokens — mirror of the dark-theme R24 block above
+   * with inverted alphas and warm-graphite tints. The tint base is a
+   * cool-white wash (not pure white) so the glass has a subtle blue
+   * undertone against the cream `--bg-default` (#F8F6F3); pure white
+   * would dissolve into the page. Edge sheen uses warm-graphite for
+   * the shadowed stop instead of dark-theme's near-black. Inner
+   * highlight + outer shadow drop their alphas (light surfaces need
+   * less depth contrast). Blur radius matches the dark theme — it's
+   * a perceptual constant, not a brightness-dependent value. */
+  --btn-glass-tint: linear-gradient(180deg, rgba(255, 252, 248, 0.42) 0%, rgba(255, 252, 248, 0.20) 100%);
+  --btn-glass-blur: 8px;
+  --btn-glass-edge: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.18) 45%, rgba(60, 50, 40, 0.12) 100%);
+  --btn-glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.60), inset 0 -1px 0 rgba(60, 50, 40, 0.08);
+  --btn-glass-shadow: 0 1px 2px rgba(60, 50, 40, 0.08), 0 4px 10px rgba(60, 50, 40, 0.05);
 
   /* ── Sidebar band glow (R13-PR2) ───────────────────────────────── */
   /*
