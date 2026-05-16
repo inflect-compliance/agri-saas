@@ -74,7 +74,9 @@ import {
 /**
  * A KPI's filter shortcut. The page provides `apply` (called when
  * the user clicks the card) and `isActive` (called on every filter-
- * state change to compute the selected affordance).
+ * state change to compute the selected affordance). An optional
+ * `clear` lets the KPI scope its teardown to its own keys; when
+ * omitted the toggle falls back to `ctx.clearAll()`.
  */
 export interface KpiFilterDef<TKpiId extends string = string> {
     /** Stable id of this KPI. Used for selected-state tracking and as
@@ -88,6 +90,20 @@ export interface KpiFilterDef<TKpiId extends string = string> {
      * current filter state. The hook calls this on every re-render;
      * keep the implementation pure + cheap (a few field reads). */
     isActive: (state: FilterState) => boolean;
+    /**
+     * R23-PR-C — granular teardown. When the user toggles OFF the
+     * active KPI, the hook calls this callback so the KPI only
+     * unwinds its own filter keys, leaving sibling state (search,
+     * other dropdown filters, sort) intact.
+     *
+     * Default behaviour (omitted): falls back to `ctx.clearAll()`,
+     * which is correct for an "all/total" KPI whose target state IS
+     * "no filters" — clearing IS the deactivation. For KPIs that
+     * own specific keys (status=OPEN, severity=CRITICAL, …), provide
+     * a `clear` that only removes those keys (e.g.
+     * `ctx.removeAll('status')`).
+     */
+    clear?: (ctx: FilterContextValue) => void;
 }
 
 export interface UseKpiFilterReturn<TKpiId extends string> {
@@ -129,12 +145,17 @@ export function useKpiFilter<TKpiId extends string>(
     const toggle = useCallback(
         (id: TKpiId) => {
             if (activeKpiId === id) {
-                ctx.clearAll();
+                const def = defs.find((d) => d.id === id);
+                if (def?.clear) {
+                    def.clear(ctx);
+                } else {
+                    ctx.clearAll();
+                }
                 return;
             }
             apply(id);
         },
-        [activeKpiId, apply, ctx],
+        [activeKpiId, apply, defs, ctx],
     );
 
     const clear = useCallback(() => {

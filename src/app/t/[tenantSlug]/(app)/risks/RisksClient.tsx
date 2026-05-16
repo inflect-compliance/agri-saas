@@ -283,15 +283,23 @@ function RisksPageInner({
     const kpiDefs: ReadonlyArray<KpiFilterDef<RiskKpiId>> = useMemo(
         () => [
             {
+                // "Total" — its target state IS "no filters"; clearing
+                // is the deactivation. The optional `clear` is omitted
+                // so the hook falls back to ctx.clearAll().
                 id: 'total',
                 apply: (ctx) => ctx.clearAll(),
                 isActive: (state) => Object.keys(state).length === 0,
             },
             {
+                // "Open" — owns the `status` key only. PR-C `clear`
+                // scopes teardown so toggling off doesn't disturb a
+                // search query or sibling category/severity filter
+                // the user may have layered on.
                 id: 'open',
                 apply: (ctx) => ctx.set('status', 'OPEN'),
                 isActive: (state) =>
                     (state.status ?? []).includes('OPEN'),
+                clear: (ctx) => ctx.removeAll('status'),
             },
         ],
         [],
