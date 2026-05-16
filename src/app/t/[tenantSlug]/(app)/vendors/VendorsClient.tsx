@@ -26,6 +26,8 @@ import { ListPageShell } from '@/components/layout/ListPageShell';
 import { toApiSearchParams } from '@/lib/filters/url-sync';
 import { useHydratedNow } from '@/lib/hooks/use-hydrated-now';
 import { buildVendorFilters, VENDOR_FILTER_KEYS } from './filter-defs';
+import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
+import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
 import { Heading, textLinkVariants } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 
@@ -117,6 +119,51 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
     const vendors = vendorsQuery.data?.rows ?? [];
     const truncated = vendorsQuery.data?.truncated ?? false;
     const liveFilters = useMemo(() => buildVendorFilters(), []);
+
+    // ─── R23-PR-F — KPI definitions for the Vendors page ───
+    type VendorKpiId = 'total' | 'active' | 'critical' | 'reviewOverdue';
+    // guardrail-ignore: KPI counts across the loaded page, not a refilter.
+    const totalVendors = vendors.length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const activeVendors = vendors.filter((v: any) => v.status === 'ACTIVE').length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const criticalVendors = vendors.filter(
+        (v: any) => v.criticality === 'CRITICAL',
+    ).length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const reviewOverdueVendors = vendors.filter((v: any) =>
+        isOverdue(v.nextReviewAt ?? null, hydratedNow),
+    ).length;
+    const vendorKpiDefs: ReadonlyArray<KpiFilterDef<VendorKpiId>> = useMemo(
+        () => [
+            {
+                id: 'total',
+                apply: (ctx) => ctx.clearAll(),
+                isActive: (s) => Object.keys(s).length === 0,
+            },
+            {
+                id: 'active',
+                apply: (ctx) => ctx.set('status', 'ACTIVE'),
+                isActive: (s) => (s.status ?? []).includes('ACTIVE'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+            {
+                id: 'critical',
+                apply: (ctx) => ctx.set('criticality', 'CRITICAL'),
+                isActive: (s) => (s.criticality ?? []).includes('CRITICAL'),
+                clear: (ctx) => ctx.removeAll('criticality'),
+            },
+            {
+                id: 'reviewOverdue',
+                apply: (ctx) => ctx.set('reviewDue', 'overdue'),
+                isActive: (s) => (s.reviewDue ?? []).includes('overdue'),
+                clear: (ctx) => ctx.removeAll('reviewDue'),
+            },
+        ],
+        [],
+    );
+    const { activeKpiId: activeVendorKpi, toggle: toggleVendorKpi } =
+        useKpiFilter(vendorKpiDefs);
 
     // R10-PR7 — column-visibility gear.
     const vendorColumnList = useMemo(
@@ -240,7 +287,37 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                 </div>
             </ListPageShell.Header>
 
-            <ListPageShell.Filters>
+            <ListPageShell.Filters className="space-y-section">
+                {/* R23-PR-F — KPI strip. */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
+                    <KpiFilterCard
+                        label="Total vendors"
+                        value={totalVendors}
+                        onClick={() => toggleVendorKpi('total')}
+                        selected={activeVendorKpi === 'total'}
+                    />
+                    <KpiFilterCard
+                        label="Active"
+                        value={activeVendors}
+                        tone="success"
+                        onClick={() => toggleVendorKpi('active')}
+                        selected={activeVendorKpi === 'active'}
+                    />
+                    <KpiFilterCard
+                        label="Critical"
+                        value={criticalVendors}
+                        tone={criticalVendors > 0 ? 'critical' : 'default'}
+                        onClick={() => toggleVendorKpi('critical')}
+                        selected={activeVendorKpi === 'critical'}
+                    />
+                    <KpiFilterCard
+                        label="Review overdue"
+                        value={reviewOverdueVendors}
+                        tone={reviewOverdueVendors > 0 ? 'critical' : 'default'}
+                        onClick={() => toggleVendorKpi('reviewOverdue')}
+                        selected={activeVendorKpi === 'reviewOverdue'}
+                    />
+                </div>
                 <FilterToolbar
                     filters={liveFilters}
                     actions={columnsDropdown}

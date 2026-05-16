@@ -19,6 +19,8 @@ import {
     useFilters,
 } from '@/components/ui/filter';
 import { EntityListPage } from '@/components/layout/EntityListPage';
+import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
+import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
@@ -151,6 +153,49 @@ function PoliciesPageInner({
         () => buildPolicyFilters(policies),
         [policies],
     );
+
+    // ─── R23-PR-F — KPI definitions for the Policies page ───
+    type PolicyKpiId = 'total' | 'draft' | 'inReview' | 'approved';
+    // guardrail-ignore: KPI counts across the loaded page, not a refilter.
+    const totalPolicies = policies.length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const draftPolicies = policies.filter((p: any) => p.status === 'DRAFT').length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const inReviewPolicies = policies.filter((p: any) => p.status === 'IN_REVIEW').length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const approvedPolicies = policies.filter(
+        (p: any) => p.status === 'APPROVED' || p.status === 'PUBLISHED',
+    ).length;
+    const policyKpiDefs: ReadonlyArray<KpiFilterDef<PolicyKpiId>> = useMemo(
+        () => [
+            {
+                id: 'total',
+                apply: (ctx) => ctx.clearAll(),
+                isActive: (s) => Object.keys(s).length === 0,
+            },
+            {
+                id: 'draft',
+                apply: (ctx) => ctx.set('status', 'DRAFT'),
+                isActive: (s) => (s.status ?? []).includes('DRAFT'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+            {
+                id: 'inReview',
+                apply: (ctx) => ctx.set('status', 'IN_REVIEW'),
+                isActive: (s) => (s.status ?? []).includes('IN_REVIEW'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+            {
+                id: 'approved',
+                apply: (ctx) => ctx.set('status', 'APPROVED'),
+                isActive: (s) => (s.status ?? []).includes('APPROVED'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+        ],
+        [],
+    );
+    const { activeKpiId: activePolicyKpi, toggle: togglePolicyKpi } =
+        useKpiFilter(policyKpiDefs);
 
     // ─── Column visibility (Epic 52 / R10-PR6) ───
     const policyColumnList = useMemo(
@@ -359,6 +404,39 @@ function PoliciesPageInner({
                     </>
                 ) : null,
             }}
+            kpis={
+                /* R23-PR-F — KPI strip rendered via EntityListPage's
+                   kpis slot (added in R23-PR-D). */
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
+                    <KpiFilterCard
+                        label="Total policies"
+                        value={totalPolicies}
+                        onClick={() => togglePolicyKpi('total')}
+                        selected={activePolicyKpi === 'total'}
+                    />
+                    <KpiFilterCard
+                        label="Draft"
+                        value={draftPolicies}
+                        tone="attention"
+                        onClick={() => togglePolicyKpi('draft')}
+                        selected={activePolicyKpi === 'draft'}
+                    />
+                    <KpiFilterCard
+                        label="In review"
+                        value={inReviewPolicies}
+                        tone="default"
+                        onClick={() => togglePolicyKpi('inReview')}
+                        selected={activePolicyKpi === 'inReview'}
+                    />
+                    <KpiFilterCard
+                        label="Approved"
+                        value={approvedPolicies}
+                        tone="success"
+                        onClick={() => togglePolicyKpi('approved')}
+                        selected={activePolicyKpi === 'approved'}
+                    />
+                </div>
+            }
             filters={{
                 defs: liveFilters,
                 toolbarActions: columnsDropdown,
