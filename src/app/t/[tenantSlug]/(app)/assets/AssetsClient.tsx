@@ -26,6 +26,8 @@ import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@dub/utils';
+import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
+import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
 
 const ASSET_TYPES = ['INFORMATION', 'APPLICATION', 'SYSTEM', 'SERVICE', 'DATA_STORE', 'INFRASTRUCTURE', 'VENDOR', 'PROCESS', 'PEOPLE_PROCESS', 'OTHER'];
 const ASSET_TYPE_OPTIONS: ComboboxOption[] = ASSET_TYPES.map(t => ({ value: t, label: t.replace(/_/g, ' ') }));
@@ -117,6 +119,53 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
     });
     const assets = assetsQuery.data ?? [];
     const liveFilters = useMemo(() => buildAssetFilters(), []);
+
+    // R23-PR-D — KPI definitions for the Assets page. Mirrors the
+    // Risks-page reference shape: typed id union, predicate per KPI
+    // derives `isActive` from current filter state (so a card lights
+    // up whether the user clicked the KPI or set the filter via the
+    // dropdown). Granular `clear` callbacks scope toggle-off to each
+    // KPI's own key (status / criticality), so sibling filters
+    // survive.
+    type AssetKpiId = 'total' | 'active' | 'critical' | 'retired';
+    // guardrail-ignore: KPI counts across the loaded page, not a refilter.
+    const totalAssets = assets.length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const activeAssets = assets.filter((a: any) => a.status === 'ACTIVE').length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const criticalAssets = assets.filter((a: any) => a.criticality === 'HIGH').length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const retiredAssets = assets.filter((a: any) => a.status === 'RETIRED').length;
+    const assetKpiDefs: ReadonlyArray<KpiFilterDef<AssetKpiId>> = useMemo(
+        () => [
+            {
+                id: 'total',
+                apply: (ctx) => ctx.clearAll(),
+                isActive: (s) => Object.keys(s).length === 0,
+            },
+            {
+                id: 'active',
+                apply: (ctx) => ctx.set('status', 'ACTIVE'),
+                isActive: (s) => (s.status ?? []).includes('ACTIVE'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+            {
+                id: 'critical',
+                apply: (ctx) => ctx.set('criticality', 'HIGH'),
+                isActive: (s) => (s.criticality ?? []).includes('HIGH'),
+                clear: (ctx) => ctx.removeAll('criticality'),
+            },
+            {
+                id: 'retired',
+                apply: (ctx) => ctx.set('status', 'RETIRED'),
+                isActive: (s) => (s.status ?? []).includes('RETIRED'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+        ],
+        [],
+    );
+    const { activeKpiId: activeAssetKpi, toggle: toggleAssetKpi } =
+        useKpiFilter(assetKpiDefs);
 
     const createMutation = useMutation({
         mutationFn: async (newAsset: any) => {
@@ -216,7 +265,40 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                 </div>
             </ListPageShell.Header>
 
-            <ListPageShell.Filters>
+            <ListPageShell.Filters className="space-y-section">
+                {/* R23-PR-D — KPI strip above the filter toolbar.
+                    Mirrors the Risks-page reference layout exactly:
+                    same grid, same gap, same KpiFilterCard primitive,
+                    KPIs derived from filter state via useKpiFilter. */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
+                    <KpiFilterCard
+                        label="Total assets"
+                        value={totalAssets}
+                        onClick={() => toggleAssetKpi('total')}
+                        selected={activeAssetKpi === 'total'}
+                    />
+                    <KpiFilterCard
+                        label="Active"
+                        value={activeAssets}
+                        tone="success"
+                        onClick={() => toggleAssetKpi('active')}
+                        selected={activeAssetKpi === 'active'}
+                    />
+                    <KpiFilterCard
+                        label="High criticality"
+                        value={criticalAssets}
+                        tone={criticalAssets > 0 ? 'critical' : 'default'}
+                        onClick={() => toggleAssetKpi('critical')}
+                        selected={activeAssetKpi === 'critical'}
+                    />
+                    <KpiFilterCard
+                        label="Retired"
+                        value={retiredAssets}
+                        tone="attention"
+                        onClick={() => toggleAssetKpi('retired')}
+                        selected={activeAssetKpi === 'retired'}
+                    />
+                </div>
                 <FilterToolbar
                     filters={liveFilters}
                     actions={columnsDropdown}

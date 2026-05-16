@@ -40,6 +40,8 @@ import {
     type FilterType,
 } from '@/components/ui/filter';
 import { EntityListPage } from '@/components/layout/EntityListPage';
+import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
+import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
 import type { CappedList } from '@/lib/list-backfill-cap';
 import { TruncationBanner } from '@/components/ui/TruncationBanner';
 import {
@@ -268,6 +270,57 @@ function ControlsPageInner({
         () => buildControlFilters(controls),
         [controls],
     );
+
+    // ─── R23-PR-D — KPI definitions for the Controls page ───
+    // Status-based buckets aligned to the existing `status` filter.
+    // The "In Progress" KPI buckets IN_PROGRESS + IMPLEMENTING under
+    // one label visually, but the filter API sets only IN_PROGRESS;
+    // pages that want a multi-status KPI extend the predicate.
+    type ControlKpiId = 'total' | 'implemented' | 'inProgress' | 'notStarted';
+    // guardrail-ignore: KPI counts across the loaded page, not a refilter.
+    const totalControls = controls.length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const implementedControls = controls.filter(
+        (c) => c.status === 'IMPLEMENTED',
+    ).length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const inProgressControls = controls.filter(
+        (c) => c.status === 'IN_PROGRESS' || c.status === 'IMPLEMENTING',
+    ).length;
+    // guardrail-ignore: KPI count, not a refilter.
+    const notStartedControls = controls.filter(
+        (c) => c.status === 'NOT_STARTED',
+    ).length;
+    const controlKpiDefs: ReadonlyArray<KpiFilterDef<ControlKpiId>> = useMemo(
+        () => [
+            {
+                id: 'total',
+                apply: (ctx) => ctx.clearAll(),
+                isActive: (s) => Object.keys(s).length === 0,
+            },
+            {
+                id: 'implemented',
+                apply: (ctx) => ctx.set('status', 'IMPLEMENTED'),
+                isActive: (s) => (s.status ?? []).includes('IMPLEMENTED'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+            {
+                id: 'inProgress',
+                apply: (ctx) => ctx.set('status', 'IN_PROGRESS'),
+                isActive: (s) => (s.status ?? []).includes('IN_PROGRESS'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+            {
+                id: 'notStarted',
+                apply: (ctx) => ctx.set('status', 'NOT_STARTED'),
+                isActive: (s) => (s.status ?? []).includes('NOT_STARTED'),
+                clear: (ctx) => ctx.removeAll('status'),
+            },
+        ],
+        [],
+    );
+    const { activeKpiId: activeControlKpi, toggle: toggleControlKpi } =
+        useKpiFilter(controlKpiDefs);
 
     // ─── Column visibility (Epic 52 / R10-PR6) ───
     // Pagination removed — internal scroll inside the table card
@@ -742,6 +795,40 @@ function ControlsPageInner({
                     </>
                 ),
             }}
+            kpis={
+                /* R23-PR-D — KPI strip above the filter toolbar.
+                   EntityListPage owns the placement; the page owns
+                   the KPI definitions + the card content. */
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
+                    <KpiFilterCard
+                        label="Total controls"
+                        value={totalControls}
+                        onClick={() => toggleControlKpi('total')}
+                        selected={activeControlKpi === 'total'}
+                    />
+                    <KpiFilterCard
+                        label="Implemented"
+                        value={implementedControls}
+                        tone="success"
+                        onClick={() => toggleControlKpi('implemented')}
+                        selected={activeControlKpi === 'implemented'}
+                    />
+                    <KpiFilterCard
+                        label="In progress"
+                        value={inProgressControls}
+                        tone="attention"
+                        onClick={() => toggleControlKpi('inProgress')}
+                        selected={activeControlKpi === 'inProgress'}
+                    />
+                    <KpiFilterCard
+                        label="Not started"
+                        value={notStartedControls}
+                        tone={notStartedControls > 0 ? 'critical' : 'default'}
+                        onClick={() => toggleControlKpi('notStarted')}
+                        selected={activeControlKpi === 'notStarted'}
+                    />
+                </div>
+            }
             filters={{
                 defs: liveFilterDefs,
                 toolbarActions: columnsDropdown,

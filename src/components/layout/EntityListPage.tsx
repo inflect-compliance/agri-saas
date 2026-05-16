@@ -192,6 +192,15 @@ export interface EntityListPageProps<TRow> {
      */
     banner?: ReactNode;
     /**
+     * R23-PR-D — optional KPI strip rendered ABOVE the filter
+     * toolbar (inside the same `<Filters>` slot, so spacing and
+     * scroll behaviour stay consistent with the Risks-page reference
+     * layout). Pass a row of `<KpiFilterCard>`s wrapped in the
+     * standard `grid grid-cols-2 md:grid-cols-4 gap-default`. Omit
+     * for pages that don't need a KPI strip.
+     */
+    kpis?: ReactNode;
+    /**
      * Children render below the body inside the same `<ListPageShell>`
      * — typically modals / sheets that sit at the page-state level.
      * They're a render-time concern of the page, not the shell, so
@@ -205,7 +214,7 @@ export interface EntityListPageProps<TRow> {
 // ─── Component ──────────────────────────────────────────────────
 
 export function EntityListPage<TRow>(props: EntityListPageProps<TRow>) {
-    const { header, filters, table, banner, children, className } = props;
+    const { header, filters, table, banner, kpis, children, className } = props;
 
     return (
         <ListPageShell
@@ -229,16 +238,19 @@ export function EntityListPage<TRow>(props: EntityListPageProps<TRow>) {
                 />
             </ListPageShell.Header>
 
-            {filters && (
-                <ListPageShell.Filters>
-                    <FilterToolbar
-                        filters={filters.defs}
-                        searchId={filters.searchId}
-                        searchPlaceholder={filters.searchPlaceholder}
-                        triggerLabel={filters.triggerLabel}
-                        actions={filters.toolbarActions}
-                        primary={filters.toolbarPrimary}
-                    />
+            {(filters || kpis) && (
+                <ListPageShell.Filters className="space-y-section">
+                    {kpis}
+                    {filters && (
+                        <FilterToolbar
+                            filters={filters.defs}
+                            searchId={filters.searchId}
+                            searchPlaceholder={filters.searchPlaceholder}
+                            triggerLabel={filters.triggerLabel}
+                            actions={filters.toolbarActions}
+                            primary={filters.toolbarPrimary}
+                        />
+                    )}
                 </ListPageShell.Filters>
             )}
 
