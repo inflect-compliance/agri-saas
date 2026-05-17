@@ -197,10 +197,17 @@ describe('New page token discipline', () => {
         //     the unmigrated tally only because the surface is new
         //     and not yet listed in MIGRATED_PAGES. Bounded follow-up
         //     promotes it.
+        //   - 101 (+2): R25 — Processes canvas (processes/page.tsx +
+        //     ProcessesClient.tsx). The pages use WorkspaceShell +
+        //     ProcessCanvas; token-only classes throughout. Listed
+        //     in the unmigrated tally only because the surface is
+        //     new and not yet promoted to MIGRATED_PAGES. The
+        //     promotion is a separate landing per the documented
+        //     convention.
         // Each increment names the epic + page + reason; promotion
         // to MIGRATED_PAGES is the path forward, never silent
         // floor-bumping.
-        expect(unmigrated.length).toBeLessThanOrEqual(99);
+        expect(unmigrated.length).toBeLessThanOrEqual(101);
     });
 
     it('migrated page count is at least 4', () => {

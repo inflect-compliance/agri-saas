@@ -25,6 +25,7 @@ import {
     Settings,
     LogOut,
     Calendar as CalendarIcon,
+    Workflow,
     type LucideIcon,
 } from 'lucide-react';
 import { useCalendarBadge } from './use-calendar-badge';
@@ -118,6 +119,12 @@ export function useNavSections(): NavSectionDef[] {
                 // R13-PR16 — Audit moved up to Comply (see above).
                 { href: tenantHref('/policies'), label: 'Policy', icon: FileText },
                 { href: tenantHref('/vendors'), label: 'Vendor', icon: Truck },
+                // R25-PR-A — Processes canvas. Visual mapping of
+                // business + IT processes with controls placed on
+                // the connections between steps. Sits under Manage
+                // alongside Policy + Vendor — same governance-tool
+                // tier.
+                { href: tenantHref('/processes'), label: 'Process', icon: Workflow },
                 { href: tenantHref('/reports'), label: 'Report', icon: BarChart3, visible: perms.reports.view },
             ].filter(item => {
                 // DEFENSE-IN-DEPTH (Layer 2 of 2):
