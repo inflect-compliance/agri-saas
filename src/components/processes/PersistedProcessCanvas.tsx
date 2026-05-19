@@ -56,17 +56,28 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button } from "@/components/ui/button";
-import { ProcessPalette, PALETTE_DRAG_MIME } from "./ProcessPalette";
 import {
-    ProcessStepNode,
-    PROCESS_STEP_NODE_TYPE,
-} from "./ProcessStepNode";
+    ProcessPalette,
+    PALETTE_DRAG_MIME,
+    type PaletteDropPayload,
+} from "./ProcessPalette";
+import { ProcessTypedNode, PROCESS_STEP_NODE_TYPE } from "./ProcessTypedNode";
+import {
+    NODE_TAXONOMY,
+    NODE_TAXONOMY_ORDER,
+    isProcessNodeKind,
+    type ProcessNodeKind,
+} from "./node-taxonomy";
 import { ProcessEdge, PROCESS_EDGE_TYPE } from "./ProcessEdge";
 import type { ProcessMapSummary } from "@/app/t/[tenantSlug]/(app)/processes/ProcessesClient";
 
-const NODE_TYPES: NodeTypes = {
-    [PROCESS_STEP_NODE_TYPE]: ProcessStepNode,
-};
+// Every taxonomy kind registers the SAME renderer. The renderer
+// branches internally on `data.kind` so the chassis stays shared.
+// Module-level so the reference is stable across re-renders
+// (xyflow warns + remounts every node when `nodeTypes` changes).
+const NODE_TYPES: NodeTypes = Object.fromEntries(
+    NODE_TAXONOMY_ORDER.map((kind) => [kind, ProcessTypedNode]),
+);
 const EDGE_TYPES: EdgeTypes = {
     [PROCESS_EDGE_TYPE]: ProcessEdge,
 };
@@ -148,15 +159,25 @@ function Inner({
                     }>;
                 };
                 if (cancelled) return;
-                const rehydratedNodes: Node[] = data.nodes.map((n) => ({
-                    id: n.nodeKey,
-                    type: n.nodeType,
-                    position: { x: n.posX, y: n.posY },
-                    data: {
-                        label: n.label,
-                        ...(n.subtitle ? { subtitle: n.subtitle } : {}),
-                    },
-                }));
+                const rehydratedNodes: Node[] = data.nodes.map((n) => {
+                    // The `nodeType` column is forward-compatible
+                    // (typed `String`, not enum) so unknown kinds
+                    // never crash rehydration. Fall back to the
+                    // default kind; the renderer does the same.
+                    const kind: ProcessNodeKind = isProcessNodeKind(n.nodeType)
+                        ? n.nodeType
+                        : PROCESS_STEP_NODE_TYPE;
+                    return {
+                        id: n.nodeKey,
+                        type: kind,
+                        position: { x: n.posX, y: n.posY },
+                        data: {
+                            label: n.label,
+                            kind,
+                            ...(n.subtitle ? { subtitle: n.subtitle } : {}),
+                        },
+                    };
+                });
                 const rehydratedEdges: Edge[] = data.edges.map((e) => ({
                     id: e.edgeKey,
                     source: e.sourceKey,
@@ -194,24 +215,40 @@ function Inner({
         setError(null);
         try {
             const payload = {
-                nodes: nodes.map((n, idx) => ({
-                    // Stable node key: prefer the rehydrated id (which
-                    // already came back as a stable nodeKey on load),
-                    // else mint one from the index. The canvas's drop
-                    // handler in PR-A also uses index-derived keys.
-                    nodeKey: n.id || `node-${idx + 1}`,
-                    nodeType: n.type || PROCESS_STEP_NODE_TYPE,
-                    label:
-                        (n.data && typeof (n.data as { label?: unknown }).label === "string"
+                nodes: nodes.map((n, idx) => {
+                    // The xyflow node carries its kind on `type`
+                    // (registered in NODE_TYPES) AND on `data.kind`
+                    // (consumed by the renderer). Both come back
+                    // from the rehydration step. On save we trust
+                    // `n.type` — it is the canonical xyflow
+                    // identifier and the field the registry keys
+                    // off — and fall back to the default kind if
+                    // it ever drifts.
+                    const kind: ProcessNodeKind = isProcessNodeKind(n.type)
+                        ? n.type
+                        : PROCESS_STEP_NODE_TYPE;
+                    const meta = NODE_TAXONOMY[kind];
+                    const dataLabel =
+                        n.data &&
+                        typeof (n.data as { label?: unknown }).label ===
+                            "string"
                             ? (n.data as { label: string }).label
-                            : "Untitled step"),
-                    subtitle:
-                        n.data && typeof (n.data as { subtitle?: unknown }).subtitle === "string"
+                            : meta.defaultLabel;
+                    const dataSubtitle =
+                        n.data &&
+                        typeof (n.data as { subtitle?: unknown }).subtitle ===
+                            "string"
                             ? (n.data as { subtitle: string }).subtitle
-                            : null,
-                    posX: n.position.x,
-                    posY: n.position.y,
-                })),
+                            : null;
+                    return {
+                        nodeKey: n.id || `node-${idx + 1}`,
+                        nodeType: kind,
+                        label: dataLabel,
+                        subtitle: dataSubtitle,
+                        posX: n.position.x,
+                        posY: n.position.y,
+                    };
+                }),
                 edges: edges.map((e, idx) => ({
                     edgeKey: e.id || `edge-${idx + 1}`,
                     sourceKey: e.source,
@@ -319,19 +356,43 @@ function Inner({
     const onDrop = useCallback(
         (event: DragEvent<HTMLDivElement>) => {
             event.preventDefault();
-            const payload = event.dataTransfer.getData(PALETTE_DRAG_MIME);
-            if (!payload) return;
+            const raw = event.dataTransfer.getData(PALETTE_DRAG_MIME);
+            if (!raw) return;
+            // R26-PR-B widened the palette payload from a raw label
+            // (`"Process step"`) to a JSON object `{ kind, label }`.
+            // Parse the structured form first; if that fails we
+            // gracefully fall back to treating `raw` as a label and
+            // minting a default-kind step node. The fallback keeps
+            // backwards compat with any stale drag source still
+            // sending the R25 payload shape.
+            let kind: ProcessNodeKind = PROCESS_STEP_NODE_TYPE;
+            let label = raw;
+            try {
+                const parsed = JSON.parse(raw) as PaletteDropPayload;
+                if (
+                    parsed &&
+                    typeof parsed === "object" &&
+                    isProcessNodeKind(parsed.kind) &&
+                    typeof parsed.label === "string"
+                ) {
+                    kind = parsed.kind;
+                    label = parsed.label;
+                }
+            } catch {
+                // Non-JSON payload — keep the raw-label fallback.
+            }
             const position = screenToFlowPosition({
                 x: event.clientX,
                 y: event.clientY,
             });
+            const meta = NODE_TAXONOMY[kind];
             setNodes((nds) => [
                 ...nds,
                 {
                     id: `node-${Date.now()}`,
-                    type: PROCESS_STEP_NODE_TYPE,
+                    type: kind,
                     position,
-                    data: { label: payload },
+                    data: { label: label || meta.defaultLabel, kind },
                 },
             ]);
         },

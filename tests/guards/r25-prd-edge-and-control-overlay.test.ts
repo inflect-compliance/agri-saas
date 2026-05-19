@@ -24,7 +24,9 @@ import * as path from "node:path";
 const ROOT = path.resolve(__dirname, "../..");
 const EDGE_PATH = "src/components/processes/ProcessEdge.tsx";
 const CANVAS_PATH = "src/components/processes/ProcessCanvas.tsx";
-const NODE_PATH = "src/components/processes/ProcessStepNode.tsx";
+// R26-PR-B retargeted at the typed-node renderer; the legacy
+// ProcessStepNode is now a thin re-export shim.
+const NODE_PATH = "src/components/processes/ProcessTypedNode.tsx";
 
 function read(rel: string): string {
     return fs.readFileSync(path.join(ROOT, rel), "utf8");

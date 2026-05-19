@@ -139,11 +139,16 @@ const LEGACY_LUCIDE_USERS = new Set<string>([
     'src/components/ui/FrameworkBuilder.tsx',
     'src/components/ui/FreshnessBadge.tsx',
     'src/components/ui/GraphExplorer.tsx',
-    // R25 — Processes canvas palette uses GitBranch icon. Same
-    // precedent as GraphExplorer (xyflow-based canvas pages use
-    // diagramming-specific icons).
-    'src/components/processes/ProcessPalette.tsx',
+    // R25/R26 — Processes canvas chrome. The taxonomy module owns
+    // the lucide imports (one stroke family for the seven kinds);
+    // the palette + typed-node renderer consume icons via the
+    // taxonomy meta and no longer carry direct lucide imports.
+    // ProcessEdge keeps its lucide ShieldCheck for the
+    // control-on-edge overlay (R25-PR-D). Same precedent as
+    // GraphExplorer — xyflow-based canvas pages use diagramming-
+    // specific icons not yet covered by Nucleo.
     'src/components/processes/ProcessEdge.tsx',
+    'src/components/processes/node-taxonomy.ts',
     'src/components/ui/HeroMetric.tsx',
     'src/components/ui/icons/index.tsx',
     'src/components/ui/inline-notice.tsx',
