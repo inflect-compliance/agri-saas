@@ -26,8 +26,10 @@ describe('CanvasHelpStrip', () => {
         expect(
             screen.getByText(/Drop a node near another to auto-bind/),
         ).toBeInTheDocument();
+        // R27-PR-C — the edge hint now covers both the variant
+        // affordance and the add-control affordance.
         expect(
-            screen.getByText(/Click an edge → Add control/),
+            screen.getByText(/Select an edge to set its style or add a control/),
         ).toBeInTheDocument();
     });
 

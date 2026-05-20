@@ -33,7 +33,7 @@ import { useEffect, useState } from "react";
  * canonical four interactions change (e.g. drag-from-edge,
  * dismissed users will re-see the new copy once).
  */
-const DISMISS_KEY = "ic.processes-canvas-help.v1";
+const DISMISS_KEY = "ic.processes-canvas-help.v2";
 
 interface CanvasHelpStripProps {
     /**
@@ -97,7 +97,7 @@ export function CanvasHelpStrip({
             <span aria-hidden="true">·</span>
             <span>Drop a node near another to auto-bind.</span>
             <span aria-hidden="true">·</span>
-            <span>Click an edge → Add control.</span>
+            <span>Select an edge to set its style or add a control.</span>
             <button
                 type="button"
                 onClick={handleDismiss}

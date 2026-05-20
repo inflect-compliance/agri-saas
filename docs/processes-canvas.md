@@ -14,10 +14,11 @@ visual language via custom node / edge / overlay components.
 | Route | `src/app/t/[tenantSlug]/(app)/processes/page.tsx` | Server entry, `force-dynamic`, delegates to client |
 | Page client | `.../processes/ProcessesClient.tsx` | `<WorkspaceShell>` mount, dynamic-import boundary (`ssr:false`) for xyflow |
 | Shell | `src/components/layout/WorkspaceShell.tsx` | 3-slot canvas-centric shell (Header / Toolbar / Body). Sibling of `<ListPageShell>` / `<EntityDetailLayout>` |
-| Canvas | `src/components/processes/ProcessCanvas.tsx` | xyflow `<ReactFlowProvider>` + `<ReactFlow>` wrapped with IC theming + drag-drop wiring |
-| Palette | `src/components/processes/ProcessPalette.tsx` | Slim top toolbar, HTML5-draggable process-step stamps. Exports `PALETTE_DRAG_MIME` |
-| Custom node | `src/components/processes/ProcessStepNode.tsx` | Memo-wrapped IC-card-style node, L→R handles, brand-emphasis selected ring |
-| Custom edge | `src/components/processes/ProcessEdge.tsx` | Memo-wrapped bezier edge with token-backed stroke + `<ControlOnEdge>` overlay |
+| Canvas | `src/components/processes/PersistedProcessCanvas.tsx` | The live canvas — xyflow `<ReactFlowProvider>` + `<ReactFlow>`, save/load, toolbar, drag-drop. (`ProcessCanvas.tsx` is the R25 standalone wrapper, kept for tests.) |
+| Palette | `src/components/processes/ProcessPalette.tsx` | Chrome palette row, HTML5-draggable node-kind stamps. Exports `PALETTE_DRAG_MIME` |
+| Custom node | `src/components/processes/ProcessTypedNode.tsx` | Memo-wrapped typed node — seven kinds, three shapes (rect / real diamond / note), three size variants |
+| Custom edge | `src/components/processes/ProcessEdge.tsx` | Memo-wrapped bezier edge — three-variant connection language + `<ControlOnEdge>` overlay |
+| Inspector | `src/components/processes/ProcessInspector.tsx` | Right-side property panel for the selected node (label / subtitle / size) |
 | Sidebar nav | `src/components/layout/SidebarNav.tsx` | "Process" entry in Manage section, `Workflow` lucide icon |
 
 ## Interaction model (R25-PR-E)
@@ -28,21 +29,30 @@ Constrained by intent — visual-only authoring:
 |---|---|
 | Drag from palette → drop on canvas | Creates a `processStep` node at the drop coordinates (`screenToFlowPosition` accounts for pan + zoom) |
 | Drag from node handle → drop on another node handle | Creates a `processEdge` connection |
-| Click on edge | Selects the edge; if no control, shows the "+ Add control" affordance at the bezier midpoint |
-| Click the affordance | Adds a `<ControlOnEdge>` overlay with default label "Control" |
+| Click on edge | Selects the edge; shows the midpoint affordance cluster (variant cycle + "Add control") |
+| Click the variant affordance | Cycles the connection variant: flow → conditional → reference |
+| Click "Add control" | Adds a `<ControlOnEdge>` overlay with default label "Control" |
+| Select a node → Inspector | Edit the node's label, subtitle and size (`sm` / `md` / `lg`) |
 | Backspace | Deletes the selected node or edge (xyflow default) |
 | Trackpad drag / scroll | Pans / zooms (xyflow default) |
 
+## Shipped since R25
+
+- **Persistence** — R26-PR-A. Maps save/load via
+  `/api/t/:slug/processes/:id` (`ProcessMap` + `ProcessNode` +
+  `ProcessEdge` tables).
+- **Node taxonomy** — R26-PR-B. Seven kinds, three shapes.
+- **Inspector / properties panel** — R26-PR-E (`ProcessInspector`).
+- **Visual system + graph language** — R27 PR-A/B.
+
 ## Deliberate non-features
 
-These were considered and **rejected** in scope:
+Still considered and **rejected** in scope:
 
-- **Persistence** — canvas state is in-memory only. Future seam:
-  serialize nodes + edges + controls to JSON, POST to
-  `/api/t/:slug/processes/:id`.
-- **Process execution / simulation / engine** — R25 is visual-only.
-- **Templates / process library** — out of scope.
-- **Inspector / properties panel** — out of scope.
+- **Process execution / simulation / engine** — the canvas is a
+  visual-architecture surface, not a workflow engine.
+- **Templates / process library** — out of scope (see the R27
+  world-class review for the case to add it later).
 - **Right-click context menus** — locked OUT by the R25-PR-E ratchet
   (`onEdgeContextMenu` may not be wired).
 - **Inline label editing for controls** — controls get a default
