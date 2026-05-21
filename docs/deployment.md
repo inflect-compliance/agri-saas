@@ -360,24 +360,57 @@ GitHub → Actions → Deploy → Run workflow
   image_tag: (blank for short-SHA-derived)
 ```
 
-What happens:
+The `environment` input chooses how far to promote:
 
-1. Build the app container image and push to GHCR
-2. OIDC into AWS, fetch kubeconfig for the target EKS cluster
-3. `helm lint` + `helm upgrade --install --dry-run` (validation)
-4. `helm upgrade --install ... --atomic --wait --timeout 10m`
+- **`staging`** — deploy + smoke staging, then stop.
+- **`production`** — deploy + smoke **staging first**, and only if
+  that passes, deploy + smoke production.
+
+#### The staging smoke gate
+
+Production is **structurally gated behind staging**. A single
+`production` run executes:
+
+```
+gate → build-image → deploy-staging → smoke-staging → deploy-production → smoke-production
+```
+
+The `deploy-production` job declares `needs: [smoke-staging]`.
+GitHub Actions never starts a job whose `needs` dependency failed —
+so **production cannot deploy unless the exact same image first
+passed staging deploy + staging smoke**. The dependency is explicit
+in the job graph, not implicit run-ordering. The wiring is locked by
+`tests/guards/deploy-staging-gate.test.ts`.
+
+Two layers protect production, in order:
+
+1. **Staging smoke must pass** — the `needs:` edge above. A failed
+   staging smoke turns the run red; `deploy-production` is skipped.
+2. **A human approves the production stage** — the `production`
+   GitHub Environment's required-reviewers rule, enforced on
+   `deploy-production`. The approval prompt fires *after* staging
+   smoke has already passed, so reviewers approve a release that is
+   already proven on staging.
+
+The same built image is promoted staging → production (built once
+in `build-image`), so what staging validated is byte-identical to
+what production receives.
+
+What each deploy stage does — both call the shared
+`.github/actions/helm-deploy` composite action, so the helm logic
+cannot drift between environments:
+
+1. OIDC into AWS, fetch kubeconfig for the target EKS cluster
+2. `helm lint` + `helm upgrade --install --dry-run` (validation)
+3. `helm upgrade --install ... --atomic --wait --timeout 10m`
    - Pre-install/upgrade hook runs the Prisma migration Job; Helm
      waits for the Job to succeed before rolling the Deployments
    - `--atomic` rolls back automatically on any failure during
      the upgrade window
    - `--wait` blocks until all Deployments reach Ready and the
      RolloutStatus reports complete (or `--timeout` expires)
-5. Smoke tests against `vars.SMOKE_URL` (per-env GitHub Environment variable)
-
-**Production is gated** by the `production` GitHub Environment's
-required-reviewers protection rule. The workflow pauses at the
-`deploy` job until a reviewer approves; this is the canonical
-manual-approval gate.
+4. Smoke test (`scripts/smoke-prod.mjs`, the generic post-deploy
+   validator) against the environment's `vars.SMOKE_URL`
 
 ### Local helm commands
 

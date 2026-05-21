@@ -1,16 +1,39 @@
 # ───────────────────────────────────────────────────────────────
 #  Deploy — Helm-based Kubernetes deployment
 #
-#  Replaced the SSH + docker-compose path (Epic OI-2). The chart
-#  lives at infra/helm/inflect/. Deployment is now:
+#  The chart lives at infra/helm/inflect/. The shared helm logic is
+#  the composite action at .github/actions/helm-deploy.
 #
-#    1. Build the app image and push to GHCR
-#    2. OIDC into AWS, fetch kubeconfig for the target EKS cluster
-#    3. helm upgrade --install with the env-specific values file
-#    4. Smoke tests against the public URL
+#  ── Release governance: the staging smoke gate ──
 #
-#  Triggers:
-#    workflow_dispatch (manual, with environment + ref + image_tag inputs)
+#  A production deploy is STRUCTURALLY GATED behind staging. One
+#  workflow run, for a `production` target, executes:
+#
+#    gate → build-image → deploy-staging → smoke-staging
+#                                              │
+#                                              ▼  (gate)
+#                                         deploy-production → smoke-production
+#
+#  `deploy-production` declares `needs: [smoke-staging]`. GitHub
+#  Actions will not start a job whose `needs` dependency failed —
+#  so production CANNOT deploy unless the EXACT SAME image first
+#  passed staging deploy + staging smoke. The dependency is explicit
+#  in the job graph, not implicit ordering.
+#
+#  For a `staging` target the run stops after smoke-staging
+#  (deploy-production / smoke-production are `if`-skipped).
+#
+#  Two layers protect production, in order:
+#    1. staging smoke must pass         (this workflow's `needs:`)
+#    2. a human approves the prod stage (the `production` GitHub
+#       Environment's required-reviewers rule, enforced on the
+#       `deploy-production` job)
+#
+#  The staging-gate wiring is locked by
+#  tests/guards/deploy-staging-gate.test.ts — CI fails if the
+#  `needs: smoke-staging` edge is ever removed.
+#
+#  Triggers: workflow_dispatch (manual).
 #
 #  REQUIRED GITHUB CONFIGURATION:
 #    Repo Settings → Environments → {staging, production}:
@@ -20,10 +43,7 @@
 #      Variables:
 #        SMOKE_URL          — base URL for the smoke test (https://...)
 #      Protection rules (production only):
-#        REQUIRED REVIEWERS — at least one. This IS the manual gate.
-#
-#  Flow:
-#    gate → build-image → deploy → smoke
+#        REQUIRED REVIEWERS — at least one. The human approval gate.
 # ───────────────────────────────────────────────────────────────
 name: Deploy
 
@@ -34,7 +54,10 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Target environment"
+        description: >-
+          How far to promote. `staging` = deploy + smoke staging only.
+          `production` = deploy + smoke staging, then (after staging
+          smoke passes AND a reviewer approves) deploy + smoke prod.
         required: true
         type: choice
         options:
@@ -51,7 +74,11 @@ on:
         default: ""
 
 concurrency:
-  group: deploy-${{ github.event.inputs.environment || 'staging' }}
+  # One deploy at a time, full stop. A `production` run touches the
+  # staging environment too (it deploys + smokes staging first), so
+  # the group is global rather than per-env — two runs must never
+  # race over the staging release.
+  group: deploy
   cancel-in-progress: false # never cancel an in-progress deploy
 
 permissions:
@@ -70,7 +97,7 @@ env:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════
-  #  1. Gate — resolve target env + naming + image tag
+  #  1. Gate — resolve target env + image tag
   # ═══════════════════════════════════════════════════════════════
   gate:
     name: "Gate: resolve target"
@@ -79,10 +106,8 @@ jobs:
       target-env: ${{ steps.resolve.outputs.environment }}
       deploy-ref: ${{ steps.resolve.outputs.ref }}
       image-tag: ${{ steps.resolve.outputs.image_tag }}
-      release-name: ${{ steps.resolve.outputs.release }}
-      namespace: ${{ steps.resolve.outputs.namespace }}
     steps:
-      - name: Resolve target environment + Helm naming
+      - name: Resolve target environment + image tag
         id: resolve
         run: |
           set -euo pipefail
@@ -98,22 +123,19 @@ jobs:
             if [ -z "$FULL_SHA" ]; then FULL_SHA="$REF"; fi
             IMAGE_TAG="$(echo "$FULL_SHA" | cut -c1-12)"
           fi
-          # Release + namespace naming convention — match the per-env
-          # values file naming (values-{env}.yaml ↔ inflect-{env} release)
-          RELEASE="inflect-$ENV"
-          NAMESPACE="inflect-$ENV"
 
-          echo "environment=$ENV"   >> $GITHUB_OUTPUT
-          echo "ref=$REF"           >> $GITHUB_OUTPUT
-          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "release=$RELEASE"   >> $GITHUB_OUTPUT
-          echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
-          echo "::notice::Deploy target: $ENV (release=$RELEASE, ns=$NAMESPACE) at $REF (image tag $IMAGE_TAG)"
+          echo "environment=$ENV"      >> $GITHUB_OUTPUT
+          echo "ref=$REF"              >> $GITHUB_OUTPUT
+          echo "image_tag=$IMAGE_TAG"  >> $GITHUB_OUTPUT
+          if [ "$ENV" = "production" ]; then
+            echo "::notice::Target: production — will deploy+smoke STAGING first, then (gated) production. Ref $REF, image tag $IMAGE_TAG."
+          else
+            echo "::notice::Target: staging only. Ref $REF, image tag $IMAGE_TAG."
+          fi
 
   # ═══════════════════════════════════════════════════════════════
-  #  2. Build & Push — container image to GHCR. Skipped if the
-  #     image_tag input was supplied AND already exists in GHCR
-  #     (cheap reuse path for re-deploys of an existing artefact).
+  #  2. Build & Push — container image to GHCR. Built ONCE; the same
+  #     artefact is promoted staging → production.
   # ═══════════════════════════════════════════════════════════════
   build-image:
     name: "Build & Push image"
@@ -171,15 +193,14 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ═══════════════════════════════════════════════════════════════
-  #  3. Deploy — helm upgrade --install
-  #     Production deploys are gated by the production GitHub
-  #     Environment's required-reviewers rule.
+  #  3. Deploy: staging — ALWAYS runs (both staging and production
+  #     targets deploy to staging first).
   # ═══════════════════════════════════════════════════════════════
-  deploy:
-    name: "Deploy: ${{ needs.gate.outputs.target-env }}"
+  deploy-staging:
+    name: "Deploy: staging"
     needs: [gate, build-image]
     runs-on: ubuntu-latest
-    environment: ${{ needs.gate.outputs.target-env }}
+    environment: staging
     timeout-minutes: 20
     permissions:
       contents: read
@@ -190,109 +211,31 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.deploy-ref }}
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v6
+      - name: Helm deploy (staging)
+        uses: ./.github/actions/helm-deploy
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          environment: staging
+          release-name: inflect-staging
+          namespace: inflect-staging
+          image-tag: ${{ needs.gate.outputs.image-tag }}
+          image-repository: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          chart-path: ${{ env.CHART_PATH }}
           aws-region: ${{ env.AWS_REGION }}
-          role-session-name: gh-deploy-${{ needs.gate.outputs.target-env }}-${{ github.run_id }}
-
-      - name: Setup Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: ${{ env.HELM_VERSION }}
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-
-      - name: Update kubeconfig (EKS)
-        env:
-          CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
-        run: |
-          if [ -z "$CLUSTER_NAME" ]; then
-            echo "::error::EKS_CLUSTER_NAME secret is not set for the ${{ needs.gate.outputs.target-env }} GitHub Environment."
-            exit 1
-          fi
-          aws eks update-kubeconfig --region "$AWS_REGION" --name "$CLUSTER_NAME"
-          kubectl version --client --output=yaml
-          kubectl config current-context
-
-      - name: Helm lint chart
-        run: helm lint "${{ env.CHART_PATH }}"
-
-      - name: Helm dry-run
-        run: |
-          helm upgrade --install \
-            "${{ needs.gate.outputs.release-name }}" \
-            "${{ env.CHART_PATH }}" \
-            --namespace "${{ needs.gate.outputs.namespace }}" \
-            --create-namespace \
-            --values "${{ env.CHART_PATH }}/values-${{ needs.gate.outputs.target-env }}.yaml" \
-            --set image.tag="${{ needs.gate.outputs.image-tag }}" \
-            --set image.repository="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
-            --dry-run \
-            --debug \
-            > /tmp/helm-dry-run.txt 2>&1 || (cat /tmp/helm-dry-run.txt && exit 1)
-          echo "✓ Dry-run succeeded"
-
-      - name: Helm upgrade --install
-        id: helm
-        run: |
-          set -euo pipefail
-          helm upgrade --install \
-            "${{ needs.gate.outputs.release-name }}" \
-            "${{ env.CHART_PATH }}" \
-            --namespace "${{ needs.gate.outputs.namespace }}" \
-            --create-namespace \
-            --values "${{ env.CHART_PATH }}/values-${{ needs.gate.outputs.target-env }}.yaml" \
-            --set image.tag="${{ needs.gate.outputs.image-tag }}" \
-            --set image.repository="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
-            --wait \
-            --timeout "${{ env.HELM_TIMEOUT }}" \
-            --history-max "${{ env.HELM_HISTORY_MAX }}" \
-            --atomic
-          # --atomic: rolls back to the previous revision if the upgrade fails
-          # --wait: waits for resources to be ready before exiting
-          # --history-max: keeps the last N revisions for `helm rollback`
-
-      - name: Rollout summary
-        if: always()
-        env:
-          RELEASE: ${{ needs.gate.outputs.release-name }}
-          NS: ${{ needs.gate.outputs.namespace }}
-        run: |
-          {
-            echo "## Helm rollout: ${{ needs.gate.outputs.target-env }}"
-            echo ""
-            echo "**Release:** \`$RELEASE\` in namespace \`$NS\`"
-            echo "**Image:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.gate.outputs.image-tag }}\`"
-            echo ""
-            echo "### Helm history (last 5)"
-            echo '```'
-            helm history "$RELEASE" --namespace "$NS" --max 5 || echo "(no history available)"
-            echo '```'
-            echo ""
-            echo "### Pods"
-            echo '```'
-            kubectl --namespace "$NS" get pods \
-              -l "app.kubernetes.io/instance=$RELEASE" \
-              -o wide || echo "(no pods)"
-            echo '```'
-            echo ""
-            echo "### Rollback (if needed)"
-            echo '```bash'
-            echo "helm rollback $RELEASE --namespace $NS"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          aws-role: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          eks-cluster: ${{ secrets.EKS_CLUSTER_NAME }}
+          helm-version: ${{ env.HELM_VERSION }}
+          helm-timeout: ${{ env.HELM_TIMEOUT }}
+          helm-history-max: ${{ env.HELM_HISTORY_MAX }}
 
   # ═══════════════════════════════════════════════════════════════
-  #  4. Smoke — post-deploy validation against the public URL.
+  #  4. Smoke: staging — THE GATE. `deploy-production` needs this
+  #     job; if it fails, production never deploys.
   # ═══════════════════════════════════════════════════════════════
-  smoke:
-    name: "Smoke: ${{ needs.gate.outputs.target-env }}"
-    needs: [gate, deploy]
+  smoke-staging:
+    name: "Smoke: staging"
+    needs: [gate, deploy-staging]
     runs-on: ubuntu-latest
-    environment: ${{ needs.gate.outputs.target-env }}
+    environment: staging
     timeout-minutes: 5
 
     steps:
@@ -302,7 +245,12 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Smoke test
+      - name: Smoke test (staging)
+        # scripts/smoke-prod.mjs is the generic post-deploy validator
+        # (livez / readyz / health / login / auth-session, with
+        # retries) — despite the name it is not prod-specific. It runs
+        # against whatever SMOKE_URL the GitHub Environment provides;
+        # here `environment: staging` resolves SMOKE_URL to staging.
         env:
           SMOKE_URL: ${{ vars.SMOKE_URL }}
           SMOKE_RETRIES: "5"
@@ -310,28 +258,105 @@ jobs:
           SMOKE_TIMEOUT_MS: "15000"
         run: |
           if [ -z "$SMOKE_URL" ]; then
-            echo "::error::SMOKE_URL variable is not set for the ${{ needs.gate.outputs.target-env }} GitHub Environment."
-            echo "Configure it in repo Settings → Environments → ${{ needs.gate.outputs.target-env }} → Variables."
+            echo "::error::SMOKE_URL variable is not set for the staging GitHub Environment."
+            echo "Configure it in repo Settings → Environments → staging → Variables."
             exit 1
           fi
-          echo "Testing against $SMOKE_URL"
+          echo "Smoke-testing staging at $SMOKE_URL"
+          node scripts/smoke-prod.mjs
+
+      - name: Staging smoke summary
+        if: success()
+        run: |
+          {
+            echo "### ✅ Staging smoke passed — production deploy unblocked"
+            echo ""
+            echo "- **Ref:** \`${{ needs.gate.outputs.deploy-ref }}\` (image tag \`${{ needs.gate.outputs.image-tag }}\`)"
+            echo "- **Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            if [ "${{ needs.gate.outputs.target-env }}" = "production" ]; then
+              echo "- **Next:** production deploy awaits required-reviewer approval."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  5. Deploy: production — GATED.
+  #     `needs: smoke-staging` → cannot start unless staging smoke
+  #     passed. `environment: production` → required-reviewer
+  #     approval on top. Only runs for a `production` target.
+  # ═══════════════════════════════════════════════════════════════
+  deploy-production:
+    name: "Deploy: production"
+    needs: [gate, build-image, smoke-staging]
+    if: needs.gate.outputs.target-env == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.gate.outputs.deploy-ref }}
+
+      - name: Helm deploy (production)
+        uses: ./.github/actions/helm-deploy
+        with:
+          environment: production
+          release-name: inflect-production
+          namespace: inflect-production
+          image-tag: ${{ needs.gate.outputs.image-tag }}
+          image-repository: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          chart-path: ${{ env.CHART_PATH }}
+          aws-region: ${{ env.AWS_REGION }}
+          aws-role: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          eks-cluster: ${{ secrets.EKS_CLUSTER_NAME }}
+          helm-version: ${{ env.HELM_VERSION }}
+          helm-timeout: ${{ env.HELM_TIMEOUT }}
+          helm-history-max: ${{ env.HELM_HISTORY_MAX }}
+
+  # ═══════════════════════════════════════════════════════════════
+  #  6. Smoke: production — post-deploy validation.
+  # ═══════════════════════════════════════════════════════════════
+  smoke-production:
+    name: "Smoke: production"
+    needs: [gate, deploy-production]
+    if: needs.gate.outputs.target-env == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Smoke test (production)
+        env:
+          SMOKE_URL: ${{ vars.SMOKE_URL }}
+          SMOKE_RETRIES: "5"
+          SMOKE_RETRY_DELAY: "10000"
+          SMOKE_TIMEOUT_MS: "15000"
+        run: |
+          if [ -z "$SMOKE_URL" ]; then
+            echo "::error::SMOKE_URL variable is not set for the production GitHub Environment."
+            echo "Configure it in repo Settings → Environments → production → Variables."
+            exit 1
+          fi
+          echo "Smoke-testing production at $SMOKE_URL"
           node scripts/smoke-prod.mjs
 
       - name: Post smoke summary
         if: success()
-        env:
-          ENV: ${{ needs.gate.outputs.target-env }}
-          REF: ${{ needs.gate.outputs.deploy-ref }}
-          TAG: ${{ needs.gate.outputs.image-tag }}
-          RELEASE: ${{ needs.gate.outputs.release-name }}
-          NS: ${{ needs.gate.outputs.namespace }}
         run: |
           {
-            echo "### ✅ Deploy + Smoke complete"
+            echo "### ✅ Deploy + Smoke complete — production"
             echo ""
-            echo "- **Environment:** $ENV"
-            echo "- **Ref:** \`$REF\` (image tag \`$TAG\`)"
-            echo "- **Helm release:** \`$RELEASE\` (namespace \`$NS\`)"
-            echo "- **Validated:** livez, readyz, health, login, auth session"
+            echo "- **Ref:** \`${{ needs.gate.outputs.deploy-ref }}\` (image tag \`${{ needs.gate.outputs.image-tag }}\`)"
+            echo "- **Validated:** staging smoke → production deploy → production smoke"
+            echo "- **Checks:** livez, readyz, health, login, auth session"
             echo "- **Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           } >> "$GITHUB_STEP_SUMMARY"
