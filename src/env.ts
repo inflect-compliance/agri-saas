@@ -29,6 +29,18 @@ export const env = createEnv({
         //   - invite-redemption rate limit
         //   - email-dispatch rate limit
         // Refuse to boot rather than ship with the limits stripped.
+        //
+        // Production also requires the Redis URL to be AUTHENTICATED:
+        // a bare `redis://host:6379` (no password) is rejected. An
+        // unauthenticated Redis that is network-reachable is wide
+        // open — anyone who can reach the port can read sessions,
+        // dump rate-limit counters, and enqueue jobs. The URL must
+        // parse and carry a non-empty password in its userinfo
+        // (`redis://:PASSWORD@HOST:6379`, `redis://user:pw@host`, or
+        // `rediss://:token@host` for TLS managed Redis). The
+        // `rediss://` scheme is NOT required — a same-host compose
+        // service on an internal docker network is acceptable with
+        // password auth alone.
         REDIS_URL: z
             .string()
             .optional()
@@ -41,7 +53,32 @@ export const env = createEnv({
                             'REDIS_URL is REQUIRED in production. ' +
                             'Rate limits, queues, and session coordination depend on it. ' +
                             'Set REDIS_URL to your Redis / ElastiCache connection string ' +
-                            '(e.g. redis://USER:PASS@HOST:6379) before deploying.',
+                            '(e.g. redis://:PASSWORD@HOST:6379) before deploying.',
+                    });
+                    return;
+                }
+                let url: URL;
+                try {
+                    url = new URL(val);
+                } catch {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message:
+                            'REDIS_URL is not a valid URL. ' +
+                            'Expected redis://:PASSWORD@HOST:6379 ' +
+                            '(or rediss:// for TLS).',
+                    });
+                    return;
+                }
+                if (!url.password) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message:
+                            'REDIS_URL must be AUTHENTICATED in production. ' +
+                            'A bare redis://HOST:6379 leaves Redis open to anyone ' +
+                            'who can reach the port — sessions, rate-limit counters, ' +
+                            'and the job queue all live there. Set a password: ' +
+                            'redis://:PASSWORD@HOST:6379 (or rediss:// for TLS).',
                     });
                 }
             }),

@@ -68,7 +68,15 @@ services:
     image: redis:7-alpine
     container_name: inflect-prod-redis
     restart: always
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    # Redis MUST require a password in a production-like deployment.
+    # The :? syntax aborts `docker compose up` before the container
+    # is created if REDIS_PASSWORD is unset — same fail-fast pattern
+    # as DATA_ENCRYPTION_KEY below.
+    command: redis-server --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD is required — set it in .env.* before starting. Redis must not run unauthenticated in a production-like deployment.}" --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    environment:
+      # redis-cli reads REDISCLI_AUTH automatically, so the healthcheck
+      # authenticates without putting the password on the command line.
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
     volumes:
       - prod-redisdata:/data
     healthcheck:
@@ -121,7 +129,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-inflect}:${POSTGRES_PASSWORD}@pgbouncer:5432/${POSTGRES_DB:-inflect_production}?schema=public&pgbouncer=true
       # Migrations/introspection use direct Postgres connection (bypasses PgBouncer)
       DIRECT_DATABASE_URL: postgresql://${POSTGRES_USER:-inflect}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-inflect_production}?schema=public
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       CLAMAV_HOST: clamav:3310
       AV_SCAN_MODE: strict
       STORAGE_PROVIDER: s3

@@ -52,7 +52,8 @@ curl http://localhost:3000/api/health | jq .
 | `MICROSOFT_CLIENT_SECRET` | ✅ | OAuth provider |
 | `UPLOAD_DIR` | ✅ | Set to `/data/uploads` (Docker) |
 | `DATA_ENCRYPTION_KEY` | ✅ **REQUIRED** in production | ≥32 chars, `openssl rand -base64 48`. **Production startup exits 1 if missing, too short, or equal to the documented dev fallback.** Both the Next.js app server and the BullMQ worker enforce this. See [encryption docs](encryption-data-protection.md). |
-| `REDIS_URL` | ✅ **REQUIRED** in production (GAP-13) | Connection string (e.g. `redis://USER:PASS@HOST:6379` or `rediss://…` for TLS). **Production startup exits 1 if unset under `NODE_ENV=production`** (`src/env.ts` schema check + `src/instrumentation.ts` defense-in-depth). The `/api/readyz` and legacy `/api/health` probes also PING Redis on every check; a missing or broken Redis returns 503 → orchestrator stops routing traffic. Hosts: rate limits (login brute-force, invite redemption, email dispatch), BullMQ job queue, session/cache coordination. |
+| `REDIS_URL` | ✅ **REQUIRED** in production (GAP-13) | Connection string. **Must be AUTHENTICATED in production** — carry a non-empty password (`redis://:PASSWORD@HOST:6379`, `redis://user:pw@host`, or `rediss://:token@host` for TLS). A bare `redis://host:6379` is rejected. **Production startup exits 1 if unset OR unauthenticated under `NODE_ENV=production`** (`src/env.ts` schema check + `src/instrumentation.ts` defense-in-depth). The `/api/readyz` and legacy `/api/health` probes also PING Redis on every check; a missing or broken Redis returns 503 → orchestrator stops routing traffic. Hosts: rate limits (login brute-force, invite redemption, email dispatch), BullMQ job queue, session/cache coordination. |
+| `REDIS_PASSWORD` | ✅ **REQUIRED** for production-like Compose | The password the bundled Redis container enforces via `--requirepass`. `docker-compose.prod.yml`, `docker-compose.staging.yml`, and `deploy/docker-compose.prod.yml` all use `${REDIS_PASSWORD:?…}` — `docker compose up` **aborts** before the container is created if it is unset. The compose files build `REDIS_URL` from it automatically (`redis://:${REDIS_PASSWORD}@redis:6379`). Generate with `openssl rand -base64 32`. Not needed when connecting to an external managed Redis (set `REDIS_URL` directly instead). |
 | `CORS_ALLOWED_ORIGINS` | Optional | Comma-separated origins |
 
 ## Docker Compose (Self-hosted / VPS)
@@ -82,6 +83,33 @@ docker compose -f docker-compose.prod.yml up -d --build
 2. **App starts** → `entrypoint.sh` runs `prisma migrate deploy` then `next start`
 3. **Volumes** → `inflect-prod-pgdata` (DB) + `inflect-prod-uploads` (files) persist across restarts
 4. **Health** → Docker checks `/api/health` every 15s
+
+### Redis authentication — per-environment policy
+
+Redis carries sessions, rate-limit counters, and the BullMQ job
+queue. An unauthenticated Redis that is ever network-reachable is
+wide open. The policy is environment-specific:
+
+| Environment | Redis auth | How |
+|-------------|-----------|-----|
+| Local dev (`docker-compose.yml`) | **Unauthenticated**, loopback-only | Redis intentionally runs without `--requirepass` for dev ergonomics, but its host port is bound to `127.0.0.1:6379` — not reachable from the dev machine's network. |
+| Staging / Production Compose (`docker-compose.staging.yml`, `docker-compose.prod.yml`, `deploy/docker-compose.prod.yml`) | **Required password** | The bundled Redis container runs `redis-server --requirepass "${REDIS_PASSWORD:?…}"`. The `:?` fail-fast syntax aborts `docker compose up` before the container is created if `REDIS_PASSWORD` is unset. The app `REDIS_URL` is built from it (`redis://:${REDIS_PASSWORD}@redis:6379`). |
+| Kubernetes / AWS | **Managed Redis, TLS + auth** | ElastiCache with `transit_encryption_enabled` + an AUTH token (Epic OI-1). The token is provisioned by Terraform into AWS Secrets Manager; the app receives a `rediss://:token@host` connection string via the `REDIS_URL` secret. |
+
+`src/env.ts` enforces the contract from the application side: under
+`NODE_ENV=production` it rejects a `REDIS_URL` that is missing **or**
+unauthenticated (no password in the URL) — the process exits 1 at
+startup. The structural ratchet at
+`tests/guards/redis-production-auth.test.ts` locks the compose-file
+shape so a future "simplify" PR cannot quietly drop `--requirepass`.
+
+> **Rollout note.** This change is fail-fast by design. Operators
+> **MUST set `REDIS_PASSWORD`** in their `.env.production` /
+> `.env.staging` (or `deploy/.env.runtime`) **before** deploying this
+> change — otherwise `docker compose up` aborts immediately with a
+> clear message. Generate one with `openssl rand -base64 32`. Test
+> Redis (`docker-compose.test.yml`) is exempt and stays
+> unauthenticated.
 
 ---
 

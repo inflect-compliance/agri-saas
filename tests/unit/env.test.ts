@@ -100,7 +100,7 @@ describe('Environment Variable Validation', () => {
             DATA_ENCRYPTION_KEY: undefined,
             // Provide REDIS_URL so we isolate the encryption-key path
             // (GAP-13 makes REDIS_URL prod-required too).
-            REDIS_URL: 'redis://localhost:6379',
+            REDIS_URL: 'redis://:devpass@localhost:6379',
             // Provide everything else so we isolate the encryption-key path.
             STORAGE_PROVIDER: 'local',
         });
@@ -120,7 +120,7 @@ describe('Environment Variable Validation', () => {
             // spawns a child process — the constant isn't available in
             // shell env at that point.
             DATA_ENCRYPTION_KEY: 'inflect-dev-encryption-key-not-for-production-use!!',
-            REDIS_URL: 'redis://localhost:6379',
+            REDIS_URL: 'redis://:devpass@localhost:6379',
             STORAGE_PROVIDER: 'local',
         });
         expect(result.success).toBe(false);
@@ -137,7 +137,7 @@ describe('Environment Variable Validation', () => {
         const result = runEnvScript({
             NODE_ENV: 'production',
             DATA_ENCRYPTION_KEY: 'too-short',
-            REDIS_URL: 'redis://localhost:6379',
+            REDIS_URL: 'redis://:devpass@localhost:6379',
             STORAGE_PROVIDER: 'local',
         });
         expect(result.success).toBe(false);
@@ -169,7 +169,7 @@ describe('Environment Variable Validation', () => {
         const result = runEnvScript({
             NODE_ENV: 'production',
             DATA_ENCRYPTION_KEY: 'a-real-production-key-at-least-32-chars-long-deterministic',
-            REDIS_URL: 'redis://localhost:6379',
+            REDIS_URL: 'redis://:devpass@localhost:6379',
             STORAGE_PROVIDER: 'local',
         });
         if (!result.success) {
@@ -232,5 +232,83 @@ describe('Environment Variable Validation', () => {
             console.error(result.error);
         }
         expect(result.success).toBe(true);
+    });
+
+    // ─── Redis production-auth enforcement ─────────────────────────
+    //
+    // The GAP-13 superRefine on REDIS_URL was strengthened: in
+    // production the URL must not only be PRESENT, it must be
+    // AUTHENTICATED — it must parse and carry a non-empty password in
+    // its userinfo. A bare `redis://host:6379` is rejected. An
+    // unauthenticated Redis that is network-reachable is wide open;
+    // sessions, rate-limit counters, and the job queue all live
+    // there. The rule is production-only — dev/test keep ergonomic
+    // passwordless Redis.
+
+    describe('Redis production-auth rule', () => {
+        it('rejects NODE_ENV=production when REDIS_URL is unauthenticated (no password)', () => {
+            const result = runEnvScript({
+                NODE_ENV: 'production',
+                DATA_ENCRYPTION_KEY: 'a-real-production-key-at-least-32-chars-long-deterministic',
+                REDIS_URL: 'redis://redis:6379',
+                STORAGE_PROVIDER: 'local',
+            });
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('REDIS_URL');
+            expect(result.error).toContain('AUTHENTICATED in production');
+            // Regression: a bare redis://host:6379 leaves Redis open to
+            // anyone who can reach the port. Refusing to boot is the
+            // only safe outcome for a production-like deployment.
+        });
+
+        it('passes NODE_ENV=production when REDIS_URL carries a password (redis://:pw@host)', () => {
+            const result = runEnvScript({
+                NODE_ENV: 'production',
+                DATA_ENCRYPTION_KEY: 'a-real-production-key-at-least-32-chars-long-deterministic',
+                REDIS_URL: 'redis://:supersecret@redis:6379',
+                STORAGE_PROVIDER: 'local',
+            });
+            if (!result.success) {
+                console.error(result.error);
+            }
+            expect(result.success).toBe(true);
+        });
+
+        it('passes NODE_ENV=production when REDIS_URL is a TLS auth-token URL (rediss://:token@host)', () => {
+            const result = runEnvScript({
+                NODE_ENV: 'production',
+                DATA_ENCRYPTION_KEY: 'a-real-production-key-at-least-32-chars-long-deterministic',
+                REDIS_URL: 'rediss://:managed-auth-token@redis.example.internal:6379',
+                STORAGE_PROVIDER: 'local',
+            });
+            if (!result.success) {
+                console.error(result.error);
+            }
+            expect(result.success).toBe(true);
+        });
+
+        it('passes when REDIS_URL is unauthenticated under NODE_ENV=test (rule is production-only)', () => {
+            const result = runEnvScript({
+                NODE_ENV: 'test',
+                REDIS_URL: 'redis://redis:6379',
+            });
+            // Dev/test keep passwordless Redis for ergonomics — the
+            // auth rule must not fire outside production.
+            expect(result.success).toBe(true);
+        });
+
+        it('still rejects NODE_ENV=production when REDIS_URL is missing entirely', () => {
+            const result = runEnvScript({
+                NODE_ENV: 'production',
+                DATA_ENCRYPTION_KEY: 'a-real-production-key-at-least-32-chars-long-deterministic',
+                STORAGE_PROVIDER: 'local',
+                REDIS_URL: undefined,
+            });
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('REDIS_URL');
+            expect(result.error).toContain('REQUIRED in production');
+            // The pre-existing present-check must survive alongside the
+            // new password check — the not-present branch returns early.
+        });
     });
 });
