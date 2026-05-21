@@ -127,6 +127,92 @@ export async function isRedisAvailable(): Promise<boolean> {
 }
 
 /**
+ * Redis `maxmemory-policy` values that EVICT keys under memory
+ * pressure. BullMQ stores job state in Redis — any of these silently
+ * drops queued jobs. The only BullMQ-safe policy is `noeviction`
+ * (Redis rejects writes with an OOM error instead, which surfaces
+ * loudly rather than losing data).
+ */
+const EVICTION_POLICIES: ReadonlySet<string> = new Set([
+    'allkeys-lru',
+    'allkeys-lfu',
+    'allkeys-random',
+    'volatile-lru',
+    'volatile-lfu',
+    'volatile-random',
+    'volatile-ttl',
+]);
+
+/**
+ * Best-effort startup check — verify the connected Redis is NOT
+ * configured with a key-evicting `maxmemory-policy`.
+ *
+ * BullMQ requires `noeviction`: under memory pressure an eviction
+ * policy drops job records, silently losing queued work. This runs
+ * `CONFIG GET maxmemory-policy` once at startup:
+ *
+ *   - eviction policy detected → loud `logger.error` (production) or
+ *     `logger.warn` (dev). Deliberately NOT a hard `process.exit`:
+ *     a wrong policy is a degraded-not-broken state, and a boot-time
+ *     crash loop on a drifted deployment is worse than a loud,
+ *     alertable log. The structural guard
+ *     `tests/guards/redis-eviction-policy.test.ts` is the fail-fast
+ *     gate at PR time, before any unsafe compose file can land.
+ *   - `CONFIG` unavailable (managed Redis such as ElastiCache often
+ *     disables / renames it) → skipped quietly; the managed path's
+ *     policy is enforced by terraform + `terraform-redis-storage.test.ts`.
+ *
+ * Returns the observed policy, or `null` when it could not be read.
+ * Never throws.
+ *
+ * @param client — Redis client to probe; defaults to the shared
+ *   singleton. An explicit client is the unit-test seam.
+ */
+export async function verifyRedisEvictionPolicy(
+    client: Redis | null = getRedis(),
+): Promise<string | null> {
+    if (!client) return null;
+
+    let policy: string | null = null;
+    try {
+        // `CONFIG GET maxmemory-policy` → ['maxmemory-policy', '<value>'].
+        const res = await client.call('CONFIG', 'GET', 'maxmemory-policy');
+        if (Array.isArray(res) && typeof res[1] === 'string') {
+            policy = res[1];
+        }
+    } catch {
+        // CONFIG unavailable (ElastiCache disables it) — cannot verify
+        // here; terraform + its guard enforce the managed path.
+        logger.info('Redis maxmemory-policy not verifiable (CONFIG GET unavailable)', {
+            component: 'redis',
+        });
+        return null;
+    }
+
+    if (policy && EVICTION_POLICIES.has(policy)) {
+        const msg =
+            `Redis maxmemory-policy is '${policy}' — a key-EVICTING policy. ` +
+            `BullMQ job state lives in Redis and can be silently dropped ` +
+            `under memory pressure. Set 'noeviction'.`;
+        if (process.env.NODE_ENV === 'production') {
+            logger.error('UNSAFE Redis maxmemory-policy for BullMQ', {
+                component: 'redis',
+                err: new Error(msg),
+                policy,
+            });
+        } else {
+            logger.warn(msg, { component: 'redis', policy });
+        }
+    } else if (policy) {
+        logger.info('Redis maxmemory-policy verified', {
+            component: 'redis',
+            policy,
+        });
+    }
+    return policy;
+}
+
+/**
  * Disconnect the shared Redis client.
  * Used for clean shutdown in tests and graceful process exit.
  */

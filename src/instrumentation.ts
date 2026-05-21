@@ -90,6 +90,18 @@ export async function register() {
         // buffers, OTel exporters, and Sentry transport before the
         // process exits. Idempotent under HMR.
         installShutdownHandlers();
+
+        // Verify Redis is not configured to EVICT keys — BullMQ job
+        // state lives in Redis, so an eviction `maxmemory-policy`
+        // would silently drop queued jobs. Best-effort + non-blocking:
+        // it logs loudly on a violation but never crash-loops the
+        // process (a drifted deployment must stay up). The fail-fast
+        // gate is the structural guard at PR time
+        // (tests/guards/redis-eviction-policy.test.ts).
+        const { verifyRedisEvictionPolicy } = await import('@/lib/redis');
+        void verifyRedisEvictionPolicy().catch(() => {
+            // A diagnostic check must never break startup.
+        });
     }
 }
 

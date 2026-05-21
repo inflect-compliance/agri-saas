@@ -112,6 +112,37 @@ shape so a future "simplify" PR cannot quietly drop `--requirepass`.
 > Redis (`docker-compose.test.yml`) is exempt and stays
 > unauthenticated.
 
+### Redis — eviction policy (BullMQ durability)
+
+BullMQ stores job state in Redis. If Redis is configured to **evict**
+keys under memory pressure, queued jobs are silently dropped — lost
+work, no error. The only BullMQ-safe `maxmemory-policy` is
+`noeviction`: Redis then rejects new writes with an `OOM` error,
+which surfaces loudly and is alertable, instead of discarding job
+records.
+
+| Environment | `maxmemory-policy` | How |
+|-------------|--------------------|-----|
+| Local dev (`docker-compose.yml`) | `noeviction` | `redis-server … --maxmemory-policy noeviction` |
+| Staging / Production Compose | `noeviction` | same flag on each `redis` service `command:` |
+| Kubernetes / ElastiCache | `noeviction` | terraform parameter group (`infra/terraform/modules/redis/main.tf`) |
+| Test (`docker-compose.test.yml`) | `noeviction` (Redis default) | no `maxmemory` cap is set, so eviction never triggers |
+
+With `noeviction` **and** a `maxmemory` cap, a Redis at its memory
+ceiling rejects writes — workers fail to enqueue and the failure is
+visible — rather than silently discarding job records.
+
+Two layers keep this from regressing:
+
+- `tests/guards/redis-eviction-policy.test.ts` — fails CI if any
+  Compose `redis` service reverts to a key-evicting policy.
+- `verifyRedisEvictionPolicy` (`src/lib/redis.ts`), called at startup
+  from `src/instrumentation.ts` — a best-effort `CONFIG GET` check
+  that logs loudly (error in production, warning in dev) if the
+  connected Redis is evicting. Skipped quietly when `CONFIG` is
+  unavailable (managed Redis disables it), since terraform +
+  `terraform-redis-storage.test.ts` enforce that path.
+
 ---
 
 ## Railway

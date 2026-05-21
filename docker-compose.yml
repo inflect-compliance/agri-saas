@@ -56,7 +56,11 @@ services:
   # password via ${REDIS_PASSWORD:?…}.
   redis:
     image: redis:7-alpine
-    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    # maxmemory-policy MUST be `noeviction` — Redis carries BullMQ job
+    # state; an eviction policy (allkeys-lru/volatile-*) would silently
+    # drop queued jobs under memory pressure. Matches prod + ElastiCache.
+    # See docs/deployment.md "Redis — per-environment policy".
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy noeviction
     ports:
       - '127.0.0.1:6379:6379'
     volumes:

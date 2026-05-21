@@ -72,7 +72,12 @@ services:
     # The :? syntax aborts `docker compose up` before the container
     # is created if REDIS_PASSWORD is unset — same fail-fast pattern
     # as DATA_ENCRYPTION_KEY below.
-    command: redis-server --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD is required — set it in .env.* before starting. Redis must not run unauthenticated in a production-like deployment.}" --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    # maxmemory-policy is `noeviction` (NOT allkeys-lru): Redis carries
+    # BullMQ job state — an eviction policy would silently drop queued
+    # jobs under memory pressure. noeviction makes Redis reject writes
+    # (OOM) instead. Matches the ElastiCache parameter group. See
+    # docs/deployment.md "Redis — per-environment policy".
+    command: redis-server --requirepass "${REDIS_PASSWORD:?REDIS_PASSWORD is required — set it in .env.* before starting. Redis must not run unauthenticated in a production-like deployment.}" --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction
     environment:
       # redis-cli reads REDISCLI_AUTH automatically, so the healthcheck
       # authenticates without putting the password on the command line.
