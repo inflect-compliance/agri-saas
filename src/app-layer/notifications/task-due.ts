@@ -17,15 +17,20 @@
  * into a caller's runtime graph.
  *
  * Reminder windows:
- *   A task is notified when the integer count of UTC calendar days
- *   from "now" to `dueAt` is exactly 7, 1, or 0. Days 2-6 produce
- *   nothing. Calendar-day classification (not millisecond math)
- *   means a task due "tomorrow at 23:00" still reads as the one-day
- *   window when the cron fires at 08:00.
+ *   A task is notified when the integer count of calendar days from
+ *   "now" to `dueAt` is exactly 7, 1, or 0. Days 2-6 produce nothing.
+ *   Calendar-day classification (not millisecond math) means a task
+ *   due "tomorrow at 23:00" still reads as the one-day window when
+ *   the cron fires at 08:00. The calendar days are counted in the
+ *   caller-supplied IANA timezone `tz` (default `'UTC'`) — both the
+ *   window classification and the dedupeKey date segment are local
+ *   to that zone, so a task due near local midnight is bucketed by
+ *   the local calendar day, not the UTC one.
  *
  * Deduplication contract:
  *   `Notification.dedupeKey` is unique. The key is
- *   `{tenantId}:TASK_DUE:{window}:{taskId}:{userId}:{YYYY-MM-DD}`.
+ *   `{tenantId}:TASK_DUE:{window}:{taskId}:{userId}:{YYYY-MM-DD}`,
+ *   where the date is the run-day in the caller-supplied `tz`.
  *   The insert is a `createMany` with `skipDuplicates`
  *   (`INSERT ... ON CONFLICT DO NOTHING`) so a repeat — the cron and
  *   the event path overlapping, or two saves the same UTC day — is
@@ -42,7 +47,7 @@ export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export type TaskDueWindow = 'week' | 'day' | 'today';
 
 interface WindowCopy {
-    /** Integer UTC calendar days from now to `dueAt` that triggers it. */
+    /** Integer calendar days (in the active tz) from now to `dueAt` that triggers it. */
     days: number;
     /** Bell title line. */
     title: string;
@@ -66,31 +71,46 @@ export function startOfUtcDay(d: Date): Date {
     return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
-/** `YYYY-MM-DD` of the given instant, in UTC. */
-function utcDayKey(d: Date): string {
-    return d.toISOString().slice(0, 10);
+/** The YYYY-MM-DD calendar date of `d` as seen in IANA zone `tz`. */
+function dayKeyInTz(d: Date, tz: string): string {
+    // en-CA renders YYYY-MM-DD.
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(d);
 }
 
 /**
- * Integer count of UTC calendar days from `now` to `dueAt`.
- * 0 = due today, 1 = due tomorrow, negative = overdue. Time-of-day
- * is discarded on both sides. Pure function.
+ * Integer count of calendar days from `now` to `dueAt`, counted in
+ * IANA zone `tz` (default `'UTC'`). 0 = due today, 1 = due tomorrow,
+ * negative = overdue. Time-of-day is discarded on both sides — both
+ * instants are reduced to their `tz`-local calendar date and the
+ * difference is taken between those dates. Pure function.
  */
-export function daysUntilDue(dueAt: Date, now: Date = new Date()): number {
+export function daysUntilDue(
+    dueAt: Date,
+    now: Date = new Date(),
+    tz: string = 'UTC',
+): number {
+    // Both day-keys are parsed as UTC midnight; the difference is the
+    // calendar-day count *in tz* (the wall-clock offset cancels out).
     return Math.round(
-        (startOfUtcDay(dueAt).getTime() - startOfUtcDay(now).getTime()) / MS_PER_DAY,
+        (Date.parse(dayKeyInTz(dueAt, tz) + 'T00:00:00Z') -
+            Date.parse(dayKeyInTz(now, tz) + 'T00:00:00Z')) / MS_PER_DAY,
     );
 }
 
 /**
  * Map a due date to its reminder window, or `null` when the date is
- * not on one of the three touchpoints. Pure function.
+ * not on one of the three touchpoints. Calendar days are counted in
+ * IANA zone `tz` (default `'UTC'`). Pure function.
  */
 export function classifyDueWindow(
     dueAt: Date,
     now: Date = new Date(),
+    tz: string = 'UTC',
 ): TaskDueWindow | null {
-    const days = daysUntilDue(dueAt, now);
+    const days = daysUntilDue(dueAt, now, tz);
     for (const key of Object.keys(TASK_DUE_WINDOWS) as TaskDueWindow[]) {
         if (TASK_DUE_WINDOWS[key].days === days) return key;
     }
@@ -104,8 +124,9 @@ export function buildTaskDueDedupeKey(
     taskId: string,
     userId: string,
     now: Date,
+    tz: string = 'UTC',
 ): string {
-    return `${tenantId}:TASK_DUE:${window}:${taskId}:${userId}:${utcDayKey(now)}`;
+    return `${tenantId}:TASK_DUE:${window}:${taskId}:${userId}:${dayKeyInTz(now, tz)}`;
 }
 
 /** One task in the shape the per-task notification helper needs. */
@@ -141,8 +162,9 @@ export async function createTaskDueNotification(
     db: Pick<PrismaClient, 'notification'>,
     task: TaskDueTarget,
     now: Date = new Date(),
+    tz: string = 'UTC',
 ): Promise<TaskDueNotificationOutcome> {
-    const window = classifyDueWindow(task.dueAt, now);
+    const window = classifyDueWindow(task.dueAt, now, tz);
     if (!window) return { status: 'out-of-window', window: null };
 
     const copy = TASK_DUE_WINDOWS[window];
@@ -165,6 +187,7 @@ export async function createTaskDueNotification(
                     task.id,
                     task.assigneeUserId,
                     now,
+                    tz,
                 ),
             },
         ],

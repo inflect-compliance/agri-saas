@@ -31,6 +31,7 @@
  */
 import { logger } from '@/lib/observability/logger';
 import { recordJobMetrics } from '@/lib/observability/metrics';
+import { env } from '@/env';
 import type { JobName, JobPayload, JobRunResult } from './types';
 
 // ─── Executor Contract ──────────────────────────────────────────────
@@ -442,6 +443,7 @@ executorRegistry.register('task-due-notification', async (payload) => {
     const { prisma } = await import('@/lib/prisma');
     const r = await processTaskDueNotifications(prisma, {
         tenantId: payload.tenantId,
+        tz: env.NOTIFICATIONS_TZ,
     });
     return makeResult(
         'task-due-notification',

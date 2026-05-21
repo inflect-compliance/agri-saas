@@ -1,11 +1,12 @@
 /**
  * Task-due notification job (the steady-state cron).
  *
- * Once a day at 08:00 UTC, scan every active task whose `dueAt`
- * lands on one of three reminder windows — one week out, one day
- * out, or the due day itself — and write an in-app `Notification`
- * (type `TASK_DUE`) to the task's assignee so the deadline surfaces
- * in the notification bell.
+ * Once a day at 08:00 in the configured local zone (`NOTIFICATIONS_TZ`,
+ * default Europe/London), scan every active task whose `dueAt` lands
+ * on one of three reminder windows — one week out, one day out, or
+ * the due day itself — and write an in-app `Notification` (type
+ * `TASK_DUE`) to the task's assignee so the deadline surfaces in the
+ * notification bell.
  *
  * The window math + the per-task notification writer live in
  * `@/app-layer/notifications/task-due` — shared with the event-driven
@@ -57,6 +58,12 @@ export interface TaskDueNotificationOptions {
     tenantId?: string;
     /** Override the "now" anchor — test-only seam. */
     now?: Date;
+    /**
+     * IANA timezone for calendar-day classification + the dedupeKey
+     * date segment. Defaults to `'UTC'` so callers that omit it keep
+     * UTC semantics; the real cron passes `NOTIFICATIONS_TZ`.
+     */
+    tz?: string;
 }
 
 export interface TaskDueNotificationResult {
@@ -64,7 +71,7 @@ export interface TaskDueNotificationResult {
     scanned: number;
     /** Notifications successfully inserted. */
     created: number;
-    /** Inserts whose dedupeKey already existed (same UTC day). */
+    /** Inserts whose dedupeKey already existed (same local-tz day). */
     skippedDuplicate: number;
     /** Created notifications, broken down by reminder window. */
     byWindow: Record<TaskDueWindow, number>;
@@ -80,6 +87,7 @@ export async function processTaskDueNotifications(
 ): Promise<TaskDueNotificationResult> {
     const now = options.now ?? new Date();
     const { tenantId } = options;
+    const tz = options.tz ?? 'UTC';
     const scope = tenantId ? 'tenant-scoped' : 'system-wide';
 
     logger.info('task-due notification scan starting', {
@@ -88,11 +96,18 @@ export async function processTaskDueNotifications(
         ...(tenantId ? { tenantId } : {}),
     });
 
-    // Horizon: UTC-midnight today → end of the 7th day out. Days 2-6
-    // are pulled too but classify to `null` and are ignored — one
-    // bounded range query is cheaper than three OR'd ranges.
-    const horizonStart = startOfUtcDay(now);
-    const horizonEnd = new Date(horizonStart.getTime() + 8 * MS_PER_DAY);
+    // Horizon: a deliberately wide UTC range — from one day before
+    // UTC-midnight today to nine days after. Days 2-6 (and the ±1-day
+    // slop rows) are pulled too but classify to `null` and are
+    // ignored; one bounded range query is cheaper than three OR'd
+    // ranges. The ±1-day slop guarantees no edge task is missed at a
+    // tz/UTC day boundary — `classifyDueWindow` runs the precise
+    // tz-aware filter to exactly {7,1,0}, but a task due near local
+    // midnight can sit on the UTC day either side of its local one,
+    // and a tz offset can be up to ~14h either way.
+    const utcMidnight = startOfUtcDay(now);
+    const horizonStart = new Date(utcMidnight.getTime() - MS_PER_DAY);
+    const horizonEnd = new Date(utcMidnight.getTime() + 9 * MS_PER_DAY);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
@@ -138,6 +153,7 @@ export async function processTaskDueNotifications(
                 assigneeUserId: task.assigneeUserId,
             },
             now,
+            tz,
         );
         if (status === 'created' && window) {
             created++;

@@ -102,11 +102,15 @@ async function registerAll(queue: Queue): Promise<void> {
 
     for (const schedule of SCHEDULED_JOBS) {
         // BullMQ upserts repeatables — if the same name+pattern exists, it's a no-op
+        // An entry's `tz` (or the legacy `options.tz`) is passed into
+        // the BullMQ repeat options so the cron `pattern` is evaluated
+        // in that zone — task-due-notification fires at 08:00 local.
+        const tz = schedule.tz ?? schedule.options?.tz;
         await queue.upsertJobScheduler(
             schedule.name,
             {
                 pattern: schedule.pattern,
-                ...(schedule.options?.tz ? { tz: schedule.options.tz } : {}),
+                ...(tz ? { tz } : {}),
                 ...(schedule.options?.limit ? { limit: schedule.options.limit } : {}),
             },
             {
@@ -118,6 +122,7 @@ async function registerAll(queue: Queue): Promise<void> {
         log.info({
             jobName: schedule.name,
             pattern: schedule.pattern,
+            ...(tz ? { tz } : {}),
             description: schedule.description,
         }, 'repeatable registered');
     }

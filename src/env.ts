@@ -224,6 +224,27 @@ export const env = createEnv({
         // new key, drop this from env. Same shape as
         // DATA_ENCRYPTION_KEY_PREVIOUS.
         PLATFORM_ADMIN_API_KEY_PREVIOUS: z.string().min(32).optional(),
+
+        // Local zone for task-due deadline notifications — sets BOTH the
+        // cron firing time AND the calendar-day classification ("due
+        // today / tomorrow / in a week"). Must be one zone so a task
+        // due near local midnight is not mis-bucketed. IANA zone name,
+        // DST-aware; defaults to Europe/London.
+        NOTIFICATIONS_TZ: z
+            .string()
+            .default('Europe/London')
+            .refine(
+                (val) => {
+                    try {
+                        // A bad zone makes the formatter throw RangeError.
+                        new Intl.DateTimeFormat('en-US', { timeZone: val });
+                        return true;
+                    } catch {
+                        return false;
+                    }
+                },
+                { message: 'NOTIFICATIONS_TZ must be a valid IANA timezone' },
+            ),
     },
 
     /**
@@ -305,6 +326,7 @@ export const env = createEnv({
         AUDIT_STREAM_RETRY_ENABLED: process.env.AUDIT_STREAM_RETRY_ENABLED,
         PLATFORM_ADMIN_API_KEY: process.env.PLATFORM_ADMIN_API_KEY,
         PLATFORM_ADMIN_API_KEY_PREVIOUS: process.env.PLATFORM_ADMIN_API_KEY_PREVIOUS,
+        NOTIFICATIONS_TZ: process.env.NOTIFICATIONS_TZ,
     },
     /**
      * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.

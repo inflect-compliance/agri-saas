@@ -6,6 +6,7 @@ import { emitAutomationEvent } from '../automation';
 import { enqueueEmail } from '../notifications/enqueue';
 import { createTaskDueNotification } from '../notifications/task-due';
 import { runInTenantContext } from '@/lib/db-context';
+import { env } from '@/env';
 import { notFound, badRequest } from '@/lib/errors/types';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { validateTaskMetadata } from '../schemas/json-columns.schemas';
@@ -366,15 +367,23 @@ async function emitTaskDueNotification(
     const dueAt = task.dueAt;
     try {
         await runInTenantContext(ctx, (db) =>
-            createTaskDueNotification(db, {
-                id: task.id,
-                tenantId: task.tenantId,
-                tenantSlug,
-                title: task.title,
-                key: task.key,
-                dueAt,
-                assigneeUserId,
-            }),
+            createTaskDueNotification(
+                db,
+                {
+                    id: task.id,
+                    tenantId: task.tenantId,
+                    tenantSlug,
+                    title: task.title,
+                    key: task.key,
+                    dueAt,
+                    assigneeUserId,
+                },
+                new Date(),
+                // Classify in the same zone as the daily cron so the
+                // event-driven and steady-state paths agree on the
+                // window + dedupeKey for a task due near local midnight.
+                env.NOTIFICATIONS_TZ,
+            ),
         );
     } catch (err) {
         logger.warn('failed to create task-due notification', {

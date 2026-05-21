@@ -145,6 +145,80 @@ describe('classifyDueWindow', () => {
 });
 
 // ════════════════════════════════════════════════════════════════════
+// 2b. Timezone parameter — calendar-day bucketing in a local zone
+// ════════════════════════════════════════════════════════════════════
+
+describe('timezone-aware classification', () => {
+    // 2026-05-20 23:30 UTC = 2026-05-21 00:30 BST (London is UTC+1 in
+    // May — DST). 2026-05-21 07:00 UTC = 2026-05-21 08:00 BST.
+    const dueNearLondonMidnight = new Date('2026-05-20T23:30:00.000Z');
+    const londonCronFire = new Date('2026-05-21T07:00:00.000Z');
+
+    test('daysUntilDue: same London calendar day → 0 under Europe/London', () => {
+        expect(
+            daysUntilDue(dueNearLondonMidnight, londonCronFire, 'Europe/London'),
+        ).toBe(0);
+    });
+
+    test('daysUntilDue: the same instants are a different day under UTC', () => {
+        // Under UTC the due date is May 20, "now" is May 21 → 1 day.
+        expect(daysUntilDue(dueNearLondonMidnight, londonCronFire, 'UTC')).toBe(-1);
+    });
+
+    test('classifyDueWindow: "today" under Europe/London, not under UTC', () => {
+        expect(
+            classifyDueWindow(dueNearLondonMidnight, londonCronFire, 'Europe/London'),
+        ).toBe('today');
+        // Under UTC the same inputs are overdue by a day → no window.
+        expect(classifyDueWindow(dueNearLondonMidnight, londonCronFire, 'UTC')).toBeNull();
+    });
+
+    test('omitting tz keeps the historical UTC behaviour', () => {
+        // Default arg is 'UTC' — the existing fixtures must be unchanged.
+        expect(daysUntilDue(DUE_TODAY, NOW)).toBe(0);
+        expect(classifyDueWindow(DUE_TOMORROW, NOW)).toBe('day');
+    });
+
+    test('buildTaskDueDedupeKey: the date segment is the tz-local day', () => {
+        // `londonCronFire` is 2026-05-21 08:00 BST but 2026-05-21 07:00
+        // UTC — both render as 2026-05-21, so use an instant where the
+        // UTC and London calendar dates genuinely diverge.
+        const lateUtcEarlyLondon = new Date('2026-05-20T23:30:00.000Z');
+        const utcKey = buildTaskDueDedupeKey(
+            'tenant-a', 'today', 'task-9', 'user-3', lateUtcEarlyLondon, 'UTC',
+        );
+        const londonKey = buildTaskDueDedupeKey(
+            'tenant-a', 'today', 'task-9', 'user-3', lateUtcEarlyLondon, 'Europe/London',
+        );
+        expect(utcKey).toBe('tenant-a:TASK_DUE:today:task-9:user-3:2026-05-20');
+        expect(londonKey).toBe('tenant-a:TASK_DUE:today:task-9:user-3:2026-05-21');
+    });
+
+    test('createTaskDueNotification: tz arg drives the window + dedupeKey', async () => {
+        const { db, createMany } = makeDb([]);
+        const outcome = await createTaskDueNotification(
+            db,
+            {
+                id: 'task-x',
+                tenantId: 'tenant-a',
+                tenantSlug: 'acme',
+                title: 'Ship it',
+                key: 'TSK-9',
+                dueAt: dueNearLondonMidnight,
+                assigneeUserId: 'user-1',
+            },
+            londonCronFire,
+            'Europe/London',
+        );
+        expect(outcome).toEqual({ status: 'created', window: 'today' });
+        expect(lastCreateData(createMany)).toMatchObject({
+            title: 'Task due today',
+            dedupeKey: 'tenant-a:TASK_DUE:today:task-x:user-1:2026-05-21',
+        });
+    });
+});
+
+// ════════════════════════════════════════════════════════════════════
 // 3. buildTaskDueDedupeKey — shape contract
 // ════════════════════════════════════════════════════════════════════
 
@@ -299,14 +373,18 @@ describe('processTaskDueNotifications — query filters', () => {
         );
     });
 
-    test('scans a UTC-midnight → +8-day horizon', async () => {
+    test('scans a deliberately wide -1d → +9d horizon around UTC midnight', async () => {
+        // The horizon carries ±1-day slop beyond the {0..7} windows so
+        // a task due near local midnight is never missed at a tz/UTC
+        // day boundary — `classifyDueWindow` does the precise tz-aware
+        // filter to exactly {7,1,0}.
         const { db, findMany } = makeDb([]);
 
         await processTaskDueNotifications(db, { now: NOW });
 
         const where = findMany.mock.calls[0][0].where;
-        expect(where.dueAt.gte.toISOString()).toBe('2026-05-20T00:00:00.000Z');
-        expect(where.dueAt.lt.toISOString()).toBe('2026-05-28T00:00:00.000Z');
+        expect(where.dueAt.gte.toISOString()).toBe('2026-05-19T00:00:00.000Z');
+        expect(where.dueAt.lt.toISOString()).toBe('2026-05-29T00:00:00.000Z');
     });
 });
 

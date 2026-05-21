@@ -10,7 +10,7 @@
  *   - daily-evidence-expiry:   daily at 06:00 UTC (sweep + outbox)
  *   - data-lifecycle:          daily at 03:00 UTC (purge + retention)
  *   - policy-review-reminder:  daily at 08:00 UTC (overdue review audit)
- *   - task-due-notification:   daily at 08:00 UTC (in-app task deadline reminders)
+ *   - task-due-notification:   daily at 08:00 local (NOTIFICATIONS_TZ) (in-app task deadline reminders)
  *   - retention-sweep:         daily at 04:00 UTC (evidence archival)
  *   - notification-dispatch:   daily at 07:00 UTC (single-pass: monitors + digest dispatch)
  *
@@ -19,17 +19,24 @@
  * to prevent duplicate database scans. They remain registered in the executor
  * registry for ad-hoc/CLI/API use.
  *
- * All times are UTC. BullMQ uses standard cron syntax.
+ * Times are UTC unless the entry sets a `tz`. BullMQ uses standard
+ * cron syntax and evaluates the `pattern` in `tz` when supplied.
  *
  * @module app-layer/jobs/schedules
  */
 import type { JobName } from './types';
+import { env } from '@/env';
 
 export interface ScheduleDefinition {
     /** Job name — must match a key in JobPayloadMap */
     name: JobName;
-    /** Cron pattern (UTC) */
+    /** Cron pattern — evaluated in `tz` if set, otherwise UTC */
     pattern: string;
+    /**
+     * IANA timezone the cron `pattern` is evaluated in (DST-aware).
+     * Omit for UTC. Passed straight into the BullMQ repeat options.
+     */
+    tz?: string;
     /** Human-readable description */
     description: string;
     /** Default payload for the repeatable job */
@@ -74,12 +81,17 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
     },
     {
         name: 'task-due-notification',
-        // Daily at 08:00 UTC — the start of the working day. Creates
-        // one in-app TASK_DUE notification per task at each of three
-        // reminder windows: one week before, one day before, and on
-        // the day the task's `dueAt` falls. Idempotent by UTC day —
-        // re-running is safe (dedupeKey unique index absorbs repeats).
+        // Daily at 08:00 in the configured local zone (NOTIFICATIONS_TZ,
+        // default Europe/London) — the start of the working day, and
+        // the same zone the windows are classified in so a task due
+        // near local midnight is bucketed by the local calendar day.
+        // Creates one in-app TASK_DUE notification per task at each of
+        // three reminder windows: one week before, one day before, and
+        // on the day the task's `dueAt` falls. Idempotent by local-tz
+        // day — re-running is safe (dedupeKey unique index absorbs
+        // repeats).
         pattern: '0 8 * * *',
+        tz: env.NOTIFICATIONS_TZ,
         description:
             'Create in-app TASK_DUE notifications for tasks one week before, one day before, and on their due date.',
         defaultPayload: {},
