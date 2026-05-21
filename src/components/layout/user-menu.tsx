@@ -33,8 +33,9 @@
  */
 
 import { useCallback, useState } from 'react';
+import Link from 'next/link';
 import { signOut } from 'next-auth/react';
-import { LogOut } from 'lucide-react';
+import { LogOut, ShieldCheck } from 'lucide-react';
 
 import { Popover } from '@/components/ui/popover';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -129,6 +130,21 @@ export function UserMenu({ displayName, displayEmail }: UserMenuProps) {
                         <span>Theme</span>
                         <ThemeToggle id="user-menu-theme-toggle" />
                     </div>
+
+                    <Popover.Separator />
+
+                    {/* Account security — navigation to the
+                        password-change surface. */}
+                    <Link
+                        href="/account/security"
+                        role="menuitem"
+                        data-testid="user-menu-account-security"
+                        onClick={close}
+                        className={MENU_ROW_CLASS}
+                    >
+                        <ShieldCheck className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                        <span>Account security</span>
+                    </Link>
 
                     <Popover.Separator />
 

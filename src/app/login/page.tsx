@@ -205,6 +205,17 @@ function LoginForm() {
                         </InlineNotice>
                     )}
 
+                    {searchParams?.get('reset') === 'success' && (
+                        <InlineNotice variant="success" className="mb-4" icon={null}>
+                            Your password has been reset — sign in with your new password.
+                        </InlineNotice>
+                    )}
+                    {searchParams?.get('passwordChanged') === '1' && (
+                        <InlineNotice variant="success" className="mb-4" icon={null}>
+                            Your password has been changed — please sign in again.
+                        </InlineNotice>
+                    )}
+
                     {/* OAuth Buttons — Polish PR-4: <Button variant="secondary">
                         instead of hand-rolled slate utility classes. The
                         SVG icons keep their brand colours (Google's
@@ -283,6 +294,9 @@ function LoginForm() {
                                 <div>
                                     <label htmlFor="login-password" className="input-label">{t('password')}</label>
                                     <input id="login-password" className="input" type="password" name="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder={t('passwordPlaceholder')} minLength={6} />
+                                </div>
+                                <div className="text-right -mt-2">
+                                    <a href="/forgot-password" className="text-xs text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)]">Forgot your password?</a>
                                 </div>
                                 <Button type="submit" variant="primary" size="sm" className="w-full" disabled={loading}>
                                     {loading ? t('pleaseWait') : mode === 'login' ? t('submitLogin') : t('submitRegister')}

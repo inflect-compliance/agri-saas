@@ -165,8 +165,19 @@ modules live under `src/lib/rate-limit/`.
 equalised via `dummyVerify` so lockout is indistinguishable from
 wrong-password. Signup rejects known-breached passwords via
 `checkPasswordAgainstHIBP` (k-anonymity, fail-open on HIBP outage).
-Password change / reset routes do not exist yet; when they land,
-wire HIBP the same way.
+
+**Password change + reset.** Three routes under `/api/auth/`:
+`change-password` (authenticated — verifies the current password),
+`forgot-password` (issues a token, enumeration-safe), and
+`reset-password` (consumes the token). Reset tokens are
+`SHA-256`-hashed at rest in `PasswordResetToken`, single-use
+(conditional-`updateMany` claim), and expire after 1 hour. Both
+set-password routes run `validatePasswordPolicy` + the HIBP check;
+every success revokes ALL of the user's sessions (`sessionVersion`
+bump + `UserSession.revokedAt`). Logic lives in
+`src/lib/auth/password-management.ts`. Any future password-accepting
+route MUST wire HIBP the same way — the Epic E.4 guardrail enforces
+it.
 
 **See `docs/epic-a-security.md`** for the unified operator runbook
 (verification commands, rollback procedure, observability signals)
@@ -440,12 +451,14 @@ locks in the invariant that every API route ingesting a
 user-chosen password MUST import AND call
 `checkPasswordAgainstHIBP`. Mirrors the
 `sanitize-rich-text-coverage.test.ts` template: a curated
-`HIBP_REQUIRED_ROUTES` list (today: just `auth/register`) paired
-with a structural scan of `src/app/api/**/route.ts` for
-password-shaped Zod fields. An in-memory mutation regression proof
-confirms the detector catches removals. Vacuously passes today —
-the first password-change / reset / recovery route forced to
-register is the point.
+`HIBP_REQUIRED_ROUTES` list (`auth/register`, `auth/change-password`,
+`auth/reset-password`) paired with a structural scan of
+`src/app/api/**/route.ts` for password-shaped Zod fields. An
+in-memory mutation regression proof confirms the detector catches
+removals. The structural scan auto-fails any new route that parses
+a `password` / `newPassword` / `currentPassword` Zod field without
+registering — define password schemas inline in the route file so
+the scan sees them.
 
 **See `docs/epic-e-observability.md`** for the Epic E operator
 runbook (verification commands, rollback procedures, how to add a

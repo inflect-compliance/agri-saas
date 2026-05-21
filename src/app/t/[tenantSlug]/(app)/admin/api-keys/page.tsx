@@ -210,7 +210,7 @@ export function KeyDisplay({ plaintext }: { plaintext: string }) {
                     </Button>
                 </Tooltip>
                 <Button
-                    variant="primary"
+                    variant="secondary"
                     size="sm"
                     onClick={handleCopy}
                     id="key-copy-btn"

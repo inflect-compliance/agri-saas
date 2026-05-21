@@ -68,6 +68,11 @@ describe('Structural Guard: Tenant Isolation Conventions', () => {
             'page.tsx',          // Root redirector → /t/<slug>/dashboard
             'login',             // Public login page
             'register',          // Public register page
+            'forgot-password',   // Public password-reset request page (credentials flow)
+            'reset-password',    // Public password-reset confirm page (emailed token link)
+            'account',           // Identity-level account settings (e.g. /account/security
+                                 // change-password). Not tenant-scoped — a user's
+                                 // password is one identity, shared across every tenant.
             'dashboard',         // Legacy redirect shim → /t/<slug>/dashboard
             'not-found.tsx',     // 404 page
             'error.tsx',         // Error boundary

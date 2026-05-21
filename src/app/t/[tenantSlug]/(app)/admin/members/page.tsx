@@ -373,7 +373,7 @@ export default function MembersAdminPage() {
                                         buttonProps={{ className: 'text-xs py-1 px-2 w-full sm:w-28' }}
                                     />
                                     <Button
-                                        variant="primary"
+                                        variant="secondary"
                                         size="xs"
                                         onClick={() => handleRoleChange(m.id)}
                                         disabled={changingRole}

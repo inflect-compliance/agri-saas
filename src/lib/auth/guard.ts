@@ -10,6 +10,8 @@ import { NextResponse } from 'next/server';
 const PUBLIC_PATH_PREFIXES = [
     '/login',
     '/register',
+    '/forgot-password',  // Password-reset request page — unauthenticated users must reach it
+    '/reset-password',   // Password-reset confirm page — reached from an emailed token link
     '/no-tenant',        // Landing page for uninvited users — must not gate-loop
     '/tenants',          // R-1: tenant picker — must be reachable before active-tenant is set
     '/invite/',          // Invite preview page — public so unauthenticated users can see invite details

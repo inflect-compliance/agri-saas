@@ -187,3 +187,23 @@ export function validatePasswordPolicy(plaintext: string): PasswordPolicyResult 
     if (plaintext.length > MAX_PASSWORD_LENGTH) return { ok: false, reason: 'too_long' };
     return { ok: true };
 }
+
+/**
+ * Human-readable, user-facing message for a failed
+ * {@link validatePasswordPolicy}. Kept here next to the policy so the
+ * wording and the numeric bounds can never drift apart — every
+ * password-setting route (register, change, reset) renders the same
+ * sentence for the same failure.
+ */
+export function describePasswordPolicyFailure(
+    reason: Exclude<PasswordPolicyResult, { ok: true }>['reason'],
+): string {
+    switch (reason) {
+        case 'too_short':
+            return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+        case 'too_long':
+            return `Password must be at most ${MAX_PASSWORD_LENGTH} characters.`;
+        case 'empty':
+            return 'Password is required.';
+    }
+}

@@ -47,6 +47,9 @@ export const AUTH_ACTIONS = {
     LOGIN_EMAIL_VERIFICATION_REQUIRED: 'AUTH_LOGIN_EMAIL_VERIFICATION_REQUIRED',
     EMAIL_VERIFICATION_ISSUED: 'AUTH_EMAIL_VERIFICATION_ISSUED',
     EMAIL_VERIFIED: 'AUTH_EMAIL_VERIFIED',
+    PASSWORD_RESET_REQUESTED: 'AUTH_PASSWORD_RESET_REQUESTED',
+    PASSWORD_RESET_COMPLETED: 'AUTH_PASSWORD_RESET_COMPLETED',
+    PASSWORD_CHANGED: 'AUTH_PASSWORD_CHANGED',
 } as const;
 
 export type AuthActionValue = (typeof AUTH_ACTIONS)[keyof typeof AUTH_ACTIONS];
@@ -255,6 +258,86 @@ export async function recordEmailVerified(params: {
     if (!tenantId) return;
     await writeAudit({
         action: AUTH_ACTIONS.EMAIL_VERIFIED,
+        userId: params.userId,
+        tenantId,
+        email: params.email,
+        method: 'credentials',
+        requestId: params.requestId,
+    });
+}
+
+// ── Password lifecycle ─────────────────────────────────────────────────
+//
+// Reset/change events only ever apply to credentials accounts (OAuth-
+// only users have no password), so `method` is always 'credentials'.
+
+export async function recordPasswordResetRequested(params: {
+    userId: string;
+    email: string;
+    tenantId?: string | null;
+    requestId?: string;
+}): Promise<void> {
+    logger.info('auth password reset requested', {
+        component: 'auth',
+        event: 'password_reset_requested',
+        userId: params.userId,
+        identifierHash: hashEmailForLog(params.email),
+        requestId: params.requestId,
+    });
+    const tenantId = params.tenantId ?? (await resolvePrimaryTenantId(params.userId));
+    if (!tenantId) return;
+    await writeAudit({
+        action: AUTH_ACTIONS.PASSWORD_RESET_REQUESTED,
+        userId: params.userId,
+        tenantId,
+        email: params.email,
+        method: 'credentials',
+        requestId: params.requestId,
+    });
+}
+
+export async function recordPasswordResetCompleted(params: {
+    userId: string;
+    email: string;
+    tenantId?: string | null;
+    requestId?: string;
+}): Promise<void> {
+    logger.info('auth password reset completed', {
+        component: 'auth',
+        event: 'password_reset_completed',
+        userId: params.userId,
+        identifierHash: hashEmailForLog(params.email),
+        requestId: params.requestId,
+    });
+    const tenantId = params.tenantId ?? (await resolvePrimaryTenantId(params.userId));
+    if (!tenantId) return;
+    await writeAudit({
+        action: AUTH_ACTIONS.PASSWORD_RESET_COMPLETED,
+        userId: params.userId,
+        tenantId,
+        email: params.email,
+        method: 'credentials',
+        requestId: params.requestId,
+    });
+}
+
+export async function recordPasswordChanged(params: {
+    userId: string;
+    email: string;
+    tenantId?: string | null;
+    requestId?: string;
+}): Promise<void> {
+    logger.info('auth password changed', {
+        component: 'auth',
+        event: 'password_changed',
+        userId: params.userId,
+        identifierHash: hashEmailForLog(params.email),
+        requestId: params.requestId,
+    });
+    const tenantId = params.tenantId ?? (await resolvePrimaryTenantId(params.userId));
+    if (!tenantId) return;
+    await writeAudit({
+        action: AUTH_ACTIONS.PASSWORD_CHANGED,
         userId: params.userId,
         tenantId,
         email: params.email,

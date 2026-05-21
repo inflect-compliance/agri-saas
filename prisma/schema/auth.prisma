@@ -660,6 +660,7 @@ model User {
   vendorBundlesCreated          VendorEvidenceBundle[]       @relation("EvidenceBundleCreator")
   apiKeysCreated                TenantApiKey[]               @relation("ApiKeyCreator")
   userSessions                  UserSession[]                @relation("UserSessionOwner")
+  passwordResetTokens           PasswordResetToken[]         @relation("UserPasswordResetTokens")
   orgMemberships                OrgMembership[]
   orgAuditLogActions            OrgAuditLog[]                @relation("OrgAuditLogActor")
   orgAuditLogTargets            OrgAuditLog[]                @relation("OrgAuditLogTarget")
@@ -777,6 +778,31 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+/// Password-reset tokens (forgot-password / reset-password flow).
+///
+/// Distinct from `VerificationToken` on purpose: a single-purpose token
+/// table means a verify-email link can never be replayed as a
+/// password reset (and vice versa). `tokenHash` stores the SHA-256 of
+/// the raw token — the raw value lives only in the emailed link and in
+/// memory on the confirm path, so a leaked DB dump cannot be replayed.
+/// `usedAt` makes the token single-use; the confirm path claims it with
+/// a conditional `updateMany` so concurrent submits race to one winner.
+/// Not tenant-scoped (identity-level, like User / VerificationToken) so
+/// it carries no `tenantId` and needs no RLS policy.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation("UserPasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model BillingAccount {

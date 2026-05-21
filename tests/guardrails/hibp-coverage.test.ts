@@ -35,6 +35,14 @@ const HIBP_REQUIRED_ROUTES: ReadonlyArray<{
         file: 'src/app/api/auth/register/route.ts',
         field: 'password',
     },
+    {
+        file: 'src/app/api/auth/change-password/route.ts',
+        field: 'newPassword',
+    },
+    {
+        file: 'src/app/api/auth/reset-password/route.ts',
+        field: 'newPassword',
+    },
     // Future password-change / reset / recovery routes add themselves here.
 ];
 
