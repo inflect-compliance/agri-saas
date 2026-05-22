@@ -51,6 +51,11 @@ const GUARDRAILS: ReadonlyArray<{
         pillar: 'Redis eviction policy (BullMQ durability)',
         anchors: ['noeviction', 'verifyRedisEvictionPolicy'],
     },
+    {
+        file: 'tests/guards/redis-production-auth.test.ts',
+        pillar: 'Redis production authentication (requirepass)',
+        anchors: ['requirepass', 'REDIS_PASSWORD'],
+    },
 ];
 
 /** Count `it(` / `it.each(` assertion blocks in a test file. */
@@ -76,9 +81,9 @@ describe('observability & reliability — guard the guards', () => {
         });
     });
 
-    it('the registry is complete (2 reliability guardrails, distinct)', () => {
-        expect(GUARDRAILS).toHaveLength(2);
-        expect(new Set(GUARDRAILS.map((g) => g.file)).size).toBe(2);
+    it('the registry is complete (3 reliability guardrails, distinct)', () => {
+        expect(GUARDRAILS).toHaveLength(3);
+        expect(new Set(GUARDRAILS.map((g) => g.file)).size).toBe(3);
     });
 });
 
