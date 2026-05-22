@@ -720,6 +720,29 @@ All exempt/baseline maps carry a written reason per entry and a
 "no stale entries" test — when a real index lands or an N+1 is
 fixed, delete the entry in the same diff.
 
+### Codebase-hygiene ratchets
+
+Three codebase-hygiene invariants are held by structural guardrails
+— **see `docs/codebase-hygiene.md`** for the contributor guide:
+
+- **`as any` stays on a downward ratchet.** The `src/` count is 4
+  (documented staged debt). `tests/guardrails/no-explicit-any-ratchet.test.ts`
+  caps it via `CURRENT_BASELINE` with a drift sentinel (slack cannot
+  accumulate); `tests/guards/no-explicit-any-ratchet.test.ts` caps
+  `: any` / `<any>` / `as any` / `@ts-ignore`. Removing casts ⇒
+  lower the baseline/caps in the same PR. `@typescript-eslint/no-explicit-any`
+  is intentionally `warn` (a large `: any` debt makes `error`
+  infeasible) — the ratchet is the enforcement.
+- **Logging discipline applies to adapted code too.** No `console.*`
+  in server code (`tests/guardrails/logging-import-hygiene.test.ts`);
+  `src/lib/dub-utils/` is NOT exempt.
+- **Route handlers type `params` as `Promise<…>`.** Next 15+
+  contract; `tests/guards/async-params-route-typing.test.ts` blocks
+  a regression. The old transparent-await shim is retired.
+
+`tests/guards/codebase-hygiene-integrity.test.ts` is the meta-ratchet
+over these four guardrails.
+
 ## Failing tests
 
 A failing test on a branch is a failing test, full stop. "Pre-existing on
