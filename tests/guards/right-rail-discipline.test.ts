@@ -193,3 +193,54 @@ describe('Right-rail AI assist rail discipline (Phase 3)', () => {
         expect(src).toContain('<AiAssistRail');
     });
 });
+
+/**
+ * Right-rail roadmap, Phase 4 — refinements on `<AsidePanel>`.
+ *
+ * The fixed-width, UI-only v1 gains two opt-in refinements: a
+ * user-resizable docked width (drag handle + keyboard), and a
+ * `?aside=<surfaceKey>` deep-link that force-expands a specific rail
+ * on arrival. This block locks both — and locks that the collapse
+ * state itself never enters the URL (it stays localStorage-only).
+ */
+describe('Right-rail AsidePanel refinements discipline (Phase 4)', () => {
+    it('the docked panel is user-resizable — a real separator handle', () => {
+        const src = read(ASIDE_PANEL_PATH);
+        expect(src).toMatch(
+            /data-testid=["']aside-panel-resize-handle["']/,
+        );
+        // a11y: a real separator with a value range, draggable AND
+        // keyboard-operable.
+        expect(src).toMatch(/role=["']separator["']/);
+        expect(src).toMatch(/onMouseDown=/);
+        expect(src).toMatch(/onKeyDown=/);
+    });
+
+    it('the docked width is state-driven + persisted, not a hard-coded class', () => {
+        const src = read(ASIDE_PANEL_PATH);
+        // Width flows through inline style from state…
+        expect(src).toMatch(/style=\{\{\s*width\s*\}\}/);
+        // …persisted per surfaceKey…
+        expect(src).toMatch(/aside:width:\$\{surfaceKey\}/);
+        // …and the old fixed `w-[320px]` track is gone.
+        expect(src).not.toMatch(/w-\[320px\]/);
+    });
+
+    it('the `?aside` deep-link force-expands by surfaceKey, additively', () => {
+        const src = read(ASIDE_PANEL_PATH);
+        expect(src).toMatch(/useSearchParams/);
+        // The param is matched against this panel's surfaceKey.
+        expect(src).toMatch(
+            /searchParams\??\.get\(['"]aside['"]\)\s*===\s*surfaceKey/,
+        );
+    });
+
+    it('collapse state never enters the URL — it stays localStorage-only', () => {
+        // The deep-link is one-directional (URL → open). A future
+        // change that pushes collapse state INTO the route would make
+        // a shared link carry one user's rail preference — banned.
+        const src = read(ASIDE_PANEL_PATH);
+        expect(src).not.toMatch(/router\.(push|replace)/);
+        expect(src).not.toMatch(/useRouter/);
+    });
+});

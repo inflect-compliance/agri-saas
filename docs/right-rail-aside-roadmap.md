@@ -1,10 +1,26 @@
-# Right-rail / aside-panel chrome — future architecture brief
+# Right-rail / aside-panel chrome — architecture brief
 
-> **Status: not built. Not scheduled.** This is a future-facing
-> architecture brief, not an implementation plan with a start date.
-> It exists so that *if* a right-rail is built, it is built once,
-> coherently — and so the current account/profile chrome work does
-> not smuggle a half-rail in by accident.
+> **Status: Phases 0–4 implemented (2026-05-22).** This document
+> began as a future-facing brief; the roadmap below was then built in
+> full. It is kept as the design record — the rationale, the posture
+> definition, and the acceptance criteria still govern any future
+> rail surface. The original "if a right-rail is built" framing is
+> left intact in the prose below for context; treat it as written
+> *before* the build.
+>
+> **Implementation:**
+> - **Phase 1** — `<AsidePanel>` primitive + `EntityDetailLayout`
+>   rail slot; consumer: risks detail page (#644).
+> - **Phase 2** — `aside` slot on `ListPageShell` / `EntityListPage`
+>   + `<SelectionSummaryPanel>`; consumer: controls list selection
+>   summary (#646).
+> - **Phase 3** — `<AsidePanel defaultCollapsed>` + `<AiAssistRail>`;
+>   consumer: the risk register (#647).
+> - **Phase 4** — refinements: user-resizable docked width +
+>   `?aside=<surfaceKey>` deep-link.
+>
+> Structural lock: `tests/guards/right-rail-discipline.test.ts`
+> carries one describe block per phase.
 
 ---
 
