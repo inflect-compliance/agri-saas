@@ -13,7 +13,8 @@ import { AppIcon } from '@/components/icons/AppIcon';
 import { useTenantContext, useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import dynamic from 'next/dynamic';
 import LinkedTasksPanel from '@/components/LinkedTasksPanel';
-import { Heading, Eyebrow } from '@/components/ui/typography';
+import { AsidePanel } from '@/components/ui/aside-panel';
+import { Eyebrow } from '@/components/ui/typography';
 import { CardHeader } from '@/components/ui/card-header';
 import { KPIStat } from '@/components/ui/metric';
 import { MetaStrip } from '@/components/ui/meta-strip';
@@ -305,24 +306,24 @@ export default function RiskDetailPage() {
                     </>
                 )
             }
-            // Roadmap-2 PR-5 — lift Linked Tasks into the right
-            // rail so a user investigating a risk can act on its
-            // tasks without scrolling past the treatment plan.
-            // Activates at xl (1280px+); below that, the rail
-            // collapses below the body and the user sees the same
-            // vertical flow they had before.
+            // Right-rail roadmap Phase 1 — Linked Tasks rides the
+            // `<AsidePanel>` primitive: a docked, collapsible rail at
+            // xl+ (state persisted per surface), and a `<Sheet>`
+            // below xl. The page owns the content; the panel owns the
+            // chrome.
             rail={
-                <div className={cardVariants()}>
-                    <Heading level={2} className="mb-3 inline-flex items-center gap-tight text-base">
-                        <AppIcon name="tasks" size={16} /> Linked Tasks
-                    </Heading>
+                <AsidePanel
+                    title="Linked Tasks"
+                    surfaceKey="risk-detail"
+                    icon={<AppIcon name="tasks" size={16} />}
+                >
                     <LinkedTasksPanel
                         apiBase={apiUrl('')}
                         entityType="RISK"
                         entityId={riskId}
                         tenantHref={href}
                     />
-                </div>
+                </AsidePanel>
             }
         >
             {error && (

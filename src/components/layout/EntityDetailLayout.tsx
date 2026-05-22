@@ -299,8 +299,15 @@ export function EntityDetailLayout<TKey extends string = string>({
                 them — pages that own multi-card stacks looked
                 fused together. */}
             {rail ? (
+                // Right-rail roadmap Phase 1 — a flex row, not a
+                // fixed-track grid: the rail's width is owned by the
+                // rail content (`<AsidePanel>` renders 320px expanded
+                // or 44px collapsed), so collapsing the panel reflows
+                // the main column with no shared state. Below xl the
+                // row stacks; `<AsidePanel>` itself degrades to a
+                // `<Sheet>` there.
                 <div
-                    className="grid gap-default xl:grid-cols-[minmax(0,1fr)_320px]"
+                    className="flex flex-col gap-default xl:flex-row"
                     data-testid="entity-detail-rail-grid"
                 >
                     {tabs && activeTab ? (
@@ -309,20 +316,20 @@ export function EntityDetailLayout<TKey extends string = string>({
                             id={`tabpanel-${activeTab}`}
                             aria-labelledby={`tab-${activeTab}`}
                             data-testid="entity-detail-tabpanel"
-                            className="min-w-0 space-y-section"
+                            className="min-w-0 xl:flex-1 space-y-section"
                         >
                             {children}
                         </div>
                     ) : (
                         <div
                             data-testid="entity-detail-body"
-                            className="min-w-0 space-y-section"
+                            className="min-w-0 xl:flex-1 space-y-section"
                         >
                             {children}
                         </div>
                     )}
                     <aside
-                        className="space-y-default xl:sticky xl:top-20 xl:self-start"
+                        className="flex-shrink-0 space-y-default xl:sticky xl:top-20 xl:self-start"
                         aria-label="Context"
                         data-testid="entity-detail-rail"
                     >

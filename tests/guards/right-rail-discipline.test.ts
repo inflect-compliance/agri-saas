@@ -52,7 +52,7 @@ describe('Right-rail master-detail discipline (Roadmap-2 PR-5)', () => {
         );
     });
 
-    it('the body grid kicks in at the xl breakpoint, not at md', () => {
+    it('the rail layout activates at the xl breakpoint, not at md/lg', () => {
         // xl = 1280px in Tailwind's default scale. Activating
         // master-detail at md (768px) would crowd a tablet
         // viewport; lg (1024px) is the minimum to host a 320px
@@ -60,8 +60,18 @@ describe('Right-rail master-detail discipline (Roadmap-2 PR-5)', () => {
         // the main column the room to breathe at common
         // 1440px laptop widths AND leaves laptops at 1280px with
         // a workable layout.
+        //
+        // Right-rail Phase 1: the body became a flex row at xl+
+        // (was a fixed `grid-cols-[minmax(0,1fr)_320px]` track).
+        // `<AsidePanel>` now owns the rail's own width — 320px
+        // expanded, 44px collapsed-to-spine — so a fixed grid
+        // track would fight the panel's collapse state. The
+        // breakpoint stays xl.
         const src = read(SHELL_PATH);
-        expect(src).toMatch(/xl:grid-cols-\[minmax\(0,1fr\)_320px\]/);
+        expect(src).toMatch(/xl:flex-row/);
+        expect(src).not.toMatch(
+            /md:grid-cols|lg:grid-cols|md:flex-row|lg:flex-row/,
+        );
     });
 
     it('risks detail page passes a rail (proof-of-pattern adoption)', () => {
