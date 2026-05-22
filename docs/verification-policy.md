@@ -60,6 +60,15 @@ CI stays green — is structurally blocked, not left to memory:
   (`docs/coverage-policy.md`) holds the floor; `test-portfolio.md`
   states that a structural ratchet is never a substitute for a
   behavioural test of the same logic.
+- **The verification population shrinking** →
+  `rendered-coverage-floor.test.ts` is a *staged upward ratchet* —
+  the count of rendered behavioural tests, E2E specs, and registered
+  high-risk primitives must each stay at or above a floor that only
+  ever rises. It is the inverse of the `as any` downward ratchet:
+  deleting verification trips CI, and a surplus over the floor must
+  be locked in by raising the floor in the same PR. Roadmap-4's
+  registry froze a *named* set; this keeps the whole rendered/E2E
+  *population* from eroding.
 - **The guardrails themselves** → `verification-integrity.test.ts`
   fails CI if any verification guardrail is deleted or gutted.
 

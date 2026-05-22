@@ -56,6 +56,11 @@ const GUARDRAILS: ReadonlyArray<{
         pillar: 'rich-text sanitiser coverage — structural completeness',
         anchors: ['ENCRYPTED_FIELDS', 'RICH_TEXT_COVERAGE'],
     },
+    {
+        file: 'tests/guards/rendered-coverage-floor.test.ts',
+        pillar: 'staged upward ratchet — rendered/E2E verification must only grow',
+        anchors: ['RENDERED_TEST_FLOOR', 'upward'],
+    },
 ];
 
 /** Docs + tooling that make the verification policy explicit. */
@@ -89,9 +94,9 @@ describe('verification integrity — guard the guards', () => {
         });
     });
 
-    it('the registry is complete (2 verification guardrails, distinct)', () => {
-        expect(GUARDRAILS).toHaveLength(2);
-        expect(new Set(GUARDRAILS.map((g) => g.file)).size).toBe(2);
+    it('the registry is complete (3 verification guardrails, distinct)', () => {
+        expect(GUARDRAILS).toHaveLength(3);
+        expect(new Set(GUARDRAILS.map((g) => g.file)).size).toBe(3);
     });
 
     it.each(VERIFICATION_ARTEFACTS)(
