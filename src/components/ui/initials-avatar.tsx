@@ -52,10 +52,14 @@ export function getInitials(
 
 // ─── Component ──────────────────────────────────────────────────────
 
-/** Size presets — `sm` is the inline pill avatar, `md` the user-menu trigger. */
+/**
+ * Size presets — `sm` is the inline pill avatar, `md` the user-menu
+ * trigger, `lg` the account-profile-page preview (avatar roadmap P3).
+ */
 const SIZE_CLASS = {
     sm: 'h-5 w-5 text-[10px]',
     md: 'h-8 w-8 text-[11px]',
+    lg: 'h-16 w-16 text-xl',
 } as const;
 
 export interface InitialsAvatarProps {

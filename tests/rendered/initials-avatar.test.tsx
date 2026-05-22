@@ -62,8 +62,11 @@ describe('<InitialsAvatar>', () => {
     it('size presets resolve to distinct dimension classes', () => {
         const sm = render(<InitialsAvatar value="X" size="sm" />);
         const md = render(<InitialsAvatar value="X" size="md" />);
+        const lg = render(<InitialsAvatar value="X" size="lg" />);
         expect((sm.container.firstChild as HTMLElement).className).toContain('h-5');
         expect((md.container.firstChild as HTMLElement).className).toContain('h-8');
+        // `lg` — the account-profile preview size (avatar roadmap P3).
+        expect((lg.container.firstChild as HTMLElement).className).toContain('h-16');
     });
 });
 

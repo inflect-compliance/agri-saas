@@ -90,3 +90,66 @@ describe('Image-backed avatars (avatar roadmap P2)', () => {
         expect(src).toMatch(/<InitialsAvatar[\s\S]*?imageUrl=\{member\.image\}/);
     });
 });
+
+/**
+ * Avatar roadmap, P3 — the upload flow.
+ *
+ * An account/profile page + a self-service upload/serve API let a
+ * user set a real photo. The image is resized + EXIF-stripped +
+ * webp-encoded client-side; the server validates (magic-number sniff
+ * + size cap) and persists it, pointing `User.image` at a stable,
+ * provider-agnostic serve route.
+ */
+describe('Avatar upload flow (avatar roadmap P3)', () => {
+    const AVATAR_LIB = 'src/lib/account/avatar.ts';
+    const UPLOAD_ROUTE = 'src/app/api/account/avatar/route.ts';
+    const SERVE_ROUTE = 'src/app/api/account/avatar/[userId]/route.ts';
+    const PROFILE_PAGE = 'src/app/account/profile/page.tsx';
+    const UPLOAD_FIELD = 'src/app/account/profile/AvatarUploadField.tsx';
+
+    it('the avatar lib validates the bytes and caps the size', () => {
+        const src = read(AVATAR_LIB);
+        // Magic-number sniff is the trust boundary — never store
+        // unvalidated bytes.
+        expect(src).toMatch(/export function isWebp\(/);
+        expect(src).toMatch(/AVATAR_MAX_BYTES/);
+        // It persists through the storage abstraction, never a raw fs
+        // write, and points User.image at the serve URL.
+        expect(src).toMatch(/getStorageProvider\(\)/);
+        expect(src).toMatch(/prisma\.user\.update/);
+    });
+
+    it('upload/delete is self-service — own session user only, no requirePermission', () => {
+        const src = read(UPLOAD_ROUTE);
+        expect(src).toMatch(/export const POST =/);
+        expect(src).toMatch(/export const DELETE =/);
+        expect(src).toMatch(/getServerSession/);
+        // Acts on the session user id — never a caller-supplied id —
+        // so one user cannot write another's avatar.
+        expect(src).toMatch(/session\.user\.id/);
+        // No `requirePermission(...)` call — self-service, not a
+        // tenant-privileged route. (Matches the call, not the bare
+        // word, so the rationale comment can still name it.)
+        expect(src).not.toMatch(/requirePermission\s*\(/);
+    });
+
+    it('the serve route streams a stored avatar behind auth', () => {
+        const src = read(SERVE_ROUTE);
+        expect(src).toMatch(/export const GET =/);
+        expect(src).toMatch(/getServerSession/);
+        // Async-params contract (Next 15+).
+        expect(src).toMatch(/params:\s*Promise</);
+        expect(src).toMatch(/getAvatarStream/);
+    });
+
+    it('the account/profile page mounts the upload field', () => {
+        const page = read(PROFILE_PAGE);
+        expect(page).toMatch(/<AvatarUploadField/);
+        const field = read(UPLOAD_FIELD);
+        // The client field renders identity through the shared
+        // primitive and resizes via canvas before upload.
+        expect(field).toMatch(/<InitialsAvatar/);
+        expect(field).toMatch(/canvas/i);
+        expect(field).toMatch(/image\/webp/);
+    });
+});

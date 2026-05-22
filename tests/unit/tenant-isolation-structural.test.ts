@@ -177,6 +177,13 @@ describe('Structural Guard: Tenant Isolation Conventions', () => {
             // src/lib/security/external-assessment-access.ts and
             // src/lib/errors/route-exemptions.ts (anti_enumeration).
             'vendor-assessment',
+            // Avatar roadmap P3 — account-level (session-scoped)
+            // routes. A user's profile/avatar is theirs across every
+            // tenant, so `/api/account/*` resolves the session user,
+            // never a `RequestContext` — the same reason `/api/auth/*`
+            // sits outside `/api/t/`. The avatar upload/delete acts
+            // only on `session.user.id`; the serve route is read-only.
+            'account',
         ]);
 
         // Legacy routes are allowed as documented thin wrappers
