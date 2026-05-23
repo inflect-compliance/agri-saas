@@ -3,7 +3,6 @@
  * Epic 52 — auditing script: counts remaining raw <table> usage vs DataTable.
  */
 const { execSync } = require('child_process');
-const path = require('path');
 
 const APP = 'src/app/t';
 

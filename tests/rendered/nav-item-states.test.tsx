@@ -92,7 +92,7 @@ describe('<NavItem>', () => {
         });
 
         it('renders the icon with the canonical 18×18 + flex-shrink-0', () => {
-            const { container } = render(
+            render(
                 <NavItem
                     href="/t/foo/controls"
                     icon={Settings}

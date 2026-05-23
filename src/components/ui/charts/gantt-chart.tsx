@@ -48,7 +48,6 @@ import {
     chartGradientId,
     type ChartSeriesIndex,
 } from './chart-gradient';
-import { useChartHoverPop } from './chart-motion';
 import type { ChartState } from './types';
 
 /**

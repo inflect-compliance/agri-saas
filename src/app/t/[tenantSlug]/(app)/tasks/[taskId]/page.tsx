@@ -55,37 +55,6 @@ const GAP_TYPE_LABELS: Record<string, string> = {
     DESIGN: 'Design', OPERATING_EFFECTIVENESS: 'Operating Effectiveness', DOCUMENTATION: 'Documentation',
 };
 
-// SLA windows (hours)
-const SLA_RESOLVE: Record<string, number> = { CRITICAL: 24, HIGH: 72, MEDIUM: 168, LOW: 720 };
-const SLA_TRIAGE: Record<string, number> = { CRITICAL: 4, HIGH: 24, MEDIUM: 72, LOW: 168 };
-
-function getSlaStatus(severity: string, createdAt: string, status: string) {
-    if ((TERMINAL_WORK_ITEM_STATUSES as readonly string[]).includes(status)) return { label: '', breach: false };
-    const now = Date.now();
-    const created = new Date(createdAt).getTime();
-    const resolveH = SLA_RESOLVE[severity];
-    const triageH = SLA_TRIAGE[severity];
-    if (resolveH && now > created + resolveH * 3600000) return { label: 'SLA Breached', breach: true };
-    if (triageH && status === 'OPEN' && now > created + triageH * 3600000) return { label: 'Triage SLA Breached', breach: true };
-    return { label: '', breach: false };
-}
-
-// Relevance check: AUDIT_FINDING/CONTROL_GAP needs control/framework link; INCIDENT needs asset/control
-function getRelevanceStatus(task: any, links: any[]) {
-    const type = task?.type;
-    if (!type) return { satisfied: true, message: '' };
-    const hasControl = !!task.controlId || links.some((l: any) => l.entityType === 'CONTROL');
-    const hasFramework = links.some((l: any) => l.entityType === 'FRAMEWORK_REQUIREMENT');
-    const hasAsset = links.some((l: any) => l.entityType === 'ASSET');
-
-    if (['AUDIT_FINDING', 'CONTROL_GAP'].includes(type) && !hasControl && !hasFramework) {
-        return { satisfied: false, message: 'Requires a Control or Framework Requirement link' };
-    }
-    if (type === 'INCIDENT' && !hasAsset && !hasControl) {
-        return { satisfied: false, message: 'Requires an Asset or Control link' };
-    }
-    return { satisfied: true, message: '' };
-}
 
 export default function TaskDetailPage() {
     const params = useParams();

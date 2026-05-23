@@ -75,28 +75,6 @@ function buildAdjacencyList(nodes: DependencyNode[]): Map<string, Set<string>> {
     return adj;
 }
 
-/**
- * Compute in-degree for each node in the adjacency list.
- * In-degree = number of nodes that depend on this node.
- */
-function computeInDegrees(adj: Map<string, Set<string>>): Map<string, number> {
-    const inDegree = new Map<string, number>();
-
-    // Initialize all nodes with 0
-    for (const urn of adj.keys()) {
-        inDegree.set(urn, 0);
-    }
-
-    // Count incoming edges (if A depends on B, B has an incoming edge from A)
-    for (const [, deps] of adj) {
-        for (const dep of deps) {
-            inDegree.set(dep, (inDegree.get(dep) ?? 0) + 1);
-        }
-    }
-
-    return inDegree;
-}
-
 // ─── Topological Sort (Kahn's Algorithm) ─────────────────────────────
 
 /**

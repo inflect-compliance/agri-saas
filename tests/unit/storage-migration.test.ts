@@ -20,7 +20,6 @@ jest.mock('@/env', () => ({
 }));
 
 import {
-    getStorageProvider,
     getProviderByName,
     resetStorageProvider,
     buildTenantObjectKey,

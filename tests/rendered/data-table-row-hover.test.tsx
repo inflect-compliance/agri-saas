@@ -110,7 +110,7 @@ describe('<DataTable> row hover — behavioural (Tier 2)', () => {
     });
 
     it('a clickable row paints the hover surface on its content cells', () => {
-        const { container } = render(
+        render(
             <DataTable<ThingRow>
                 data={rows}
                 columns={columns}

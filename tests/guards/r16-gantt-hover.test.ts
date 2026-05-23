@@ -32,8 +32,15 @@ describe('Roadmap-16 PR-12 — GanttChart hover', () => {
             );
         });
 
-        it('imports useChartHoverPop + motion + useMemo', () => {
-            expect(GANTT_SRC).toMatch(/useChartHoverPop/);
+        it('imports motion + useMemo', () => {
+            // `useChartHoverPop` import was once asserted here, but
+            // the gantt's hover state is driven directly through the
+            // `hoveredKey` `useState` + the `motion.rect` opacity/
+            // translateY animation, NOT through the hover-pop hook —
+            // the import was carried over inertia. CodeQL's
+            // quality-suite unused-local-variable rule caught the
+            // dead import; the assertion was pruned to the still-
+            // used imports.
             expect(GANTT_SRC).toMatch(
                 /import\s*\{[\s\S]*?motion[\s\S]*?\}\s*from\s*['"]motion\/react['"]/,
             );

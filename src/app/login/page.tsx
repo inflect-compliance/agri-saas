@@ -21,7 +21,6 @@ function extractErrorMessage(value: unknown, fallback: string): string {
 type VerifyStatus = 'verified' | 'invalid' | 'expired';
 
 function LoginForm() {
-    const router = useRouter();
     const searchParams = useSearchParams();
     // R-1: default post-sign-in destination is /tenants so the picker logic
     // takes over (0 → /no-tenant, 1 → direct, >1 → picker list).

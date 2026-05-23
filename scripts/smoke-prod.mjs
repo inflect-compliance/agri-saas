@@ -175,7 +175,7 @@ async function main() {
 
     // Output JSON summary for CI consumption
     if (process.env.GITHUB_STEP_SUMMARY) {
-        const { writeFileSync, appendFileSync } = await import('node:fs');
+        const { appendFileSync } = await import('node:fs');
         const summary = [
             `### ${failed === 0 ? '✅' : '❌'} Smoke Test Results`,
             '',

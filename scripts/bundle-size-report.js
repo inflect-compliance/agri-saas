@@ -20,7 +20,6 @@ const path = require('path');
 
 const ROOT = process.cwd();
 const NEXT_DIR = path.join(ROOT, '.next');
-const STATIC_DIR = path.join(NEXT_DIR, 'static');
 const BUILD_MANIFEST = path.join(NEXT_DIR, 'build-manifest.json');
 const APP_MANIFEST = path.join(NEXT_DIR, 'app-build-manifest.json');
 
