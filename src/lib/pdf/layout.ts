@@ -125,24 +125,55 @@ export function addMetadataPage(doc: PDFKit.PDFDocument, meta: ReportMeta, dataS
 
 // ─── Page Header ───
 
+/**
+ * Fixed text-cell height (pt) passed to every `text()` call inside
+ * the header / footer / watermark stamping pass.
+ *
+ * Why this is load-bearing — root cause of the trailing-blank-page bug:
+ *
+ *   PDFKit's `text(str, x, y, opts)` auto-paginates if after writing
+ *   the text cursor (`doc.y`) crosses the bottom margin. The footer
+ *   renders at `y = PAGE_HEIGHT - 30 = 811.89`, which is ALREADY
+ *   below the bottom margin (`PAGE_HEIGHT - MARGINS.bottom = 791.89`).
+ *   A single text write there ends with the cursor past the margin;
+ *   the SECOND text write (page number) then triggers auto-paginate
+ *   and silently appends a blank page. With N real pages, the
+ *   stamping loop appends N blank pages — every Audit Readiness /
+ *   SoA export emitted N trailing blanks.
+ *
+ *   `lineBreak: false` (the prior workaround) ONLY suppresses
+ *   word-wrap. `doc.save() / doc.restore()` only preserves the
+ *   graphics state, NOT the text cursor. Setting `doc.y` between
+ *   writes is too late — auto-paginate has already fired.
+ *
+ *   The supported way to bypass pdfkit's pagination check is to
+ *   pass `height:` on the text options. PDFKit treats the write as
+ *   bounded and skips the post-write cursor check.
+ *
+ * The fix is applied uniformly across header + footer + watermark
+ * (defence in depth — a future stamp that doesn't quite reach the
+ * margin today might cross it after a font / margin change).
+ */
+const STAMP_TEXT_HEIGHT = 12;
+
 export function addHeader(doc: PDFKit.PDFDocument, meta: ReportMeta): void {
     const y = 20;
     doc.save();
 
     // Left: tenant name
     doc.fontSize(7).fillColor(BRAND.slate)
-        .text(meta.tenantName, MARGINS.left, y, { width: 200, lineBreak: false });
+        .text(meta.tenantName, MARGINS.left, y, { width: 200, lineBreak: false, height: STAMP_TEXT_HEIGHT });
 
     // Center: report title
     const titleWidth = doc.widthOfString(meta.reportTitle, { fontSize: 7 } as PDFKit.Mixins.TextOptions);
-    doc.text(meta.reportTitle, (PAGE_WIDTH - titleWidth) / 2, y, { width: 300, lineBreak: false, align: 'center' });
+    doc.text(meta.reportTitle, (PAGE_WIDTH - titleWidth) / 2, y, { width: 300, lineBreak: false, align: 'center', height: STAMP_TEXT_HEIGHT });
 
     // Right: date. Epic 58 — canonical `formatDateShort` returns the
     // same "DD/MM/YYYY" the inline call produced, but locked to UTC
     // so the header is stable across server regions and matches the
     // cover/metadata timestamps that Epic 58 also canonicalised.
     const dateStr = formatDateShort(meta.generatedAt);
-    doc.text(dateStr, PAGE_WIDTH - MARGINS.right - 100, y, { width: 100, align: 'right', lineBreak: false });
+    doc.text(dateStr, PAGE_WIDTH - MARGINS.right - 100, y, { width: 100, align: 'right', lineBreak: false, height: STAMP_TEXT_HEIGHT });
 
     // Bottom line
     doc.moveTo(MARGINS.left, y + 14).lineTo(PAGE_WIDTH - MARGINS.right, y + 14)
@@ -161,13 +192,16 @@ export function addFooter(doc: PDFKit.PDFDocument, meta: ReportMeta, pageNum: nu
     doc.moveTo(MARGINS.left, y - 6).lineTo(PAGE_WIDTH - MARGINS.right, y - 6)
         .strokeColor(BRAND.medGray).lineWidth(0.5).stroke();
 
-    // Left: confidential + hash
+    // Left: confidential + hash. `height` short-circuits pdfkit's
+    // auto-pagination (see STAMP_TEXT_HEIGHT comment above).
     const hashSuffix = meta.contentHash ? ` | Hash: ${meta.contentHash.slice(0, 12)}…` : '';
     doc.fontSize(7).fillColor(BRAND.slate)
-        .text(`CONFIDENTIAL — Inflect Compliance${hashSuffix}`, MARGINS.left, y, { lineBreak: false });
+        .text(`CONFIDENTIAL — Inflect Compliance${hashSuffix}`, MARGINS.left, y, { lineBreak: false, height: STAMP_TEXT_HEIGHT });
 
-    // Right: page number
-    doc.text(`Page ${pageNum} of ${totalPages}`, PAGE_WIDTH - MARGINS.right - 80, y, { width: 80, align: 'right', lineBreak: false });
+    // Right: page number — second write on the same line; without
+    // `height` this is the call that historically triggered the
+    // trailing-blank-page cascade.
+    doc.text(`Page ${pageNum} of ${totalPages}`, PAGE_WIDTH - MARGINS.right - 80, y, { width: 80, align: 'right', lineBreak: false, height: STAMP_TEXT_HEIGHT });
 
     doc.restore();
 }
@@ -188,7 +222,11 @@ export function addWatermark(doc: PDFKit.PDFDocument, text: string): void {
 
     doc.translate(cx, cy)
         .rotate(-35, { origin: [0, 0] })
-        .text(text, -textWidth / 2, -30, { lineBreak: false });
+        // `height` defends against future watermark-text changes
+        // shifting `doc.y` past the bottom margin (same pdfkit
+        // auto-paginate trap that broke the footer; see
+        // STAMP_TEXT_HEIGHT comment on `addHeader`).
+        .text(text, -textWidth / 2, -30, { lineBreak: false, height: 80 });
 
     doc.restore();
     // Reset opacity
@@ -197,22 +235,51 @@ export function addWatermark(doc: PDFKit.PDFDocument, text: string): void {
 
 // ─── Wire headers/footers/watermarks to all pages ───
 
+/**
+ * Stamp header / footer / watermark onto every buffered page.
+ *
+ * Page-numbering convention: the cover (page index 0) gets neither
+ * a header nor a page-number footer — it's a title page, numbering
+ * starts on the first content page (which is the metadata page,
+ * displayed as "Page 1 of N"). N is the count of pages that show
+ * a number — i.e., total pages minus the cover.
+ *
+ * Total-page count comes from `doc.bufferedPageRange().count`. The
+ * caller must NOT mutate the document after invoking this function
+ * (subsequent writes wouldn't be reflected in the stamped footers)
+ * — `addPage` calls inside content builders must already be done.
+ * The auto-paginate trap (see `STAMP_TEXT_HEIGHT` comment on
+ * `addHeader`) is what historically created N blank trailing pages
+ * during THIS loop; with `height:` on every text write inside
+ * `addHeader` / `addFooter` / `addWatermark`, the loop is now
+ * idempotent w.r.t. the page count.
+ */
 export function applyHeadersAndFooters(doc: PDFKit.PDFDocument, meta: ReportMeta): void {
     const pages = doc.bufferedPageRange();
     const watermarkText = meta.watermark && meta.watermark !== 'NONE' ? meta.watermark : null;
 
+    // Page index 0 is the cover. Numbered pages start at index 1.
+    // The "X of N" label uses N = numbered-page count = total - 1
+    // so the first numbered page reads "Page 1 of M", not "Page 2".
+    const numberedPageTotal = Math.max(0, pages.count - 1);
+
     for (let i = pages.start; i < pages.start + pages.count; i++) {
         doc.switchToPage(i);
 
-        // Skip header on first page (cover)
-        if (i > 0) {
-            addHeader(doc, meta);
+        // Cover gets no header + no page-number footer (just clean
+        // title page). The Confidential note + page number both
+        // belong to the numbered range.
+        if (i === pages.start) {
+            continue;
         }
 
-        addFooter(doc, meta, i + 1, pages.count);
+        addHeader(doc, meta);
+        // i - pages.start = 1 for first numbered page (the
+        // metadata page), 2 for the next, etc. — matches the
+        // `numberedPageTotal` shape.
+        addFooter(doc, meta, i - pages.start, numberedPageTotal);
 
-        // Watermark on all pages except cover
-        if (watermarkText && i > 0) {
+        if (watermarkText) {
             addWatermark(doc, watermarkText);
         }
     }
