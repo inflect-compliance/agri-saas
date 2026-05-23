@@ -11,7 +11,6 @@
  *   const result = await storage.write(key, buffer, { mimeType: 'application/pdf' });
  */
 import crypto from 'crypto';
-import path from 'path';
 import { env } from '@/env';
 import { logger } from '@/lib/observability/logger';
 import { badRequest, tenantIsolationViolation } from '@/lib/errors/types';
@@ -57,14 +56,14 @@ export function getStorageProvider(): StorageProvider {
     switch (providerType) {
         case 's3': {
             // Lazy import to avoid loading AWS SDK when not needed
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
+
             const { S3StorageProvider } = require('./s3-provider');
             _provider = new S3StorageProvider();
             break;
         }
         case 'local':
         default: {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
+
             const { LocalStorageProvider } = require('./local-provider');
             _provider = new LocalStorageProvider();
             break;
@@ -100,14 +99,14 @@ export function getProviderByName(name: StorageProviderType): StorageProvider {
     let provider: StorageProvider;
     switch (name) {
         case 's3': {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
+
             const { S3StorageProvider } = require('./s3-provider');
             provider = new S3StorageProvider();
             break;
         }
         case 'local':
         default: {
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
+
             const { LocalStorageProvider } = require('./local-provider');
             provider = new LocalStorageProvider();
             break;

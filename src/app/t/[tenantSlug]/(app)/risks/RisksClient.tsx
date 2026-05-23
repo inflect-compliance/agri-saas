@@ -174,7 +174,7 @@ function RisksPageInner({
             );
         }
         // First-mount only; filter state owns subsequent URL edits.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
 
     const filterCtx = useFilters();

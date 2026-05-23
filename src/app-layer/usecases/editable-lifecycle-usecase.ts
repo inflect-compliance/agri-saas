@@ -48,7 +48,6 @@ import type {
 } from '../domain/editable-lifecycle.types';
 import { LifecycleError } from '../domain/editable-lifecycle.types';
 import {
-    createEditableState,
     updateDraft,
     publish,
     revertToVersion,
@@ -60,7 +59,7 @@ import {
     assertCanRevert,
     assertCanArchive,
 } from '../policies/lifecycle.policies';
-import { logEvent, type AuditEventPayload } from '../events/audit';
+import { logEvent } from '../events/audit';
 import { logger } from '@/lib/observability/logger';
 
 // ─── Repository Contract ─────────────────────────────────────────────

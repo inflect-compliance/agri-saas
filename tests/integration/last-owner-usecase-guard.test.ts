@@ -184,7 +184,7 @@ describeFn('usecase-layer last-OWNER guard', () => {
     // ── 5. Happy path: second OWNER present → demotion allowed ─────────
 
     it('5. updateTenantMemberRole: can demote OWNER when a second OWNER exists', async () => {
-        const { tenantId, slug, ownerCtx, ownerMembershipId } =
+        const { tenantId, ownerCtx, ownerMembershipId } =
             await setupTenantWithOwner('two-owners');
 
         // Add second OWNER directly (bypass usecase to avoid circular permission check).

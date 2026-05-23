@@ -24,7 +24,6 @@ import { cn } from "./table-utils";
 import { Button } from "../button";
 import Link from "next/link";
 import {
-  formatPageRange,
   getPageRange,
   getPaginationState,
   type PaginationMeta,

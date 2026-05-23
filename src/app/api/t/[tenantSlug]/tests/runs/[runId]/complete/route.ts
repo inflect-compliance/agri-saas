@@ -1,7 +1,6 @@
 /**
  * POST /api/t/[tenantSlug]/tests/runs/[runId]/complete — Complete a test run with result
  */
-import { NextRequest, NextResponse } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { completeTestRun } from '@/app-layer/usecases/control-test';
 import { withValidatedBody } from '@/lib/validation/route';

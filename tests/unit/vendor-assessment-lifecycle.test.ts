@@ -19,14 +19,12 @@
  * - Regression guards for existing behavior
  */
 
-import type { EditableState } from '@/app-layer/domain/editable-lifecycle.types';
 import { LifecycleError } from '@/app-layer/domain/editable-lifecycle.types';
 import {
     createEditableState,
     updateDraft,
     publish,
     revertToVersion,
-    archive,
     hasPendingChanges,
     hasBeenPublished,
     getHistoryEntry,

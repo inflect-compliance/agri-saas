@@ -7,7 +7,6 @@
 import { formatDate } from '@/lib/format-date';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Paperclip } from 'lucide-react';
 import { textLinkVariants } from '@/components/ui/typography';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';

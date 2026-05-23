@@ -189,9 +189,9 @@ describe('Filter barrel — @/components/ui/filter public API', () => {
 // ─── 4. Pure-layer smoke via require() (TS is fine; TSX is not in node env) ──
 
 describe('Filter pure layer — runtime load', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const state = require('../../src/components/ui/filter/filter-state');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const defs = require('../../src/components/ui/filter/filter-definitions');
 
     it('filter-state.ts loads and exposes its pure API', () => {

@@ -73,7 +73,7 @@ let getRedis: (() => import('ioredis').default | null) | undefined;
 let isRedisConfigured = false;
 
 try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const redisModule = require('@/lib/redis');
     getRedis = redisModule.getRedis;
     isRedisConfigured = !!process.env.REDIS_URL;

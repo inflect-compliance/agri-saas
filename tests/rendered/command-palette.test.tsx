@@ -50,12 +50,12 @@ jest.mock('next-auth/react', () => ({
     signIn: jest.fn(),
 }));
 
-// eslint-disable-next-line import/first
+
 import { KeyboardShortcutProvider, useKeyboardShortcut } from '@/lib/hooks/use-keyboard-shortcut';
-// eslint-disable-next-line import/first
+
 import { __setIsMacForTests } from '@/lib/hooks/keyboard-shortcut-internals';
 
-// eslint-disable-next-line import/first
+
 import {
     CommandPalette,
     CommandPaletteProvider,

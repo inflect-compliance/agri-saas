@@ -151,10 +151,10 @@ const KNOWN_N_PLUS_ONE: Record<string, KnownNPlusOne> = {
         reason:
             'retention-notifications batch job — fetches the ADMIN/EDITOR recipients per expiring-evidence row to address the notification. Loop is over the bounded "expiring within window" set; the per-item recipient lookup is a batch-job query, not a request path.',
     },
-    'src/app-layer/jobs/retention-notifications.ts:findUnique:control': {
-        reason:
-            'retention-notifications batch job — resolves the linked control name per expiring-evidence row for the notification body. Loop is over the bounded "expiring within window" set; a batch-job lookup, not a request path.',
-    },
+    // The `findUnique:control` lookup in retention-notifications was
+    // removed by the quality-roadmap unused-variable sweep — the
+    // resolved `controlName` was never referenced in the
+    // notification body. The N+1 baseline entry is now stale.
     'src/app-layer/usecases/control/templates.ts:findFirst:control': {
         reason:
             'template-instantiation loop over an explicit, user-supplied templateIds list — the per-template "control with this code already exists?" check keeps instantiation idempotent. Bounded by the request payload.',

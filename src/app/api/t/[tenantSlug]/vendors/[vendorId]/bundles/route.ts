@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listEvidenceBundles, createEvidenceBundle } from '@/app-layer/usecases/vendor-audit';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { z } from 'zod';
-import { badRequest } from '@/lib/errors/types';
 import { jsonResponse } from '@/lib/api-response';
 
 const CreateBundleSchema = z.object({ name: z.string().min(1), description: z.string().optional() }).strip();

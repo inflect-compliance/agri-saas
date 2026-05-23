@@ -101,7 +101,10 @@ const REPO_BASELINE: readonly KnownHit[] = [
     // "no stale baseline" check.
     { file: 'tests/integration/credentials-end-to-end.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Test fixtures for credential flow.' },
     { file: 'tests/integration/github-provider.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'GitHub provider test fixtures.' },
-    { file: 'tests/integration/integration-regression.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Integration test fixtures.' },
+    // integration-regression.test.ts entry removed: the
+    // quality-roadmap unused-imports sweep added an inline
+    // `// pragma: allowlist secret` to the placeholder
+    // webhook-secret fixture, so the scanner no longer flags it.
     { file: 'tests/integration/mfa-enrollment.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'MFA enrollment test fixtures.' },
     { file: 'tests/integration/webhook.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Webhook test fixtures.' },
     { file: 'tests/unit/audit-redact.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Audit redaction test fixtures.' },
@@ -111,7 +114,10 @@ const REPO_BASELINE: readonly KnownHit[] = [
     // scanner no longer flags them and the baseline entries became
     // stale. The carve-out comments are the durable record of why
     // those test fixtures are safe.
-    { file: 'tests/unit/backfill-token-encryption.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Token encryption backfill test fixtures.' },
+    // backfill-token-encryption.test.ts entry removed: same
+    // reason as integration-regression above — inline carve-out
+    // comment added during the quality-roadmap sweep, baseline
+    // entry now stale.
     { file: 'tests/unit/oauth-token-encryption.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'OAuth token encryption test fixtures.' },
     { file: 'tests/unit/oauth-token-encryption.test.ts', pattern: 'GitHub Token', reason: 'Synthetic GitHub-shaped token used to verify provider-specific encryption envelopes.' },
     { file: 'tests/unit/password-check.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Password-check test fixtures.' },

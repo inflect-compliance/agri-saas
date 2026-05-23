@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listEvidence, listEvidencePaginated, createEvidence, listEvidenceWithDeleted } from '@/app-layer/usecases/evidence';
 import { withValidatedBody } from '@/lib/validation/route';

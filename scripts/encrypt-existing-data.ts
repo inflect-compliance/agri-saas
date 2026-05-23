@@ -84,7 +84,7 @@
 
 // Require is used (not import) so the script runs under plain tsx
 // without ESM/CommonJS friction.
-/* eslint-disable @typescript-eslint/no-require-imports */
+
 const {
     encryptField,
     decryptField,
@@ -94,7 +94,7 @@ const {
 const {
     ENCRYPTED_FIELDS,
 } = require('../src/lib/security/encrypted-fields') as typeof import('../src/lib/security/encrypted-fields');
-/* eslint-enable @typescript-eslint/no-require-imports */
+
 
 import { PrismaClient } from '@prisma/client';
 
@@ -798,7 +798,7 @@ export function printReport(report: BackfillReport): void {
 
 // ─── Main ───────────────────────────────────────────────────────────
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 async function main(): Promise<void> {
     const options = parseArgs(process.argv);
     const prisma = new PrismaClient();
@@ -826,4 +826,4 @@ if (require.main === module) {
         process.exit(2);
     });
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+

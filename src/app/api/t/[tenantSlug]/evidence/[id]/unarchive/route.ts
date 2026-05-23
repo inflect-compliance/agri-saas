@@ -2,7 +2,7 @@
  * POST /api/t/[tenantSlug]/evidence/[id]/unarchive
  * Unarchive evidence. ADMIN/EDITOR only.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { unarchiveEvidence } from '@/app-layer/usecases/evidence-retention';

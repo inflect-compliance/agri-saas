@@ -9,9 +9,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, cardVariants } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
-import { VALID_SCOPES } from '@/lib/auth/api-key-auth';
 import {
-    KeyRound, Plus, Trash2, XCircle, CheckCircle, Copy, Check,
+    KeyRound, Trash2, Copy, Check,
     Clock, AlertTriangle, Eye, EyeOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -425,7 +424,7 @@ export default function ApiKeysPage() {
         // handleRevoke identity is stable within this component — but we
         // include it so an eslint-exhaustive-deps warning doesn't slip in
         // if someone refactors it into a useCallback later.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
         [],
     );
 

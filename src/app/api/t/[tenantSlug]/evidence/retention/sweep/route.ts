@@ -3,7 +3,7 @@
  * Admin-only: run retention sweep.
  * Body: { dryRun?: boolean }
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { runRetentionSweepUsecase } from '@/app-layer/usecases/evidence-retention';

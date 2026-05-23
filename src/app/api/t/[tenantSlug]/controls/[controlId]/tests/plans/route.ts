@@ -2,7 +2,7 @@
  * GET  /api/t/[tenantSlug]/controls/[controlId]/tests/plans — List test plans for a control
  * POST /api/t/[tenantSlug]/controls/[controlId]/tests/plans — Create a test plan
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listControlTestPlans, createTestPlan } from '@/app-layer/usecases/control-test';
 import { withValidatedBody } from '@/lib/validation/route';

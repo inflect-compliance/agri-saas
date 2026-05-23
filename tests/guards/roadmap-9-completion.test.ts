@@ -41,7 +41,6 @@ const ROADMAP_9_RATCHETS = [
 
 /** R9 primitive deliverables — no new primitives this round; the
  *  round was adoption-focused. */
-const ROADMAP_9_PRIMITIVES: string[] = [];
 
 /**
  * Obsession checklist — 20 small invariants the round audited.

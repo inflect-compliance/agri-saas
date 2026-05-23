@@ -4,7 +4,6 @@
  * Body (optional): { notes?: string | null }
  * Transitions REVIEWED → CLOSED.
  */
-import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getTenantCtx } from '@/app-layer/context';
 import { closeAssessment } from '@/app-layer/usecases/vendor-assessment-review';

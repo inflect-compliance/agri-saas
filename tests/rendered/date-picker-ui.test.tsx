@@ -25,9 +25,9 @@ import { render, fireEvent, act } from '@testing-library/react';
 
 // Calendar is a client component; trigger is not — both are plain
 // imports under the jsdom project.
-// eslint-disable-next-line import/first
+
 import { Calendar } from '@/components/ui/date-picker/calendar';
-// eslint-disable-next-line import/first
+
 import { Trigger } from '@/components/ui/date-picker/trigger';
 
 // ─── Calendar ─────────────────────────────────────────────────────────

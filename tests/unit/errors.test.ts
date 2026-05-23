@@ -6,7 +6,7 @@
  * pattern for these surfaces (see also
  * tests/guards/helm-chart-foundation.test.ts and
  * tests/integration/audit-middleware.test.ts). */
-import { toApiErrorResponse, AppError, badRequest, internal } from '@/lib/errors/types';
+import { toApiErrorResponse, badRequest, internal } from '@/lib/errors/types';
 import { ZodError } from 'zod';
 
 describe('Error Types & Utilities', () => {

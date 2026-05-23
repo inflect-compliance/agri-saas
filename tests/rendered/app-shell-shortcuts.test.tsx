@@ -47,9 +47,9 @@ jest.mock('next-auth/react', () => ({
 }));
 
 // Import AFTER jest.mock so the mock wins.
-// eslint-disable-next-line import/first
+
 import { Providers } from '@/app/providers';
-// eslint-disable-next-line import/first
+
 import { useKeyboardShortcut } from '@/lib/hooks/use-keyboard-shortcut';
 
 function DeeplyNested({ onHit }: { onHit: () => void }) {

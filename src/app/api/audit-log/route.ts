@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getLegacyCtx } from '@/app-layer/context';
 import { listAuditLogs } from '@/app-layer/usecases/auditLog';
 import { withApiErrorHandling } from '@/lib/errors/api';

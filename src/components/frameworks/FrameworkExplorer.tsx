@@ -35,8 +35,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
-import { ExternalLink, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { TreeView } from '@/components/ui/TreeView';
 import { TreeViewItem } from '@/components/ui/TreeViewItem';
 import { TreeExpandCollapseToggle } from '@/components/ui/TreeExpandCollapseToggle';

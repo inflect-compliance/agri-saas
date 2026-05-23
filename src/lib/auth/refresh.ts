@@ -45,7 +45,6 @@ export async function refreshGoogleToken(
     });
 
     if (!response.ok) {
-        const errorText = await response.text();
         logger.error('Google token refresh failed', { component: 'auth', statusCode: response.status });
         throw new Error(`Google token refresh failed: ${response.status}`);
     }
@@ -89,7 +88,6 @@ export async function refreshMicrosoftToken(
     );
 
     if (!response.ok) {
-        const errorText = await response.text();
         logger.error('Microsoft token refresh failed', { component: 'auth', statusCode: response.status });
         throw new Error(`Microsoft token refresh failed: ${response.status}`);
     }

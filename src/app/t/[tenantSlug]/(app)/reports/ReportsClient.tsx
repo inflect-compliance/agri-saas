@@ -23,7 +23,7 @@ interface ControlOption {
 }
 
 interface ReportsClientProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     data: { soa: any[]; riskRegister: any[] };
     soaReport: SoAReportDTO;
     controls: ControlOption[];
@@ -38,7 +38,7 @@ interface ReportsClientProps {
 export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, translations: t }: ReportsClientProps) {
     const [tab, setTab] = useState<'soa' | 'risk'>('soa');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const downloadCSV = (rows: any[], filename: string) => {
         if (!rows.length) return;
         const headers = Object.keys(rows[0]);
@@ -51,58 +51,58 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
     // R13-PR8 — cell `text-xs` overrides removed so the risk
     // register renders at the DataTable primitive's default
     // `text-sm leading-6`, matching Controls.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const riskColumns = useMemo(() => createColumns<any>([
         {
             accessorKey: 'title',
             header: t.risk,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span className="font-medium text-content-emphasis">{getValue()}</span>,
         },
         {
             accessorKey: 'asset',
             header: t.asset,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
         },
         {
             accessorKey: 'threat',
             header: t.threat,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span className="text-content-muted">{getValue()}</span>,
         },
         {
             id: 'lxi',
             header: 'L×I',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             accessorFn: (r: any) => `${r.likelihood}×${r.impact}`,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
         },
         {
             accessorKey: 'score',
             header: t.score,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span className="font-bold">{getValue()}</span>,
         },
         {
             accessorKey: 'treatment',
             header: t.treatment,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
         },
         {
             accessorKey: 'owner',
             header: t.owner,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
         },
         {
             id: 'controls',
             header: t.controls,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             accessorFn: (r: any) => r.controls || '—',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span className="text-content-muted">{getValue()}</span>,
         },
     ]), [t]);

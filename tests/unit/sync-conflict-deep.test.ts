@@ -22,7 +22,6 @@
 import {
     BaseSyncOrchestrator,
     type SyncMappingStore,
-    type SyncEventLogger,
     shallowEqual,
     findConflictingFields,
 } from '@/app-layer/integrations/sync-orchestrator';
@@ -32,7 +31,6 @@ import type {
     SyncMappingKey,
     SyncMappingCreateData,
     SyncMappingStatusUpdate,
-    SyncEvent,
 } from '@/app-layer/integrations/sync-types';
 import {
     BaseIntegrationClient,

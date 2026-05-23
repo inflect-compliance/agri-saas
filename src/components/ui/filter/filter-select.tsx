@@ -485,7 +485,7 @@ function FilterButton({
   // a fresh component identity. The downstream `isReactNode` branch
   // handles the value case and the component-ref case is stable
   // (always derived from props).
-  // eslint-disable-next-line react-hooks/static-components
+
   const Icon = option
     ? option.icon ??
       filter.getOptionIcon?.(option.value, { key: filter.key, option }) ??

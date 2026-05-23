@@ -66,7 +66,7 @@ export class AuditRepository {
         });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     static async updateChecklistItem(db: PrismaTx, ctx: RequestContext, itemId: string, data: { result?: string | null; notes?: string | null }) {
         return db.auditChecklistItem.update({
             where: { id: itemId },

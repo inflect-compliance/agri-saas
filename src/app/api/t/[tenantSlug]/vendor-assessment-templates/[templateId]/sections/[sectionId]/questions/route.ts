@@ -2,7 +2,6 @@
  * POST /api/t/[tenantSlug]/vendor-assessment-templates/[templateId]/sections/[sectionId]/questions
  * Body: AddVendorAssessmentTemplateQuestionSchema
  */
-import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { addQuestion } from '@/app-layer/usecases/vendor-assessment-template';
 import { withValidatedBody } from '@/lib/validation/route';

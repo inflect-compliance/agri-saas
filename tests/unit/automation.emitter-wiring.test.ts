@@ -44,7 +44,7 @@ function makeCtx(): RequestContext {
     };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const fakeDb = {} as PrismaTx;
 
 describe('Domain-event wiring — audit emitters publish to automation bus', () => {

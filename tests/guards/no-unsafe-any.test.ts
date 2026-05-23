@@ -42,7 +42,6 @@ function grepPattern(files: string[], pattern: RegExp): Violation[] {
 const SRC_DIR = path.join(process.cwd(), 'src');
 const srcFiles = scanFiles(SRC_DIR, ['.ts', '.tsx']);
 const routeFiles = srcFiles.filter(f => f.includes(path.sep + 'api' + path.sep) && f.endsWith('route.ts'));
-const pageFiles = srcFiles.filter(f => f.endsWith('page.tsx'));
 const hookFiles = srcFiles.filter(f => f.includes(path.join('lib', 'hooks')));
 
 describe('No unsafe any — CI Guardrails', () => {

@@ -161,7 +161,7 @@ type _CatalogueConsistency = Exclude<
     AutomationEventName,
     AutomationDomainEvent['event']
 >;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const _catalogueCheck: _CatalogueConsistency extends never ? true : false = true;
 
 // ─── Producer-facing emit shape ────────────────────────────────────────

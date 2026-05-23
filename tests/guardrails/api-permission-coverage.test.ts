@@ -204,7 +204,7 @@ describe('Epic C.1 — API permission coverage guardrail', () => {
         );
         const exclusion = lookupExclusion(fromAppRoot);
         if (exclusion) {
-            // eslint-disable-next-line no-console
+
             console.log(`[exempt] ${relFromRepo} — ${exclusion.reason}`);
             return;
         }

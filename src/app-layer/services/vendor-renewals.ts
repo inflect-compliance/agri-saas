@@ -10,7 +10,6 @@
  */
 
 import prisma from '@/lib/prisma';
-import { logEvent } from '../events/audit';
 import { logger } from '@/lib/observability/logger';
 
 export interface DueVendor {

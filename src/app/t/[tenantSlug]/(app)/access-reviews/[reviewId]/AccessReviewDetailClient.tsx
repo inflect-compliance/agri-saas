@@ -21,7 +21,6 @@
  *     the campaign is CLOSED.
  */
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -32,7 +31,6 @@ import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/format-date';
-import { Heading } from '@/components/ui/typography';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 
 const ALL_ROLES = ['OWNER', 'ADMIN', 'EDITOR', 'READER', 'AUDITOR'] as const;

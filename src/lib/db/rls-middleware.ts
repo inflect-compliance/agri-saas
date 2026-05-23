@@ -54,7 +54,6 @@ import type { PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { getAuditContext } from '@/lib/audit-context';
 import { logger } from '@/lib/observability/logger';
-import type { PrismaTx } from '@/lib/db-context';
 import * as prismaModule from '@/lib/prisma';
 
 // Same pattern as `audit-writer.ts` — `import * as prismaModule` gives
@@ -360,7 +359,7 @@ export function withRlsTripwireExtension<T extends { $extends: any }>(
  *
  * @deprecated Remove once `instrumentation.ts` stops calling it.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function installRlsTripwire(_client: any): void {
     /* no-op — see docstring */
 }

@@ -2,7 +2,7 @@
  * GET /api/t/[tenantSlug]/tests/runs/[runId]/verify-evidence
  * Re-computes hashes for all FILE-kind evidence and checks against stored values.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { verifyRunEvidence } from '@/app-layer/usecases/test-hardening';
 import { withApiErrorHandling } from '@/lib/errors/api';

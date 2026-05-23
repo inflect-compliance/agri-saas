@@ -61,9 +61,9 @@ jest.mock('@/components/theme/ThemeProvider', () => ({
     ),
 }));
 
-// eslint-disable-next-line import/first
+
 import { KeyboardShortcutProvider } from '@/lib/hooks/use-keyboard-shortcut';
-// eslint-disable-next-line import/first
+
 import {
     CommandPalette,
     CommandPaletteProvider,
@@ -75,7 +75,7 @@ function Shell({ children }: { children?: React.ReactNode }) {
     // Test-only inner component: opens the palette imperatively
     // after the provider mounts. Defined inline so it can call
     // useCommandPalette() under the just-mounted provider.
-    // eslint-disable-next-line react-hooks/static-components
+
     function OpenOnMount() {
         const { open } = useCommandPalette();
         React.useEffect(() => {

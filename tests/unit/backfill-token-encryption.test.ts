@@ -7,7 +7,7 @@
 import { encryptField, isEncryptedValue } from '@/lib/security/encryption';
 
 // Import the needsMigration function from the script
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const { needsMigration } = require('../../scripts/backfill-token-encryption');
 
 interface AccountRow {
@@ -35,7 +35,7 @@ describe('backfill-token-encryption: needsMigration', () => {
 
     test('returns true for row with plaintext access_token and no encrypted column', () => {
         const row = makeRow({
-            access_token: 'ya29.plain_access_token',
+            access_token: 'ya29.plain_access_token', // pragma: allowlist secret
         });
         expect(needsMigration(row)).toBe(true);
     });

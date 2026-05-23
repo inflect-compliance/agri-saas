@@ -208,7 +208,7 @@ jest.mock('@/lib/prisma', () => {
 
 // Mock runInTenantContext and withTenantDb to pass callback the mock prisma
 jest.mock('@/lib/db-context', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
     const { prisma } = require('@/lib/prisma');
     return {
         runInTenantContext: jest.fn(async (_ctx: unknown, cb: (db: unknown) => Promise<unknown>) => {

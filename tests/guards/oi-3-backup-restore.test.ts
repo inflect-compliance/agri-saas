@@ -61,7 +61,7 @@ describe('OI-3 — restore-test.sh shape', () => {
     it('exists and is executable', () => {
         expect(exists(SCRIPT)).toBe(true);
         // owner-execute bit set (octal 0o100)
-        // eslint-disable-next-line no-bitwise
+
         expect((stat(SCRIPT).mode & 0o100) !== 0).toBe(true);
     });
 
@@ -152,7 +152,7 @@ describe('OI-3 — pg-dump-to-s3.sh fallback', () => {
 
     it('exists and is executable', () => {
         expect(exists(SCRIPT)).toBe(true);
-        // eslint-disable-next-line no-bitwise
+
         expect((stat(SCRIPT).mode & 0o100) !== 0).toBe(true);
     });
 

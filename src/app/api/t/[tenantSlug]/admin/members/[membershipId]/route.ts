@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requirePermission } from '@/lib/security/permission-middleware';
 import { updateTenantMemberRole } from '@/app-layer/usecases/tenant-admin';
 import { assignCustomRole } from '@/app-layer/usecases/custom-roles';

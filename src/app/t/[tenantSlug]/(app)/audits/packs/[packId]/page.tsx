@@ -3,7 +3,6 @@ import { formatDateTime } from '@/lib/format-date';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { AppIcon, type AppIconName } from '@/components/icons/AppIcon';
 import { RequirePermission } from '@/components/require-permission';
 import { Button } from '@/components/ui/button';
@@ -99,7 +98,6 @@ export default function PackDetailPage() {
         );
     }, [packComplete, packId, packName, celebrate]);
 
-    const back = { href: `/t/${tenantSlug}/audits/cycles`, label: 'Cycles' };
     const breadcrumbs = [
         { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
         { label: 'Audits', href: `/t/${tenantSlug}/audits` },

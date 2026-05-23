@@ -22,7 +22,6 @@ import { queryKeys } from '@/lib/queryKeys';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { Paperclip, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import {
-    DataTable,
     createColumns,
     useColumnsDropdown,
 } from '@/components/ui/table';
@@ -31,11 +30,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import {
     FilterProvider,
-    filterStateToActiveFilters,
     filterStateToUrlParams,
     useFilterContext,
     useFilters,
-    type ActiveFilter,
     type FilterType,
 } from '@/components/ui/filter';
 import { EntityListPage } from '@/components/layout/EntityListPage';
@@ -158,7 +155,7 @@ function ControlsPageInner({
     const router = useRouter();
 
     const filterCtx = useFilters();
-    const { state, search, set, toggle, remove, removeAll, clearAll, hasActive } = filterCtx;
+    const { state, search, clearAll, hasActive } = filterCtx;
 
     // Justification modal state
 
@@ -184,7 +181,7 @@ function ControlsPageInner({
         }
         // Only run on first mount of the inner component; subsequent URL
         // edits are driven by filter state (which does its own sync).
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
 
     // ─── API query string from filter state + search ───
@@ -326,11 +323,6 @@ function ControlsPageInner({
         storageKey: 'inflect:col-vis:controls',
         columns: controlColumnList,
     });
-    const activeFilters = useMemo(
-        () => filterStateToActiveFilters(state),
-        [state],
-    );
-
     // ─── Mutation: status cycle ───
 
     const statusMutation = useMutation({

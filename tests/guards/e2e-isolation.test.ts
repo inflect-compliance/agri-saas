@@ -96,8 +96,9 @@ function testBodySpans(src: string): Array<[number, number]> {
     // Match `test(` or `test.only(` / `test.fixme(` — but NOT
     // `test.describe(` / `test.step(` / `test.beforeEach(` etc.
     const callRe = /\btest(?:\.(?:only|fixme|skip))?\s*\(/g;
-    let m: RegExpExecArray | null;
-    while ((m = callRe.exec(src)) !== null) {
+    // The loop body uses `callRe.lastIndex` (cursor position) rather
+    // than the match-result groups, so we don't bind the result.
+    while (callRe.exec(src) !== null) {
         // Walk forward to the first `{` that opens the callback body,
         // then brace-match to its close.
         let i = callRe.lastIndex;

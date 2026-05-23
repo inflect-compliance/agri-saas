@@ -63,7 +63,6 @@ import {
     encryptField,
     decryptField,
     encryptWithKey,
-    decryptWithKey,
     decryptWithKeyOrPrevious,
     isEncryptedValue,
     getCiphertextVersion,
@@ -466,7 +465,7 @@ function walkReadResult(
  * calls need to migrate to `withEncryptionExtension` and rebind
  * their `prisma` reference. FIXME — remove once migrated.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function registerEncryptionMiddleware(_client: any): void {
     /* no-op — see docstring */
 }

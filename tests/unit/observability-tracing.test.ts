@@ -7,7 +7,7 @@
  * RUN: npx jest tests/unit/observability-tracing.test.ts --verbose
  */
 
-import { trace, SpanStatusCode, context as otelContext } from '@opentelemetry/api';
+import { SpanStatusCode } from '@opentelemetry/api';
 import { traceUsecase, traceOperation, getTracer } from '@/lib/observability/tracing';
 import { runWithRequestContext } from '@/lib/observability/context';
 import type { RequestContext } from '@/app-layer/types';

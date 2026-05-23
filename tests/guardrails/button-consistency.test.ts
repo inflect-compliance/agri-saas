@@ -72,13 +72,13 @@ describe('Button consistency guardrails', () => {
             if (line.trim().startsWith('//') || line.trim().startsWith('*')) continue;
 
             const adHocMatches = [...line.matchAll(AD_HOC_BUTTON_REGEX)];
-            for (const m of adHocMatches) {
+            for (const _m of adHocMatches) {
                 const rel = path.relative(SRC_DIR, filePath).replace(/\\/g, '/');
                 violations.push(`  ${rel}:${i + 1} — <button> with inline sizing classes, use .btn system`);
             }
 
             const textSmMatches = [...line.matchAll(TEXT_SM_ON_BTN_REGEX)];
-            for (const m of textSmMatches) {
+            for (const _m of textSmMatches) {
                 const rel = path.relative(SRC_DIR, filePath).replace(/\\/g, '/');
                 violations.push(`  ${rel}:${i + 1} — text-sm on .btn class, use btn-lg for larger buttons`);
             }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { bulkSetStatus } from '@/app-layer/usecases/issue';
 import { withValidatedBody } from '@/lib/validation/route';

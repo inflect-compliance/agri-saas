@@ -70,7 +70,6 @@ export default function CycleDetailPage() {
         } finally { setCreating(false); }
     };
 
-    const back = { href: `/t/${tenantSlug}/audits/cycles`, label: 'Cycles' };
     const breadcrumbs = [
         { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
         { label: 'Audits', href: `/t/${tenantSlug}/audits` },

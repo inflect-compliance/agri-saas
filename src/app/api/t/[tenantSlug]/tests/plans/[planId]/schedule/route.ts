@@ -9,7 +9,6 @@
  *
  * Permission gate: `assertCanManageTestPlans` (canWrite).
  */
-import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { scheduleTestPlan } from '@/app-layer/usecases/test-scheduling';
 import { withValidatedBody } from '@/lib/validation/route';

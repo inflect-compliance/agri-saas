@@ -50,7 +50,6 @@ const mockRunInTx = runInTenantContext as jest.MockedFunction<typeof runInTenant
 const mockCreate = EvidenceRepository.create as jest.MockedFunction<typeof EvidenceRepository.create>;
 const mockGetById = EvidenceRepository.getById as jest.MockedFunction<typeof EvidenceRepository.getById>;
 const mockUpdate = EvidenceRepository.update as jest.MockedFunction<typeof EvidenceRepository.update>;
-const mockAddReview = EvidenceRepository.addReview as jest.MockedFunction<typeof EvidenceRepository.addReview>;
 const mockLog = logEvent as jest.MockedFunction<typeof logEvent>;
 
 beforeEach(() => {

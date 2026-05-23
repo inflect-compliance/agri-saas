@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { prisma } from './prisma';
 import type { RequestContext } from '@/app-layer/types';
 import { runWithAuditContext } from './audit-context';

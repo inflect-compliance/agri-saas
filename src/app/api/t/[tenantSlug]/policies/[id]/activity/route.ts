@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { getTenantCtx } from '@/app-layer/context';
 import { getPolicyActivity } from '@/app-layer/usecases/policy';

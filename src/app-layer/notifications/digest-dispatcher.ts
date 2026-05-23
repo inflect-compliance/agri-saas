@@ -23,7 +23,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/observability/logger';
-import type { DueItem, MonitoredEntityType } from '../jobs/types';
+import type { DueItem } from '../jobs/types';
 import { isNotificationsEnabled } from './settings';
 import {
     buildDeadlineDigestEmail,

@@ -9,7 +9,7 @@ import { assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { runInTenantContext } from '@/lib/db-context';
 import { notFound } from '@/lib/errors/types';
-import { withDeleted, SOFT_DELETE_MODELS } from '@/lib/soft-delete';
+import { withDeleted } from '@/lib/soft-delete';
 
 /** Minimal delegate interface for dynamic model access by string key */
 interface ModelDelegate {

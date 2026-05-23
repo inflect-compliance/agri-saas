@@ -2,7 +2,7 @@
  * GET  /api/t/[tenantSlug]/tests/due       — Due queue (overdue + due-soon plans)
  * POST /api/t/[tenantSlug]/tests/due       — Trigger due planning (ADMIN only)
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { getDueQueue, runDuePlanning } from '@/app-layer/usecases/due-planning';
 import { withApiErrorHandling } from '@/lib/errors/api';

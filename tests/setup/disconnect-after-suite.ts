@@ -55,7 +55,7 @@ afterAll(async () => {
     // module via require so pure-mock tests that never imported it
     // skip the lookup.
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const redisMod = require('@/lib/redis') as {
             disconnectRedis?: () => Promise<void>;
         };
@@ -73,7 +73,7 @@ afterAll(async () => {
     // environment has been torn down". Only drain if the module was
     // actually loaded by the suite — pure-mock tests skip this.
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const mod = require('@/app-layer/events/audit-stream') as {
             __resetAuditStreamForTests?: () => void;
         };

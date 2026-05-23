@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { submitVendorAssessment } from '@/app-layer/usecases/vendor';
 import { withApiErrorHandling } from '@/lib/errors/api';

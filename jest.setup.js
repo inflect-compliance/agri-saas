@@ -44,7 +44,7 @@ if (typeof globalThis.fail === 'undefined') {
 // this polyfill those tests fail with "TextEncoder is not defined".
 // Cheap workaround pinned to the Node-builtin implementation.
 if (typeof globalThis.TextEncoder === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   const { TextEncoder, TextDecoder } = require('node:util');
   globalThis.TextEncoder = TextEncoder;
   globalThis.TextDecoder = TextDecoder;

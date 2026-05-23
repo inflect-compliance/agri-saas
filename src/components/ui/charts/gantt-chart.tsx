@@ -174,7 +174,6 @@ function GanttChartInner({
     //     to 1.0 opacity. The visual reads as "the project this
     //     row belongs to lights up".
     const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-    const pop = useChartHoverPop({ hoveredKey });
 
     if (data.length === 0) return null;
 

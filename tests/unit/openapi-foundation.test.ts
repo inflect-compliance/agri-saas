@@ -73,13 +73,6 @@ function collectAnnotatedSchemas(
 // test re-uses that.
 import { getRefId as getOpenApiRefId } from '@asteasolutions/zod-to-openapi';
 
-function getOpenApiMetadata(
-    schema: unknown,
-): { refId?: string } | undefined {
-    const refId = getOpenApiRefId(schema as never);
-    return refId ? { refId } : undefined;
-}
-
 function getRefId(schema: unknown): string | undefined {
     return getOpenApiRefId(schema as never);
 }

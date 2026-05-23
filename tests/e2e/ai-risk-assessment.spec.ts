@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { loginAndGetTenant, safeGoto } from './e2e-utils';
 
 const ADMIN_USER = { email: 'admin@acme.com', password: 'password123' };

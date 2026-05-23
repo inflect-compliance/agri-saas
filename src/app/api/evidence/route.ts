@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getLegacyCtx } from '@/app-layer/context';
 import { listEvidence, createEvidence } from '@/app-layer/usecases/evidence';
 import { withValidatedBody } from '@/lib/validation/route';

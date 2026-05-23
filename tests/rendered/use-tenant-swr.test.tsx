@@ -217,7 +217,7 @@ describe('useTenantSWR — composes with CACHE_KEYS registry', () => {
     // Late-import to keep the registry test surface optional —
     // adding it here also confirms there is no module-load cycle
     // between `useTenantSWR` and `swr-keys` (registry is data-only).
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { CACHE_KEYS } = require('@/lib/swr-keys') as typeof import('@/lib/swr-keys');
 
     it('CACHE_KEYS.controls.list() resolves to /api/t/{slug}/controls', async () => {

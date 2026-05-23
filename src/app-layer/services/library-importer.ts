@@ -19,19 +19,16 @@ import {
     parseLibraryFile,
     loadLibrary,
     type LoadedLibrary,
-    type LoadedRequirementNode,
 } from '../libraries';
 import { sortLibrariesByDependency } from '../libraries/dependency-graph';
 import {
     createHistoryEntry,
     appendHistoryEntry,
-    emptyHistory,
     parseHistoryFromMetadata,
     mergeHistoryIntoMetadata,
 } from '../libraries/version-history';
 import {
     computeRequirementDiff,
-    type RequirementDiff,
     type MigrationStrategy,
     applyMigrationStrategy,
 } from './library-updater';

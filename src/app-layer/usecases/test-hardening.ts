@@ -8,11 +8,11 @@
  */
 import { RequestContext } from '../types';
 import { assertCanReadTests, assertCanLinkTestEvidence } from '../policies/test.policies';
-import { assertCanManageAuditPacks, assertCanViewPack } from '../policies/audit-readiness.policies';
+import { assertCanManageAuditPacks } from '../policies/audit-readiness.policies';
 import { logEvent } from '../events/audit';
 import { runInTenantContext, type PrismaTx } from '@/lib/db-context';
 import { notFound, badRequest } from '@/lib/errors/types';
-import { computeFileHash, verifyFileIntegrity } from './audit-hardening';
+import { verifyFileIntegrity } from './audit-hardening';
 
 // ─── Evidence Integrity ───
 

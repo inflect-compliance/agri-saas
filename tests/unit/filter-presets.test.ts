@@ -151,7 +151,7 @@ describe('filter-presets — validation + sanitisation', () => {
             tenantSlug: TENANT,
             page: PAGE,
             name: 'Clean',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             state: { status: ['OPEN', '', null as any, 42 as any], foo: 'bar' as any },
         });
         expect(saved.state).toEqual({ status: ['OPEN'] });

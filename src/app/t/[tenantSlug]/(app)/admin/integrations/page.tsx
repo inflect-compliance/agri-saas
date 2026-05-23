@@ -6,12 +6,10 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Tanstack-react-table cell callbacks (tanstack cell callbacks where row/getValue carry the implicit-any annotation) — typing each callback with `CellContext<TData, TValue>` requires importing the right generic per column and adds significant ceremony. The implicit any here is at the render-time boundary; row.original is type-narrowed by the column's accessorKey at runtime. */
 import { formatDate } from '@/lib/format-date';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
-import { ArrowLeft, Plus, Trash2, CheckCircle, XCircle, Loader2, Link2, Eye, EyeOff } from 'lucide-react';
-import Link from 'next/link';
+import { Trash2, CheckCircle, XCircle, Loader2, Link2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { buttonVariants } from '@/components/ui/button-variants';
 import { Combobox } from '@/components/ui/combobox';
 import { RequiredMarker } from '@/components/ui/required-marker';
 import { Tooltip } from '@/components/ui/tooltip';

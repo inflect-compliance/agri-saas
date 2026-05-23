@@ -120,7 +120,7 @@ export function VirtualizedComboboxOptions<TMeta>({
     React.useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setActiveIndex(0);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [optionsKey]);
 
     // Selection helper — `selected.some(...)` per row would be O(n*s);

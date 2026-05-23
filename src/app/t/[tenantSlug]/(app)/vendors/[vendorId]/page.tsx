@@ -11,12 +11,11 @@ import Link from 'next/link';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { DataTable, createColumns } from '@/components/ui/table';
-import { SkeletonDetailPage } from '@/components/ui/skeleton';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { useToastWithUndo } from '@/components/ui/hooks';
 import { normaliseHref } from '@/lib/security/safe-url';
-import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { Heading } from '@/components/ui/typography';
 import { MetaStrip } from '@/components/ui/meta-strip';
@@ -31,7 +30,6 @@ import { cn } from '@dub/utils';
 // Polish PR-1 — STATUS_BADGE / CRIT_BADGE moved to shared domain
 // mapping. Local aliases preserved so the dozens of inline-table
 // consumers below stay short and readable.
-const STATUS_BADGE = VENDOR_STATUS_VARIANT;
 const CRIT_BADGE = VENDOR_CRITICALITY_VARIANT;
 const DOC_TYPE_LABELS: Record<string, string> = {
     CONTRACT: 'Contract', SOC2: 'SOC 2', ISO_CERT: 'ISO 27001', DPA: 'DPA',
@@ -57,7 +55,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
     const params = use(props.params);
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
-    const { permissions, role } = useTenantContext();
+    const { permissions } = useTenantContext();
     const canWrite = permissions?.canWrite;
     const triggerUndoToast = useToastWithUndo();
 

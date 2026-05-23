@@ -13,7 +13,7 @@
  *   PENDING → INFECTED  (file contains malware)
  *   PENDING → SKIPPED   (scan was not performed)
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/observability/logger';
@@ -118,12 +118,12 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let fileRecord: any;
         if (payload.fileId) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             fileRecord = await prisma.fileRecord.findUnique({
                 where: { id: payload.fileId },
             });
         } else if (payload.pathKey) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             fileRecord = await prisma.fileRecord.findFirst({
                 where: { pathKey: payload.pathKey },
             });
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
         });
 
         // ─── Update file record ───
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         await prisma.fileRecord.update({
             where: { id: fileRecord.id },
             data: {
@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
             });
 
             // Quarantine: mark file as FAILED to prevent downloads
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             await prisma.fileRecord.update({
                 where: { id: fileRecord.id },
                 data: { status: 'FAILED' },

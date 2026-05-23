@@ -193,8 +193,6 @@ describe('Enum Drift Guard', () => {
      */
     test('ALL_WORK_ITEM_STATUSES matches Prisma WorkItemStatus enum', () => {
         // Read the schema file and extract enum values
-        const fs = require('fs');
-        const path = require('path');
         const schema = readPrismaSchema();
 
         // Extract WorkItemStatus enum block

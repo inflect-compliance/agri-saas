@@ -3,7 +3,7 @@
  * Set retention dates on evidence. ADMIN/EDITOR only.
  * Body: { retentionUntil?, retentionPolicy?, retentionDays? }
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { updateEvidenceRetention } from '@/app-layer/usecases/evidence-retention';

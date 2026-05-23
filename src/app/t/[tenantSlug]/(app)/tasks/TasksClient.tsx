@@ -34,7 +34,6 @@ import { buildTaskFilters, TASK_FILTER_KEYS } from './filter-defs';
 import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
 import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
-import { Tooltip } from '@/components/ui/tooltip';
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
 import {
     parseYMD,
@@ -71,17 +70,6 @@ const BULK_ACTION_OPTIONS: ComboboxOption[] = [
     { value: 'status', label: 'Change Status' },
     { value: 'due', label: 'Set Due Date' },
 ];
-
-// SLA windows (hours)
-const SLA_RESOLVE: Record<string, number> = { CRITICAL: 24, HIGH: 72, MEDIUM: 168, LOW: 720 };
-
-function getSlaLabel(severity: string, createdAt: string, status: string, now: Date): string {
-    if ((TERMINAL_WORK_ITEM_STATUSES as readonly string[]).includes(status)) return '';
-    const hours = SLA_RESOLVE[severity];
-    if (!hours) return '';
-    const deadline = new Date(new Date(createdAt).getTime() + hours * 3600000);
-    return now > deadline ? 'SLA Breached' : '';
-}
 
 interface TaskListItem {
     id: string;
@@ -259,17 +247,6 @@ function TasksPageInner({
     const { activeKpiId: activeTaskKpi, toggle: toggleTaskKpi } =
         useKpiFilter(taskKpiDefs);
 
-    const toggleSelect = (id: string) => {
-        setSelected(prev => {
-            const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
-            return next;
-        });
-    };
-    const toggleSelectAll = () => {
-        if (selected.size === tasks.length) setSelected(new Set());
-        else setSelected(new Set(tasks.map(i => i.id)));
-    };
 
     // ─── Mutation: bulk actions (Epic 69 — useTenantMutation) ────
     //
@@ -469,7 +446,7 @@ function TasksPageInner({
         );
 
         return cols;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [appPermissions.tasks.edit, selected, tasks.length, tenantHref, hydratedNow]);
 
     return (

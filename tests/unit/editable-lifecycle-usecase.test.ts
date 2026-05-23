@@ -21,7 +21,7 @@
  * - Repeated publish preserves ordered history
  */
 
-import type { EditableState, PublishCommand } from '@/app-layer/domain/editable-lifecycle.types';
+import type { EditableState } from '@/app-layer/domain/editable-lifecycle.types';
 import { LifecycleError } from '@/app-layer/domain/editable-lifecycle.types';
 import { createEditableState } from '@/app-layer/services/editable-lifecycle';
 import type { RequestContext } from '@/app-layer/types';

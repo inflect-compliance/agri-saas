@@ -16,7 +16,7 @@ declare global {
      * Defined by Next.js Edge Runtime as a string identifier
      * ('edge'). `undefined` in Node runtime contexts.
      */
-    // eslint-disable-next-line no-var
+
     var EdgeRuntime: string | undefined;
 }
 

@@ -20,7 +20,6 @@
  */
 
 import prisma from '@/lib/prisma';
-import { createTenantWithDek } from '@/lib/security/tenant-key-manager';
 import { hashForLookup } from '@/lib/security/encryption';
 import { appendAuditEntry } from '@/lib/audit/audit-writer';
 import { logger } from '@/lib/observability/logger';

@@ -53,11 +53,6 @@ export interface CalendarMonthProps {
 
 const DAY_MS = 86_400_000;
 
-function startOfUtcDay(d: Date): Date {
-    return new Date(
-        Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
-    );
-}
 
 function startOfUtcMonth(d: Date): Date {
     return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));

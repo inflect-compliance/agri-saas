@@ -1,7 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { loginAndGetTenant } from './e2e-utils';
 
-const TEST_USER = { email: 'admin@acme.com', password: 'password123' };
 
 // GAP-23 carve-out: this spec depends on the seeded acme-corp tenant
 // having ISO27001 / SOC2 / NIS2 / ISO9001 / ISO28000 / ISO39001

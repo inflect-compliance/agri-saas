@@ -11,7 +11,6 @@ export {};
 
 const TENANT_A = 'tenant-owner-test';
 const OWNER_USER_ID = 'user-real-owner';
-const ADMIN_USER_ID = 'user-admin';
 
 const mockLogger = {
     info: jest.fn(),

@@ -12,10 +12,9 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { withDeleted, withSoftDeleteExtension } from '@/lib/soft-delete';
+import { withSoftDeleteExtension } from '@/lib/soft-delete';
 import {
     purgeSoftDeletedOlderThan,
-    purgeExpiredEvidenceOlderThan,
     runRetentionSweep,
 } from '@/app-layer/jobs/data-lifecycle';
 import { DB_URL, DB_AVAILABLE } from './db-helper';

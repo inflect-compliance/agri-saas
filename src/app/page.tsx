@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { getDefaultTenantForUser } from '@/lib/tenant-context';
 
 /**
  * Root page: redirects authenticated users to their default tenant dashboard.

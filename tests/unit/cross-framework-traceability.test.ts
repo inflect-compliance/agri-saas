@@ -22,12 +22,9 @@ import {
     isActionableCoverage,
     hasAnyCoverage,
     generateExplanation,
-    buildTraceabilityReport,
     resolveTraceability,
     determineGapStatus,
     analyzeGaps,
-    type CoverageConfidence,
-    type GapStatus,
 } from '@/app-layer/services/cross-framework-traceability';
 import { resolveMapping, type MappingEdgeLoader } from '@/app-layer/services/mapping-resolution';
 import type { ResolvedMappingEdge, MappingStrengthValue } from '@/app-layer/domain/requirement-mapping.types';

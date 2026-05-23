@@ -22,7 +22,6 @@ const RAW_LIGHT_COLOR_REGEX =
 describe('Button primitive', () => {
     const src = read('button.tsx');
     const variantsSrc = read('button-variants.ts');
-    const combined = src + '\n' + variantsSrc;
 
     it('exports buttonVariants and Button', () => {
         expect(variantsSrc).toMatch(/export const buttonVariants/);

@@ -43,7 +43,7 @@ console.log('=== any / ts-ignore Usage Report ===\n');
 const files = walkDir(SRC_DIR);
 const totals = {};
 
-for (const { label, regex } of PATTERNS) {
+for (const { label } of PATTERNS) {
     totals[label] = 0;
 }
 

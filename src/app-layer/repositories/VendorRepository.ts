@@ -1,6 +1,6 @@
 import { PrismaTx } from '@/lib/db-context';
 import { RequestContext } from '../types';
-import { Prisma, VendorStatus, VendorCriticality, VendorDataAccess, VendorDocumentType, VendorLinkEntityType, VendorLinkRelation, AssessmentStatus } from '@prisma/client';
+import { Prisma, VendorStatus, VendorCriticality, VendorDataAccess, VendorDocumentType, VendorLinkEntityType, VendorLinkRelation } from '@prisma/client';
 import { buildCursorWhere, CURSOR_ORDER_BY, computePageInfo, clampLimit } from '@/lib/pagination';
 import { validateVendorTags } from '../schemas/json-columns.schemas';
 import type { PaginatedResponse } from '@/lib/dto/pagination';

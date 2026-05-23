@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { requirePermission } from '@/lib/security/permission-middleware';
 import { getTenantSecuritySettings, updateTenantMfaPolicy } from '@/app-layer/usecases/mfa';

@@ -105,7 +105,7 @@ describe('OWNERSHIP_RULES — completeness', () => {
     });
 
     test('every ownership rule has a valid ownerField', () => {
-        for (const [entityType, rule] of Object.entries(OWNERSHIP_RULES)) {
+        for (const [_entityType, rule] of Object.entries(OWNERSHIP_RULES)) {
             expect(rule.ownerField).toBeTruthy();
             expect(typeof rule.ownerField).toBe('string');
             expect(rule.description).toBeTruthy();

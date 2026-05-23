@@ -2,7 +2,7 @@
  * GET /api/t/[tenantSlug]/tests/plans — List ALL test plans across all controls
  * Supports filters: q, status, controlId, due (overdue/next7d)
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listAllTestPlans } from '@/app-layer/usecases/due-planning';
 import { withApiErrorHandling } from '@/lib/errors/api';

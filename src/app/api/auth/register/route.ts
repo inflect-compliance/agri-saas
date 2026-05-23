@@ -9,7 +9,6 @@
  * semantics. All production login now flows through NextAuth
  * `/api/auth/callback/credentials`.
  */
-import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { signToken } from '@/lib/auth';
 import { issueEmailVerification } from '@/lib/auth/email-verification';

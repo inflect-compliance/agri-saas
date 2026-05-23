@@ -61,8 +61,14 @@ const ALLOWLIST: Array<{ file: string; reason: string }> = [
 ];
 
 const SHOWY_ANIMATION_RE = /\banimate-(bounce|ping)\b/;
+// The second alternation's `(?:^|\s)` previously contained an
+// unmatchable `^` — `\btransition-all\b.*` always consumes input,
+// so by the time the matcher reaches the alternation the cursor
+// is past position 0. Require explicit whitespace before `hover:`
+// in the second branch; the first branch keeps `(?:^|\s)` because
+// the cursor is genuinely at start-of-string there.
 const HOVER_TRANSITION_ALL_RE =
-    /(?:^|\s)(group-)?hover:[^\s]+.*\btransition-all\b|\btransition-all\b.*(?:^|\s)(group-)?hover:/;
+    /(?:^|\s)(group-)?hover:[^\s]+.*\btransition-all\b|\btransition-all\b.*\s(group-)?hover:/;
 
 interface Hit {
     file: string;

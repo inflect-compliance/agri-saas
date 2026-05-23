@@ -5,8 +5,6 @@
  * against the published DTOs. Catches drift between Prisma model changes
  * and the response schemas.
  */
-import * as fs from 'fs';
-import * as path from 'path';
 
 // We validate by checking that DTO schemas can parse the actual data shapes
 // returned by the API. Since we can't easily call route handlers in Jest,
@@ -27,7 +25,7 @@ describe('Contract Drift — DTO integrity', () => {
     ];
 
     test.each(dtoPaths)('$module exports all declared schemas', ({ module, schemas }) => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const mod = require(`../../src/lib/dto/${module}`);
         for (const name of schemas) {
             expect(mod[name]).toBeDefined();
@@ -37,7 +35,7 @@ describe('Contract Drift — DTO integrity', () => {
     });
 
     test('ControlListItemDTOSchema parses a valid control shape', () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { ControlListItemDTOSchema } = require('../../src/lib/dto/control.dto');
         const validControl = {
             id: 'ctl_123',
@@ -61,7 +59,7 @@ describe('Contract Drift — DTO integrity', () => {
     });
 
     test('RiskListItemDTOSchema parses a valid risk shape', () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { RiskListItemDTOSchema } = require('../../src/lib/dto/risk.dto');
         const validRisk = {
             id: 'risk_1',
@@ -79,7 +77,7 @@ describe('Contract Drift — DTO integrity', () => {
     });
 
     test('AssetListItemDTOSchema parses a valid asset shape', () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { AssetListItemDTOSchema } = require('../../src/lib/dto/asset.dto');
         const validAsset = {
             id: 'ast_1',
@@ -96,7 +94,7 @@ describe('Contract Drift — DTO integrity', () => {
     });
 
     test('EvidenceListItemDTOSchema parses a valid evidence shape', () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { EvidenceListItemDTOSchema } = require('../../src/lib/dto/evidence.dto');
         const validEvidence = {
             id: 'ev_1',
@@ -111,7 +109,7 @@ describe('Contract Drift — DTO integrity', () => {
     });
 
     test('ControlListItemDTOSchema rejects invalid shape (missing required)', () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { ControlListItemDTOSchema } = require('../../src/lib/dto/control.dto');
         const invalid = { id: 'ctl_1' }; // missing name, status, applicability
         const result = ControlListItemDTOSchema.safeParse(invalid);
@@ -119,7 +117,7 @@ describe('Contract Drift — DTO integrity', () => {
     });
 
     test('all DTO index barrel exports are stable', () => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const dtoIndex = require('../../src/lib/dto/index');
         const expectedExports = [
             'ControlListItemDTOSchema', 'ControlDetailDTOSchema',

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listMyNotifications } from '@/app-layer/usecases/notification';
 import { withApiErrorHandling } from '@/lib/errors/api';

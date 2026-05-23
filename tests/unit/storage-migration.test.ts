@@ -69,7 +69,6 @@ describe('Dual-read download logic', () => {
     it('local record reads from local provider even when app configured for S3', () => {
         // App is configured for S3 (via mock env)
         resetStorageProvider();
-        const configuredProvider = getStorageProvider();
         // The configured provider might be S3 or local depending on mock
 
         // But a local record should use local provider

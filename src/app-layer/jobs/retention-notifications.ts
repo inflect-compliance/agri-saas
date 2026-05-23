@@ -118,14 +118,14 @@ export async function runEvidenceRetentionNotifications(
                     include: { user: { select: { email: true, name: true } } },
                 });
 
-                let controlName: string | null = null;
-                if (ev.controlId) {
-                    const control = await prisma.control.findUnique({
-                        where: { id: ev.controlId },
-                        select: { name: true },
-                    });
-                    controlName = control?.name || null;
-                }
+                // `controlName` was previously looked up here but
+                // never referenced in the notification body —
+                // CodeQL `js/useless-assignment-to-local` caught it.
+                // Removed the dead lookup; if a future template wants
+                // the control name, surface it through a single
+                // `include: { control: { select: { name: true } } }`
+                // on the parent evidence query instead of a per-row
+                // extra `prisma.control.findUnique`.
 
                 for (const m of members) {
                     if (!m.user.email) continue;

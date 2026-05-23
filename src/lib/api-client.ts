@@ -73,7 +73,7 @@ function validateIfDev<T>(data: unknown, schema?: ZodSchema<T>): T {
     if (!schema) return data as T;
 
     // Only validate in dev/test — indirect access avoids the no-fallbacks guard
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const proc = typeof process !== 'undefined' ? process : undefined;
     const nodeEnv = proc?.env?.NODE_ENV;
     const isDev = nodeEnv === 'development' || nodeEnv === 'test';

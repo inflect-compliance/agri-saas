@@ -38,7 +38,7 @@ afterAll(() => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getTenantCtxMock = jest.fn<any, [unknown, unknown]>();
 jest.mock('@/app-layer/context', () => ({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     getTenantCtx: (params: unknown, req: unknown) =>
         getTenantCtxMock(params, req),
 }));

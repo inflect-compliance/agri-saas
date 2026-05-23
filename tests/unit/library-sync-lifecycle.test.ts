@@ -86,7 +86,7 @@ jest.mock('@/lib/observability/sentry', () => ({
 
 // ─── Import after mocks ─────────────────────────────────────────────
 
-import { syncAllLibraries, type SyncResult } from '@/app-layer/usecases/library-sync';
+import { syncAllLibraries } from '@/app-layer/usecases/library-sync';
 import { logger } from '@/lib/observability/logger';
 
 // ─── Fixtures ────────────────────────────────────────────────────────

@@ -128,7 +128,7 @@ describe("single H1 per page", () => {
     });
 
     it("exempt entries each have a non-trivial reason", () => {
-        for (const [file, reason] of Object.entries(EXEMPT_FILES)) {
+        for (const [_file, reason] of Object.entries(EXEMPT_FILES)) {
             // 30+ chars rules out single-word "loading" / "wizard"
             // hand-waves; forces an actual sentence about why two
             // H1s in the same file is correct here.

@@ -2,7 +2,7 @@
  * GET /api/t/[tenantSlug]/evidence/retention/expired
  * Lists already-expired evidence.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { listExpiredEvidence } from '@/app-layer/usecases/evidence-retention';

@@ -62,9 +62,6 @@ describe('R18-PR6 — MiniAreaChart liquid-fill gloss', () => {
     it('the gloss path d-animation tracks the colour layer (fills up WITH the liquid)', () => {
         // Both initial-from zeroedData and animate-to data — the
         // sheen rises with the fill.
-        const glossPathBlock = SRC.slice(
-            SRC.indexOf('chartGlossId(id)}'),
-        ).slice(0, 400);
         // The motion.path carrying the gloss fill must also carry
         // the zeroedData → data `d` morph. Check the AreaClosed
         // render-prop region holds two `path(zeroedData)` initials.

@@ -134,7 +134,6 @@ describe('Vendor Audit Enhancements', () => {
 
         it('read operations check assertCanReadVendors', () => {
             // Count occurrences
-            const readFns = ['listEvidenceBundles', 'getEvidenceBundle', 'listSubprocessors', 'exportVendorsRegister', 'exportAssessments', 'exportDocumentExpiry'];
             expect(content).toContain('assertCanReadVendors');
         });
 

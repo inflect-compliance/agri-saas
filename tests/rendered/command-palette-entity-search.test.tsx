@@ -49,9 +49,9 @@ jest.mock('next-auth/react', () => ({
     signIn: jest.fn(),
 }));
 
-// eslint-disable-next-line import/first
+
 import { KeyboardShortcutProvider } from '@/lib/hooks/use-keyboard-shortcut';
-// eslint-disable-next-line import/first
+
 import {
     CommandPalette,
     CommandPaletteProvider,
@@ -197,7 +197,7 @@ function Shell({ children }: { children?: React.ReactNode }) {
     // the provider mounts. Defined inline because it needs to
     // useCommandPalette() under the just-mounted provider; hoisting
     // it would force a context-passing dance for one assertion.
-    // eslint-disable-next-line react-hooks/static-components
+
     function OpenOnMount() {
         const { open } = useCommandPalette();
         React.useEffect(() => {

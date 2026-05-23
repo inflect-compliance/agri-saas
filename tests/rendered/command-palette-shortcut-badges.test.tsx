@@ -43,7 +43,7 @@ jest.mock('next-auth/react', () => ({
 // No explicit override needed.
 
 import React from 'react';
-import { render, act, within } from '@testing-library/react';
+import { render } from '@testing-library/react';
 
 import {
     KeyboardShortcutProvider,

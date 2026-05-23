@@ -33,7 +33,7 @@ export async function previewPackInstall(ctx: RequestContext, packKey: string) {
             select: { code: true },
         })
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const existingCodes = new Set(existingControls.map((c: any) => c.code));
 
     return {
@@ -187,7 +187,7 @@ export async function computeCoverage(ctx: RequestContext, frameworkKey: string,
         })
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const mappedReqIds = new Set(links.map((l: any) => l.requirementId));
     const mapped = requirements.filter((r: any) => mappedReqIds.has(r.id));
     const unmapped = requirements.filter((r: any) => !mappedReqIds.has(r.id));
@@ -215,7 +215,7 @@ export async function computeCoverage(ctx: RequestContext, frameworkKey: string,
         coveragePercent,
         bySection,
         unmappedRequirements: unmapped.map((r: any) => ({ code: r.code, title: r.title, section: r.section || r.category })),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         controlMappings: links.map((l: any) => ({
             requirementCode: l.requirement.code,
             requirementTitle: l.requirement.title,
@@ -235,7 +235,7 @@ export async function listTemplates(
     assertCanViewFrameworks(ctx);
     const db = prisma;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const where: any = {};
     if (filters.frameworkKey) {
         const fw = await db.framework.findFirst({ where: { key: filters.frameworkKey } });
@@ -269,14 +269,14 @@ export async function listTemplates(
             select: { code: true },
         })
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const installedCodes = new Set(existingControls.map((c: any) => c.code));
 
     // Filter by section if specified (section comes from linked requirement)
     let result = templates;
     if (filters.section) {
         result = templates.filter((t: any) =>
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             t.requirementLinks.some((rl: any) => (rl.requirement.section || rl.requirement.category) === filters.section)
         );
     }
@@ -291,14 +291,14 @@ export async function listTemplates(
         isGlobal: t.isGlobal,
         installed: installedCodes.has(t.code),
         tasks: t.tasks.map((tt: any) => ({ id: tt.id, title: tt.title, description: tt.description })),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         requirements: t.requirementLinks.map((rl: any) => ({
             code: rl.requirement.code,
             title: rl.requirement.title,
             section: rl.requirement.section || rl.requirement.category,
             framework: { key: rl.requirement.framework.key, name: rl.requirement.framework.name },
         })),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         packs: t.packLinks.map((pl: any) => ({ key: pl.pack.key, name: pl.pack.name })),
     }));
 }
@@ -417,7 +417,7 @@ export async function bulkMapControls(
             where: { tenantId: ctx.tenantId, id: { in: controlIds } },
             select: { id: true },
         });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const validCtrlIds = new Set(validControls.map((c: any) => c.id));
         const invalidCtrlIds = controlIds.filter((id: any) => !validCtrlIds.has(id));
         if (invalidCtrlIds.length > 0) throw badRequest(`Invalid control IDs: ${invalidCtrlIds.join(', ')}`);

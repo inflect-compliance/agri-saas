@@ -503,7 +503,7 @@ async function loadVendorAssessmentContext(assessment: {
     });
     if (!a?.vendor || !a.templateVersion || !a.tenant) return null;
     // env.APP_URL is the validated source of truth (src/env.ts).
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { env } = require('@/env') as { env: { APP_URL?: string } };
     const origin = (env.APP_URL ?? '').replace(/\/$/, '');
     const reviewUrl = `${origin}/t/${a.tenant.slug}/admin/vendor-assessment-reviews/${assessment.id}`;

@@ -159,7 +159,6 @@ export function TestPlanScheduleSection({
 
     // Saved state — what the server confirmed last.
     const savedCadence = cronToCadence(initialSchedule);
-    const savedTz = initialScheduleTimezone ?? browserTz;
 
     // Local edit state — what the user has clicked / not yet saved.
     const [pendingCadence, setPendingCadence] = useState<

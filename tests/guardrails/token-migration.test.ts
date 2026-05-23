@@ -120,14 +120,18 @@ describe('Vendors list page token migration', () => {
 describe('Risk detail page token migration', () => {
     const src = read('app/t/[tenantSlug]/(app)/risks/[riskId]/page.tsx');
 
-    it('imports Button and buttonVariants', () => {
+    it('imports Button from the canonical path', () => {
+        // The structural `buttonVariants` + `StatusBadge` import
+        // assertions used to live here, but the quality-roadmap
+        // unused-import sweep correctly removed those imports —
+        // neither `buttonVariants` nor `<StatusBadge>` is referenced
+        // anywhere in this file's source. Status badging on this
+        // page now flows through `<MetaStrip kind: 'status'>`, which
+        // renders `<StatusBadge>` INTERNALLY; the consumer doesn't
+        // need the import. The "uses Button for ..." behavioural
+        // assertion below is the meaningful guardrail.
         expect(src).toContain("from '@/components/ui/button'");
         expect(src).toContain('Button');
-        expect(src).toContain('buttonVariants');
-    });
-
-    it('imports StatusBadge', () => {
-        expect(src).toContain("from '@/components/ui/status-badge'");
     });
 
     it('uses Button for save/cancel/edit actions', () => {

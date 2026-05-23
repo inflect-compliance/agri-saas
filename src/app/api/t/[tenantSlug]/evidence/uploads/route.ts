@@ -3,7 +3,7 @@
  * Multipart upload: file + optional metadata fields.
  * Creates FileRecord + Evidence(FILE) in one flow.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { uploadEvidenceFile } from '@/app-layer/usecases/evidence';
 import { withApiErrorHandling } from '@/lib/errors/api';

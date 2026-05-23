@@ -193,7 +193,7 @@ export function useOptimisticUpdate<T>(
         // `value` intentionally out of deps — it's read through
         // `valueRef` so `update` keeps a stable identity for memoised
         // children.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
         [],
     );
 

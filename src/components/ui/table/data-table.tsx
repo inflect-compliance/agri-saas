@@ -24,7 +24,7 @@ import {
   Table as TableType,
   VisibilityState,
 } from "@tanstack/react-table";
-import { Dispatch, MouseEvent, ReactNode, SetStateAction, useCallback, useState } from "react";
+import { Dispatch, MouseEvent, ReactNode, SetStateAction, useState } from "react";
 import { type BatchAction, renderBatchActions } from "./selection-toolbar";
 import { Table, useTable } from "./table";
 import { cn } from "./table-utils";
@@ -307,8 +307,12 @@ export function DataTable<T>({
         scrollWrapperClassName,
       )
     : scrollWrapperClassName;
-  // Auto-manage selection state when batchActions are provided without explicit selection handlers
-  const [internalSelection, setInternalSelection] = useState<RowSelectionState>({});
+  // Auto-manage selection state when batchActions are provided
+  // without explicit selection handlers. The setter is unwired —
+  // batch-mode without explicit selection is currently a
+  // visual-affordance-only path; selection mutation flows through
+  // the explicit `onRowSelectionChange` prop when wired.
+  const [internalSelection] = useState<RowSelectionState>({});
   const hasExplicitSelection = !!onRowSelectionChange || !!selectionControls;
   const hasBatchActions = batchActions && batchActions.length > 0;
 

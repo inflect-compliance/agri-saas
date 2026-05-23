@@ -8,7 +8,6 @@ import { formatDate } from '@/lib/format-date';
 import { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -172,7 +171,6 @@ export default function PolicyDetailPage() {
                     body: formData,
                 });
                 if (!uploadRes.ok) throw new Error('File upload failed');
-                const uploadData = await uploadRes.json();
                 body.contentText = `File: ${selectedFile.name}`;
                 body.changeSummary = changeSummary || `Uploaded file: ${selectedFile.name}`;
             }

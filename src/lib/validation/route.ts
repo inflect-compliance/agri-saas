@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodSchema } from 'zod';
 import { badRequest } from '@/lib/errors/types';
 
 /**

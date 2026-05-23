@@ -58,7 +58,7 @@ export function useIntersectionObserver(
         // a new literal as a new identity every render. Callers passing an
         // array should memoise it — the alternative (stable stringify) made
         // array churn silently cheaper at the cost of masking real changes.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [elementRef, threshold, root, rootMargin, frozen]);
 
     return entry;

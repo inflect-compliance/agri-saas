@@ -9,12 +9,12 @@
  * response shape, not the JavaScript that swagger-ui-bundle ships.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const { NextRequest } = require('next/server');
 
 function loadRouteFresh() {
     jest.resetModules();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     return require('@/app/api/docs/route');
 }
 

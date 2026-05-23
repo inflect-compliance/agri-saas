@@ -38,7 +38,6 @@
  */
 
 import type {
-    EditablePhase,
     EditableState,
     PublishedSnapshot,
     PublishCommand,

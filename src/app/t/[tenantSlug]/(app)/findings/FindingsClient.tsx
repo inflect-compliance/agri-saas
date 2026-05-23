@@ -18,7 +18,6 @@ import {
     toYMD,
 } from '@/components/ui/date-picker/date-utils';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
-import { Heading } from '@/components/ui/typography';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@dub/utils';
@@ -28,7 +27,7 @@ const SEV_BADGE: Record<string, StatusBadgeVariant> = { LOW: 'info', MEDIUM: 'wa
 const STATUS_BADGE: Record<string, StatusBadgeVariant> = { OPEN: 'error', IN_PROGRESS: 'info', READY_FOR_VERIFICATION: 'warning', CLOSED: 'success' };
 
 interface FindingsClientProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     initialFindings: any[];
     tenantSlug: string;
     translations: {
@@ -86,7 +85,7 @@ export function FindingsClient({ initialFindings, tenantSlug, translations: t }:
     const truncated = findingsQuery.data?.truncated ?? false;
 
     const createMutation = useMutation({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         mutationFn: async (newFinding: any) => {
             const res = await fetch(apiUrl('/findings'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newFinding) });
             if (!res.ok) throw new Error('Failed to create finding');
@@ -110,7 +109,7 @@ export function FindingsClient({ initialFindings, tenantSlug, translations: t }:
             if (!res.ok) throw new Error('Failed to update status');
             return res.json();
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         onMutate: async ({ id, status }: { id: string; status: string }) => {
             await queryClient.cancelQueries({ queryKey: queryKeys.findings.list(tenantSlug) });
             // PR-5 — cache value is now `CappedList<any>` not the bare array.
@@ -175,38 +174,38 @@ export function FindingsClient({ initialFindings, tenantSlug, translations: t }:
         columns: findingColumnList,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const findingColumns = useMemo(() => createColumns<any>([
         {
             accessorKey: 'title',
             header: t.findingTitle,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <TableTitleCell>{getValue()}</TableTitleCell>,
         },
         {
             accessorKey: 'severity',
             header: t.severity,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: any) => <StatusBadge variant={SEV_BADGE[row.original.severity]}>{sevLabel(row.original.severity)}</StatusBadge>,
         },
         {
             accessorKey: 'type',
             header: t.type,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: any) => <span className="text-xs">{typeLabel(row.original.type)}</span>,
         },
         {
             id: 'owner',
             header: t.owner,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             accessorFn: (f: any) => f.owner || '—',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ getValue }: any) => <span className="text-xs">{getValue()}</span>,
         },
         {
             accessorKey: 'status',
             header: t.status,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             // R8-PR5 — secondary (workflow) badge demotes to `tone="subtle"`
             // so the loud severity badge in the prior column reads as the
             // primary state signal. Keeps the workflow tone visible without
@@ -217,7 +216,7 @@ export function FindingsClient({ initialFindings, tenantSlug, translations: t }:
             id: 'actions',
             header: t.actions,
             enableHiding: false,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: any) => {
                 const f = row.original;
                 return (

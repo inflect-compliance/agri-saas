@@ -40,7 +40,6 @@ import { logger } from '@/lib/observability/logger';
 import {
     EXPORT_FORMAT_VERSION,
     APP_IDENTIFIER,
-    DOMAIN_ENTITY_MAP,
     type ExportDomain,
     type ExportEnvelope,
     type ExportMetadata,
@@ -49,7 +48,6 @@ import {
     type ExportRelationship,
 } from './export-schemas';
 import {
-    EXPORT_EDGES,
     getEdgesFrom,
     type ExportEdge,
 } from './export-graph';

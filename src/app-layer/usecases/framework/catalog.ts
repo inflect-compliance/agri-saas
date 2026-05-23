@@ -1,9 +1,7 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+﻿ 
 import { RequestContext } from '../../types';
-import { assertCanViewFrameworks, assertCanInstallFrameworkPack } from '../../policies/framework.policies';
-import { logEvent } from '../../events/audit';
-import { runInTenantContext } from '@/lib/db-context';
-import { notFound, badRequest } from '@/lib/errors/types';
+import { assertCanViewFrameworks } from '../../policies/framework.policies';
+import { notFound } from '@/lib/errors/types';
 import { prisma } from '@/lib/prisma';
 
 // в”Ђв”Ђв”Ђ Framework Catalog (global, no tenant filter needed) в”Ђв”Ђв”Ђ

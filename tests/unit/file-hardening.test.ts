@@ -6,19 +6,14 @@
  * - Soft-delete blocks download
  */
 import {
-    sanitizeFileName,
     generatePathKey,
     resolveStoragePath,
     streamWriteFile,
     deleteStoredFile,
-    isAllowedMime,
-    isAllowedSize,
-    FILE_STORAGE_ROOT,
 } from '@/lib/storage';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 import { Readable } from 'stream';
-import path from 'path';
 
 // ─── Strict Download Policy ───
 

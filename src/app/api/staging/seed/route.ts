@@ -8,7 +8,7 @@
  *
  * This endpoint is intentionally NOT in the tenant-scoped route tree.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { logger } from '@/lib/observability/logger';

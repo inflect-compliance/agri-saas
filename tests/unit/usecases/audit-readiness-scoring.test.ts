@@ -200,7 +200,7 @@ describe('CSV export — RFC 4180 escaping + audit emit', () => {
         // Simpler approach: call computeReadiness with controlled DB
         // results that produce known gaps. We use the unmapped-requirements
         // path because it's the cleanest gap producer.
-        void gaps; // eslint-disable-line @typescript-eslint/no-unused-vars
+        void gaps;  
     }
 
     it('exportUnmappedCsv emits AUDIT_EXPORT_GENERATED audit', async () => {

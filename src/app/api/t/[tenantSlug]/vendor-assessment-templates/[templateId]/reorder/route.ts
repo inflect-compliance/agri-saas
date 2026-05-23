@@ -2,7 +2,6 @@
  * POST /api/t/[tenantSlug]/vendor-assessment-templates/[templateId]/reorder
  * Body: ReorderVendorAssessmentTemplateSchema
  */
-import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { reorderTemplate } from '@/app-layer/usecases/vendor-assessment-template';
 import { withValidatedBody } from '@/lib/validation/route';

@@ -100,7 +100,7 @@ function resolveAppOrigin(override?: string): string {
     if (override) return override.replace(/\/$/, '');
     // env.APP_URL is the validated source of truth (src/env.ts).
     // Last-resort default keeps dev/test happy when APP_URL is unset.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { env } = require('@/env') as { env: { APP_URL?: string } };
     if (env.APP_URL && env.APP_URL.length > 0) {
         return env.APP_URL.replace(/\/$/, '');

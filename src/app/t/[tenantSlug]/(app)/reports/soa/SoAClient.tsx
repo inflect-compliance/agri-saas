@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     FilterX, Link2, FileText, AlertTriangle,
-    CheckCircle2, XCircle, HelpCircle, ChevronDown, Check,
+    CheckCircle2, XCircle, HelpCircle,
     Plus, MessageSquare,
 } from 'lucide-react';
 import type { SoAReportDTO, SoAEntryDTO } from '@/lib/dto/soa';

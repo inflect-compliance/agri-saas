@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { VerifyMfaInput } from '@/app-layer/schemas/mfa.schemas';
 import { withApiErrorHandling } from '@/lib/errors/api';

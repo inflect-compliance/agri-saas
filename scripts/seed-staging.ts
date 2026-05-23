@@ -10,7 +10,7 @@
  *
  * Idempotent: safe to run multiple times without duplicating data.
  */
-/* eslint-disable @typescript-eslint/no-var-requires */
+
 const { PrismaClient: StagingPrismaClient } = require('@prisma/client');
 const path = require('path');
 

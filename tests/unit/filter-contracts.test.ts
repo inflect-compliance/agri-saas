@@ -138,7 +138,7 @@ describe('createTypedFilterDefs — literal-narrowed keys', () => {
   // widens filterKeys back to `string[]`, this line fails to compile.
   it('filterKeys entries are typed as the declared literal union', () => {
     type Keys = (typeof bundle.filterKeys)[number];
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const _assert: Keys extends 'status' | 'priority' ? true : false = true;
     expect(_assert).toBe(true);
   });

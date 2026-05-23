@@ -77,18 +77,6 @@ describe('findDueVendorsAndEmitEvents — tenant isolation', () => {
 
     test('tenant A results do not include tenant B vendors', async () => {
         // Return mixed-tenant data from the mock (simulating unfiltered DB)
-        const tenantAVendor = {
-            id: 'v-a1',
-            tenantId: TENANT_A,
-            name: 'Vendor A',
-            nextReviewAt: new Date('2020-01-01'), // overdue
-        };
-        const tenantBVendor = {
-            id: 'v-b1',
-            tenantId: TENANT_B,
-            name: 'Vendor B',
-            nextReviewAt: new Date('2020-01-01'), // overdue
-        };
 
         // The DB mock returns only what the query filter would return
         // When properly filtered, only tenant A's vendor should come back

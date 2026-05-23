@@ -28,7 +28,6 @@ import {
     MappingSetParseError,
     MappingSetValidationError,
     MappingSetReferenceError,
-    type StoredMappingSet,
 } from '@/app-layer/services/mapping-set-importer';
 
 // ─── Fixtures ────────────────────────────────────────────────────────

@@ -36,12 +36,12 @@
  *   npx tsx scripts/generate-tenant-deks.ts --batch-size 50 # tune
  */
 
-/* eslint-disable @typescript-eslint/no-require-imports */
+
 const {
     generateDek: _generateDek,
     wrapDek: _wrapDek,
 } = require('../src/lib/security/tenant-keys') as typeof import('../src/lib/security/tenant-keys');
-/* eslint-enable @typescript-eslint/no-require-imports */
+
 
 import { PrismaClient } from '@prisma/client';
 

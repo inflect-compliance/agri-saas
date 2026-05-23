@@ -86,7 +86,6 @@ import { TenantCoverageCards } from '@/app/org/[orgSlug]/(app)/dashboard-section
 import { FrameworksClient } from '@/app/t/[tenantSlug]/(app)/frameworks/FrameworksClient';
 import {
     viewModeStorageKey,
-    type ViewMode,
 } from '@/components/ui/hooks';
 import type { TenantHealthRow } from '@/app-layer/schemas/portfolio';
 
@@ -109,7 +108,6 @@ function tenantRow(over: Partial<TenantHealthRow> = {}): TenantHealthRow {
     };
 }
 
-const NOW = new Date('2026-05-03T12:00:00Z');
 function makeSeries(values: number[]) {
     const start = new Date('2026-04-01T00:00:00Z').getTime();
     return values.map((value, i) => ({

@@ -271,7 +271,7 @@ async function notifyAssessmentReviewed(
         // structural ratchet (this helper runs post-commit, after
         // runInTenantContext has returned, so we need a non-tenant-
         // bound prisma client to fan out the notification fetch).
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { prisma } = require('@/lib/prisma') as {
             prisma: typeof import('@/lib/prisma').prisma;
         };
@@ -296,7 +296,7 @@ async function notifyAssessmentReviewed(
         });
         if (!recipient?.email) return;
         // env.APP_URL is the validated source of truth (src/env.ts).
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { env } = require('@/env') as { env: { APP_URL?: string } };
         const origin = (env.APP_URL ?? '').replace(/\/$/, '');
         const reviewUrl = `${origin}/t/${a.tenant.slug}/admin/vendor-assessment-reviews/${assessmentId}`;

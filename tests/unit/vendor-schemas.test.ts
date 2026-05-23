@@ -1,7 +1,6 @@
 import {
     CreateVendorSchema, UpdateVendorSchema, CreateVendorDocumentSchema,
-    StartAssessmentSchema, SaveAssessmentAnswersSchema, DecideAssessmentSchema,
-    SetVendorReviewSchema, AddVendorLinkSchema,
+    StartAssessmentSchema, SaveAssessmentAnswersSchema, DecideAssessmentSchema, AddVendorLinkSchema,
 } from '../../src/lib/schemas';
 
 describe('Vendor Schemas', () => {

@@ -1,5 +1,4 @@
 /** @deprecated Use /api/t/[tenantSlug]/tasks/[taskId]/status */
-import { NextRequest, NextResponse } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { setTaskStatus } from '@/app-layer/usecases/task';
 import { withValidatedBody } from '@/lib/validation/route';

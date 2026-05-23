@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { markNotificationRead } from '@/app-layer/usecases/notification';
 import { withValidatedBody } from '@/lib/validation/route';

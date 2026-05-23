@@ -58,7 +58,7 @@ describe('sanitizeRichTextHtml — strips dangerous content', () => {
     });
 
     it('strips javascript: URIs from <a href>', () => {
-        // eslint-disable-next-line no-script-url
+
         const out = sanitizeRichTextHtml('<a href="javascript:alert(1)">x</a>');
         expect(out).not.toMatch(/javascript:/i);
         // Tag may stay (the body 'x' is preserved); the dangerous href

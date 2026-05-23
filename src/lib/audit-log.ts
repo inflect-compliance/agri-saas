@@ -1,4 +1,3 @@
-import prisma from './prisma';
 import { withTenantDb, PrismaTx } from './db-context';
 import type { JwtPayload } from './auth';
 

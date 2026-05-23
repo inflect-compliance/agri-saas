@@ -21,7 +21,7 @@
  * drive the state shape directly.
  */
 import * as React from 'react';
-import { render, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { renderHook } from '@testing-library/react';
 
 import {

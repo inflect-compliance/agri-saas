@@ -45,7 +45,6 @@ import { ListPageShell } from '@/components/layout/ListPageShell';
 import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
 import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
 import {
-    FileTypeIcon,
     resolveFileTypeIcon,
 } from '@/components/ui/file-type-icon';
 import { FreshnessBadge } from '@/components/ui/FreshnessBadge';
@@ -80,7 +79,7 @@ const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
 
 type RetentionFilter = 'active' | 'expiring' | 'archived';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 function getRetentionStatus(ev: any, now: Date | null): { label: string; badge: StatusBadgeVariant; icon: string } {
     if (ev.isArchived) return { label: 'Archived', badge: 'neutral', icon: '' };
     if (ev.expiredAt) return { label: 'Expired', badge: 'error', icon: '' };
@@ -96,9 +95,9 @@ function getRetentionStatus(ev: any, now: Date | null): { label: string; badge: 
 }
 
 interface EvidenceClientProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     initialEvidence: any[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     initialControls: any[];
     tenantSlug: string;
     permissions: Permissions;
@@ -166,7 +165,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
             : CACHE_KEYS.evidence.list();
     }, [fetchParams]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     // PR-5 — API returns `{ rows, truncated }`; the Client pulls
     // `rows` for the table and `truncated` for the banner. SSR
     // initial wraps with `truncated: false` (cap is 5000, SSR cap is
@@ -183,12 +182,12 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
     // every render. Without the `useMemo` the `?? []` produces a new
     // empty array instance every cycle. eslint-disable for the inner
     // `any[]`; tightening the type is a separate cleanup.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const evidence: any[] = useMemo(
         () => evidenceQuery.data?.rows ?? [],
         [evidenceQuery.data],
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const [controls] = useState<any[]>(initialControls);
     const retentionFilter = (filters.tab || 'active') as RetentionFilter;
     const { celebrate } = useCelebration();
@@ -429,7 +428,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
     });
 
     // ── Evidence Column Definitions ──
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const evidenceColumns = useMemo(() => createColumns<any>([
         {
             accessorKey: 'title',
@@ -439,7 +438,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
             // used to live here pushed the row height past every other
             // page's baseline. File type information is still in the
             // dedicated Type column.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: { row: any }) => (
                 <TableTitleCell>{row.original.title}</TableTitleCell>
             ),
@@ -447,7 +446,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             accessorKey: 'type',
             header: t.type,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
                 // Mixed-file aware: pick the actual file kind by
@@ -476,7 +475,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             id: 'control',
             header: t.control,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             accessorFn: (ev: any) => ev.control ? `${ev.control.annexId || ''} ${ev.control.name}` : '\u2014',
             cell: ({ getValue }: { getValue: () => string }) => (
                 <span className="text-xs text-content-muted">{getValue()}</span>
@@ -485,7 +484,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             id: 'retention',
             header: 'Retention',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
                 const rs = getRetentionStatus(ev, hydratedNow);
@@ -543,7 +542,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             id: 'freshness',
             header: 'Freshness',
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
                 // `lastRefreshedAt` is not yet a discrete column on
@@ -566,7 +565,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             accessorKey: 'status',
             header: t.status,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
                 return <StatusBadge variant={STATUS_BADGE[ev.status]}>{statusLabel(ev.status)}</StatusBadge>;
@@ -575,7 +574,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             id: 'owner',
             header: t.ownerLabel,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             accessorFn: (ev: any) => ev.owner || '\u2014',
             cell: ({ getValue }: { getValue: () => string }) => (
                 <span className="text-xs">{getValue()}</span>
@@ -585,7 +584,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
             id: 'actions',
             header: t.actions,
             enableHiding: false,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
                 const isPending = ev.id?.startsWith('temp:');

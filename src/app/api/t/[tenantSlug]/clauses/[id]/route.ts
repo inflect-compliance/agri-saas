@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { updateClauseProgress } from '@/app-layer/usecases/clause';
 import { withValidatedBody } from '@/lib/validation/route';

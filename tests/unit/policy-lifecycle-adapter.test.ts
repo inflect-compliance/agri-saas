@@ -22,7 +22,6 @@
  * - Validation of history integrity after multiple publishes
  */
 
-import type { EditableState, PublishedSnapshot } from '@/app-layer/domain/editable-lifecycle.types';
 import { LifecycleError } from '@/app-layer/domain/editable-lifecycle.types';
 import {
     createEditableState,

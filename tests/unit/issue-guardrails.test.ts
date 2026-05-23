@@ -6,7 +6,6 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { readPrismaSchema } from '../helpers/prisma-schema';
 
 const SRC_DIR = path.resolve(__dirname, '../../src');

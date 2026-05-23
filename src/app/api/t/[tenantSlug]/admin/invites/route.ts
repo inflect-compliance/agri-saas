@@ -6,7 +6,7 @@
  *
  * Both handlers require admin.members permission.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requirePermission } from '@/lib/security/permission-middleware';
 import { createInviteToken, listPendingInvites } from '@/app-layer/usecases/tenant-invites';
 import { withApiErrorHandling } from '@/lib/errors/api';

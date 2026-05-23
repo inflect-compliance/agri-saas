@@ -70,9 +70,6 @@ function walk(dir: string): string[] {
     return out;
 }
 
-const CARD_OPEN_RE = /<Card\b(?!Header|Footer|Body|Title|Description|List)/;
-const CARD_CLOSE_RE = /<\/Card\b/;
-const CARD_SELFCLOSE_RE = /<Card\b[^>]*\/>/;
 
 /**
  * Scan a file for nested-card pattern. Tracks Card-open-depth

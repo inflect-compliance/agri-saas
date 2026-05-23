@@ -32,7 +32,6 @@ jest.mock('@/lib/observability/job-runner', () => ({
 }));
 
 // Mock Prisma with controllable findMany results
-const mockFindMany = jest.fn().mockResolvedValue([]);
 const mockPrisma = {
     control: { findMany: jest.fn().mockResolvedValue([]) },
     policy: { findMany: jest.fn().mockResolvedValue([]) },

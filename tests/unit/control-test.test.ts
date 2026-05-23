@@ -142,7 +142,7 @@ describe('Structural: Control Test routes follow conventions', () => {
 
 describe('Control Test Zod schemas', () => {
     // Dynamic import to test schemas exist and work
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const schemas = require('../../src/lib/schemas');
 
     it('CreateTestPlanSchema validates correct input', () => {

@@ -142,11 +142,11 @@ export function NotificationsBell() {
     // an SSE / WebSocket subscription is the only change a future
     // real-time roadmap needs.
     useEffect(() => {
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
         fetchList();
         const poll = () => {
             if (typeof document !== 'undefined' && document.hidden) return;
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
             fetchList();
         };
         const intervalId = window.setInterval(
@@ -155,7 +155,7 @@ export function NotificationsBell() {
         );
         const onVisibility = () => {
             if (!document.hidden) {
-                // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
                 fetchList();
             }
         };
@@ -170,7 +170,7 @@ export function NotificationsBell() {
     // looking now, so show current data, not the last poll's.
     useEffect(() => {
         if (!open) return;
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
         fetchList();
     }, [open, fetchList]);
 
@@ -294,7 +294,7 @@ export function NotificationsBell() {
                                         href={n.linkUrl}
                                         onClick={() => {
                                             close();
-                                            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
                                             handleRowClick(n);
                                         }}
                                         className={rowClasses}

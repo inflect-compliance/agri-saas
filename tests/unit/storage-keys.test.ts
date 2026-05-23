@@ -22,7 +22,6 @@ import {
     generatePathKey,
     assertTenantKey,
     parseTenantKey,
-    sanitizeFileName,
 } from '@/lib/storage/index';
 import type { StorageDomain } from '@/lib/storage/index';
 
@@ -180,7 +179,7 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
 }));
 
 describe('S3StorageProvider', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { S3StorageProvider } = require('@/lib/storage/s3-provider');
 
     let provider: InstanceType<typeof S3StorageProvider>;

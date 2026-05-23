@@ -42,7 +42,6 @@ import type {
 import {
     serializeBundle,
     deserializeBundle,
-    isGzipped,
     type SerializeResult,
 } from '../services/bundle-codec';
 

@@ -38,7 +38,6 @@ import type {
     ProgressSegment,
     Series,
     SparklineData,
-    TimeSeriesDatum,
     TimeSeriesPoint,
     TooltipPayload,
 } from '@/components/ui/charts/types';
@@ -301,9 +300,9 @@ describe('Chart contracts carry zero domain semantics', () => {
         // The audit's non-negotiable: chart contracts do not mention
         // evidence / risk / control / policy / audit. A regression
         // that adds one would fail this grep — catch it at CI time.
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const fs = require('fs') as typeof import('fs');
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const path = require('path') as typeof import('path');
         const src = fs.readFileSync(
             path.resolve(__dirname, '../../src/components/ui/charts/types.ts'),

@@ -1,7 +1,7 @@
 /**
  * GET /api/t/[tenantSlug]/tests/runs/[runId] — Get test run details
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { getTestRun } from '@/app-layer/usecases/control-test';
 import { withApiErrorHandling } from '@/lib/errors/api';

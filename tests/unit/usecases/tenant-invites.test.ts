@@ -71,7 +71,6 @@ import { makeRequestContext } from '../../helpers/make-context';
 
 const mockInviteFindUnique = prisma.tenantInvite.findUnique as jest.MockedFunction<typeof prisma.tenantInvite.findUnique>;
 const mockInviteUpdateMany = prisma.tenantInvite.updateMany as jest.MockedFunction<typeof prisma.tenantInvite.updateMany>;
-const mockTenantFindUnique = prisma.tenant.findUnique as jest.MockedFunction<typeof prisma.tenant.findUnique>;
 const mockTransaction = prisma.$transaction as jest.MockedFunction<any>;
 const mockRunInTx = runInTenantContext as jest.MockedFunction<typeof runInTenantContext>;
 const mockAppendAudit = appendAuditEntry as jest.MockedFunction<typeof appendAuditEntry>;

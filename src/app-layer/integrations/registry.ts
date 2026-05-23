@@ -180,8 +180,8 @@ export const registry = new ProviderRegistry();
 // client_class + mapper_class + orchestrator_class per provider name.
 // ═══════════════════════════════════════════════════════════════════════
 
-import type { BaseIntegrationClient, BaseConnectionConfig } from './base-client';
-import type { BaseFieldMapper, FieldMapperOptions } from './base-mapper';
+import type { BaseIntegrationClient } from './base-client';
+import type { BaseFieldMapper } from './base-mapper';
 import type { BaseSyncOrchestrator } from './sync-orchestrator';
 
 /**

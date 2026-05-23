@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
-import { listControlTemplates, installControlsFromTemplate } from '@/app-layer/usecases/control';
-import { withValidatedBody } from '@/lib/validation/route';
-import { InstallTemplatesSchema } from '@/lib/schemas';
+import { listControlTemplates } from '@/app-layer/usecases/control';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { jsonResponse } from '@/lib/api-response';
 

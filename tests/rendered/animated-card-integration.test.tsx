@@ -48,7 +48,6 @@ jest.mock('@visx/responsive', () => {
 import KpiCard from '@/components/ui/KpiCard';
 import { TrendCard } from '@/components/ui/TrendCard';
 import ProgressCard from '@/components/ui/ProgressCard';
-import { ShieldCheck } from 'lucide-react';
 
 function makePoints(values: number[]) {
     const start = new Date('2026-04-01T00:00:00Z').getTime();

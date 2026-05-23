@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { RiskTemplateRepository } from '@/app-layer/repositories/RiskTemplateRepository';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { jsonResponse } from '@/lib/api-response';

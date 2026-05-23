@@ -31,7 +31,7 @@ import { Card, cardVariants } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { getPermissionsForRole, type PermissionSet } from '@/lib/permissions';
 import {
-    Shield, Plus, Pencil, Trash2, XCircle, CheckCircle, Check,
+    Shield, Pencil, Trash2, Check,
     ChevronDown, ChevronUp, Users,
 } from 'lucide-react';
 import type { Role } from '@prisma/client';

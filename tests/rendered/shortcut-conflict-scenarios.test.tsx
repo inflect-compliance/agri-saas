@@ -19,7 +19,7 @@
  */
 
 import React from 'react';
-import { render, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 
 const navigationMock = {
     pathname: '/t/acme-corp/dashboard',
@@ -41,12 +41,12 @@ jest.mock('next-auth/react', () => ({
     signIn: jest.fn(),
 }));
 
-// eslint-disable-next-line import/first
+
 import {
     KeyboardShortcutProvider,
     useKeyboardShortcut,
 } from '@/lib/hooks/use-keyboard-shortcut';
-// eslint-disable-next-line import/first
+
 import {
     CommandPalette,
     CommandPaletteProvider,

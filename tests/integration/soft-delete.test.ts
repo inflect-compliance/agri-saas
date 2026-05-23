@@ -14,7 +14,6 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { SOFT_DELETE_MODELS, withDeleted, withSoftDeleteExtension } from '@/lib/soft-delete';
 import { restoreSoftDeleted, purgeSoftDeleted, listSoftDeleted } from '@/app-layer/usecases/soft-delete-lifecycle';
 import { DB_URL, DB_AVAILABLE } from './db-helper';
-import { randomUUID } from 'crypto';
 import { withPiiEncryptionExtension } from '@/lib/security/pii-middleware';
 
 // Prisma 7 — soft-delete moved from `$use` to `$extends`. Wrap inline

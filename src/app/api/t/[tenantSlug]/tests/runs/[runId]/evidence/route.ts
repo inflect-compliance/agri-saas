@@ -2,7 +2,7 @@
  * GET  /api/t/[tenantSlug]/tests/runs/[runId]/evidence — List evidence linked to a test run
  * POST /api/t/[tenantSlug]/tests/runs/[runId]/evidence — Link evidence to a test run
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listRunEvidence, linkEvidenceToRun } from '@/app-layer/usecases/control-test';
 import { withValidatedBody } from '@/lib/validation/route';

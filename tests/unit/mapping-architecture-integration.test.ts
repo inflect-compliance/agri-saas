@@ -36,7 +36,6 @@ import {
     strengthToConfidence,
     determineGapStatus,
     isActionableCoverage,
-    type CoverageConfidence,
 } from '@/app-layer/services/cross-framework-traceability';
 import type { ResolvedMappingEdge, MappingStrengthValue } from '@/app-layer/domain/requirement-mapping.types';
 
@@ -91,7 +90,6 @@ const nistGvOc = { reqId: 'nist-gvoc01', code: 'GV.OC-01', title: 'Org Context',
 const nistGvRm = { reqId: 'nist-gvrm01', code: 'GV.RM-01', title: 'Risk Management', ...NIST };
 const nistPrAa = { reqId: 'nist-praa01', code: 'PR.AA-01', title: 'Access Auth', ...NIST };
 const nistRsMa = { reqId: 'nist-rsma01', code: 'RS.MA-01', title: 'Incident Mgmt', ...NIST };
-const nistIdRa = { reqId: 'nist-idra01', code: 'ID.RA-01', title: 'Risk Assessment', ...NIST };
 
 const soc2Cc1 = { reqId: 'soc2-cc1', code: 'CC1', title: 'Control Environment', ...SOC2 };
 
@@ -387,7 +385,7 @@ describe('Mapping Architecture Integration', () => {
 
         it('every entry across all files has a rationale', () => {
             const results = scanMappingSetDirectory(mappingsDir);
-            for (const { stored, filePath } of results) {
+            for (const { stored } of results) {
                 for (let i = 0; i < stored.mapping_entries.length; i++) {
                     const entry = stored.mapping_entries[i];
                     expect(entry.rationale).toBeTruthy();

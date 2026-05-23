@@ -9,7 +9,7 @@
  *
  * Phase flow: YAML → StoredLibrary (validated) → LoadedLibrary (indexed)
  */
-import type { FrameworkKind, MappingEntry, MappingStrength, ScoreDefinition } from './schemas';
+import type { FrameworkKind, MappingStrength, ScoreDefinition } from './schemas';
 
 // ─── Loaded Requirement Node ─────────────────────────────────────────
 // A fully resolved requirement node with computed parent/child references.

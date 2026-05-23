@@ -25,7 +25,7 @@
  */
 
 import type { EditableState } from '@/app-layer/domain/editable-lifecycle.types';
-import type { DraftOwnership, VisibilityScope } from '@/app-layer/domain/editable-lifecycle.types';
+import type { DraftOwnership } from '@/app-layer/domain/editable-lifecycle.types';
 import {
     createEditableState,
     publish,

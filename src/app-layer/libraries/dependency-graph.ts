@@ -119,7 +119,6 @@ export function topologicalSort(nodes: DependencyNode[]): string[] {
     // Note: no early return for length === 1 — self-dependencies must be caught
 
     const adj = buildAdjacencyList(nodes);
-    const inDegree = computeInDegrees(adj);
 
     // Start with nodes that have no dependencies pointing into them
     // (i.e., they are depended on by nobody, or they are leaf consumers)

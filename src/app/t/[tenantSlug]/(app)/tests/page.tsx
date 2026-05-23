@@ -5,7 +5,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { formatDate } from '@/lib/format-date';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { textLinkVariants } from '@/components/ui/typography';
 import { DataTable, createColumns } from '@/components/ui/table';

@@ -182,7 +182,7 @@ async function runA11yScan(page: Page, surfaceLabel: string) {
                 }
             }
         }
-        // eslint-disable-next-line no-console
+
         console.log(lines.join('\n'));
     }
 

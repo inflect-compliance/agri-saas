@@ -14,7 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { withApiErrorHandling } from '@/lib/errors/api';
-import { badRequest, unauthorized, notFound } from '@/lib/errors/types';
+import { unauthorized } from '@/lib/errors/types';
 import { ZodError } from 'zod';
 
 // Mock Handlers mapping to HTTP Verbs

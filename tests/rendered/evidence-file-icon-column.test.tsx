@@ -89,10 +89,16 @@ describe('evidence list — file-type icon column', () => {
     describe('structural — EvidenceClient adoption', () => {
         const src = read(EVIDENCE_CLIENT);
 
-        it('imports the file-type icon helpers from the canonical path', () => {
-            expect(src).toMatch(
-                /import\s*\{[^}]*\bFileTypeIcon\b[^}]*\}\s*from\s*['"]@\/components\/ui\/file-type-icon['"]/,
-            );
+        it('imports resolveFileTypeIcon from the canonical path', () => {
+            // R13-PR1 retired the inline <FileTypeIcon> mount in the
+            // title cell — the Type column now drives the icon via
+            // `resolveFileTypeIcon(...)` + `<match.Icon>` (see the
+            // "Type column still resolves..." assertion below). The
+            // bare `FileTypeIcon` component is unused HERE (it stays
+            // canonical in `FileDropzone` and `EvidenceGallery`); the
+            // quality-roadmap unused-import sweep removed the dead
+            // import. Only the helper that's actually rendered stays
+            // structurally asserted.
             expect(src).toMatch(
                 /import\s*\{[^}]*\bresolveFileTypeIcon\b[^}]*\}\s*from\s*['"]@\/components\/ui\/file-type-icon['"]/,
             );

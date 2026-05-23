@@ -358,7 +358,7 @@ function FileDropzoneInner(
             (async () => {
                 const settled: FileUploadEntry[] = [];
                 for (const entry of accepted) {
-                    // eslint-disable-next-line no-await-in-loop
+
                     settled.push(await runOne(entry));
                 }
                 onAllSettled?.(settled);
@@ -382,7 +382,7 @@ function FileDropzoneInner(
         if (queued.length === 0) return;
         const settled: FileUploadEntry[] = [];
         for (const entry of queued) {
-            // eslint-disable-next-line no-await-in-loop
+
             settled.push(await runOne(entry));
         }
         onAllSettled?.(settled);

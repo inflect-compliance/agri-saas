@@ -29,7 +29,6 @@ import { useTenantMutation } from '@/lib/hooks/use-tenant-mutation';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { extractMutationError } from '@/lib/mutations';
 import { useToastWithUndo } from '@/components/ui/hooks';
-import { Modal } from '@/components/ui/modal';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Tooltip } from '@/components/ui/tooltip';
 import { CopyText } from '@/components/ui/copy-text';

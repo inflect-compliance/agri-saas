@@ -77,7 +77,7 @@ export async function startOnboarding(ctx: RequestContext) {
  * Useful for saving partial form data (resume support).
  * Admin-only.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export async function saveOnboardingStep(ctx: RequestContext, step: OnboardingStep, data: Record<string, any>) {
     assertCanManageOnboarding(ctx);
     return runInTenantContext(ctx, async (db) => {
@@ -122,7 +122,7 @@ export async function completeOnboardingStep(ctx: RequestContext, step: Onboardi
         await emitOnboardingStepCompleted(db, ctx, step);
 
         // If step was previously skipped, remove from skipped list
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const stepData = (stepRecord.stepData as Record<string, any>) || {};
         const skippedSteps: string[] = stepData._skippedSteps || [];
         if (skippedSteps.includes(step)) {
@@ -137,7 +137,7 @@ export async function completeOnboardingStep(ctx: RequestContext, step: Onboardi
     // This runs outside the transaction so it won't cause timeout issues.
     // Errors are logged but don't block the wizard response.
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const allData = (record.stepData as Record<string, any>) || {};
         const sd = allData[step] || {};
         const result = await runStepAction(ctx, step, sd, allData);
@@ -174,7 +174,7 @@ export async function skipOnboardingStep(ctx: RequestContext, step: OnboardingSt
             throw badRequest('Onboarding must be started before skipping steps.');
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const stepData = (existing.stepData as Record<string, any>) || {};
         const skippedSteps: string[] = stepData._skippedSteps || [];
         if (!skippedSteps.includes(step)) {
@@ -268,7 +268,7 @@ export async function getOnboardingMetrics(ctx: RequestContext) {
  *  4. If no frameworks were selected (or FRAMEWORK_SELECTION was skipped),
  *     CONTROL_BASELINE_INSTALL is not required.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export function checkCompletionCriteria(
     completedSteps: string[],
     skippedSteps: string[],
@@ -286,7 +286,6 @@ export function checkCompletionCriteria(
 
     // Rule 3/4: Framework → Control dependency
     const fwCompleted = completedSteps.includes('FRAMEWORK_SELECTION');
-    const fwSkipped = skippedSteps.includes('FRAMEWORK_SELECTION');
     const selectedFrameworks: string[] = stepData?.FRAMEWORK_SELECTION?.selectedFrameworks || [];
     const hasFrameworks = fwCompleted && selectedFrameworks.length > 0;
 

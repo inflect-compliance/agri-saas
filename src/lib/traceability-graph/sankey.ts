@@ -28,7 +28,6 @@
 import { computeSearchHighlight } from './search';
 import type {
     TraceabilityGraph,
-    TraceabilityNode,
     TraceabilityNodeKind,
 } from './types';
 

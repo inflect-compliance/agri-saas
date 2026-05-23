@@ -82,7 +82,7 @@ export function enforceFeatureGate(ctx: RequestContext): void {
  * }
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function checkPlanEntitlement(_ctx: RequestContext, _requiredPlan: string): FeatureGateResult {
     // TODO: Implement plan-based gating when billing/entitlements are available
     // For now, always allow (feature flag + role check are the active gates)

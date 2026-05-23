@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { runAutomationForControl } from '@/app-layer/usecases/integrations';
 import { withApiErrorHandling } from '@/lib/errors/api';
@@ -45,7 +45,7 @@ export const GET = withApiErrorHandling(async (
 
     // Fetch the control's automationKey to derive the provider
     const control = await runInTenantContext(ctx, async (db) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         return db.control.findFirst({
             where: { id: params.controlId, tenantId: ctx.tenantId, deletedAt: null },
             select: { id: true, automationKey: true },

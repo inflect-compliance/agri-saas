@@ -4,7 +4,6 @@ import { formatDate } from '@/lib/format-date';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import { AppIcon, type AppIconName } from '@/components/icons/AppIcon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';

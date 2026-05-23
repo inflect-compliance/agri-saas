@@ -1,7 +1,7 @@
 /**
  * DELETE /api/t/[tenantSlug]/tests/runs/[runId]/evidence/[linkId] — Unlink evidence from a test run
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { unlinkEvidenceFromRun } from '@/app-layer/usecases/control-test';
 import { withApiErrorHandling } from '@/lib/errors/api';

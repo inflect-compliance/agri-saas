@@ -23,7 +23,6 @@ jest.mock('@/lib/observability/logger', () => ({
 
 import {
     encryptField,
-    decryptField,
     isEncryptedValue,
 } from '@/lib/security/encryption';
 import {

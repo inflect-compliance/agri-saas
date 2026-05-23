@@ -5,7 +5,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Tanstack-react-table cell callbacks (tanstack cell callbacks where row/getValue carry the implicit-any annotation) — typing each callback with `CellContext<TData, TValue>` requires importing the right generic per column and adds significant ceremony. The implicit any here is at the render-time boundary; row.original is type-narrowed by the column's accessorKey at runtime. */
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
@@ -26,7 +26,7 @@ export default function ControlTemplatesPage() {
     const router = useRouter();
     const { permissions } = useTenantContext();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const [templates, setTemplates] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     // R14-PR7 — search state retired. Users find templates via the
@@ -82,7 +82,7 @@ export default function ControlTemplatesPage() {
             const count = Array.isArray(result) ? result.length : 1;
             setSuccess(`Installed ${count} control(s) successfully!`);
             setTimeout(() => router.push(tenantHref('/controls')), 1500);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         } catch (e: any) {
             setError(e.message);
         } finally {
@@ -92,7 +92,6 @@ export default function ControlTemplatesPage() {
 
     const filtered = templates;
 
-    const categories = [...new Set(templates.map(t => t.category).filter(Boolean))];
 
     return (
         <div className="space-y-section animate-fadeIn">

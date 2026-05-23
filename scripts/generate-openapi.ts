@@ -37,10 +37,10 @@ const result = spawnSync(
 );
 
 if (result.status !== 0) {
-    // eslint-disable-next-line no-console
+
     console.error('[generate-openapi] FAILED — see Jest output above');
     process.exit(result.status ?? 1);
 }
 
-// eslint-disable-next-line no-console
+
 console.log('[generate-openapi] Wrote public/openapi.json (via Jest contract test in update mode)');

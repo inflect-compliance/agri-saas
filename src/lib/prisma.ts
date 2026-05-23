@@ -31,10 +31,6 @@ const EXCLUDED_MODELS = new Set([
 /**
  * Simple cuid-like ID generator for audit log entries.
  */
-function generateCuid(): string {
-    const uuid = crypto.randomUUID().replace(/-/g, '');
-    return 'c' + uuid.substring(0, 24);
-}
 
 /**
  * Build diff JSON for update/upsert operations.

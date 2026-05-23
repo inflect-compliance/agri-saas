@@ -1,5 +1,4 @@
 import { SAML } from '@node-saml/node-saml';
-import type { SamlConfig as NodeSamlConfig } from '@node-saml/node-saml';
 import type { SamlConfig } from '@/app-layer/schemas/sso-config.schemas';
 
 /**

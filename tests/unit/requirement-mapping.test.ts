@@ -27,7 +27,6 @@ import {
     MAPPING_STRENGTH_RANK,
     isValidMappingStrength,
     type MappingStrengthValue,
-    type ResolvedMappingEdge,
     type CreateMappingSetInput,
     type CreateMappingInput,
     type MappingsBySourceQuery,

@@ -8,7 +8,6 @@
 
 import { NextRequest } from 'next/server';
 import {
-    verifyPlatformApiKey,
     PlatformAdminError,
 } from '@/lib/auth/platform-admin';
 

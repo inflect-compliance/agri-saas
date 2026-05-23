@@ -15,7 +15,7 @@
 /** @jest-environment jsdom */
 
 import * as React from "react";
-import { fireEvent, render, screen, waitFor, within, act } from "@testing-library/react";
+import { fireEvent, render, within, act } from "@testing-library/react";
 
 // next/navigation — transitively used by DataTable's filter wiring on
 // some pages. Mocked so render-only tests don't need a Next router.

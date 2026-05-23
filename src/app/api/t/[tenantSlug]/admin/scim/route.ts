@@ -8,7 +8,7 @@
  * Admin-only. Tokens are stored as SHA-256 hashes. The plaintext is only
  * returned on creation and cannot be retrieved afterward.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { randomBytes, createHash } from 'crypto';
 import { requirePermission } from '@/lib/security/permission-middleware';
 import { withApiErrorHandling } from '@/lib/errors/api';

@@ -20,7 +20,7 @@ import { EvidenceType } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { registry, integrationRegistry } from '../integrations/registry';
 import { isWebhookEventProvider } from '../integrations/types';
-import type { WebhookPayload, WebhookProcessResult, CheckResult } from '../integrations/types';
+import type { WebhookProcessResult } from '../integrations/types';
 import { PrismaSyncMappingStore } from '../integrations/prisma-sync-store';
 import { PrismaLocalStore } from '../integrations/prisma-local-store';
 import { extractSignature, verifyHmacSha256, verifyGitHubSignature } from '../integrations/webhook-crypto';

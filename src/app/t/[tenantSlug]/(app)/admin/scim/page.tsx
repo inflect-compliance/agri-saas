@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/format-date';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
-import { CloudCog, Plus, Trash2, Copy, Check, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
+import { CloudCog, Trash2, Copy, Check, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import { useToast } from '@/components/ui/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { useCopyToClipboard } from '@/components/ui/hooks';

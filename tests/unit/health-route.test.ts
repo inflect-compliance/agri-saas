@@ -36,7 +36,7 @@ function loadRouteFresh() {
     jest.doMock('@/lib/redis', () => ({
         getRedis: jest.fn(() => ({ ping: pingMock })),
     }));
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     return require('@/app/api/health/route');
 }
 

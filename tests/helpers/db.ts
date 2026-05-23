@@ -99,7 +99,7 @@ export function prismaTestClient(): any {
         // Lazy require keeps this file importable from jest's
         // globalSetup context (which doesn't apply the moduleNameMapper
         // for the `@/` alias).
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { withPiiEncryptionExtension } = require('../../src/lib/security/pii-middleware');
         _client = withPiiEncryptionExtension(base);
     }

@@ -30,7 +30,7 @@ export async function getTenantNotificationSettings(
     db: PrismaTx,
     tenantId: string,
 ): Promise<TenantNotificationSettingsData> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const row = await db.tenantNotificationSettings.findUnique({
         where: { tenantId },
     });
@@ -51,7 +51,7 @@ export async function updateTenantNotificationSettings(
     ctx: RequestContext,
     data: Partial<TenantNotificationSettingsData>,
 ): Promise<TenantNotificationSettingsData> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const row = await db.tenantNotificationSettings.upsert({
         where: { tenantId: ctx.tenantId },
         create: {
@@ -77,7 +77,7 @@ export async function isNotificationsEnabled(
     db: PrismaTx,
     tenantId: string,
 ): Promise<boolean> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const row = await db.tenantNotificationSettings.findUnique({
         where: { tenantId },
         select: { enabled: true },
@@ -105,7 +105,7 @@ export async function getOutboxStats(
     const d30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     async function countByWindow(since: Date) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const rows = await db.notificationOutbox.groupBy({
             by: ['status'],
             where: { tenantId, createdAt: { gte: since } },

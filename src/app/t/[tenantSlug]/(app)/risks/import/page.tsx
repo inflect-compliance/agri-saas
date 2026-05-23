@@ -1,6 +1,6 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any -- Tanstack-react-table cell callbacks (tanstack cell callbacks where row/getValue carry the implicit-any annotation) — typing each callback with `CellContext<TData, TValue>` requires importing the right generic per column and adds significant ceremony. The implicit any here is at the render-time boundary; row.original is type-narrowed by the column's accessorKey at runtime. */
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
@@ -88,7 +88,7 @@ export default function RiskImportPage() {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             try {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                 const payload: Record<string, any> = {
                     title: row.title,
                     description: row.description,
@@ -107,7 +107,7 @@ export default function RiskImportPage() {
                     throw new Error(data.message || `Status ${res.status}`);
                 }
                 created++;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             } catch (err: any) {
                 errors.push(`Row ${i + 1} "${row.title}": ${err.message}`);
             }

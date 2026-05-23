@@ -17,7 +17,6 @@ import {
     extractErrorMeta,
     pinoInstance,
 } from '@/lib/observability/logger';
-import type { LogFields } from '@/lib/observability/logger';
 
 /**
  * Capture Pino log output by replacing the internal write stream.

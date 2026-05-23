@@ -21,7 +21,6 @@
  */
 
 import type { EditableState } from '@/app-layer/domain/editable-lifecycle.types';
-import { LifecycleError } from '@/app-layer/domain/editable-lifecycle.types';
 import { createEditableState, updateDraft } from '@/app-layer/services/editable-lifecycle';
 import type { RequestContext } from '@/app-layer/types';
 import { AppError } from '@/lib/errors/types';

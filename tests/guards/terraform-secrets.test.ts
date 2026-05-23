@@ -226,7 +226,7 @@ describe('OI-1 part 5 — bootstrap script + de-emphasized plaintext model', () 
         expect(exists(BOOTSTRAP_SCRIPT)).toBe(true);
         const stat = fs.statSync(path.join(ROOT, BOOTSTRAP_SCRIPT));
         // Owner-execute bit set
-        // eslint-disable-next-line no-bitwise
+
         expect((stat.mode & 0o100) !== 0).toBe(true);
     });
 

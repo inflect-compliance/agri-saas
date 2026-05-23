@@ -19,7 +19,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const ROOT = path.resolve(__dirname, '../..');
-const TF_ROOT = path.join(ROOT, 'infra/terraform');
 
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf-8');
 const exists = (rel: string) => fs.existsSync(path.join(ROOT, rel));

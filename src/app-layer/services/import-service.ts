@@ -40,7 +40,6 @@ import {
     type ExportEnvelope,
     type ExportEntityRecord,
     type ExportEntityType,
-    type ExportRelationship,
     type ImportOptions,
     type ImportResult,
     type ImportError,
@@ -51,7 +50,7 @@ import {
     checkVersionCompatibility,
 } from './export-schemas';
 import { EXPORT_EDGES } from './export-graph';
-import { validateTenantSafety, topologicalSortSelfRefs } from './tenant-safety';
+import { validateTenantSafety } from './tenant-safety';
 
 // ─── ID Mapping ─────────────────────────────────────────────────────
 

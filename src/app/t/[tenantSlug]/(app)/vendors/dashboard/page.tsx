@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { StatusBreakdown, type StatusBreakdownItem } from '@/components/ui/status-breakdown';
 import { type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -18,7 +18,6 @@ import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@dub/utils';
 
-const CRIT_BADGE: Record<string, StatusBadgeVariant> = { LOW: 'neutral', MEDIUM: 'warning', HIGH: 'error', CRITICAL: 'error' };
 
 function MetricCard({ label, value, tone, href }: { label: string; value: number | string; tone?: MetricTone; href?: string }) {
     const inner = (

@@ -6,7 +6,6 @@ import { UpsertSsoConfigInput } from '@/app-layer/schemas/sso-config.schemas';
 import { forbidden, notFound } from '@/lib/errors/types';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/observability/logger';
-import { traceUsecase } from '@/lib/observability/tracing';
 import { hashForLookup } from '@/lib/security/encryption';
 
 /**

@@ -52,7 +52,6 @@ import {
 } from '@/components/ui/charts';
 
 import type { ChartRendererProps } from './types';
-import { isTimeSeriesChartType } from './types';
 import { TargetLine } from './TargetLine';
 
 // ─── Lifecycle skeletons ────────────────────────────────────────────

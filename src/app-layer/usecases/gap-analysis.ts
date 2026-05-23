@@ -37,12 +37,10 @@ import {
     buildTraceabilityReport,
     analyzeGaps,
     strengthToConfidence,
-    determineGapStatus,
     isActionableCoverage,
     type TraceabilityReport,
     type GapAnalysisResult,
     type CoverageConfidence,
-    type GapStatus,
 } from '../services/cross-framework-traceability';
 import { logger } from '@/lib/observability/logger';
 

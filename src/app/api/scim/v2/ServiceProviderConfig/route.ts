@@ -6,7 +6,7 @@
  * This is a public endpoint (no auth required per SCIM spec).
  * Returns the capabilities of this SCIM service provider.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { scimServiceProviderConfig } from '@/lib/scim/types';
 import { jsonResponse } from '@/lib/api-response';
 

@@ -8,7 +8,6 @@
  *
  * SAFETY: Never exposes secrets, DSNs, or sensitive configuration values.
  */
-import { NextResponse } from 'next/server';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { getLegacyCtx } from '@/app-layer/context';
 import { forbidden } from '@/lib/errors/types';

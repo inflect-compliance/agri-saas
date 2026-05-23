@@ -234,7 +234,7 @@ export abstract class BaseSyncOrchestrator {
      * Push local changes to the remote system.
      */
     async push(input: PushInput): Promise<SyncResult> {
-        const { ctx, mappingKey, localData, changedFields, localUpdatedAt } = input;
+        const { mappingKey, localData, changedFields, localUpdatedAt } = input;
 
         try {
             // 1. Get or create mapping (preserve existing status)

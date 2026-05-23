@@ -1,6 +1,6 @@
 import { PrismaTx } from '@/lib/db-context';
 import { RequestContext } from '../types';
-import { AssessmentStatus, VendorCriticality, Prisma } from '@prisma/client';
+import { AssessmentStatus, VendorCriticality } from '@prisma/client';
 
 export class QuestionnaireRepository {
     static async listTemplates(db: PrismaTx) {

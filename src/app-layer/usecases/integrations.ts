@@ -13,7 +13,7 @@ import { Prisma, EvidenceType } from '@prisma/client';
 import type { RequestContext } from '../types';
 import { runInTenantContext } from '@/lib/db-context';
 import { registry } from '../integrations/registry';
-import { parseAutomationKey, isScheduledCheckProvider } from '../integrations/types';
+import { isScheduledCheckProvider } from '../integrations/types';
 import type { CheckResult, EvidencePayload } from '../integrations/types';
 import { encryptField, decryptField } from '@/lib/security/encryption';
 import { logEvent } from '../events/audit';

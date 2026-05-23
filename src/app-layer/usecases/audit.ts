@@ -120,7 +120,7 @@ export async function updateAudit(ctx: RequestContext, id: string, data: z.infer
             title: sanitizeOptional(data.title) ?? undefined,
             auditScope: sanitizeOptional(data.scope),
             criteria: sanitizeOptional(data.criteria),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma enum boundary
+
             status: data.status as AuditStatus | undefined,
             auditors: sanitizeOptional(data.auditors),
             auditees: sanitizeOptional(data.auditees),

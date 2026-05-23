@@ -2,7 +2,7 @@
  * GET /api/t/[tenantSlug]/evidence/retention/expiring?days=30
  * Lists evidence expiring within N days.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { listExpiringEvidence } from '@/app-layer/usecases/evidence-retention';

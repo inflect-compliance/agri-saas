@@ -18,7 +18,6 @@ import { cn } from '@dub/utils';
 export default function InstallWizardPage() {
     const params = useParams();
     const searchParams = useSearchParams();
-    const router = useRouter();
     const tenantSlug = params.tenantSlug as string;
     const frameworkKey = params.frameworkKey as string;
     const requestedPack = searchParams.get('pack');

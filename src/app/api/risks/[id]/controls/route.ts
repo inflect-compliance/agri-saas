@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { getLegacyCtx } from '@/app-layer/context';
 import { linkControlToRisk } from '@/app-layer/usecases/risk';
 import { withValidatedBody } from '@/lib/validation/route';

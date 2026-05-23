@@ -53,10 +53,8 @@ import {
     getTenantPreviousDek,
     getTenantDekCacheSize,
     getTenantPreviousDekCacheSize,
-    clearTenantDekCache,
     clearTenantPreviousDekCache,
     _resetTenantDekCache,
-    _peekCachedDek,
 } from '@/lib/security/tenant-key-manager';
 import {
     generateDek,

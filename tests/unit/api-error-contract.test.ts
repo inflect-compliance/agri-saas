@@ -298,7 +298,7 @@ describe('Epic E — withApiErrorHandling HTTP contract', () => {
 
         it('thrown string → 500 INTERNAL (no body inflation)', async () => {
             const handler = withApiErrorHandling(async () => {
-                // eslint-disable-next-line no-throw-literal
+
                 throw 'string-throw';
             });
             const res = await handler(makeRequest(), {});

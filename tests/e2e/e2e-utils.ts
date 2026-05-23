@@ -295,7 +295,7 @@ function appendTenantToTracker(entry: TenantTrackerEntry): void {
         // Tracker write failures must not abort the test. Worst case
         // we leave a tenant behind for the next nightly cleanup. Log
         // for operator visibility.
-        // eslint-disable-next-line no-console
+
         console.warn(
             `[e2e-utils] failed to append tenant tracker (continuing): ${
                 err instanceof Error ? err.message : String(err)

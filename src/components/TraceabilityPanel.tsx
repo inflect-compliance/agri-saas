@@ -51,11 +51,11 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
     const [addRationale, setAddRationale] = useState('');
 
     // Available items for dropdown
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const [availableRisks, setAvailableRisks] = useState<any[]>([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const [availableControls, setAvailableControls] = useState<any[]>([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const [availableAssets, setAvailableAssets] = useState<any[]>([]);
 
     const traceUrl = entityType === 'control'
@@ -93,7 +93,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
     const linkMutation = useMutation({
         mutationFn: async ({ type, linkedId, rationale }: { type: 'risk' | 'control' | 'asset'; linkedId: string; rationale?: string }) => {
             let url = '';
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             let body: any = {};
             if (entityType === 'control' && type === 'risk') {
                 url = `${apiBase}/controls/${entityId}/risks`;
@@ -120,11 +120,11 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
         },
         onMutate: async ({ type, linkedId, rationale }) => {
             await queryClient.cancelQueries({ queryKey: traceabilityKey(tenantSlug, entityType, entityId) });
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             const previous = queryClient.getQueryData<any>(traceabilityKey(tenantSlug, entityType, entityId));
 
             if (previous) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                 const updated = { ...previous };
                 const section = type === 'risk' ? 'risks' : type === 'control' ? 'controls' : 'assets';
                 const tempEntry = {
@@ -199,13 +199,13 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
         // Snapshot BEFORE the optimistic write so undo restores exactly
         // what the user saw — not a stale snapshot from before some
         // other concurrent mutation.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const previous = queryClient.getQueryData<any>(cacheKey);
 
         if (previous) {
             const updated = { ...previous };
             const section = type === 'risk' ? 'risks' : type === 'control' ? 'controls' : 'assets';
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             updated[section] = (updated[section] || []).filter((l: any) => {
                 const linked = l[type];
                 return linked?.id !== linkedId;
@@ -286,7 +286,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                             <table className="data-table" id="linked-risks-table">
                                 <thead><tr><th>Risk</th><th>Status</th><th>Score</th><th>Rationale</th>{canWrite && <th>Actions</th>}</tr></thead>
                                 <tbody>
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                    { }
                                     {risks.map((l: any) => {
                                         const r = l.risk;
                                         return (
@@ -344,7 +344,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                             <table className="data-table" id="linked-controls-table">
                                 <thead><tr><th>Code</th><th>Name</th><th>Status</th><th>Rationale</th>{canWrite && <th>Actions</th>}</tr></thead>
                                 <tbody>
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                    { }
                                     {controls.map((l: any) => {
                                         const c = l.control;
                                         return (
@@ -402,7 +402,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                             <table className="data-table" id="linked-assets-table">
                                 <thead><tr><th>Name</th><th>Type</th><th>Criticality</th><th>Rationale</th>{canWrite && <th>Actions</th>}</tr></thead>
                                 <tbody>
-                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                    { }
                                     {assets.map((l: any) => {
                                         const a = l.asset;
                                         return (

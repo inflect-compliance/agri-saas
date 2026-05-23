@@ -207,8 +207,6 @@ describe('notification-dispatch: monitors run exactly once per dispatch', () => 
     test('each monitor is invoked once, not twice', async () => {
         const prisma = require('@/lib/prisma').default;
         const controlFindMany = prisma.control.findMany;
-        const evidenceFindMany = prisma.evidence.findMany;
-        const vendorFindMany = prisma.vendor.findMany;
 
         const { runNotificationDispatch } = await import(
             '../../src/app-layer/jobs/notification-dispatch'

@@ -3,7 +3,7 @@
  * Verifies that non-admin users are blocked from admin-only pages
  * and see the forbidden UX rather than the admin content.
  */
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { loginAndGetTenant, safeGoto } from './e2e-utils';
 
 const ADMIN_USER = { email: 'admin@acme.com', password: 'password123' };

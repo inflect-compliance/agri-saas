@@ -37,7 +37,6 @@ import {
   clearAllFilters,
   countActiveFilterKeys,
   type FilterState,
-  filterStateToUrlParams,
   hasActiveFilters as checkHasActive,
   parseUrlToFilterState,
   removeFilter,

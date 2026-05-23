@@ -26,7 +26,6 @@ import {
     ABSOLUTE_MAX_DEPTH,
     type MappingEdgeLoader,
     type MappingPathEdge,
-    type TraceabilityQuery,
 } from '@/app-layer/services/mapping-resolution';
 import type { ResolvedMappingEdge, MappingStrengthValue } from '@/app-layer/domain/requirement-mapping.types';
 

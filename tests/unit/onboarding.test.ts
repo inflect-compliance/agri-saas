@@ -239,7 +239,7 @@ describe('Onboarding State Machine', () => {
 // ─── Policy Guard ───
 
 describe('Onboarding Policy', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { assertCanManageOnboarding } = require('@/app-layer/policies/onboarding.policies');
 
     const makeCtx = (canAdmin: boolean) => ({

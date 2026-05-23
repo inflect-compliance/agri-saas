@@ -16,7 +16,6 @@
  *
  * @deprecated Use /api/livez and /api/readyz instead.
  */
-import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { jsonResponse } from '@/lib/api-response';
@@ -64,7 +63,7 @@ async function checkRedis(): Promise<CheckResult> {
     }
     const start = Date.now();
     try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+
         const { getRedis } = require('@/lib/redis') as typeof import('@/lib/redis');
         const client = getRedis();
         if (!client) {

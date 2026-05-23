@@ -623,9 +623,6 @@ describe('renderBatchActions helper', () => {
     type BatchAction<T> = import('@/components/ui/table/selection-toolbar').BatchAction<T>;
 
     interface Item { id: string }
-    const actions: BatchAction<Item>[] = [
-      { label: 'Export', onClick: () => {} },
-    ];
 
     // The type contract: renderBatchActions returns (table) => ReactNode
     type RenderFn = (actions: BatchAction<Item>[]) =>

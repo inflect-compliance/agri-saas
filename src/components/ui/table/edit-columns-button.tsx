@@ -69,7 +69,6 @@ export function EditColumnsButton<T>({
   const [isOpen, setIsOpen] = useState(false);
 
   const hideableColumns = table.getAllColumns().filter((c) => c.getCanHide());
-  const allVisible = hideableColumns.every((c) => c.getIsVisible());
   const someHidden = hideableColumns.some((c) => !c.getIsVisible());
 
   return (

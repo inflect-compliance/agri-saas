@@ -2,7 +2,7 @@
  * GET   /api/t/[tenantSlug]/tests/plans/[planId] — Get test plan details
  * PATCH /api/t/[tenantSlug]/tests/plans/[planId] — Update a test plan
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { getTestPlan, updateTestPlan } from '@/app-layer/usecases/control-test';
 import { withValidatedBody } from '@/lib/validation/route';

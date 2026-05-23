@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * Test Readiness — Framework-aware test coverage scoring
  *
@@ -47,12 +47,12 @@ export async function computeTestReadiness(ctx: RequestContext): Promise<Framewo
             })
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const mappedControlIds = [...new Set(mappedLinks.map((l) => l.controlId))] as string[];
         if (mappedControlIds.length === 0) continue;
 
         // Get test plans for those controls
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const testPlans = await runInTenantContext(ctx, (db) =>
             db.controlTestPlan.findMany({
                 where: {
@@ -64,11 +64,11 @@ export async function computeTestReadiness(ctx: RequestContext): Promise<Framewo
             })
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const controlsWithPlan = new Set(testPlans.map((p) => p.controlId as string));
 
         // Get completed runs in last 90 days for those controls
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const recentRuns = await runInTenantContext(ctx, (db) =>
             db.controlTestRun.findMany({
                 where: {
@@ -81,9 +81,9 @@ export async function computeTestReadiness(ctx: RequestContext): Promise<Framewo
             })
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const controlsWithRun = new Set(recentRuns.map((r) => r.controlId as string));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const recentPasses = recentRuns.filter((r) => r.result === 'PASS').length;
 
         const totalMapped = mappedControlIds.length;

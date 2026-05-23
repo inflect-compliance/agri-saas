@@ -24,7 +24,6 @@
  */
 
 import {
-    MAPPING_STRENGTH_RANK,
     type MappingStrengthValue,
 } from '../domain/requirement-mapping.types';
 import type {

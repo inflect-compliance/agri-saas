@@ -29,7 +29,7 @@
  *     `as any` casts the v5-beta type drift required.
  */
 
-import type { NextAuthOptions, Session, User } from 'next-auth';
+import type { NextAuthOptions, Session } from 'next-auth';
 import { getServerSession } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';

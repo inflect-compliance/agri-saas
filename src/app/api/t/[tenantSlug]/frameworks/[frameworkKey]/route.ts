@@ -5,7 +5,7 @@ import {
     installPack, computeCoverage, previewPackInstall,
     listTemplates, installSingleTemplate, bulkMapControls,
     bulkInstallTemplates, exportCoverageData,
-    computeRequirementsDiff, generateReadinessReport, exportReadinessReport,
+    computeRequirementsDiff, exportReadinessReport,
     upsertRequirements,
 } from '@/app-layer/usecases/framework';
 import { withApiErrorHandling } from '@/lib/errors/api';

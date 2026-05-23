@@ -107,7 +107,6 @@ describe('Tenant Isolation — Repository code analysis', () => {
         const usecasesDir = path.resolve(__dirname, '../../src/app-layer/usecases');
         if (!fs.existsSync(usecasesDir)) return;
 
-        const files = fs.readdirSync(usecasesDir).filter((f: string) => f.endsWith('.ts'));
         const criticalFiles = ['risk.ts', 'control.ts', 'evidence.ts'];
 
         for (const mod of criticalFiles) {

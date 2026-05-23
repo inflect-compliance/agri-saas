@@ -2,7 +2,7 @@
  * Issue compatibility routes — thin wrappers forwarding to Task usecases.
  * @deprecated Use /api/t/[tenantSlug]/tasks instead.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listTasks, createTask } from '@/app-layer/usecases/task';
 import { withValidatedBody } from '@/lib/validation/route';

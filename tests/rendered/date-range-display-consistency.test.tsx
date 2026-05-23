@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 
 jest.mock('next/navigation', () => ({
     usePathname: () => '/',
@@ -31,7 +31,7 @@ jest.mock('next-auth/react', () => ({
     signIn: jest.fn(),
 }));
 
-// eslint-disable-next-line import/first
+
 import { DateRangePicker } from '@/components/ui/date-picker/date-range-picker';
 
 function getTriggerValue(container: HTMLElement): string | null {

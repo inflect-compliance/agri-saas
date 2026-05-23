@@ -3,7 +3,7 @@ import { RiskRepository, RiskFilters, RiskListParams } from '../repositories/Ris
 import { RiskTemplateRepository } from '../repositories/RiskTemplateRepository';
 import { assertCanRead, assertCanWrite, assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
-import { notFound, badRequest } from '@/lib/errors/types';
+import { notFound } from '@/lib/errors/types';
 import { calculateRiskScore } from '@/lib/risk-scoring';
 import { runInTenantContext } from '@/lib/db-context';
 import { sanitizePlainText } from '@/lib/security/sanitize';
@@ -156,7 +156,7 @@ export async function createRisk(ctx: RequestContext, data: {
             likelihood: data.likelihood ?? 3,
             inherentScore,
             score: inherentScore,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma enum boundary
+
             treatment: (data.treatment || null) as TreatmentDecision | null,
             treatmentOwner: data.treatmentOwner ? sanitizePlainText(data.treatmentOwner) : null,
             treatmentNotes: data.treatmentNotes ? sanitizePlainText(data.treatmentNotes) : null,
@@ -226,7 +226,7 @@ export async function createRiskFromTemplate(ctx: RequestContext, templateId: st
             impact,
             score,
             inherentScore: score,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma enum boundary
+
             status: (overrides.status || 'OPEN') as RiskStatus,
             ownerUserId: overrides.ownerUserId || null,
             createdByUserId: ctx.userId,
@@ -285,7 +285,7 @@ export async function updateRisk(ctx: RequestContext, id: string, data: {
             vulnerability: sanitizeOptional(data.vulnerability) ?? undefined,
             impact: data.impact,
             likelihood: data.likelihood,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma enum boundary
+
             treatment: data.treatment as TreatmentDecision | undefined,
             treatmentOwner: sanitizeOptional(data.treatmentOwner),
             treatmentNotes: sanitizeOptional(data.treatmentNotes),
@@ -293,7 +293,7 @@ export async function updateRisk(ctx: RequestContext, id: string, data: {
             nextReviewAt: data.nextReviewAt ? new Date(data.nextReviewAt) : undefined,
             inherentScore,
             score: inherentScore,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma enum boundary
+
             status: data.status as RiskStatus | undefined,
         });
 

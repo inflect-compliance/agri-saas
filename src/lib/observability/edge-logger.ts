@@ -52,13 +52,13 @@ function emit(level: EdgeLogLevel, msg: string, fields?: EdgeLogFields): void {
 
     switch (level) {
         case 'error':
-            console.error(json); // eslint-disable-line no-console
+            console.error(json);  
             break;
         case 'warn':
-            console.warn(json); // eslint-disable-line no-console
+            console.warn(json);  
             break;
         default:
-            console.log(json); // eslint-disable-line no-console
+            console.log(json);  
     }
 }
 

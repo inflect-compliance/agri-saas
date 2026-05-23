@@ -33,8 +33,6 @@ import {
     getEffectivePayload,
     getHistoryEntry,
     getRecentHistory,
-    isDraftVisibleTo,
-    buildDraftVisibilityFilter,
 } from '@/app-layer/services/editable-lifecycle';
 import {
     assertCanEditDraft,
@@ -108,7 +106,6 @@ function makeRepo(): EditableRepository<SimplePayload> & { store: Map<string, Ed
 // ═════════════════════════════════════════════════════════════════════
 
 describe('Lifecycle Permission Enforcement', () => {
-    const ROLES = ['ADMIN', 'EDITOR', 'READER', 'AUDITOR'] as const;
 
     describe('assertCanEditDraft', () => {
         it.each(['ADMIN', 'EDITOR'])('%s CAN edit drafts', (role) => {

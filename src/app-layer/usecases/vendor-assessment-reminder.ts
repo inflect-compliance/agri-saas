@@ -122,7 +122,7 @@ export async function sendAssessmentReminder(
 
 function buildReminderUrl(assessmentId: string): string {
     // env.APP_URL is the validated source of truth (src/env.ts).
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { env } = require('@/env') as { env: { APP_URL?: string } };
     const origin = (env.APP_URL ?? '').replace(/\/$/, '');
     return `${origin}/vendor-assessment/${assessmentId}`;

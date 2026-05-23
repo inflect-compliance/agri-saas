@@ -87,12 +87,8 @@ const readerCtx = {
     appPermissions: getPermissionsForRole('READER'),
 };
 
-const mockParams = { tenantSlug: 'acme', controlId: 'ctrl-1' };
 
 /** Create a minimal mock NextRequest */
-function makeReq(method = 'POST') {
-    return { method } as Request;
-}
 
 // ─── Route handler under test (tested via its usecase layer, not HTTP) ────────
 // We test the underlying logic called by the route handler, not the Next.js

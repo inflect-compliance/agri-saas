@@ -23,7 +23,7 @@ import { Card, cardVariants } from '@/components/ui/card';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import {
-    Users, UserPlus, ChevronDown, Shield, XCircle, CheckCircle,
+    Users, UserPlus, ChevronDown, Shield, XCircle,
     MoreVertical, UserMinus, Mail, Monitor,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';

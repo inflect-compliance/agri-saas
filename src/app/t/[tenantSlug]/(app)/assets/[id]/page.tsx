@@ -18,7 +18,7 @@ import { CopyText } from '@/components/ui/copy-text';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
-import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
+import { type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading, Eyebrow } from '@/components/ui/typography';
 import { KPIStat } from '@/components/ui/metric';
 import { MetaStrip } from '@/components/ui/meta-strip';

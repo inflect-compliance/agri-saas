@@ -157,7 +157,7 @@ export function buildOpenApiDoc(opts: BuildOptions = {}): {
     for (const { ns, label } of sources) {
         const n = registerAnnotated(registry, ns);
         if (opts.verbose) {
-            // eslint-disable-next-line no-console
+
             console.log(`[openapi-build] ${label}: registered ${n} schemas`);
         }
         totalRegistered += n;
@@ -187,7 +187,7 @@ export function buildOpenApiDoc(opts: BuildOptions = {}): {
     });
 
     if (opts.verbose) {
-        // eslint-disable-next-line no-console
+
         console.log(`[openapi-build] Total registered (deduped): ${totalRegistered}`);
     }
 

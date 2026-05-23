@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTenantContext, useTenantHref } from '@/lib/tenant-context-provider';
-import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+import { Combobox } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
 import { useEnterSubmit } from '@/components/ui/hooks';
 import {
@@ -23,7 +23,6 @@ import {
     ChevronLeft,
     Loader2,
     Save,
-    RotateCcw,
     Sparkles,
 } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';

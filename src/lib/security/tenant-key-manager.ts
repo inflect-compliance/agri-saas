@@ -79,7 +79,6 @@ import {
     unwrapDek,
     wrapDek,
     type TenantDek,
-    type WrappedDek,
 } from './tenant-keys';
 import { enqueue } from '@/app-layer/jobs/queue';
 import { logger } from '@/lib/observability/logger';

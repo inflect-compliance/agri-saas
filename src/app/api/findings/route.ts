@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getLegacyCtx } from '@/app-layer/context';
 import { listFindings, createFinding } from '@/app-layer/usecases/finding';
 import { withValidatedBody } from '@/lib/validation/route';

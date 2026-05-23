@@ -167,7 +167,7 @@ describe('ExecutorRegistry', () => {
         registry = await getCleanRegistry();
 
         registry.register('health-check', async () => {
-            throw 'string error'; // eslint-disable-line no-throw-literal
+            throw 'string error';  
         });
 
         const result = await registry.execute('health-check', {

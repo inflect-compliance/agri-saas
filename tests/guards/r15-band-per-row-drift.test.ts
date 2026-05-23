@@ -72,8 +72,8 @@ describe('Roadmap-15 PR-5 — per-row drift', () => {
             // re-couple the two timelines (a row's shimmer and
             // breath would always start in phase relative to each
             // other), which defeats the asynchrony intent.
-            expect(NAV_ITEM_SRC).toMatch(/shimmerDelayMs:\s*[\w\s%>|()<.|]+/);
-            expect(NAV_ITEM_SRC).toMatch(/breathDelayMs:\s*[\w\s%>|()<.|]+/);
+            expect(NAV_ITEM_SRC).toMatch(/shimmerDelayMs:\s*[\w\s%>|()<.]+/);
+            expect(NAV_ITEM_SRC).toMatch(/breathDelayMs:\s*[\w\s%>|()<.]+/);
         });
 
         it('NavItem builds a style object with the two CSS custom properties', () => {

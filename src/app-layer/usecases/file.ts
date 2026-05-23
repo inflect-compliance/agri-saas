@@ -25,7 +25,7 @@ export async function downloadFile(ctx: RequestContext, fileName: string) {
 
         if (storage.name === 's3') {
             // For S3: try to find the FileRecord for presigned URL
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             const fileRecord = await db.fileRecord.findFirst({
                 where: { tenantId: ctx.tenantId, pathKey: fileName },
             });

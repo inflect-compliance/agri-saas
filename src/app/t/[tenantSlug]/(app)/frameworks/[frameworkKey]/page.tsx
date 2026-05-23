@@ -8,7 +8,6 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { FrameworkExplorer } from '@/components/frameworks/FrameworkExplorer';
 import { FrameworkBuilder } from '@/components/ui/FrameworkBuilder';
 import { buttonVariants } from '@/components/ui/button-variants';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { useCelebration } from '@/components/ui/hooks';
 import { MILESTONES, scopedMilestone } from '@/lib/celebrations';
 import type { FrameworkTreePayload } from '@/lib/framework-tree/types';

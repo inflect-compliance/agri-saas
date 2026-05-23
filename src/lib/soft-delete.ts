@@ -31,17 +31,8 @@ export const SOFT_DELETE_MODELS = new Set([
 ]);
 
 // ─── Read actions that should filter out deleted records ───
-const READ_ACTIONS = new Set([
-    'findUnique',
-    'findFirst',
-    'findMany',
-    'count',
-    'aggregate',
-    'groupBy',
-]);
 
 // ─── Delete actions to intercept ───
-const DELETE_ACTIONS = new Set(['delete', 'deleteMany']);
 
 // ─── Internal flag for opt-out ───
 const INCLUDE_DELETED_KEY = '__includeDeleted';
@@ -67,7 +58,7 @@ export function withDeleted<T extends Record<string, any>>(args: T): T {
  *
  * FIXME — remove once all callers have migrated to the extension.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function registerSoftDeleteMiddleware(_client: any): void {
     /* no-op — see docstring */
 }

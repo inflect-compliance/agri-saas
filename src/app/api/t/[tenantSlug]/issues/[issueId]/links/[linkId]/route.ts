@@ -1,5 +1,5 @@
 /** @deprecated Use /api/t/[tenantSlug]/tasks/[taskId]/links/[linkId] */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { removeTaskLink } from '@/app-layer/usecases/task';
 import { withApiErrorHandling } from '@/lib/errors/api';

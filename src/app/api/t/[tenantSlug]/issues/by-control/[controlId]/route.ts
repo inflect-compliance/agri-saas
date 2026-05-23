@@ -1,5 +1,5 @@
 /** @deprecated Use /api/t/[tenantSlug]/tasks with controlId filter */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listTasksByControl } from '@/app-layer/usecases/task';
 import { withApiErrorHandling } from '@/lib/errors/api';

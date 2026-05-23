@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requirePermission } from '@/lib/security/permission-middleware';
 import { listTenantMembers } from '@/app-layer/usecases/tenant-admin';
 import { createInviteToken, listPendingInvites } from '@/app-layer/usecases/tenant-invites';

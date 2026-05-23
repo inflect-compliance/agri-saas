@@ -1,9 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
-import { SkeletonCard } from '@/components/ui/skeleton';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import { AppIcon, type AppIconName } from '@/components/icons/AppIcon';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { ProgressBar } from '@/components/ui/progress-bar';

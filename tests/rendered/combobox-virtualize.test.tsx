@@ -16,7 +16,7 @@
 /** @jest-environment jsdom */
 
 import * as React from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import {
@@ -58,7 +58,7 @@ describe("Combobox — virtualization threshold", () => {
 
     it("50 options: cmdk path renders, NOT virtualized", async () => {
         const user = userEvent.setup();
-        const { container } = render(<Harness count={50} />);
+        render(<Harness count={50} />);
         await user.click(screen.getByRole("combobox"));
         // No virtualized listbox marker.
         expect(
@@ -71,7 +71,7 @@ describe("Combobox — virtualization threshold", () => {
 
     it("51 options: virtualized path renders", async () => {
         const user = userEvent.setup();
-        const { container } = render(<Harness count={51} />);
+        render(<Harness count={51} />);
         await user.click(screen.getByRole("combobox"));
         expect(
             document.querySelector("[data-virtualized-combobox]"),
@@ -84,7 +84,7 @@ describe("Combobox — virtualization threshold", () => {
 describe("Combobox — virtualized DOM is small", () => {
     it("500 options: fewer than ~30 option nodes in the DOM", async () => {
         const user = userEvent.setup();
-        const { container } = render(<Harness count={500} />);
+        render(<Harness count={500} />);
         await user.click(screen.getByRole("combobox"));
         const visible = document.querySelectorAll(
             "[data-virtualized-option-index]",
@@ -97,7 +97,7 @@ describe("Combobox — virtualized DOM is small", () => {
 
     it("first option rendered, deep option absent", async () => {
         const user = userEvent.setup();
-        const { container } = render(<Harness count={500} />);
+        render(<Harness count={500} />);
         await user.click(screen.getByRole("combobox"));
         expect(
             document.querySelector("[data-virtualized-option-index='0']"),
@@ -113,7 +113,7 @@ describe("Combobox — virtualized DOM is small", () => {
 describe("Combobox — keyboard navigation under virtualization", () => {
     it("ArrowDown advances the active index; aria-activedescendant tracks", async () => {
         const user = userEvent.setup();
-        const { container } = render(<Harness count={200} />);
+        render(<Harness count={200} />);
         await user.click(screen.getByRole("combobox"));
 
         const listbox = document.querySelector(
@@ -135,7 +135,7 @@ describe("Combobox — keyboard navigation under virtualization", () => {
 
     it("ArrowUp clamps at 0 (no underflow)", async () => {
         const user = userEvent.setup();
-        const { container } = render(<Harness count={200} />);
+        render(<Harness count={200} />);
         await user.click(screen.getByRole("combobox"));
         const listbox = document.querySelector(
             "[data-virtualized-combobox]",
@@ -149,7 +149,7 @@ describe("Combobox — keyboard navigation under virtualization", () => {
 
     it("End jumps to the last option; Home returns to 0", async () => {
         const user = userEvent.setup();
-        const { container } = render(<Harness count={200} />);
+        render(<Harness count={200} />);
         await user.click(screen.getByRole("combobox"));
         const listbox = document.querySelector(
             "[data-virtualized-combobox]",
@@ -201,7 +201,7 @@ describe("Combobox — keyboard navigation under virtualization", () => {
 describe("Combobox — virtualized hover behaviour", () => {
     it("hover sets the active index", async () => {
         const user = userEvent.setup();
-        const { container } = render(<Harness count={200} />);
+        render(<Harness count={200} />);
         await user.click(screen.getByRole("combobox"));
         const listbox = document.querySelector(
             "[data-virtualized-combobox]",
@@ -237,7 +237,7 @@ describe("Combobox — virtualized hover behaviour", () => {
                 />
             );
         }
-        const { container } = render(<ControlledHarness />);
+        render(<ControlledHarness />);
         await user.click(screen.getByRole("combobox"));
         const third = document.querySelector(
             "[data-virtualized-option-index='2']",
@@ -253,7 +253,7 @@ describe("Combobox — performance benchmark", () => {
     it("1000-option mount stays under a sane wall-clock budget AND DOM stays small", async () => {
         const user = userEvent.setup();
         const start = performance.now();
-        const { container } = render(<Harness count={1_000} />);
+        render(<Harness count={1_000} />);
         await user.click(screen.getByRole("combobox"));
         const elapsed = performance.now() - start;
 

@@ -4,7 +4,7 @@
  * Verifies watermark, metadata page, totals row, and large dataset performance.
  */
 import { ReportType } from '@/lib/pdf/types';
-import { createPdfDocument, CONTENT_WIDTH } from '@/lib/pdf/pdfKitFactory';
+import { createPdfDocument } from '@/lib/pdf/pdfKitFactory';
 import { addCoverPage, addMetadataPage, applyHeadersAndFooters } from '@/lib/pdf/layout';
 import { renderTable, autoColumnWidths } from '@/lib/pdf/table';
 import { addSectionTitle, addSummaryMetrics, addSpacer } from '@/lib/pdf/sections';

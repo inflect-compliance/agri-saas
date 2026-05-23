@@ -5,7 +5,7 @@
  * dismiss it, and self-hide once the canvas has both nodes AND
  * edges (signals "I figured it out").
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CanvasHelpStrip } from '@/components/processes/CanvasHelpStrip';
 

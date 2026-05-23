@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { getOnboardingMetrics } from '@/app-layer/usecases/onboarding';
 import { withApiErrorHandling } from '@/lib/errors/api';

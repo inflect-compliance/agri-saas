@@ -26,7 +26,6 @@ import { createHash } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import * as prismaModule from '../prisma';
 import { computeEntryHash, toCanonicalTimestamp } from './canonical-hash';
-import type { AuditDetails } from './types';
 
 /**
  * Lazy getter for the default PrismaClient singleton.

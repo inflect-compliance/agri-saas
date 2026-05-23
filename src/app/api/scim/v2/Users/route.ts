@@ -6,7 +6,7 @@
  *
  * All requests are authenticated via tenant-scoped SCIM bearer token.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { authenticateScimRequest, ScimAuthError } from '@/lib/scim/auth';
 import { scimError, scimListResponse } from '@/lib/scim/types';
 import { scimListUsers, scimCreateUser, type ScimCreateUserInput } from '@/app-layer/usecases/scim-users';

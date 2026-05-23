@@ -9,7 +9,7 @@
  *   URL params ←→ FilterState ←→ ActiveFilter[] ←→ Filter UI
  */
 
-import type { ActiveFilter, Filter, FilterOption } from "./types";
+import type { ActiveFilter, FilterOption } from "./types";
 
 // ── Types ───────────────────────────────────────────────────────────
 

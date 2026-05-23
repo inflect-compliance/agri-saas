@@ -24,7 +24,7 @@
  */
 
 import React from 'react';
-import { render, fireEvent, act, waitFor, within } from '@testing-library/react';
+import { render, fireEvent, act, within } from '@testing-library/react';
 
 // Range picker uses next-auth-free popover + media query — stub
 // next/navigation for any transitive imports anyway.
@@ -40,15 +40,15 @@ jest.mock('next/navigation', () => ({
     }),
 }));
 
-// eslint-disable-next-line import/first
+
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
-// eslint-disable-next-line import/first
+
 import { DateRangePicker } from '@/components/ui/date-picker/date-range-picker';
-// eslint-disable-next-line import/first
+
 import { Presets } from '@/components/ui/date-picker/presets';
-// eslint-disable-next-line import/first
+
 import { DEFAULT_DATE_RANGE_PRESETS } from '@/components/ui/date-picker/presets-catalogue';
-// eslint-disable-next-line import/first
+
 import type {
     DatePreset,
     ResolvableDateRangePreset,

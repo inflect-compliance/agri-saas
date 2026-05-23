@@ -108,7 +108,7 @@ export async function sendEmail(msg: EmailMessage): Promise<void> {
  */
 export function initMailerFromEnv(): void {
     // Dynamic import to avoid circular deps at module parse time
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
     const { env } = require('@/env');
     const host = env.SMTP_HOST;
     if (host) {

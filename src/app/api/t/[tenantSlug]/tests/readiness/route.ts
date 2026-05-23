@@ -1,7 +1,7 @@
 /**
  * GET /api/t/[tenantSlug]/tests/readiness — Framework test readiness scores
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { computeTestReadiness } from '@/app-layer/usecases/test-readiness';
 import { withApiErrorHandling } from '@/lib/errors/api';

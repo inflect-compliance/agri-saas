@@ -64,7 +64,6 @@ import prisma from '@/lib/prisma';
 import { appendAuditEntry } from '@/lib/audit/audit-writer';
 
 const mockUserFindUnique = prisma.user.findUnique as jest.MockedFunction<typeof prisma.user.findUnique>;
-const mockUserUpdate = prisma.user.update as jest.MockedFunction<typeof prisma.user.update>;
 const mockMembershipFindFirst = prisma.tenantMembership.findFirst as jest.MockedFunction<typeof prisma.tenantMembership.findFirst>;
 const mockMembershipFindUnique = prisma.tenantMembership.findUnique as jest.MockedFunction<typeof prisma.tenantMembership.findUnique>;
 const mockMembershipCreate = prisma.tenantMembership.create as jest.MockedFunction<typeof prisma.tenantMembership.create>;

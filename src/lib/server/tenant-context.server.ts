@@ -14,7 +14,7 @@
  * @module server/tenant-context.server
  */
 import prisma from '@/lib/prisma';
-import { resolveTenantContext, computePermissions } from '@/lib/tenant-context';
+import { resolveTenantContext } from '@/lib/tenant-context';
 import { notFound } from '@/lib/errors/types';
 import type { Role } from '@prisma/client';
 import type { Permissions } from '@/lib/tenant-context';

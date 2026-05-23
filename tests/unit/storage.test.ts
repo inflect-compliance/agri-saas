@@ -1,6 +1,5 @@
 import { validateFile, uploadFile, getFile } from '@/lib/storage';
 import fs from 'fs/promises';
-import path from 'path';
 
 // Mock fs/promises so we don't do real disk I/O in tests
 jest.mock('fs/promises', () => ({
@@ -54,7 +53,7 @@ describe('Storage Security & Operations', () => {
 
     describe('getFile (Path Traversal Prevention)', () => {
         it('strips path components and only uses basename', async () => {
-            const result = await getFile('../../../etc/secret.txt');
+            await getFile('../../../etc/secret.txt');
 
             expect(fs.readFile).toHaveBeenCalled();
             const calledPath = (fs.readFile as jest.Mock).mock.calls[0][0];

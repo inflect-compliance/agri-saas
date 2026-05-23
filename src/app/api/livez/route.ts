@@ -12,7 +12,6 @@
  *   200 — process is alive
  *   (never returns anything else while the process is running)
  */
-import { NextResponse } from 'next/server';
 import { jsonResponse } from '@/lib/api-response';
 
 export async function GET() {

@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, cardVariants } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
-import { Shield, CheckCircle, XCircle, AlertTriangle, ExternalLink, Trash2, Save, Eye, EyeOff } from 'lucide-react';
+import { Shield, ExternalLink, Trash2, Save, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { InfoTooltip } from '@/components/ui/tooltip';
@@ -201,27 +201,6 @@ export default function SsoAdminPage() {
             setError((err as Error).message);
         } finally {
             setSaving(false);
-        }
-    }
-
-    // ── Toggle handlers ──
-    async function handleToggle(action: string) {
-        if (!existingProvider) return;
-        setError(null);
-        try {
-            const res = await fetch(apiUrl('/sso'), {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: existingProvider.id, action }),
-            });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-                setError(err.error || 'Toggle failed');
-                return;
-            }
-            await fetchProviders();
-        } catch (err) {
-            setError((err as Error).message);
         }
     }
 

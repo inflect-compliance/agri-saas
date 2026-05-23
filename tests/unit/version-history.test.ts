@@ -313,7 +313,7 @@ describe('Metadata JSON serialization', () => {
 
 describe('rule-of-three with version history (integrated)', () => {
     // Use the updater to verify the wiring
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
     const { applyMigrationStrategy, computeRequirementDiff } = require('@/app-layer/services/library-updater');
 
     it('should suppress removals when history has < 3 entries', () => {

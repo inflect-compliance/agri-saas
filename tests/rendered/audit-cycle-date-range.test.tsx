@@ -52,9 +52,9 @@ jest.mock('next-auth/react', () => ({
     signIn: jest.fn(),
 }));
 
-// eslint-disable-next-line import/first
+
 import AuditCyclesPage from '@/app/t/[tenantSlug]/(app)/audits/cycles/page';
-// eslint-disable-next-line import/first
+
 import { DEFAULT_DATE_RANGE_PRESETS } from '@/components/ui/date-picker/presets-catalogue';
 
 // ─── Fetch stub ──────────────────────────────────────────────────────

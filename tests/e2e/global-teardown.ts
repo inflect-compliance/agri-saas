@@ -231,7 +231,7 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
             entries.push(JSON.parse(trimmed) as TenantTrackerEntry);
         } catch {
             // Malformed line — log + skip.
-            // eslint-disable-next-line no-console
+
             console.warn(
                 `[global-teardown] skipping malformed tracker line: ${trimmed.slice(0, 120)}`,
             );
@@ -248,7 +248,7 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
         return;
     }
 
-    // eslint-disable-next-line no-console
+
     console.log(
         `[global-teardown] cleaning up ${entries.length} test tenant(s)…`,
     );
@@ -275,7 +275,7 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
             }
         }
     } catch (err) {
-        // eslint-disable-next-line no-console
+
         console.warn(
             `[global-teardown] DB connection failed (test DB is likely ephemeral): ` +
                 `${err instanceof Error ? err.message : String(err)}`,
@@ -284,15 +284,15 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
         await prisma.$disconnect().catch(() => undefined);
     }
 
-    // eslint-disable-next-line no-console
+
     console.log(
         `[global-teardown] cleanup complete: ${deleted} deleted, ${failed} failed`,
     );
     if (failures.length > 0) {
-        // eslint-disable-next-line no-console
+
         console.warn('[global-teardown] failures:');
         for (const f of failures) {
-            // eslint-disable-next-line no-console
+
             console.warn(`  - ${f}`);
         }
         // Leave the tracker file in place so the next run retries.

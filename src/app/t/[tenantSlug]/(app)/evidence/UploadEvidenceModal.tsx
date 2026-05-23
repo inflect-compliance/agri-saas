@@ -111,7 +111,7 @@ export interface UploadEvidenceModalProps {
 export function UploadEvidenceModal({
     open,
     setOpen,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- prop preserved on the public API for callers; Epic 69 SWR migration no longer consumes it (cache key derives from useTenantApiUrl + CACHE_KEYS).
+
     tenantSlug: _tenantSlug,
     apiUrl,
     controls,

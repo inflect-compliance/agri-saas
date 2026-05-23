@@ -18,7 +18,7 @@ import type { Role } from '@prisma/client';
 // ─── Mock db-context ───
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockTx: Record<string, any> = {};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 jest.mock('@/lib/db-context', () => ({
     runInTenantContext: jest.fn(async (_ctx: unknown, fn: (db: unknown) => unknown) => {
         return fn(mockTx);

@@ -18,7 +18,6 @@ import type { PrismaClient } from '@prisma/client';
 import {
     createInviteToken,
     revokeInvite,
-    previewInviteByToken,
     redeemInvite,
 } from '@/app-layer/usecases/tenant-invites';
 import { createTenantWithOwner } from '@/app-layer/usecases/tenant-lifecycle';

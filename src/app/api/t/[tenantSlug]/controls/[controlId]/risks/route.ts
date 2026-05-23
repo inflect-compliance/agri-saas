@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
-import { listControlRisks, mapControlToRisk, unmapControlFromRisk } from '@/app-layer/usecases/traceability';
+import { listControlRisks, mapControlToRisk } from '@/app-layer/usecases/traceability';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { z } from 'zod';
 import { jsonResponse } from '@/lib/api-response';

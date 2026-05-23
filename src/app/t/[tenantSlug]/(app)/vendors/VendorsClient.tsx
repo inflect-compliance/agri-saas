@@ -28,7 +28,7 @@ import { useHydratedNow } from '@/lib/hooks/use-hydrated-now';
 import { buildVendorFilters, VENDOR_FILTER_KEYS } from './filter-defs';
 import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
 import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
-import { Heading, textLinkVariants } from '@/components/ui/typography';
+import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 
 const STATUS_VARIANT: Record<string, 'success' | 'info' | 'warning' | 'neutral'> = {

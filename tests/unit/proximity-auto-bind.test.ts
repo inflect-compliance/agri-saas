@@ -6,7 +6,7 @@
  * into xyflow is covered by the structural ratchet at
  * `tests/guards/r26-prc-proximity-auto-bind.test.ts`.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { Edge, Node } from '@xyflow/react';
 import {
     findProximityCandidate,

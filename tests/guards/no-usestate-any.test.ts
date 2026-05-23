@@ -6,9 +6,12 @@ import { execSync } from 'child_process';
 
 describe('no-usestate-any guard', () => {
     it('should not have any raw useState<any> in src/ without eslint-disable', () => {
-        let output = '';
         try {
-            output = execSync(
+            // Probe — the actual scan is the manual fs walk below.
+            // grep returns non-zero when no matches; the `|| true`
+            // swallows that into a successful exit so the catch only
+            // fires on a real exec failure (binary missing, etc.).
+            execSync(
                 'npx grep-cli "useState<any>" src/ --include="*.tsx" --include="*.ts" 2>/dev/null || true',
                 { encoding: 'utf8', cwd: process.cwd() }
             );

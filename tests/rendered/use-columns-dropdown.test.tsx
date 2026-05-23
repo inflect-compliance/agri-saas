@@ -12,7 +12,7 @@
  *      works" guarantee the round was anchored around.
  */
 import * as React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { renderHook } from '@testing-library/react';
 import { useColumnsDropdown } from '@/components/ui/table/use-columns-dropdown';
 

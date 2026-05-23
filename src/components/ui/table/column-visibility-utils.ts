@@ -84,7 +84,6 @@ export function mergeVisibility(
   if (!saved) return defaults;
 
   const fixedSet = new Set(config.fixed ?? []);
-  const allSet = new Set(config.all);
 
   return Object.fromEntries(
     config.all.map((id) => {

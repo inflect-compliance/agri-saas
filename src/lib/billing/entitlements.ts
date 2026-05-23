@@ -135,7 +135,7 @@ export async function getEffectivePlan(ctx: RequestContext): Promise<Plan> {
         // tenant context is not strictly required — but using
         // runInTenantContext keeps the function signature uniform
         // with the rest of the data layer.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         const account = await db.billingAccount.findUnique({
             where: { tenantId: ctx.tenantId },
             select: { plan: true },

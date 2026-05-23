@@ -32,7 +32,6 @@ import {
     parseFormatVersion,
     checkVersionCompatibility,
     type ExportEnvelope,
-    type ExportDomain,
     type ExportEntityType,
     type ImportOptions,
 } from '../../src/app-layer/services/export-schemas';
@@ -364,7 +363,7 @@ describe('Domain entity mapping', () => {
     });
 
     test('no domain has an empty entity list', () => {
-        for (const [domain, types] of Object.entries(DOMAIN_ENTITY_MAP)) {
+        for (const [_domain, types] of Object.entries(DOMAIN_ENTITY_MAP)) {
             expect(types.length).toBeGreaterThan(0);
         }
     });

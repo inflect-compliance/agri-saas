@@ -43,7 +43,6 @@ describe('Audit Structured Events — Regression Guards', () => {
             const basename = path.relative(SRC_DIR, file);
 
             // Find all logEvent calls
-            const logEventRegex = /logEvent\s*\([^)]*\{[^}]*\}\s*\)/g;
             const lines = content.split('\n');
 
             for (let i = 0; i < lines.length; i++) {

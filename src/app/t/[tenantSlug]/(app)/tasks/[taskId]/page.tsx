@@ -5,20 +5,18 @@ import { formatDate, formatDateTime } from '@/lib/format-date';
 import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
-import Link from 'next/link';
-import { AppIcon } from '@/components/icons/AppIcon';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { useToastWithUndo } from '@/components/ui/hooks';
-import { SkeletonLine, SkeletonCard } from '@/components/ui/skeleton';
+import { SkeletonLine } from '@/components/ui/skeleton';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { UserCombobox } from '@/components/ui/user-combobox';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { CopyText } from '@/components/ui/copy-text';
 import { TERMINAL_WORK_ITEM_STATUSES } from '@/app-layer/domain/work-item-status';
-import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import {
@@ -297,8 +295,6 @@ export default function TaskDetailPage() {
     ];
 
     const isOverdue = task.dueAt && new Date(task.dueAt) < new Date() && !(TERMINAL_WORK_ITEM_STATUSES as readonly string[]).includes(task.status);
-    const sla = getSlaStatus(task.severity, task.createdAt, task.status);
-    const relevance = getRelevanceStatus(task, links);
     const metadata = task.metadataJson || {};
 
     return (

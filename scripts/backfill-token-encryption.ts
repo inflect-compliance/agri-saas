@@ -22,7 +22,7 @@
  *   The script uses $executeRawUnsafe to bypass the PII middleware (which
  *   would double-encrypt). It reads via $queryRawUnsafe for the same reason.
  */
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+
 const { encryptField: _encryptField, decryptField: _decryptField, isEncryptedValue: _isEncryptedValue } = require('../src/lib/security/encryption');
 
 const BATCH_SIZE = 100;
@@ -239,7 +239,7 @@ module.exports = { needsMigration, main, BATCH_SIZE };
 
 if (require.main === module) {
     // Only instantiate PrismaClient when running as a standalone script
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
 

@@ -25,7 +25,7 @@ describe('Filter contract tests', () => {
             };
 
             // Verify each endpoint's expected params are documented
-            for (const [endpoint, params] of Object.entries(expectedParams)) {
+            for (const [_endpoint, params] of Object.entries(expectedParams)) {
                 expect(params).toContain('q');
                 expect(params).toContain('status');
                 // Ensure q is always present for text search

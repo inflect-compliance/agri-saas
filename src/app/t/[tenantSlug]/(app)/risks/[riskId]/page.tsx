@@ -8,7 +8,6 @@ import { formatDate } from '@/lib/format-date';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { useTenantContext, useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import dynamic from 'next/dynamic';
@@ -37,9 +36,8 @@ const RiskTreatmentPlanCard = dynamic(
         ssr: false,
     },
 );
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
 import {
     parseYMD,

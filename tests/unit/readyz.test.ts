@@ -78,7 +78,7 @@ async function callReadyz() {
     // Re-import per test to bust the env module's cache (which reads
     // process.env at module-load time).
     jest.resetModules();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { GET } = require('@/app/api/readyz/route');
     const res: Response = await GET();
     return { status: res.status, body: await res.json() };

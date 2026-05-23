@@ -27,7 +27,7 @@ import {
 } from '@/lib/security/encryption';
 import { WEBHOOK_RATE_LIMIT } from '@/app-layer/usecases/webhook-processor';
 import type { FetchFn, GitHubBranchProtection } from '@/app-layer/integrations/providers/github';
-import type { CheckInput, ParsedAutomationKey } from '@/app-layer/integrations/types';
+import type { CheckInput } from '@/app-layer/integrations/types';
 import crypto from 'crypto';
 
 // ─── Shared Test Data ────────────────────────────────────────────────
@@ -224,7 +224,7 @@ describe('Integration Framework Regression Guards', () => {
     // ── 6. Webhook Security ──
 
     describe('Webhook security', () => {
-        const secret = 'webhook-secret-test';
+        const secret = 'webhook-secret-test'; // pragma: allowlist secret
         const payload = '{"action":"completed"}';
 
         it('valid HMAC signature accepted', () => {

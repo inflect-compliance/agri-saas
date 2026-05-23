@@ -29,7 +29,7 @@
 import { runJob } from '@/lib/observability/job-runner';
 import { logger } from '@/lib/observability/logger';
 import { prisma } from '@/lib/prisma';
-import { sendEmail, type EmailMessage } from '@/lib/mailer';
+import { sendEmail } from '@/lib/mailer';
 import type { JobRunResult } from './types';
 
 // ─── Types ──────────────────────────────────────────────────────────

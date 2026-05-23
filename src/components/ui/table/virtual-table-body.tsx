@@ -427,7 +427,7 @@ export function VirtualTable<T>({
         // Empty deps — OuterElement is intentionally stable for the
         // life of the VirtualTable instance. State flows through the
         // ref above which is updated on every render.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
     /* eslint-enable react-hooks/refs */
 

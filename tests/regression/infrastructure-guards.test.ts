@@ -48,7 +48,7 @@ describe('Infrastructure Regression Guards', () => {
         });
 
         test('all JOB_DEFAULTS have required fields', () => {
-            for (const [name, defaults] of Object.entries(JOB_DEFAULTS)) {
+            for (const [_name, defaults] of Object.entries(JOB_DEFAULTS)) {
                 expect(defaults).toHaveProperty('attempts');
                 expect(defaults).toHaveProperty('backoff');
                 expect(defaults).toHaveProperty('removeOnComplete');

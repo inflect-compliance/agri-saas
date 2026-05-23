@@ -9,7 +9,7 @@
  * with synthesised `row.original` values.
  */
 
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { POLICY_STATUS_LABELS } from '@/app/t/[tenantSlug]/(app)/policies/filter-defs';

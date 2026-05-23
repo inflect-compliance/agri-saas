@@ -168,7 +168,7 @@ export function DateRangePicker({
         } else {
             setDraft(fromDateRangeValue(committed));
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [open]);
 
     // Materialise resolvable presets once per open cycle. Using a

@@ -19,7 +19,7 @@ export async function register() {
         // all break silently when Redis is absent. Toggling rate limits
         // off doesn't make Redis optional in production.
         if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
-            // eslint-disable-next-line no-console
+
             console.error(
                 '[startup] FATAL: REDIS_URL is required in production. ' +
                 'Rate limits, queues, and session coordination depend on it. ' +
@@ -45,14 +45,14 @@ export async function register() {
 
             const config = checkProductionEncryptionKey(process.env);
             if (!config.ok) {
-                // eslint-disable-next-line no-console
+
                 console.error('[startup] FATAL: ' + config.reason);
                 process.exit(1);
             }
 
             const sentinel = await runEncryptionSentinel();
             if (!sentinel.ok) {
-                // eslint-disable-next-line no-console
+
                 console.error('[startup] FATAL: ' + sentinel.reason);
                 process.exit(1);
             }

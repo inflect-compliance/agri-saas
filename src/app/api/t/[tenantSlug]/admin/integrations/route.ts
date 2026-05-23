@@ -9,13 +9,12 @@
  * Admin-only. Secrets are encrypted at rest (AES-256-GCM).
  * Secrets are NEVER returned after creation — only a masked status.
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requirePermission } from '@/lib/security/permission-middleware';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import {
     listIntegrationConnections,
     upsertIntegrationConnection,
-    getIntegrationConnection,
     removeIntegrationConnection,
     listAvailableProviders,
     updateConnectionTestStatus,

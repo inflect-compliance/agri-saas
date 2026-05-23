@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listControls, listControlsPaginated, createControl, listControlsWithDeleted } from '@/app-layer/usecases/control';
 import { withValidatedBody } from '@/lib/validation/route';

@@ -26,8 +26,6 @@ import {
     type ExportEntityType,
     type ImportOptions,
 } from '../../src/app-layer/services/export-schemas';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 
 // ─── Fixtures ───────────────────────────────────────────────────────
 
@@ -492,7 +490,7 @@ describe('GUARDRAIL: Prisma schema has no unregistered self-referencing models',
     });
 
     test('all registered self-ref fields are currently empty (no self-refs in schema)', () => {
-        for (const [type, fields] of Object.entries(SELF_REFERENCING_FIELDS)) {
+        for (const [_type, fields] of Object.entries(SELF_REFERENCING_FIELDS)) {
             expect(fields).toEqual([]);
         }
     });

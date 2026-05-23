@@ -38,7 +38,6 @@ import { Command } from 'cmdk';
 import {
     CheckSquare,
     FileText,
-    Files,
     FlaskConical,
     Layers,
     Package,

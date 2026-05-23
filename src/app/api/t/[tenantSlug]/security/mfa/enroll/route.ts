@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { getUserMfaStatus } from '@/app-layer/usecases/mfa';
 import { removeMfaEnrollment } from '@/app-layer/usecases/mfa-enrollment';

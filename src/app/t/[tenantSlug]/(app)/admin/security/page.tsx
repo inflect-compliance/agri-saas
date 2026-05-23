@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, cardVariants } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
-import { ShieldCheck, Save, AlertTriangle, CheckCircle, LogOut, Users, UserX } from 'lucide-react';
+import { ShieldCheck, Save, AlertTriangle, LogOut, Users, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InfoTooltip } from '@/components/ui/tooltip';
 import { InlineNotice } from '@/components/ui/inline-notice';

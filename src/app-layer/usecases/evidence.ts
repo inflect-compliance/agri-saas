@@ -95,7 +95,7 @@ export async function createEvidence(
 
         const evidence = await EvidenceRepository.create(db, ctx, {
             controlId,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma enum boundary
+
             type: data.type as EvidenceType,
             title: data.title,
             content,
@@ -104,7 +104,7 @@ export async function createEvidence(
             category: data.category,
             owner: data.owner,
             ownerUserId: data.ownerUserId || null,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma enum boundary
+
             reviewCycle: (data.reviewCycle || null) as ReviewCadence | null,
             nextReviewDate: data.nextReviewDate ? new Date(data.nextReviewDate) : null,
             status: 'DRAFT',
@@ -163,7 +163,7 @@ export async function updateEvidence(ctx: RequestContext, id: string, data: z.in
             category: data.category,
             owner: data.owner,
             ownerUserId: data.ownerUserId,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma enum boundary
+
             reviewCycle: data.reviewCycle as ReviewCadence | undefined,
             nextReviewDate: data.nextReviewDate ? new Date(data.nextReviewDate) : undefined,
         });
@@ -322,7 +322,7 @@ export async function getEvidenceMetrics(ctx: RequestContext) {
             db.evidence.count({ where: { tenantId, deletedAt: null } }),
             db.evidence.count({ where: { tenantId, type: 'FILE', deletedAt: null } }),
             db.evidence.count({ where: { tenantId, type: 'FILE', controlId: { not: null }, deletedAt: null } }),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             db.fileRecord.aggregate({
                 where: { tenantId, status: 'STORED' },
                 _sum: { sizeBytes: true },

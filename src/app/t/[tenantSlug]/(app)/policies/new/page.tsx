@@ -32,7 +32,6 @@ export default function NewPolicyPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const tenant = useTenantContext();
-    const t = useTranslations('policies');
 
     const isTemplateMode = searchParams?.get('template') === '1';
 
