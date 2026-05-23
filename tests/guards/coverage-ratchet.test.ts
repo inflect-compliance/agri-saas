@@ -85,11 +85,19 @@ const RATCHET_FLOOR: Record<string, Metrics> = {
     // Combined ~143 covered branches. Conservative +1 across all
     // metrics after stages 3d/3e showed the broader-tree dilution
     // (a dense file contributes ~0.5-1% absolute on the tree).
-    // Next stage 3g (planned): the long-tail medium files
-    // (`org-dashboard-*`, `framework/fixtures`, `org-tenants`,
-    // `soft-delete-lifecycle`, `vendor-assessment-reminder`,
-    // `control/page-data`, `test-readiness`).
-    './src/app-layer/usecases/': { branches: 63, functions: 58, lines: 74, statements: 71 },
+    // Stage 3g (this wave): 40 tests across THREE files —
+    //   - `soft-delete-lifecycle.ts` (143 lines): file-level
+    //     **100/100/100/100** (perfect). 4 fns, 6 throw guards.
+    //   - `vendor-assessment-reminder.ts` (129 lines): file-level
+    //     **100/96/100/100**. 5 reject-paths + audit + dedup.
+    //   - `org-dashboard-widgets.ts` (225 lines): file-level
+    //     **100/96/100/100**. Cross-org-id leak defence locked.
+    // Combined ~85 covered branches; +1 across all metrics
+    // (matches stage 3f's broader-tree-dilution pattern).
+    // Next stage 3h (planned): remaining 5 small files
+    // (`org-dashboard-presets`, `framework/fixtures`,
+    // `org-tenants`, `control/page-data`, `test-readiness`).
+    './src/app-layer/usecases/': { branches: 64, functions: 59, lines: 75, statements: 72 },
     // `policies/` — quality roadmap P3. Authorization decisions —
     // a wrong branch is a security hole. Measured ≈82 branches /
     // 91 funcs / 91 lines; seeded a few points below.
