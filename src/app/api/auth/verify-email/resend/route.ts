@@ -61,7 +61,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (!user) return uniformOk;            // Unknown email — uniform response
         if (user.emailVerified) return uniformOk; // Already verified — no need to re-issue
 
-        await issueEmailVerification(email, { userId: user.id });
+        // `flow: 'resend'` threads through to the OTel metric so
+        // operators can pivot the verification-mail failure-rate
+        // dashboard between first-signup and resend traffic.
+        await issueEmailVerification(email, {
+            userId: user.id,
+            flow: 'resend',
+        });
     } catch (err) {
         // Internal failure — still uniform to the caller.
         logger.warn('verification resend issue failed', {

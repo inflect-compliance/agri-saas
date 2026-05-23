@@ -37,6 +37,20 @@
  *     the path is out-of-band + fail-safe (the audit row is already
  *     committed); escalation is alert-based on these metrics.
  *
+ * ── AUTH VERIFICATION-EMAIL METRICS ──
+ *   auth.verification_email.sent   — Counter (outcome)
+ *   auth.verification_email.failed — Counter (outcome)
+ *     `issueEmailVerification` swallows SMTP errors so the register
+ *     API stays 200 (enumeration safety: same response shape
+ *     regardless of whether the address is registered). That
+ *     swallow is invisible to the user — the operator only sees
+ *     pino warns. These metrics surface the failure rate before a
+ *     user-facing outage: if `AUTH_REQUIRE_EMAIL_VERIFICATION=1`
+ *     is flipped on in a prod where the mailer is unreliable, a
+ *     non-zero `.failed` rate gates verification end-to-end.
+ *     `outcome` label is `register | resend` so the dashboard can
+ *     pivot per-flow.
+ *
  * CARDINALITY SAFETY:
  *   Route labels are normalized via `normalizeRoute()` to collapse dynamic
  *   segments (UUIDs, slugs) into placeholder tokens. This prevents
@@ -408,6 +422,61 @@ export function recordAuditStreamDelivery(attrs: {
  */
 export function recordAuditStreamBufferOverflow(): void {
     getAuditStreamOverflow().add(1);
+}
+
+// ── Auth verification-email delivery counters ─────────────────────────
+
+let _verificationEmailSent: ReturnType<ReturnType<typeof getMeter>['createCounter']> | null = null;
+let _verificationEmailFailed: ReturnType<ReturnType<typeof getMeter>['createCounter']> | null = null;
+
+function getVerificationEmailSent() {
+    if (!_verificationEmailSent) {
+        _verificationEmailSent = getMeter().createCounter('auth.verification_email.sent', {
+            description: 'Verification emails successfully handed off to the mailer',
+            unit: '1',
+        });
+    }
+    return _verificationEmailSent;
+}
+
+function getVerificationEmailFailed() {
+    if (!_verificationEmailFailed) {
+        _verificationEmailFailed = getMeter().createCounter('auth.verification_email.failed', {
+            description: 'Verification emails that the mailer rejected (operator-only signal — the register API still returns 200)',
+            unit: '1',
+        });
+    }
+    return _verificationEmailFailed;
+}
+
+/**
+ * Record the outcome of a single verification-email send attempt.
+ * Called from `issueEmailVerification` after the `sendEmail` try/catch
+ * settles.
+ *
+ * `flow` labels the call-site:
+ *   - `register` — first email at signup
+ *   - `resend`   — `/api/auth/verify-email/resend` re-issue
+ *
+ * No email or userId on the label (PII + cardinality). Per-tenant
+ * debugging uses the structured pino warn line in the same code path.
+ *
+ * Failures here are best-effort signal — the token is already stored
+ * and the API returns 200 regardless. Operators alert on
+ * `auth.verification_email.failed` (rate or absolute) to catch a
+ * mailer outage BEFORE `AUTH_REQUIRE_EMAIL_VERIFICATION=1` locks
+ * legitimate signups out of verification.
+ */
+export function recordVerificationEmailDelivery(attrs: {
+    outcome: 'sent' | 'failed';
+    flow: 'register' | 'resend';
+}): void {
+    const labels = { flow: attrs.flow };
+    if (attrs.outcome === 'sent') {
+        getVerificationEmailSent().add(1, labels);
+    } else {
+        getVerificationEmailFailed().add(1, labels);
+    }
 }
 
 let _auditStreamBufferGaugeStarted = false;

@@ -38,6 +38,7 @@ import prisma from '@/lib/prisma';
 import { env } from '@/env';
 import { sendEmail } from '@/lib/mailer';
 import { logger } from '@/lib/observability/logger';
+import { recordVerificationEmailDelivery } from '@/lib/observability/metrics';
 import { hashForLookup } from '@/lib/security/encryption';
 
 import {
@@ -78,6 +79,13 @@ export interface IssueVerificationOptions {
     userId: string;
     /** Caller-supplied requestId for log correlation. */
     requestId?: string;
+    /**
+     * Originating flow. Threaded onto the OTel metric so operators
+     * can pivot the failure-rate dashboard between first-signup and
+     * resend traffic. Defaults to `register` — set `resend` from the
+     * `/api/auth/verify-email/resend` route.
+     */
+    flow?: 'register' | 'resend';
 }
 
 /**
@@ -138,6 +146,7 @@ export async function issueEmailVerification(
     const base = env.APP_URL ?? '';
     const verifyUrl = `${base}/api/auth/verify-email?token=${encodeURIComponent(raw)}`;
 
+    const flow = opts.flow ?? 'register';
     try {
         await sendEmail({
             to: identifier,
@@ -158,12 +167,19 @@ export async function issueEmailVerification(
                 "<p>If you didn't request this, you can ignore this message — the link won't do anything until you click it.</p>",
             ].join(''),
         });
+        recordVerificationEmailDelivery({ outcome: 'sent', flow });
     } catch (err) {
         // Don't propagate — the token is already stored. Operator sees
-        // the failure in the mailer's own logs; the API caller gets the
-        // same 200 regardless of mailer outcome (enumeration safety).
+        // the failure in the mailer's own logs PLUS the OTel counter
+        // (the first user-visible signal would be locked-out signups
+        // once AUTH_REQUIRE_EMAIL_VERIFICATION=1; the metric trips
+        // before then). The API caller gets the same 200 regardless
+        // of mailer outcome (enumeration safety).
+        recordVerificationEmailDelivery({ outcome: 'failed', flow });
         logger.warn('verification email send failed', {
             component: 'auth',
+            event: 'verification_email_send_failed',
+            flow,
             userId: opts.userId,
             error: err instanceof Error ? err.message : String(err),
         });
