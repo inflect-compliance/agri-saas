@@ -117,7 +117,15 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // the form-extraction cleanup that demoted some Save buttons.
 // Measured post-merge count = 114; ceiling at 115 keeps one slot of
 // headroom matching the previous policy.
-const MAX_PRIMARY_COUNT = 115;
+//
+// B5 (2026-05-24) — bumped 115 → 117 to absorb two new primaries
+// from the evidence workflow completion: the EditEvidenceModal's
+// "Save changes" form submit + the EvidenceDetailSheet's one
+// earned "Approve" CTA (Submit / Re-submit / Re-certify were
+// intentionally demoted to secondary so only the reviewer's
+// approval moment is primary). Measured post-merge count = 116;
+// ceiling at 117 keeps one slot of headroom.
+const MAX_PRIMARY_COUNT = 117;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

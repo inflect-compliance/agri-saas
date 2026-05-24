@@ -17,6 +17,8 @@ import { useHydratedNow } from '@/lib/hooks/use-hydrated-now';
 import { UploadEvidenceModal } from './UploadEvidenceModal';
 import { NewEvidenceTextModal } from './NewEvidenceTextModal';
 import { EvidenceBulkImportModal } from './EvidenceBulkImportModal';
+import { EvidenceDetailSheet } from './EvidenceDetailSheet';
+import { EditEvidenceModal } from './EditEvidenceModal';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
@@ -196,6 +198,18 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
     const [showUpload, setShowUpload] = useState(false);
     const [showTextForm, setShowTextForm] = useState(false);
     const [showBulkImport, setShowBulkImport] = useState(false);
+
+    // B5 — row-click detail sheet + edit modal.
+    const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+    const [detailEvidenceId, setDetailEvidenceId] = useState<string | null>(null);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editInitial, setEditInitial] = useState<{
+        id: string;
+        title: string;
+        description: string | null;
+        ownerUserId: string | null;
+        controlId: string | null;
+    } | null>(null);
 
     // Retention edit state
     const [editingRetention, setEditingRetention] = useState<string | null>(null);
@@ -708,6 +722,36 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                 </>
             )}
 
+            {/* B5 — Evidence detail sheet + edit modal. The sheet
+                opens on row click and shows the read-only evidence
+                detail + the existing approval-flow actions (which
+                route back through `submitReview` for optimistic
+                updates). The edit modal opens from the sheet's
+                edit button. */}
+            <EvidenceDetailSheet
+                open={detailSheetOpen}
+                setOpen={setDetailSheetOpen}
+                evidenceId={detailEvidenceId}
+                canWrite={permissions.canWrite}
+                canAdmin={permissions.canAdmin}
+                onEdit={(ev) => {
+                    setEditInitial(ev);
+                    setEditModalOpen(true);
+                }}
+                onReview={(id, action) => submitReview(id, action)}
+            />
+            <EditEvidenceModal
+                open={editModalOpen}
+                setOpen={setEditModalOpen}
+                tenantSlug={tenantSlug}
+                initial={editInitial}
+                onSaved={() => {
+                    // Revalidate the list cache so the freshly-saved
+                    // values flow back into the table.
+                    invalidateEvidence();
+                }}
+            />
+
             <ListPageShell.Filters className="space-y-section">
                 {/* R23-PR-E — KPI strip ABOVE the retention tabs +
                     filter toolbar block. Status-based KPIs sit on a
@@ -858,6 +902,15 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                         data={displayEvidence}
                         columns={evidenceColumns}
                         getRowId={(ev: any) => ev.id}
+                        // B5 — row click opens the detail sheet so
+                        // users can actually drill into an evidence
+                        // record. Pre-B5 the table was read-only
+                        // until you clicked a specific cell-level
+                        // action button.
+                        onRowClick={(row) => {
+                            setDetailEvidenceId(row.original.id);
+                            setDetailSheetOpen(true);
+                        }}
                         emptyState={
                             anyFilterActive ? (
                                 <EmptyState
