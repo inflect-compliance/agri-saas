@@ -356,9 +356,23 @@ enum ChecklistResult {
   FAIL
 }
 
+/// Risk lifecycle status.
+///
+///   OPEN       — the risk is active and unaddressed.
+///   MITIGATING — a treatment plan is in flight.
+///   MITIGATED  — a `MITIGATE`-strategy plan has completed; the risk
+///                is reduced to an acceptable residual but not
+///                eliminated. ISO 27001 Annex A distinguishes this
+///                from CLOSED for residual-risk reporting (Audit
+///                Coherence S1, 2026-05-22).
+///   ACCEPTED   — an `ACCEPT`-strategy plan has completed; the risk
+///                is acknowledged at its inherent level.
+///   CLOSED     — the risk is eliminated, transferred, or otherwise
+///                no longer carried by the tenant.
 enum RiskStatus {
   OPEN
   MITIGATING
+  MITIGATED
   ACCEPTED
   CLOSED
 }

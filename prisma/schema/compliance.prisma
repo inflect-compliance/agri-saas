@@ -211,6 +211,21 @@ model Risk {
   impact          Int                 @default(3)
   score           Int                 @default(9)
   inherentScore   Int                 @default(9)
+  /// Residual risk score after treatment-plan completion. Distinct
+  /// from `inherentScore` (set at create-time, never overwritten by
+  /// plan completion) and `score` (the live "current" value that
+  /// already moves on every likelihood/impact edit). Residual is
+  /// the auditor's "after controls implemented" view.
+  ///
+  /// NULL until the first treatment plan completes on this risk;
+  /// thereafter it reflects the strategy-specific reduction
+  /// (MITIGATE → 1/5 of score, TRANSFER → ~0, AVOID → 0,
+  /// ACCEPT → score unchanged). See `completePlan` in
+  /// risk-treatment-plan.ts for the formula.
+  ///
+  /// Audit Coherence S1 (2026-05-22).
+  residualScore   Int?
+  residualScoreSetAt DateTime?
   status          RiskStatus          @default(OPEN)
   treatment       TreatmentDecision?
   treatmentOwner  String?

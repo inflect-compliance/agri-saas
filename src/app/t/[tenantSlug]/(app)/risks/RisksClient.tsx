@@ -343,10 +343,13 @@ function RisksPageInner({
     };
 
     // Workflow-status variants (Epic 44.4). The label set mirrors
-    // `RiskStatus` in the schema (OPEN / MITIGATING / ACCEPTED / CLOSED).
+    // `RiskStatus` in the schema. Audit S1 (2026-05-24) added
+    // `MITIGATED` — controls implemented, residual accepted (distinct
+    // from CLOSED which means risk eliminated).
     const STATUS_CLASS: Record<string, StatusBadgeVariant> = {
         OPEN: 'warning',
         MITIGATING: 'info',
+        MITIGATED: 'success',
         ACCEPTED: 'neutral',
         CLOSED: 'success',
     };

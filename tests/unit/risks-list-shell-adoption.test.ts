@@ -67,7 +67,8 @@ describe('Risks list — Epic 44.4 column + matrix wiring', () => {
         expect(clientSrc).toContain('STATUS_CLASS');
         // Every enum member from prisma's RiskStatus must have a
         // class — drift here would render an unstyled badge.
-        for (const k of ['OPEN', 'MITIGATING', 'ACCEPTED', 'CLOSED']) {
+        // Audit S1 (2026-05-24) added MITIGATED to the RiskStatus enum.
+        for (const k of ['OPEN', 'MITIGATING', 'MITIGATED', 'ACCEPTED', 'CLOSED']) {
             expect(clientSrc).toContain(`${k}:`);
         }
     });

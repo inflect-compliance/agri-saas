@@ -355,7 +355,7 @@ describeFn('Epic G-7 — risk treatment plan usecases', () => {
 
     // ── 6. completePlan happy path + risk-status mapping ───────────
 
-    it('MITIGATE plan completion → risk goes to CLOSED', async () => {
+    it('MITIGATE plan completion → risk goes to MITIGATED + residual score written (Audit S1)', async () => {
         const { treatmentPlanId } = await createTreatmentPlan(
             ctxAs(Role.ADMIN, admin.userId),
             {
@@ -380,11 +380,19 @@ describeFn('Epic G-7 — risk treatment plan usecases', () => {
             treatmentPlanId,
             { closingRemark: 'all good' },
         );
-        expect(r.newRiskStatus).toBe('CLOSED');
+        // Audit S1 — MITIGATE no longer collapses into CLOSED.
+        expect(r.newRiskStatus).toBe('MITIGATED');
         const risk = await globalPrisma.risk.findUniqueOrThrow({
             where: { id: RISK_ID },
         });
-        expect(risk.status).toBe('CLOSED');
+        expect(risk.status).toBe('MITIGATED');
+        // Residual score = floor(risk.score / 5), minimum 1.
+        expect(risk.residualScore).not.toBeNull();
+        expect(risk.residualScore).toBeGreaterThanOrEqual(1);
+        expect(risk.residualScore).toBeLessThanOrEqual(
+            Math.max(1, Math.floor(risk.score / 5)),
+        );
+        expect(risk.residualScoreSetAt).not.toBeNull();
     });
 
     it('ACCEPT plan completion → risk goes to ACCEPTED', async () => {

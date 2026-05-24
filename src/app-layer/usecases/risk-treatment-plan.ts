@@ -48,11 +48,13 @@ import {
     CompleteMilestoneSchema,
     CompletePlanSchema,
     ChangeStrategySchema,
+    TransferOwnershipSchema,
     type CreateTreatmentPlanInput,
     type AddMilestoneInput,
     type CompleteMilestoneInput,
     type CompletePlanInput,
     type ChangeStrategyInput,
+    type TransferOwnershipInput,
 } from '../schemas/risk-treatment-plan.schemas';
 import type {
     TreatmentStrategy,
@@ -62,18 +64,60 @@ import type {
 
 // ─── Strategy → risk-status mapping ─────────────────────────────────
 
+/**
+ * Audit Coherence S1 (2026-05-22) — `MITIGATE` plan completion now
+ * maps to the new `MITIGATED` enum value (split out from `CLOSED`).
+ * ISO 27001 Annex A treats "residual risk reduced to acceptable
+ * level" as distinct from "risk eliminated"; the lifecycle now
+ * reflects that.
+ *
+ * Other strategies are unchanged: TRANSFER + AVOID both eliminate
+ * the risk from the tenant's books, so CLOSED is correct.
+ */
 function riskStatusForCompletedStrategy(
     strategy: TreatmentStrategy,
 ): RiskStatus {
     switch (strategy) {
         case 'MITIGATE':
-            return 'CLOSED';
+            return 'MITIGATED';
         case 'ACCEPT':
             return 'ACCEPTED';
         case 'TRANSFER':
             return 'CLOSED';
         case 'AVOID':
             return 'CLOSED';
+    }
+}
+
+/**
+ * Residual score after a treatment plan completes.
+ *
+ * Inputs:
+ *   `inheritedScore` is the risk's `score` at completion time (the
+ *   "current" value — already reflects any likelihood/impact edits
+ *   the owner made along the way).
+ *   `strategy` drives the reduction factor.
+ *
+ * Reductions (rough alignment with ISO 27005 informal practice):
+ *   MITIGATE  — divide by 5, floor at 1 (controls reduce the risk
+ *               substantially but rarely to zero).
+ *   ACCEPT    — unchanged (no controls implemented; residual = inherent).
+ *   TRANSFER  — divide by 10, floor at 0 (third-party absorbs most of it).
+ *   AVOID     — 0 (the activity creating the risk is gone).
+ */
+function residualScoreForCompletedStrategy(
+    inheritedScore: number,
+    strategy: TreatmentStrategy,
+): number {
+    switch (strategy) {
+        case 'MITIGATE':
+            return Math.max(1, Math.floor(inheritedScore / 5));
+        case 'ACCEPT':
+            return inheritedScore;
+        case 'TRANSFER':
+            return Math.max(0, Math.floor(inheritedScore / 10));
+        case 'AVOID':
+            return 0;
     }
 }
 
@@ -495,12 +539,27 @@ export async function completePlan(
         );
         const riskBefore = await db.risk.findUniqueOrThrow({
             where: { id: plan.riskId },
-            select: { status: true },
+            select: { status: true, score: true, residualScore: true },
         });
-        if (riskBefore.status !== newRiskStatus) {
+        // Audit S1 — residual score reflects the post-controls risk
+        // posture. Re-computed at every plan completion (subsequent
+        // plans on the same risk overwrite the prior residual; the
+        // audit trail records each change).
+        const newResidualScore = residualScoreForCompletedStrategy(
+            riskBefore.score,
+            plan.strategy as TreatmentStrategy,
+        );
+        if (
+            riskBefore.status !== newRiskStatus ||
+            riskBefore.residualScore !== newResidualScore
+        ) {
             await db.risk.update({
                 where: { id: plan.riskId },
-                data: { status: newRiskStatus },
+                data: {
+                    status: newRiskStatus,
+                    residualScore: newResidualScore,
+                    residualScoreSetAt: now,
+                },
             });
             await logEvent(db, ctx, {
                 action: 'RISK_STATUS_CHANGED_BY_TREATMENT_PLAN',
@@ -515,6 +574,9 @@ export async function completePlan(
                     after: {
                         treatmentPlanId,
                         strategy: plan.strategy,
+                        residualScore: newResidualScore,
+                        residualScoreBefore: riskBefore.residualScore,
+                        inheritedScore: riskBefore.score,
                     },
                 },
             });
@@ -543,6 +605,102 @@ export async function completePlan(
             treatmentPlanId,
             riskId: plan.riskId,
             newRiskStatus,
+        };
+    });
+}
+
+// ─── transferOwnership ──────────────────────────────────────────────
+
+export interface TransferOwnershipResult {
+    treatmentPlanId: string;
+    previousOwnerUserId: string;
+    newOwnerUserId: string;
+}
+
+/**
+ * Reassign a treatment plan's `ownerUserId` and emit a dedicated
+ * audit event.
+ *
+ * Audit Coherence S1 (2026-05-22): prior to this usecase, ownership
+ * changes would have only surfaced under a generic
+ * `TREATMENT_PLAN_UPDATED` event (which didn't exist); the audit
+ * row would have carried no semantic about who the prior owner was
+ * or why the transfer happened. Auditors review ownership transfers
+ * because they're a governance-sensitive action — a sabbatical /
+ * departure / restructure that nobody documented surfaces as a gap.
+ *
+ * Authorization: `assertCanWrite` (same as `changeStrategy`). The
+ * action is not admin-only — plan owners legitimately hand off to
+ * peers during reorganisations — but it must still be writable
+ * authority, not read-only.
+ *
+ * Idempotency: rejecting the same `newOwnerUserId` as the current
+ * owner is a no-op error rather than a silent success; auditors
+ * shouldn't see a stream of self-transfers.
+ */
+export async function transferTreatmentPlanOwnership(
+    ctx: RequestContext,
+    treatmentPlanId: string,
+    input: unknown,
+): Promise<TransferOwnershipResult> {
+    assertCanWrite(ctx);
+    const parsed: TransferOwnershipInput =
+        TransferOwnershipSchema.parse(input);
+
+    return runInTenantContext(ctx, async (db) => {
+        const plan = await db.riskTreatmentPlan.findFirst({
+            where: {
+                id: treatmentPlanId,
+                tenantId: ctx.tenantId,
+                deletedAt: null,
+            },
+            select: {
+                id: true,
+                ownerUserId: true,
+                status: true,
+                riskId: true,
+            },
+        });
+        if (!plan) throw notFound('Treatment plan not found');
+        if (plan.status === 'COMPLETED') {
+            throw badRequest(
+                'Cannot transfer ownership of a completed plan — the plan is closed.',
+            );
+        }
+        if (plan.ownerUserId === parsed.newOwnerUserId) {
+            throw badRequest(
+                'newOwnerUserId is already the current owner — nothing to transfer.',
+            );
+        }
+
+        await db.riskTreatmentPlan.update({
+            where: { id: treatmentPlanId },
+            data: { ownerUserId: parsed.newOwnerUserId },
+        });
+
+        await logEvent(db, ctx, {
+            action: 'TREATMENT_PLAN_OWNERSHIP_TRANSFERRED',
+            entityType: 'RiskTreatmentPlan',
+            entityId: treatmentPlanId,
+            detailsJson: {
+                category: 'access',
+                entityName: 'RiskTreatmentPlan',
+                summary:
+                    `Treatment plan ${treatmentPlanId} ownership transferred ` +
+                    `from ${plan.ownerUserId} to ${parsed.newOwnerUserId}`,
+                before: { ownerUserId: plan.ownerUserId },
+                after: {
+                    ownerUserId: parsed.newOwnerUserId,
+                    riskId: plan.riskId,
+                    reason: sanitizePlainText(parsed.reason),
+                },
+            },
+        });
+
+        return {
+            treatmentPlanId,
+            previousOwnerUserId: plan.ownerUserId,
+            newOwnerUserId: parsed.newOwnerUserId,
         };
     });
 }

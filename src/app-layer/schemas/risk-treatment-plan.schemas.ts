@@ -77,3 +77,22 @@ export const ChangeStrategySchema = z.object({
 });
 
 export type ChangeStrategyInput = z.infer<typeof ChangeStrategySchema>;
+
+// ── transferOwnership ───────────────────────────────────────────────
+
+/**
+ * Audit Coherence S1 (2026-05-22) — ownership transfer of a treatment
+ * plan is a governance-sensitive action that the audit flagged as
+ * missing a dedicated event. The new usecase + schema make the
+ * transfer explicit (separate from the generic update path) and
+ * the audit row carries the from/to user pair + a required reason.
+ */
+export const TransferOwnershipSchema = z.object({
+    newOwnerUserId: z.string().min(1, 'newOwnerUserId required'),
+    /// Why the transfer happened. Surfaces verbatim in the audit
+    /// row; auditors expect a written rationale for every ownership
+    /// handover (sabbatical / departure / restructure / re-prioritisation).
+    reason: TextField,
+});
+
+export type TransferOwnershipInput = z.infer<typeof TransferOwnershipSchema>;
