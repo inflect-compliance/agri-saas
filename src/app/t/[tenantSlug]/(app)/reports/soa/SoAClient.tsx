@@ -241,8 +241,18 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                 </span>
             </div>
 
-            {/* Table */}
-            <div className={cn(cardVariants({ density: 'none' }), 'overflow-auto')}>
+            {/* Table.
+                PR-A — match the Controls / Risks / Assets list-page
+                card density. Pre-PR-A this used `density: 'none'`
+                which read as a borderless overflow scroller; consumers
+                navigating between Reports + Controls felt the
+                presentation jump. Default density gives the same
+                inset padding ratio the DataTable card uses on the
+                other list pages. */}
+            <div
+                className={cn(cardVariants(), 'overflow-auto')}
+                data-testid="soa-table-card"
+            >
                 <table className="data-table" id="soa-table">
                     <thead>
                         <tr>

@@ -73,7 +73,12 @@ import KpiCard from '@/components/ui/KpiCard';
 import ProgressCard from '@/components/ui/ProgressCard';
 import DonutChart from '@/components/ui/DonutChart';
 import { TrendCard } from '@/components/ui/TrendCard';
-import StatusBreakdown from '@/components/ui/StatusBreakdown';
+// PR-A — switched from the auto-wrapping default StatusBreakdown
+// to the non-wrapping primitive so the Evidence Status card can
+// host the breakdown + a trend mini-chart inside ONE Card without
+// nested-cards (the legacy default-export wraps itself in
+// cardVariants()).
+import { StatusBreakdown } from '@/components/ui/status-breakdown';
 import { RiskMatrix } from '@/components/ui/RiskMatrix';
 import ExpiryCalendar from '@/components/ui/ExpiryCalendar';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -283,6 +288,21 @@ export default function DashboardClient({
                                 color: 'bg-border-emphasis',
                             },
                         ]}
+                        // PR-A — coverage-over-time mini chart. Picks the
+                        // single most useful KPI for this card (the
+                        // metric the card already headlines) and shows
+                        // its trajectory inside the same surface.
+                        trend={
+                            trendBundle?.coverage &&
+                            trendBundle.coverage.length > 1
+                                ? {
+                                      label: 'Coverage (trend)',
+                                      points: trendBundle.coverage,
+                                      colorClassName: 'text-content-success',
+                                      format: '%',
+                                  }
+                                : undefined
+                        }
                         footer={
                             <Link
                                 href={href('/clauses')}
@@ -299,7 +319,10 @@ export default function DashboardClient({
             {/* ─── Evidence Status + Compliance Alerts ─── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-default">
                 <ChartFocusWrapper kpiKey="evidence">
-                    <EvidenceStatusSection exec={exec} />
+                    <EvidenceStatusSection
+                        exec={exec}
+                        trendBundle={trendBundle}
+                    />
                 </ChartFocusWrapper>
                 <ComplianceAlerts exec={exec} t={t} />
             </div>
@@ -650,19 +673,72 @@ function RiskDistributionSection({
 
 // ─── Evidence Status ─────────────────────────────────────────────────
 
-function EvidenceStatusSection({ exec }: { exec: ExecutiveDashboardPayload }) {
+function EvidenceStatusSection({
+    exec,
+    trendBundle,
+}: {
+    exec: ExecutiveDashboardPayload;
+    trendBundle: KpiTrendBundle | undefined;
+}) {
     const { evidenceExpiry } = exec;
+    const total =
+        evidenceExpiry.overdue +
+        evidenceExpiry.dueSoon7d +
+        evidenceExpiry.dueSoon30d +
+        evidenceExpiry.current;
+    const currentPercent =
+        total > 0 ? Math.round((evidenceExpiry.current / total) * 100) : 0;
+    // PR-A — Evidence Status now matches the Compliance Alerts
+    // visual weight: a Card with a Heading, the existing four-row
+    // breakdown, a percent-current readout, and (when the trend
+    // bundle is available) the same evidence-overdue sparkline
+    // that the Trend section's TrendCard uses below — so the user
+    // can see the trajectory without scrolling.
     return (
-        <StatusBreakdown
-            id="evidence-status"
-            label="Evidence Status"
-            items={[
-                { label: 'Overdue', value: evidenceExpiry.overdue, color: 'bg-bg-error-emphasis' },
-                { label: 'Due ≤7d', value: evidenceExpiry.dueSoon7d, color: 'bg-bg-warning-emphasis' },
-                { label: 'Due ≤30d', value: evidenceExpiry.dueSoon30d, color: 'bg-bg-warning-emphasis' },
-                { label: 'Current', value: evidenceExpiry.current, color: 'bg-bg-success-emphasis' },
-            ]}
-        />
+        <Card id="evidence-status">
+            <div className="flex items-baseline justify-between mb-3 gap-tight">
+                <Heading level={3}>Evidence Status</Heading>
+                <span
+                    className="text-xs text-content-muted tabular-nums"
+                    data-testid="evidence-status-current-percent"
+                >
+                    {currentPercent}% current
+                </span>
+            </div>
+            {/* PR-A — non-wrapping breakdown. The Heading + total
+                live on the Card above; each row is a `{ label,
+                value, colorClass }` triplet rendered as a single
+                line so the four rows stack into the same vertical
+                rhythm Compliance Alerts uses. */}
+            <StatusBreakdown
+                ariaLabel="Evidence status breakdown"
+                size="sm"
+                showCount
+                showPercent
+                items={[
+                    { label: 'Overdue', value: evidenceExpiry.overdue, colorClass: 'bg-bg-error-emphasis' },
+                    { label: 'Due ≤7d', value: evidenceExpiry.dueSoon7d, colorClass: 'bg-bg-warning-emphasis' },
+                    { label: 'Due ≤30d', value: evidenceExpiry.dueSoon30d, colorClass: 'bg-bg-warning-emphasis' },
+                    { label: 'Current', value: evidenceExpiry.current, colorClass: 'bg-bg-success-emphasis' },
+                ]}
+            />
+            {trendBundle?.evidence && trendBundle.evidence.length > 1 && (
+                <div
+                    className="mt-default rounded-md bg-bg-muted/30 px-default py-tight"
+                    data-testid="evidence-status-trend"
+                >
+                    <TrendCard
+                        label="Overdue (trend)"
+                        value={
+                            trendBundle.evidence[trendBundle.evidence.length - 1]
+                                .value
+                        }
+                        points={trendBundle.evidence}
+                        colorClassName="text-content-error"
+                    />
+                </div>
+            )}
+        </Card>
     );
 }
 

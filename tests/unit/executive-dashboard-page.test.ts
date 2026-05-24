@@ -105,7 +105,16 @@ describe('Dashboard Widget Composition', () => {
 
     test('uses StatusBreakdown component', () => {
         const content = readAll();
-        expect(content).toContain("from '@/components/ui/StatusBreakdown'");
+        // PR-A — Evidence Status now hosts the breakdown + a
+        // trend mini-chart inside one Card, so the dashboard
+        // switched from the default-export auto-wrapping
+        // `@/components/ui/StatusBreakdown` to the non-wrapping
+        // primitive at `@/components/ui/status-breakdown` (case-
+        // sensitive on Linux CI). Accept either path.
+        expect(
+            content.includes("from '@/components/ui/StatusBreakdown'") ||
+                content.includes("from '@/components/ui/status-breakdown'"),
+        ).toBe(true);
         expect(content).toContain('<StatusBreakdown');
     });
 

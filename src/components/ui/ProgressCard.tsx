@@ -22,6 +22,7 @@
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { Heading } from '@/components/ui/typography';
 import { cardVariants } from '@/components/ui/card-variants';
+import { TrendCard } from '@/components/ui/TrendCard';
 import { cn } from '@dub/utils';
 
 // ─── Props ──────────────────────────────────────────────────────────
@@ -30,6 +31,22 @@ export interface ProgressSegment {
     label: string;
     value: number;
     color: string;
+}
+
+/**
+ * PR-A — optional trend line chart rendered below the segment
+ * legend. Same shape as `<TrendCard>`'s data prop. Drives the
+ * "more informative + visually substantial" requirement on the
+ * Control Coverage card without forcing every consumer to grow.
+ */
+export interface ProgressCardTrend {
+    label: string;
+    /** Ordered oldest→newest series of dated values. */
+    points: ReadonlyArray<{ date: Date; value: number }>;
+    /** Tailwind `text-*` class for the area fill + stroke. */
+    colorClassName: string;
+    /** Display suffix on the latest value (e.g. "%"). */
+    format?: string;
 }
 
 export interface ProgressCardProps {
@@ -43,6 +60,8 @@ export interface ProgressCardProps {
     gradient?: string;
     /** Optional breakdown segments (stacked bar) */
     segments?: ProgressSegment[];
+    /** Optional trend mini-chart slot (PR-A). */
+    trend?: ProgressCardTrend;
     /** Footer text / link */
     footer?: React.ReactNode;
     /** Optional CSS class */
@@ -59,6 +78,7 @@ export default function ProgressCard({
     max = 100,
     gradient = 'from-[var(--brand-default)] to-emerald-500',
     segments,
+    trend,
     footer,
     className = '',
     id,
@@ -130,6 +150,25 @@ export default function ProgressCard({
                             <span className="text-content-subtle tabular-nums">({seg.value})</span>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* PR-A — Trend mini-chart. Sits between the segment
+                legend and the footer so the card grows downward
+                without disrupting the existing layout for callers
+                that don't pass `trend`. */}
+            {trend && trend.points.length > 0 && (
+                <div
+                    className="mt-default rounded-md bg-bg-muted/30 px-default py-tight"
+                    data-testid="progress-card-trend"
+                >
+                    <TrendCard
+                        label={trend.label}
+                        value={trend.points[trend.points.length - 1].value}
+                        format={trend.format}
+                        points={trend.points}
+                        colorClassName={trend.colorClassName}
+                    />
                 </div>
             )}
 
