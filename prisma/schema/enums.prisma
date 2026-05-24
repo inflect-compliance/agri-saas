@@ -183,9 +183,21 @@ enum AutomationType {
   INTEGRATION
 }
 
+/// Lifecycle for a control test plan.
+///
+///   ACTIVE   — the plan runs on cadence (`nextDueAt` ticks via
+///              `computeNextDueAt(frequency)` after each run completion).
+///   PAUSED   — temporarily not running runs; can be re-activated.
+///   ARCHIVED — terminal state. Plan is preserved for historical
+///              audit but no new runs can be created. Auditor view
+///              treats it as "retired control test". Distinct from
+///              soft-delete (which removes the row from default
+///              queries entirely); ARCHIVED stays visible but read-
+///              only. Audit Coherence S2 (2026-05-22).
 enum TestPlanStatus {
   ACTIVE
   PAUSED
+  ARCHIVED
 }
 
 enum TestRunStatus {

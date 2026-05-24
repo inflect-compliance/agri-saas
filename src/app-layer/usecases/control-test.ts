@@ -69,7 +69,98 @@ export async function listRunEvidence(ctx: RequestContext, runId: string) {
     );
 }
 
+// ─── Control effectiveness ─────────────────────────────────────────
+//
+// Audit Coherence S2 (2026-05-22) — auditors reviewing control
+// operating effectiveness expect a "pass rate over the last N runs"
+// number. Pre-this-PR they could read raw test-run rows from the
+// detail page and compute it by eye; this surfaces the metric
+// directly.
+
+export interface ControlEffectiveness {
+    controlId: string;
+    /// Rolling pass rate over the window — `passes / total` rounded
+    /// to a percentage 0–100. `null` if no completed runs in window.
+    passRate: number | null;
+    /// Count of completed runs (PASS + FAIL + INCONCLUSIVE) in window.
+    total: number;
+    passes: number;
+    fails: number;
+    inconclusive: number;
+    /// The rolling window the metric covers. Defaults to 90 days
+    /// (matches the audit-readiness scoring convention).
+    windowDays: number;
+}
+
+const DEFAULT_EFFECTIVENESS_WINDOW_DAYS = 90;
+
+export async function getControlEffectiveness(
+    ctx: RequestContext,
+    controlId: string,
+    opts: { windowDays?: number } = {},
+): Promise<ControlEffectiveness> {
+    assertCanReadTests(ctx);
+    const windowDays = opts.windowDays ?? DEFAULT_EFFECTIVENESS_WINDOW_DAYS;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - windowDays);
+
+    return runInTenantContext(ctx, async (db) => {
+        // Count COMPLETED runs in the window, grouped by `result`.
+        const grouped = await db.controlTestRun.groupBy({
+            by: ['result'],
+            where: {
+                tenantId: ctx.tenantId,
+                controlId,
+                status: 'COMPLETED',
+                executedAt: { gte: cutoff },
+            },
+            _count: { _all: true },
+        });
+        let passes = 0;
+        let fails = 0;
+        let inconclusive = 0;
+        for (const g of grouped) {
+            const n = g._count._all;
+            if (g.result === 'PASS') passes = n;
+            else if (g.result === 'FAIL') fails = n;
+            else if (g.result === 'INCONCLUSIVE') inconclusive = n;
+        }
+        const total = passes + fails + inconclusive;
+        const passRate =
+            total > 0 ? Math.round((passes / total) * 100) : null;
+        return {
+            controlId,
+            passRate,
+            total,
+            passes,
+            fails,
+            inconclusive,
+            windowDays,
+        };
+    });
+}
+
 // ─── Create / Update Test Plans ───
+//
+// Audit S2 OVERDUE semantics note (2026-05-22):
+//
+//   `TestPlanStatus` does NOT carry an `OVERDUE` value, by design.
+//   A test plan's overdue-ness is derived live from `nextDueAt < now()`
+//   — transient, computed on read (see test-readiness scoring). It is
+//   NOT persisted as a status because test-plan due-dates roll forward
+//   automatically on every run completion (`computeNextDueAt`); a
+//   persisted OVERDUE state would race the next run.
+//
+//   This is intentional and DIFFERENT from `RiskTreatmentPlan`, which
+//   persists `OVERDUE` and has a cron job to transition. Treatment
+//   plans don't auto-roll their dates — they have a fixed targetDate
+//   the owner needs to meet — so the persisted state is the right
+//   shape there.
+//
+//   The audit flagged this as "inconsistency could confuse operators";
+//   the resolution is to document the semantic difference here and at
+//   the read sites (see `audits/readiness`-style consumers) rather
+//   than over-unify the shapes.
 
 export async function createTestPlan(ctx: RequestContext, controlId: string, input: {
     name: string;
