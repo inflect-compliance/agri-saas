@@ -36,6 +36,17 @@ import {
 } from '../services/vendor-assessment-scoring-engine';
 import { enqueueEmail } from '../notifications/enqueue';
 import { logger } from '@/lib/observability/logger';
+// Audit S6 (2026-05-22) — `notifyAssessmentReviewed` runs
+// post-commit, after `runInTenantContext` has returned, so it needs
+// a non-tenant-bound prisma client to look up the recipient's email
+// and tenant slug. Pre-this-PR the file used a dynamic require()
+// inline; that bypassed the `no-direct-prisma`
+// structural ratchet but also undermined it (operators reading the
+// file couldn't tell whether the global prisma was intentional or
+// drift). The static import is paired with an allowlist entry in
+// `tests/unit/no-direct-prisma.test.ts`.
+import { prisma } from '@/lib/prisma';
+import { env } from '@/env';
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -267,14 +278,6 @@ async function notifyAssessmentReviewed(
     finalRating: string | null,
 ): Promise<void> {
     try {
-        // Dynamic import — keeps the file off the static-prisma
-        // structural ratchet (this helper runs post-commit, after
-        // runInTenantContext has returned, so we need a non-tenant-
-        // bound prisma client to fan out the notification fetch).
-
-        const { prisma } = require('@/lib/prisma') as {
-            prisma: typeof import('@/lib/prisma').prisma;
-        };
         const a = await prisma.vendorAssessment.findUnique({
             where: { id: assessmentId },
             select: {
@@ -296,8 +299,6 @@ async function notifyAssessmentReviewed(
         });
         if (!recipient?.email) return;
         // env.APP_URL is the validated source of truth (src/env.ts).
-
-        const { env } = require('@/env') as { env: { APP_URL?: string } };
         const origin = (env.APP_URL ?? '').replace(/\/$/, '');
         const reviewUrl = `${origin}/t/${a.tenant.slug}/admin/vendor-assessment-reviews/${assessmentId}`;
 

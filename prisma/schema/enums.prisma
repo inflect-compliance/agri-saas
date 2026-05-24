@@ -443,6 +443,11 @@ enum NotificationType {
   // task's `dueAt` falls. In-app only — the email deadline digest
   // already covers the same surface.
   TASK_DUE
+  // Audit Coherence S6 (2026-05-22) — daily cron sweeps vendors
+  // whose `nextReviewAt` has passed and fires one of these per
+  // overdue vendor (routed to the vendor's `ownerUserId`). Bumps
+  // the date forward by the cadence so the reminder isn't spam.
+  VENDOR_REVIEW_DUE
   GENERAL
 }
 

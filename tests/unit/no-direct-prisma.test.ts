@@ -157,6 +157,20 @@ describe('CI Guard: No direct prisma in tenant-scoped code', () => {
         // Pure write-only transition (no business data read), bounded
         // by the WHERE clause.
         'evidence-stale-review-sweep.ts',
+        // Audit S6 (2026-05-22) — `notifyAssessmentReviewed` runs
+        // post-commit, after `runInTenantContext` has returned, so
+        // it needs a non-tenant-bound prisma client to look up the
+        // recipient's email and tenant slug. Pre-this-allowlist the
+        // file used `require('@/lib/prisma')` inline; the static
+        // import is honest about the dependency and the audit
+        // confirms it's correctly scoped (email lookup only).
+        'vendor-assessment-review.ts',
+        // Audit S6 (2026-05-22) — vendor re-assessment reminder cron.
+        // Same shape as the evidence-stale-review-sweep above: sweeps
+        // all tenants OR scopes to one; bounded WHERE clause; writes
+        // a Notification row per overdue vendor + bumps the vendor's
+        // nextReviewAt to silence the reminder until next cycle.
+        'vendor-reassessment-reminder.ts',
     ];
 
     const usecases = readFilesInDir(path.join(SRC_ROOT, 'app-layer/usecases'));
