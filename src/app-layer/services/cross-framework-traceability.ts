@@ -268,6 +268,74 @@ export interface GapAnalysisResult {
     };
 }
 
+// ─── Tenant Control-Implementation Overlay ───────────────────────────
+//
+// Audit Coherence S9 (2026-05-24).
+//
+// Mapping rows are global reference data (NIST → SOC2 mappings are
+// the same for every tenant). But the gap report is only useful
+// when the auditor can see WHICH tenant controls already implement
+// the target requirements. Pre-S9, that join had to happen on the
+// frontend by re-querying ControlRequirementLink — and most pages
+// just didn't bother.
+//
+// `enrichWithTenantImplementations` accepts a gap-analysis result
+// + a snapshot of the tenant's ControlRequirementLink rows for the
+// target framework and returns the same result with each entry
+// carrying an `implementingControls` array. Pure function; the
+// caller owns the DB query.
+
+/** A tenant control that implements a specific target requirement. */
+export interface TenantControlImplementation {
+    readonly controlId: string;
+    readonly controlCode: string;
+    readonly controlName: string;
+    readonly controlStatus: string;
+    readonly requirementId: string;
+}
+
+/** A gap-analysis entry annotated with the tenant's implementing controls. */
+export interface GapAnalysisEntryWithImplementations
+    extends GapAnalysisEntry {
+    readonly implementingControls: readonly TenantControlImplementation[];
+}
+
+/** A gap-analysis result annotated with the tenant's implementing controls. */
+export interface GapAnalysisResultWithImplementations
+    extends Omit<GapAnalysisResult, 'entries'> {
+    readonly entries: readonly GapAnalysisEntryWithImplementations[];
+}
+
+/**
+ * Annotate every gap-analysis entry with the tenant's controls
+ * that already implement the target requirement (via
+ * ControlRequirementLink rows).
+ *
+ * Pure function: the caller queries the link table — typically via
+ * `db.controlRequirementLink.findMany({ where: { tenantId, requirement: { frameworkKey } } })`
+ * — and passes the result here.
+ */
+export function enrichWithTenantImplementations(
+    result: GapAnalysisResult,
+    implementations: ReadonlyArray<TenantControlImplementation>,
+): GapAnalysisResultWithImplementations {
+    const byReq = new Map<string, TenantControlImplementation[]>();
+    for (const impl of implementations) {
+        const list = byReq.get(impl.requirementId);
+        if (list) list.push(impl);
+        else byReq.set(impl.requirementId, [impl]);
+    }
+
+    return {
+        ...result,
+        entries: result.entries.map((e) => ({
+            ...e,
+            implementingControls:
+                byReq.get(e.targetRequirement.requirementId) ?? [],
+        })),
+    };
+}
+
 // ─── Explanation Generator ───────────────────────────────────────────
 
 /**

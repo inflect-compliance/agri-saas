@@ -1026,6 +1026,15 @@ model RequirementMapping {
   strength            MappingStrength       @default(RELATED)
   rationale           String?
   metadataJson        String? // Provenance, ingestion source, extra context
+  /// Audit Coherence S9 (2026-05-24) — temporal validity window.
+  /// `validFrom` defaults to creation time; `validTo` is null for
+  /// "currently active" mappings. The traceability resolver
+  /// excludes mappings where `validTo < now()` so historical /
+  /// superseded mappings don't pollute current gap-analysis
+  /// reports. Auditors can still query the row for the historical
+  /// trail.
+  validFrom           DateTime              @default(now())
+  validTo             DateTime?
   createdAt           DateTime              @default(now())
   mappingSet          RequirementMappingSet @relation(fields: [mappingSetId], references: [id], onDelete: Cascade)
   sourceRequirement   FrameworkRequirement  @relation("ReqMappingSource", fields: [sourceRequirementId], references: [id])
@@ -1035,6 +1044,9 @@ model RequirementMapping {
   @@index([sourceRequirementId])
   @@index([targetRequirementId])
   @@index([mappingSetId])
+  // Audit Coherence S9 — covers the "active mappings" hot path
+  // (`validTo IS NULL OR validTo > now()` filter).
+  @@index([validTo])
 }
 
 model ControlRequirementLink {

@@ -36,6 +36,15 @@ import {
     type TraceabilityNodeKind,
 } from '@/lib/traceability-graph/types';
 
+/**
+ * Audit Coherence S9 (2026-05-24) — link tables fan out faster
+ * than node tables (one node can sit on many edges). This
+ * multiplier scales the per-link-table take relative to nodeCap;
+ * 4× is the conservative headroom that mirrors what `capNodes`
+ * saw pre-S9 for realistic tenants.
+ */
+const LINK_CAP_MULTIPLIER = 4;
+
 export interface GetTraceabilityGraphOptions {
     filters?: TraceabilityGraphFilters;
     /** Override the soft node cap. Useful in tests. */
@@ -55,6 +64,22 @@ export async function getTraceabilityGraph(
         ? new Set<TraceabilityNodeKind>(filters.kinds)
         : null;
 
+    // Audit Coherence S9 (2026-05-24) — push pagination into the
+    // DB. The pre-S9 path fetched EVERY control/risk/asset and link
+    // row for the tenant, then `capNodes` clipped to the soft
+    // 500-node cap in memory. A tenant with 10k controls + 20k
+    // links would materialise 30k+ rows just to render 500 nodes.
+    //
+    // Each kind now caps at `nodeCap` rows at the DB layer (the
+    // in-memory `capNodes` still runs for the proportional
+    // fair-share clip, but its input is bounded). Link tables cap
+    // at `LINK_CAP_MULTIPLIER × nodeCap` because edge surface
+    // grows faster than node count; 4× is the conservative
+    // headroom that mirrors what the soft cap saw before this
+    // change for realistic tenants.
+    const nodeCap = options.nodeCap ?? DEFAULT_NODE_CAP;
+    const linkCap = nodeCap * LINK_CAP_MULTIPLIER;
+
     return runInTenantContext(ctx, async (db) => {
         // Run the 6 reads in parallel — the bottleneck is the link
         // table joins, not the entity fetches. Each respects RLS
@@ -73,6 +98,7 @@ export async function getTraceabilityGraph(
                 : db.control.findMany({
                       where: { tenantId: ctx.tenantId },
                       select: { id: true, code: true, name: true, status: true },
+                      take: nodeCap,
                   }),
             wantKinds && !wantKinds.has('risk')
                 ? Promise.resolve([] as RawRisk[])
@@ -85,6 +111,7 @@ export async function getTraceabilityGraph(
                           status: true,
                           category: true,
                       },
+                      take: nodeCap,
                   }),
             wantKinds && !wantKinds.has('asset')
                 ? Promise.resolve([] as RawAsset[])
@@ -97,10 +124,12 @@ export async function getTraceabilityGraph(
                           criticality: true,
                           status: true,
                       },
+                      take: nodeCap,
                   }),
             db.riskControl.findMany({
                 where: { tenantId: ctx.tenantId },
                 select: { id: true, riskId: true, controlId: true },
+                take: linkCap,
             }),
             db.controlAsset.findMany({
                 where: { tenantId: ctx.tenantId },
@@ -110,6 +139,7 @@ export async function getTraceabilityGraph(
                     assetId: true,
                     coverageType: true,
                 },
+                take: linkCap,
             }),
             db.assetRiskLink.findMany({
                 where: { tenantId: ctx.tenantId },
@@ -119,6 +149,7 @@ export async function getTraceabilityGraph(
                     riskId: true,
                     exposureLevel: true,
                 },
+                take: linkCap,
             }),
         ]);
 

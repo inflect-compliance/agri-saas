@@ -36,6 +36,23 @@ const MAPPING_INCLUDE = {
     },
 } as const;
 
+/**
+ * Audit Coherence S9 (2026-05-24) — "currently active" temporal
+ * predicate for RequirementMapping rows. A mapping is active at
+ * `now` when `validFrom <= now AND (validTo IS NULL OR validTo > now)`.
+ *
+ * Applied to every traceability + gap-analysis read so historical /
+ * superseded mappings don't pollute current reports. Auditors can
+ * still query historical rows by passing `includeExpired: true`
+ * on the relevant queries.
+ */
+export function activeMappingWindow(now: Date = new Date()) {
+    return {
+        validFrom: { lte: now },
+        OR: [{ validTo: null }, { validTo: { gt: now } }],
+    };
+}
+
 const MAPPING_SET_INCLUDE = {
     sourceFramework: { select: { id: true, key: true, name: true } },
     targetFramework: { select: { id: true, key: true, name: true } },
@@ -179,6 +196,10 @@ export class RequirementMappingRepository {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const where: any = {
             sourceRequirementId: query.sourceRequirementId,
+            // Audit Coherence S9 — exclude historical / superseded
+            // mappings. Auditors querying the row directly still see
+            // them.
+            ...activeMappingWindow(),
         };
 
         if (query.targetFrameworkId) {
@@ -214,6 +235,8 @@ export class RequirementMappingRepository {
                 sourceFrameworkId: query.sourceFrameworkId,
                 targetFrameworkId: query.targetFrameworkId,
             },
+            // Audit Coherence S9 — currently-active window.
+            ...activeMappingWindow(),
         };
 
         if (query.minStrength) {
@@ -245,6 +268,8 @@ export class RequirementMappingRepository {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const where: any = {
             targetRequirementId: query.targetRequirementId,
+            // Audit Coherence S9 — currently-active window.
+            ...activeMappingWindow(),
         };
 
         if (query.sourceFrameworkId) {
