@@ -40,8 +40,12 @@
 import { useParams } from 'next/navigation';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { useCurrentBreadcrumbs } from './breadcrumbs-store';
-import { OrgIdentityPill } from './IdentityPill';
+// PR-2 — OrgIdentityPill retired in favour of OrgWorkspaceSwitcher
+// (interactive popover); the passive pill stays exported from
+// `./IdentityPill` for any other consumer that imports it directly
+// but TopChrome no longer mounts it. Comment kept for grep-ability.
 import { TenantSwitcher } from './tenant-switcher';
+import { OrgWorkspaceSwitcher } from './org-workspace-switcher';
 import { UserMenu } from './user-menu';
 import { NotificationsBell } from './notifications-bell';
 import { EnvironmentBadge } from './environment-badge';
@@ -101,16 +105,20 @@ interface TopChromeProps {
 export function TopChrome({ variant, user, onMobileMenuClick }: TopChromeProps) {
     const breadcrumbs = useCurrentBreadcrumbs();
     const params = useParams();
-    // R14-PR4 — tenant variant now mounts the workspace switcher
-    // (popover-driven). Org variant continues to mount the passive
-    // identity pill until a future PR extends the switcher pattern
-    // to organizations.
-    // R14-hotfix — TenantSwitcher needs the memberships list as a
-    // prop now (no more useSession). Org variant stays on the
-    // passive pill (no membership-list rendering).
+    // R14-PR4 — tenant variant mounts <TenantSwitcher> (popover).
+    // PR-2 — org variant now mounts <OrgWorkspaceSwitcher> — same
+    // popover-driven UX with the active context surfaced on the
+    // trigger. Pre-PR-2 the org variant only had a passive
+    // identity pill linking to `/tenants`, which made org → tenant
+    // switching a two-click navigation while tenant → org was
+    // one-click. Switcher parity restores symmetric context-
+    // switching.
     const renderIdentity = () =>
         variant === 'org' ? (
-            <OrgIdentityPill />
+            <OrgWorkspaceSwitcher
+                memberships={user.memberships ?? []}
+                orgMemberships={user.orgMemberships ?? []}
+            />
         ) : (
             <TenantSwitcher
                 memberships={user.memberships ?? []}

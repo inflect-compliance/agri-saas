@@ -102,6 +102,12 @@ const LEGACY_LUCIDE_USERS = new Set<string>([
     'src/components/layout/nav-bar.tsx',
     'src/components/layout/notifications-bell.tsx',
     'src/components/layout/tenant-switcher.tsx',
+    // PR-2 — `org-workspace-switcher.tsx` mirrors `tenant-switcher`
+    // 1:1 for org-page context switching (Check + ChevronsUpDown
+    // from lucide). Nucleo has `check` but no `chevrons-up-down`
+    // equivalent today; both switchers share the same lucide
+    // dependency until that icon lands and both migrate together.
+    'src/components/layout/org-workspace-switcher.tsx',
     'src/components/layout/user-menu.tsx',
     // R12-PR1 — `nav-item.tsx` carries the `LucideIcon` type
     // import for the `icon` prop. The sidebar's icon contract

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard,
@@ -17,6 +16,13 @@ import {
 import { useOrgContext, useOrgHref, useOrgPermissions } from '@/lib/org-context-provider';
 import { Button } from '@/components/ui/button';
 import { OrgSwitcher } from '@/components/org-switcher';
+// PR-2 — port the org sidebar to the canonical Roadmap-12 nav
+// primitives that the tenant sidebar already uses. The legacy
+// `nav-link` CSS approach (an `<a>` + class string) loses the
+// active-state band, hover gloss, and keyboard-focus polish the
+// shared <NavItem> bakes in.
+import { NavItem } from './nav-item';
+import { NavSection } from './nav-section';
 
 // ─── Nav configuration ───────────────────────────────────────────────
 //
@@ -125,47 +131,12 @@ export function useOrgNavSections(): OrgNavSectionDef[] {
     }));
 }
 
-// ─── NavItem ─────────────────────────────────────────────────────────
-
-interface OrgNavItemProps {
-    href: string;
-    icon: LucideIcon;
-    label: string;
-    active: boolean;
-    onClick?: () => void;
-}
-
-function OrgNavItem({ href, icon: Icon, label, active, onClick }: OrgNavItemProps) {
-    return (
-        <Link
-            href={href}
-            onClick={onClick}
-            className={`nav-link ${active ? 'active' : ''}`}
-            data-testid={`org-nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
-        >
-            <Icon className="w-[18px] h-[18px] flex-shrink-0" aria-hidden="true" />
-            <span className="nav-link-label">{label}</span>
-        </Link>
-    );
-}
-
-interface OrgNavSectionProps {
-    title?: string;
-    children: React.ReactNode;
-}
-
-function OrgNavSection({ title, children }: OrgNavSectionProps) {
-    return (
-        <div className="nav-section">
-            {title && (
-                <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-content-subtle">
-                    {title}
-                </p>
-            )}
-            <div className="space-y-0.5">{children}</div>
-        </div>
-    );
-}
+// PR-2 — `OrgNavItem` / `OrgNavSection` retired in favour of the
+// canonical `<NavItem>` / `<NavSection>` primitives (used by the
+// tenant sidebar). The shared primitives carry the Roadmap-12
+// active-state band, the R13 brand-gradient glow + shimmer, the
+// liquid hover sweep, and the keyboard-focus polish — none of
+// which the legacy `nav-link` CSS class provided.
 
 // ─── Sidebar content (shared between desktop sidebar + mobile drawer) ─
 
@@ -194,7 +165,11 @@ export function OrgSidebarContent({ user, onLogout, onNavClick }: OrgSidebarCont
             {/* Nav */}
             <nav className="flex-1 p-2 overflow-y-auto" aria-label="Organization navigation">
                 {sections.map((section, idx) => (
-                    <OrgNavSection key={idx} title={section.title}>
+                    <NavSection
+                        key={idx}
+                        title={section.title}
+                        isFirst={idx === 0}
+                    >
                         {section.items.map((item) => {
                             // Active when the current path is exactly the item's href
                             // OR a sub-path. Special-case "/" so the overview tab
@@ -205,7 +180,7 @@ export function OrgSidebarContent({ user, onLogout, onNavClick }: OrgSidebarCont
                                   pathname === item.href
                                 : pathname.startsWith(item.href);
                             return (
-                                <OrgNavItem
+                                <NavItem
                                     key={item.href}
                                     href={item.href}
                                     icon={item.icon}
@@ -215,7 +190,7 @@ export function OrgSidebarContent({ user, onLogout, onNavClick }: OrgSidebarCont
                                 />
                             );
                         })}
-                    </OrgNavSection>
+                    </NavSection>
                 ))}
             </nav>
 
