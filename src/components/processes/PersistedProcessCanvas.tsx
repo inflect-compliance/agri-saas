@@ -95,6 +95,10 @@ import {
 } from "@/lib/processes/canvas-alignment";
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcut";
 import { ProcessInspector } from "./ProcessInspector";
+import {
+    CanvasCommandPalette,
+    type CanvasCommandGroup,
+} from "./CanvasCommandPalette";
 // R31 — CanvasHelpStrip retired. The "tips" strip occupied a
 // permanent band of chrome to teach four interactions that the
 // canvas's empty state + the palette icon labels can convey on
@@ -1216,8 +1220,161 @@ function Inner({
 
     const showEmpty = !activeId;
 
+    // R31 Bundle 8 (PR 9) — Canvas command palette groups.
+    // The palette is opened by `/` and lists every canvas verb
+    // shipped in R28 / R29 / R30 / R31. Groups read top-to-bottom:
+    // document actions first (Save, Undo, Redo, Fit view), then
+    // selection-aware commands (Group / Ungroup / Align /
+    // Distribute / Delete), then mode toggles (Snap).
+    const commandGroups: CanvasCommandGroup[] = [
+        {
+            heading: "Document",
+            commands: [
+                {
+                    id: "save",
+                    label: "Save",
+                    description: "Persist the current process map",
+                    shortcut: "⌘S",
+                    disabled: !activeId || saving || loading,
+                    onSelect: () => void handleSave(),
+                },
+                {
+                    id: "undo",
+                    label: "Undo",
+                    description: "Revert the last canvas edit",
+                    shortcut: "⌘Z",
+                    disabled: !history.canUndo || saving || loading,
+                    onSelect: handleUndo,
+                },
+                {
+                    id: "redo",
+                    label: "Redo",
+                    description: "Re-apply the last undone edit",
+                    shortcut: "⌘⇧Z",
+                    disabled: !history.canRedo || saving || loading,
+                    onSelect: handleRedo,
+                },
+                {
+                    id: "duplicate",
+                    label: "Duplicate process",
+                    description: "Clone the current graph into a new map",
+                    disabled: !activeId || duplicating || saving || loading,
+                    onSelect: handleDuplicate,
+                },
+                {
+                    id: "new",
+                    label: "New process",
+                    description: "Start an empty process map",
+                    disabled: creating,
+                    onSelect: handleNew,
+                },
+            ],
+        },
+        {
+            heading: "Selection",
+            commands: [
+                {
+                    id: "group",
+                    label: "Group selected",
+                    description: "Wrap the selected nodes in a group container",
+                    disabled:
+                        selectionCount < 2 ||
+                        nodes
+                            .filter((n) => selectedNodeIds.includes(n.id))
+                            .some(
+                                (n) =>
+                                    nodeParent(n) != null ||
+                                    (n.data as { kind?: unknown })?.kind ===
+                                        "group",
+                            ),
+                    onSelect: handleGroupSelected,
+                },
+                {
+                    id: "ungroup",
+                    label: "Ungroup",
+                    description: "Dissolve the selected group + lift children",
+                    disabled:
+                        !selectedNode ||
+                        (selectedNode.data as { kind?: unknown })?.kind !==
+                            "group",
+                    onSelect: handleUngroup,
+                },
+                {
+                    id: "align-left",
+                    label: "Align left",
+                    disabled: selectionCount < 2,
+                    onSelect: () => handleAlign("left"),
+                },
+                {
+                    id: "align-center-x",
+                    label: "Align centre horizontally",
+                    disabled: selectionCount < 2,
+                    onSelect: () => handleAlign("center-x"),
+                },
+                {
+                    id: "align-right",
+                    label: "Align right",
+                    disabled: selectionCount < 2,
+                    onSelect: () => handleAlign("right"),
+                },
+                {
+                    id: "align-top",
+                    label: "Align top",
+                    disabled: selectionCount < 2,
+                    onSelect: () => handleAlign("top"),
+                },
+                {
+                    id: "align-center-y",
+                    label: "Align centre vertically",
+                    disabled: selectionCount < 2,
+                    onSelect: () => handleAlign("center-y"),
+                },
+                {
+                    id: "align-bottom",
+                    label: "Align bottom",
+                    disabled: selectionCount < 2,
+                    onSelect: () => handleAlign("bottom"),
+                },
+                {
+                    id: "distribute-h",
+                    label: "Distribute horizontally",
+                    disabled: selectionCount < 3,
+                    onSelect: () => handleDistribute("horizontal"),
+                },
+                {
+                    id: "distribute-v",
+                    label: "Distribute vertically",
+                    disabled: selectionCount < 3,
+                    onSelect: () => handleDistribute("vertical"),
+                },
+                {
+                    id: "delete",
+                    label: "Delete selected",
+                    description: "Remove every selected node + its edges",
+                    shortcut: "Del",
+                    disabled: selectionCount === 0,
+                    onSelect: handleBulkDelete,
+                },
+            ],
+        },
+        {
+            heading: "Modes",
+            commands: [
+                {
+                    id: "snap-toggle",
+                    label: snapEnabled
+                        ? "Snap to grid: on"
+                        : "Snap to grid: off",
+                    description: "Toggle 16px-grid snapping while dragging",
+                    onSelect: () => setSnapEnabled((v) => !v),
+                },
+            ],
+        },
+    ];
+
     return (
         <div className="flex h-full w-full flex-col" data-process-canvas="true">
+            <CanvasCommandPalette groups={commandGroups} />
             {/* R31 Bundle 3 (PR 1) — the document bar. Pre-R31 this
                 row carried the document selector + name + actions
                 ONLY; the page above it carried a separate breadcrumb

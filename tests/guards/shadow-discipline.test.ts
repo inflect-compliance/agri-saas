@@ -70,6 +70,10 @@ const ALLOWLIST: AllowlistEntry[] = [
         reason: 'Command palette is a floating modal-like overlay; shadow-2xl communicates the topmost lift.',
     },
     {
+        file: 'src/components/processes/CanvasCommandPalette.tsx',
+        reason: 'R31 Bundle 8 — canvas-local command palette inherits the same shadow-2xl lift as the app-wide palette. Floating dialog over the canvas plane needs the same topmost emphasis.',
+    },
+    {
         file: 'src/components/ui/undo-toast.tsx',
         reason: 'Undo toast is a floating notification; shadow communicates lift.',
     },

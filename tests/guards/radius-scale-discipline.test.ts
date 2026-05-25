@@ -75,6 +75,11 @@ const ALLOWLIST: AllowlistEntry[] = [
             'Command palette is a floating overlay; the slightly larger `rounded-xl` differentiates it from page-level surfaces.',
     },
     {
+        file: 'src/components/processes/CanvasCommandPalette.tsx',
+        reason:
+            'R31 Bundle 8 — canvas-local command palette mirrors the app palette\'s `rounded-xl` for the same reason: a floating dialog needs a slightly larger radius than page surfaces. Same primitive shape, different command set.',
+    },
+    {
         file: 'src/components/ui/date-picker/date-picker.tsx',
         reason:
             'Date picker popover content uses `rounded-xl` to match other floating overlays.',
