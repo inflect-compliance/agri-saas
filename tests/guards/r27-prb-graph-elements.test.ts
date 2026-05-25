@@ -35,26 +35,31 @@ const CANVAS = read("src/components/processes/PersistedProcessCanvas.tsx");
 const INSPECTOR = read("src/components/processes/ProcessInspector.tsx");
 const TOKENS = read("src/styles/tokens.css");
 
-describe("R27-PR-B — node shape language", () => {
-    it("the decision node is a REAL diamond (45°-rotated body)", () => {
-        expect(NODE).toMatch(/rotate-45/);
-        // The fake-diamond dimension is gone.
-        expect(NODE).not.toMatch(/min-w-\[120px\]/);
+describe("R27-PR-B — node shape language (R31-superseded for decision)", () => {
+    // R31 retired the diamond. The four assertions below previously
+    // pinned the 45°-rotated body, the DIAMOND_SIZE size table, and
+    // the "no fake-diamond" guard. All four are now flipped into
+    // their NEGATIVE forms — re-introducing any of them would split
+    // the visual vocabulary again, which R31's design verdict
+    // explicitly walks back. The supersession is documented here so
+    // a future PR that tries to revive the diamond fails CI loudly.
+
+    it("decision is NOT a 45°-rotated body any more (R31 retired the diamond)", () => {
+        // The rotate-45 chassis is gone; the decision kind renders
+        // through the rect path now, with a "?" corner sticker as
+        // the per-kind hint.
+        expect(NODE).not.toMatch(/rotate-45/);
     });
 
-    it("the diamond body keeps border/ring/shadow on the rotated layer", () => {
-        // Rotating the body (not the chassis) is what makes the
-        // border + ring + shadow stay diamond-shaped.
-        expect(NODE).toMatch(/inset-\[14\.6%\][\s\S]*?rotate-45/);
+    it("DIAMOND_SIZE table is gone (rect chassis covers every kind)", () => {
+        expect(NODE).not.toMatch(/DIAMOND_SIZE/);
     });
 
-    it("exposes three discrete size variants", () => {
+    it("exposes the three rect size variants", () => {
         expect(NODE).toMatch(/ProcessNodeSize/);
         expect(NODE).toMatch(/PROCESS_NODE_SIZES/);
         expect(NODE).toMatch(/DEFAULT_NODE_SIZE/);
         expect(NODE).toMatch(/RECT_SIZE/);
-        expect(NODE).toMatch(/DIAMOND_SIZE/);
-        // Each size map carries all three steps.
         for (const step of ["sm:", "md:", "lg:"]) {
             expect(NODE).toMatch(new RegExp(step));
         }
@@ -63,6 +68,20 @@ describe("R27-PR-B — node shape language", () => {
     it("keeps the brand selected ring (R25 selection vocabulary)", () => {
         expect(NODE).toMatch(/ring-2\s+ring-\[color:var\(--brand-default\)\]/);
         expect(NODE).toMatch(/bg-bg-elevated/);
+    });
+
+    it("decision + external get a corner sticker (R31 per-kind affordance)", () => {
+        // The retired diamond's job — disambiguating decision —
+        // moves into a quiet corner sticker. The same affordance
+        // gives external its "EXT" badge; future kinds plug into
+        // the same slot.
+        expect(NODE).toMatch(
+            /kind === ["']decision["'][\s\S]{0,80}\?/,
+        );
+        expect(NODE).toMatch(
+            /kind === ["']external["'][\s\S]{0,80}["']EXT["']/,
+        );
+        expect(NODE).toMatch(/data-process-node-sticker/);
     });
 });
 

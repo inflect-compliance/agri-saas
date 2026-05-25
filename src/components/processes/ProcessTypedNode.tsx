@@ -62,13 +62,9 @@ const NOTE_SIZE: Record<ProcessNodeSize, string> = {
     lg: "min-w-[220px] max-w-[360px] px-4 py-3.5",
 };
 
-// A 45°-rotated square has a bounding box √2× its side; insetting the
-// square by 14.6% makes the diamond exactly fill the square chassis.
-const DIAMOND_SIZE: Record<ProcessNodeSize, string> = {
-    sm: "h-[104px] w-[104px]",
-    md: "h-[128px] w-[128px]",
-    lg: "h-[156px] w-[156px]",
-};
+// R31 — the diamond-size table was retired alongside the
+// diamond shape branch. The decision kind now uses the rect
+// chassis + a corner sticker.
 
 const ICON_SIZE: Record<ProcessNodeSize, string> = {
     sm: "h-3 w-3",
@@ -157,65 +153,11 @@ function ProcessTypedNodeImpl({ data, selected }: NodeProps) {
         );
     }
 
-    // ── Diamond (decision) — a real diamond, not a small rect ────────
-    if (meta.shape === "diamond") {
-        return (
-            <div
-                className={cn("relative", DIAMOND_SIZE[size])}
-                data-process-node="true"
-                data-process-node-kind={kind}
-                data-process-node-size={size}
-                data-selected={selected ? "true" : "false"}
-            >
-                {meta.hasHandles && (
-                    <Handle
-                        type="target"
-                        position={Position.Left}
-                        className={HANDLE_CLASS}
-                    />
-                )}
-                {/* The diamond body — a 45°-rotated square so the
-                    border, selected ring and elevation shadow all
-                    rotate WITH it and stay diamond-shaped. */}
-                <div
-                    className={cn(
-                        "absolute inset-[14.6%] rotate-45 rounded-[10px] border transition-colors",
-                        selected
-                            ? SELECTED_CHROME
-                            : `${accentBorder} bg-canvas-node shadow-canvas-node hover:border-border-emphasis`,
-                    )}
-                    aria-hidden="true"
-                />
-                {/* Upright content — never rotates. */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-5 text-center">
-                    <Icon
-                        className={cn(ICON_SIZE[size], "flex-shrink-0", iconTone)}
-                        aria-hidden="true"
-                    />
-                    <span
-                        className={cn(
-                            "max-w-full truncate font-semibold text-content-emphasis",
-                            LABEL_TEXT[size],
-                        )}
-                    >
-                        {label}
-                    </span>
-                    {nodeData.subtitle && (
-                        <span className="max-w-full truncate text-[10px] uppercase tracking-wide text-content-muted">
-                            {nodeData.subtitle}
-                        </span>
-                    )}
-                </div>
-                {meta.hasHandles && (
-                    <Handle
-                        type="source"
-                        position={Position.Right}
-                        className={HANDLE_CLASS}
-                    />
-                )}
-            </div>
-        );
-    }
+    // R31 — Diamond shape retired. Decision nodes now render via
+    // the rect chassis below; the per-kind signal moves into a
+    // corner sticker (computed below as `cornerSticker`) — a
+    // quiet, repeatable affordance pattern that scales to any
+    // future kind without spawning a new geometry branch.
 
     // ── Rect + note ──────────────────────────────────────────────────
     const isNote = meta.shape === "note";
@@ -238,10 +180,20 @@ function ProcessTypedNodeImpl({ data, selected }: NodeProps) {
               ? "bg-canvas-node-muted shadow-canvas-node"
               : "bg-canvas-node shadow-canvas-node";
 
+    // R31 — per-kind corner sticker. A quiet, repeatable
+    // affordance pattern for kinds that need a visual signal
+    // beyond the icon alone. Decision gets a "?" (branch hint);
+    // external gets "EXT" (outside-the-org hint). The sticker
+    // sits in the top-right at `relative inset` so a future kind
+    // (e.g. error / locked / awaiting-review) can plug into the
+    // same slot without spawning new geometry.
+    const cornerSticker: string | null =
+        kind === "decision" ? "?" : kind === "external" ? "EXT" : null;
+
     return (
         <div
             className={cn(
-                "border transition-colors",
+                "relative border transition-colors",
                 sizeClasses,
                 radiusClass,
                 surfaceClasses,
@@ -254,6 +206,15 @@ function ProcessTypedNodeImpl({ data, selected }: NodeProps) {
             data-process-node-size={size}
             data-selected={selected ? "true" : "false"}
         >
+            {cornerSticker && (
+                <span
+                    className="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border border-canvas-border bg-canvas-frame px-1 text-[9px] font-semibold uppercase tracking-wide text-content-muted"
+                    aria-hidden="true"
+                    data-process-node-sticker={kind}
+                >
+                    {cornerSticker}
+                </span>
+            )}
             {meta.hasHandles && (
                 <Handle
                     type="target"

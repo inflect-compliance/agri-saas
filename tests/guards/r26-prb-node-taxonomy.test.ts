@@ -195,13 +195,17 @@ describe("R26-PR-B — typed-node renderer", () => {
         expect(renderSrc).toMatch(/processStep/);
     });
 
-    it("branches the shape (rect / diamond / note) on the kind's meta", () => {
-        // The visual vocabulary is three shapes total. Adding a
-        // fourth requires updating both the renderer + the
-        // taxonomy file's NodeShape union (which this ratchet
-        // doesn't gate — the next PR-B-style sprint will).
-        expect(renderSrc).toMatch(/meta\.shape\s*===\s*"diamond"/);
+    it("branches the shape (rect / note) on the kind's meta", () => {
+        // R31 superseded the diamond branch — the visual vocabulary
+        // is now TWO shapes total (rect + note). The decision kind
+        // moved onto the rect chassis with a "?" corner sticker;
+        // adding a third shape would require both the renderer
+        // branch + a `NodeShape` union update.
         expect(renderSrc).toMatch(/meta\.shape\s*===\s*"note"/);
+        // The diamond branch must NOT come back — re-introducing
+        // it would split the vocabulary again. R31 ratchet
+        // explicitly enforces the retirement.
+        expect(renderSrc).not.toMatch(/meta\.shape\s*===\s*"diamond"/);
     });
 
     it("annotation kind drops the handles (no flow semantics)", () => {

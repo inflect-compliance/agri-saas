@@ -64,14 +64,12 @@ describe('ProcessTypedNode — per-kind chrome', () => {
                 const root = container.querySelector('[data-process-node]');
                 expect(root).not.toBeNull();
                 const cls = root!.className;
-                if (meta.shape === 'diamond') {
-                    // R27-PR-B — a real diamond: a square chassis
-                    // with a 45°-rotated body layer.
-                    expect(cls).toMatch(/w-\[128px\]/);
-                    expect(
-                        container.querySelector('.rotate-45'),
-                    ).not.toBeNull();
-                } else if (meta.shape === 'note') {
+                // R31 — diamond branch retired. The decision kind
+                // now reads as a rect with a "?" corner sticker;
+                // the per-shape assertions below cover the two
+                // remaining geometries (rect, note) plus the
+                // category-group branch.
+                if (meta.shape === 'note') {
                     expect(cls).toMatch(/rounded-\[6px\]/);
                     // Note shape carries the subtle background tint.
                     expect(cls).toMatch(/bg-bg-subtle/);

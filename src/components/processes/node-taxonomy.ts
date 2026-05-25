@@ -106,11 +106,19 @@ export type NodeAccent =
     | 'subtle';         // external + annotation (lowest visual weight)
 
 /**
- * Shape vocabulary — three SHAPES, mapping to seven KINDS. Limiting
- * to three shapes keeps the canvas from looking like a sticker
- * sheet. The accent + icon do the per-kind work.
+ * Shape vocabulary — TWO SHAPES, mapping to eight KINDS (R31
+ * retired the diamond). Limiting the shape language keeps the
+ * canvas from looking like a sticker sheet. The accent + icon +
+ * a per-kind corner sticker do the per-kind work.
+ *
+ * Pre-R31 the vocabulary was three (rect / diamond / note);
+ * the diamond was a BPMN-text-2004 vocabulary lift that
+ * disambiguated decision nodes via 45°-rotated geometry. Modern
+ * design tools converge on icon + label as the discriminator
+ * for branch points; the diamond's only signal was "we are
+ * formal", which is the WRONG signal for a process design tool.
  */
-export type NodeShape = 'rect' | 'diamond' | 'note';
+export type NodeShape = 'rect' | 'note';
 
 /**
  * R26-PR-D — semantic category. The three categories communicate
@@ -183,7 +191,13 @@ export const NODE_TAXONOMY: Record<ProcessNodeKind, NodeTypeMeta> = {
         description: 'A branch point where the flow forks.',
         icon: GitBranch,
         accent: 'neutral',
-        shape: 'diamond',
+        // R31 — retired the diamond. The 45°-rotated square was a
+        // BPMN vocabulary lift; modern design tools (Linear,
+        // Notion, Figma, Excalidraw) read flow branches via icon +
+        // category, not divergent geometry. The branch-icon
+        // GitBranch + the decision-corner sticker (rendered by
+        // ProcessTypedNode) carry the per-kind difference now.
+        shape: 'rect',
         category: 'flow',
         hasHandles: true,
         defaultLabel: 'Decision?',
@@ -324,7 +338,16 @@ export const NODE_ACCENT_BORDER: Record<NodeAccent, string> = {
     warning: 'border-[color:var(--content-warning)]',
     success: 'border-[color:var(--content-success)]',
     neutral: 'border-border-default',
-    subtle: 'border-border-subtle border-dashed',
+    // R31 — retired the dashed treatment. The dashed border on
+    // `external` + `annotation` competed with the proximity-bind
+    // preview edge (R26-PR-C — animated dashed brand stroke for
+    // in-flight connections), creating two unrelated visual
+    // languages that both said "tentative". `external` now uses
+    // the same quiet solid border as every other rect; the
+    // per-kind signal moves into the corner sticker rendered by
+    // ProcessTypedNode. `annotation` already uses the `note`
+    // shape with its own sticker tone.
+    subtle: 'border-border-subtle',
 };
 
 export const NODE_ACCENT_ICON_TONE: Record<NodeAccent, string> = {
