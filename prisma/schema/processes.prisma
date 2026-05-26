@@ -66,10 +66,49 @@ model ProcessMap {
   deletedBy User?         @relation("ProcessMapDeletedBy", fields: [deletedByUserId], references: [id])
   nodes     ProcessNode[]
   edges     ProcessEdge[]
+  snapshots ProcessMapSnapshot[]
 
   @@unique([id, tenantId])
   @@index([tenantId, deletedAt])
   @@index([tenantId, updatedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Epic P5-PR-A — ProcessMapSnapshot.
+//
+//  Stores the full graph JSON for every committed version of a
+//  process map so the version-history sidebar can list snapshots
+//  + future P5-PR-B can render any earlier version + diff between
+//  two snapshots. Per-version one row keyed on (processMapId,
+//  version); the unique constraint guarantees no duplicates if a
+//  retry of `replaceGraph` ever fires.
+//
+//  Tenant isolation: direct-scoped RLS (Class A) added in the
+//  paired migration. The (id, tenantId) composite + cascading
+//  FK to ProcessMap keep cross-tenant references structurally
+//  impossible.
+//
+//  `graphJson` carries the same shape the canvas sends on save:
+//    { version, nodes: [...], edges: [...] }
+//  The route layer never decodes the inner shape; the client
+//  re-parses on view-version + diff renders.
+// ─────────────────────────────────────────────────────────────────
+model ProcessMapSnapshot {
+  id              String   @id @default(cuid())
+  tenantId        String
+  processMapId    String
+  version         Int
+  graphJson       Json
+  createdAt       DateTime @default(now())
+  createdByUserId String
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  processMap ProcessMap @relation(fields: [processMapId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  createdBy  User       @relation("ProcessMapSnapshotCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@unique([processMapId, version])
+  @@index([tenantId, processMapId, version])
+  @@index([tenantId, createdAt])
 }
 
 model ProcessNode {

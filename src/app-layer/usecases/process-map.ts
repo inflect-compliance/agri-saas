@@ -123,6 +123,20 @@ export async function listMapsUsingControl(
     );
 }
 
+/**
+ * Epic P5-PR-A — list snapshots for a process map. Read-only;
+ * surfaces the version-history sidebar.
+ */
+export async function listProcessMapSnapshots(
+    ctx: RequestContext,
+    mapId: string,
+) {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, (db) =>
+        ProcessMapRepository.listSnapshots(db, ctx, mapId),
+    );
+}
+
 export async function deleteProcessMap(ctx: RequestContext, id: string) {
     assertCanWrite(ctx);
 

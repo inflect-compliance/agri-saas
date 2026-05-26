@@ -430,7 +430,88 @@ export class ProcessMapRepository {
             );
         }
 
+        // Epic P5-PR-A — archive the just-committed graph as a
+        // snapshot. Writes inside the same outer tx as the version
+        // bump so either both land or neither does.
+        const newVersion = (existing.version ?? 0) + 1;
+        const graphJsonPayload = {
+            version: newVersion,
+            nodes: input.nodes.map((n) => ({
+                nodeKey: n.nodeKey,
+                nodeType: n.nodeType,
+                label: n.label,
+                subtitle: n.subtitle ?? null,
+                posX: n.posX,
+                posY: n.posY,
+                parentNodeKey: n.parentNodeKey ?? null,
+                dataJson: n.dataJson ?? null,
+            })),
+            edges: input.edges.map((e) => ({
+                edgeKey: e.edgeKey,
+                sourceKey: e.sourceKey,
+                targetKey: e.targetKey,
+                edgeKind: e.edgeKind,
+                labelOverride: e.labelOverride ?? null,
+                dataJson: e.dataJson ?? null,
+                controls: e.controls.map((c) => ({
+                    controlKey: c.controlKey,
+                    label: c.label,
+                    controlId: c.controlId ?? null,
+                    dataJson: c.dataJson ?? null,
+                })),
+            })),
+        };
+        await db.processMapSnapshot.create({
+            data: {
+                tenantId: ctx.tenantId,
+                processMapId: id,
+                version: newVersion,
+                graphJson: graphJsonPayload as Prisma.InputJsonValue,
+                createdByUserId: ctx.userId,
+            },
+        });
+
         return ProcessMapRepository.getByIdWithGraph(db, ctx, id);
+    }
+
+    /**
+     * Epic P5-PR-A — list snapshots for a process map (descending
+     * by version). The sidebar reads this to render the version
+     * timeline. Capped at 200 — older snapshots roll off the
+     * sidebar; future P5 work can add pagination if needed.
+     */
+    static async listSnapshots(
+        db: PrismaTx,
+        ctx: RequestContext,
+        mapId: string,
+    ): Promise<
+        Array<{
+            id: string;
+            version: number;
+            createdAt: Date;
+            createdByUserId: string;
+            createdByName: string | null;
+        }>
+    > {
+        const rows = await db.processMapSnapshot.findMany({
+            where: { tenantId: ctx.tenantId, processMapId: mapId },
+            orderBy: { version: 'desc' },
+            take: 200,
+            select: {
+                id: true,
+                version: true,
+                createdAt: true,
+                createdByUserId: true,
+                createdBy: { select: { name: true } },
+            },
+        });
+        return rows.map((r) => ({
+            id: r.id,
+            version: r.version,
+            createdAt: r.createdAt,
+            createdByUserId: r.createdByUserId,
+            createdByName: r.createdBy?.name ?? null,
+        }));
     }
 
     static async softDelete(

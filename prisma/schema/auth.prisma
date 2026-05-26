@@ -184,6 +184,8 @@ model Tenant {
   processNodes                      ProcessNode[]
   processEdges                      ProcessEdge[]
   processEdgeControls               ProcessEdgeControl[]
+  // Epic P5-PR-A — process map snapshots.
+  processMapSnapshots               ProcessMapSnapshot[]
   // Hub-and-spoke (Epic O-1).
   organization                      Organization?                      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
@@ -707,6 +709,8 @@ model User {
   // Roadmap-26 PR-A — persisted process maps.
   processMapsCreated            ProcessMap[]                 @relation("ProcessMapCreatedBy")
   processMapsDeleted            ProcessMap[]                 @relation("ProcessMapDeletedBy")
+  // Epic P5-PR-A — process map snapshots.
+  processMapSnapshotsCreated    ProcessMapSnapshot[]         @relation("ProcessMapSnapshotCreatedBy")
 }
 
 model Account {

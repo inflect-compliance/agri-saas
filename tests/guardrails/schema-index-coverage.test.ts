@@ -215,6 +215,7 @@ const FK_INDEX_EXEMPT: Record<string, string> = {
     'TreatmentMilestone.completedByUserId': R_ACTOR,
     'ProcessMap.createdByUserId': R_ACTOR,
     'ProcessMap.deletedByUserId': R_ACTOR,
+    'ProcessMapSnapshot.createdByUserId': R_ACTOR,
     'Vendor.ownerUserId': R_ACTOR,
     'VendorDocument.uploadedByUserId': R_ACTOR,
     'VendorAssessmentTemplate.createdByUserId': R_ACTOR,
@@ -417,6 +418,8 @@ const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
         'Epic P2-PR-C reverse-lookup: filtered by (tenantId, controlId) which is the model\'s leading `@@index([tenantId, controlId])`. Result set bounded by the number of edges referencing one control (typically <10) — Layer A already covers it.',
     ProcessMap:
         'filtered only by tenantId plus leading-indexed FK / status columns — Layers A/B cover its query shapes; no curated composite index needed today.',
+    ProcessMapSnapshot:
+        'Epic P5-PR-A version-history list: filtered by (tenantId, processMapId) which is covered by the model\'s leading `@@index([tenantId, processMapId, version])`. Capped at 200 rows in the repo (`take: 200`); no curated composite index needed.',
     ReadinessSnapshot:
         'time-series readiness chart query (Audit S5, 2026-05-24); the model carries [tenantId, frameworkKey, computedAt] composite index for the trend lookup, covered structurally by its own index — no separate LIST_QUERY_INDEXES entry needed.',
     RiskControl:
