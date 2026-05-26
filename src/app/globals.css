@@ -345,21 +345,7 @@ textarea.input { @apply resize-y min-h-[80px]; }
  * xyflow's connection handles default to ~8px hit-targets — fine for
  * mouse, unusable for fingers (Apple HIG: minimum 44px touch target).
  * On a coarse-pointer device (touch / pen) we expand the invisible
- * hit-target box to ~28px while keeping the visible dot at its
- * canonical size, so the design language stays consistent.
- *
- * The xyflow handles are positioned absolutely on each node. We use
- * a transparent ::before pseudo-element to enlarge the hit area
- * without affecting layout — pure pointer-events hack, no visual
- * change.
- *
- * Scoped to the Processes canvas so the GraphExplorer (which has
- * its own touch story) is untouched.
- *
- * The same media query also raises the canvas zoom-control button
- * size to 32px (Apple HIG min) — the default 26px misses the
- * accessibility target on touch.
- */
+ * hit-target box without changing the visible affordance. */
 @media (pointer: coarse) {
   [data-process-canvas="true"] .react-flow__handle {
     position: relative;
@@ -368,26 +354,16 @@ textarea.input { @apply resize-y min-h-[80px]; }
     content: "";
     position: absolute;
     inset: -10px;
-    /* Keeps the hit area large; transparent so we don't change the
-     * visible affordance. */
     background: transparent;
   }
   [data-process-canvas="true"] .react-flow__controls-button {
     width: 32px;
     height: 32px;
   }
-  /* The process palette's draggable cards — at coarse-pointer
-   * width palette items get a touch-friendly minimum height so a
-   * tap target is reliably hittable. */
   [data-process-canvas="true"] [data-process-palette-item="true"] {
     min-height: 44px;
   }
 }
-
-/* Tablet + narrower — the vertical-left palette folds to a
- * horizontal scroll strip above the canvas so the canvas itself
- * doesn't get squeezed below readability. The breakpoint matches
- * the Tailwind `md` (768px). */
 @media (max-width: 767px) {
   [data-process-canvas="true"][data-mobile-layout="true"] [data-process-palette="true"] {
     width: 100%;
@@ -397,5 +373,30 @@ textarea.input { @apply resize-y min-h-[80px]; }
     overflow-y: hidden;
     border-right: none;
     border-bottom: 1px solid var(--canvas-border);
+  }
+}
+
+/* ─── Epic P4-PR-B — Connection-rejection shake animation ────────────
+ * The canvas state sets a `canvas-rejected` className on a node
+ * when a connection attempt is refused (self-loop, duplicate,
+ * annotation participation). The node receives a 600ms shake;
+ * `prefers-reduced-motion` gets a 200ms opacity dip. */
+@keyframes canvas-connection-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes canvas-connection-shake-reduced {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+[data-process-canvas="true"] .react-flow__node.canvas-rejected {
+  animation: canvas-connection-shake 600ms ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-process-canvas="true"] .react-flow__node.canvas-rejected {
+    animation: canvas-connection-shake-reduced 200ms ease-in-out;
   }
 }

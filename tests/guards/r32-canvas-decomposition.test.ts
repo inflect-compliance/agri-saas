@@ -137,36 +137,29 @@ describe("R32-PR10 — canvas decomposition (document bar)", () => {
             //
             // The cap moves with each absorbed feature; bumps
             // come paired with a written justification rather than
-            // silently floating. Current cap: 2000. Bumps:
+            // silently floating. Current cap: 2150. Bumps:
             //   - 1900 → 1925 (Epic P1 + P2-PR-A) — concurrency
-            //     check + edge control picker; both extracted
-            //     their substantive surface into helper modules,
-            //     net canvas growth ≈40 lines for two features.
+            //     check + edge control picker.
             //   - 1925 → 1950 (Epic P2-PR-B) — node entity
             //     pickers + linkedEntityId dataJson round-trip.
-            //     Two sibling hooks (`useTenantRisks`,
-            //     `useTenantAssets`) absorb the picker boilerplate;
-            //     the canvas only owns the dataJson load/save
-            //     projection.
             //   - 1950 → 1975 (Epic P3-PR-A) — PNG/SVG export
-            //     menu wiring. Export logic in `canvas-export.ts`
-            //     + thin `CanvasExportMenu` component; canvas
-            //     only adds a `useRef` + ref attribute + the
-            //     export slot pass-through.
-            //   - 1975 → 2025 (Epic P4-PR-A) — dagre auto-layout.
-            //     Compute lives in `canvas-auto-layout.ts`; the
-            //     canvas adds a `handleAutoLayout` handler + a
-            //     "Layout" command group (LR / TB). Post-rebase
-            //     onto P3-PR-A's export-menu wiring, the
-            //     combined surface lands at ≈2008 lines.
-            // Future Epics (P5 snapshots, P6 deferred) each follow
-            // the same pattern: one helper module per feature
-            // surface, the canvas wires it via a single call.
+            //     menu wiring.
+            //   - 1975 → 2025 (Epic P4-PR-A) — dagre auto-layout
+            //     handler + "Layout" command group.
+            //   - 2025 → 2150 (Epic P4-PR-B) — clipboard handlers
+            //     (Cmd+C/V/D) + Tab-to-create + connection-
+            //     rejection state + rejected-node className
+            //     projection. ~120 lines for three keyboard
+            //     features; the clipboard logic itself lives in
+            //     `canvas-clipboard.ts` so the canvas only owns
+            //     the wire-up.
+            // Future Epics (P5 snapshots, P6 deferred) follow the
+            // same helper-module-per-feature pattern.
             const src = read(
                 "src/components/processes/PersistedProcessCanvas.tsx",
             );
             const lines = src.split("\n").length;
-            expect(lines).toBeLessThan(2025);
+            expect(lines).toBeLessThan(2150);
         });
     });
 });

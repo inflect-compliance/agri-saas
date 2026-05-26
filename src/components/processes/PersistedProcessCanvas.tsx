@@ -99,6 +99,11 @@ import {
     type AutoLayoutDirection,
 } from "@/lib/processes/canvas-auto-layout";
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcut";
+import {
+    copyToClipboard,
+    hasClipboard,
+    pasteFromClipboard,
+} from "@/lib/processes/canvas-clipboard";
 import { ProcessInspector } from "./ProcessInspector";
 import {
     CanvasCommandPalette,
@@ -951,20 +956,26 @@ function Inner({
             const src = "source" in c ? c.source : null;
             const tgt = "target" in c ? c.target : null;
             if (!src || !tgt) return false;
-            if (src === tgt) return false;
-            if (
-                edges.some(
-                    (e) => e.source === src && e.target === tgt,
-                )
-            ) {
+            // Epic P4-PR-B — emit a transient `rejectedSource` flag
+            // when the connection fails. The source node's
+            // `data-connection-rejected` attribute drives a CSS
+            // shake animation. The state clears after 600ms via
+            // the effect declared at the top of Inner.
+            const reject = (reason: "self" | "duplicate" | "annotation") => {
+                setRejectedSource(src);
+                void reason;
                 return false;
+            };
+            if (src === tgt) return reject("self");
+            if (edges.some((e) => e.source === src && e.target === tgt)) {
+                return reject("duplicate");
             }
             const srcNode = nodes.find((n) => n.id === src);
             const tgtNode = nodes.find((n) => n.id === tgt);
             const srcKind = (srcNode?.data as { kind?: unknown })?.kind;
             const tgtKind = (tgtNode?.data as { kind?: unknown })?.kind;
             if (srcKind === "annotation" || tgtKind === "annotation") {
-                return false;
+                return reject("annotation");
             }
             return true;
         },
@@ -1265,6 +1276,100 @@ function Inner({
         description: "Save the current process map",
         enabled: Boolean(activeId),
     });
+
+    // Epic P4-PR-B — Cmd+C / Cmd+V / Cmd+D for selected nodes.
+    const handleCopy = useCallback(() => {
+        const selected = nodes.filter((n) => n.selected);
+        if (selected.length === 0) return;
+        copyToClipboard(selected, edges);
+    }, [nodes, edges]);
+    const handlePaste = useCallback(() => {
+        if (!hasClipboard()) return;
+        const pasted = pasteFromClipboard();
+        if (!pasted) return;
+        history.push({ nodes, edges });
+        setNodes((nds) => [
+            ...nds.map((n) => ({ ...n, selected: false })),
+            ...pasted.nodes,
+        ]);
+        setEdges((eds) => [...eds, ...pasted.edges]);
+        autosave.markDirty();
+    }, [nodes, edges, history, autosave]);
+    const handleDuplicateSelection = useCallback(() => {
+        const selected = nodes.filter((n) => n.selected);
+        if (selected.length === 0) return;
+        copyToClipboard(selected, edges);
+        handlePaste();
+    }, [nodes, edges, handlePaste]);
+    useKeyboardShortcut("mod+c", handleCopy, {
+        description: "Copy selected nodes",
+        enabled: Boolean(activeId),
+    });
+    useKeyboardShortcut("mod+v", handlePaste, {
+        description: "Paste nodes from clipboard",
+        enabled: Boolean(activeId),
+    });
+    useKeyboardShortcut("mod+d", handleDuplicateSelection, {
+        description: "Duplicate selected nodes",
+        enabled: Boolean(activeId),
+        preventDefault: true,
+    });
+
+    // Epic P4-PR-B — Tab-to-create. From a single selected node,
+    // mint a connected sibling of the same kind to the right.
+    const handleTabCreate = useCallback(() => {
+        const selected = nodes.filter((n) => n.selected);
+        if (selected.length !== 1) return;
+        const source = selected[0];
+        const kind =
+            (source.data as { kind?: unknown } | undefined)?.kind ??
+            "processStep";
+        const newId = `n-${Date.now().toString(36)}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}`;
+        const newNode: Node = {
+            id: newId,
+            type: typeof kind === "string" ? kind : "processStep",
+            position: {
+                x: source.position.x + 280,
+                y: source.position.y,
+            },
+            data: { label: "Untitled", kind },
+            selected: true,
+        };
+        const newEdge: Edge = {
+            id: `edge-${newId}`,
+            source: source.id,
+            target: newId,
+            type: PROCESS_EDGE_TYPE,
+            data: { variant: "flow" },
+        };
+        history.push({ nodes, edges });
+        setNodes((nds) => [
+            ...nds.map((n) => ({ ...n, selected: false })),
+            newNode,
+        ]);
+        setEdges((eds) => [...eds, newEdge]);
+        autosave.markDirty();
+    }, [nodes, edges, history, autosave]);
+    useKeyboardShortcut("tab", handleTabCreate, {
+        description: "Tab — create a connected sibling node",
+        enabled: Boolean(activeId),
+        preventDefault: true,
+    });
+
+    // Epic P4-PR-B — Connection-rejection feedback. When xyflow
+    // rejects a connection (self-loop, duplicate, annotation
+    // participation), surface a transient `data-connection-rejected`
+    // marker so the source handle gets the canonical rejection
+    // animation. The state clears 600ms later — the animation
+    // duration.
+    const [rejectedSource, setRejectedSource] = useState<string | null>(null);
+    useEffect(() => {
+        if (rejectedSource === null) return;
+        const t = setTimeout(() => setRejectedSource(null), 600);
+        return () => clearTimeout(t);
+    }, [rejectedSource]);
 
     // R26-PR-C — proximity auto-bind. When the user drags a node
     // close enough to another, surface a candidate edge; on
@@ -1847,7 +1952,25 @@ function Inner({
                     />
                     <ReactFlow
                         key={activeId ?? "no-map"}
-                        nodes={nodes}
+                        // Epic P4-PR-B — project the rejected-source
+                        // marker as an extra className on the
+                        // matching node so the CSS rule
+                        // `.react-flow__node.canvas-rejected` fires.
+                        // The state clears after 600ms via the
+                        // effect above; React re-derives this list
+                        // each render.
+                        nodes={
+                            rejectedSource
+                                ? nodes.map((n) =>
+                                      n.id === rejectedSource
+                                          ? {
+                                                ...n,
+                                                className: `${n.className ?? ""} canvas-rejected`.trim(),
+                                            }
+                                          : n,
+                                  )
+                                : nodes
+                        }
                         // Synthesise a transient preview edge when
                         // the proximity hook has a live candidate.
                         // ProcessEdge reads `data.isPreview` and
