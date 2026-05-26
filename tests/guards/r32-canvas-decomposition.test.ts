@@ -135,9 +135,19 @@ describe("R32-PR10 — canvas decomposition (document bar)", () => {
             //     canvas calls one function instead of declaring
             //     a 50-line peeler inline).
             //
-            // The cap moves to 1925 to leave headroom for the
-            // patch-field type extensions both features carry on
-            // existing handlers (handleSave + handleEdgeUpdate).
+            // The cap moves with each absorbed feature; bumps
+            // come paired with a written justification rather than
+            // silently floating. Current cap: 1950. Bumps:
+            //   - 1900 → 1925 (Epic P1 + P2-PR-A) — concurrency
+            //     check + edge control picker; both extracted
+            //     their substantive surface into helper modules,
+            //     net canvas growth ≈40 lines for two features.
+            //   - 1925 → 1950 (Epic P2-PR-B) — node entity
+            //     pickers + linkedEntityId dataJson round-trip.
+            //     Two sibling hooks (`useTenantRisks`,
+            //     `useTenantAssets`) absorb the picker boilerplate;
+            //     the canvas only owns the dataJson load/save
+            //     projection.
             // Future Epics (P3 export, P4 dagre, P5 snapshots)
             // each follow the same pattern: one helper module
             // per feature surface, the canvas wires it via a
@@ -146,7 +156,7 @@ describe("R32-PR10 — canvas decomposition (document bar)", () => {
                 "src/components/processes/PersistedProcessCanvas.tsx",
             );
             const lines = src.split("\n").length;
-            expect(lines).toBeLessThan(1925);
+            expect(lines).toBeLessThan(1950);
         });
     });
 });

@@ -144,6 +144,7 @@ function nodeDataJson(n: Node): {
     size?: string;
     width?: number;
     height?: number;
+    linkedEntityId?: string;
 } | null {
     const size = (n.data as { size?: unknown } | undefined)?.size;
     // R30 — group nodes persist their explicit width / height
@@ -167,10 +168,21 @@ function nodeDataJson(n: Node): {
             : typeof dataH === "number"
               ? dataH
               : null;
-    const out: { size?: string; width?: number; height?: number } = {};
+    // Epic P2-PR-B — entity FK on risk / asset / control nodes.
+    const linkedEntityId = (n.data as { linkedEntityId?: unknown } | undefined)
+        ?.linkedEntityId;
+    const out: {
+        size?: string;
+        width?: number;
+        height?: number;
+        linkedEntityId?: string;
+    } = {};
     if (isProcessNodeSize(size)) out.size = size;
     if (width != null) out.width = width;
     if (height != null) out.height = height;
+    if (typeof linkedEntityId === "string" && linkedEntityId.length > 0) {
+        out.linkedEntityId = linkedEntityId;
+    }
     return Object.keys(out).length === 0 ? null : out;
 }
 
@@ -379,12 +391,18 @@ function Inner({
                     // container. Fall back to sensible defaults so
                     // a hand-edited row still renders.
                     const json = n.dataJson as
-                        | { width?: unknown; height?: unknown }
+                        | {
+                              width?: unknown;
+                              height?: unknown;
+                              linkedEntityId?: unknown;
+                          }
                         | null
                         | undefined;
                     const isGroup = kind === "group";
                     const w = typeof json?.width === "number" ? json.width : 280;
                     const h = typeof json?.height === "number" ? json.height : 160;
+                    // Epic P2-PR-B — linked-entity FK from dataJson.
+                    const linkedEntityId = typeof json?.linkedEntityId === "string" ? json.linkedEntityId : null;
                     return {
                         id: n.nodeKey,
                         type: kind,
@@ -402,6 +420,7 @@ function Inner({
                             ...(n.subtitle ? { subtitle: n.subtitle } : {}),
                             ...(isProcessNodeSize(size) ? { size } : {}),
                             ...(isGroup ? { width: w, height: h } : {}),
+                            ...(linkedEntityId ? { linkedEntityId } : {}),
                         },
                     };
                 });
@@ -586,6 +605,8 @@ function Inner({
                 label?: string;
                 subtitle?: string | null;
                 size?: ProcessNodeSize;
+                // Epic P2-PR-B — picker writes data.linkedEntityId.
+                linkedEntityId?: string | null;
             },
         ) => {
             setNodes((nds) =>
@@ -606,6 +627,11 @@ function Inner({
                                 : {}),
                             ...(patch.size !== undefined
                                 ? { size: patch.size }
+                                : {}),
+                            ...(patch.linkedEntityId !== undefined
+                                ? patch.linkedEntityId === null
+                                    ? { linkedEntityId: undefined }
+                                    : { linkedEntityId: patch.linkedEntityId }
                                 : {}),
                         },
                     };

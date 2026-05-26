@@ -40,6 +40,11 @@ import {
     formatControlLabel,
     useTenantControls,
 } from "@/lib/processes/use-tenant-controls";
+import { useTenantRisks } from "@/lib/processes/use-tenant-risks";
+import {
+    formatAssetLabel,
+    useTenantAssets,
+} from "@/lib/processes/use-tenant-assets";
 import { NODE_TAXONOMY, isProcessNodeKind } from "./node-taxonomy";
 import {
     DEFAULT_NODE_SIZE,
@@ -87,8 +92,14 @@ export interface ProcessInspectorProps {
      */
     tenantSlug?: string;
     /**
-     * Called when the user commits a label / subtitle change.
-     * The canvas writes the change back into its nodes state.
+     * Called when the user commits a label / subtitle / size /
+     * entity-link change. The canvas writes the change back into
+     * its nodes state.
+     *
+     * Epic P2-PR-B — `linkedEntityId` carries the FK to whichever
+     * entity matches the node's kind (control / risk / asset). The
+     * picker is conditional on `data.kind`, so a single shared field
+     * suffices — kind disambiguates on read.
      */
     onUpdate: (
         nodeId: string,
@@ -96,6 +107,7 @@ export interface ProcessInspectorProps {
             label?: string;
             subtitle?: string | null;
             size?: ProcessNodeSize;
+            linkedEntityId?: string | null;
         },
     ) => void;
     /**
@@ -126,7 +138,13 @@ export function ProcessInspector({
     // mirror commits on blur (or Enter), which is when the canvas
     // actually receives the patch.
     const data = node?.data as
-        | { label?: string; subtitle?: string; kind?: unknown; size?: unknown }
+        | {
+              label?: string;
+              subtitle?: string;
+              kind?: unknown;
+              size?: unknown;
+              linkedEntityId?: unknown;
+          }
         | undefined;
     const [label, setLabel] = useState(data?.label ?? "");
     const [subtitle, setSubtitle] = useState(data?.subtitle ?? "");
@@ -248,11 +266,118 @@ export function ProcessInspector({
                     }
                 />
             </div>
+            {/* Epic P2-PR-B — Linked-entity picker. Mounts only on
+                nodes whose kind matches a compliance entity (control
+                / risk / asset). The selection writes the FK into
+                `data.linkedEntityId`; the canvas's `nodeDataJson`
+                serialiser persists it via the existing `dataJson`
+                column — no schema change needed. */}
+            <NodeLinkedEntityPicker
+                nodeKind={data?.kind}
+                tenantSlug={tenantSlug}
+                selectedId={
+                    typeof data?.linkedEntityId === "string"
+                        ? data.linkedEntityId
+                        : null
+                }
+                onCommit={(linkedEntityId) =>
+                    onUpdate(node.id, { linkedEntityId })
+                }
+            />
                 <p className="text-[10px] text-content-subtle">
                     Click off the field or press Enter to save the edit.
                 </p>
             </div>
         </AsidePanel>
+    );
+}
+
+// ─── Epic P2-PR-B — Linked-entity picker (control / risk / asset) ──
+
+function NodeLinkedEntityPicker({
+    nodeKind,
+    tenantSlug,
+    selectedId,
+    onCommit,
+}: {
+    nodeKind: unknown;
+    tenantSlug?: string;
+    selectedId: string | null;
+    onCommit: (id: string | null) => void;
+}) {
+    // Three hooks unconditionally — React rules of hooks. Each
+    // short-circuits to a no-op when the slug is the empty string,
+    // and we discard the unused responses below.
+    const slug = tenantSlug ?? "";
+    const controls = useTenantControls(slug);
+    const risks = useTenantRisks(slug);
+    const assets = useTenantAssets(slug);
+
+    if (nodeKind !== "control" && nodeKind !== "risk" && nodeKind !== "asset") {
+        return null;
+    }
+
+    const active =
+        nodeKind === "control"
+            ? {
+                  label: "Linked control",
+                  options: controls.options.map((c) => ({
+                      value: c.id,
+                      label: formatControlLabel(c),
+                  })),
+                  loading: controls.loading,
+                  emptyHint: "No controls yet",
+              }
+            : nodeKind === "risk"
+              ? {
+                    label: "Linked risk",
+                    options: risks.options.map((r) => ({
+                        value: r.id,
+                        label: r.title,
+                    })),
+                    loading: risks.loading,
+                    emptyHint: "No risks yet",
+                }
+              : {
+                    label: "Linked asset",
+                    options: assets.options.map((a) => ({
+                        value: a.id,
+                        label: formatAssetLabel(a),
+                    })),
+                    loading: assets.loading,
+                    emptyHint: "No assets yet",
+                };
+
+    const selectedOption = selectedId
+        ? active.options.find((o) => o.value === selectedId) ?? null
+        : null;
+
+    return (
+        <div
+            className="flex flex-col gap-tight"
+            data-testid="inspector-node-entity-picker"
+            data-entity-kind={nodeKind}
+        >
+            <span className="text-[10px] uppercase tracking-wide text-content-muted">
+                {active.label}
+            </span>
+            <Combobox
+                selected={selectedOption}
+                setSelected={(option) =>
+                    onCommit(option?.value ?? null)
+                }
+                options={active.options}
+                disabled={active.loading || active.options.length === 0}
+                aria-label={active.label}
+                placeholder={
+                    active.loading
+                        ? "Loading…"
+                        : active.options.length === 0
+                          ? active.emptyHint
+                          : "Pick one…"
+                }
+            />
+        </div>
     );
 }
 
