@@ -43,7 +43,23 @@ export type MiniAreaChartVariant =
     | "info"
     | "neutral";
 
-const DEFAULT_PADDING = { top: 6, right: 2, bottom: 2, left: 2 };
+/**
+ * Padding around the chart's drawable region (`innerHeight` = host
+ * height − top − bottom). Top + bottom are LOAD-BEARING — they
+ * reserve breathing room for `curveNatural`'s overshoot. Spline
+ * interpolation can pass a few pixels BELOW the data minimum (and
+ * a few pixels ABOVE the maximum); without that breathing room
+ * the SVG viewBox clips the stroke at the very lowest / highest
+ * point of the curve, visibly fading the line.
+ *
+ * Top stayed at `6` since R18. Bottom was `2`, which was enough
+ * for shallow curves but too tight for steep down-slopes (the
+ * Dashboard "Risks" tile reported the lower curve fading at the
+ * minima). Bumped to `4` for symmetry-ish — top still gets more
+ * because labels above the chart need MORE clearance than the
+ * baseline below. A regression ratchet locks `bottom >= 4`.
+ */
+const DEFAULT_PADDING = { top: 6, right: 2, bottom: 4, left: 2 };
 
 interface MiniAreaChartProps {
     data: SparklineData | TimeSeriesPoint[];
