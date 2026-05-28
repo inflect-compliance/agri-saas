@@ -99,6 +99,26 @@ describe('PR-A notification-assignment alert wiring', () => {
                 /\$\{tenantId\}:\$\{kind\}:\$\{entityId\}:\$\{userId\}:\$\{ymd\}/,
             );
         });
+
+        it('publishes to the SSE bus on a fresh insert (2026-05-28 follow-up)', () => {
+            // After PR-C #761 landed the in-process bus + SSE route,
+            // the assignment helper SHOULD fan a fresh insert out
+            // to subscribed bell clients — the same posture
+            // `createTaskDueNotification` already has. Locked here
+            // so a future "tidy up" can't silently drop the path
+            // and leave the bell stuck on the 60s fallback poll
+            // for assignment events.
+            const s = src();
+            expect(s).toMatch(
+                /import\s*\{\s*publishNotificationEvent\s*\}\s*from\s+['"]@\/lib\/notifications\/notification-bus['"]/,
+            );
+            // Publish ONLY when result.count > 0 (duplicates skip
+            // the fanout — the original publish already pushed
+            // when the row was first inserted).
+            expect(s).toMatch(
+                /if \(result\.count > 0\) \{[\s\S]{0,400}publishNotificationEvent\(\s*target\.tenantId,\s*target\.assigneeUserId,/,
+            );
+        });
     });
 
     describe('3. task.ts wires emitTaskAssignedNotification', () => {

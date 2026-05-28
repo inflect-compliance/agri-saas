@@ -24,6 +24,7 @@
  */
 
 import type { PrismaClient } from '@prisma/client';
+import { publishNotificationEvent } from '@/lib/notifications/notification-bus';
 
 export interface AssignmentTarget {
     /** Tenant the entity belongs to. */
@@ -93,26 +94,43 @@ export async function createAssignmentNotification(
         ? `${target.entityKey} "${target.entityLabel}"`
         : `"${target.entityLabel}"`;
 
+    const row = {
+        tenantId: target.tenantId,
+        userId: target.assigneeUserId,
+        type: kind,
+        title: copy.title,
+        message: copy.body(label),
+        linkUrl: copy.linkPath(target.tenantSlug, target.entityId),
+        dedupeKey: buildAssignmentDedupeKey(
+            target.tenantId,
+            kind,
+            target.entityId,
+            target.assigneeUserId,
+            now,
+        ),
+    };
+
     const result = await db.notification.createMany({
-        data: [
-            {
-                tenantId: target.tenantId,
-                userId: target.assigneeUserId,
-                type: kind,
-                title: copy.title,
-                message: copy.body(label),
-                linkUrl: copy.linkPath(target.tenantSlug, target.entityId),
-                dedupeKey: buildAssignmentDedupeKey(
-                    target.tenantId,
-                    kind,
-                    target.entityId,
-                    target.assigneeUserId,
-                    now,
-                ),
-            },
-        ],
+        data: [row],
         skipDuplicates: true,
     });
+
+    // 2026-05-28 — fan the fresh insert out to the SSE bus (set up
+    // by PR-C #761) so subscribed bell clients see the assignment
+    // alert the moment it lands, not on the next 60s poll. Skip
+    // when result.count === 0 — that means the dedupeKey collapsed
+    // a duplicate, and we already pushed the original.
+    if (result.count > 0) {
+        publishNotificationEvent(target.tenantId, target.assigneeUserId, {
+            id: row.dedupeKey,
+            type: row.type,
+            title: row.title,
+            message: row.message,
+            read: false,
+            linkUrl: row.linkUrl,
+            createdAt: now.toISOString(),
+        });
+    }
 
     return { status: result.count > 0 ? 'created' : 'duplicate' };
 }
