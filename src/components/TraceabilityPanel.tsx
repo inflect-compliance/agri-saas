@@ -161,12 +161,16 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                 queryClient.setQueryData(traceabilityKey(tenantSlug, entityType, entityId), context.previous);
             }
         },
-        onSuccess: () => {
+        onSuccess: (_data, vars) => {
+            // Only close the form that was just linked — leaving the
+            // other open Link forms intact so a user staging multiple
+            // links (e.g. control + risk on an asset) doesn't lose
+            // the second form when the first commits.
             setAddId('');
             setAddRationale('');
-            setShowAddRisk(false);
-            setShowAddControl(false);
-            setShowAddAsset(false);
+            if (vars.type === 'risk') setShowAddRisk(false);
+            else if (vars.type === 'control') setShowAddControl(false);
+            else if (vars.type === 'asset') setShowAddAsset(false);
         },
         onSettled: (_data, _err, vars) => {
             // Invalidate this entity's traceability
@@ -285,9 +289,10 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                         <div className={cn(cardVariants({ density: 'compact' }), 'mb-3 space-y-tight')}>
                             <Combobox
                                 id="risk-select"
-                                selected={availableRisks.map((r: any) => ({ value: r.id, label: `${r.title} (${r.status})` })).find((o: { value: string }) => o.value === addId) ?? null}
+                                selected={availableRisks.map((r: any) => ({ value: r.id, label: r.title, meta: { status: r.status } })).find((o: { value: string }) => o.value === addId) ?? null}
                                 setSelected={(opt) => setAddId(opt?.value ?? '')}
-                                options={availableRisks.map((r: any) => ({ value: r.id, label: `${r.title} (${r.status})` }))}
+                                options={availableRisks.map((r: any) => ({ value: r.id, label: r.title, meta: { status: r.status } }))}
+                                optionDescription={(o) => (o.meta?.status ? `Status: ${o.meta.status}` : null)}
                                 placeholder="Select risk..."
                                 matchTriggerWidth
                             />
@@ -343,9 +348,10 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                         <div className={cn(cardVariants({ density: 'compact' }), 'mb-3 space-y-tight')}>
                             <Combobox
                                 id="control-select"
-                                selected={availableControls.map((c: any) => ({ value: c.id, label: `${c.code ? `${c.code} — ` : ''}${c.name} (${c.status})` })).find((o: { value: string }) => o.value === addId) ?? null}
+                                selected={availableControls.map((c: any) => ({ value: c.id, label: c.code ? `${c.code} — ${c.name}` : c.name, meta: { status: c.status } })).find((o: { value: string }) => o.value === addId) ?? null}
                                 setSelected={(opt) => setAddId(opt?.value ?? '')}
-                                options={availableControls.map((c: any) => ({ value: c.id, label: `${c.code ? `${c.code} — ` : ''}${c.name} (${c.status})` }))}
+                                options={availableControls.map((c: any) => ({ value: c.id, label: c.code ? `${c.code} — ${c.name}` : c.name, meta: { status: c.status } }))}
+                                optionDescription={(o) => (o.meta?.status ? `Status: ${o.meta.status}` : null)}
                                 placeholder="Select control..."
                                 matchTriggerWidth
                             />
@@ -401,9 +407,10 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                         <div className={cn(cardVariants({ density: 'compact' }), 'mb-3 space-y-tight')}>
                             <Combobox
                                 id="asset-select"
-                                selected={availableAssets.map((a: any) => ({ value: a.id, label: `${a.name} (${a.type})` })).find((o: { value: string }) => o.value === addId) ?? null}
+                                selected={availableAssets.map((a: any) => ({ value: a.id, label: a.name, meta: { type: a.type } })).find((o: { value: string }) => o.value === addId) ?? null}
                                 setSelected={(opt) => setAddId(opt?.value ?? '')}
-                                options={availableAssets.map((a: any) => ({ value: a.id, label: `${a.name} (${a.type})` }))}
+                                options={availableAssets.map((a: any) => ({ value: a.id, label: a.name, meta: { type: a.type } }))}
+                                optionDescription={(o) => (o.meta?.type ? `Type: ${o.meta.type}` : null)}
                                 placeholder="Select asset..."
                                 matchTriggerWidth
                             />
