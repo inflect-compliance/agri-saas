@@ -7,10 +7,9 @@
  * hint like ` (Enter)` / ` (Press Enter)` / ` (Enter to apply)`.
  *
  * Why:
- *   - The `type="search"` input pairs with the FilterToolbar's
- *     commit-on-Enter + blur semantics. The behaviour is
- *     discoverable on its own; the parenthetical added visual noise
- *     without informational value.
+ *   - The FilterToolbar search is live (typing filters the table on a
+ *     short debounce, no Enter required), so an Enter hint would be
+ *     actively misleading on top of adding visual noise.
  *   - One ellipsis character is consistent with the rest of the
  *     product's microcopy (loading messages, empty states).
  *

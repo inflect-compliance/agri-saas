@@ -59,14 +59,14 @@ describe('Policies list — Epic 45.1 shell + column wiring', () => {
         expect(clientSrc).toMatch(/table=\{\{[\s\S]{0,200}columns:\s*policyColumns/);
     });
 
-    it('does not thread search-id / searchPlaceholder (retired by #443)', () => {
-        // The FilterToolbar text-search input was retired site-wide
-        // by #443 ("kill FilterToolbar text-search on every list
-        // page"). The sidebar Search pill + global ⌘K palette own
-        // textual search now. Both props are gone from the
-        // canonical entity-list-page filters wiring.
-        expect(clientSrc).not.toContain("searchId: 'policy-search'");
-        expect(clientSrc).not.toMatch(/searchPlaceholder:\s*['"]Search policies/);
+    it('threads searchId + searchPlaceholder for the live filter search box', () => {
+        // The FilterToolbar text-search input — retired site-wide by
+        // #443 — was restored (2026-05-30) as a LIVE search box on
+        // every list page (typing filters the table, no Enter). The
+        // policies page wires both props through the EntityListPage
+        // `filters` seam.
+        expect(clientSrc).toContain("searchId: 'policies-search'");
+        expect(clientSrc).toMatch(/searchPlaceholder:\s*['"]Search policies/);
     });
 
     it('preserves row navigation to the detail page', () => {

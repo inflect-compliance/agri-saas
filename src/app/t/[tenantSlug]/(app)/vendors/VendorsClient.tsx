@@ -351,6 +351,8 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                 </div>
                 <FilterToolbar
                     filters={liveFilters}
+                    searchId="vendors-search"
+                    searchPlaceholder="Search vendors…"
                     actions={columnsDropdown}
                 />
             </ListPageShell.Filters>

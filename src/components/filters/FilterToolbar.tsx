@@ -21,8 +21,10 @@
  *
  * Keyboard / a11y: the shared FilterSelect carries the `f` shortcut, Escape
  * cascade, and keyboard-driven option navigation. The search input uses
- * `type="search"` so browsers expose a clear affordance; commit semantics
- * match the pre-Epic 53 filter bar: commit on Enter + blur.
+ * `type="search"` so browsers expose a clear affordance. Search is LIVE —
+ * the draft propagates to the committed query on a short debounce so the
+ * table filters as you type (no Enter required); Enter / blur still commit
+ * immediately for users who expect them.
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -132,11 +134,21 @@ export function FilterToolbar({
     const ctx = useFilters();
     const { remove, removeAll, clearAll, search, setSearch, state } = ctx;
 
-    // Local draft so typing doesn't churn the URL on every keystroke —
-    // committed on Enter or blur, matching the pre-Epic 53 filter-bar UX.
+    // Local draft keeps typing instant; the committed `search` (which
+    // drives the URL + data fetch) is updated on a short debounce so the
+    // table filters live without firing a request on every keystroke.
     const [draft, setDraft] = useState(search);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => setDraft(search), [search]);
+
+    // Live search: propagate the draft to the committed query ~250ms after
+    // the last keystroke. Enter / blur bypass the debounce and commit now.
+    useEffect(() => {
+        if (draft === search) return;
+        const id = setTimeout(() => setSearch(draft), 250);
+        return () => clearTimeout(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on `draft`; `setSearch`/`search` re-running the timer would reset it mid-type.
+    }, [draft]);
 
     const activeFilters: ActiveFilter[] = useMemo(
         () => filterStateToActiveFilters(state),

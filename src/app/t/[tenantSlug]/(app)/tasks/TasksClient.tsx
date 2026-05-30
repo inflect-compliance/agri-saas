@@ -538,6 +538,8 @@ function TasksPageInner({
                 </div>
                 <FilterToolbar
                     filters={liveFilters}
+                    searchId="tasks-search"
+                    searchPlaceholder="Search tasks…"
                     actions={columnsDropdown}
                 />
             </ListPageShell.Filters>

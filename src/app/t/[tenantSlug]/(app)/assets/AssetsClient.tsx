@@ -328,6 +328,8 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                 </div>
                 <FilterToolbar
                     filters={liveFilters}
+                    searchId="assets-search"
+                    searchPlaceholder="Search assets…"
                     actions={columnsDropdown}
                 />
             </ListPageShell.Filters>

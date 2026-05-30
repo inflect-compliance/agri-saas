@@ -472,6 +472,8 @@ function PoliciesPageInner({
             }
             filters={{
                 defs: liveFilters,
+                searchId: 'policies-search',
+                searchPlaceholder: 'Search policies…',
                 toolbarActions: columnsDropdown,
             }}
             table={{

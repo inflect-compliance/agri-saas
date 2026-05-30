@@ -1,20 +1,27 @@
 /**
- * Roadmap-14 PR-7 — no standalone search inputs on tenant/org pages.
+ * Filter-scoped page search — live box required, bare inputs banned.
  *
- * Per the user directive paired with R14-PR6 (global ⌘K search anchor):
- *
- *   "kill the searchbar in the pages — the user can search through
- *    the filter or palette. no need for a separate searchbar on
- *    each page."
+ * History: Roadmap-14 PR-7 retired the per-page FilterToolbar search
+ * input in favour of ⌘K. That was REVERSED (2026-05-30) on the user
+ * directive: "when typing in the filter, search content should appear
+ * as you type, no need to press enter — valid for all pages with a
+ * filter above the table." List pages now carry a LIVE filter-scoped
+ * search box again.
  *
  * The two canonical search affordances:
  *
  *   • `<FilterToolbar searchPlaceholder="...">` — per-page filter-
- *     scoped search. Lives WITH the rest of the page's filters,
- *     wired through the FilterProvider state.
+ *     scoped LIVE search (debounced, no Enter). Lives WITH the rest
+ *     of the page's filters, wired through the FilterProvider state.
+ *     REQUIRED on every standard list page (see
+ *     LIST_PAGES_REQUIRE_SEARCH).
  *
  *   • The global command palette (⌘K) — cross-page navigation +
  *     search. Triggered via `<SearchAnchor>` in the top-bar.
+ *
+ * The bare-`<input>` ban below survives the reversal: page-level
+ * search must go through the FilterToolbar primitive, never a
+ * hand-rolled `<input type="search">`.
  *
  * What this ratchet bans:
  *
@@ -69,29 +76,37 @@ const BANNED_PATTERNS: RegExp[] = [
     /<input\b[^>]*\bplaceholder=["']Search\b/,
 ];
 
-// FILE-ANCHORED ban on `searchPlaceholder=` / `searchPlaceholder:`
-// for the 7 list-page Client files. These are the files that used
-// to wire FilterToolbar's text-search input; the user directive
-// "remove search bars from all pages" retires that affordance —
-// ⌘K palette is the canonical cross-entity search now.
+// FILE-ANCHORED *require* on `searchPlaceholder=` / `searchPlaceholder:`
+// for the standard list-page Client files. R14-PR7 originally retired
+// the FilterToolbar text-search input here in favour of ⌘K; that
+// decision was reversed (2026-05-30) — list pages now carry a LIVE,
+// filter-scoped search box (typing filters the table, no Enter). The
+// `<FilterToolbar searchPlaceholder>` row is the canonical affordance;
+// the ⌘K palette remains the cross-ENTITY search. This ratchet now
+// locks the box IN: each of these files must wire a `searchPlaceholder`.
 //
 // Why file-anchored (not directory-scanned)?
 //   The `searchPlaceholder` prop name is shared between
-//   `<FilterToolbar>` (the kill target — page-level search row)
-//   and `<Combobox>` (legitimate picker affordance inside modals
-//   + form fields). A directory scan would flag every Combobox
-//   usage. The seven Client files don't legitimately use Combobox
-//   with searchPlaceholder at the page level; if a future PR adds
-//   a picker to one of them, the right answer is to refactor that
-//   into a sub-component file, not to relax this ratchet.
-const FILTER_TOOLBAR_SEARCH_FREE_FILES = [
+//   `<FilterToolbar>` (the page-level search row we now require)
+//   and `<Combobox>` (picker affordance inside modals + form
+//   fields). A directory scan can't tell them apart; the curated
+//   list targets exactly the toolbar wiring.
+//
+// Evidence is tracked separately in EVIDENCE_SEARCH_PENDING below —
+// its bespoke toolbar gains the box (and moves the filter cluster to
+// the left) in the follow-up PR; until then it stays search-free.
+const LIST_PAGES_REQUIRE_SEARCH = [
     'src/app/t/[tenantSlug]/(app)/assets/AssetsClient.tsx',
     'src/app/t/[tenantSlug]/(app)/risks/RisksClient.tsx',
     'src/app/t/[tenantSlug]/(app)/controls/ControlsClient.tsx',
     'src/app/t/[tenantSlug]/(app)/tasks/TasksClient.tsx',
-    'src/app/t/[tenantSlug]/(app)/evidence/EvidenceClient.tsx',
     'src/app/t/[tenantSlug]/(app)/policies/PoliciesClient.tsx',
     'src/app/t/[tenantSlug]/(app)/vendors/VendorsClient.tsx',
+];
+
+// Evidence: search box + filter-left layout land in the follow-up PR.
+const EVIDENCE_SEARCH_PENDING = [
+    'src/app/t/[tenantSlug]/(app)/evidence/EvidenceClient.tsx',
 ];
 
 interface Offender {
@@ -135,44 +150,44 @@ function scanFile(absPath: string): Offender[] {
     return hits;
 }
 
-describe('Roadmap-14 PR-7 — no standalone search inputs on pages', () => {
-    it('no `searchPlaceholder=` / `searchPlaceholder:` in any of the 7 list-page Client files', () => {
-        // File-anchored ban — see FILTER_TOOLBAR_SEARCH_FREE_FILES
-        // doc-comment for the per-file reasoning. The pattern
-        // matches both JSX-attribute form (`<FilterToolbar
+describe('Live filter-scoped search on list pages', () => {
+    it('the standard list-page Client files wire a FilterToolbar `searchPlaceholder`', () => {
+        // The pattern matches both JSX-attribute form (`<FilterToolbar
         // searchPlaceholder="..." />`) and object-literal form
         // (`filters={{ searchPlaceholder: '...' }}` inside
         // `<EntityListPage>`).
         const rx = /\bsearchPlaceholder\s*[=:]/;
-        const offenders: { file: string; line: number; text: string }[] = [];
-        for (const rel of FILTER_TOOLBAR_SEARCH_FREE_FILES) {
+        const missing: string[] = [];
+        for (const rel of LIST_PAGES_REQUIRE_SEARCH) {
             const abs = path.join(ROOT, rel);
             expect(fs.existsSync(abs)).toBe(true);
-            const content = fs.readFileSync(abs, 'utf8');
             // Strip comments so a doc-comment mentioning the prop
-            // name doesn't fire.
-            const stripped = content
+            // name doesn't satisfy the requirement on its own.
+            const stripped = fs
+                .readFileSync(abs, 'utf8')
                 .replace(/\/\*[\s\S]*?\*\//g, '')
                 .replace(/\/\/[^\n]*/g, '');
-            stripped.split('\n').forEach((line, i) => {
-                if (rx.test(line)) {
-                    offenders.push({
-                        file: rel,
-                        line: i + 1,
-                        text: line.trim().slice(0, 160),
-                    });
-                }
-            });
+            if (!rx.test(stripped)) missing.push(rel);
         }
-        if (offenders.length > 0) {
-            const sample = offenders
-                .map((o) => `  ${o.file}:${o.line}\n    ${o.text}`)
-                .join('\n');
+        if (missing.length > 0) {
             throw new Error(
-                `Found ${offenders.length} \`searchPlaceholder\` use(s) in the 7 list-page Client files. The user directive 'remove search bars from all pages' retired the FilterToolbar text-search input on these pages — the global ⌘K palette (sidebar Search pill / Ctrl+K) is the canonical cross-entity search. If a NEW need for in-page search arises, consider whether a dedicated \`<Combobox>\` picker fits better than reviving the toolbar input.\n\nOffenders:\n${sample}`,
+                `${missing.length} list page(s) are missing a FilterToolbar \`searchPlaceholder\` live-search box. Each list page must wire \`searchId\` + \`searchPlaceholder\` so typing filters the table live. Missing:\n${missing.map((m) => `  ${m}`).join('\n')}`,
             );
         }
-        expect(offenders).toEqual([]);
+        expect(missing).toEqual([]);
+    });
+
+    it('evidence stays search-free until its filter-left toolbar lands (follow-up PR)', () => {
+        const rx = /\bsearchPlaceholder\s*[=:]/;
+        for (const rel of EVIDENCE_SEARCH_PENDING) {
+            const abs = path.join(ROOT, rel);
+            expect(fs.existsSync(abs)).toBe(true);
+            const stripped = fs
+                .readFileSync(abs, 'utf8')
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/\/\/[^\n]*/g, '');
+            expect(rx.test(stripped)).toBe(false);
+        }
     });
 
     it('no `<input type="search">` or `placeholder="Search …"` in app/t or app/org', () => {

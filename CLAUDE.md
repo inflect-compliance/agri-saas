@@ -895,11 +895,15 @@ stands for that PR only — not as a precedent.
   searchPlaceholder>` value follows `Search {entityPlural}…`. One
   ellipsis (`…`, single character — not `...`). NEVER append a
   parenthetical hint like `(Enter)` / `(Press Enter)` — the
-  `type="search"` input plus the FilterToolbar's commit-on-Enter +
-  blur semantics are discoverable on their own; the parenthetical
-  added visual noise without informational value. Forward enforcement
-  at `tests/guards/search-placeholder-vocabulary.test.ts`. The same
+  FilterToolbar search is **live** (typing filters the table on a
+  short debounce, no Enter required), so an Enter hint would be
+  actively wrong. Forward enforcement at
+  `tests/guards/search-placeholder-vocabulary.test.ts`. The same
   format applies to i18n `searchPlaceholder` values in `messages/`.
+  Every standard list page MUST wire `searchId` + `searchPlaceholder`
+  so the live filter-scoped box is present (the R14-PR7 kill sweep was
+  reversed 2026-05-30); the box's presence is locked by
+  `tests/guards/r14-no-page-searchbars.test.ts`.
 
 ## Implementation notes
 

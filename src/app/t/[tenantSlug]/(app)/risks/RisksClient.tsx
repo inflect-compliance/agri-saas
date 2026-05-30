@@ -777,6 +777,8 @@ function RisksFilterToolbar({
     return (
         <FilterToolbar
             filters={filters}
+            searchId="risks-search"
+            searchPlaceholder="Search risks…"
             actions={columnsDropdown}
         />
     );
