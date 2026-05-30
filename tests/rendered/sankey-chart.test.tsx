@@ -116,4 +116,27 @@ describe('SankeyChart — rendered behaviour', () => {
         expect(root).not.toHaveAttribute('data-sankey-pinned-id');
         expect(riskNode).not.toHaveAttribute('data-sankey-node-pinned');
     });
+
+    it('toggles fit-to-view (zoom-out) and renders inside a scroll container', () => {
+        const { container } = render(<SankeyChart graph={flowGraph()} />);
+        const root = container.querySelector('[data-sankey-chart]')!;
+        const toggle = container.querySelector('#sankey-fit-toggle')!;
+
+        // A scroll container always wraps the SVG so a tall canvas can
+        // be reached.
+        expect(container.querySelector('[data-sankey-scroll]')).not.toBeNull();
+
+        // Default: actual size (not fit).
+        expect(root).not.toHaveAttribute('data-sankey-fit');
+        expect(toggle).toHaveTextContent('Fit to view');
+
+        // Toggle on → fit-to-view (zoom out to see everything).
+        fireEvent.click(toggle);
+        expect(root).toHaveAttribute('data-sankey-fit', 'true');
+        expect(toggle).toHaveTextContent('Actual size');
+
+        // Toggle off again.
+        fireEvent.click(toggle);
+        expect(root).not.toHaveAttribute('data-sankey-fit');
+    });
 });

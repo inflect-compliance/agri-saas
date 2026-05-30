@@ -302,6 +302,11 @@ export function computeSankeyLayout(
     }
 
     const laidNodes: LaidOutNode[] = [];
+    // Track the lowest point any column reaches so the canvas can grow
+    // to fit ALL nodes (fit-to-content). Pre-fix, a busy column stacked
+    // past the fixed `height` and the SVG viewBox silently clipped the
+    // overflow — you literally could not see the lower controls/risks.
+    let maxStackY = COLUMN_PADDING_TOP;
     for (const [colIndex, nodes] of nodesByCol) {
         const canvasIdx = colIndexToCanvasIndex.get(colIndex);
         if (canvasIdx === undefined) continue;
@@ -316,7 +321,16 @@ export function computeSankeyLayout(
             laidNodes.push({ ...n, x, y, width: NODE_WIDTH, height: h });
             y += h + NODE_GAP;
         }
+        // `y` overshoots by one trailing gap; the real bottom is the
+        // last node's end.
+        maxStackY = Math.max(maxStackY, y - NODE_GAP);
     }
+
+    // Fit-to-content: the canvas is at least the requested height, but
+    // grows taller when a column's stack needs more room. Consumers
+    // render the SVG at this height (vertical scroll) or scale it to
+    // fit the viewport (zoom-out) — either way nothing clips.
+    const contentHeight = Math.max(height, maxStackY + COLUMN_PADDING_BOTTOM);
 
     // Build a quick lookup for link endpoints.
     const nodeById = new Map(laidNodes.map((n) => [n.id, n]));
@@ -357,7 +371,7 @@ export function computeSankeyLayout(
 
     return {
         width,
-        height,
+        height: contentHeight,
         nodes: laidNodes,
         links: laidLinks,
         columns: dataset.columns.map((c, i) => ({ ...c, x: colXs[i] })),

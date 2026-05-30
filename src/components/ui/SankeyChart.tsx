@@ -32,6 +32,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { cn } from '@dub/utils';
 import Link from 'next/link';
 import { cardVariants } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { type ChartSeriesIndex } from '@/components/ui/charts';
 import { useKeyboardShortcut } from '@/lib/hooks/use-keyboard-shortcut';
 import {
@@ -126,6 +127,14 @@ export function SankeyChart({
     const [pinnedId, setPinnedId] = useState<string | null>(null);
     const activeId = hoveredId ?? pinnedId;
 
+    // Fit-to-view (zoom-out) toggle. Default OFF = the canvas renders
+    // at full height and the container scrolls — every node is reachable
+    // and reads at a legible size. ON = the whole diagram is scaled to
+    // fit the viewport so you can see ALL controls/risks/assets at once
+    // (smaller, overview). Combined with the fit-to-content layout
+    // (`computeSankeyLayout` grows the height), nothing ever clips.
+    const [fitToView, setFitToView] = useState(false);
+
     // ESC unpins for keyboard users. Routed through
     // `useKeyboardShortcut` (the canonical shared registry) instead
     // of a raw `window.addEventListener` — the project's
@@ -193,54 +202,77 @@ export function SankeyChart({
             data-sankey-node-count={layout.nodes.length}
             data-sankey-link-count={layout.links.length}
             data-sankey-pinned-id={pinnedId ?? undefined}
-            className={cn(
-                cardVariants({ density: 'none' }),
-                'p-2 overflow-x-auto',
-                className,
-            )}
+            data-sankey-fit={fitToView ? 'true' : undefined}
+            className={cn(cardVariants({ density: 'none' }), 'px-2 py-2', className)}
         >
-            {/* Plain column header (restored pre-#536): each column's
-                kind label + node count, with a small flat colour swatch
-                matching the bars. Reads as a quiet caption, not a
-                separate colour vocabulary. */}
-            <div
-                data-sankey-legend="true"
-                className="mb-2 grid gap-tight px-2"
-                style={{
-                    gridTemplateColumns: `repeat(${layout.columns.length}, minmax(0, 1fr))`,
-                }}
-            >
-                {layout.columns.map((c) => (
-                    <div
-                        key={c.kind}
-                        className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-content-subtle"
-                    >
-                        <span
-                            aria-hidden
-                            className="inline-block size-2.5 shrink-0 rounded-[2px]"
-                            style={{ backgroundColor: kindColor(c.kind) }}
-                        />
-                        <span className="truncate">{c.label}</span>
-                        <span className="text-content-muted tabular-nums">
-                            ({c.count})
-                        </span>
-                    </div>
-                ))}
+            {/* Toolbar: zoom-out / fit-to-view toggle. */}
+            <div className="mb-2 flex items-center justify-between gap-compact px-2">
+                {/* Plain column header (restored pre-#536): each column's
+                    kind label + node count, with a small flat colour swatch
+                    matching the bars. Reads as a quiet caption, not a
+                    separate colour vocabulary. */}
+                <div
+                    data-sankey-legend="true"
+                    className="grid flex-1 gap-tight"
+                    style={{
+                        gridTemplateColumns: `repeat(${layout.columns.length}, minmax(0, 1fr))`,
+                    }}
+                >
+                    {layout.columns.map((c) => (
+                        <div
+                            key={c.kind}
+                            className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-content-subtle"
+                        >
+                            <span
+                                aria-hidden
+                                className="inline-block size-2.5 shrink-0 rounded-[2px]"
+                                style={{ backgroundColor: kindColor(c.kind) }}
+                            />
+                            <span className="truncate">{c.label}</span>
+                            <span className="text-content-muted tabular-nums">
+                                ({c.count})
+                            </span>
+                        </div>
+                    ))}
+                </div>
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setFitToView((v) => !v)}
+                    id="sankey-fit-toggle"
+                    aria-pressed={fitToView}
+                >
+                    {fitToView ? 'Actual size' : 'Fit to view'}
+                </Button>
             </div>
 
-            <svg
-                role="img"
-                aria-label="Cross-tier traceability flow (Sankey)"
-                viewBox={`0 0 ${layout.width} ${layout.height}`}
-                className="w-full"
-                style={{ minHeight: 320 }}
-                onClick={(e) => {
-                    // Click on empty SVG canvas (not a node) unpins.
-                    if (e.target === e.currentTarget && pinnedId) {
-                        setPinnedId(null);
-                    }
-                }}
+            {/* Scroll container — when the canvas grows past the
+                viewport (many nodes) you scroll to reach them; in
+                fit-to-view mode the SVG is scaled to fit instead. */}
+            <div
+                data-sankey-scroll="true"
+                className="overflow-auto"
+                style={{ maxHeight: '76vh' }}
             >
+                <svg
+                    role="img"
+                    aria-label="Cross-tier traceability flow (Sankey)"
+                    viewBox={`0 0 ${layout.width} ${layout.height}`}
+                    preserveAspectRatio="xMidYMid meet"
+                    className={fitToView ? 'mx-auto block' : 'w-full'}
+                    style={
+                        fitToView
+                            ? { height: '72vh', maxWidth: '100%' }
+                            : { minHeight: 320 }
+                    }
+                    onClick={(e) => {
+                        // Click on empty SVG canvas (not a node) unpins.
+                        if (e.target === e.currentTarget && pinnedId) {
+                            setPinnedId(null);
+                        }
+                    }}
+                >
                 {/* Links painted first so node bars sit on top. */}
                 <g data-sankey-layer="links">
                     {layout.links.map((link) => (
@@ -274,6 +306,7 @@ export function SankeyChart({
                     ))}
                 </g>
             </svg>
+            </div>
         </div>
     );
 }

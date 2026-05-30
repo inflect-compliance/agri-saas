@@ -240,6 +240,36 @@ describe('computeSankeyLayout — node sizing', () => {
         // canvas the difference is comfortable.
         expect(a1!.height).toBeGreaterThan(a2!.height);
     });
+
+    it('grows the canvas height to fit a busy column (fit-to-content, no clip)', () => {
+        // 40 assets all flowing into one risk. At the 8px node floor +
+        // 8px gaps the column stacks well past a 480px canvas; the
+        // layout must report a height tall enough to contain it so the
+        // SVG viewBox does not silently clip the lower nodes.
+        const assets = Array.from({ length: 40 }, (_, i) => n(`a${i}`, 'asset'));
+        const edges = assets.map((a, i) => e(`e${i}`, a.id, 'r1', 'exposes'));
+        const g = graph([...assets, n('r1', 'risk')], edges);
+        const ds = buildSankeyDataset(g);
+        const lay = computeSankeyLayout(ds, { width: 800, height: 480 });
+
+        // Canvas grew well beyond the requested 480.
+        expect(lay.height).toBeGreaterThan(480);
+        // Every node sits fully within the reported height (nothing
+        // clipped below the canvas).
+        for (const node of lay.nodes) {
+            expect(node.y + node.height).toBeLessThanOrEqual(lay.height);
+        }
+    });
+
+    it('keeps the requested height when everything already fits', () => {
+        const g = graph(
+            [n('a1', 'asset'), n('r1', 'risk')],
+            [e('e1', 'a1', 'r1', 'exposes')],
+        );
+        const ds = buildSankeyDataset(g);
+        const lay = computeSankeyLayout(ds, { width: 800, height: 480 });
+        expect(lay.height).toBe(480);
+    });
 });
 
 // ─── Layout — links ────────────────────────────────────────────────────
