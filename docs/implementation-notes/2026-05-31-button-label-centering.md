@@ -1,5 +1,13 @@
 # 2026-05-31 — Button label centering (guarded)
 
+> **Superseded same day** by
+> `2026-05-31-button-clean-fill-centering.md`. The balance-ghost
+> mechanism described below was reverted on user feedback: the buttons
+> still read as untidy because the iridescent `::after` was filling the
+> whole button (a separate mask-shorthand bug), and the user wanted the
+> `+ word` UNIT centred rather than the label alone. The follow-up
+> fixes the mask and centres the whole content unit (no ghosts).
+
 **Commit:** `<sha> fix(ui): center button labels + balance ghost for trailing content`
 
 ## Design

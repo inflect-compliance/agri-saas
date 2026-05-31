@@ -215,7 +215,7 @@ like a cousin of a focused button.
 
 | | What lands | Where it lives |
 |---|---|---|
-| Iridescent edge | A 1px brand→secondary gradient stroke on `primary`'s `::after`, painted via the canonical mask-composite recipe. Always visible — iridescence is a material property, not a state. | `iridescentEdge` recipe in `button-variants.ts` |
+| Iridescent edge | A 1px brand→secondary gradient stroke on `primary`'s `::after`, clipped via the mask-composite recipe. Always visible — iridescence is a material property, not a state. **2026-05-31:** the recipe was rewritten from the `mask` SHORTHAND to LONGHANDS (`mask-image` + `mask-clip`) — the shorthand silently reset `mask-composite` to `add`, so the gradient was filling the whole button (orange→navy wash + washed-out label) instead of a 1px ring. | `iridescentEdge` recipe in `button-variants.ts` |
 | Aura wash | A brand-tinted (primary) / cool-neutral (secondary) halo on hover, painted via `::after`'s box-shadow. Routed through `hover:after:shadow-*` so the motion-language ratchet's `\bhover:shadow-` regex stays satisfied by design. | `auraPrimary` + `auraNeutral` recipes |
 | Carbon glass | Ghost variant's hover fill drops to 75% + `backdrop-blur-sm` softens what shows through. Frosted-glass on hover. | `ghostGlass` recipe |
 | Airy density | md/lg gain horizontal padding + (lg) gap; per-size letter-spacing replaces R19's flat `tracking-[-0.01em]` baseline (xs/sm open up positive, md/lg tighten — classical small→large typography rule). | `size: { … }` block in the cva config |

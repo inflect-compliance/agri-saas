@@ -79,10 +79,27 @@ describe('R20-PR-B — Liquid edges', () => {
 
         it('uses the mask-composite recipe to clip to a 1px ring', () => {
             const body = recipeBlock('iridescentEdge');
-            // The mask layer pair + composite mode. content-box on
-            // the first layer is what carves out the interior.
+            // 2026-05-31: the mask must be driven by LONGHANDS
+            // (mask-image + mask-clip), NOT the `mask` shorthand. The
+            // shorthand resets mask-composite to its initial `add`, and
+            // Tailwind emitted it after the exclude utility, so the 1px
+            // exclusion was lost and the gradient filled the whole
+            // button. The longhands never touch mask-composite, so
+            // `exclude` survives. content-box on the first layer is
+            // what carves out the interior; border-box on the second
+            // is the full footprint.
             expect(body).toMatch(/after:p-px/);
-            expect(body).toMatch(/after:\[mask:.*content-box.*\]/);
+            // No `mask` SHORTHAND class — it resets composite. (Match
+            // the class form, not prose, so the explanatory comment
+            // above the recipe doesn't trip this.)
+            expect(body).not.toMatch(/"after:\[mask:linear-gradient/);
+            expect(body).toMatch(
+                /after:\[mask-image:linear-gradient\(white,white\),linear-gradient\(white,white\)\]/,
+            );
+            expect(body).toMatch(/after:\[mask-clip:content-box,border-box\]/);
+            expect(body).toMatch(
+                /after:\[-webkit-mask-clip:content-box,border-box\]/,
+            );
             // Modern syntax + Safari prefix both required — Safari
             // hadn't shipped `mask-composite: exclude` at the time
             // of writing.

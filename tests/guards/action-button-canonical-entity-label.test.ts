@@ -7,11 +7,12 @@
  *
  * — i.e. the visible label is JUST the entity noun (`Asset`,
  * `Risk`, `Control`, `Task`, `Vendor`, …). The `+` glyph rides the
- * `icon` slot so the Button primitive's icon-balance ghost
- * (see button.tsx) can centre the icon + label as one optically
- * symmetric unit. A button labelled `Create Asset` + Plus-icon
- * reads visually as "+ Create Asset" — the verb is dead weight
- * once the glyph is doing the work.
+ * `icon` slot so the Button primitive centres the icon + label as
+ * one tidy unit (`[+][Asset]` centred together — see button.tsx;
+ * the old icon-balance ghost was reverted 2026-05-31). A button
+ * labelled `Create Asset` + Plus-icon reads visually as
+ * "+ Create Asset" — the verb is dead weight once the glyph is
+ * doing the work.
  *
  * Previous convention (R22-PR-G era) used verb-prefix labels
  * (`Create Asset` / `New Audit` / `Add Evidence`). 2026-05-28
@@ -25,8 +26,8 @@
  *   2. The seven canonical entity pages (Controls, Risks, Assets,
  *      Tasks, Policies, Vendors, Evidence) all render their
  *      header action button via the `icon={<Plus />}` slot — not
- *      via an inline `+ Entity` literal — so the optical-balance
- *      ghost kicks in.
+ *      via an inline `+ Entity` literal — so the `+` and the noun
+ *      centre together as one tidy unit.
  *
  * Companion: `action-label-vocabulary.test.ts` (the older
  * R22-PR-G ratchet) bans literal `"+ Word"` text in JSX/source.
@@ -118,8 +119,8 @@ describe('Action-button canonical entity label', () => {
                 expect(buttonStart).toBeGreaterThan(-1);
                 expect(buttonEnd).toBeGreaterThan(buttonStart);
                 const buttonBlock = src.slice(buttonStart, buttonEnd);
-                // 1. Plus icon is wired into the icon slot — engages
-                //    the optical-balance ghost in button.tsx.
+                // 1. Plus icon is wired into the icon slot so the `+`
+                //    and the noun centre together as one tidy unit.
                 expect(buttonBlock).toMatch(/icon=\{<Plus \/>\}/);
                 // 2. The label appears as JSX text content. We find
                 //    the closing `>` of the opening <Button …> tag

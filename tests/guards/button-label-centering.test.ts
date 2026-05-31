@@ -2,33 +2,35 @@
  * Button label-centering guardrail (2026-05-31).
  *
  * User report: button-styled controls rendered with their text label
- * off-centre — a control-status trigger with a void on the right, and
- * a primary CTA suspected to drift right. The Button primitive centres
- * its label via `justify-center` and mirrors any unbalanced side
- * weight with an invisible balance ghost on the opposite edge:
+ * off-centre / untidy. The Button primitive centres its WHOLE content
+ * unit `[icon][gap][label]` via `justify-center` + hug-content (no
+ * forced width), so `+ Asset` reads as a tidy centred unit. There are
+ * NO balance ghosts — an earlier ghost approach (which centred the
+ * label alone and padded the opposite edge with an invisible mirror)
+ * was reverted 2026-05-31 on user feedback because it widened buttons
+ * with one-sided blank space.
  *
- *   leading icon   → trailing ghost  (data-icon-balance-ghost)
- *   trailing right → leading ghost   (data-right-balance-ghost)
- *
- * This guard has two parts:
+ * This guard has three parts:
  *
  *   1. PRIMITIVE CONTRACT — locks button.tsx so the centring
- *      mechanism (justify-center + both balance ghosts, correctly
- *      gated) cannot be silently refactored away. Because every
- *      button in the product flows through this one primitive,
- *      locking it here "dynamically centres" all current AND
- *      future buttons.
+ *      mechanism (justify-center, no balance ghosts, label wrapper
+ *      left-aligns only under `shortcut`) cannot be silently
+ *      refactored away. Because every button in the product flows
+ *      through this one primitive, locking it here keeps all current
+ *      AND future buttons centred.
  *
  *   2. CALL-SITE SCAN — no `<Button>` may pass a className that
  *      overrides the centred layout with a label-shifting class
  *      (`justify-start` / `justify-between` / `justify-end` /
  *      `text-left` / `text-right`). tailwind-merge keeps the LAST
  *      conflicting class, so such an override would defeat the
- *      primitive's centring. Documented exceptions live in
- *      ALLOWED_CALLSITE_OVERRIDES.
+ *      primitive's centring. `w-full` menu/list buttons are carved
+ *      out (left-aligned by convention).
  *
- * Behavioural companion (asserts the ghosts actually render per prop
- * shape): tests/rendered/button-label-centering.test.tsx.
+ *   3. CONTROL-STATUS TRIGGER — hugs its content (no fixed-width void).
+ *
+ * Behavioural companion (asserts the DOM mechanism per prop shape):
+ * tests/rendered/button-label-centering.test.tsx.
  *
  * NOTE on select/combobox triggers: the Combobox primitive renders a
  * deliberately LEFT-aligned trigger (value left, chevron right) — the
@@ -61,31 +63,13 @@ describe('Button label centering', () => {
             expect(src).toMatch(/flex items-center justify-center gap-tight whitespace-nowrap/);
         });
 
-        it('trailing icon-balance ghost exists, gated on a leading icon', () => {
-            expect(src).toMatch(/data-icon-balance-ghost/);
-            // Gate: icon present, content present, no shortcut, no right.
-            expect(src).toMatch(
-                /icon\s*&&\s*!loading\s*&&\s*content\s*&&\s*!shortcut\s*&&\s*!right/,
-            );
-        });
-
-        it('leading right-balance ghost exists, gated on trailing right', () => {
-            expect(src).toMatch(/data-right-balance-ghost/);
-            // Gate: right present, content present, no shortcut, no icon.
-            expect(src).toMatch(
-                /right\s*&&\s*!loading\s*&&\s*content\s*&&\s*!shortcut\s*&&\s*!icon/,
-            );
-        });
-
-        it('both balance ghosts are invisible + inert (never in the a11y / hit tree)', () => {
-            // Each ghost <span> carries invisible + pointer-events-none
-            // + aria-hidden. Count the invisible+pointer-events-none
-            // ghost spans — must be at least the two balance ghosts.
-            const ghostSpans = src.match(
-                /aria-hidden="true"\s*\n\s*className="invisible pointer-events-none"/g,
-            );
-            expect(ghostSpans).not.toBeNull();
-            expect(ghostSpans!.length).toBeGreaterThanOrEqual(2);
+        it('renders NO balance ghosts (the content unit is centred as a whole)', () => {
+            // The reverted ghost approach padded the opposite edge with
+            // an invisible icon mirror. The current rule centres the
+            // whole [icon][label] unit, so neither ghost may return —
+            // they reintroduce one-sided blank space.
+            expect(src).not.toMatch(/data-icon-balance-ghost/);
+            expect(src).not.toMatch(/data-right-balance-ghost/);
         });
 
         it('label wrapper only left-aligns under `shortcut` (otherwise centred)', () => {

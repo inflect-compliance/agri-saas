@@ -257,7 +257,25 @@ const iridescentEdge = [
   "after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none",
   "after:p-px",
   "after:bg-[image:var(--btn-iridescent-gradient)]",
-  "after:[mask:linear-gradient(white,white)_content-box,linear-gradient(white,white)]",
+  // 2026-05-31 BUGFIX — the iridescent gradient was filling the WHOLE
+  // button (orange→navy wash + washed-out label) instead of clipping
+  // to a 1px ring. Root cause: the `mask` SHORTHAND resets every mask
+  // sub-property — including `mask-composite` — to its initial `add`.
+  // Tailwind emitted the `after:[mask:…]` shorthand utility AFTER the
+  // `after:[mask-composite:exclude]` utility, so the shorthand's reset
+  // won the cascade → both mask layers ADDed → no 1px exclusion → full
+  // gradient fill on every primary button (verified against the
+  // compiled CSS + a screenshot harness).
+  //
+  // Fix: drive the mask with LONGHANDS (`mask-image` + `mask-clip`)
+  // that never touch `mask-composite`, so `exclude` survives
+  // regardless of utility order. Layer 1 (the gradient) clips to
+  // content-box (inside the 1px `p-px`), layer 2 to border-box (full);
+  // `mask-composite: exclude` XORs them → only the 1px ring paints.
+  "after:[mask-image:linear-gradient(white,white),linear-gradient(white,white)]",
+  "after:[-webkit-mask-image:linear-gradient(white,white),linear-gradient(white,white)]",
+  "after:[mask-clip:content-box,border-box]",
+  "after:[-webkit-mask-clip:content-box,border-box]",
   "after:[-webkit-mask-composite:xor]",
   "after:[mask-composite:exclude]",
   // R20-PR-D — disabled dust-out. The iridescent meniscus is a

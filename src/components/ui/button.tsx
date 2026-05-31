@@ -132,35 +132,28 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={props.disabled || loading}
         {...props}
       >
-        {loading ? <LoadingSpinner className="h-4 w-4" /> : icon ? icon : null}
         {/**
-         * PR — leading balance ghost (the mirror of the trailing
-         * icon-balance ghost below).
+         * Label centering (2026-05-31).
          *
-         * When a button carries trailing content via `right` but NO
-         * leading icon, the prior layout centred [text][gap][right]
-         * as one unit — placing the TEXT left of the button's
-         * geometric centre by half the right+gap width (the same
-         * asymmetry the trailing ghost fixes for leading icons, just
-         * mirrored). A `visibility: hidden` ghost of `right` parked
-         * at the LEADING edge makes the flex group
-         * [ghost][gap][text][gap][right] symmetric around the text.
+         * The button is `justify-center` and hugs its content
+         * (inline-flex, no forced width), so the WHOLE content unit —
+         * `[icon][gap][label]` — is centred as one symmetric group
+         * with equal padding on both sides. A leading `+ Asset`
+         * therefore reads as a tidy centred unit (the `+` counted with
+         * the word), not the word alone centred with the icon hanging
+         * off-centre to the left.
          *
-         * Suppressed when an `icon` is present (the leading edge
-         * already carries weight, so a leading ghost would double it;
-         * an icon+right button is left to its natural flow), when a
-         * `shortcut` is present (the kbd owns the trailing-weight
-         * contract), or when there's no content.
+         * An earlier approach mirrored each side weight with an
+         * invisible "balance ghost" to centre the LABEL (treating a
+         * leading icon as decoration). That was reverted on user
+         * feedback: the ghosts widened the button with one-sided blank
+         * space and the `+ word` unit didn't read as centred. The
+         * simplest correct rule — centre the content unit, no ghosts —
+         * is what ships now. `shortcut` buttons remain the one
+         * intentional exception (label left, kbd right) via the
+         * `flex-1 text-left` wrapper below.
          */}
-        {right && !loading && content && !shortcut && !icon && (
-          <span
-            aria-hidden="true"
-            className="invisible pointer-events-none"
-            data-right-balance-ghost
-          >
-            {right}
-          </span>
-        )}
+        {loading ? <LoadingSpinner className="h-4 w-4" /> : icon ? icon : null}
         {content && (
           <div
             className={cn(
@@ -171,37 +164,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           >
             {content}
           </div>
-        )}
-        {/**
-         * PR-B — icon-balance ghost.
-         *
-         * When a button carries BOTH an icon AND a text label (the
-         * canonical Plus-icon Create pattern), the prior
-         * `justify-center` flex layout centred [icon][gap][text]
-         * as one unit, which placed the TEXT right of the button's
-         * geometric centre by half the icon+gap width. Visible
-         * symptom: a Plus-Create button read off-centre.
-         *
-         * A `visibility: hidden` ghost mirroring the icon sits at
-         * the trailing edge so the flex group becomes
-         * [icon][gap][text][gap][ghost] — symmetric around the
-         * text. The icon stays visible at the leading edge; the
-         * text now sits at the button's geometric centre. Ghost is
-         * `aria-hidden` and `pointer-events-none` so it never
-         * participates in the accessibility tree or hit-testing.
-         *
-         * Suppressed when a `shortcut` is present (the shortcut
-         * kbd carries its own trailing weight) or no `content`
-         * (icon-only buttons don't need balancing).
-         */}
-        {icon && !loading && content && !shortcut && !right && (
-          <span
-            aria-hidden="true"
-            className="invisible pointer-events-none"
-            data-icon-balance-ghost
-          >
-            {icon}
-          </span>
         )}
         {shortcut && (
           <kbd
