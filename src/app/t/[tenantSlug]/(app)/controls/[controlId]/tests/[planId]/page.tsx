@@ -310,7 +310,7 @@ export default function TestPlanDetailPage() {
                 <div className="flex items-center justify-between mb-3">
                     <Heading level={3}>Test Run History</Heading>
                     {permissions.canWrite && plan.status === 'ACTIVE' && (
-                        <Button variant="primary" icon={<Plus />} onClick={createRun} disabled={creatingRun}>
+                        <Button variant="primary" icon={<Plus className="-mr-2.5" />} onClick={createRun} disabled={creatingRun}>
                             {creatingRun ? 'Creating…' : 'New run'}
                         </Button>
                     )}

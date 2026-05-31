@@ -476,15 +476,21 @@ export const buttonVariants = cva(
         // transparent variants. Every button now reads as liquid
         // carbon — solid fills always, transparent fills on hover.
         primary: [
-          // R24-hotfix — `bg-[var(--brand-emphasis)]` (opaque brand
-          // yellow) was painting OVER the page tone, so the glass
-          // backdrop-blur had no transparent base to act on and the
-          // surface read as opaque, not glass. Replaced with the
-          // translucent per-variant fill `--btn-glass-fill-primary`
-          // (brand at 0.55 alpha): brand identity survives, and the
-          // backdrop-blur now actually softens what's behind.
-          "bg-[var(--btn-glass-fill-primary)] text-white",
-          "hover:bg-[var(--brand-default)]",
+          // 2026-05-31 — the action buttons carry an OPAQUE
+          // brand→secondary gradient FILL (`--btn-gradient-primary`):
+          // brand the dominant first ~45%, a cool secondary tail in the
+          // final stretch. This is the deliberate, deterministic
+          // version of the orange→navy look (previously an accident of
+          // the iridescent `::after` flooding the button when its mask
+          // clip failed). Because it is the BACKGROUND (behind the
+          // label), the white text stays crisp — unlike the old
+          // `::after` overlay that washed it out. `bg-[image:…]` paints
+          // the gradient; `text-white` rides on top.
+          "bg-[image:var(--btn-gradient-primary)] text-white",
+          // Hover brightens the whole gradient rather than collapsing
+          // it to a flat brand fill (which would lose the gradient on
+          // hover).
+          "hover:brightness-110",
           ...glassSurface,
           // R20-PR-B — iridescent meniscus always visible (material
           // finish), primary aura halo on hover (warm hover lift).

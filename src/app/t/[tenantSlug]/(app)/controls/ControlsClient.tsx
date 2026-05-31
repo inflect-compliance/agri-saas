@@ -979,7 +979,7 @@ function ControlsPageInner({
                                 </Link>
                                 <Button
                                     variant="primary"
-                                    icon={<Plus />}
+                                    icon={<Plus className="-mr-2.5" />}
                                     id="new-control-btn"
                                     onClick={() => setIsCreateOpen(true)}
                                 >

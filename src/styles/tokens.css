@@ -254,6 +254,15 @@
    * material property, not a motion gimmick. */
   --btn-iridescent-gradient: linear-gradient(135deg, rgba(255, 205, 17, 0.55) 0%, rgba(255, 205, 17, 0.18) 35%, rgba(59, 130, 246, 0.18) 65%, rgba(59, 130, 246, 0.55) 100%);
 
+  /* ── Primary action-button FILL gradient (DARK theme) ───────────────
+   * 2026-05-31. The action buttons carry an OPAQUE brand→secondary
+   * gradient fill (brand the dominant first ~45%, secondary blue in
+   * the final stretch). Distinct from `--btn-iridescent-gradient`
+   * (a low-alpha 1px EDGE finish): this is the solid body fill, so the
+   * white label stays crisp on top. Brand-side opaque keeps the
+   * button reading as the primary CTA; the cool tail adds depth. */
+  --btn-gradient-primary: linear-gradient(135deg, var(--brand-default) 0%, var(--brand-default) 45%, #3b82f6 100%);
+
   /* ── R20 aura wash (DARK theme) ─────────────────────────────────────
    * The soft brand-tinted halo a primary button casts on hover, as a
    * pre-composed multi-stop box-shadow string. THREE stops: a 1px
@@ -719,6 +728,13 @@
    * than the same on dark, so the iridescent edge holds its
    * presence without becoming a hard outline. */
   --btn-iridescent-gradient: linear-gradient(135deg, rgba(208, 74, 2, 0.60) 0%, rgba(208, 74, 2, 0.18) 35%, rgba(30, 58, 138, 0.18) 65%, rgba(30, 58, 138, 0.60) 100%);
+
+  /* ── Primary action-button FILL gradient (LIGHT theme) ──────────────
+   * Opaque brand orange → secondary navy (#1e3a8a). Brand dominant in
+   * the first 45%, navy tail in the final stretch. See the dark-theme
+   * token above for the rationale (solid body fill, crisp white label,
+   * distinct from the 1px iridescent EDGE). */
+  --btn-gradient-primary: linear-gradient(135deg, var(--brand-default) 0%, var(--brand-default) 45%, #1e3a8a 100%);
 
   /* ── R20 aura wash (LIGHT theme) ───────────────────────────────────
    * Brand orange for primary; warm-neutral for secondary. Outer

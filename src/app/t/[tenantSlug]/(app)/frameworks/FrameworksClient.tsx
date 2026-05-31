@@ -196,7 +196,7 @@ export function FrameworksClient({
                             <Button
                                 variant="primary"
                                 size="sm"
-                                icon={<Plus />}
+                                icon={<Plus className="-mr-2.5" />}
                                 id="import-framework-btn"
                                 data-testid="import-framework-btn"
                             >

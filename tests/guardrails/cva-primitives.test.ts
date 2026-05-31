@@ -46,9 +46,12 @@ describe('Button primitive', () => {
     });
 
     it('uses semantic tokens for primary variant', () => {
-        // Primary button uses CSS variable-based brand colors for theme compatibility
-        expect(variantsSrc).toMatch(/--brand-emphasis/);
-        expect(variantsSrc).toMatch(/--brand-default/);
+        // Primary button uses CSS variable-based brand colors for theme
+        // compatibility. 2026-05-31: the fill is the brand→secondary
+        // gradient token `--btn-gradient-primary` (theme-aware, defined
+        // from `--brand-default` in tokens.css), replacing the prior
+        // flat `--btn-glass-fill-primary` + `--brand-default` hover.
+        expect(variantsSrc).toMatch(/--btn-gradient-primary/);
     });
 
     it('uses semantic tokens for secondary variant', () => {

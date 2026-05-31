@@ -120,8 +120,11 @@ describe('Action-button canonical entity label', () => {
                 expect(buttonEnd).toBeGreaterThan(buttonStart);
                 const buttonBlock = src.slice(buttonStart, buttonEnd);
                 // 1. Plus icon is wired into the icon slot so the `+`
-                //    and the noun centre together as one tidy unit.
-                expect(buttonBlock).toMatch(/icon=\{<Plus \/>\}/);
+                //    and the noun read as one tidy `+Noun` unit. (The
+                //    Plus carries a small negative margin — `-mr-…` —
+                //    so it concatenates flush to the label per the
+                //    2026-05-31 "+Asset" directive.)
+                expect(buttonBlock).toMatch(/icon=\{<Plus(\s+className="[^"]*")?\s*\/>\}/);
                 // 2. The label appears as JSX text content. We find
                 //    the closing `>` of the opening <Button …> tag
                 //    (NOT the self-closing `/>` from <Plus />) and

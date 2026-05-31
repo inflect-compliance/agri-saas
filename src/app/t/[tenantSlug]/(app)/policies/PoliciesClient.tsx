@@ -425,7 +425,7 @@ function PoliciesPageInner({
                         </Link>
                         <Button
                             variant="primary"
-                            icon={<Plus />}
+                            icon={<Plus className="-mr-2.5" />}
                             onClick={() => {
                                 setCreateTemplateMode(false);
                                 setIsCreateOpen(true);

@@ -777,7 +777,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                             </Button>
                             <Button
                                 variant="primary"
-                                icon={<Plus />}
+                                icon={<Plus className="-mr-2.5" />}
                                 onClick={() => setShowTextForm(true)}
                                 id="add-text-evidence-btn"
                             >

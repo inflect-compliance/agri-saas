@@ -169,7 +169,7 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
                         >
                             Clauses
                         </Link>
-                        <Button variant="primary" icon={<Plus />} onClick={() => setIsCreateOpen(true)} id="new-audit-btn">{t.newAudit}</Button>
+                        <Button variant="primary" icon={<Plus className="-mr-2.5" />} onClick={() => setIsCreateOpen(true)} id="new-audit-btn">{t.newAudit}</Button>
                     </div>
                 }
             />

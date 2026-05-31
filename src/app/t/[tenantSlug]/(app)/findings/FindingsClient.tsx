@@ -242,7 +242,7 @@ export function FindingsClient({ initialFindings, tenantSlug, translations: t }:
                     title={t.title}
                     description={t.listDescription || undefined}
                     actions={
-                        <Button variant="primary" icon={<Plus />} onClick={() => setShowForm(!showForm)}>{t.newFinding}</Button>
+                        <Button variant="primary" icon={<Plus className="-mr-2.5" />} onClick={() => setShowForm(!showForm)}>{t.newFinding}</Button>
                     }
                 />
             </ListPageShell.Header>

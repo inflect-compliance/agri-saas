@@ -287,7 +287,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                     </div>
                     <div className="flex gap-tight">
                         <Link href={tenantHref('/coverage')} className={buttonVariants({ variant: 'secondary' })}>Coverage</Link>
-                        <Button variant="primary" icon={<Plus />} onClick={() => setIsCreateOpen(true)} id="new-asset-btn">{t.addAsset}</Button>
+                        <Button variant="primary" icon={<Plus className="-mr-2.5" />} onClick={() => setIsCreateOpen(true)} id="new-asset-btn">{t.addAsset}</Button>
                     </div>
                 </div>
             </ListPageShell.Header>

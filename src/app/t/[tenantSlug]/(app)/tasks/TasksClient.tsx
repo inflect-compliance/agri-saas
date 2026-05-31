@@ -494,7 +494,7 @@ function TasksPageInner({
                         {appPermissions.tasks.create && (
                             <Button
                                 variant="primary"
-                                icon={<Plus />}
+                                icon={<Plus className="-mr-2.5" />}
                                 onClick={() => setIsCreateOpen(true)}
                                 id="new-task-btn"
                             >

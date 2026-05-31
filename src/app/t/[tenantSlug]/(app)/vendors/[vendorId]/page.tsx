@@ -521,7 +521,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                                         ))}
                                 </datalist>
                             </div>
-                            <Button type="submit" variant="primary" icon={<Plus />} id="submit-doc-btn">Add document</Button>
+                            <Button type="submit" variant="primary" icon={<Plus className="-mr-2.5" />} id="submit-doc-btn">Add document</Button>
                         </form>
                     )}
                     {/* B4 — apply the search + type filters in-memory.
