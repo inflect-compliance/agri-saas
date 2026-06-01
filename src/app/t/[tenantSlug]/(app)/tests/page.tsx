@@ -5,22 +5,22 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { formatDate } from '@/lib/format-date';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { textLinkVariants } from '@/components/ui/typography';
-import { DataTable, createColumns } from '@/components/ui/table';
+import { DataTable, createColumns, useColumnsDropdown } from '@/components/ui/table';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { useRouter } from 'next/navigation';
-import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { buttonVariants } from '@/components/ui/button-variants';
-import { ToggleGroup } from '@/components/ui/toggle-group';
+import { FilterProvider, useFilterContext, useFilters } from '@/components/ui/filter';
+import { FilterToolbar } from '@/components/filters/FilterToolbar';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { KPIStat } from '@/components/ui/metric';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { cardVariants } from '@/components/ui/card';
 import { AppIcon } from '@/components/icons/AppIcon';
-import { cn } from '@dub/utils';
+import { buildTestFilters, TEST_FILTER_KEYS } from './filter-defs';
 
 interface TestPlanSummary {
     id: string;
@@ -58,16 +58,35 @@ const PLAN_STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     ARCHIVED: 'neutral',
 };
 
+const isOverdue = (d: string | null) => {
+    if (!d) return false;
+    return new Date(d) < new Date();
+};
+
+const getLastResult = (plan: TestPlanSummary) => {
+    if (!plan.runs || plan.runs.length === 0) return null;
+    return plan.runs[0]?.result;
+};
+
 export default function TestsRollupPage() {
+    // Filter state lives in the URL-synced filter context; the page
+    // filters its in-memory plan list off `state` + `search`.
+    const filterCtx = useFilterContext([], TEST_FILTER_KEYS, {});
+    return (
+        <FilterProvider value={filterCtx}>
+            <TestsRollupContent />
+        </FilterProvider>
+    );
+}
+
+function TestsRollupContent() {
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const router = useRouter();
-    const { permissions } = useTenantContext();
-    void permissions;
+    const { state, search, hasActive } = useFilters();
 
     const [plans, setPlans] = useState<TestPlanSummary[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'due' | 'failed' | 'passed'>('all');
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -82,26 +101,111 @@ export default function TestsRollupPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    const isOverdue = (d: string | null) => {
-        if (!d) return false;
-        return new Date(d) < new Date();
-    };
-
-    const getLastResult = (plan: TestPlanSummary) => {
-        if (!plan.runs || plan.runs.length === 0) return null;
-        return plan.runs[0]?.result;
-    };
-
-    const filteredPlans = plans.filter(p => {
-        if (filter === 'due') return p.nextDueAt && isOverdue(p.nextDueAt);
-        if (filter === 'failed') return getLastResult(p) === 'FAIL';
-        if (filter === 'passed') return getLastResult(p) === 'PASS';
-        return true;
+    // ── Column-visibility gear (Epic 52/R10) ──
+    const {
+        columnVisibility,
+        setColumnVisibility,
+        dropdown: columnsDropdown,
+    } = useColumnsDropdown({
+        storageKey: 'inflect:col-vis:tests',
+        columns: [
+            { id: 'name', label: 'Name' },
+            { id: 'status', label: 'Status' },
+            { id: 'control', label: 'Control' },
+            { id: 'frequency', label: 'Frequency' },
+            { id: 'nextDue', label: 'Next Due' },
+            { id: 'lastResult', label: 'Last Result' },
+            { id: 'runs', label: 'Runs' },
+        ],
     });
 
-    // Stats
-    const duePlans = plans.filter(p => p.nextDueAt && isOverdue(p.nextDueAt));
-    const failedPlans = plans.filter(p => getLastResult(p) === 'FAIL');
+    const liveFilters = useMemo(() => buildTestFilters(), []);
+
+    // ── Client-side filtering from the filter context ──
+    const filteredPlans = useMemo(() => {
+        const statusSel = state.status ?? [];
+        const resultSel = state.result ?? [];
+        const freqSel = state.frequency ?? [];
+        const dueSel = state.due ?? [];
+        const q = search.trim().toLowerCase();
+        return plans.filter((p) => {
+            if (statusSel.length && !statusSel.includes(p.status)) return false;
+            const result = getLastResult(p) ?? 'NONE';
+            if (resultSel.length && !resultSel.includes(result)) return false;
+            if (freqSel.length && !freqSel.includes(p.frequency)) return false;
+            if (
+                dueSel.includes('overdue') &&
+                !(p.nextDueAt && isOverdue(p.nextDueAt))
+            ) {
+                return false;
+            }
+            if (q && !p.name.toLowerCase().includes(q)) return false;
+            return true;
+        });
+    }, [plans, state, search]);
+
+    // Stats (display-only headline figures).
+    const dueCount = plans.filter((p) => p.nextDueAt && isOverdue(p.nextDueAt)).length;
+    const failedCount = plans.filter((p) => getLastResult(p) === 'FAIL').length;
+    const passedCount = plans.filter((p) => getLastResult(p) === 'PASS').length;
+
+    const planColumns = useMemo(
+        () =>
+            createColumns<TestPlanSummary>([
+                {
+                    id: 'name', header: 'Name', accessorKey: 'name',
+                    cell: ({ row }) => (
+                        <Link
+                            href={tenantHref(`/controls/${row.original.control.id}/tests/${row.original.id}`)}
+                            className="text-content-emphasis font-medium hover:text-[var(--brand-default)] transition"
+                        >
+                            {row.original.name}
+                        </Link>
+                    ),
+                },
+                {
+                    id: 'status', header: 'Status', accessorKey: 'status',
+                    cell: ({ row }) => (
+                        <StatusBadge variant={PLAN_STATUS_BADGE[row.original.status] ?? 'neutral'} size="sm">
+                            {row.original.status}
+                        </StatusBadge>
+                    ),
+                },
+                {
+                    id: 'control', header: 'Control', accessorFn: (p) => p.control?.code || p.control?.name || '—',
+                    cell: ({ row }) => (
+                        <Link href={tenantHref(`/controls/${row.original.control.id}`)} className="text-content-muted hover:text-content-emphasis text-xs transition">
+                            {row.original.control?.code || row.original.control?.name || '—'}
+                        </Link>
+                    ),
+                },
+                { id: 'frequency', header: 'Frequency', accessorFn: (p) => FREQ_LABELS[p.frequency] || p.frequency },
+                {
+                    id: 'nextDue', header: 'Next Due', accessorKey: 'nextDueAt',
+                    cell: ({ row }) => row.original.nextDueAt ? (
+                        <span className={isOverdue(row.original.nextDueAt) ? 'text-content-error font-semibold' : 'text-content-muted'}>
+                            {formatDate(row.original.nextDueAt)}
+                        </span>
+                    ) : <span className="text-content-subtle">—</span>,
+                },
+                {
+                    id: 'lastResult', header: 'Last Result',
+                    accessorFn: (p) => getLastResult(p) || '',
+                    cell: ({ row }) => {
+                        const result = getLastResult(row.original);
+                        return result ? (
+                            <StatusBadge variant={RESULT_BADGE[result] || 'neutral'} size="sm">{result}</StatusBadge>
+                        ) : <span className="text-content-subtle text-xs">No runs</span>;
+                    },
+                },
+                {
+                    id: 'runs', header: 'Runs',
+                    accessorFn: (p) => p._count?.runs ?? 0,
+                    cell: ({ getValue }) => <span className="text-content-subtle">{getValue() as number}</span>,
+                },
+            ]),
+        [tenantHref],
+    );
 
     if (loading) return <div className="p-12 text-center text-content-subtle animate-pulse">Loading tests overview...</div>;
 
@@ -138,136 +242,58 @@ export default function TestsRollupPage() {
             </ListPageShell.Header>
 
             <ListPageShell.Filters className="space-y-section">
-                {/* Stats — Polish PR-2: KPIStat primitive. */}
+                {/* Headline stats (display-only). */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
-                <div className={cn(cardVariants({ density: 'compact' }), 'cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition-colors duration-150 ease-out')} onClick={() => setFilter('all')}>
-                    <KPIStat value={plans.length} label="Total Plans" />
+                    <div className={cardVariants({ density: 'compact' })}>
+                        <KPIStat value={plans.length} label="Total Plans" />
+                    </div>
+                    <div className={cardVariants({ density: 'compact' })}>
+                        <KPIStat value={dueCount} label="Overdue" tone={dueCount > 0 ? 'critical' : 'success'} />
+                    </div>
+                    <div className={cardVariants({ density: 'compact' })}>
+                        <KPIStat value={failedCount} label="Last Failed" tone={failedCount > 0 ? 'critical' : 'success'} />
+                    </div>
+                    <div className={cardVariants({ density: 'compact' })}>
+                        <KPIStat value={passedCount} label="Last Passed" tone="success" />
+                    </div>
                 </div>
-                <div className={cn(cardVariants({ density: 'compact' }), 'cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition-colors duration-150 ease-out')} onClick={() => setFilter('due')}>
-                    <KPIStat value={duePlans.length} label="Overdue" tone={duePlans.length > 0 ? 'critical' : 'success'} />
-                </div>
-                <div className={cn(cardVariants({ density: 'compact' }), 'cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition-colors duration-150 ease-out')} onClick={() => setFilter('failed')}>
-                    <KPIStat value={failedPlans.length} label="Last Failed" tone={failedPlans.length > 0 ? 'critical' : 'success'} />
-                </div>
-                <div className={cn(cardVariants({ density: 'compact' }), 'cursor-pointer hover:ring-1 hover:ring-[color:var(--ring)] transition-colors duration-150 ease-out')} onClick={() => setFilter('passed')}>
-                    <KPIStat value={plans.filter(p => getLastResult(p) === 'PASS').length} label="Last Passed" tone="success" />
-                </div>
-            </div>
 
-                {/* Filter Toggle — Epic 60: ToggleGroup size="sm" for a
-                    compact radiogroup with keyboard arrow nav. */}
-                <ToggleGroup
-                    size="sm"
-                    ariaLabel="Test plan filter"
-                    options={[
-                        { value: 'all', label: 'All' },
-                        { value: 'due', label: 'Overdue' },
-                        { value: 'failed', label: 'Failed' },
-                    ]}
-                    selected={filter}
-                    selectAction={(v) => setFilter(v as 'all' | 'due' | 'failed')}
+                {/* Filter bar (Status / Last Result / Frequency / Due) +
+                    live content search + column-visibility gear. Replaces
+                    the old All/Overdue/Failed toggle blade. */}
+                <FilterToolbar
+                    filters={liveFilters}
+                    searchId="tests-search"
+                    searchPlaceholder="Search test plans…"
+                    actions={columnsDropdown}
                 />
             </ListPageShell.Filters>
 
             <ListPageShell.Body>
-                {/* Plans Table */}
-                {(() => {
-                const planColumns = createColumns<TestPlanSummary>([
-                    {
-                        // PR-B — Name column. Pre-PR-B this column
-                        // also rendered a stacked Status badge under
-                        // the link; that made the row taller than
-                        // any other list page AND made the table
-                        // hard to scan. Status is now its own column
-                        // immediately to the right (see below).
-                        id: 'name', header: 'Name', accessorKey: 'name',
-                        cell: ({ row }) => (
-                            <Link
-                                href={tenantHref(`/controls/${row.original.control.id}/tests/${row.original.id}`)}
-                                className="text-content-emphasis font-medium hover:text-[var(--brand-default)] transition"
-                            >
-                                {row.original.name}
-                            </Link>
-                        ),
-                    },
-                    {
-                        // PR-B — Status as its own column, positioned
-                        // immediately after Name to match the layout
-                        // every other list page uses (Controls,
-                        // Risks, Evidence — Status is always its own
-                        // cell, never folded into the title cell).
-                        id: 'status', header: 'Status',
-                        accessorKey: 'status',
-                        cell: ({ row }) => (
-                            <StatusBadge variant={PLAN_STATUS_BADGE[row.original.status] ?? 'neutral'} size="sm">
-                                {row.original.status}
-                            </StatusBadge>
-                        ),
-                    },
-                    {
-                        id: 'control', header: 'Control', accessorFn: (p) => p.control?.code || p.control?.name || '—',
-                        cell: ({ row }) => (
-                            <Link href={tenantHref(`/controls/${row.original.control.id}`)} className="text-content-muted hover:text-content-emphasis text-xs transition">
-                                {row.original.control?.code || row.original.control?.name || '—'}
-                            </Link>
-                        ),
-                    },
-                    { id: 'frequency', header: 'Frequency', accessorFn: (p) => FREQ_LABELS[p.frequency] || p.frequency },
-                    {
-                        id: 'nextDue', header: 'Next Due', accessorKey: 'nextDueAt',
-                        cell: ({ row }) => row.original.nextDueAt ? (
-                            <span className={isOverdue(row.original.nextDueAt) ? 'text-content-error font-semibold' : 'text-content-muted'}>
-                                {formatDate(row.original.nextDueAt)}
-                            </span>
-                        ) : <span className="text-content-subtle">—</span>,
-                    },
-                    {
-                        id: 'lastResult', header: 'Last Result',
-                        accessorFn: (p) => getLastResult(p) || '',
-                        cell: ({ row }) => {
-                            const result = getLastResult(row.original);
-                            return result ? (
-                                <StatusBadge variant={RESULT_BADGE[result] || 'neutral'} size="sm">{result}</StatusBadge>
-                            ) : <span className="text-content-subtle text-xs">No runs</span>;
-                        },
-                    },
-                    {
-                        id: 'runs', header: 'Runs',
-                        accessorFn: (p) => p._count?.runs ?? 0,
-                        cell: ({ getValue }) => <span className="text-content-subtle">{getValue() as number}</span>,
-                    },
-                    {
-                        id: 'actions', header: '',
-                        cell: ({ row }) => (
-                            <Link href={tenantHref(`/controls/${row.original.control.id}/tests/${row.original.id}`)} className={`${textLinkVariants({ tone: 'link' })} text-xs`}>
-                                View →
-                            </Link>
-                        ),
-                    },
-                ]);
-                return (
-                    <DataTable
-                        fillBody
-                        data={filteredPlans}
-                        columns={planColumns}
-                        getRowId={(p) => p.id}
-                        emptyState={filter === 'all' ? 'No test plans found. Create test plans from the Control detail page.' : `No ${filter === 'due' ? 'overdue' : 'failed'} test plans.`}
-                        resourceName={(p) => p ? 'test plans' : 'test plan'}
-                        data-testid="tests-rollup-table"
-                        // Row hover band + brand left-band (and double-click
-                        // → open the plan), matching every other list table.
-                        // The band is gated on the row being clickable, so it
-                        // only appears once onRowClick is wired.
-                        onRowClick={(row) =>
-                            router.push(
-                                tenantHref(
-                                    `/controls/${row.original.control.id}/tests/${row.original.id}`,
-                                ),
-                            )
-                        }
-                    />
-                );
-            })()}
+                <DataTable
+                    fillBody
+                    data={filteredPlans}
+                    columns={planColumns}
+                    getRowId={(p) => p.id}
+                    columnVisibility={columnVisibility}
+                    onColumnVisibilityChange={setColumnVisibility}
+                    emptyState={
+                        hasActive
+                            ? 'No test plans match your filters.'
+                            : 'No test plans found. Create test plans from the Control detail page.'
+                    }
+                    resourceName={(p) => p ? 'test plans' : 'test plan'}
+                    data-testid="tests-rollup-table"
+                    // Row hover band + brand left-band (and double-click →
+                    // open the plan), matching every other list table.
+                    onRowClick={(row) =>
+                        router.push(
+                            tenantHref(
+                                `/controls/${row.original.control.id}/tests/${row.original.id}`,
+                            ),
+                        )
+                    }
+                />
             </ListPageShell.Body>
         </ListPageShell>
     );

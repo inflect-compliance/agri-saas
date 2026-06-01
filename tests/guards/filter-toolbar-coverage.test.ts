@@ -128,8 +128,8 @@ const EXEMPTIONS: Record<string, string> = {
     // ── Tests / planning surfaces ──
     "src/app/t/[tenantSlug]/(app)/tests/due/page.tsx":
         "Due-tests planning surface — fixed scope (tests due in the next window) with one tab selector.",
-    "src/app/t/[tenantSlug]/(app)/tests/page.tsx":
-        "Tests landing — multiple sub-tables driven by tab + tenant scope, not faceted filters.",
+    // tests/page.tsx now carries a real FilterToolbar (Status / Last
+    // Result / Frequency / Due + search), so it is no longer exempt.
 };
 
 function isExempt(rel: string): boolean {

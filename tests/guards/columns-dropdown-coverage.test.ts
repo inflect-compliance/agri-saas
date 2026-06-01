@@ -82,8 +82,6 @@ const EXEMPTIONS: Record<string, string> = {
         '(b) reports landing — composite of discrete report tiles, not a single entity list.',
     'tests/due/page.tsx':
         '(b) due-tests planning surface — fixed scope with tab selector.',
-    'tests/page.tsx':
-        '(b) tests landing — multiple sub-tables driven by tab + scope.',
     'controls/templates/page.tsx':
         '(b) control-template catalogue — small fixed catalogue browsed by section.',
     'risks/import/page.tsx':
