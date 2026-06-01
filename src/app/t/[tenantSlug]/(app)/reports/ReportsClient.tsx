@@ -146,7 +146,7 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                                         <PdfExportButton
                                             tenantSlug={tenantSlug}
                                             reportType="AUDIT_READINESS"
-                                            label="Audit Readiness PDF"
+                                            label="Audit Readiness"
                                             allowSave={canEdit}
                                         />
                                     </UpgradeGate>
@@ -154,7 +154,7 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                                         <PdfExportButton
                                             tenantSlug={tenantSlug}
                                             reportType="GAP_ANALYSIS"
-                                            label="Gap Analysis PDF"
+                                            label="Gap Analysis"
                                             allowSave={canEdit}
                                         />
                                     </UpgradeGate>
@@ -166,7 +166,7 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                                         <PdfExportButton
                                             tenantSlug={tenantSlug}
                                             reportType="RISK_REGISTER"
-                                            label="Risk Register PDF"
+                                            label="Risk Register"
                                             allowSave={canEdit}
                                         />
                                     </UpgradeGate>
