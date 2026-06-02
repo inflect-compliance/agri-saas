@@ -29,6 +29,12 @@ describe('isPublicPath', () => {
         ['/logo.png', true],
         ['/fonts/inter.woff2', true],
         ['/icon.svg', true],
+        // Invite acceptance must be reachable by signed-out users.
+        ['/invite/abc123', true],
+        ['/invite/org/abc123', true],
+        ['/api/invites/abc123/start-signin', true],
+        ['/api/org/invite/abc123/start-signin', true],
+        ['/api/org/invite/abc123/accept-redirect', true],
     ])('"%s" → %s (public)', (path, expected) => {
         expect(isPublicPath(path)).toBe(expected);
     });
@@ -43,6 +49,11 @@ describe('isPublicPath', () => {
         ['/', false],
         ['/t/acme/dashboard', false],
         ['/api/t/acme/risks', false],
+        // Org invite *management* (create/list/revoke) is admin-only and
+        // must NOT be caught by the public `/api/org/invite/` carve-out —
+        // it lives under `/api/org/<slug>/invites/` (plural, slug-scoped).
+        ['/api/org/acme/invites', false],
+        ['/api/org/acme/invites/inv_123', false],
     ])('"%s" → %s (protected)', (path, expected) => {
         expect(isPublicPath(path)).toBe(expected);
     });

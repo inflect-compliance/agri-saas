@@ -14,9 +14,10 @@ const PUBLIC_PATH_PREFIXES = [
     '/reset-password',   // Password-reset confirm page — reached from an emailed token link
     '/no-tenant',        // Landing page for uninvited users — must not gate-loop
     '/tenants',          // R-1: tenant picker — must be reachable before active-tenant is set
-    '/invite/',          // Invite preview page — public so unauthenticated users can see invite details
+    '/invite/',          // Invite preview page (tenant + org) — public so unauthenticated users can see invite details
     '/api/auth',         // Auth.js callbacks, session, csrf, providers
-    '/api/invites/',     // Invite redemption API (public) + start-signin cookie setter
+    '/api/invites/',     // Tenant invite redemption API (public) + start-signin cookie setter
+    '/api/org/invite/',  // Org invite API (public) — start-signin cookie setter + accept-redirect, mirrors /api/invites/
     '/api/health',       // Health check (no auth) — deprecated alias
     '/api/livez',        // Liveness probe (no auth)
     '/api/readyz',       // Readiness probe (no auth)
