@@ -47,7 +47,9 @@ const ROOT = path.resolve(__dirname, '../..');
 // explicitly contemplates: "if a test was legitimately merged
 // or renamed, account for it." The floor will resume its
 // upward-only ratchet from 134 on the next addition.
-const RENDERED_TEST_FLOOR = 134;
+// Raised 134 → 143 (2026-06-03): button icon-as-child row test +
+// accumulated rendered-test gains since the last bump.
+const RENDERED_TEST_FLOOR = 143;
 const E2E_SPEC_FLOOR = 36;
 const REGISTRY_FLOOR = 5;
 

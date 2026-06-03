@@ -70,6 +70,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
               <div
                 className={cn(
                   "min-w-0 truncate",
+                  // Icons passed as CHILDREN (e.g. <Button><Mail/>Invite</Button>
+                  // or a brand <svg>) land in this label div. Tailwind's
+                  // preflight makes `svg { display: block }`, which stacks
+                  // the icon ABOVE the text on its own row. Force any direct
+                  // svg child inline so icon + text share one row, vertically
+                  // centred, with a small gap to whichever side the text is on.
+                  // The canonical `icon` prop renders OUTSIDE this div and is
+                  // unaffected; text-only labels still truncate normally.
+                  "[&>svg]:inline-block [&>svg]:align-middle",
+                  "[&>svg:not(:last-child)]:mr-1.5 [&>svg:not(:first-child)]:ml-1.5",
                   shortcut && "flex-1 text-left",
                   textWrapperClassName,
                 )}
@@ -158,6 +168,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           <div
             className={cn(
               "min-w-0 truncate",
+              // Icons passed as CHILDREN (e.g. <Button><Mail/>Invite</Button>
+              // or a brand <svg>) land in this label div. Tailwind's
+              // preflight makes `svg { display: block }`, stacking the icon
+              // ABOVE the text on its own row. Force any direct svg child
+              // inline so icon + text share one row, vertically centred,
+              // with a small gap to whichever side the text is on. The
+              // canonical `icon` prop renders OUTSIDE this div and is
+              // unaffected; text-only labels still truncate normally.
+              "[&>svg]:inline-block [&>svg]:align-middle",
+              "[&>svg:not(:last-child)]:mr-1.5 [&>svg:not(:first-child)]:ml-1.5",
               shortcut && "flex-1 text-left",
               textWrapperClassName,
             )}
