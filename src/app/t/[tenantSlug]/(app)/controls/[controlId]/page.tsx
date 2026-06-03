@@ -1296,19 +1296,22 @@ export default function ControlDetailPage() {
                 </div>
             )}
 
-            {/* Epic G-5 — Control exceptions section. Renders below
-              * the active tab on every tab so the workflow is always
-              * one scroll away from the control. */}
-            <div className={cn(cardVariants({ density: 'compact' }), 'mt-6')}>
-                <ControlExceptionsPanel
-                    tenantSlug={tenantSlug}
-                    controlId={controlId}
-                    compensatingControlChoices={[]}
-                    defaultRiskAcceptedByUserId={control.ownerUserId ?? ''}
-                    canWrite={permissions.canWrite}
-                    canAdmin={permissions.canAdmin}
-                />
-            </div>
+            {/* Epic G-5 — Control exceptions section. Scoped to the
+              * Overview tab only: the request-exception workflow is
+              * control-level metadata, not per-sub-tab, so it would
+              * read as noise repeated under Tasks / Evidence / etc. */}
+            {tab === 'overview' && (
+                <div className={cn(cardVariants({ density: 'compact' }), 'mt-6')}>
+                    <ControlExceptionsPanel
+                        tenantSlug={tenantSlug}
+                        controlId={controlId}
+                        compensatingControlChoices={[]}
+                        defaultRiskAcceptedByUserId={control.ownerUserId ?? ''}
+                        canWrite={permissions.canWrite}
+                        canAdmin={permissions.canAdmin}
+                    />
+                </div>
+            )}
         </EntityDetailLayout>
     );
 }
