@@ -427,6 +427,12 @@ type ResizableTableRowProps<T> = {
   rowProps?: HTMLAttributes<HTMLTableRowElement>;
   table: TableType<T>;
   selectionEnabled: boolean;
+  // Selection state captured at PARENT render time. The memo
+  // comparator below MUST compare this snapshot, not call
+  // `row.getIsSelected()` on both row objects — those read the LIVE
+  // table state, so post-toggle they're always equal and the row
+  // would never re-render (stale `data-selected` + unchecked box).
+  isSelected: boolean;
 } & Pick<
   TableProps<T>,
   "cellRight" | "tdClassName" | "onRowClick" | "onRowAuxClick"
@@ -443,6 +449,7 @@ const ResizableTableRow = memo(
     tdClassName,
     table,
     selectionEnabled,
+    isSelected,
   }: ResizableTableRowProps<T>) {
     const { className, ...rest } = rowProps || {};
 
@@ -503,7 +510,7 @@ const ResizableTableRow = memo(
               }
             : undefined
         }
-        data-selected={row.getIsSelected()}
+        data-selected={isSelected}
         {...rest}
       >
         {row.getVisibleCells().map((cell, index, cells) => {
@@ -582,12 +589,15 @@ const ResizableTableRow = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if row data or selection state changes
-    const prevRow = prevProps.row;
-    const nextRow = nextProps.row;
+    // Only re-render if row data or selection state changes. Compare
+    // the `isSelected` SNAPSHOT prop (captured at parent render time),
+    // NOT `row.getIsSelected()` on each row — those read the live
+    // table state and are always equal right after a toggle, which
+    // would skip the re-render and leave `data-selected` + the
+    // checkbox stale (the row-highlight-on-select bug).
     return (
-      prevRow.original === nextRow.original &&
-      prevRow.getIsSelected() === nextRow.getIsSelected()
+      prevProps.row.original === nextProps.row.original &&
+      prevProps.isSelected === nextProps.isSelected
     );
   },
 ) as <T>(props: ResizableTableRowProps<T>) => JSX.Element;
@@ -854,11 +864,19 @@ export function Table<T>({
               style={{
                 width: "100%",
                 tableLayout: applyFixedLayout ? "fixed" : "auto",
-                minWidth: applyFixedLayout
-                  ? table
-                      .getVisibleLeafColumns()
-                      .reduce((acc, column) => acc + column.getSize(), 0)
-                  : "100%",
+                // Always clamp the table to its container width. Fixed
+                // layout previously set `minWidth = Σ column sizes`,
+                // which on a table whose seeded/resized column widths
+                // summed wider than the viewport forced a horizontal
+                // scrollbar on the wrapper — visible on most tables.
+                // Pinning minWidth to 100% keeps the table inside the
+                // card: columns redistribute within the visible width
+                // (fixed layout still honours each column's relative
+                // width, and the resize handles still work — dragging
+                // re-proportions columns instead of growing the table
+                // off-screen). Cell content truncates per the
+                // per-cell `truncate`, so nothing overflows sideways.
+                minWidth: "100%",
               }}
             >
               <thead className="relative">
@@ -1025,6 +1043,7 @@ export function Table<T>({
                       tdClassName={tdClassName}
                       table={table}
                       selectionEnabled={selectionEnabled}
+                      isSelected={row.getIsSelected()}
                     />
                   ) : (
                     <tr

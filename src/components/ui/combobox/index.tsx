@@ -683,9 +683,11 @@ function Option<TMeta>({
                 <Command.Item
                     className={cn(
                         "flex cursor-pointer items-center gap-compact rounded-md px-3 py-2 text-left text-sm",
-                        hasDescription
-                            ? "whitespace-normal py-2.5"
-                            : "whitespace-nowrap",
+                        // Let long option labels wrap to a second line
+                        // instead of truncating with an ellipsis — a
+                        // narrow (e.g. matchTriggerWidth) dropdown was
+                        // clipping full entity names like asset titles.
+                        hasDescription ? "whitespace-normal py-2.5" : "whitespace-normal",
                         "data-[selected=true]:bg-bg-subtle",
                         Boolean(disabled || option.disabledTooltip) &&
                             "cursor-not-allowed opacity-50",
@@ -723,10 +725,10 @@ function Option<TMeta>({
                         )}
                         <span
                             className={cn(
-                                "grow",
+                                "grow break-words",
                                 hasDescription
                                     ? "text-content-emphasis"
-                                    : "text-content-default truncate",
+                                    : "text-content-default",
                             )}
                         >
                             {option.label}
