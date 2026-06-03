@@ -33,6 +33,16 @@ jest.mock('next/navigation', () => ({
     useParams: () => ({ tenantSlug: 'acme' }),
 }));
 
+// EditTaskModal (mounted when canWrite) reads the tenant API base +
+// slug from the provider. Stub them so the modal mounts under jsdom.
+jest.mock('@/lib/tenant-context-provider', () => ({
+    useTenantApiUrl:
+        () => (path: string) =>
+            `/api/t/acme${path.startsWith('/') ? path : `/${path}`}`,
+    useTenantContext: () => ({ tenantSlug: 'acme' }),
+    useTenantHref: () => (path: string) => `/t/acme${path}`,
+}));
+
 import LinkedTasksPanel from '@/components/LinkedTasksPanel';
 
 const tenantHref = (p: string) => `/t/acme${p}`;
@@ -110,5 +120,64 @@ describe('LinkedTasksPanel — response-shape resilience', () => {
         await waitFor(() => {
             expect(screen.getByText(/no linked tasks/i)).toBeInTheDocument();
         });
+    });
+
+    // Phase 2 — per-row edit affordance. The pencil opens the task in
+    // <EditTaskModal>. entityType "risk" (lowercase) is non-canonical,
+    // so the create modal stays unmounted — this isolates the edit
+    // button. Gated on canWrite.
+    it('renders a per-row edit pencil when canWrite is set', async () => {
+        mountFetchWith({
+            rows: [
+                {
+                    id: 'task-9',
+                    title: 'Editable task',
+                    status: 'OPEN',
+                    severity: 'LOW',
+                    key: 'TSK-9',
+                },
+            ],
+            truncated: false,
+        });
+        render(
+            <LinkedTasksPanel
+                apiBase="/api/t/acme"
+                entityType="risk"
+                entityId="r-1"
+                tenantHref={tenantHref}
+                canWrite
+            />,
+        );
+        expect(await screen.findByText('Editable task')).toBeInTheDocument();
+        expect(
+            screen.getByTestId('linked-task-quick-edit-task-9'),
+        ).toBeInTheDocument();
+    });
+
+    it('hides the edit pencil for read-only viewers (no canWrite)', async () => {
+        mountFetchWith({
+            rows: [
+                {
+                    id: 'task-10',
+                    title: 'Read-only task',
+                    status: 'OPEN',
+                    severity: 'LOW',
+                    key: 'TSK-10',
+                },
+            ],
+            truncated: false,
+        });
+        render(
+            <LinkedTasksPanel
+                apiBase="/api/t/acme"
+                entityType="risk"
+                entityId="r-1"
+                tenantHref={tenantHref}
+            />,
+        );
+        expect(await screen.findByText('Read-only task')).toBeInTheDocument();
+        expect(
+            screen.queryByTestId('linked-task-quick-edit-task-10'),
+        ).not.toBeInTheDocument();
     });
 });

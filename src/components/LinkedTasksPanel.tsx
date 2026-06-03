@@ -15,6 +15,11 @@ import {
 import { DataTable, createColumns } from '@/components/ui/table';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { TimestampTooltip } from '@/components/ui/timestamp-tooltip';
+import { AppIcon } from '@/components/icons/AppIcon';
+// Phase 2 — the SAME edit modal the Tasks page row-edit affordance
+// opens, so editing a task from a control / asset / risk Tasks tab is
+// identical to editing it from the global Tasks list.
+import { EditTaskModal } from '@/app/t/[tenantSlug]/(app)/tasks/EditTaskModal';
 // The canonical task-create modal (the SAME one the Tasks page "+ Task"
 // button opens). Reused here so a task created from a control / asset /
 // risk detail page is identical to a standalone task — full fields, and
@@ -83,6 +88,9 @@ export default function LinkedTasksPanel({
     const [tasks, setTasks] = useState<LinkedTask[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
+    // Phase 2 — row-level edit modal (mirrors the Tasks page).
+    const [editTaskId, setEditTaskId] = useState<string | null>(null);
+    const [editOpen, setEditOpen] = useState(false);
 
     const loadTasks = useCallback(async () => {
         setLoading(true);
@@ -124,8 +132,8 @@ export default function LinkedTasksPanel({
 
     // Columns mirror the Tasks page table so this tab reads identically.
     const columns = useMemo(
-        () =>
-            createColumns<LinkedTask>([
+        () => {
+            const cols = createColumns<LinkedTask>([
                 {
                     id: 'title',
                     header: 'Title',
@@ -195,8 +203,36 @@ export default function LinkedTasksPanel({
                         />
                     ),
                 },
-            ]),
-        [tenantHref],
+            ]);
+            // Quick-edit affordance — same pattern as the Tasks page +
+            // controls table: a pencil that opens the row's task in a
+            // modal. Gated on write permission; stopPropagation so it
+            // doesn't also fire the row's navigate-to-detail click.
+            if (canWrite) {
+                cols.push({
+                    id: 'quick-edit',
+                    header: '',
+                    enableHiding: false,
+                    cell: ({ row }) => (
+                        <button
+                            type="button"
+                            aria-label="Edit task"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            data-testid={`linked-task-quick-edit-${row.original.id}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEditTaskId(row.original.id);
+                                setEditOpen(true);
+                            }}
+                        >
+                            <AppIcon name="edit" size={14} />
+                        </button>
+                    ),
+                });
+            }
+            return cols;
+        },
+        [tenantHref, canWrite],
     );
 
     return (
@@ -241,6 +277,15 @@ export default function LinkedTasksPanel({
                 emptyState="No linked tasks"
                 data-testid="linked-tasks-table"
             />
+
+            {canWrite && (
+                <EditTaskModal
+                    open={editOpen}
+                    setOpen={setEditOpen}
+                    taskId={editTaskId}
+                    onSaved={() => void loadTasks()}
+                />
+            )}
         </div>
     );
 }

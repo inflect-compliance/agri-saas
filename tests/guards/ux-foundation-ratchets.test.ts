@@ -106,9 +106,16 @@ describe('Epic 64 — window.confirm() ceiling', () => {
     // patterns; the original P2 scoped only assets-EDIT). Same
     // sync-close rationale as the four sites above.
     //
+    // Tasks-tab Phase 2 (2026-06-03) bumped 17 → 18 — `EditTaskModal`
+    // (the row-level edit surface opened from the Tasks list + every
+    // control/asset/risk Tasks tab) carries the SAME unsaved-changes
+    // discard guard as `NewTaskModal`: a synchronous `window.confirm`
+    // on close so a mis-click can't silently drop typed edits. Same
+    // sync-close rationale as the sites above.
+    //
     // To LOWER this number: migrate one or more remaining sites and
     // bump the constant down. Don't lower without a real migration.
-    const CONFIRM_CALL_CEILING = 17;
+    const CONFIRM_CALL_CEILING = 18;
 
     it(`has at most ${CONFIRM_CALL_CEILING} native-confirm call sites under the tenant app`, () => {
         const offenders: string[] = [];

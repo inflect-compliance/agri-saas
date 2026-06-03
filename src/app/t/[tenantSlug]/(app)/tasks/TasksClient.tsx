@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { NewTaskModal } from './NewTaskModal';
+import { EditTaskModal } from './EditTaskModal';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { useSWRConfig } from 'swr';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -131,6 +132,11 @@ function TasksPageInner({
     // (the redirect target from `/tasks/new`). Flag stripped after
     // open so back/forward doesn't reopen the modal.
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    // Phase 2 — row-level edit modal. Mirrors the controls-table
+    // quick-edit affordance: the pencil opens the task in a modal
+    // rather than routing to the detail page.
+    const [editTaskId, setEditTaskId] = useState<string | null>(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
     const searchParams = useSearchParams();
     useEffect(() => {
         if (searchParams?.get('create') === '1') {
@@ -468,6 +474,33 @@ function TasksPageInner({
             },
         );
 
+        // Quick-edit affordance — same pattern as the controls table:
+        // a pencil that opens the row's entity in a modal. Gated on
+        // edit permission; `stopPropagation` so it doesn't also fire
+        // the row's navigate-to-detail click.
+        if (appPermissions.tasks.edit) {
+            cols.push({
+                id: 'quick-edit',
+                header: '',
+                enableHiding: false,
+                cell: ({ row }) => (
+                    <button
+                        type="button"
+                        aria-label="Edit task"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        data-testid={`task-quick-edit-${row.original.id}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setEditTaskId(row.original.id);
+                            setIsEditOpen(true);
+                        }}
+                    >
+                        <AppIcon name="edit" size={14} />
+                    </button>
+                ),
+            });
+        }
+
         return cols;
 
     }, [appPermissions.tasks.edit, selected, tasks.length, tenantHref, hydratedNow]);
@@ -653,6 +686,14 @@ function TasksPageInner({
 
             {appPermissions.tasks.create && (
                 <NewTaskModal open={isCreateOpen} setOpen={setIsCreateOpen} />
+            )}
+            {appPermissions.tasks.edit && (
+                <EditTaskModal
+                    open={isEditOpen}
+                    setOpen={setIsEditOpen}
+                    taskId={editTaskId}
+                    onSaved={() => void invalidateAllTasks()}
+                />
             )}
         </ListPageShell>
     );
