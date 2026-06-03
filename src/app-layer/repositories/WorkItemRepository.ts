@@ -66,6 +66,35 @@ export class WorkItemRepository {
         });
     }
 
+    /**
+     * Total + completed count of the unified tasks linked to a control,
+     * using the SAME where-shape the LinkedTasksPanel list renders
+     * (TaskLink with entityType=CONTROL OR the direct `Task.controlId`
+     * FK). Backs the control header's Tasks-tab badge + Overview
+     * progress so they reflect the table — not the legacy `ControlTask`
+     * relation count, which diverged after the work-item unification.
+     *
+     * "Completed" is RESOLVED or CLOSED (a CANCELED task is terminal but
+     * not completed work, so it doesn't count toward progress).
+     */
+    static async countLinkedToControl(
+        db: PrismaTx,
+        ctx: RequestContext,
+        controlId: string,
+    ): Promise<{ total: number; done: number }> {
+        const where = WorkItemRepository._buildWhere(ctx, {
+            linkedEntityType: 'CONTROL',
+            linkedEntityId: controlId,
+        });
+        const [total, done] = await Promise.all([
+            db.task.count({ where }),
+            db.task.count({
+                where: { AND: [where, { status: { in: ['RESOLVED', 'CLOSED'] } }] },
+            }),
+        ]);
+        return { total, done };
+    }
+
     static async listPaginated(db: PrismaTx, ctx: RequestContext, params: TaskListParams): Promise<PaginatedResponse<unknown>> {
         const limit = clampLimit(params.limit);
         const where = WorkItemRepository._buildWhere(ctx, params.filters);

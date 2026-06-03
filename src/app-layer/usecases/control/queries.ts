@@ -1,5 +1,6 @@
 import { RequestContext } from '../../types';
 import { ControlRepository } from '../../repositories/ControlRepository';
+import { WorkItemRepository } from '../../repositories/WorkItemRepository';
 import { assertCanReadControls } from '../../policies/control.policies';
 import { notFound } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
@@ -80,10 +81,24 @@ export async function getControlHeader(ctx: RequestContext, id: string) {
     return runInTenantContext(ctx, async (db) => {
         const control = await ControlRepository.getHeaderById(db, ctx, id);
         if (!control) throw notFound('Control not found');
-        const doneControlTasks = await db.controlTask.count({
-            where: { controlId: id, tenantId: ctx.tenantId, status: 'DONE' },
-        });
-        return { ...control, doneControlTasks };
+        // The Tasks tab badge + Overview "Tasks Progress" must reflect
+        // the unified Task rows the LinkedTasksPanel actually renders
+        // (TaskLink CONTROL link OR the direct controlId FK), NOT the
+        // legacy `ControlTask` relation — which `_count.controlTasks`
+        // and the old `controlTask.count` measured. Those diverged from
+        // the table after the work-item unification (#806).
+        const linkedTasks = await WorkItemRepository.countLinkedToControl(
+            db,
+            ctx,
+            id,
+        );
+        return {
+            ...control,
+            // Override the legacy relation count so the badge matches
+            // the table without churning the page's read path.
+            _count: { ...control._count, controlTasks: linkedTasks.total },
+            doneControlTasks: linkedTasks.done,
+        };
     });
 }
 

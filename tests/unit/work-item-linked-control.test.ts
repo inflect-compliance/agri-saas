@@ -64,3 +64,43 @@ describe('WorkItemRepository — control-linked tasks', () => {
         expect(serialized).not.toContain('controlId');
     });
 });
+
+describe('WorkItemRepository.countLinkedToControl', () => {
+    function mockCountDb() {
+        // Promise.all order: total query first, done query second.
+        const count = jest
+            .fn()
+            .mockResolvedValueOnce(5)
+            .mockResolvedValueOnce(2);
+        return { db: { task: { count } } as never, count };
+    }
+
+    it('counts via the SAME TaskLink-OR-controlId where the panel lists', async () => {
+        const { db, count } = mockCountDb();
+        const result = await WorkItemRepository.countLinkedToControl(
+            db,
+            ctx,
+            'ctrl-1',
+        );
+        expect(result).toEqual({ total: 5, done: 2 });
+
+        // total query — the control-link OR clause, no status filter.
+        const totalOr = (count.mock.calls[0][0].where.AND as any[]).find(
+            (c) => Array.isArray(c.OR),
+        );
+        expect(totalOr.OR).toEqual(
+            expect.arrayContaining([
+                { controlId: 'ctrl-1' },
+                { links: { some: { entityType: 'CONTROL', entityId: 'ctrl-1' } } },
+            ]),
+        );
+
+        // done query — same where AND status in the completed set
+        // (RESOLVED/CLOSED — CANCELED is terminal but not completed).
+        expect(count.mock.calls[1][0].where.AND).toEqual(
+            expect.arrayContaining([
+                { status: { in: ['RESOLVED', 'CLOSED'] } },
+            ]),
+        );
+    });
+});

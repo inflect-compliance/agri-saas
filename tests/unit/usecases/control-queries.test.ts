@@ -69,6 +69,12 @@ jest.mock('@/lib/db-context', () => {
     };
 });
 
+// getControlHeader now derives the Tasks-tab badge + progress from the
+// unified-task count (matching LinkedTasksPanel) via this repo method.
+jest.mock('@/app-layer/repositories/WorkItemRepository', () => ({
+    WorkItemRepository: { countLinkedToControl: jest.fn() },
+}));
+
 import {
     listControls,
     listControlsPaginated,
@@ -80,6 +86,7 @@ import {
     listControlsWithDeleted,
 } from '@/app-layer/usecases/control/queries';
 import { ControlRepository } from '@/app-layer/repositories/ControlRepository';
+import { WorkItemRepository } from '@/app-layer/repositories/WorkItemRepository';
 import { assertCanReadControls } from '@/app-layer/policies/control.policies';
 import { assertCanAdmin } from '@/app-layer/policies/common';
 import { makeRequestContext } from '../../helpers/make-context';
@@ -92,6 +99,7 @@ beforeEach(() => {
         tenantDb.control.findMany, tenantDb.control.count, tenantDb.control.groupBy,
         tenantDb.controlTask.count, tenantDb.controlTask.groupBy, tenantDb.controlTask.findMany,
         tenantDb.auditLog.findMany,
+        WorkItemRepository.countLinkedToControl as jest.Mock,
         assertCanReadControls as jest.Mock,
         assertCanAdmin as jest.Mock,
     ].forEach((m: any) => m.mockReset && m.mockReset());
@@ -154,17 +162,33 @@ describe('getControlHeader', () => {
         await expect(getControlHeader(ctx, 'c-foreign')).rejects.toThrow(/control not found/i);
     });
 
-    it('decorates the header with doneControlTasks count', async () => {
-        (ControlRepository.getHeaderById as jest.Mock).mockResolvedValueOnce({ id: 'c-1', code: 'CC1' });
-        tenantDb.controlTask.count.mockResolvedValueOnce(7);
+    it('derives the Tasks badge + progress from the unified linked-task count', async () => {
+        (ControlRepository.getHeaderById as jest.Mock).mockResolvedValueOnce({
+            id: 'c-1',
+            code: 'CC1',
+            _count: { controlTasks: 0, evidenceLinks: 1, evidence: 2, frameworkMappings: 3 },
+        });
+        (WorkItemRepository.countLinkedToControl as jest.Mock).mockResolvedValueOnce({
+            total: 5,
+            done: 2,
+        });
 
         const result = await getControlHeader(ctx, 'c-1');
 
-        expect(result).toEqual({ id: 'c-1', code: 'CC1', doneControlTasks: 7 });
-        // The count call filters status=DONE for that control.
-        expect(tenantDb.controlTask.count).toHaveBeenCalledWith({
-            where: { controlId: 'c-1', tenantId: 'tenant-1', status: 'DONE' },
+        // Tab badge reads `_count.controlTasks` — overridden to the
+        // unified total (5), NOT the stale legacy relation count (0).
+        // Other `_count` entries are preserved. Progress = done (2).
+        expect(result).toEqual({
+            id: 'c-1',
+            code: 'CC1',
+            _count: { controlTasks: 5, evidenceLinks: 1, evidence: 2, frameworkMappings: 3 },
+            doneControlTasks: 2,
         });
+        expect(WorkItemRepository.countLinkedToControl).toHaveBeenCalledWith(
+            tenantDb,
+            ctx,
+            'c-1',
+        );
     });
 });
 
