@@ -3766,6 +3766,16 @@ exports[`API contract — per-schema snapshots schema: TaskUpdateRequest 1`] = `
       ],
       "maxLength": 10000
     },
+    "type": {
+      "type": "string",
+      "enum": [
+        "TASK",
+        "AUDIT_FINDING",
+        "CONTROL_GAP",
+        "INCIDENT",
+        "IMPROVEMENT"
+      ]
+    },
     "severity": {
       "type": "string",
       "enum": [

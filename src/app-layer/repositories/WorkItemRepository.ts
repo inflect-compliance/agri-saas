@@ -318,6 +318,7 @@ export class WorkItemRepository {
     static async update(db: PrismaTx, ctx: RequestContext, id: string, data: {
         title?: string;
         description?: string | null;
+        type?: string;
         severity?: string;
         priority?: string;
         dueAt?: string | null;
@@ -332,6 +333,7 @@ export class WorkItemRepository {
         const updateData: Prisma.TaskUncheckedUpdateInput = {
             ...(data.title !== undefined && { title: data.title }),
             ...(data.description !== undefined && { description: data.description }),
+            ...(data.type !== undefined && { type: data.type as WorkItemType }),
             ...(data.severity !== undefined && { severity: data.severity as WorkItemSeverity }),
             ...(data.priority !== undefined && { priority: data.priority as WorkItemPriority }),
             ...(data.dueAt !== undefined && { dueAt: data.dueAt ? new Date(data.dueAt) : null }),

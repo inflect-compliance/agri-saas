@@ -90,6 +90,7 @@ import {
     assignTask,
     addTaskComment,
     bulkSetTaskStatus,
+    deleteTask,
 } from '@/app-layer/usecases/task';
 import { runInTenantContext } from '@/lib/db-context';
 import {
@@ -323,5 +324,46 @@ describe('bulkSetTaskStatus', () => {
         // break per-task audit-trail completeness (an external auditor
         // searching by entityId would miss the bulk event entirely).
         expect(calls).toHaveLength(3);
+    });
+});
+
+describe('deleteTask', () => {
+    it('rejects READER (no canWrite)', async () => {
+        await expect(
+            deleteTask(makeRequestContext('READER'), 't1'),
+        ).rejects.toThrow();
+        expect(mockRunInTx).not.toHaveBeenCalled();
+    });
+
+    it('deletes the row (children cascade) and emits TASK_DELETED audit', async () => {
+        const del = jest.fn().mockResolvedValue({});
+        mockRunInTx.mockImplementationOnce(async (_ctx, fn) =>
+            fn({ task: { delete: del } } as never),
+        );
+        mockGetById.mockResolvedValueOnce({
+            id: 't1', title: 'My task', type: 'TASK', status: 'OPEN', controlId: null,
+        } as never);
+
+        await deleteTask(makeRequestContext('EDITOR'), 't1');
+
+        expect(del).toHaveBeenCalledWith({ where: { id: 't1' } });
+        expect(mockLog).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            expect.objectContaining({ action: 'TASK_DELETED' }),
+        );
+    });
+
+    it('throws notFound and never deletes when the task is missing', async () => {
+        const del = jest.fn();
+        mockRunInTx.mockImplementationOnce(async (_ctx, fn) =>
+            fn({ task: { delete: del } } as never),
+        );
+        mockGetById.mockResolvedValueOnce(null as never);
+
+        await expect(
+            deleteTask(makeRequestContext('EDITOR'), 'missing'),
+        ).rejects.toThrow();
+        expect(del).not.toHaveBeenCalled();
     });
 });

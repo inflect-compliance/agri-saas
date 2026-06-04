@@ -204,6 +204,7 @@ export async function createTask(ctx: RequestContext, input: {
 export async function updateTask(ctx: RequestContext, taskId: string, patch: {
     title?: string;
     description?: string | null;
+    type?: string;
     severity?: string;
     priority?: string;
     dueAt?: string | null;
@@ -232,6 +233,32 @@ export async function updateTask(ctx: RequestContext, taskId: string, patch: {
     // A rescheduled `dueAt` may move the task into a reminder window —
     // re-evaluate the in-app notification after the commit.
     await emitTaskDueNotification(ctx, result);
+    await bumpEntityCacheVersion(ctx, 'task');
+    return result;
+}
+
+// ─── Delete ───
+//
+// Hard delete. The Task model's child rows (TaskComment / TaskLink /
+// TaskWatcher) all cascade via `onDelete: Cascade`, so removing the
+// task row cleans up its comments, entity links, and watchers in one
+// statement. Gated on write permission (same tier as edit) and audited.
+export async function deleteTask(ctx: RequestContext, taskId: string) {
+    assertCanWriteTasks(ctx);
+    const result = await runInTenantContext(ctx, async (db) => {
+        const existing = await WorkItemRepository.getById(db, ctx, taskId);
+        if (!existing) throw notFound('Task not found');
+        await db.task.delete({ where: { id: taskId } });
+        await logEvent(db, ctx, {
+            action: 'TASK_DELETED',
+            entityType: 'Task',
+            entityId: taskId,
+            details: `Deleted task: ${existing.title}`,
+            detailsJson: { category: 'entity_lifecycle', entityName: 'Task', operation: 'deleted', summary: 'TASK_DELETED' },
+            metadata: { title: existing.title, type: existing.type },
+        });
+        return { id: taskId };
+    });
     await bumpEntityCacheVersion(ctx, 'task');
     return result;
 }

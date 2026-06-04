@@ -220,6 +220,50 @@ function TasksPageInner({
     const truncated = tasksQuery.data?.truncated ?? false;
     const loading = tasksQuery.isLoading && !tasksQuery.data;
 
+    // ─── Sortable headers (parity with the Controls table) ───
+    // Clicking a sortable header re-orders the in-memory rows; `sortBy`
+    // + `sortOrder` flow into the shared table primitive's
+    // `sortableColumns` surface. Sort runs BEFORE the load-more window
+    // so the visible slice reflects the chosen order.
+    const [sortBy, setSortBy] = useState<string | undefined>(undefined);
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | undefined>(
+        undefined,
+    );
+    const sortedTasks = useMemo(() => {
+        if (!sortBy) return tasks;
+        const accessor = (t: TaskListItem): string => {
+            switch (sortBy) {
+                case 'title':
+                    return (t.title || '').toLowerCase();
+                case 'type':
+                    return (TYPE_LABELS[t.type] || t.type || '').toLowerCase();
+                case 'severity':
+                    return (t.severity || '').toString();
+                case 'status':
+                    return (t.status || '').toString();
+                case 'assignee':
+                    return (t.assignee?.name || '').toLowerCase();
+                case 'dueAt':
+                    return t.dueAt || '';
+                case 'updatedAt':
+                    return t.updatedAt || '';
+                default:
+                    return '';
+            }
+        };
+        const dir = sortOrder === 'asc' ? 1 : -1;
+        return [...tasks].sort((a, b) => {
+            const av = accessor(a);
+            const bv = accessor(b);
+            if (av === bv) return 0;
+            return av > bv ? dir : -dir;
+        });
+    }, [tasks, sortBy, sortOrder]);
+    const sortableColumns = useMemo(
+        () => ['title', 'type', 'severity', 'status', 'assignee', 'dueAt', 'updatedAt'],
+        [],
+    );
+
     // Progressive disclosure — same org-parity "Load more" affordance
     // as the Controls table. Above the threshold the table renders the
     // first slice and the footer reveals more; below it, all rows show.
@@ -228,7 +272,7 @@ function TasksPageInner({
         totalCount: totalTasksCount,
         hasMore: hasMoreTasks,
         loadMore: loadMoreTasks,
-    } = useThresholdLoadMore(tasks);
+    } = useThresholdLoadMore(sortedTasks);
     const liveFilters = useMemo(
         () => buildTaskFilters(tasks as unknown as Parameters<typeof buildTaskFilters>[0]),
         [tasks],
@@ -660,6 +704,13 @@ function TasksPageInner({
                     columns={taskColumns}
                     loading={loading}
                     getRowId={(t) => t.id}
+                    sortableColumns={sortableColumns}
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSortChange={({ sortBy: nextBy, sortOrder: nextOrder }) => {
+                        setSortBy(nextBy);
+                        setSortOrder(nextOrder);
+                    }}
                     columnVisibility={columnVisibility}
                     onColumnVisibilityChange={setColumnVisibility}
                     selectionEnabled={appPermissions.tasks.edit}

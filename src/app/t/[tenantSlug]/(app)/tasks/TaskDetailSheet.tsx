@@ -33,6 +33,7 @@ import {
     type SetStateAction,
 } from 'react';
 import { Sheet } from '@/components/ui/sheet';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
@@ -66,6 +67,9 @@ const TYPE_LABELS: Record<string, string> = {
     INCIDENT: 'Incident',
     IMPROVEMENT: 'Improvement',
 };
+const TYPE_OPTIONS: ComboboxOption[] = Object.entries(TYPE_LABELS).map(
+    ([value, label]) => ({ value, label }),
+);
 const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     OPEN: 'neutral',
     TRIAGED: 'info',
@@ -102,6 +106,7 @@ interface TaskDetail {
 interface EditForm {
     title: string;
     description: string;
+    type: string;
     severity: string;
     priority: string;
     dueAt: string;
@@ -139,6 +144,7 @@ export function TaskDetailSheet({
     const [form, setForm] = useState<EditForm>({
         title: '',
         description: '',
+        type: 'TASK',
         severity: 'MEDIUM',
         priority: 'P2',
         dueAt: '',
@@ -146,6 +152,8 @@ export function TaskDetailSheet({
     });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [dirty, setDirty] = useState(false);
     const [error, setError] = useState('');
 
@@ -167,6 +175,7 @@ export function TaskDetailSheet({
                 setForm({
                     title: t.title ?? '',
                     description: t.description ?? '',
+                    type: t.type ?? 'TASK',
                     severity: t.severity ?? 'MEDIUM',
                     priority: t.priority ?? 'P2',
                     dueAt: t.dueAt ? String(t.dueAt).slice(0, 10) : '',
@@ -210,6 +219,7 @@ export function TaskDetailSheet({
                 body: JSON.stringify({
                     title: form.title.trim(),
                     description: form.description.trim() || null,
+                    type: form.type,
                     severity: form.severity,
                     priority: form.priority,
                     dueAt: form.dueAt || null,
@@ -245,6 +255,32 @@ export function TaskDetailSheet({
         }
     };
 
+    const performDelete = async () => {
+        if (!taskId) return;
+        setDeleting(true);
+        setError('');
+        try {
+            const res = await fetch(apiUrl(`/tasks/${taskId}`), {
+                method: 'DELETE',
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(
+                    (typeof data.error === 'string' && data.error) ||
+                        data.message ||
+                        'Failed to delete task',
+                );
+            }
+            setShowDeleteConfirm(false);
+            setTaskId(null);
+            onSaved?.();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Failed to delete task');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     const handleOpenChange = (next: boolean) => {
         if (next) return;
         if (dirty && !saving) {
@@ -258,6 +294,7 @@ export function TaskDetailSheet({
     };
 
     return (
+        <>
         <Sheet
             open={open}
             onOpenChange={handleOpenChange}
@@ -372,6 +409,34 @@ export function TaskDetailSheet({
                                         }
                                     />
                                 </div>
+                                <div>
+                                    <label
+                                        className="mb-1 block text-sm text-content-default"
+                                        htmlFor="task-sheet-type-input"
+                                    >
+                                        Type
+                                    </label>
+                                    <Combobox
+                                        id="task-sheet-type-input"
+                                        name="type"
+                                        options={TYPE_OPTIONS}
+                                        selected={
+                                            TYPE_OPTIONS.find(
+                                                (o) => o.value === form.type,
+                                            ) ?? null
+                                        }
+                                        setSelected={(o) =>
+                                            update('type', o?.value ?? 'TASK')
+                                        }
+                                        placeholder="—"
+                                        disabled={!canWrite}
+                                        hideSearch
+                                        matchTriggerWidth
+                                        forceDropdown
+                                        buttonProps={{ className: 'w-full' }}
+                                        caret
+                                    />
+                                </div>
                                 <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                                     <div>
                                         <label
@@ -468,14 +533,27 @@ export function TaskDetailSheet({
                             </fieldset>
                         </Sheet.Body>
                         <Sheet.Actions align="between">
-                            <Link
-                                href={tenantHref(`/tasks/${task.id}`)}
-                                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-                                data-testid="task-sheet-open-full"
-                                onClick={() => setTaskId(null)}
-                            >
-                                Open full detail →
-                            </Link>
+                            <div className="flex flex-col items-start gap-tight">
+                                {canWrite && (
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        disabled={deleting || saving}
+                                        data-testid="task-sheet-delete"
+                                        text={deleting ? 'Deleting…' : 'Delete task'}
+                                    />
+                                )}
+                                <Link
+                                    href={tenantHref(`/tasks/${task.id}`)}
+                                    className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                                    data-testid="task-sheet-open-full"
+                                    onClick={() => setTaskId(null)}
+                                >
+                                    See full detail →
+                                </Link>
+                            </div>
                             <div className="flex items-center gap-tight">
                                 <Sheet.Close asChild>
                                     <Button
@@ -500,5 +578,18 @@ export function TaskDetailSheet({
                 </>
             )}
         </Sheet>
+        <ConfirmDialog
+            showModal={showDeleteConfirm}
+            setShowModal={(next) => {
+                const open = typeof next === 'function' ? next(showDeleteConfirm) : next;
+                setShowDeleteConfirm(open);
+            }}
+            tone="danger"
+            title={task ? `Delete "${task.title}"?` : 'Delete task?'}
+            description="This permanently deletes the task and its comments, links, and watchers. This cannot be undone."
+            confirmLabel="Delete task"
+            onConfirm={performDelete}
+        />
+        </>
     );
 }

@@ -417,6 +417,7 @@ export const CreateTaskSchema = z.object({
 export const UpdateTaskSchema = z.object({
     title: z.string().min(1).max(500).optional(),
     description: z.string().max(10000).nullable().optional(),
+    type: z.enum(['TASK', 'AUDIT_FINDING', 'CONTROL_GAP', 'INCIDENT', 'IMPROVEMENT']).optional(),
     severity: z.enum(['INFO', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
     priority: z.enum(['P0', 'P1', 'P2', 'P3']).optional(),
     dueAt: z.string().nullable().optional(),
