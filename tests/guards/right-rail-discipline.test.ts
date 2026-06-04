@@ -29,8 +29,6 @@ const ROOT = path.resolve(__dirname, '../..');
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf-8');
 
 const SHELL_PATH = 'src/components/layout/EntityDetailLayout.tsx';
-const RISKS_DETAIL_PATH =
-    'src/app/t/[tenantSlug]/(app)/risks/[riskId]/page.tsx';
 
 // Phase 2 — list-page aside slot.
 const LIST_SHELL_PATH = 'src/components/layout/ListPageShell.tsx';
@@ -88,12 +86,16 @@ describe('Right-rail master-detail discipline (Roadmap-2 PR-5)', () => {
         );
     });
 
-    it('risks detail page passes a rail (proof-of-pattern adoption)', () => {
-        // The risks detail page is the canonical adopter — see
-        // commit message + docs. Future PRs may add more pages
-        // to the rail; removing risks is a regression.
-        const src = read(RISKS_DETAIL_PATH);
-        expect(src).toMatch(/<EntityDetailLayout[\s\S]*?\brail=\{/);
+    it('the shell exposes + renders an opt-in right-rail slot', () => {
+        // The risks detail page was the original proof-of-pattern
+        // adopter, but its Linked-Tasks rail was removed (the panel
+        // moved into the Tasks tab). No page adopts the rail today;
+        // the capability still lives in the shell, so assert the shell
+        // exposes a `rail?` prop and conditionally renders it. A future
+        // adopter just passes `rail={…}`.
+        const src = read(SHELL_PATH);
+        expect(src).toMatch(/\brail\?:\s*ReactNode/);
+        expect(src).toMatch(/\{rail\s*\?/);
     });
 });
 

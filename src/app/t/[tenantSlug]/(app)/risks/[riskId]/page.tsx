@@ -8,12 +8,10 @@ import { formatDate } from '@/lib/format-date';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { AppIcon } from '@/components/icons/AppIcon';
 import { useTenantContext, useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import dynamic from 'next/dynamic';
 import LinkedTasksPanel from '@/components/LinkedTasksPanel';
 import { EmptyState } from '@/components/ui/empty-state';
-import { AsidePanel } from '@/components/ui/aside-panel';
 import { Eyebrow } from '@/components/ui/typography';
 import { KPIStat } from '@/components/ui/metric';
 import { MetaStrip } from '@/components/ui/meta-strip';
@@ -349,25 +347,6 @@ export default function RiskDetailPage() {
                         buttonProps={{ className: 'text-sm' }}
                     />
                 )
-            }
-            // Right-rail roadmap Phase 1 — Linked Tasks rides the
-            // `<AsidePanel>` primitive: a docked, collapsible rail at
-            // xl+ (state persisted per surface), and a `<Sheet>`
-            // below xl. The page owns the content; the panel owns the
-            // chrome.
-            rail={
-                <AsidePanel
-                    title="Linked Tasks"
-                    surfaceKey="risk-detail"
-                    icon={<AppIcon name="tasks" size={16} />}
-                >
-                    <LinkedTasksPanel
-                        apiBase={apiUrl('')}
-                        entityType="RISK"
-                        entityId={riskId}
-                        tenantHref={href}
-                    />
-                </AsidePanel>
             }
         >
             {error && (

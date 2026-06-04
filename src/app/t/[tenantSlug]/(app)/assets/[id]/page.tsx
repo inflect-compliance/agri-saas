@@ -186,24 +186,7 @@ export default function AssetDetailPage() {
             }
             actions={
                 permissions.canWrite && (
-                    <>
-                        <Link href={tenantHref(`/risks/ai?assetId=${assetId}`)} className={buttonVariants({ variant: 'secondary' })} id="suggest-risks-btn">Suggest Risks</Link>
-                        {/* B2 — icon-only edit affordance, with
-                            tooltip for screen-reader + hover labelling.
-                            Mirrors the canonical pattern picked across
-                            the product as the unified edit shape. */}
-                        <Tooltip content="Edit asset">
-                            <Button
-                                variant="secondary"
-                                size="icon"
-                                onClick={() => setEditing(true)}
-                                id="edit-asset-btn"
-                                aria-label="Edit asset"
-                            >
-                                <Pen2 className="size-4" />
-                            </Button>
-                        </Tooltip>
-                    </>
+                    <Link href={tenantHref(`/risks/ai?assetId=${assetId}`)} className={buttonVariants({ variant: 'secondary' })} id="suggest-risks-btn">Suggest Risks</Link>
                 )
             }
         >
@@ -291,6 +274,23 @@ export default function AssetDetailPage() {
 
             {/* Detail card — read-only view; edits flow through EditAssetModal. */}
             <div className={cn(cardVariants(), 'space-y-default')} id="asset-detail">
+                {permissions.canWrite && (
+                    <div className="flex justify-end -mt-1 -mb-2">
+                        {/* B2 — icon-only edit affordance; opens the Edit
+                            Asset modal, mirroring the control overview. */}
+                        <Tooltip content="Edit asset">
+                            <Button
+                                variant="secondary"
+                                size="icon"
+                                onClick={() => setEditing(true)}
+                                id="edit-asset-btn"
+                                aria-label="Edit asset"
+                            >
+                                <Pen2 className="size-4" />
+                            </Button>
+                        </Tooltip>
+                    </div>
+                )}
                 <>
                         {asset.classification && <div><Eyebrow>Classification</Eyebrow><p className="text-sm">{asset.classification}</p></div>}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-default">

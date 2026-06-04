@@ -51,9 +51,9 @@ const E2E_MANIFEST: ReadonlyArray<E2EManifestEntry> = [
         anchor: 'clear filters',
     },
     {
-        surface: 'EntityDetailLayout — breadcrumbs / header / rail render',
+        surface: 'EntityDetailLayout — breadcrumbs / header / body render',
         spec: 'tests/e2e/entity-detail-layout.spec.ts',
-        anchor: 'entity-detail-rail',
+        anchor: 'entity-detail-header',
     },
 ];
 

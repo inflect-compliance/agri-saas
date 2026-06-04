@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
 import { loginAndGetTenant, safeGoto } from './e2e-utils';
 
 test.describe('EntityDetailLayout', () => {
-    test('risk detail page renders the shell — breadcrumbs, header, rail', async ({
+    test('risk detail page renders the shell — breadcrumbs, header, body', async ({
         page,
     }) => {
         const tenantSlug = await loginAndGetTenant(page);
@@ -36,14 +36,10 @@ test.describe('EntityDetailLayout', () => {
         await expect(
             page.locator('[data-testid="entity-detail-header"]'),
         ).toBeVisible({ timeout: 10_000 });
-        // (2) the right rail (right-rail Phase 1) — present on this
-        //     page because the risks/[riskId] surface passes a
-        //     `rail` (Linked Tasks). xl-only; Playwright's Desktop
-        //     Chrome viewport (1280×720) IS xl.
-        await expect(
-            page.locator('[data-testid="entity-detail-rail"]'),
-        ).toBeVisible({ timeout: 10_000 });
-        // (3) the body wrapper.
+        // (2) the body wrapper. (The risk surface no longer passes a
+        //     `rail` — Linked Tasks moved into the Tasks tab — so the
+        //     rail is intentionally absent here; the AsidePanel
+        //     primitive keeps its own rendered test.)
         await expect(
             page.locator('[data-entity-detail-layout]'),
         ).toBeVisible();
