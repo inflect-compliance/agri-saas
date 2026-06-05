@@ -412,7 +412,8 @@ jobs:
       # env-validation discipline. The posture is locked by
       # tests/guards/ci-pipeline-integrity.test.ts.
       - name: Build Next.js (production)
-        run: npx next build
+        # --webpack: nonce strict-CSP chunks (see Dockerfile + impl note).
+        run: npx next build --webpack
         env:
           NODE_ENV: production
 
@@ -539,7 +540,8 @@ jobs:
         run: mkdir -p /tmp/ci-uploads
 
       - name: Build Next.js app
-        run: npx next build
+        # --webpack: match the deployed bundler (nonce strict-CSP chunks).
+        run: npx next build --webpack
         env:
           NODE_ENV: production
           NEXT_TEST_MODE: "1"
@@ -744,7 +746,8 @@ jobs:
         # must land in the default `.next/` directory the start
         # command reads from. The e2e job uses NEXT_TEST_MODE because
         # Playwright's runner expects the test-mode artifact path.
-        run: npx next build
+        # --webpack: match the deployed bundler (nonce strict-CSP chunks).
+        run: npx next build --webpack
         env:
           NODE_ENV: production
 

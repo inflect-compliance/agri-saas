@@ -92,7 +92,7 @@ run('npm run test:ci', '6/7b Run tests (Jest)');
 
 // ── 7. Build ──
 if (!NO_BUILD) {
-    run('npx next build', '7/7  Production build', { NODE_ENV: 'production' });
+    run('npx next build --webpack', '7/7  Production build', { NODE_ENV: 'production' });
 } else {
     console.log('\n⏭  Skipping build (--no-build)\n');
 }

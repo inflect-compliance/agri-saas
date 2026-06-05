@@ -19,10 +19,17 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build Next.js (skip env validation — real vars provided at runtime)
+# Build Next.js (skip env validation — real vars provided at runtime).
+# --webpack: build with webpack, NOT Next 16's default Turbopack. The
+# strict production CSP (script-src 'nonce-…' 'strict-dynamic', no
+# unsafe-eval) needs the bundler runtime to put the nonce on every
+# dynamically-loaded chunk. Webpack does (via __webpack_nonce__ →
+# script.setAttribute('nonce', …)); Turbopack's runtime sets no nonce and
+# relies on strict-dynamic propagation, which left some dynamic chunks
+# blocked by script-src-elem. See docs/implementation-notes/2026-06-05-csp-webpack-bundler.md.
 ENV SKIP_ENV_VALIDATION=1
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npx next build
+RUN npx next build --webpack
 
 # Build the standalone BullMQ worker + scheduler bundles. esbuild is
 # a devDependency, so this MUST run before the prune below. Produces

@@ -122,7 +122,7 @@ run('npx tsx prisma/seed.ts', '3/6b Seed test data');
 // sets NEXT_TEST_MODE so `next start` reads from the same distDir; if
 // the build skipped this flag the test server would error
 // `Could not find a production build in the '.next-test' directory`.
-run('npx next build', '4/6  Build Next.js (production)', {
+run('npx next build --webpack', '4/6  Build Next.js (production)', {
     NODE_ENV: 'production',
     NEXT_IGNORE_INCORRECT_LOCKFILE: '1',
     NEXT_TEST_MODE: '1',
