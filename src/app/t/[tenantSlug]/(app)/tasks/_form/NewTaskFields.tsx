@@ -200,13 +200,15 @@ export function NewTaskFields({
                 </FormField>
             </div>
 
-            <FormField label="Control ID (optional)">
-                <Input
+            <FormField label="Control (optional)">
+                <EntityPicker
                     id="task-control-input"
-                    type="text"
-                    placeholder="Paste control ID to link"
-                    value={form.fields.controlId}
-                    onChange={(e) => form.setField('controlId', e.target.value)}
+                    tenantSlug={tenantSlug}
+                    entityType="CONTROL"
+                    value={form.fields.controlId ?? ''}
+                    onChange={(id) => form.setField('controlId', id)}
+                    placeholder="Link a control…"
+                    testId="task-control-picker"
                 />
             </FormField>
 

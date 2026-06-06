@@ -20,6 +20,7 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { UserCombobox } from '@/components/ui/user-combobox';
+import { EntityPicker } from '@/components/ui/entity-picker';
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
 import {
     parseYMD,
@@ -236,15 +237,18 @@ export function EditEvidenceModal({
                                     placeholder="Unassigned"
                                 />
                             </FormField>
-                            <FormField label="Control ID (optional)">
-                                <Input
+                            <FormField label="Control (optional)">
+                                <EntityPicker
                                     id="edit-evidence-control-input"
+                                    tenantSlug={tenantSlug}
+                                    entityType="CONTROL"
                                     value={controlId}
-                                    onChange={(e) => {
-                                        setControlId(e.target.value);
+                                    onChange={(id) => {
+                                        setControlId(id);
                                         markDirty();
                                     }}
-                                    placeholder="Paste control ID to link"
+                                    placeholder="Link a control…"
+                                    testId="edit-evidence-control-picker"
                                 />
                             </FormField>
                         </div>
