@@ -64,13 +64,13 @@ const NEW_LABELS = {
 
 describe('NewAssetFields (create)', () => {
     const form = mockForm({
-        name: '', type: 'SYSTEM', classification: '', ownerUserId: '',
+        name: '', type: 'SYSTEM', status: 'ACTIVE', classification: '', ownerUserId: '',
         location: '', dataResidency: '', confidentiality: 3, integrity: 3, availability: 3,
     });
 
-    it('classification + data-residency + owner are dropdowns (buttons), not text inputs', () => {
+    it('classification + data-residency + owner + status are dropdowns (buttons), not text inputs', () => {
         withClient(<NewAssetFields form={form} labels={NEW_LABELS} tenantSlug="acme" />);
-        for (const id of ['asset-classification-input', 'asset-data-residency-input', 'asset-owner-input']) {
+        for (const id of ['asset-classification-input', 'asset-data-residency-input', 'asset-owner-input', 'asset-status-select']) {
             const el = document.getElementById(id);
             expect(el).not.toBeNull();
             expect(el!.tagName.toLowerCase()).toBe('button'); // Combobox/UserCombobox trigger
@@ -90,6 +90,7 @@ describe('EditAssetFields (edit)', () => {
     const form = mockForm({
         name: 'A', type: 'SYSTEM', criticality: 'MEDIUM', status: 'ACTIVE',
         ownerUserId: '', owner: 'legacy', externalRef: 'EXT-1', classification: '', location: '',
+        dataResidency: '', confidentiality: 3, integrity: 3, availability: 3,
     });
 
     it("renames 'Assigned to' → 'Owner' and drops 'Owner (label)' + 'External Ref'", () => {
@@ -98,6 +99,17 @@ describe('EditAssetFields (edit)', () => {
         expect(screen.queryByText('Assigned to')).toBeNull();
         expect(screen.queryByText('Owner (label)')).toBeNull();
         expect(screen.queryByText('External Ref')).toBeNull();
+    });
+
+    it('drops the Criticality dropdown and gains Data Residency (parity with create)', () => {
+        const { container } = withClient(<EditAssetFields form={form} tenantSlug="acme" />);
+        // Scope to field labels (the score badge also renders "Criticality").
+        const labels = [...container.querySelectorAll('label.input-label')].map(
+            (l) => l.textContent,
+        );
+        expect(labels).not.toContain('Criticality');
+        expect(labels).toContain('Data Residency');
+        expect(labels).toContain('Status');
     });
 
     it('classification is a dropdown (button) + all dropdown triggers are full-width', () => {

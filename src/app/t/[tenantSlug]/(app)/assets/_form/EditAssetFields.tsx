@@ -11,7 +11,10 @@
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { UserCombobox } from '@/components/ui/user-combobox';
 import { AssetCriticalityFields } from './AssetCriticalityFields';
-import { ASSET_CLASSIFICATION_OPTIONS } from './asset-options';
+import {
+    ASSET_CLASSIFICATION_OPTIONS,
+    ASSET_DATA_RESIDENCY_OPTIONS,
+} from './asset-options';
 import type { EditAssetFormReturn } from './useEditAssetForm';
 
 const TYPES = [
@@ -29,11 +32,6 @@ const TYPES = [
 const TYPE_OPTIONS: ComboboxOption[] = TYPES.map((t) => ({
     value: t,
     label: t.replace(/_/g, ' '),
-}));
-const CRITICALITIES = ['LOW', 'MEDIUM', 'HIGH'];
-const CRIT_OPTIONS: ComboboxOption[] = CRITICALITIES.map((c) => ({
-    value: c,
-    label: c,
 }));
 const STATUS_OPTIONS: ComboboxOption[] = [
     { value: 'ACTIVE', label: 'Active' },
@@ -70,25 +68,6 @@ export function EditAssetFields({
                         form.setField('type', opt?.value ?? 'SYSTEM')
                     }
                     options={TYPE_OPTIONS}
-                    matchTriggerWidth
-                    buttonProps={{ className: 'w-full' }}
-                    caret
-                />
-            </div>
-            <div>
-                <label className="input-label">Criticality</label>
-                <Combobox
-                    hideSearch
-                    selected={
-                        CRIT_OPTIONS.find(
-                            (o) => o.value === form.fields.criticality,
-                        ) ?? null
-                    }
-                    setSelected={(opt) =>
-                        form.setField('criticality', opt?.value || '')
-                    }
-                    options={CRIT_OPTIONS}
-                    placeholder="—"
                     matchTriggerWidth
                     buttonProps={{ className: 'w-full' }}
                     caret
@@ -151,6 +130,25 @@ export function EditAssetFields({
                     className="input"
                     value={form.fields.location}
                     onChange={(e) => form.setField('location', e.target.value)}
+                />
+            </div>
+            <div>
+                <label className="input-label">Data Residency</label>
+                <Combobox
+                    hideSearch
+                    selected={
+                        ASSET_DATA_RESIDENCY_OPTIONS.find(
+                            (o) => o.value === form.fields.dataResidency,
+                        ) ?? null
+                    }
+                    setSelected={(opt) =>
+                        form.setField('dataResidency', opt?.value ?? '')
+                    }
+                    options={ASSET_DATA_RESIDENCY_OPTIONS}
+                    placeholder="Select residency…"
+                    matchTriggerWidth
+                    buttonProps={{ className: 'w-full' }}
+                    caret
                 />
             </div>
         </div>

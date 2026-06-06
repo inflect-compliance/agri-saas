@@ -98,6 +98,7 @@ export default function AssetDetailPage() {
               location: asset.location || '',
               criticality: asset.criticality || '',
               status: asset.status || 'ACTIVE',
+              dataResidency: asset.dataResidency || '',
               externalRef: asset.externalRef || '',
               confidentiality: asset.confidentiality ?? 3,
               integrity: asset.integrity ?? 3,

@@ -23,6 +23,7 @@ export const EmptyBodySchema = z.object({}).strip().openapi('EmptyBody', {
 export const CreateAssetSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     type: z.string().min(1, 'Type is required'),
+    status: z.enum(['ACTIVE', 'RETIRED']).optional(),
     classification: z.string().optional(),
     owner: z.string().optional(),
     ownerUserId: z.string().optional().nullable(),    // Real user reference — the asset owner (people picker)

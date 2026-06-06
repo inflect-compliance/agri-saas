@@ -27,6 +27,7 @@ export interface EditAssetFormFields {
     location: string;
     criticality: string;
     status: string;
+    dataResidency: string;
     externalRef: string;
     confidentiality: number;
     integrity: number;
@@ -62,6 +63,7 @@ const DEFAULTS: EditAssetFormFields = {
     location: '',
     criticality: '',
     status: 'ACTIVE',
+    dataResidency: '',
     externalRef: '',
     confidentiality: 3,
     integrity: 3,

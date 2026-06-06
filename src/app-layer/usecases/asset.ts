@@ -40,6 +40,7 @@ export async function createAsset(ctx: RequestContext, data: any) {
         const asset = await AssetRepository.create(db, ctx, {
             name: data.name,
             type: data.type,
+            ...(data.status ? { status: data.status } : {}),
             classification: data.classification,
             owner: data.owner,
             ownerUserId: data.ownerUserId || null,

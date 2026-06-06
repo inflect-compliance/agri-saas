@@ -12,6 +12,7 @@ import { AssetCriticalityFields } from './AssetCriticalityFields';
 import {
     ASSET_CLASSIFICATION_OPTIONS,
     ASSET_DATA_RESIDENCY_OPTIONS,
+    ASSET_STATUS_OPTIONS,
 } from './asset-options';
 import type { NewAssetFormFields, NewAssetFormReturn } from './useNewAssetForm';
 
@@ -137,26 +138,51 @@ export function NewAssetFields({
                 </FormField>
             </div>
 
-            <FormField label={labels.dataResidency}>
-                <Combobox
-                    id="asset-data-residency-input"
-                    name="dataResidency"
-                    options={ASSET_DATA_RESIDENCY_OPTIONS}
-                    selected={
-                        ASSET_DATA_RESIDENCY_OPTIONS.find(
-                            (o) => o.value === form.fields.dataResidency,
-                        ) ?? null
-                    }
-                    setSelected={(o) =>
-                        form.setField('dataResidency', o?.value ?? '')
-                    }
-                    placeholder="Select residency…"
-                    hideSearch
-                    matchTriggerWidth
-                    buttonProps={{ className: 'w-full' }}
-                    caret
-                />
-            </FormField>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-default">
+                <FormField label="Status">
+                    <Combobox
+                        id="asset-status-select"
+                        name="status"
+                        options={ASSET_STATUS_OPTIONS}
+                        selected={
+                            ASSET_STATUS_OPTIONS.find(
+                                (o) => o.value === form.fields.status,
+                            ) ?? null
+                        }
+                        setSelected={(o) =>
+                            form.setField(
+                                'status',
+                                (o?.value ?? 'ACTIVE') as NewAssetFormFields['status'],
+                            )
+                        }
+                        placeholder="Select status…"
+                        hideSearch
+                        matchTriggerWidth
+                        buttonProps={{ className: 'w-full' }}
+                        caret
+                    />
+                </FormField>
+                <FormField label={labels.dataResidency}>
+                    <Combobox
+                        id="asset-data-residency-input"
+                        name="dataResidency"
+                        options={ASSET_DATA_RESIDENCY_OPTIONS}
+                        selected={
+                            ASSET_DATA_RESIDENCY_OPTIONS.find(
+                                (o) => o.value === form.fields.dataResidency,
+                            ) ?? null
+                        }
+                        setSelected={(o) =>
+                            form.setField('dataResidency', o?.value ?? '')
+                        }
+                        placeholder="Select residency…"
+                        hideSearch
+                        matchTriggerWidth
+                        buttonProps={{ className: 'w-full' }}
+                        caret
+                    />
+                </FormField>
+            </div>
 
             {/* CIA triad → asset criticality (sliders + high-water-mark
                 score). min/max=1..5 matches the ISO 27005 impact scale. */}

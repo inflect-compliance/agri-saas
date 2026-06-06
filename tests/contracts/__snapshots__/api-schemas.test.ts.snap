@@ -12,6 +12,13 @@ exports[`API contract — per-schema snapshots schema: AssetCreateRequest 1`] = 
       "type": "string",
       "minLength": 1
     },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "RETIRED"
+      ]
+    },
     "classification": {
       "type": "string"
     },

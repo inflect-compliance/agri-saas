@@ -293,7 +293,6 @@ function RisksPageInner({
             { id: 'title', label: 'Title' },
             { id: 'asset', label: 'Asset' },
             { id: 'threat', label: 'Threat' },
-            { id: 'lxi', label: 'L × I' },
             { id: 'inherentScore', label: 'Score' },
             { id: 'level', label: 'Level' },
             { id: 'status', label: 'Status' },
@@ -455,14 +454,6 @@ function RisksPageInner({
             header: t.threat,
             cell: ({ getValue }) => (
                 <span className="text-xs text-content-muted">{getValue<string>()}</span>
-            ),
-        },
-        {
-            id: 'lxi',
-            header: 'L×I',
-            accessorFn: (r) => `${r.likelihood}×${r.impact}`,
-            cell: ({ getValue }) => (
-                <span className="text-xs">{getValue<string>()}</span>
             ),
         },
         {

@@ -21,3 +21,8 @@ export const ASSET_DATA_RESIDENCY_OPTIONS: ComboboxOption[] = [
     { value: 'US', label: 'US' },
     { value: 'Other', label: 'Other' },
 ];
+
+export const ASSET_STATUS_OPTIONS: ComboboxOption[] = [
+    { value: 'ACTIVE', label: 'Active' },
+    { value: 'RETIRED', label: 'Retired' },
+];

@@ -46,6 +46,7 @@ export interface UseNewAssetFormOptions {
 const INITIAL: NewAssetFormFields = {
     name: '',
     type: 'SYSTEM',
+    status: 'ACTIVE',
     classification: '',
     ownerUserId: '',
     location: '',
@@ -67,6 +68,7 @@ export function useNewAssetForm({
             const body: any = {
                 name: payload.name,
                 type: payload.type,
+                status: payload.status,
                 confidentiality: payload.confidentiality,
                 integrity: payload.integrity,
                 availability: payload.availability,

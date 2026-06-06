@@ -154,6 +154,11 @@ describe('Risks page + i18n (R1/R2)', () => {
         expect(src).not.toMatch(/ai-risk-btn/);
         expect(src).not.toMatch(/AI Assessment/);
     });
+    it('the L × I column is removed from the risk table', () => {
+        const src = read('RisksClient.tsx');
+        expect(src).not.toMatch(/id: 'lxi'/);
+        expect(src).not.toMatch(/L ?× ?I/);
+    });
     it('R1 — the matrix toggle label is "Matrix"', () => {
         const messages = JSON.parse(
             fs.readFileSync(path.join(__dirname, '..', '..', 'messages/en.json'), 'utf8'),

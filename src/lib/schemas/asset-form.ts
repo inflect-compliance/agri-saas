@@ -34,6 +34,7 @@ export const ASSET_TYPE_VALUES = [
 export const NewAssetFormSchema = z.object({
     name: z.string().trim().min(1, 'Asset name is required').max(255),
     type: z.enum(ASSET_TYPE_VALUES),
+    status: z.enum(['ACTIVE', 'RETIRED']).default('ACTIVE'),
     classification: z.string().trim().max(255).default(''),
     ownerUserId: z.string().trim().max(255).default(''),
     location: z.string().trim().max(255).default(''),
