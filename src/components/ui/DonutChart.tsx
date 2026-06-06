@@ -469,7 +469,14 @@ export default function DonutChart({
                                             'radial',
                                         )})`;
                             const path = pie.path(arc);
-                            if (path === null) return null;
+                            // `== null` catches BOTH null and undefined —
+                            // visx's arc generator returns `undefined` for a
+                            // degenerate/zero-value segment, and the strict
+                            // `=== null` form let it through, so the
+                            // `<motion.path animate={{ d: undefined }}>`
+                            // below set `d="undefined"` (the SVG console
+                            // error seen across every donut surface).
+                            if (path == null) return null;
                             const segPercent = seg.value / total;
                             // R16-PR6 — radial hover-pop. The mid-
                             // angle of the arc (in radians) drives
