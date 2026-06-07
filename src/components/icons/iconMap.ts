@@ -19,7 +19,10 @@ import {
     Clock,
     Download,
     Eye,
+    FileArchive,
+    FileJson,
     FilePlus,
+    FileSpreadsheet,
     FileText,
     FileWarning,
     GitBranch,
@@ -43,6 +46,7 @@ import {
     Shield,
     ShieldCheck,
     TestTube,
+    Upload,
     UserCheck,
     XCircle,
     type LucideIcon,
@@ -68,6 +72,9 @@ export type AppIconName =
     | 'error'
     | 'evidence'
     | 'export'
+    | 'fileArchive'
+    | 'fileJson'
+    | 'fileSpreadsheet'
     | 'fileWarning'
     | 'frameworks'
     | 'globe'
@@ -93,6 +100,7 @@ export type AppIconName =
     | 'tasks'
     | 'templates'
     | 'tests'
+    | 'upload'
     | 'userCheck'
     | 'versions'
     | 'warning';
@@ -117,6 +125,9 @@ export const ICON_MAP: Record<AppIconName, LucideIcon> = {
     error: XCircle,
     evidence: Paperclip,
     export: Download,
+    fileArchive: FileArchive,
+    fileJson: FileJson,
+    fileSpreadsheet: FileSpreadsheet,
     fileWarning: FileWarning,
     frameworks: Map,
     globe: Globe,
@@ -142,6 +153,7 @@ export const ICON_MAP: Record<AppIconName, LucideIcon> = {
     tasks: CheckCircle2,
     templates: ClipboardList,
     tests: TestTube,
+    upload: Upload,
     userCheck: UserCheck,
     versions: GitBranch,
     warning: AlertTriangle,

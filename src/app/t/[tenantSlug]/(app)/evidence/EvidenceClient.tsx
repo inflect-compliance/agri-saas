@@ -20,6 +20,8 @@ import { EvidenceBulkImportModal } from './EvidenceBulkImportModal';
 import { EvidenceDetailSheet } from './EvidenceDetailSheet';
 import { EditEvidenceModal } from './EditEvidenceModal';
 import { Button } from '@/components/ui/button';
+import { IconAction } from '@/components/ui/icon-action';
+import { AppIcon } from '@/components/icons/AppIcon';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -828,20 +830,20 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                     </div>
                     {permissions.canWrite && (
                         <div className="flex gap-tight">
-                            <Button
+                            <IconAction
                                 variant="secondary"
                                 onClick={() => setShowUpload(true)}
                                 id="upload-evidence-btn"
-                            >
-                                Upload File
-                            </Button>
-                            <Button
+                                icon={<AppIcon name="upload" size={16} />}
+                                label="Upload file"
+                            />
+                            <IconAction
                                 variant="secondary"
                                 onClick={() => setShowBulkImport(true)}
                                 id="bulk-import-evidence-btn"
-                            >
-                                Import ZIP
-                            </Button>
+                                icon={<AppIcon name="fileArchive" size={16} />}
+                                label="Import ZIP"
+                            />
                             <Button
                                 variant="primary"
                                 icon={<Plus className="-ml-0.5 -mr-2.5" />}

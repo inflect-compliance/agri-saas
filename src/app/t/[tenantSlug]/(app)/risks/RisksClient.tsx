@@ -20,6 +20,8 @@ import { TruncationBanner } from '@/components/ui/TruncationBanner';
 // E2E suite becomes deterministic.
 import { NewRiskModal } from './NewRiskModal';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
+import { AppIcon } from '@/components/icons/AppIcon';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -606,9 +608,11 @@ function RisksPageInner({
                         </Button>
                         {permissions.canWrite && (
                             <>
-                                <Link href={tenantHref('/risks/import')} className={buttonVariants({ variant: 'secondary' })} id="risk-import-btn">
-                                    Import
-                                </Link>
+                                <Tooltip content="Import risks">
+                                    <Link href={tenantHref('/risks/import')} aria-label="Import risks" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="risk-import-btn">
+                                        <AppIcon name="upload" size={16} />
+                                    </Link>
+                                </Tooltip>
                                 <Button
                                     variant="primary"
                                     icon={<Plus className="-ml-0.5 -mr-2.5" />}

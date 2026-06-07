@@ -31,6 +31,7 @@ import {
 import { FilterToolbar } from '@/components/filters/FilterToolbar';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { Button } from '@/components/ui/button';
+import { IconAction } from '@/components/ui/icon-action';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -684,14 +685,15 @@ function TasksPageInner({
                             aria-label="Bulk due date"
                         />
                     )}
-                    <Button
+                    <IconAction
                         variant="primary"
-                        disabled={!bulkAction || (bulkAction === 'status' && !bulkValue) || bulkMutation.isMutating}
+                        disabled={!bulkAction || (bulkAction === 'status' && !bulkValue)}
+                        loading={bulkMutation.isMutating}
                         onClick={handleBulkSubmit}
                         id="bulk-apply-btn"
-                    >
-                        {bulkMutation.isMutating ? 'Applying...' : 'Apply'}
-                    </Button>
+                        icon={<AppIcon name="checkCircle" size={16} />}
+                        label="Apply"
+                    />
                     <button className="text-xs text-content-muted hover:text-content-emphasis" onClick={() => setSelected(new Set())}>Clear</button>
                 </div>
             )}

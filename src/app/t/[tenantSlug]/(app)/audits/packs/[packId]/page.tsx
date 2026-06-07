@@ -6,6 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { AppIcon, type AppIconName } from '@/components/icons/AppIcon';
 import { RequirePermission } from '@/components/require-permission';
 import { Button } from '@/components/ui/button';
+import { IconAction } from '@/components/ui/icon-action';
+import { Tooltip } from '@/components/ui/tooltip';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { UpgradeGate } from '@/components/UpgradeGate';
 import { CopyButton } from '@/components/ui/copy-button';
@@ -172,37 +174,37 @@ export default function PackDetailPage() {
                 <>
                     {isDraft && (
                         <RequirePermission resource="audits" action="freeze">
-                            <Button variant="primary" onClick={freeze} disabled={freezing} id="freeze-pack-btn" icon={<AppIcon name="lock" size={16} />}>
-                                {freezing ? 'Freezing...' : 'Freeze Pack'}
-                            </Button>
+                            <IconAction variant="primary" onClick={freeze} loading={freezing} id="freeze-pack-btn" icon={<AppIcon name="lock" size={16} />} label="Freeze pack" />
                         </RequirePermission>
                     )}
                     {isFrozen && (
                         <RequirePermission resource="audits" action="share">
                             <UpgradeGate feature="AUDIT_PACK_SHARING">
-                                <Button variant="primary" onClick={share} disabled={sharing} id="share-pack-btn" icon={<AppIcon name="share" size={16} />}>
-                                    {sharing ? 'Creating...' : 'Generate Share Link'}
-                                </Button>
+                                <IconAction variant="primary" onClick={share} loading={sharing} id="share-pack-btn" icon={<AppIcon name="share" size={16} />} label="Generate share link" />
                             </UpgradeGate>
                         </RequirePermission>
                     )}
                     {isFrozen && (
                         <RequirePermission resource="audits" action="manage">
-                            <button onClick={async () => {
-                                setCloning(true);
-                                try {
-                                    const res = await fetch(apiUrl(`/audits/packs/${packId}?action=clone`), {
-                                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
-                                    });
-                                    if (res.ok) {
-                                        const cloned = await res.json();
-                                        router.push(`/t/${tenantSlug}/audits/packs/${cloned.id}`);
-                                    }
-                                } finally { setCloning(false); }
-                            }} disabled={cloning} className={buttonVariants({ variant: 'secondary' })} id="clone-pack-btn">
-                                <AppIcon name="refresh" size={16} className="inline-block mr-1" />
-                                {cloning ? 'Cloning...' : 'Clone for Retest'}
-                            </button>
+                            <IconAction
+                                variant="secondary"
+                                onClick={async () => {
+                                    setCloning(true);
+                                    try {
+                                        const res = await fetch(apiUrl(`/audits/packs/${packId}?action=clone`), {
+                                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+                                        });
+                                        if (res.ok) {
+                                            const cloned = await res.json();
+                                            router.push(`/t/${tenantSlug}/audits/packs/${cloned.id}`);
+                                        }
+                                    } finally { setCloning(false); }
+                                }}
+                                loading={cloning}
+                                id="clone-pack-btn"
+                                icon={<AppIcon name="refresh" size={16} />}
+                                label="Clone for retest"
+                            />
                         </RequirePermission>
                     )}
                 </>
@@ -281,10 +283,14 @@ export default function PackDetailPage() {
                 <div className={cardVariants()}>
                     <Heading level={3} className="mb-2 inline-flex items-center gap-tight"><AppIcon name="export" size={16} /> Exports</Heading>
                     <div className="flex gap-tight">
-                        <a href={apiUrl(`/audits/packs/${packId}?action=export&format=json`)}
-                            target="_blank" rel="noopener" className={buttonVariants({ variant: 'secondary', size: 'sm', className: 'inline-flex items-center gap-1' })}><AppIcon name="download" size={14} /> Export JSON</a>
-                        <a href={apiUrl(`/audits/packs/${packId}?action=export&format=csv`)}
-                            target="_blank" rel="noopener" className={buttonVariants({ variant: 'secondary', size: 'sm', className: 'inline-flex items-center gap-1' })}><AppIcon name="download" size={14} /> Export CSV</a>
+                        <Tooltip content="Export JSON">
+                            <a href={apiUrl(`/audits/packs/${packId}?action=export&format=json`)}
+                                target="_blank" rel="noopener" aria-label="Export JSON" className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="fileJson" size={16} /></a>
+                        </Tooltip>
+                        <Tooltip content="Export CSV">
+                            <a href={apiUrl(`/audits/packs/${packId}?action=export&format=csv`)}
+                                target="_blank" rel="noopener" aria-label="Export CSV" className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="fileSpreadsheet" size={16} /></a>
+                        </Tooltip>
                     </div>
                 </div>
             )}

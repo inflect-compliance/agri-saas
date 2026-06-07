@@ -12,6 +12,8 @@ import { DataTable, createColumns } from '@/components/ui/table';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
+import { IconAction } from '@/components/ui/icon-action';
+import { AppIcon } from '@/components/icons/AppIcon';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
@@ -108,15 +110,14 @@ export default function DueQueuePage() {
                         <Link href={tenantHref('/tests')} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>← Tests</Link>
                         <Link href={tenantHref('/tests/dashboard')} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Dashboard</Link>
                         {permissions.canWrite && (
-                            <Button
+                            <IconAction
                                 variant="primary"
-                                size="sm"
                                 onClick={handleRunDuePlanning}
-                                disabled={planning}
+                                loading={planning}
                                 id="run-due-planning-btn"
-                            >
-                                {planning ? 'Running...' : 'Run Due Planning'}
-                            </Button>
+                                icon={<AppIcon name="run" size={16} />}
+                                label="Run due planning"
+                            />
                         )}
                     </div>
                 </div>

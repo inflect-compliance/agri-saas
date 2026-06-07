@@ -51,7 +51,7 @@ const ROOT = path.resolve(__dirname, '../..');
 // accumulated rendered-test gains since the last bump.
 // Raised 143 → 152 (2026-06-06): asset/risk modal-field, asset-criticality,
 // and asset-KPI-trendline rendered tests.
-const RENDERED_TEST_FLOOR = 152;
+const RENDERED_TEST_FLOOR = 153;
 const E2E_SPEC_FLOOR = 36;
 const REGISTRY_FLOOR = 5;
 

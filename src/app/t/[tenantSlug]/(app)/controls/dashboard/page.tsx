@@ -5,6 +5,7 @@ import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-c
 import type { ControlDashboardDTO, ConsistencyCheckDTO } from '@/lib/dto';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { Button } from '@/components/ui/button';
+import { IconAction } from '@/components/ui/icon-action';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import {
@@ -93,9 +94,7 @@ export default function ControlsDashboard() {
                 actions: (
                     <>
                         {permissions.canAdmin && (
-                            <Button variant="secondary" onClick={fetchConsistency} id="consistency-check-btn">
-                                <AppIcon name="search" size={16} className="inline-block" /> Consistency Check
-                            </Button>
+                            <IconAction variant="secondary" onClick={fetchConsistency} id="consistency-check-btn" icon={<AppIcon name="search" size={16} />} label="Consistency check" />
                         )}
                         <Link href={tenantHref('/controls')} className={buttonVariants({ variant: 'secondary' })}>
                             Back to Controls
