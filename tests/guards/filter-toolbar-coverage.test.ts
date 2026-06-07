@@ -85,8 +85,10 @@ const EXEMPTIONS: Record<string, string> = {
         "Detail-page roster sub-table — fixed scope (decisions in this campaign) with inline per-row decision controls; not a faceted-filter surface.",
     "src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx":
         "Detail-page documents sub-table (R11-PR7) — fixed scope (documents attached to this one vendor); not a faceted-filter surface.",
-    "src/app/t/[tenantSlug]/(app)/controls/[controlId]/page.tsx":
-        "Detail-page tasks sub-table (R11-PR6) — fixed scope (tasks for this one control) with inline per-row actions; not a faceted-filter surface.",
+    // B4 (2026-06-07): the controls DETAIL page no longer has a DataTable —
+    // the legacy 'Control tasks' sub-table was removed when the Tasks tab
+    // was aligned to Asset/Risk (a single LinkedTasksPanel). It's no longer
+    // a DataTable surface, so it drops out of this exemption list.
     "src/app/t/[tenantSlug]/(app)/controls/[controlId]/_tabs/EvidenceSubTable.tsx":
         "Detail-page evidence sub-table (R10-PR3 follow-up) — fixed scope (evidence links + direct evidence for this one control) with per-row unlink action; not a faceted-filter surface.",
     "src/app/t/[tenantSlug]/(app)/controls/[controlId]/_tabs/ControlMappingsTab.tsx":

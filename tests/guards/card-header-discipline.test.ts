@@ -37,11 +37,13 @@ const PRIMITIVE_PATH = 'src/components/ui/card-header.tsx';
 // The risks detail page was the original proof-of-pattern adopter,
 // but its CardHeader sat on an Overview-tab Traceability section that
 // has since been removed (risk traceability now lives only on the
-// dedicated Traceability tab). The controls detail page is a stable
-// CardHeader adopter (Linked Work Items section header, R9-PR2) and
-// keeps this discipline check anchored to a real mount site.
+// dedicated Traceability tab). B4 (2026-06-07) removed the controls
+// DETAIL page's only CardHeader (the legacy 'Control tasks' table) when
+// the Tasks tab was aligned to Asset/Risk, so the anchor moved to the
+// control TEST-PLAN detail page — a stable CardHeader adopter (Test
+// Procedure section header, R9-PR2).
 const ADOPTERS = [
-    'src/app/t/[tenantSlug]/(app)/controls/[controlId]/page.tsx',
+    'src/app/t/[tenantSlug]/(app)/controls/[controlId]/tests/[planId]/page.tsx',
 ];
 
 describe('CardHeader discipline (Roadmap-3 PR-5)', () => {

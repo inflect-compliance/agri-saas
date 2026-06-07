@@ -53,11 +53,15 @@ describe('control detail — tab-lazy page-data (#102 item 1)', () => {
         expect(body).not.toMatch(/frameworkMappings:\s*{\s*include/);
     });
 
-    it('the page fetches the Tasks and Evidence tabs lazily', () => {
-        // Each per-tab SWR key is `null` until its tab is active.
-        expect(PAGE).toMatch(
-            /tab === 'tasks'[\s\S]{0,90}CACHE_KEYS\.controls\.tasks/,
-        );
+    it('lazily loads the Evidence tab; the Tasks tab is delegated to LinkedTasksPanel', () => {
+        // B4 (2026-06-07): the Tasks tab no longer page-fetches — it renders
+        // <LinkedTasksPanel> (which self-fetches the unified tasks), matching
+        // the Asset + Risk Tasks tabs. The page-level CACHE_KEYS.controls.tasks
+        // fetch was removed.
+        expect(PAGE).toMatch(/tab === 'tasks' &&/);
+        expect(PAGE).toMatch(/<LinkedTasksPanel[\s\S]*?entityType="CONTROL"/);
+        expect(PAGE).not.toMatch(/CACHE_KEYS\.controls\.tasks/);
+        // Evidence still uses a per-tab SWR key that's null until active.
         expect(PAGE).toMatch(
             /tab === 'evidence'[\s\S]{0,90}CACHE_KEYS\.controls\.evidence/,
         );

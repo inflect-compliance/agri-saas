@@ -9,9 +9,8 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading, textLinkVariants } from '@/components/ui/typography';
-import { CardHeader } from '@/components/ui/card-header';
 import { EditControlModal } from './_modals/EditControlModal';
 import { ControlReverseLookupModal } from '@/components/controls/ControlReverseLookupModal';
 import { ControlMappingsTab } from './_tabs/ControlMappingsTab';
@@ -25,7 +24,7 @@ const PencilIcon = ({ size = 14 }: { size?: number }) => (
 );
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
-import { DataTable, createColumns } from '@/components/ui/table';
+import { DataTable } from '@/components/ui/table';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantMutation } from '@/lib/hooks/use-tenant-mutation';
 import { CACHE_KEYS } from '@/lib/swr-keys';
@@ -67,7 +66,7 @@ const LinkedTasksPanel = dynamic(() => import('@/components/LinkedTasksPanel'), 
     ssr: false,
 });
 import type {
-    ControlDetailDTO, ControlTaskDTO, EvidenceLinkDTO,
+    ControlDetailDTO, EvidenceLinkDTO,
     ContributorDTO, AuditLogEntry,
 } from '@/lib/dto';
 
@@ -77,9 +76,6 @@ import type {
 const STATUS_LABELS: Record<string, string> = {
     NOT_STARTED: 'Not Started', IN_PROGRESS: 'In Progress', IMPLEMENTED: 'Implemented',
     NEEDS_REVIEW: 'Needs Review',
-};
-const TASK_STATUS_BADGE: Record<string, StatusBadgeVariant> = {
-    OPEN: 'neutral', IN_PROGRESS: 'info', DONE: 'success', BLOCKED: 'error',
 };
 const FREQ_LABELS: Record<string, string> = {
     AD_HOC: 'Ad Hoc', DAILY: 'Daily', WEEKLY: 'Weekly',
@@ -188,11 +184,8 @@ export default function ControlDetailPage() {
     // `getControlHeader` no longer eager-loads these four arrays into
     // the page-data payload. Mirrors the existing Activity /
     // Traceability / Tests panels, which already self-fetch.
-    const tasksSWR = useTenantSWR<ControlTaskDTO[]>(
-        controlId && tab === 'tasks'
-            ? CACHE_KEYS.controls.tasks(controlId)
-            : null,
-    );
+    // B4 — the legacy control-task fetch was removed; the Tasks tab's
+    // <LinkedTasksPanel> self-fetches the unified tasks.
     const evidenceSWR = useTenantSWR<EvidenceTabData>(
         controlId && tab === 'evidence'
             ? CACHE_KEYS.controls.evidence(controlId)
@@ -474,94 +467,10 @@ export default function ControlDetailPage() {
         setShowApplicability(false);
     };
 
-    const updateTaskStatus = async (taskId: string, status: string) => {
-        await fetch(apiUrl(`/controls/tasks/${taskId}`), {
-            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status }),
-        });
-        await Promise.all([tasksSWR.mutate(), refetch()]);
-    };
-
-    // R11-PR6 — control tasks moved off raw <table> to DataTable so
-    // the chrome matches every other table in the product.
-    const controlTaskColumns = useMemo(
-        () =>
-            createColumns<ControlTaskDTO>([
-                {
-                    id: 'title',
-                    header: 'Title',
-                    accessorKey: 'title',
-                    cell: ({ getValue }) => (
-                        <span className="text-sm text-content-emphasis">
-                            {getValue() as string}
-                        </span>
-                    ),
-                },
-                {
-                    id: 'status',
-                    header: 'Status',
-                    accessorKey: 'status',
-                    cell: ({ getValue }) => {
-                        const status = getValue() as string;
-                        return (
-                            <StatusBadge
-                                variant={TASK_STATUS_BADGE[status] || 'neutral'}
-                            >
-                                {status}
-                            </StatusBadge>
-                        );
-                    },
-                },
-                {
-                    id: 'assignee',
-                    header: 'Assignee',
-                    cell: ({ row }) => (
-                        <span className="text-xs text-content-muted">
-                            {row.original.assignee?.name || '—'}
-                        </span>
-                    ),
-                },
-                {
-                    id: 'dueAt',
-                    header: 'Due',
-                    accessorKey: 'dueAt',
-                    cell: ({ getValue }) => {
-                        const value = getValue() as string | null;
-                        return (
-                            <span className="text-xs text-content-muted">
-                                {value ? formatDate(value) : '—'}
-                            </span>
-                        );
-                    },
-                },
-                ...(permissions.canWrite
-                    ? [
-                          {
-                              id: 'actions',
-                              header: 'Actions',
-                              cell: ({ row }) =>
-                                  row.original.status !== 'DONE' ? (
-                                      <Button
-                                          variant="secondary"
-                                          size="sm"
-                                          onClick={() =>
-                                              updateTaskStatus(
-                                                  row.original.id,
-                                                  'DONE',
-                                              )
-                                          }
-                                          id={`mark-done-${row.original.id}`}
-                                      >
-                                          Done
-                                      </Button>
-                                  ) : null,
-                          } as Parameters<typeof createColumns<ControlTaskDTO>>[0][number],
-                      ]
-                    : []),
-            ]),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [permissions.canWrite],
-    );
+    // B4 (2026-06-07): the legacy control-scoped task flow
+    // (updateTaskStatus + controlTaskColumns + the tasksSWR fetch) was
+    // removed with the legacy "Control tasks" DataTable — the Control Tasks
+    // tab is now a single <LinkedTasksPanel>, matching Asset + Risk.
 
     const resetEvidenceForm = () => {
         setEvidenceUrl('');
@@ -1011,12 +920,13 @@ export default function ControlDetailPage() {
             )}
 
             {tab === 'tasks' && (
-                <div className="space-y-default">
-                    {/* Unified task surface — opens the canonical
-                        Tasks-page create modal. New tasks are created in
-                        the global Tasks table (so they appear in the Tasks
-                        list) and linked back to this control via
-                        TaskLink. */}
+                // B4 (2026-06-07): the Control Tasks tab now matches the
+                // Asset + Risk Tasks tabs exactly — a single card-wrapped
+                // <LinkedTasksPanel>. The divergent legacy "Control tasks
+                // (legacy)" DataTable (the old per-control ControlTask
+                // model) was removed; tasks live in the unified Tasks table,
+                // linked back via TaskLink.
+                <div className={cardVariants()} id="control-tasks-tab">
                     <LinkedTasksPanel
                         apiBase={apiUrl('')}
                         entityType="CONTROL"
@@ -1024,22 +934,6 @@ export default function ControlDetailPage() {
                         tenantHref={tenantHref}
                         canWrite={permissions.canWrite}
                     />
-                    {/* Legacy control-scoped tasks (read-only). These
-                        pre-date the unified model (the old per-control
-                        ControlTask table); the section only renders when
-                        a control still has historical rows. */}
-                    {(tasksSWR.data?.length ?? 0) > 0 && (
-                        <div className={cn(cardVariants({ density: 'compact' }), 'mt-4')} id="legacy-control-tasks-section">
-                            <CardHeader title="Control tasks (legacy)" className="mb-3" />
-                            <DataTable
-                                data={tasksSWR.data ?? []}
-                                columns={controlTaskColumns}
-                                getRowId={(t) => t.id}
-                                resourceName={(p) => (p ? 'tasks' : 'task')}
-                                data-testid="control-tasks-table"
-                            />
-                        </div>
-                    )}
                 </div>
             )}
 

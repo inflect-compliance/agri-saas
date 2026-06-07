@@ -38,8 +38,8 @@ const CARDHEADER_PAGES: CardHeaderEntry[] = [
     },
     {
         file: "src/app/t/[tenantSlug]/(app)/controls/[controlId]/page.tsx",
-        adopted: true,
-        note: "Controls detail — Linked Work Items section header migrated R9-PR2.",
+        adopted: false,
+        note: "B4 (2026-06-07): the only CardHeader (the legacy 'Control tasks' table) was removed when the Tasks tab was aligned to Asset/Risk (a single LinkedTasksPanel).",
     },
     {
         file: "src/app/t/[tenantSlug]/(app)/controls/[controlId]/tests/[planId]/page.tsx",

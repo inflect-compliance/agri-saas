@@ -316,12 +316,23 @@ describe('Epic E — regression: drill-down can browse beyond the dashboard top-
         );
 
         const user = userEvent.setup();
+        // First click → page 2 appends. WAIT for page 2 to actually render
+        // before the next click: under parallel-jest load the post-fetch
+        // setState (append rows + advance the cursor) can commit AFTER the
+        // act() resolves, so a bare getByTestId for the second click would
+        // race the re-render (the source of this test's flakiness). findBy*
+        // retries until the page-2 rows + the re-rendered Load-more land.
         await act(async () => {
             await user.click(screen.getByTestId('org-controls-load-more'));
         });
+        await screen.findByTestId('org-control-link-c-p2-0');
+
+        // Second click → page 3 appends, cursor null.
         await act(async () => {
             await user.click(screen.getByTestId('org-controls-load-more'));
         });
+        // Wait for page 3's last row to settle before the bulk assertions.
+        await screen.findByTestId('org-control-link-c-p3-49');
 
         // Every row from all three pages is in the DOM.
         for (const p of [1, 2, 3]) {
