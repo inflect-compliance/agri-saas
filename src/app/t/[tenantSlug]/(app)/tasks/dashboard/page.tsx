@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { AppIcon } from '@/components/icons/AppIcon';
+import { Tooltip } from '@/components/ui/tooltip';
 import { User, Link2, AlertOctagon } from 'lucide-react';
 import { TERMINAL_WORK_ITEM_STATUSES } from '@/app-layer/domain/work-item-status';
 import {
@@ -116,7 +117,9 @@ export default function TaskDashboardPage() {
                 title: 'Task Dashboard',
                 description: `${metrics.total} total tasks`,
                 actions: (
-                    <Link href={tenantHref('/tasks')} className={buttonVariants({ variant: 'secondary' })}>Task Register</Link>
+                    <Tooltip content="Task register">
+                        <Link href={tenantHref('/tasks')} aria-label="Task register" className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="tasks" size={16} /></Link>
+                    </Tooltip>
                 ),
             }}
         >

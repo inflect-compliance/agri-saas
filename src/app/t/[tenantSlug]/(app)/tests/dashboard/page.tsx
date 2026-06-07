@@ -20,6 +20,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SkeletonDashboard } from '@/components/ui/skeleton';
 import { Heading } from '@/components/ui/typography';
 import { cardVariants } from '@/components/ui/card';
+import { Tooltip } from '@/components/ui/tooltip';
+import { AppIcon } from '@/components/icons/AppIcon';
 
 interface DashboardMetrics {
     periodDays: number;
@@ -115,7 +117,11 @@ export default function TestDashboardPage() {
                 actions: (
                     <>
                         <Link href={tenantHref('/tests')} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Tests</Link>
-                        <Link href={tenantHref('/tests/due')} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Due Queue</Link>
+                        <Tooltip content="Due queue">
+                            <Link href={tenantHref('/tests/due')} aria-label="Due queue" className={buttonVariants({ variant: 'secondary', size: 'icon' })}>
+                                <AppIcon name="clock" size={16} />
+                            </Link>
+                        </Tooltip>
                         <div className="flex gap-1 bg-bg-default/50 rounded-lg p-1">
                             {[30, 90].map(d => (
                                 <button

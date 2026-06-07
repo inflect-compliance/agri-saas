@@ -16,6 +16,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SkeletonDashboard } from '@/components/ui/skeleton';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { cardVariants } from '@/components/ui/card';
+import { Tooltip } from '@/components/ui/tooltip';
+import { AppIcon } from '@/components/icons/AppIcon';
 import { cn } from '@/lib/cn';
 
 
@@ -78,7 +80,11 @@ export default function VendorDashboardPage() {
                 title: 'Vendor Dashboard',
                 description: `${metrics.totalVendors} total vendors`,
                 actions: (
-                    <Link href={tenantHref('/vendors')} className={buttonVariants({ variant: 'secondary' })}>Register</Link>
+                    <Tooltip content="Vendor register">
+                        <Link href={tenantHref('/vendors')} aria-label="Vendor register" className={buttonVariants({ variant: 'secondary', size: 'icon' })}>
+                            <AppIcon name="overview" size={16} />
+                        </Link>
+                    </Tooltip>
                 ),
             }}
         >

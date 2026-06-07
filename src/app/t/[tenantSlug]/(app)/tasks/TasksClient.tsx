@@ -21,6 +21,7 @@ import { TruncationBanner } from '@/components/ui/TruncationBanner';
 import { TableLoadMoreFooter } from '@/components/ui/table-load-more-footer';
 import { useThresholdLoadMore } from '@/components/ui/hooks';
 import { TimestampTooltip } from '@/components/ui/timestamp-tooltip';
+import { Tooltip } from '@/components/ui/tooltip';
 import { TERMINAL_WORK_ITEM_STATUSES } from '@/app-layer/domain/work-item-status';
 import { DataTable, createColumns, useColumnsDropdown } from '@/components/ui/table';
 import {
@@ -594,7 +595,9 @@ function TasksPageInner({
                         </p>
                     </div>
                     <div className="flex gap-tight">
-                        <Link href={tenantHref('/tasks/dashboard')} className={buttonVariants({ variant: 'secondary', className: 'inline-flex items-center gap-tight' })} id="dashboard-btn"><AppIcon name="dashboard" size={16} /> Dashboard</Link>
+                        <Tooltip content="Dashboard">
+                            <Link href={tenantHref('/tasks/dashboard')} aria-label="Dashboard" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="dashboard-btn"><AppIcon name="dashboard" size={16} /></Link>
+                        </Tooltip>
                         {appPermissions.tasks.create && (
                             <Button
                                 variant="primary"

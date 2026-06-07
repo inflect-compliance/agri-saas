@@ -20,6 +20,7 @@ import { KPIStat } from '@/components/ui/metric';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { cardVariants } from '@/components/ui/card';
 import { AppIcon } from '@/components/icons/AppIcon';
+import { Tooltip } from '@/components/ui/tooltip';
 import { buildTestFilters, TEST_FILTER_KEYS } from './filter-defs';
 
 interface TestPlanSummary {
@@ -236,15 +237,21 @@ function TestsRollupContent() {
                         <p className="text-sm text-content-muted mt-1">Test plans and recent results across all controls</p>
                     </div>
                     <div className="flex gap-tight">
-                        <Link href={tenantHref('/tests/due')} className={buttonVariants({ variant: 'secondary', size: 'sm' })} id="tests-due-btn">
-                            <AppIcon name="clock" size={14} /> Due Queue
-                        </Link>
-                        <Link href={tenantHref('/tests/dashboard')} className={buttonVariants({ variant: 'secondary', size: 'sm' })} id="tests-dashboard-btn">
-                            <AppIcon name="dashboard" size={14} /> Dashboard
-                        </Link>
-                        <Link href={tenantHref('/access-reviews')} className={buttonVariants({ variant: 'secondary', size: 'sm' })} id="tests-uar-btn">
-                            <AppIcon name="userCheck" size={14} /> UAR
-                        </Link>
+                        <Tooltip content="Due queue">
+                            <Link href={tenantHref('/tests/due')} aria-label="Due queue" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-due-btn">
+                                <AppIcon name="clock" size={16} />
+                            </Link>
+                        </Tooltip>
+                        <Tooltip content="Dashboard">
+                            <Link href={tenantHref('/tests/dashboard')} aria-label="Dashboard" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-dashboard-btn">
+                                <AppIcon name="dashboard" size={16} />
+                            </Link>
+                        </Tooltip>
+                        <Tooltip content="Access reviews">
+                            <Link href={tenantHref('/access-reviews')} aria-label="Access reviews" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-uar-btn">
+                                <AppIcon name="userCheck" size={16} />
+                            </Link>
+                        </Tooltip>
                     </div>
                 </div>
             </ListPageShell.Header>

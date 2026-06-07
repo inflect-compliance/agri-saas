@@ -1,6 +1,8 @@
 'use client';
 /* eslint-disable react-hooks/exhaustive-deps -- Various useEffect/useMemo dep arrays in this file deliberately omit identity-unstable callbacks (handlers recreated each render) or use selector functions whose change-detection happens elsewhere. Adding the deps would either trigger unnecessary re-runs OR cause infinite render loops; the proper structural fix is to wrap parent-level callbacks in useCallback. Tracked as follow-up. */
 import { TimestampTooltip } from '@/components/ui/timestamp-tooltip';
+import { Tooltip } from '@/components/ui/tooltip';
+import { AppIcon } from '@/components/icons/AppIcon';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -314,9 +316,11 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                         </p>
                     </div>
                     <div className="flex gap-tight">
-                        <Link href={tenantHref('/vendors/dashboard')} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))} id="vendor-dashboard-btn">
-                            Dashboard
-                        </Link>
+                        <Tooltip content="Dashboard">
+                            <Link href={tenantHref('/vendors/dashboard')} aria-label="Dashboard" className={cn(buttonVariants({ variant: 'secondary', size: 'icon' }))} id="vendor-dashboard-btn">
+                                <AppIcon name="dashboard" size={16} />
+                            </Link>
+                        </Tooltip>
                         {permissions.canCreate && (
                             <Button
                                 variant="primary"
