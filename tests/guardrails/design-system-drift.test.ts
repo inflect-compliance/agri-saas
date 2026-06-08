@@ -212,10 +212,15 @@ describe('New page token discipline', () => {
         //     the segment. Listed in the unmigrated tally only
         //     because the surfaces are new and not yet promoted to
         //     MIGRATED_PAGES; promotion is a separate landing.
+        //   - 104 (+1): VR-10 — processes/governance/page.tsx, the
+        //     cross-map governance graph. Token-clean (no raw colour
+        //     utilities — uses content-*/border-*/bg-* tokens + health
+        //     ring tokens); in the unmigrated tally only because the
+        //     surface is new and not yet promoted to MIGRATED_PAGES.
         // Each increment names the epic + page + reason; promotion
         // to MIGRATED_PAGES is the path forward, never silent
         // floor-bumping.
-        expect(unmigrated.length).toBeLessThanOrEqual(103);
+        expect(unmigrated.length).toBeLessThanOrEqual(104);
     });
 
     it('migrated page count is at least 4', () => {

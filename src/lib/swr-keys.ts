@@ -147,6 +147,12 @@ export const CACHE_KEYS = {
         suggestions: () => '/ai/automation-suggestions' as const,
     },
 
+    // ─── Processes / canvas (R25+ · Visual Rule Editor) ──────────
+    processes: {
+        // VR-10 — cross-map governance meta-graph.
+        governanceGraph: () => '/processes/governance-graph' as const,
+    },
+
     // ─── Audit lifecycle ────────────────────────────────────────
     audits: {
         ...makeResource('audits'),
