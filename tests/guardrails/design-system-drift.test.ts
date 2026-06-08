@@ -20,6 +20,9 @@ const COMPONENTS_DIR = path.resolve(__dirname, '../../src/components');
  * These pages must NOT regress to raw color utilities.
  */
 const MIGRATED_PAGES = [
+    // EI-1 — Entra provider wizard; design-system-native from birth
+    // (Input / FormField / ToggleGroup / Card + semantic tokens only).
+    'admin/entra/page.tsx',
     'dashboard/page.tsx',
     // Epic 69 split the dashboard into a thin server shell + a
     // `'use client'` component owning the card composition. Both

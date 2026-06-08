@@ -538,6 +538,7 @@ enum SuggestionItemStatus {
 enum IdentityProviderType {
   SAML
   OIDC
+  ENTRA_ID // EI-1 — Entra-specific; enables group-claim extraction + SCIM Groups paths
 }
 
 enum MfaPolicy {

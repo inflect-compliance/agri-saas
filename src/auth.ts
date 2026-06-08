@@ -130,6 +130,12 @@ declare module 'next-auth/jwt' {
         orgMembershipsTruncated?: boolean;
         /** Provider name when the user signed in via OAuth. */
         provider?: string;
+        /** EI-1 — AAD security-group Object IDs from the Entra ID token (or
+         *  Graph, on the >200-group overage path). Input to the EI-2 mapper. */
+        aadGroups?: string[];
+        /** EI-1 — telemetry flag: the groups claim overflowed and was resolved
+         *  via a Microsoft Graph `/me/memberOf` fetch instead. */
+        aadGroupsOverage?: boolean;
         accessToken?: string;
         refreshToken?: string;
         expiresAt?: number;
@@ -269,7 +275,12 @@ const providers: NextAuthOptions['providers'] = [
         tenantId: env.MICROSOFT_TENANT_ID,
         authorization: {
             params: {
-                scope: 'openid email profile offline_access',
+                // EI-1 — `GroupMember.Read.All` lets the >200-group overage path
+                // call Graph `/me/memberOf` with the issued access token. The
+                // `groups` ID-token claim itself is governed by the tenant's App
+                // Registration Token Configuration (set by the tenant admin),
+                // not by this scope.
+                scope: 'openid email profile offline_access https://graph.microsoft.com/GroupMember.Read.All',
             },
         },
     }),
@@ -492,7 +503,7 @@ export const authOptions: NextAuthOptions = {
          * token refresh, and gate MFA + sessionVersion + Epic C.3
          * session tracking.
          */
-        async jwt({ token, user, account, trigger }) {
+        async jwt({ token, user, account, profile, trigger }) {
             // Initial sign in.
             if (account && user) {
                 await applyMembershipClaims(token, user.id);
@@ -502,6 +513,32 @@ export const authOptions: NextAuthOptions = {
                     token.accessToken = (account.access_token as string) ?? undefined;
                     token.refreshToken = (account.refresh_token as string) ?? undefined;
                     token.expiresAt = (account.expires_at as number) ?? undefined;
+                }
+
+                // ── EI-1 — extract AAD security-group membership from the ID
+                //    token so the Epic EI-2 mapper has the raw group list. The
+                //    `groups` claim is omitted for users in > ~200 groups
+                //    (Entra sets `_claim_names.groups` instead) — fall back to
+                //    a Graph `/me/memberOf` fetch in that overage case. A Graph
+                //    failure resolves to [] and never blocks sign-in.
+                if (account.provider === 'microsoft-entra-id') {
+                    const p = (profile ?? {}) as {
+                        groups?: string[];
+                        _claim_names?: { groups?: string };
+                    };
+                    if (p._claim_names?.groups && account.access_token) {
+                        const { fetchUserGroupsFromGraph } = await import(
+                            '@/lib/auth/entra-graph'
+                        );
+                        const groups = await fetchUserGroupsFromGraph(
+                            account.access_token as string,
+                        );
+                        token.aadGroups = groups.map((g) => g.id);
+                        token.aadGroupsOverage = true;
+                    } else {
+                        token.aadGroups = Array.isArray(p.groups) ? p.groups : [];
+                        token.aadGroupsOverage = false;
+                    }
                 }
 
                 // ── MFA enforcement ──
