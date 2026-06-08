@@ -13,6 +13,7 @@ import { NextRequest } from 'next/server';
 import { createHash } from 'crypto';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/observability/logger';
+import { recordScimAuth } from '@/lib/observability/metrics';
 
 export interface ScimContext {
     tenantId: string;
@@ -50,11 +51,13 @@ export function hashToken(token: string): string {
 export async function authenticateScimRequest(req: NextRequest): Promise<ScimContext> {
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        recordScimAuth({ outcome: 'failure', reason: 'missing_header' });
         throw new ScimAuthError('Missing or invalid Authorization header', 401);
     }
 
     const rawToken = authHeader.slice('Bearer '.length).trim();
     if (!rawToken) {
+        recordScimAuth({ outcome: 'failure', reason: 'empty_token' });
         throw new ScimAuthError('Empty bearer token', 401);
     }
 
@@ -66,11 +69,13 @@ export async function authenticateScimRequest(req: NextRequest): Promise<ScimCon
     });
 
     if (!scimToken) {
+        recordScimAuth({ outcome: 'failure', reason: 'not_found' });
         logger.warn('SCIM auth failed: token not found', { component: 'scim' });
         throw new ScimAuthError('Invalid SCIM token', 401);
     }
 
     if (scimToken.revokedAt) {
+        recordScimAuth({ outcome: 'failure', reason: 'revoked' });
         logger.warn('SCIM auth failed: token revoked', { component: 'scim', tokenId: scimToken.id });
         throw new ScimAuthError('SCIM token has been revoked', 401);
     }
@@ -81,6 +86,7 @@ export async function authenticateScimRequest(req: NextRequest): Promise<ScimCon
         data: { lastUsedAt: new Date() },
     }).catch(() => { /* swallow — non-critical */ });
 
+    recordScimAuth({ outcome: 'success', reason: 'ok' });
     logger.info('SCIM request authenticated', {
         component: 'scim',
         tenantId: scimToken.tenantId,

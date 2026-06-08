@@ -91,6 +91,55 @@ When enabled per provider:
 - Default role: **READER** (configurable to EDITOR)
 - **ADMIN role is never auto-provisioned** — this is enforced at schema level
 
+## Microsoft Entra ID — staging smoke verification
+
+The Entra group-claim pipeline (EI-1) and its observability (EI-4) are
+**unit-tested hermetically**: `resolveEntraGroupClaims` and
+`fetchUserGroupsFromGraph` take an injectable `fetchImpl`, and the
+`tests/helpers/entra.ts` fixtures mock the Graph `/me/memberOf` boundary. That
+covers the *logic* (direct claim vs overage fetch vs fail-open, pagination,
+dedup, metric labels) with zero network — but it cannot confirm that our
+fixtures match Microsoft's **real** token / Graph shapes. Only a real tenant
+can. Run this manual checklist against a **staging Entra tenant** after any
+change to the Entra sign-in path, and whenever Microsoft changes the Graph API
+version.
+
+**Prerequisites**
+- A staging Entra App Registration with a **groups** claim configured (Token
+  configuration → add `groups` → *Security groups*) and the
+  `GroupMember.Read.All` delegated scope granted (needed for the overage Graph
+  fetch). Configure it in the IC admin UI at **Admin → Entra ID**.
+- At least one test user who is a member of a few security groups, and — to
+  exercise the overage path — one user in **> ~200** groups (Entra omits the
+  `groups` claim and emits `_claim_names.groups` above that threshold).
+
+**Checklist**
+1. **Direct-claim path.** Sign in as the few-groups user via Microsoft. Confirm
+   the JWT carries `aadGroups` (the user's security-group object IDs) and
+   `aadGroupsOverage === false`. Metric: one `auth.entra.group_resolution`
+   record with `source=token`.
+2. **Overage path.** Sign in as the >200-groups user. Confirm `aadGroups` is
+   populated from Graph and `aadGroupsOverage === true`. Metrics: a
+   `source=graph_overage` record plus an `auth.entra.graph_fetch.duration`
+   sample. **`outcome=empty` on this path is a Graph failure** (the helper
+   fails open to `[]`) — investigate before trusting group-driven roles.
+3. **Fail-open.** Temporarily revoke the `GroupMember.Read.All` consent and
+   re-run the overage sign-in. Sign-in must still succeed with `aadGroups = []`
+   (never blocked) and emit `source=graph_overage, outcome=empty`.
+4. **EI-2/EI-3 (once landed).** Add a group → role mapping at
+   **Admin → Entra ID → Group → role mappings** for a group the test user is
+   in, then re-sign-in and confirm the user's membership role syncs to the
+   mapped role; toggle **enforce group gate** and confirm a user in no mapped
+   group is denied.
+
+**Anchor the fixtures to reality.** While doing (1)/(2), capture — with **all
+GUIDs redacted and no tokens / emails** — (a) the decoded `_claim_names` /
+`_claim_sources` block from an overage token and (b) one
+`GET /me/memberOf?$select=id` JSON page. Commit them under
+`tests/fixtures/entra/` and add an assertion that the recorded response parses
+through `fetchUserGroupsFromGraph`, so a future Graph-shape drift fails CI
+instead of silently breaking production. (Tracked in the EI audit/polish pass.)
+
 ## Test IdP Setup
 
 ### Okta Developer (OIDC)

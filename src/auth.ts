@@ -522,23 +522,15 @@ export const authOptions: NextAuthOptions = {
                 //    a Graph `/me/memberOf` fetch in that overage case. A Graph
                 //    failure resolves to [] and never blocks sign-in.
                 if (account.provider === 'microsoft-entra-id') {
-                    const p = (profile ?? {}) as {
-                        groups?: string[];
-                        _claim_names?: { groups?: string };
-                    };
-                    if (p._claim_names?.groups && account.access_token) {
-                        const { fetchUserGroupsFromGraph } = await import(
-                            '@/lib/auth/entra-graph'
-                        );
-                        const groups = await fetchUserGroupsFromGraph(
-                            account.access_token as string,
-                        );
-                        token.aadGroups = groups.map((g) => g.id);
-                        token.aadGroupsOverage = true;
-                    } else {
-                        token.aadGroups = Array.isArray(p.groups) ? p.groups : [];
-                        token.aadGroupsOverage = false;
-                    }
+                    const { resolveEntraGroupClaims } = await import(
+                        '@/lib/auth/entra-group-claims'
+                    );
+                    const { groups, overage } = await resolveEntraGroupClaims({
+                        profile,
+                        accessToken: account.access_token as string | undefined,
+                    });
+                    token.aadGroups = groups;
+                    token.aadGroupsOverage = overage;
                 }
 
                 // ── MFA enforcement ──

@@ -68,6 +68,10 @@ describe('Epic 19 Coherence: metric names', () => {
         const diagnosticOnly = new Set([
             'api.request.errors',
             'repo.method.duration',
+            // EI-4 — SCIM bearer-token auth outcome counter. A diagnostic
+            // signal (brute-force / stale-connector detection) alerted ad-hoc,
+            // not an SLO-board metric, so it isn't on the SLO dashboard.
+            'scim.auth.count',
         ]);
 
         // Dot → underscore: api.request.count → api_request_count

@@ -1,0 +1,9 @@
+{
+  "_fixture_note": "DOCUMENTED SHAPE, not a live capture. The Entra ID token overage block emitted in place of the `groups` claim when a user is in > ~200 groups (JWT threshold). Replace verbatim with a redacted real capture when available (see README.md). The `endpoint` historically points at the deprecated graph.windows.net (Azure AD Graph); our code does NOT use it — we call MS Graph /me/memberOf directly — but the shape is recorded faithfully. GUIDs are placeholders.",
+  "_claim_names": { "groups": "src1" },
+  "_claim_sources": {
+    "src1": {
+      "endpoint": "https://graph.windows.net/00000000-0000-0000-0000-000000000000/users/00000000-0000-0000-0000-000000000000/getMemberObjects"
+    }
+  }
+}

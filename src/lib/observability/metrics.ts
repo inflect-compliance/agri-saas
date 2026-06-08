@@ -51,6 +51,25 @@
  *     `outcome` label is `register | resend` so the dashboard can
  *     pivot per-flow.
  *
+ * ── ENTRA ID GROUP-RESOLUTION METRICS (EI-4) ──
+ *   auth.entra.group_resolution    — Counter   (source, outcome)
+ *   auth.entra.group_count         — Histogram (source)
+ *   auth.entra.graph_fetch.duration— Histogram (outcome) [ms]
+ *     One record per `microsoft-entra-id` sign-in (from
+ *     `resolveEntraGroupClaims`). `source=token` vs `graph_overage`
+ *     splits the in-token claim from the > ~200-group Graph fallback;
+ *     `source=graph_overage, outcome=empty` is the Graph-outage alert
+ *     signal (the Graph helper fails open to `[]`). graph_fetch.duration
+ *     is recorded only on the overage path.
+ *
+ * ── SCIM AUTH METRICS (EI-4) ──
+ *   scim.auth.count                — Counter   (outcome, reason)
+ *     One record per `authenticateScimRequest` call. `reason` is a
+ *     bounded 5-value enum (ok / missing_header / empty_token /
+ *     not_found / revoked). A `not_found` spike is the brute-force /
+ *     stale-connector signal; `revoked` rising means an IdP is still
+ *     pushing with a rotated token.
+ *
  * CARDINALITY SAFETY:
  *   Route labels are normalized via `normalizeRoute()` to collapse dynamic
  *   segments (UUIDs, slugs) into placeholder tokens. This prevents
@@ -477,6 +496,115 @@ export function recordVerificationEmailDelivery(attrs: {
     } else {
         getVerificationEmailFailed().add(1, labels);
     }
+}
+
+// ── Entra ID group-resolution metrics (EI-4) ──────────────────────────
+
+let _entraGroupResolution: ReturnType<ReturnType<typeof getMeter>['createCounter']> | null = null;
+let _entraGroupCount: ReturnType<ReturnType<typeof getMeter>['createHistogram']> | null = null;
+let _entraGraphFetchDuration: ReturnType<ReturnType<typeof getMeter>['createHistogram']> | null = null;
+
+function getEntraGroupResolution() {
+    if (!_entraGroupResolution) {
+        _entraGroupResolution = getMeter().createCounter('auth.entra.group_resolution', {
+            description: 'Entra ID sign-ins by how the AAD group list was resolved',
+            unit: '1',
+        });
+    }
+    return _entraGroupResolution;
+}
+
+function getEntraGroupCount() {
+    if (!_entraGroupCount) {
+        _entraGroupCount = getMeter().createHistogram('auth.entra.group_count', {
+            description: 'Number of AAD security groups resolved for a user at sign-in',
+            unit: '1',
+        });
+    }
+    return _entraGroupCount;
+}
+
+function getEntraGraphFetchDuration() {
+    if (!_entraGraphFetchDuration) {
+        _entraGraphFetchDuration = getMeter().createHistogram('auth.entra.graph_fetch.duration', {
+            description: 'Latency of the Graph /me/memberOf overage fetch in milliseconds',
+            unit: 'ms',
+        });
+    }
+    return _entraGraphFetchDuration;
+}
+
+/**
+ * Record one Entra ID group-claim resolution at sign-in — called once per
+ * `microsoft-entra-id` sign-in by `resolveEntraGroupClaims`.
+ *
+ * `source`:
+ *   - `token`         — the `groups` claim was present in the ID token (the
+ *                       common case, ≤ ~200 groups).
+ *   - `graph_overage` — the user is in > ~200 groups, so Entra omitted the
+ *                       claim and we fetched the full list from Graph.
+ * `outcome`:
+ *   - `resolved`      — at least one group came back.
+ *   - `empty`         — zero groups. On `token` that's a user genuinely in no
+ *                       groups; on `graph_overage` it almost always means the
+ *                       Graph call failed (the helper fails open to `[]`), so
+ *                       `source=graph_overage, outcome=empty` is the operator's
+ *                       alert signal for a Graph outage degrading group-driven
+ *                       role assignment.
+ *
+ * No tenantId / userId label — group resolution is per-user but the metric is
+ * a fleet-health signal; per-user debugging uses the structured log line in
+ * the same code path.
+ */
+export function recordEntraGroupResolution(attrs: {
+    source: 'token' | 'graph_overage';
+    outcome: 'resolved' | 'empty';
+    groupCount: number;
+    graphFetchDurationMs?: number;
+}): void {
+    getEntraGroupResolution().add(1, { source: attrs.source, outcome: attrs.outcome });
+    getEntraGroupCount().record(attrs.groupCount, { source: attrs.source });
+    if (attrs.source === 'graph_overage' && attrs.graphFetchDurationMs !== undefined) {
+        getEntraGraphFetchDuration().record(attrs.graphFetchDurationMs, {
+            outcome: attrs.outcome,
+        });
+    }
+}
+
+// ── SCIM token-auth metrics (EI-4) ────────────────────────────────────
+
+let _scimAuth: ReturnType<ReturnType<typeof getMeter>['createCounter']> | null = null;
+
+function getScimAuth() {
+    if (!_scimAuth) {
+        _scimAuth = getMeter().createCounter('scim.auth.count', {
+            description: 'SCIM bearer-token authentication attempts by outcome',
+            unit: '1',
+        });
+    }
+    return _scimAuth;
+}
+
+/**
+ * Record one SCIM bearer-token authentication attempt — called from
+ * `authenticateScimRequest` at every terminal branch.
+ *
+ * `reason` is a bounded enum (5 values) so cardinality stays flat:
+ *   - `ok`             — authenticated.
+ *   - `missing_header` — no / malformed `Authorization: Bearer` header.
+ *   - `empty_token`    — `Bearer` with an empty value.
+ *   - `not_found`      — token hash matched no row.
+ *   - `revoked`        — token row exists but is revoked.
+ *
+ * A spike in `not_found` is the brute-force / stale-connector signal;
+ * `revoked` rising means an IdP is still pushing with a rotated token.
+ * No tenantId label (the failing cases have no resolved tenant anyway).
+ */
+export function recordScimAuth(attrs: {
+    outcome: 'success' | 'failure';
+    reason: 'ok' | 'missing_header' | 'empty_token' | 'not_found' | 'revoked';
+}): void {
+    getScimAuth().add(1, { outcome: attrs.outcome, reason: attrs.reason });
 }
 
 let _auditStreamBufferGaugeStarted = false;

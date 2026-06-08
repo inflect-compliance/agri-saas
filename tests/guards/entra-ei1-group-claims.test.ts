@@ -14,15 +14,22 @@ describe('EI-1 Entra group claims', () => {
         expect(read('prisma/schema/enums.prisma')).toMatch(/ENTRA_ID/);
     });
 
-    it('the jwt callback extracts aadGroups for microsoft-entra-id, with an overage fallback', () => {
+    it('the jwt callback extracts aadGroups for microsoft-entra-id, delegating to the resolver', () => {
         const src = read('src/auth.ts');
         expect(src).toMatch(/account\.provider === 'microsoft-entra-id'/);
         expect(src).toMatch(/token\.aadGroups/);
-        // overage path → Graph fetch
-        expect(src).toMatch(/_claim_names/);
-        expect(src).toMatch(/fetchUserGroupsFromGraph/);
+        // The group-resolution decision was extracted to its own module (EI-4)
+        // so it is unit-testable + carries the observability wiring.
+        expect(src).toMatch(/resolveEntraGroupClaims/);
         // JWT augmentation carries the field
         expect(src).toMatch(/aadGroups\?: string\[\]/);
+    });
+
+    it('the resolver module owns the overage detection + Graph fetch fallback', () => {
+        // Relocated from auth.ts (EI-4) — the overage path must stay wired.
+        const resolver = read('src/lib/auth/entra-group-claims.ts');
+        expect(resolver).toMatch(/_claim_names/);
+        expect(resolver).toMatch(/fetchUserGroupsFromGraph/);
     });
 
     it('the Graph helper + config schema + provider route exist', () => {

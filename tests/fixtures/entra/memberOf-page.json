@@ -1,0 +1,10 @@
+{
+  "_fixture_note": "DOCUMENTED SHAPE, not a live capture. Microsoft Graph GET /me/memberOf?$select=id response page. Replace verbatim with a redacted real capture when available (see README.md). GUIDs are placeholders; skiptoken redacted. /me/memberOf is heterogeneous — it returns groups AND directoryRoles; our fetchUserGroupsFromGraph keeps every object with an id.",
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#directoryObjects(id)",
+  "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/memberOf?$select=id&$skiptoken=REDACTED_SKIPTOKEN",
+  "value": [
+    { "@odata.type": "#microsoft.graph.group", "id": "00000000-0000-0000-0000-000000000001" },
+    { "@odata.type": "#microsoft.graph.group", "id": "00000000-0000-0000-0000-000000000002" },
+    { "@odata.type": "#microsoft.graph.directoryRole", "id": "00000000-0000-0000-0000-0000000000a1" }
+  ]
+}

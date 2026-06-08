@@ -27,6 +27,8 @@ import {
     recordJobMetrics,
     recordAuditStreamDelivery,
     recordAuditStreamBufferOverflow,
+    recordEntraGroupResolution,
+    recordScimAuth,
     startQueueDepthReporting,
     startAuditStreamBufferReporting,
     _resetQueueDepthForTesting,
@@ -155,6 +157,51 @@ describe('audit-stream delivery recording', () => {
 
     it('recordAuditStreamBufferOverflow runs without throwing', () => {
         expect(() => recordAuditStreamBufferOverflow()).not.toThrow();
+    });
+});
+
+describe('Entra group-resolution recording (EI-4)', () => {
+    it('records the token source without a graph-fetch duration', () => {
+        expect(() =>
+            recordEntraGroupResolution({ source: 'token', outcome: 'resolved', groupCount: 3 }),
+        ).not.toThrow();
+    });
+
+    it('records the graph_overage source including the duration histogram', () => {
+        expect(() =>
+            recordEntraGroupResolution({
+                source: 'graph_overage',
+                outcome: 'resolved',
+                groupCount: 250,
+                graphFetchDurationMs: 120,
+            }),
+        ).not.toThrow();
+    });
+
+    it('handles the empty (Graph-outage) outcome on the overage path', () => {
+        expect(() =>
+            recordEntraGroupResolution({
+                source: 'graph_overage',
+                outcome: 'empty',
+                groupCount: 0,
+                graphFetchDurationMs: 5,
+            }),
+        ).not.toThrow();
+    });
+
+    it('skips the duration histogram when graph_overage omits the duration', () => {
+        // Defensive branch: graph_overage source but no duration supplied.
+        expect(() =>
+            recordEntraGroupResolution({ source: 'graph_overage', outcome: 'empty', groupCount: 0 }),
+        ).not.toThrow();
+    });
+});
+
+describe('SCIM auth recording (EI-4)', () => {
+    it('records both the success and failure outcome branches', () => {
+        expect(() => recordScimAuth({ outcome: 'success', reason: 'ok' })).not.toThrow();
+        expect(() => recordScimAuth({ outcome: 'failure', reason: 'not_found' })).not.toThrow();
+        expect(() => recordScimAuth({ outcome: 'failure', reason: 'revoked' })).not.toThrow();
     });
 });
 
