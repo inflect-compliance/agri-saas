@@ -18,6 +18,8 @@ import { logger } from '@/lib/observability/logger';
 import type { DueItem, DueItemUrgency, JobRunResult } from './types';
 import type { DueVendor } from '../services/vendor-renewals';
 import { resolveDueItemOwner } from '../domain/due-item-ownership';
+import { emitAutomationEvent } from '../automation';
+import type { RequestContext } from '../types';
 
 export interface VendorRenewalCheckOptions {
     tenantId?: string;
@@ -107,6 +109,27 @@ export async function runVendorRenewalCheck(
             urgent,
             upcoming,
         });
+
+        // Domain-emit (cycle-2 follow-up) — surface overdue vendor review/renewal
+        // deadlines to automation. Best-effort; the system job has no user actor.
+        const DAY_MS = 86_400_000;
+        for (const v of dueVendors) {
+            if (v.type !== 'REVIEW_OVERDUE' && v.type !== 'RENEWAL_OVERDUE') continue;
+            await emitAutomationEvent(
+                { tenantId: v.tenantId, userId: null } as unknown as RequestContext,
+                {
+                    event: 'VENDOR_ASSESSMENT_OVERDUE',
+                    entityType: 'Vendor',
+                    entityId: v.id,
+                    actorUserId: null,
+                    data: {
+                        vendorName: v.name,
+                        kind: v.type,
+                        daysOverdue: Math.max(0, Math.floor((now.getTime() - v.dueDate.getTime()) / DAY_MS)),
+                    },
+                },
+            ).catch(() => {});
+        }
 
         const durationMs = Math.round(performance.now() - startMs);
 

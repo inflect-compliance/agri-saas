@@ -11,6 +11,7 @@ import { computeNextDueAt } from '../../utils/cadence';
 import { restoreEntity, purgeEntity } from '../soft-delete-operations';
 import { assertCanAdmin } from '../../policies/common';
 import { bumpEntityCacheVersion } from '@/lib/cache/list-cache';
+import { emitAutomationEvent } from '../../automation';
 import { assertWithinLimit } from '@/lib/billing/entitlements';
 import { createAssignmentNotification } from '../../notifications/assignment';
 import { logger } from '@/lib/observability/logger';
@@ -159,6 +160,15 @@ export async function setControlStatus(ctx: RequestContext, id: string, status: 
             details: `Status changed: ${oldStatus} → ${status}`,
             detailsJson: { category: 'status_change', entityName: 'Control', fromStatus: oldStatus, toStatus: status },
         });
+        // Domain-emit (cycle-2 follow-up) — let automation rules react to control
+        // lifecycle moves. Best-effort: a bus hiccup must not fail the write.
+        await emitAutomationEvent(ctx, {
+            event: 'CONTROL_STATUS_CHANGED',
+            entityType: 'Control',
+            entityId: id,
+            actorUserId: ctx.userId,
+            data: { fromStatus: oldStatus, toStatus: status },
+        }).catch(() => {});
         return control;
     });
     await bumpEntityCacheVersion(ctx, 'control');

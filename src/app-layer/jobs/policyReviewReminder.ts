@@ -23,6 +23,8 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { logger } from '@/lib/observability/logger';
+import { emitAutomationEvent } from '../automation';
+import type { RequestContext } from '../types';
 
 export interface OverduePolicy {
     id: string;
@@ -141,6 +143,22 @@ export async function processOverdueReminders(
                 details: `Policy "${policy.title}" is ${policy.daysOverdue} day(s) overdue for review.`,
             },
         });
+        // Domain-emit (cycle-2 follow-up) — surface policy-governance deadlines
+        // to automation. Best-effort; the system job carries no user actor.
+        await emitAutomationEvent(
+            { tenantId: policy.tenantId, userId: null } as unknown as RequestContext,
+            {
+                event: 'POLICY_REVIEW_DUE',
+                entityType: 'Policy',
+                entityId: policy.id,
+                actorUserId: null,
+                data: {
+                    title: policy.title,
+                    nextReviewAt: policy.nextReviewAt.toISOString(),
+                    daysOverdue: policy.daysOverdue,
+                },
+            },
+        ).catch(() => {});
     }
 
     return {

@@ -59,6 +59,13 @@ export const AUTOMATION_EVENTS = {
     //     time/schedule trigger; the schedule lives in
     //     AutomationRule.scheduleConfigJson, the fired entity in the payload. ───
     SCHEDULE: 'SCHEDULE',
+
+    // ─── Domain coverage fill (cycle-2 follow-up) — three high-value triggers
+    //     the audit flagged as missing: control lifecycle, policy governance,
+    //     and vendor-risk deadlines. ───
+    CONTROL_STATUS_CHANGED: 'CONTROL_STATUS_CHANGED',
+    POLICY_REVIEW_DUE: 'POLICY_REVIEW_DUE',
+    VENDOR_ASSESSMENT_OVERDUE: 'VENDOR_ASSESSMENT_OVERDUE',
 } as const;
 
 export type AutomationEventName =

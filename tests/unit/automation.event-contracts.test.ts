@@ -96,6 +96,12 @@ function buildFakeEvent(
                 event: name,
                 data: { target: 'Evidence', dueAt: null, offsetDays: 7 },
             };
+        case 'CONTROL_STATUS_CHANGED':
+            return { ...base, event: name, data: { fromStatus: 'NOT_STARTED', toStatus: 'IMPLEMENTED' } };
+        case 'POLICY_REVIEW_DUE':
+            return { ...base, event: name, data: { title: 'p', nextReviewAt: null, daysOverdue: 3 } };
+        case 'VENDOR_ASSESSMENT_OVERDUE':
+            return { ...base, event: name, data: { vendorName: 'v', kind: 'REVIEW_OVERDUE', daysOverdue: 5 } };
         case 'ONBOARDING_STARTED':
         case 'ONBOARDING_FINISHED':
         case 'ONBOARDING_RESTARTED':

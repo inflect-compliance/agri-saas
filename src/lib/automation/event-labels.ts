@@ -24,7 +24,7 @@ export interface EventLabel {
     label: string;
     description: string;
     /** Domain group for the trigger picker. */
-    domain: 'Risk' | 'Control testing' | 'Evidence' | 'Schedule' | 'Onboarding' | 'Task' | 'Issue';
+    domain: 'Risk' | 'Control testing' | 'Control' | 'Policy' | 'Vendor' | 'Evidence' | 'Schedule' | 'Onboarding' | 'Task' | 'Issue';
     /** Payload fields a condition can filter on. */
     filterFields: ReadonlyArray<FilterFieldDef>;
 }
@@ -153,6 +153,35 @@ export const EVENT_LABELS: Record<AutomationEventName, EventLabel> = {
         description: 'Fire N days before a target entity’s due date (evidence retention, control-test due, exception expiry).',
         domain: 'Schedule',
         filterFields: [],
+    },
+    [AUTOMATION_EVENTS.CONTROL_STATUS_CHANGED]: {
+        name: AUTOMATION_EVENTS.CONTROL_STATUS_CHANGED,
+        label: 'Control status changed',
+        description: 'A control moves between implementation states.',
+        domain: 'Control',
+        filterFields: [
+            { field: 'toStatus', label: 'New status', type: 'string' },
+            { field: 'fromStatus', label: 'Old status', type: 'string' },
+        ],
+    },
+    [AUTOMATION_EVENTS.POLICY_REVIEW_DUE]: {
+        name: AUTOMATION_EVENTS.POLICY_REVIEW_DUE,
+        label: 'Policy review due',
+        description: 'A policy has passed its scheduled review date.',
+        domain: 'Policy',
+        filterFields: [
+            { field: 'daysOverdue', label: 'Days overdue', type: 'number' },
+        ],
+    },
+    [AUTOMATION_EVENTS.VENDOR_ASSESSMENT_OVERDUE]: {
+        name: AUTOMATION_EVENTS.VENDOR_ASSESSMENT_OVERDUE,
+        label: 'Vendor assessment overdue',
+        description: 'A vendor review or contract renewal has passed its deadline.',
+        domain: 'Vendor',
+        filterFields: [
+            { field: 'kind', label: 'Deadline kind', type: 'string' },
+            { field: 'daysOverdue', label: 'Days overdue', type: 'number' },
+        ],
     },
     [AUTOMATION_EVENTS.EVIDENCE_EXPIRING]: {
         name: AUTOMATION_EVENTS.EVIDENCE_EXPIRING,

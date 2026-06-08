@@ -102,6 +102,22 @@ export interface ScheduleFiredData {
     offsetDays: number;
 }
 
+export interface ControlStatusChangedData {
+    fromStatus: string;
+    toStatus: string;
+}
+export interface PolicyReviewDueData {
+    title: string;
+    nextReviewAt: string | null;
+    daysOverdue: number;
+}
+export interface VendorAssessmentOverdueData {
+    vendorName: string;
+    /** REVIEW_OVERDUE | RENEWAL_OVERDUE — which deadline lapsed. */
+    kind: string;
+    daysOverdue: number;
+}
+
 export interface OnboardingStartedData {
     /** Empty by design — event name carries the meaning. */
     readonly _?: never;
@@ -168,6 +184,9 @@ export type AutomationDomainEvent =
     | (AutomationEventMetadata & { event: 'EVIDENCE_EXPIRING'; data: EvidenceExpiringData })
     | (AutomationEventMetadata & { event: 'EVIDENCE_EXPIRED'; data: EvidenceExpiredData })
     | (AutomationEventMetadata & { event: 'SCHEDULE'; data: ScheduleFiredData })
+    | (AutomationEventMetadata & { event: 'CONTROL_STATUS_CHANGED'; data: ControlStatusChangedData })
+    | (AutomationEventMetadata & { event: 'POLICY_REVIEW_DUE'; data: PolicyReviewDueData })
+    | (AutomationEventMetadata & { event: 'VENDOR_ASSESSMENT_OVERDUE'; data: VendorAssessmentOverdueData })
     | (AutomationEventMetadata & { event: 'ONBOARDING_STARTED'; data: OnboardingStartedData })
     | (AutomationEventMetadata & { event: 'ONBOARDING_STEP_COMPLETED'; data: OnboardingStepCompletedData })
     | (AutomationEventMetadata & { event: 'ONBOARDING_FINISHED'; data: OnboardingFinishedData })
