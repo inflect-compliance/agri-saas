@@ -80,7 +80,13 @@ function entityStatusTone(status: string | null | undefined): string {
     }
     return "bg-bg-subtle text-content-muted";
 }
-import { NODE_TAXONOMY, isProcessNodeKind } from "./node-taxonomy";
+import {
+    NODE_TAXONOMY,
+    isProcessNodeKind,
+    isAutomationNodeKind,
+} from "./node-taxonomy";
+import { useIsAutomationMode } from "@/lib/processes/canvas-mode-context";
+import { AutomationInspectorPanel } from "./AutomationInspectorPanel";
 import {
     DEFAULT_NODE_SIZE,
     isProcessNodeSize,
@@ -183,6 +189,8 @@ export function ProcessInspector({
         | undefined;
     const [label, setLabel] = useState(data?.label ?? "");
     const [subtitle, setSubtitle] = useState(data?.subtitle ?? "");
+    // VR-4 — automation-mode inspector branch (hook stays unconditional).
+    const isAutomation = useIsAutomationMode();
 
     // Sync local mirror when the selected node changes.
     useEffect(() => {
@@ -205,6 +213,25 @@ export function ProcessInspector({
 
     if (!node) {
         return null;
+    }
+
+    // VR-4 — when an automation node is selected on an AUTOMATION canvas, the
+    // inspector renders the inline rule editor instead of the document panels.
+    if (isAutomation && isAutomationNodeKind(data?.kind)) {
+        const ruleId =
+            data && typeof (data as { ruleId?: unknown }).ruleId === "string"
+                ? ((data as { ruleId?: string }).ruleId as string)
+                : null;
+        return (
+            <AsidePanel title="Rule" surfaceKey="processes-inspector">
+                <div className="flex flex-col gap-default p-default">
+                    <AutomationInspectorPanel
+                        kind={data!.kind as "trigger" | "condition" | "action" | "slaGate"}
+                        ruleId={ruleId}
+                    />
+                </div>
+            </AsidePanel>
+        );
     }
 
     const kindMeta = isProcessNodeKind(data?.kind)

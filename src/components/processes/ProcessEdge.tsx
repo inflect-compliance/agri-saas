@@ -89,6 +89,8 @@ export interface ProcessEdgeData {
     isPreview?: boolean;
     /** R27-PR-B — the connection variant. Defaults to `flow`. */
     variant?: ProcessEdgeVariant;
+    /** VR-5 — semantic automation edge kind (trigger-flow / condition-pass / …). */
+    edgeKind?: string;
     [key: string]: unknown;
 }
 
@@ -140,6 +142,22 @@ function strokeFor(
         strokeWidth: selected ? 2.5 : 1.5,
     };
 }
+
+/**
+ * VR-5 — automation edge styling. Each semantic edge kind gets a distinct
+ * stroke + label chip so the workflow graph reads without opening any node.
+ */
+const AUTOMATION_EDGE_STYLE: Record<
+    string,
+    { stroke: string; dash?: string; label: string }
+> = {
+    "trigger-flow": { stroke: "var(--brand-default)", label: "" },
+    "condition-pass": { stroke: "var(--content-success)", label: "Pass" },
+    "condition-fail": { stroke: "var(--content-error)", dash: "6 4", label: "Fail" },
+    "chain-delay": { stroke: "var(--canvas-edge)", dash: "2 5", label: "Chain" },
+    "sla-breach": { stroke: "var(--content-warning)", label: "SLA breach" },
+    "sla-pass": { stroke: "var(--content-success)", label: "On time" },
+};
 
 function ProcessEdgeImpl(props: EdgeProps) {
     const {
@@ -227,10 +245,23 @@ function ProcessEdgeImpl(props: EdgeProps) {
         emphasisIds !== null &&
         !selected &&
         (!emphasisIds.has(source) || !emphasisIds.has(target));
-    const baseStyle = strokeFor(variant, selected === true, isPreview);
+    // VR-5 — an automation edge kind overrides the variant styling with its
+    // semantic stroke + emits a label chip.
+    const autoKind =
+        typeof edgeData?.edgeKind === "string" ? edgeData.edgeKind : undefined;
+    const autoStyle = autoKind ? AUTOMATION_EDGE_STYLE[autoKind] : undefined;
+    const baseStyle: CSSProperties = autoStyle
+        ? {
+              stroke: autoStyle.stroke,
+              strokeWidth: selected ? 2.5 : 1.5,
+              ...(autoStyle.dash ? { strokeDasharray: autoStyle.dash } : {}),
+          }
+        : strokeFor(variant, selected === true, isPreview);
     const edgeStyle: CSSProperties = edgeDimmed
         ? { ...baseStyle, opacity: 0.3 }
         : baseStyle;
+    // The automation kind's chip shows when there's no explicit label/control.
+    const autoLabel = autoStyle?.label && autoStyle.label.length > 0 ? autoStyle.label : null;
 
     return (
         <>
@@ -287,6 +318,26 @@ function ProcessEdgeImpl(props: EdgeProps) {
                     </div>
                 </EdgeLabelRenderer>
             )}
+            {!control &&
+                !(typeof label === "string" && label.length > 0) &&
+                autoLabel && (
+                    // VR-5 — semantic automation edge-kind chip.
+                    <EdgeLabelRenderer>
+                        <div
+                            style={{
+                                position: "absolute",
+                                transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+                                pointerEvents: "all",
+                            }}
+                            className="nodrag nopan"
+                            data-edge-kind-chip={autoKind}
+                        >
+                            <span className="inline-flex items-center rounded-[4px] border border-canvas-border bg-canvas-frame px-1.5 py-0.5 text-[10px] text-content-muted">
+                                {autoLabel}
+                            </span>
+                        </div>
+                    </EdgeLabelRenderer>
+                )}
             {selected && (
                 // R27-PR-B — selection affordances. Sits just above
                 // the midpoint when a control badge occupies it, so

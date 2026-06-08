@@ -8,7 +8,12 @@
  * needing a real DB.
  */
 
-const mockDb = {} as any;
+// VR-3 — save/get now probe canvasMode to gate the canvas↔rule sync.
+// Default to a DOCUMENT map so the existing assertions (non-automation path)
+// are unaffected.
+const mockDb = {
+    processMap: { findFirst: jest.fn().mockResolvedValue({ canvasMode: 'DOCUMENT' }) },
+} as any;
 
 jest.mock('@/lib/db-context', () => ({
     runInTenantContext: jest.fn(

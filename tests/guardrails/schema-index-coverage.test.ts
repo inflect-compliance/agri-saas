@@ -350,6 +350,14 @@ const LIST_QUERY_INDEXES: readonly CompositeIndex[] = [
 // curated composite index is needed."
 
 const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
+    // VR-3 — the canvas-rule sync findMany's a single map's nodes/edges,
+    // bounded by processMapId. The `@@index([tenantId, processMapId])`
+    // covers the (tenantId, processMapId) prefix; the nodeType/edgeKind
+    // refinement is an in-memory-small filter over one map's bounded graph.
+    ProcessNode:
+        'filtered by tenantId + processMapId (one map\'s bounded node set) — covered by @@index([tenantId, processMapId]); nodeType is a small refinement.',
+    ProcessEdge:
+        'filtered by tenantId + processMapId (one map\'s bounded edge set) — covered by @@index([tenantId, processMapId]); edgeKind is a small refinement.',
     AccessReview:
         'filtered only by tenantId plus leading-indexed FK / status columns — Layers A/B cover its query shapes; no curated composite index needed today.',
     AccessReviewDecision:

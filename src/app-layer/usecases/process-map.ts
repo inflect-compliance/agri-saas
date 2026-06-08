@@ -10,6 +10,10 @@ import { assertCanRead, assertCanWrite } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { notFound } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
+import {
+    syncCanvasToRules,
+    hydrateCanvasFromRules,
+} from '../services/canvas-rule-sync';
 import type {
     CreateProcessMapInput,
     SaveProcessMapInput,
@@ -27,6 +31,16 @@ export async function getProcessMap(ctx: RequestContext, id: string) {
     return runInTenantContext(ctx, async (db) => {
         const map = await ProcessMapRepository.getByIdWithGraph(db, ctx, id);
         if (!map) throw notFound('Process map not found');
+        // VR-3 — Rules → Canvas hydration: enrich automation nodes with live
+        // rule status / executionCount / subtitle for display (AUTOMATION
+        // maps only). Read-only; never persisted.
+        const meta = await db.processMap.findFirst({
+            where: { id, tenantId: ctx.tenantId },
+            select: { canvasMode: true },
+        });
+        if (meta?.canvasMode === 'AUTOMATION') {
+            return { ...map, nodes: await hydrateCanvasFromRules(db, ctx, map.nodes) };
+        }
         return map;
     });
 }
@@ -84,6 +98,17 @@ export async function saveProcessMap(
             expectedVersion: input.expectedVersion,
         });
         if (!map) throw notFound('Process map not found');
+
+        // VR-3 — Canvas → Rules sync (AUTOMATION maps only): create stub
+        // rules for new action nodes + wire chain topology after the graph
+        // is persisted.
+        const meta = await db.processMap.findFirst({
+            where: { id, tenantId: ctx.tenantId },
+            select: { canvasMode: true },
+        });
+        if (meta?.canvasMode === 'AUTOMATION') {
+            await syncCanvasToRules(db, ctx, id);
+        }
 
         await logEvent(db, ctx, {
             action: 'UPDATE',

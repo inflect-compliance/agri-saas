@@ -172,6 +172,10 @@ model ProcessEdge {
   targetKey     String
   // "flow" is the default. PR-D introduces governance-aware edge
   // kinds (e.g. "data-flow" vs "approval-flow") via this column.
+  // VR-5 — AUTOMATION-mode edge kinds also ride this column (no
+  // migration — it's a free String): "trigger-flow", "condition-pass",
+  // "condition-fail", "chain-delay", "sla-breach", "sla-pass". The
+  // canonical set + inference lives in src/lib/processes/edge-kind-inference.ts.
   edgeKind      String   @default("flow")
   labelOverride String?
   dataJson      Json?
