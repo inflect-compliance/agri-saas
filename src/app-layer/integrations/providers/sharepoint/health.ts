@@ -41,7 +41,7 @@ export async function getSharePointHealth(ctx: RequestContext): Promise<SharePoi
         const mappings = await db.integrationSyncMapping.findMany({
             where: { tenantId: ctx.tenantId, provider: 'sharepoint' },
             select: { syncStatus: true },
-            take: 5000,
+            take: 2000,
         });
         const evidenceCoverage = {
             synced: mappings.filter((m) => m.syncStatus === 'SYNCED').length,

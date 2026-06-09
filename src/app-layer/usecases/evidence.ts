@@ -54,7 +54,28 @@ export async function getEvidence(ctx: RequestContext, id: string) {
     return runInTenantContext(ctx, async (db) => {
         const evidence = await EvidenceRepository.getById(db, ctx, id);
         if (!evidence) throw notFound('Evidence not found');
-        return evidence;
+        // SP-3/audit — surface a SharePoint source link + last-sync time when
+        // this evidence was imported from SharePoint (one mapping per evidence).
+        const spMapping = await db.integrationSyncMapping.findFirst({
+            where: {
+                tenantId: ctx.tenantId,
+                provider: 'sharepoint',
+                localEntityType: 'Evidence',
+                localEntityId: id,
+            },
+            select: { sourceUrl: true, lastSyncedAt: true, syncStatus: true },
+        });
+        // Only attach `sharePoint` when the evidence is SP-sourced — keeps the
+        // shape unchanged for the common (non-SharePoint) case.
+        if (!spMapping?.sourceUrl) return evidence;
+        return {
+            ...evidence,
+            sharePoint: {
+                sourceUrl: spMapping.sourceUrl,
+                lastSyncedAt: spMapping.lastSyncedAt ? spMapping.lastSyncedAt.toISOString() : null,
+                syncStatus: spMapping.syncStatus,
+            },
+        };
     });
 }
 

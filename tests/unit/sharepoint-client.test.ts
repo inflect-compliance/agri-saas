@@ -100,6 +100,14 @@ describe('SharePointClient — auth + endpoints', () => {
         expect(f.mock.calls[0][0]).toContain('token=OLD');
     });
 
+    it('listChildren rejects a pageUrl that points at a different drive (cross-drive guard)', async () => {
+        const f = jest.fn().mockResolvedValue(jsonRes({ value: [] }));
+        await expect(
+            client(f).listChildren('drv1', undefined, 'https://graph.microsoft.com/v1.0/drives/OTHER/root/children?$skiptoken=x'),
+        ).rejects.toThrow(/does not belong/i);
+        expect(f).not.toHaveBeenCalled();
+    });
+
     it('throws on a non-OK Graph GET', async () => {
         const f = jest.fn().mockResolvedValue(jsonRes({}, false, 500));
         await expect(client(f).listSites()).rejects.toThrow(/500/);

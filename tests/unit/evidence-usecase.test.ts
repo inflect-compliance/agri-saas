@@ -35,6 +35,8 @@ const mockDb = {
     notification: { create: jest.fn() },
     evidence: { delete: jest.fn(), findMany: jest.fn() },
     controlEvidenceLink: { create: jest.fn() },
+    // SP audit — getEvidence now looks up an optional SharePoint sync mapping.
+    integrationSyncMapping: { findFirst: jest.fn().mockResolvedValue(null) },
 } as any;
 
 jest.mock('@/lib/db-context', () => ({

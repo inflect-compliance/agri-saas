@@ -166,6 +166,11 @@ export class SharePointClient extends BaseIntegrationClient<SharePointConnection
         itemId?: string,
         pageUrl?: string,
     ): Promise<SpChildrenPage> {
+        // A caller-supplied cursor must belong to THIS drive — never follow a
+        // nextLink pointing at another drive (defence against a crafted cursor).
+        if (pageUrl && !pageUrl.includes(`/drives/${encodeURIComponent(driveId)}`)) {
+            throw new Error('pageUrl does not belong to the requested drive');
+        }
         const path = pageUrl
             ? pageUrl
             : itemId

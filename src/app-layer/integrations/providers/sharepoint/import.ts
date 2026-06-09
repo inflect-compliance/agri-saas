@@ -60,6 +60,7 @@ async function importOne(
         driveId: sel.driveId,
         itemId: sel.itemId,
         eTag: item.eTag,
+        cTag: item.cTag,
         webUrl: item.webUrl,
         remoteUpdatedAt: item.lastModifiedDateTime ? new Date(item.lastModifiedDateTime) : null,
     });
@@ -75,12 +76,13 @@ async function upsertEvidenceMapping(
         driveId: string;
         itemId: string;
         eTag?: string;
+        cTag?: string;
         webUrl?: string;
         remoteUpdatedAt: Date | null;
     },
 ): Promise<void> {
     const remoteEntityId = encodeRemoteId(m.driveId, m.itemId);
-    const remoteDataJson = { eTag: m.eTag, driveId: m.driveId, itemId: m.itemId } as Prisma.InputJsonValue;
+    const remoteDataJson = { eTag: m.eTag, cTag: m.cTag, driveId: m.driveId, itemId: m.itemId } as Prisma.InputJsonValue;
     await runInTenantContext(ctx, (db) =>
         db.integrationSyncMapping.upsert({
             where: {
@@ -200,8 +202,13 @@ export async function runSharePointDeltaSync(
                 staled++;
                 continue;
             }
-            const prevETag = (mapping.remoteDataJson as { eTag?: string } | null)?.eTag;
-            if (it.eTag && it.eTag !== prevETag) {
+            // Detect changes by cTag (content tag) — eTag also bumps on
+            // metadata-only touches, which would cause spurious re-imports.
+            // Fall back to eTag when cTag is absent.
+            const prev = mapping.remoteDataJson as { cTag?: string; eTag?: string } | null;
+            const prevTag = prev?.cTag ?? prev?.eTag;
+            const curTag = it.cTag ?? it.eTag;
+            if (curTag && curTag !== prevTag) {
                 try {
                     await importOne(ctx, client, connectionId, { driveId, itemId: it.id }, {});
                     reimported++;

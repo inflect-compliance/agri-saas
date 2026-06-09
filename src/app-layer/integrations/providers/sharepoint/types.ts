@@ -29,7 +29,10 @@ export interface SpDriveItem {
     id: string;
     name?: string;
     webUrl?: string;
+    /** Changes on content OR metadata edits. */
     eTag?: string;
+    /** Content tag — changes ONLY on content edits (preferred for change-detection). */
+    cTag?: string;
     size?: number;
     lastModifiedDateTime?: string;
     /** Present on folders. */

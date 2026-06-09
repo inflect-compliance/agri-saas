@@ -39,7 +39,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     for (const note of body.value ?? []) {
         const clientState = note.clientState ?? '';
         const sep = clientState.indexOf(':');
-        if (sep < 0) continue;
+        if (sep < 0) {
+            edgeLogger.info('SharePoint webhook: dropped malformed clientState', { component: 'sharepoint' });
+            continue;
+        }
         const tenantId = clientState.slice(0, sep);
         const policyId = clientState.slice(sep + 1);
 

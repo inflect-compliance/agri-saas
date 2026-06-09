@@ -130,4 +130,23 @@ describe('runSharePointDeltaSync', () => {
         // new delta token persisted
         expect(mockDb.integrationConnection.update).toHaveBeenCalled();
     });
+
+    it('uses cTag (content tag) — a metadata-only eTag bump does NOT re-import', async () => {
+        mockDb.integrationSyncMapping.findMany.mockResolvedValue([
+            { id: 'm1', remoteEntityId: 'd1:a', remoteDataJson: { cTag: 'C1', eTag: 'E1' }, localEntityId: 'ev1' },
+            { id: 'm2', remoteEntityId: 'd1:b', remoteDataJson: { cTag: 'C1', eTag: 'E1' }, localEntityId: 'ev2' },
+        ]);
+        const client = fakeClient({
+            getDelta: jest.fn(async () => ({
+                items: [
+                    { id: 'a', cTag: 'C1', eTag: 'E2', file: { mimeType: 'application/pdf' }, name: 'a.pdf' }, // metadata touch only
+                    { id: 'b', cTag: 'C2', eTag: 'E2', file: { mimeType: 'application/pdf' }, name: 'b.pdf' }, // content changed
+                ],
+                deltaToken: 'TK',
+            })),
+        });
+        mockGetClient.mockResolvedValue(client);
+        const r = await runSharePointDeltaSync(ctx, 'c1');
+        expect(r.reimported).toBe(1); // only 'b' (cTag changed); 'a' (eTag-only) skipped
+    });
 });

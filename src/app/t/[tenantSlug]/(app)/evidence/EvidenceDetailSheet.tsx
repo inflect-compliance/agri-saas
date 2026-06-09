@@ -81,6 +81,8 @@ interface EvidenceDetailPayload {
     asset?: { id: string; key: string | null; name: string } | null;
     createdAt: string;
     updatedAt: string;
+    /** SP-3 — present when imported from SharePoint. */
+    sharePoint?: { sourceUrl: string; lastSyncedAt: string | null; syncStatus: string } | null;
 }
 
 export function EvidenceDetailSheet({
@@ -171,6 +173,21 @@ export function EvidenceDetailSheet({
             label: 'Updated',
             value: formatDate(new Date(evidence.updatedAt)),
         });
+        if (evidence.sharePoint?.sourceUrl) {
+            rows.push({
+                label: 'Source',
+                value: (
+                    <a
+                        href={evidence.sharePoint.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-content-link"
+                    >
+                        View in SharePoint ↗
+                    </a>
+                ),
+            });
+        }
         return rows;
     }, [evidence, tenantHref]);
 
