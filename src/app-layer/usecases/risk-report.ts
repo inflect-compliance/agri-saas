@@ -29,7 +29,7 @@ export interface ReportParameters {
 // ── Data assembly ─────────────────────────────────────────────────────
 
 export async function assembleReportData(ctx: RequestContext, title: string): Promise<ReportData> {
-    const [risks, latestSim, appetite] = await Promise.all([
+    const [risks, latestSim, appetite, tenant] = await Promise.all([
         runInTenantContext(ctx, (db) =>
             db.risk.findMany({
                 where: { tenantId: ctx.tenantId, deletedAt: null },
@@ -39,6 +39,8 @@ export async function assembleReportData(ctx: RequestContext, title: string): Pr
         ),
         getLatestSimulation(ctx),
         getAppetiteStatus(ctx),
+        // Tenant is global (no RLS) — resolve the display name for the report header.
+        runInTenantContext(ctx, (db) => db.tenant.findUnique({ where: { id: ctx.tenantId }, select: { name: true } })),
     ]);
 
     let totalAle = 0, quantifiedCount = 0, maxAle = 0, withRto = 0, withRpo = 0, totalRevenueAtRisk = 0;
@@ -54,7 +56,7 @@ export async function assembleReportData(ctx: RequestContext, title: string): Pr
 
     return {
         title,
-        tenantName: ctx.tenantId, // display name resolved at render; tenantId is a safe fallback
+        tenantName: tenant?.name ?? ctx.tenantId,
         generatedAt: new Date().toISOString(),
         totals: { totalRiskCount: risks.length, quantifiedCount, totalAle, avgAle: quantifiedCount > 0 ? totalAle / quantifiedCount : null, maxAle: quantifiedCount > 0 ? maxAle : null },
         var: latestSim ? { mean: latestSim.portfolioMean, p95: latestSim.portfolioP95, p99: latestSim.portfolioP99 } : null,
