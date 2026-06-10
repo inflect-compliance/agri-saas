@@ -523,6 +523,32 @@ model RiskSimulationRun {
   @@index([tenantId, status])
 }
 
+/// RQ-4 — a hypothetical "what-if" scenario that patches the portfolio
+/// before re-running the Monte Carlo simulation. Clone to iterate.
+model RiskScenario {
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  description     String?
+  createdByUserId String
+  /// "Before" run (null = current live portfolio is the baseline).
+  baselineRunId   String?
+  /// Array<ScenarioOverride> applied before simulation.
+  overridesJson   Json
+  /// The run executed WITH overrides applied (null until simulated).
+  resultRunId     String?
+  status          String   @default("DRAFT") // DRAFT | SIMULATED | ARCHIVED
+  investmentCost  Float?
+  computedRoi     Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+}
+
 model RiskSuggestionSession {
   id              String                  @id @default(cuid())
   tenantId        String

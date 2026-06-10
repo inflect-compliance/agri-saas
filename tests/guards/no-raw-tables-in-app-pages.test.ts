@@ -81,6 +81,13 @@ const EXEMPTIONS: Record<string, string> = {
     // dense HTML; DataTable's JS-driven sizing doesn't survive print.
     'reports/soa/print/SoAPrintView.tsx':
         '(c) print/PDF layout — JS-driven sizing breaks under print',
+
+    // ─── (a) Cross-tab / comparison tables ───────────────────────────
+    // RQ-4 — baseline-vs-scenario VaR comparison: a fixed 4-row × 4-col
+    // metric comparison (Metric | Baseline | Scenario | Δ), not a data
+    // list. DataTable's uniform-row model is the wrong shape.
+    'risks/scenarios/page.tsx':
+        '(a) comparison table — baseline vs scenario VaR metrics, fixed shape',
 };
 
 function walk(dir: string, results: string[] = []): string[] {

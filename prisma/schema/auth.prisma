@@ -141,6 +141,7 @@ model Tenant {
   riskAppetiteConfig                RiskAppetiteConfig?
   riskAppetiteBreaches              RiskAppetiteBreach[]
   riskSimulationRuns                RiskSimulationRun[]
+  riskScenarios                     RiskScenario[]
   tasks                             Task[]
   taskComments                      TaskComment[]
   taskLinks                         TaskLink[]
