@@ -11,11 +11,16 @@ import {
     Settings,
     ScrollText,
     LogOut,
+    PanelLeftClose,
+    PanelLeftOpen,
     type LucideIcon,
 } from 'lucide-react';
 import { useOrgContext, useOrgHref, useOrgPermissions } from '@/lib/org-context-provider';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
+import { cn } from '@/lib/cn';
 import { OrgSwitcher } from '@/components/org-switcher';
+import { useSidebarCollapsed } from './sidebar-collapse-context';
 // PR-2 — port the org sidebar to the canonical Roadmap-12 nav
 // primitives that the tenant sidebar already uses. The legacy
 // `nav-link` CSS approach (an `<a>` + class string) loses the
@@ -144,22 +149,35 @@ interface OrgSidebarContentProps {
     user: { name?: string | null };
     onLogout: () => void;
     onNavClick?: () => void;
+    /** Desktop only — when provided, renders the collapse/expand toggle. */
+    onToggleCollapse?: () => void;
 }
 
-export function OrgSidebarContent({ user, onLogout, onNavClick }: OrgSidebarContentProps) {
+export function OrgSidebarContent({ user, onLogout, onNavClick, onToggleCollapse }: OrgSidebarContentProps) {
     const pathname = usePathname();
     const org = useOrgContext();
     const sections = useOrgNavSections();
+    const collapsed = useSidebarCollapsed();
 
     return (
         <div className="flex flex-col h-full">
-            {/* Org branding doubles as the context switcher (Epic O-4). */}
+            {/* Org branding doubles as the context switcher (Epic O-4). When
+                collapsed, the switcher would overflow the rail — show the org
+                initial; expand to switch. */}
             <div className="p-3 border-b border-border-subtle">
-                <OrgSwitcher
-                    orgSlug={org.orgSlug}
-                    orgName={org.orgName}
-                    currentKind="org"
-                />
+                {collapsed ? (
+                    <div className="flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-bg-muted flex items-center justify-center flex-shrink-0 text-sm font-bold text-content-emphasis">
+                            {(org.orgName ?? 'O').charAt(0).toUpperCase()}
+                        </div>
+                    </div>
+                ) : (
+                    <OrgSwitcher
+                        orgSlug={org.orgSlug}
+                        orgName={org.orgName}
+                        currentKind="org"
+                    />
+                )}
             </div>
 
             {/* Nav */}
@@ -194,28 +212,69 @@ export function OrgSidebarContent({ user, onLogout, onNavClick }: OrgSidebarCont
                 ))}
             </nav>
 
+            {/* Collapse / expand toggle (desktop only). */}
+            {onToggleCollapse && (
+                <div className="mx-2 mb-2">
+                    <button
+                        type="button"
+                        onClick={onToggleCollapse}
+                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        aria-pressed={collapsed}
+                        data-testid="sidebar-collapse-toggle"
+                        className={cn(
+                            'flex w-full items-center rounded-lg border border-border-subtle bg-bg-default px-3 py-2 text-xs text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+                            collapsed ? 'justify-center' : 'gap-tight',
+                        )}
+                    >
+                        {collapsed ? (
+                            <PanelLeftOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        ) : (
+                            <PanelLeftClose className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        )}
+                        {!collapsed && <span className="flex-1 text-left">Collapse</span>}
+                    </button>
+                </div>
+            )}
+
             {/* User. The theme toggle was removed in step with
                 SidebarNav; theme is still toggleable from the
-                command palette. */}
+                command palette. Collapsed: identity text drops, sign-out
+                becomes an icon button. */}
             <div className="p-3 border-t border-border-subtle">
-                <div className="mb-2 min-w-0">
-                    <p className="text-xs font-medium text-content-default truncate">{user.name}</p>
-                    <p className="text-xs text-content-muted truncate">{org.orgName}</p>
-                    {/* GAP-CI-77: see SidebarNav for the same fix
-                        rationale — brand orange on cream is below AA for
-                        small text. */}
-                    <p className="text-xs text-content-muted">{org.role}</p>
-                </div>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onLogout}
-                    className="w-full text-xs"
-                    data-testid="org-nav-logout"
-                >
-                    <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-                    Sign out
-                </Button>
+                {!collapsed && (
+                    <div className="mb-2 min-w-0">
+                        <p className="text-xs font-medium text-content-default truncate">{user.name}</p>
+                        <p className="text-xs text-content-muted truncate">{org.orgName}</p>
+                        {/* GAP-CI-77: see SidebarNav for the same fix
+                            rationale — brand orange on cream is below AA for
+                            small text. */}
+                        <p className="text-xs text-content-muted">{org.role}</p>
+                    </div>
+                )}
+                {collapsed ? (
+                    <Tooltip content="Sign out" side="right">
+                        <button
+                            type="button"
+                            onClick={onLogout}
+                            aria-label="Sign out"
+                            data-testid="org-nav-logout"
+                            className="icon-btn icon-btn-sm mx-auto flex"
+                        >
+                            <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
+                    </Tooltip>
+                ) : (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onLogout}
+                        className="w-full text-xs"
+                        data-testid="org-nav-logout"
+                    >
+                        <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+                        Sign out
+                    </Button>
+                )}
             </div>
         </div>
     );

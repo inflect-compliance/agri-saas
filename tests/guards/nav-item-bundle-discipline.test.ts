@@ -221,8 +221,11 @@ describe('Roadmap-12 PR-10 — NavItem bundle discipline (capstone)', () => {
 
     describe('NavItem JSX consumes the consts (no parallel hand-roll)', () => {
         it('Link className composes BASE + DEFAULT/ACTIVE', () => {
+            // Composed via cn(...) so the collapsed icon-rail can append
+            // `justify-center` (centred icon when the labels are hidden).
+            // The first two args remain BASE + the active ternary.
             expect(SRC).toMatch(
-                /className=\{`\$\{NAV_ITEM_BASE\}\s+\$\{active\s*\?\s*NAV_ITEM_ACTIVE\s*:\s*NAV_ITEM_DEFAULT\}`\}/,
+                /className=\{cn\(\s*NAV_ITEM_BASE,\s*active\s*\?\s*NAV_ITEM_ACTIVE\s*:\s*NAV_ITEM_DEFAULT/,
             );
         });
 
@@ -242,8 +245,9 @@ describe('Roadmap-12 PR-10 — NavItem bundle discipline (capstone)', () => {
         // 18×18 / 44px / 12-10px padding / 8px gap / 8px radius can't
         // slip through the structural ratchet.
         it.each([
-            ['NAV_ITEM_HEIGHT_MIN', 'min-h-[44px]'],
-            ['NAV_ITEM_PADDING', 'px-3 py-2.5'],
+            // 44px touch base + 34px desktop (md:) — see nav-item.tsx.
+            ['NAV_ITEM_HEIGHT_MIN', 'min-h-[44px] md:min-h-[34px]'],
+            ['NAV_ITEM_PADDING', 'px-3 py-2.5 md:py-1.5'],
             ['NAV_ITEM_GAP', 'gap-compact'],
             ['NAV_ITEM_RADIUS', 'rounded-lg'],
             ['NAV_ITEM_ICON_SIZE', 'w-[18px] h-[18px]'],

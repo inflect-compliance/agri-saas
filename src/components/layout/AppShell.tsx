@@ -5,6 +5,9 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { SidebarContent, MobileDrawer } from '@/components/layout/SidebarNav';
 import { OrgSidebarContent } from '@/components/layout/OrgSidebarNav';
+import { SidebarCollapseProvider } from '@/components/layout/sidebar-collapse-context';
+import { useLocalStorage } from '@/components/ui/hooks';
+import { cn } from '@/lib/cn';
 import { BreadcrumbsProvider } from './breadcrumbs-store';
 import { TopChrome } from './TopChrome';
 
@@ -111,6 +114,16 @@ export function AppShell({
     children,
 }: AppShellProps) {
     const [drawerOpen, setDrawerOpen] = useState(false);
+    // Desktop sidebar collapse (icon rail). Persisted so the choice survives
+    // navigation + reloads. The mobile drawer is never collapsed.
+    const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage(
+        'inflect:sidebar-collapsed',
+        false,
+    );
+    const toggleSidebarCollapsed = useCallback(
+        () => setSidebarCollapsed((c) => !c),
+        [setSidebarCollapsed],
+    );
 
     const handleLogout = useCallback(async () => {
         await signOut({ callbackUrl: '/login' });
@@ -162,14 +175,29 @@ export function AppShell({
         // scrolls naturally and min-h-screen ensures the shell fills
         // the visible viewport at minimum.
         <div className="min-h-screen md:h-full md:overflow-hidden flex">
-            {/* Desktop sidebar — hidden on mobile, visible on md+ */}
-            <aside className="hidden md:flex w-56 bg-bg-default border-r border-border-subtle flex-col flex-shrink-0">
-                <Sidebar user={user} onLogout={handleLogout} />
+            {/* Desktop sidebar — hidden on mobile, visible on md+. Collapses to
+                a 56px icon rail (w-14); expanded is a thinner 208px (w-52). */}
+            <aside
+                className={cn(
+                    'hidden md:flex bg-bg-default border-r border-border-subtle flex-col flex-shrink-0 transition-[width] duration-200 ease-out',
+                    sidebarCollapsed ? 'md:w-14' : 'md:w-52',
+                )}
+                data-collapsed={sidebarCollapsed ? 'true' : 'false'}
+            >
+                <SidebarCollapseProvider collapsed={sidebarCollapsed}>
+                    <Sidebar
+                        user={user}
+                        onLogout={handleLogout}
+                        onToggleCollapse={toggleSidebarCollapsed}
+                    />
+                </SidebarCollapseProvider>
             </aside>
 
-            {/* Mobile drawer — only renders overlay on <md */}
+            {/* Mobile drawer — only renders overlay on <md. Always expanded. */}
             <MobileDrawer open={drawerOpen} onClose={closeDrawer}>
-                <Sidebar user={user} onLogout={handleLogout} onNavClick={closeDrawer} />
+                <SidebarCollapseProvider collapsed={false}>
+                    <Sidebar user={user} onLogout={handleLogout} onNavClick={closeDrawer} />
+                </SidebarCollapseProvider>
             </MobileDrawer>
 
             {/* Main content */}

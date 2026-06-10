@@ -47,6 +47,7 @@
 
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { useSidebarCollapsed } from './sidebar-collapse-context';
 
 export interface NavSectionProps {
     /**
@@ -100,9 +101,13 @@ export const NAV_SECTION_DIVIDER =
     'relative mt-2 pt-2 before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-[linear-gradient(90deg,_transparent,_var(--border-subtle),_transparent)]';
 
 export function NavSection({ title, isFirst = false, children }: NavSectionProps) {
+    // Collapsed icon-rail: drop the text header (it would overflow the narrow
+    // rail) but keep the top divider on titled sections so the Govern / Comply /
+    // Manage groups still read as distinct bands.
+    const collapsed = useSidebarCollapsed();
     return (
         <div className={cn(!isFirst && title && NAV_SECTION_DIVIDER)}>
-            {title && (
+            {title && !collapsed && (
                 <span className={NAV_SECTION_HEADER}>
                     {title}
                 </span>

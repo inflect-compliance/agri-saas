@@ -40,8 +40,10 @@ const SRC = fs.readFileSync(
  * primitive's public surface).
  */
 const GEOMETRY_TOKENS: Record<string, string> = {
-    NAV_ITEM_HEIGHT_MIN: 'min-h-[44px]',
-    NAV_ITEM_PADDING: 'px-3 py-2.5',
+    // 44px touch base + 34px desktop (md:) — sidebar rows are tighter on
+    // pointer devices while the mobile drawer keeps the WCAG touch target.
+    NAV_ITEM_HEIGHT_MIN: 'min-h-[44px] md:min-h-[34px]',
+    NAV_ITEM_PADDING: 'px-3 py-2.5 md:py-1.5',
     NAV_ITEM_GAP: 'gap-compact',
     NAV_ITEM_RADIUS: 'rounded-lg',
     NAV_ITEM_ICON_SIZE: 'w-[18px] h-[18px]',

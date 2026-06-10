@@ -26,11 +26,15 @@ import {
     LogOut,
     Calendar as CalendarIcon,
     Workflow,
+    PanelLeftClose,
+    PanelLeftOpen,
     type LucideIcon,
 } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { useCalendarBadge } from './use-calendar-badge';
 import { NavItem } from './nav-item';
 import { NavSection } from './nav-section';
+import { useSidebarCollapsed } from './sidebar-collapse-context';
 
 // ─── Types ───
 
@@ -144,9 +148,11 @@ interface SidebarContentProps {
     user: { name?: string | null };
     onLogout: () => void;
     onNavClick?: () => void;
+    /** Desktop only — when provided, renders the collapse/expand toggle. */
+    onToggleCollapse?: () => void;
 }
 
-export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentProps) {
+export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }: SidebarContentProps) {
     const pathname = usePathname();
     const tc = useTranslations('common');
     const tenant = useTenantContext();
@@ -154,16 +160,21 @@ export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentPro
     const perms = usePermissions();
     const sections = useNavSections();
     const { open: openPalette } = useCommandPalette();
+    // Icon-rail mode (desktop). The mobile drawer's provider always reports
+    // false, so this whole branch is desktop-only in practice.
+    const collapsed = useSidebarCollapsed();
 
     return (
         <div className="flex flex-col h-full">
             {/* Logo */}
             <div className="p-4 border-b border-border-subtle">
-                <div className="flex items-center gap-tight">
+                <div className={collapsed ? 'flex items-center justify-center' : 'flex items-center gap-tight'}>
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-emphasis)] to-[var(--brand-default)] flex items-center justify-center flex-shrink-0">
                         <span className="text-content-inverted text-sm font-bold">IC</span>
                     </div>
-                    <span className="text-sm font-semibold text-content-emphasis truncate">{tc('appName')}</span>
+                    {!collapsed && (
+                        <span className="text-sm font-semibold text-content-emphasis truncate">{tc('appName')}</span>
+                    )}
                 </div>
             </div>
 
@@ -202,9 +213,11 @@ export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentPro
                 this button is for the "I want to see it again"
                 case. Sits above the search bar so the role row
                 in the user block below is the literal last line. */}
-            <div className="mx-2">
-                <StartTourButton />
-            </div>
+            {!collapsed && (
+                <div className="mx-2">
+                    <StartTourButton />
+                </div>
+            )}
 
             {/* Roadmap-2 PR-3 — inline command-palette opener.
                 Sits below the scrolling nav and above the user
@@ -218,7 +231,10 @@ export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentPro
                     onNavClick?.();
                     openPalette();
                 }}
-                className="mx-2 mb-2 flex items-center gap-tight rounded-lg border border-border-subtle bg-bg-default px-3 py-2 text-xs text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                className={cn(
+                    'mx-2 mb-2 flex items-center rounded-lg border border-border-subtle bg-bg-default px-3 py-2 text-xs text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+                    collapsed ? 'justify-center' : 'gap-tight',
+                )}
                 aria-label="Open command palette"
                 data-testid="sidebar-search-anchor"
             >
@@ -235,37 +251,68 @@ export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentPro
                     <circle cx="7" cy="7" r="5" />
                     <path d="M11 11l3 3" />
                 </svg>
-                <span className="flex-1 text-left">Search</span>
-                <span
-                    className="hidden items-center gap-[2px] rounded border border-border-subtle bg-bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-content-subtle md:flex"
-                    aria-hidden="true"
-                >
-                    <span>⌘</span>
-                    <span>K</span>
-                </span>
+                {!collapsed && <span className="flex-1 text-left">Search</span>}
+                {!collapsed && (
+                    <span
+                        className="hidden items-center gap-[2px] rounded border border-border-subtle bg-bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-content-subtle md:flex"
+                        aria-hidden="true"
+                    >
+                        <span>⌘</span>
+                        <span>K</span>
+                    </span>
+                )}
             </button>
+
+            {/* Collapse / expand the desktop sidebar to an icon rail.
+                Desktop only — `onToggleCollapse` is undefined in the mobile
+                drawer, so this row never renders there. */}
+            {onToggleCollapse && (
+                <div className="mx-2 mb-2">
+                    <button
+                        type="button"
+                        onClick={onToggleCollapse}
+                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        aria-pressed={collapsed}
+                        data-testid="sidebar-collapse-toggle"
+                        className={cn(
+                            'flex w-full items-center rounded-lg border border-border-subtle bg-bg-default px-3 py-2 text-xs text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+                            collapsed ? 'justify-center' : 'gap-tight',
+                        )}
+                    >
+                        {collapsed ? (
+                            <PanelLeftOpen className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        ) : (
+                            <PanelLeftClose className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        )}
+                        {!collapsed && <span className="flex-1 text-left">Collapse</span>}
+                    </button>
+                </div>
+            )}
 
             {/* User. Admin + Sign-out sit on a single horizontal
                 row, vertically centred against the three-line
                 identity (name / tenant / role). The role row is
                 the literal last line of the sidebar — the tour
                 opener was moved above the search bar so nothing
-                renders below the identity. */}
+                renders below the identity. Collapsed: identity text is
+                dropped and the icons stack centred in the rail. */}
             <div className="p-3 border-t border-border-subtle">
-                <div className="flex items-center justify-between gap-tight">
-                    <div className="min-w-0">
-                        <p className="text-xs font-medium text-content-default truncate">{user.name}</p>
-                        <p className="text-xs text-content-muted truncate">{tenant.tenantName}</p>
-                        {/* GAP-CI-77: role uses content-muted (not brand-default).
-                            The PwC-orange brand colour on light cream is only
-                            4.25:1 — below WCAG AA's 4.5:1 for small text — and
-                            the role line is informational, not a brand
-                            accent. */}
-                        <p className="text-xs text-content-muted">{tenant.role}</p>
-                    </div>
-                    <div className="flex items-center gap-tight">
+                <div className={cn('flex gap-tight', collapsed ? 'flex-col items-center' : 'items-center justify-between')}>
+                    {!collapsed && (
+                        <div className="min-w-0">
+                            <p className="text-xs font-medium text-content-default truncate">{user.name}</p>
+                            <p className="text-xs text-content-muted truncate">{tenant.tenantName}</p>
+                            {/* GAP-CI-77: role uses content-muted (not brand-default).
+                                The PwC-orange brand colour on light cream is only
+                                4.25:1 — below WCAG AA's 4.5:1 for small text — and
+                                the role line is informational, not a brand
+                                accent. */}
+                            <p className="text-xs text-content-muted">{tenant.role}</p>
+                        </div>
+                    )}
+                    <div className={cn('flex gap-tight', collapsed ? 'flex-col items-center' : 'items-center')}>
                         {perms.admin.view && (
-                            <Tooltip content="Admin">
+                            <Tooltip content="Admin" side={collapsed ? 'right' : 'top'}>
                                 <Link
                                     href={tenantHref('/admin')}
                                     aria-label="Admin"
@@ -277,7 +324,7 @@ export function SidebarContent({ user, onLogout, onNavClick }: SidebarContentPro
                                 </Link>
                             </Tooltip>
                         )}
-                        <Tooltip content={tc('signOut')}>
+                        <Tooltip content={tc('signOut')} side={collapsed ? 'right' : 'top'}>
                             <button
                                 type="button"
                                 onClick={onLogout}

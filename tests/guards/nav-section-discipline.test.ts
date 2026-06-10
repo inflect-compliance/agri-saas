@@ -59,10 +59,10 @@ describe('Roadmap-12 PR-3 — NavSection discipline', () => {
                 /<span\s+className=\{NAV_SECTION_HEADER\}\s*>\s*\n?\s*\{title\}/,
             );
             // Sanity: no `<p>`, `<h2>`, etc. for the title.
-            // Match the conditional-render block `{title && (` through
-            // its closing `)}`.
+            // Match the conditional-render block `{title && (` (the icon-rail
+            // adds `&& !collapsed` to drop the header text) through its `)}`.
             const titleRegion = SECTION_SRC.match(
-                /\{title\s*&&\s*\([\s\S]+?\)\}/,
+                /\{title\s*&&\s*(?:!collapsed\s*&&\s*)?\([\s\S]+?\)\}/,
             );
             expect(titleRegion).not.toBeNull();
             expect(titleRegion![0]).not.toMatch(/<(p|h[1-6])\b/);

@@ -35,6 +35,9 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Tooltip } from '@/components/ui/tooltip';
+import { cn } from '@/lib/cn';
+import { useSidebarCollapsed } from './sidebar-collapse-context';
 
 // ─── Geometry tokens (R12-PR2) ─────────────────────────────────────
 //
@@ -45,24 +48,22 @@ import { StatusBadge } from '@/components/ui/status-badge';
 // `tests/guards/nav-item-geometry-discipline.test.ts`.
 
 /**
- * **44px minimum row height.** WCAG 2.5.5 (Target Size) recommends a
- * 44×44 CSS-pixel minimum for touch targets. The number isn't a
- * suggestion — anything tighter feels mean on iPad and slows
- * desktop pointer-aim too. Pair with `py-2.5` (10px vertical
- * padding) to land the typical row at exactly 44px while leaving
- * room for badge ascenders.
+ * **Row height — 44px touch / 34px desktop.** WCAG 2.5.5 (Target Size)
+ * wants a 44×44 CSS-px minimum for TOUCH; NavItem renders in the mobile
+ * drawer, so the base stays `min-h-[44px]`. On desktop (`md:`) the nav is
+ * pointer-driven, where 44px reads as oversized — `md:min-h-[34px]` tightens
+ * the sidebar rows (Board / Asset / Risk / …) without sacrificing the mobile
+ * touch target.
  */
-export const NAV_ITEM_HEIGHT_MIN = 'min-h-[44px]';
+export const NAV_ITEM_HEIGHT_MIN = 'min-h-[44px] md:min-h-[34px]';
 
 /**
- * **px-3 py-2.5** — 12px horizontal, 10px vertical.
- * Horizontal: the active state's 2px brand left-edge eats 2px of
- * left padding so the content still sits at the geometric 12px
- * — symmetry the eye reads as "settled". Vertical: 10px keeps
- * row baseline aligned with `min-h-[44px]` when a single line of
- * 14px text + an 18px icon is the content.
+ * **px-3, py-2.5 touch / py-1.5 desktop.** Horizontal: the active state's 2px
+ * brand left-edge eats 2px of left padding so content still sits at the
+ * geometric 12px. Vertical: 10px on touch keeps the row at the 44px target;
+ * on desktop `md:py-1.5` (6px) pairs with `md:min-h-[34px]` for a compact row.
  */
-export const NAV_ITEM_PADDING = 'px-3 py-2.5';
+export const NAV_ITEM_PADDING = 'px-3 py-2.5 md:py-1.5';
 
 /**
  * **gap-compact** — 8px between icon and label.
@@ -591,13 +592,24 @@ export function NavItem({ href, icon: Icon, label, active, badge, onClick }: Nav
         '--nav-breath-delay': `${breathDelayMs}ms`,
     } as CSSProperties;
 
-    return (
+    // Collapsed (desktop icon-rail) — center the icon, drop the label + badge
+    // chip, and surface the label as a right-side tooltip so the rail stays
+    // navigable. `useSidebarCollapsed` is `false` in the mobile drawer + when no
+    // provider is mounted, so the expanded path is the default.
+    const collapsed = useSidebarCollapsed();
+
+    const link = (
         <Link
             href={href}
             onClick={onClick}
-            className={`${NAV_ITEM_BASE} ${active ? NAV_ITEM_ACTIVE : NAV_ITEM_DEFAULT}`}
+            className={cn(
+                NAV_ITEM_BASE,
+                active ? NAV_ITEM_ACTIVE : NAV_ITEM_DEFAULT,
+                collapsed && 'justify-center',
+            )}
             data-testid={`nav-${slug}`}
             style={driftStyle}
+            aria-label={collapsed ? label : undefined}
         >
             <Icon className={NAV_ITEM_ICON_CLASS} aria-hidden="true" />
             {/* R15-PR8 — magnetic letter spacing. The label
@@ -613,14 +625,24 @@ export function NavItem({ href, icon: Icon, label, active, badge, onClick }: Nav
                 band's reveal tempo. The shape is opacity + tone
                 language inside the row's content — no transform,
                 no scale, no translate. */}
-            <span className="truncate tracking-normal transition-[letter-spacing] duration-200 ease-out group-hover:tracking-wide">
-                {label}
-            </span>
-            {badge != null && (
+            {!collapsed && (
+                <span className="truncate tracking-normal transition-[letter-spacing] duration-200 ease-out group-hover:tracking-wide">
+                    {label}
+                </span>
+            )}
+            {!collapsed && badge != null && (
                 <StatusBadge variant="info" size="sm" className={NAV_ITEM_BADGE}>
                     {badge}
                 </StatusBadge>
             )}
         </Link>
+    );
+
+    return collapsed ? (
+        <Tooltip content={label} side="right">
+            {link}
+        </Tooltip>
+    ) : (
+        link
     );
 }
