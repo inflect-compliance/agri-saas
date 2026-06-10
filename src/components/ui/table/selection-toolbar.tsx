@@ -178,7 +178,10 @@ export function SelectionToolbar<T>({
   return (
     <div
       className={cn(
-        "border-border-subtle w-full border-b bg-bg-elevated",
+        // UI-23: a thin brand-coloured lower border marks the active action
+        // row — `--brand-default` resolves to orange (light) / yellow (dark)
+        // per theme. 1px (`border-b`) keeps it a hairline accent.
+        "w-full border-b border-[var(--brand-default)] bg-bg-elevated",
         "transition-opacity duration-100",
         selectedCount > 0
           ? "pointer-events-auto opacity-100"

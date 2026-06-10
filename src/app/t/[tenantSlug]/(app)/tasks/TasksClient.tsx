@@ -44,6 +44,8 @@ import { buildTaskFilters, TASK_FILTER_KEYS } from './filter-defs';
 import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
 import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
+import { UserCombobox } from '@/components/ui/user-combobox';
+import { ownerDisplayName } from '@/lib/owner-display';
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
 import {
     parseYMD,
@@ -172,6 +174,9 @@ function TasksPageInner({
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [bulkAction, setBulkAction] = useState('');
     const [bulkValue, setBulkValue] = useState('');
+    // Display label for the chosen assignee (UserCombobox) — drives the
+    // optimistic assignee name so the row doesn't flash the raw user id.
+    const [bulkValueLabel, setBulkValueLabel] = useState('');
 
     // ─── Query: tasks list (hydrated with server data) ───
 
@@ -374,6 +379,8 @@ function TasksPageInner({
         action: string;
         value: string;
         ids: string[];
+        /** Display label for `value` (assignee name) — optimistic UI only. */
+        label?: string;
     }
 
     // PR-9 — cache value is `CappedList<TaskListItem>`; preserve the
@@ -405,7 +412,7 @@ function TasksPageInner({
             if (!res.ok) throw new Error('Bulk action failed');
             return res.json();
         },
-        optimisticUpdate: (current, { action, value, ids }) => {
+        optimisticUpdate: (current, { action, value, ids, label }) => {
             const rows = (current?.rows ?? []).map((task) => {
                 if (!ids.includes(task.id)) return task;
                 if (action === 'status') return { ...task, status: value };
@@ -413,7 +420,9 @@ function TasksPageInner({
                     return {
                         ...task,
                         assigneeUserId: value || null,
-                        assignee: value ? { name: value } : null,
+                        // Show the picked assignee's name (not the raw user id);
+                        // server revalidation reconciles the canonical value.
+                        assignee: value ? { name: label || value } : null,
                     };
                 if (action === 'due') return { ...task, dueAt: value || null };
                 return task;
@@ -428,6 +437,7 @@ function TasksPageInner({
             .trigger({
                 action: bulkAction,
                 value: bulkValue,
+                label: bulkValueLabel,
                 ids: Array.from(selected),
             })
             .catch(() => {
@@ -441,6 +451,7 @@ function TasksPageInner({
                 setSelected(new Set());
                 setBulkAction('');
                 setBulkValue('');
+                setBulkValueLabel('');
             });
     };
 
@@ -685,14 +696,28 @@ function TasksPageInner({
                                 hideSearch
                                 id="bulk-action-select"
                                 selected={BULK_ACTION_OPTIONS.find(o => o.value === bulkAction) ?? null}
-                                setSelected={(opt) => { setBulkAction(opt?.value ?? ''); setBulkValue(''); }}
+                                setSelected={(opt) => { setBulkAction(opt?.value ?? ''); setBulkValue(''); setBulkValueLabel(''); }}
                                 options={BULK_ACTION_OPTIONS}
                                 placeholder="Choose action..."
                                 matchTriggerWidth
                                 buttonProps={{ className: 'text-sm' }}
                             />
                             {bulkAction === 'assign' && (
-                                <input className="input w-full sm:w-44 text-sm" placeholder="User ID (blank = unassign)" value={bulkValue} onChange={e => setBulkValue(e.target.value)} id="bulk-value-input" />
+                                <UserCombobox
+                                    tenantSlug={tenantSlug}
+                                    selectedId={bulkValue || null}
+                                    onChange={(id, m) => {
+                                        setBulkValue(id ?? '');
+                                        setBulkValueLabel(
+                                            ownerDisplayName(m?.name, m?.email) ?? '',
+                                        );
+                                    }}
+                                    forceDropdown
+                                    matchTriggerWidth
+                                    placeholder="Assignee (blank = unassign)"
+                                    className="w-full sm:w-44"
+                                    id="bulk-value-input"
+                                />
                             )}
                             {bulkAction === 'status' && (
                                 <Combobox
