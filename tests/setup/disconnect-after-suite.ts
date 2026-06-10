@@ -81,4 +81,23 @@ afterAll(async () => {
     } catch {
         /* module never loaded — nothing to drain */
     }
+    // Restore the default email provider. `setEmailProvider` mutates a
+    // MODULE-GLOBAL, so a suite that swaps in a `StubEmailProvider` (and many
+    // do, without restoring) leaks it to every later suite in the same worker —
+    // a latent cross-suite flake (e.g. an email assertion seeing another
+    // suite's stub). Only reset if the module was actually loaded; pure-mock
+    // suites that never imported the mailer skip it (no nodemailer load cost).
+    try {
+
+        const mailerId = require.resolve('@/lib/mailer');
+        if (require.cache[mailerId]) {
+            const mailer = require('@/lib/mailer') as {
+                setEmailProvider: (p: unknown) => void;
+                ConsoleEmailProvider: new () => unknown;
+            };
+            mailer.setEmailProvider(new mailer.ConsoleEmailProvider());
+        }
+    } catch {
+        /* module never loaded — nothing to reset */
+    }
 });

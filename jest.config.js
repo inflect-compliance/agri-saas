@@ -311,6 +311,16 @@ const jsdomProject = {
 
 module.exports = {
     projects: [nodeProject, jsdomProject],
+    // Recycle a worker once its heap crosses this after a suite. Over a
+    // ~1400-suite run a long-lived worker accumulates module + mock state
+    // until GC stalls (or it OOMs), which surfaces as NON-deterministic
+    // "passes in isolation, fails in one parallel run" flakes on whatever
+    // suite happened to be in-flight (observed: framework-tree-builder,
+    // observability-metrics, mailer-init-wiring — all pure/structural, i.e.
+    // not their own bug). Restarting the ballooned worker keeps heaps bounded
+    // and the run reproducible. Belt-and-braces with the per-worker DB
+    // isolation from the flake-fix (#951).
+    workerIdleMemoryLimit: '512MB',
     // forceExit DELIBERATELY OFF — Jest exits naturally once the
     // disconnect-after-suite hook in tests/setup/disconnect-after-suite.ts
     // has closed the prisma + bullmq + audit-stream singletons. With
