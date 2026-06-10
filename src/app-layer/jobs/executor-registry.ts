@@ -863,3 +863,17 @@ executorRegistry.register('risk-appetite-monitor', async (payload) => {
     });
 });
 
+// RQ-9 — daily cross-tenant risk + portfolio snapshot.
+executorRegistry.register('risk-snapshot', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runRiskSnapshot } = await import('./risk-snapshot-jobs');
+    const r = await runRiskSnapshot(payload);
+    return makeResult('risk-snapshot', startedAt, startMs, r.scanned, r.riskSnapshots, 0, {
+        tenants: r.tenants,
+        scanned: r.scanned,
+        riskSnapshots: r.riskSnapshots,
+        pruned: r.pruned,
+    });
+});
+

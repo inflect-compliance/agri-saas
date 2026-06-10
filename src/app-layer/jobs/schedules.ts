@@ -86,6 +86,12 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
         defaultPayload: {},
     },
     {
+        name: 'risk-snapshot',
+        pattern: '0 2 * * *',     // daily at 02:00 UTC
+        description: 'Capture daily per-risk + portfolio snapshots for trend/velocity analytics (RQ-9)',
+        defaultPayload: {},
+    },
+    {
         name: 'schedule-trigger-sweep',
         pattern: '0 7 * * *',     // daily at 07:00 UTC
         description: 'Fire SCHEDULE automation rules whose target entity is N days from its due date',

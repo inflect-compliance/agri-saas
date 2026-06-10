@@ -74,8 +74,8 @@ describe('Infrastructure Regression Guards', () => {
             }
         });
 
-        test('exactly 18 scheduled jobs exist', () => {
-            expect(SCHEDULED_JOBS).toHaveLength(18);
+        test('exactly 19 scheduled jobs exist', () => {
+            expect(SCHEDULED_JOBS).toHaveLength(19);
         });
 
         test('scheduled job names match expected set', () => {
@@ -104,6 +104,8 @@ describe('Infrastructure Regression Guards', () => {
                 'retention-sweep',
                 // RQ-2 — daily cross-tenant risk-appetite breach monitor.
                 'risk-appetite-monitor',
+                // RQ-9 — daily cross-tenant risk + portfolio snapshot.
+                'risk-snapshot',
                 // PR-E — daily sweep firing SCHEDULE automation rules whose
                 // target entity is N days from its due date.
                 'schedule-trigger-sweep',

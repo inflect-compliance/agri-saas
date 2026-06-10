@@ -375,6 +375,12 @@ const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
     // RQ-8 — all correlation pairs for a tenant (matrix build / suggestions).
     RiskCorrelation:
         'RQ-8 getCorrelationMatrix/suggestCorrelations fetch all pairs by tenantId — covered by @@index([tenantId]); bounded take.',
+    // RQ-9 — per-risk history + velocity fetched by tenantId+riskId+snapshotAt.
+    RiskSnapshot:
+        'RQ-9 getRiskHistory/computeVelocity filter by tenantId + riskId, order by snapshotAt — covered by @@index([tenantId, riskId, snapshotAt]); bounded take.',
+    // RQ-9 — portfolio trend fetched by tenantId ordered by snapshotAt.
+    PortfolioSnapshot:
+        'RQ-9 getPortfolioTrend filters by tenantId, orders by snapshotAt — covered by @@index([tenantId, snapshotAt]); bounded take.',
     // SP-3 — delta sync lists mappings by [tenantId, provider, connectionId];
     // covered by @@index([tenantId, provider]) + @@index([connectionId]).
     IntegrationSyncMapping:

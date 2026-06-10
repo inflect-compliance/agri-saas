@@ -499,6 +499,11 @@ export interface RiskAppetiteMonitorPayload {
     requestId?: string;
 }
 
+/** RQ-9 — daily cron: snapshot every tenant's risk + portfolio metrics (cross-tenant). */
+export interface RiskSnapshotPayload {
+    requestId?: string;
+}
+
 export interface JobPayloadMap {
     'health-check': HealthCheckPayload;
     'automation-runner': AutomationRunnerPayload;
@@ -532,6 +537,7 @@ export interface JobPayloadMap {
     'sharepoint-policy-pull': SharePointPolicyPullPayload;
     'sharepoint-subscription-renew': SharePointSubscriptionRenewPayload;
     'risk-appetite-monitor': RiskAppetiteMonitorPayload;
+    'risk-snapshot': RiskSnapshotPayload;
 }
 
 /** Union of all valid job names */
@@ -648,6 +654,12 @@ export const JOB_DEFAULTS: Record<JobName, {
         removeOnFail: 200,
     },
     'risk-appetite-monitor': {
+        attempts: 1,
+        backoff: { type: 'fixed', delay: 0 },
+        removeOnComplete: 50,
+        removeOnFail: 200,
+    },
+    'risk-snapshot': {
         attempts: 1,
         backoff: { type: 'fixed', delay: 0 },
         removeOnComplete: 50,

@@ -45,6 +45,7 @@ import { cardVariants } from '@/components/ui/card';
 import { EditRiskModal, type EditRiskForm } from './_modals/EditRiskModal';
 import { FairAnalysisPanel } from './FairAnalysisPanel';
 import { BowTiePanel } from './BowTiePanel';
+import { RiskHistoryPanel } from './RiskHistoryPanel';
 import { InheritedEvidencePanel } from '@/components/InheritedEvidencePanel';
 import { AttachedEvidencePanel } from '@/components/AttachedEvidencePanel';
 import { Heading } from '@/components/ui/typography';
@@ -147,6 +148,7 @@ export default function RiskDetailPage() {
         | 'overview'
         | 'quantification'
         | 'bowtie'
+        | 'history'
         | 'tasks'
         | 'evidence'
         | 'mappings'
@@ -158,6 +160,7 @@ export default function RiskDetailPage() {
         { key: 'overview', label: 'Overview' },
         { key: 'quantification', label: 'Quantification' },
         { key: 'bowtie', label: 'Bow-Tie' },
+        { key: 'history', label: 'History' },
         { key: 'tasks', label: 'Tasks' },
         { key: 'evidence', label: 'Evidence' },
         { key: 'mappings', label: 'Mappings' },
@@ -462,6 +465,8 @@ export default function RiskDetailPage() {
             )}
 
             {activeTab === 'bowtie' && <BowTiePanel riskId={riskId} />}
+
+            {activeTab === 'history' && <RiskHistoryPanel riskId={riskId} />}
 
             {activeTab === 'overview' && (
                 <>
