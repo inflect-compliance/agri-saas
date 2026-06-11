@@ -390,23 +390,40 @@ export default function RiskDashboardPage() {
                                 assessments is probably wrong.
                             </p>
                             <div className="space-y-tight">
-                                {coherence.flags.map((f) => (
-                                    <Link
-                                        key={f.riskId}
-                                        href={href(`/risks/${f.riskId}`)}
-                                        className="flex items-center justify-between gap-default p-2 rounded text-sm hover:bg-bg-muted/50 transition-colors duration-100 ease-out"
-                                        data-testid={`risk-coherence-row-${f.riskId}`}
-                                    >
-                                        <span className="truncate text-content-emphasis">
-                                            {f.title}
-                                        </span>
-                                        <span className="shrink-0 tabular-nums text-content-muted">
-                                            {f.direction === 'QUANT_HIGH_QUAL_LOW'
-                                                ? `score ${f.score} vs ${formatCompactCurrency(f.ale)} — losses say this is bigger`
-                                                : `score ${f.score} vs ${formatCompactCurrency(f.ale)} — losses say this is smaller`}
-                                        </span>
-                                    </Link>
-                                ))}
+                                {coherence.flags.map((f) => {
+                                    // polish #4 — a scan-fast chip
+                                    // tells the eye which language is
+                                    // the louder one before the
+                                    // sentence reads. $↑ #↓ = money
+                                    // says big, matrix says small;
+                                    // and the inverse for #↑ $↓.
+                                    const moneyBigger = f.direction === 'QUANT_HIGH_QUAL_LOW';
+                                    return (
+                                        <Link
+                                            key={f.riskId}
+                                            href={href(`/risks/${f.riskId}`)}
+                                            className="flex items-center justify-between gap-default p-2 rounded text-sm hover:bg-bg-muted/50 transition-colors duration-100 ease-out"
+                                            data-testid={`risk-coherence-row-${f.riskId}`}
+                                            data-direction={f.direction}
+                                        >
+                                            <span className="flex items-center gap-tight truncate">
+                                                <span
+                                                    aria-hidden="true"
+                                                    className="inline-flex items-center gap-px rounded border border-border-subtle px-1 text-[10px] tabular-nums text-content-emphasis"
+                                                    data-testid={`risk-coherence-chip-${f.riskId}`}
+                                                >
+                                                    {moneyBigger ? '€↑ score↓' : 'score↑ €↓'}
+                                                </span>
+                                                <span className="truncate text-content-emphasis">{f.title}</span>
+                                            </span>
+                                            <span className="shrink-0 tabular-nums text-content-muted">
+                                                {moneyBigger
+                                                    ? `score ${f.score} vs ${formatCompactCurrency(f.ale)} — losses say this is bigger`
+                                                    : `score ${f.score} vs ${formatCompactCurrency(f.ale)} — losses say this is smaller`}
+                                            </span>
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         </>
                     )}
