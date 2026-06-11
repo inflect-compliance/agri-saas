@@ -429,8 +429,10 @@ export default function RiskDetailPage() {
                     />
                     {/* RQ2-4 — the former Mappings + Tests tabs were
                         both inherited-via-controls surfaces; they now
-                        sit where the control links are managed. */}
-                    <div className="space-y-default">
+                        sit where the control links are managed.
+                        polish #7 — each gets a top divider so the
+                        block reads as three sections, not one. */}
+                    <div className="space-y-default border-t border-border-subtle pt-default">
                         <Heading level={3}>Inherited mappings</Heading>
                         <InheritedMappingsPanel
                             endpoint={apiUrl(`/risks/${riskId}/mappings`)}
@@ -438,7 +440,7 @@ export default function RiskDetailPage() {
                             entityLabel="risk"
                         />
                     </div>
-                    <div className="space-y-default">
+                    <div className="space-y-default border-t border-border-subtle pt-default">
                         <Heading level={3}>Inherited test plans</Heading>
                         <InheritedTestPlansPanel
                             endpoint={apiUrl(`/risks/${riskId}/test-plans`)}
