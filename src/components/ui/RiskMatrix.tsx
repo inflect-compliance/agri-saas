@@ -489,6 +489,26 @@ export function RiskMatrix({
                 </div>
             </div>
 
+            {/* polish #2 — movement legend. Only renders alongside
+                the overlay so an off-toggle matrix stays uncluttered. */}
+            {movementActive && (
+                <div
+                    className="mt-3 flex flex-wrap items-center gap-default text-[10px] text-content-muted"
+                    data-testid="risk-matrix-movement-legend"
+                >
+                    <span className="inline-flex items-center gap-1">
+                        <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full border border-content-emphasis bg-transparent" />
+                        inherent (origin)
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                        <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-content-emphasis" />
+                        residual (destination)
+                    </span>
+                    <span>·</span>
+                    <span>thicker line + ×N where multiple risks share the path</span>
+                </div>
+            )}
+
             <div className="mt-3">
                 <RiskMatrixLegend config={config} />
             </div>
