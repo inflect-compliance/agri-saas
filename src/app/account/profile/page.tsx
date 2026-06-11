@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { Heading } from '@/components/ui/typography';
 
 import { AvatarUploadField } from './AvatarUploadField';
+import { NameEditField } from './NameEditField';
 
 /**
  * Account → Profile. Avatar roadmap P3 — the first home for the
@@ -32,6 +33,8 @@ export default async function AccountProfilePage() {
                     email={session.user.email ?? null}
                     initialImage={session.user.image ?? null}
                 />
+
+                <NameEditField initialName={session.user.name ?? null} />
             </div>
         </div>
     );
