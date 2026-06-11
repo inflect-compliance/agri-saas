@@ -442,17 +442,30 @@ export default function RiskDashboardPage() {
                         tests newer than the residual.
                     </p>
                     <div className="space-y-tight">
-                        {staleness.staleRisks.slice(0, 10).map((r) => (
-                            <Link
-                                key={r.riskId}
-                                href={href(`/risks/${r.riskId}`)}
-                                className="flex items-center justify-between gap-default p-2 rounded text-sm hover:bg-bg-muted/50 transition-colors duration-100 ease-out"
-                                data-testid={`risk-stale-row-${r.riskId}`}
-                            >
-                                <span className="truncate text-content-emphasis">{r.title}</span>
-                                <span className="shrink-0 text-xs text-content-muted">{r.description}</span>
-                            </Link>
-                        ))}
+                        {staleness.staleRisks.slice(0, 10).map((r) => {
+                            // polish #5 — rot-severity left-border tint
+                            // draws the eye to multi-reason rows; the
+                            // widget already sorts rot-first, this just
+                            // makes the gradient visible.
+                            const tone =
+                                r.reasons.length >= 3
+                                    ? 'border-l-content-error'
+                                    : r.reasons.length === 2
+                                      ? 'border-l-content-warning'
+                                      : 'border-l-border-subtle';
+                            return (
+                                <Link
+                                    key={r.riskId}
+                                    href={href(`/risks/${r.riskId}`)}
+                                    className={`flex items-center justify-between gap-default p-2 pl-3 rounded border-l-2 ${tone} text-sm hover:bg-bg-muted/50 transition-colors duration-100 ease-out`}
+                                    data-testid={`risk-stale-row-${r.riskId}`}
+                                    data-reason-count={r.reasons.length}
+                                >
+                                    <span className="truncate text-content-emphasis">{r.title}</span>
+                                    <span className="shrink-0 text-xs text-content-muted">{r.description}</span>
+                                </Link>
+                            );
+                        })}
                         {staleness.staleRisks.length > 10 && (
                             <p className="text-xs text-content-subtle">
                                 + {staleness.staleRisks.length - 10} more
