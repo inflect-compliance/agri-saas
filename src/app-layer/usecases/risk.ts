@@ -11,8 +11,11 @@ import { sanitizePlainText } from '@/lib/security/sanitize';
 import { cachedListRead, bumpEntityCacheVersion } from '@/lib/cache/list-cache';
 import { createAssignmentNotification } from '../notifications/assignment';
 import { logger } from '@/lib/observability';
-import type { TreatmentDecision, RiskStatus, TaskLinkEntityType, FairConfidence, Prisma } from '@prisma/client';
-import { computeTEF, computeVulnerability, computeLEF, computePLM, computeFairALE } from './fair-calculator';
+import type { TreatmentDecision, RiskStatus, TaskLinkEntityType, FairConfidence } from '@prisma/client';
+// Value import — `Prisma.DbNull` is a runtime sentinel (RQ3-2 clears
+// stored triples with it), not just a type namespace.
+import { Prisma } from '@prisma/client';
+import { computeTEF, computeVulnerability, computeLEF, computePLM, computeFairALE, pertMean } from './fair-calculator';
 import { recordScoreEvent } from './risk-score-events';
 
 // Epic D.2 — sanitise optional free-text on UPDATE without disturbing
@@ -457,6 +460,22 @@ export async function updateRisk(ctx: RequestContext, id: string, data: {
 
 // ── RQ-1 FAIR taxonomy ────────────────────────────────────────────────
 
+/** A PERT triple as accepted on the wire (RQ3-2). */
+export interface FairTripleInput {
+    min: number;
+    mode: number;
+    max: number;
+}
+
+/** RQ3-2 — the five calibrated ranges; null clears a factor. */
+export interface FairDistributionsInput {
+    tef?: FairTripleInput | null;
+    vulnerability?: FairTripleInput | null;
+    plm?: FairTripleInput | null;
+    slef?: FairTripleInput | null;
+    slm?: FairTripleInput | null;
+}
+
 /** The FAIR input fields a client may set (all optional, all nullable). */
 export interface RiskFairInput {
     threatEventFrequency?: number | null;
@@ -476,6 +495,24 @@ export interface RiskFairInput {
     competitiveAdvantageLoss?: number | null;
     fairConfidence?: FairConfidence | null;
     fairInputsJson?: Record<string, unknown> | null;
+    /** RQ3-2 — range-first path. When present (even null), the five
+     *  triples become the source of truth: they are persisted to
+     *  fairInputsJson and the point columns are DERIVED (PERT mean). */
+    distributions?: FairDistributionsInput | null;
+}
+
+/**
+ * RQ3-2 — canonicalise a wire triple: the three values are a
+ * calibration SET; order is presentation. Sorting ascending recovers
+ * the only coherent reading (smallest = min, middle = likely,
+ * largest = max) and keeps the stored JSON safe for the simulator's
+ * triangular inverse-CDF (a mode outside [min, max] would NaN it).
+ * The panel's warn-only validator already told the user about the
+ * inversion — the write path just refuses to store a poisoned triple.
+ */
+function normalizeTriple(t: FairTripleInput): FairTripleInput {
+    const s = [t.min, t.mode, t.max].sort((a, b) => a - b);
+    return { min: s[0], mode: s[1], max: s[2] };
 }
 
 /**
@@ -540,13 +577,69 @@ export async function updateRiskFair(ctx: RequestContext, id: string, input: Ris
     const result = await runInTenantContext(ctx, async (db) => {
         const existing = await db.risk.findFirst({ where: { id, tenantId: ctx.tenantId }, select: { id: true } });
         if (!existing) throw notFound('Risk not found');
-        await db.risk.update({
-            where: { id },
-            data: {
-                ...input,
-                fairInputsJson: (input.fairInputsJson ?? undefined) as Prisma.InputJsonValue | undefined,
-            },
-        });
+        const { distributions, fairInputsJson, ...points } = input;
+        if (distributions !== undefined) {
+            // RQ3-2 — range-first path. The triples ARE the inputs;
+            // every point column is derived (PERT mean), and the
+            // legacy sub-factor columns are cleared so the panel's
+            // single-source semantics hold (their information was
+            // folded into the seeded ranges client-side).
+            const norm = (t: FairTripleInput | null | undefined) => (t ? normalizeTriple(t) : null);
+            const tef = norm(distributions?.tef);
+            const vuln = norm(distributions?.vulnerability);
+            const plm = norm(distributions?.plm);
+            const slef = norm(distributions?.slef);
+            const slm = norm(distributions?.slm);
+            const stored: Record<string, FairTripleInput> = {};
+            if (tef) stored.tef = tef;
+            if (vuln) stored.vulnerability = vuln;
+            if (plm) stored.plm = plm;
+            if (slef) stored.slef = slef;
+            if (slm) stored.slm = slm;
+            const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+            await db.risk.update({
+                where: { id },
+                data: {
+                    fairInputsJson: Object.keys(stored).length > 0
+                        ? (stored as unknown as Prisma.InputJsonValue)
+                        : Prisma.DbNull,
+                    threatEventFrequency: tef ? pertMean(tef) : null,
+                    vulnerabilityProbability: vuln ? clamp01(pertMean(vuln)) : null,
+                    primaryLossMagnitude: plm ? pertMean(plm) : null,
+                    secondaryLossEventFrequency: slef ? clamp01(pertMean(slef)) : null,
+                    secondaryLossMagnitude: slm ? pertMean(slm) : null,
+                    contactFrequency: null,
+                    probabilityOfAction: null,
+                    threatCapability: null,
+                    controlStrength: null,
+                    productivityLoss: null,
+                    responseCost: null,
+                    replacementCost: null,
+                    fairConfidence: input.fairConfidence ?? undefined,
+                },
+            });
+        } else {
+            // Legacy point path (API back-compat). A NUMERIC point
+            // write makes any stored triples stale — clear them unless
+            // the caller is managing fairInputsJson explicitly, so the
+            // simulator never prefers ranges the points have moved
+            // past. (A confidence-only write touches no estimates and
+            // leaves the triples alone.)
+            const { fairConfidence: _conf, ...numericPoints } = points;
+            const hasPointWrite = Object.values(numericPoints).some((v) => v !== undefined);
+            const jsonValue =
+                fairInputsJson !== undefined
+                    ? fairInputsJson === null
+                        ? Prisma.DbNull
+                        : (fairInputsJson as Prisma.InputJsonValue)
+                    : hasPointWrite
+                      ? Prisma.DbNull
+                      : undefined;
+            await db.risk.update({
+                where: { id },
+                data: { ...points, fairInputsJson: jsonValue },
+            });
+        }
         await recomputeFairDerived(db, ctx.tenantId, id);
         await logEvent(db, ctx, {
             action: 'RISK_FAIR_UPDATED',

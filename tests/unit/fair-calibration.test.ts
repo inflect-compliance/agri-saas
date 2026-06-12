@@ -11,6 +11,8 @@ import {
     reflectProbability,
     validateFairInputs,
     validatePertTriple,
+    reflectTriple,
+    validateFairTriples,
     getCategoryPrior,
     CATEGORY_PRIORS,
     type FairFieldKey,
@@ -157,5 +159,73 @@ describe('category priors', () => {
     it('unknown / absent categories return null (UI renders nothing)', () => {
         expect(getCategoryPrior('Quantum')).toBeNull();
         expect(getCategoryPrior(null)).toBeNull();
+    });
+});
+
+// ─── RQ3-2 — range-first aids ────────────────────────────────────────
+
+const T = (min: number | null, mode: number | null, max: number | null) => ({ min, mode, max });
+const EMPTY_TRIPLES = {
+    tef: T(null, null, null),
+    vulnerability: T(null, null, null),
+    plm: T(null, null, null),
+    slef: T(null, null, null),
+    slm: T(null, null, null),
+};
+
+describe('reflectTriple (RQ3-2)', () => {
+    it('reflects the likely value in the factor register', () => {
+        expect(reflectTriple('tef', T(null, 0.1, null))).toMatch(/every 10 years/);
+        expect(reflectTriple('vulnerability', T(null, 0.25, null))).toMatch(/1-in-4/);
+        expect(reflectTriple('plm', T(null, 80_000, null))).toMatch(/€80K/);
+    });
+
+    it('returns null without a likely value — the UI renders nothing', () => {
+        expect(reflectTriple('tef', T(0.1, null, 0.5))).toBeNull();
+    });
+
+    it('a complete order-of-magnitude range appends the spread call-out', () => {
+        expect(reflectTriple('plm', T(10_000, 80_000, 400_000))).toMatch(
+            /~40× spread; anchor it with a reference event/,
+        );
+    });
+
+    it('tight ranges carry no spread sentence (signal, not noise)', () => {
+        expect(reflectTriple('plm', T(80_000, 100_000, 120_000))).not.toMatch(/spread/);
+    });
+
+    it('zero-min ranges never divide by zero', () => {
+        expect(reflectTriple('tef', T(0, 0.5, 2))).not.toMatch(/spread/);
+    });
+});
+
+describe('validateFairTriples (RQ3-2) — warn-only range checks', () => {
+    it('clean calibrated ranges produce no warnings', () => {
+        const w = validateFairTriples({
+            ...EMPTY_TRIPLES,
+            tef: T(0.1, 0.2, 0.6),
+            vulnerability: T(0.2, 0.4, 0.7),
+            plm: T(50_000, 100_000, 250_000),
+        });
+        expect(w).toHaveLength(0);
+    });
+
+    it('wires validatePertTriple per complete factor (inverted range)', () => {
+        const w = validateFairTriples({ ...EMPTY_TRIPLES, tef: T(5, 2, 1) });
+        expect(w.some((x) => x.message.includes('inverted'))).toBe(true);
+    });
+
+    it('probability factors warn on bounds outside 0–1 — even mid-entry', () => {
+        const w = validateFairTriples({ ...EMPTY_TRIPLES, vulnerability: T(null, 1.4, null) });
+        expect(w.some((x) => x.message.includes('probability'))).toBe(true);
+    });
+
+    it('money/frequency factors warn on negative bounds', () => {
+        const w = validateFairTriples({ ...EMPTY_TRIPLES, plm: T(-5, null, null) });
+        expect(w.some((x) => x.message.includes('negative'))).toBe(true);
+    });
+
+    it('blank triples warn about nothing (zero-cost default)', () => {
+        expect(validateFairTriples(EMPTY_TRIPLES)).toHaveLength(0);
     });
 });

@@ -8,6 +8,13 @@ import { jsonResponse } from '@/lib/api-response';
 
 /** RQ-1 — FAIR quantification inputs. All optional + nullable (additive). */
 const num = z.number().finite().nullable().optional();
+/** RQ3-2 — a calibrated min/likely/max range. Ordering is NOT a hard
+ *  gate (the UI validator is warn-only by contract); the usecase
+ *  canonicalises by sorting before persisting. */
+const triple = z
+    .object({ min: z.number().finite(), mode: z.number().finite(), max: z.number().finite() })
+    .nullable()
+    .optional();
 const FairInputSchema = z.object({
     threatEventFrequency: num,
     contactFrequency: num,
@@ -26,6 +33,11 @@ const FairInputSchema = z.object({
     competitiveAdvantageLoss: num,
     fairConfidence: z.enum(['LOW', 'MEDIUM', 'HIGH']).nullable().optional(),
     fairInputsJson: z.record(z.string(), z.unknown()).nullable().optional(),
+    /** RQ3-2 — the five calibrated ranges (range-first path). */
+    distributions: z
+        .object({ tef: triple, vulnerability: triple, plm: triple, slef: triple, slm: triple })
+        .nullable()
+        .optional(),
 });
 
 /** PUT — update a risk's FAIR inputs; server recomputes LEF + fairAle. */

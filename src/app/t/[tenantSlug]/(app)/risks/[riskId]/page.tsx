@@ -97,6 +97,8 @@ type Risk = {
     secondaryLossEventFrequency: number | null;
     secondaryLossMagnitude: number | null;
     fairConfidence: 'LOW' | 'MEDIUM' | 'HIGH' | null;
+    /** RQ3-2 — stored PERT triples (range-first estimation). */
+    fairInputsJson: Record<string, unknown> | null;
     fairAle: number | null;
     // RQ2-5 — legacy quant inputs feed `resolveALE` for the header chip.
     sleAmount: number | null;
@@ -523,6 +525,7 @@ export default function RiskDetailPage() {
                         secondaryLossEventFrequency: risk.secondaryLossEventFrequency,
                         secondaryLossMagnitude: risk.secondaryLossMagnitude,
                         fairConfidence: risk.fairConfidence,
+                        fairInputsJson: risk.fairInputsJson,
                     }}
                 />
             )}

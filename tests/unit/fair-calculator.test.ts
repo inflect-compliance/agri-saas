@@ -10,6 +10,7 @@ import {
     computeVulnerability,
     sampleFairALE,
     pointToPert,
+    pertMean,
     computeLegacyALE,
     resolveALE,
     seededRng,
@@ -83,5 +84,21 @@ describe('resolveALE — FAIR ⟶ legacy ⟶ null', () => {
     it('null when neither is set', () => {
         expect(resolveALE({ fairAle: null, sleAmount: null, aroAmount: null })).toBeNull();
         expect(resolveALE({ fairAle: null, sleAmount: 100, aroAmount: null })).toBeNull();
+    });
+});
+
+describe('pertMean (RQ3-2) — the derived point estimate', () => {
+    it('is the Beta-PERT weighted mean (min + 4·mode + max) / 6', () => {
+        expect(pertMean({ min: 0.1, mode: 0.2, max: 0.6 })).toBeCloseTo(0.25);
+        expect(pertMean({ min: 10_000, mode: 80_000, max: 400_000 })).toBeCloseTo(121_666.67, 0);
+    });
+
+    it('degenerate triples collapse to the point value (round-trip)', () => {
+        expect(pertMean({ min: 0.3, mode: 0.3, max: 0.3 })).toBe(0.3);
+        expect(pertMean(pointToPert(50_000, 0))).toBe(50_000);
+    });
+
+    it('a symmetric range means the mode', () => {
+        expect(pertMean({ min: 100, mode: 200, max: 300 })).toBe(200);
     });
 });

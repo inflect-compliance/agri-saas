@@ -211,6 +211,110 @@ export function validatePertTriple(label: string, t: PertTriple): CalibrationWar
     return warnings;
 }
 
+// ─── RQ3-2 — range-first calibration ─────────────────────────────────
+
+/** The five FAIR factors the panel calibrates as min/likely/max ranges. */
+export type FairFactorKey = 'tef' | 'vulnerability' | 'plm' | 'slef' | 'slm';
+
+export const FAIR_FACTOR_KEYS: ReadonlyArray<FairFactorKey> = [
+    'tef',
+    'vulnerability',
+    'plm',
+    'slef',
+    'slm',
+];
+
+export const FAIR_FACTOR_LABELS: Readonly<Record<FairFactorKey, string>> = {
+    tef: 'Threat event frequency',
+    vulnerability: 'Vulnerability',
+    plm: 'Primary loss magnitude',
+    slef: 'Secondary loss event frequency',
+    slm: 'Secondary loss magnitude',
+};
+
+/** A triple mid-entry — each bound may still be blank. */
+export interface TripleDraft {
+    min: number | null;
+    mode: number | null;
+    max: number | null;
+}
+
+const isComplete = (t: TripleDraft): t is { min: number; mode: number; max: number } =>
+    t.min != null && t.mode != null && t.max != null &&
+    !Number.isNaN(t.min) && !Number.isNaN(t.mode) && !Number.isNaN(t.max);
+
+/**
+ * RQ3-2 — plain-language mirror for a calibrated range. Reflects the
+ * LIKELY (mode) value in the factor's own register, and — once the
+ * range is complete — appends a spread reflection when max/min runs a
+ * full order of magnitude or more ("that's a ~40× spread; anchor it
+ * with a reference event"). Wide ranges are legitimate calibration —
+ * the sentence makes the width READ, it never blocks.
+ */
+export function reflectTriple(key: FairFactorKey, t: TripleDraft): string | null {
+    if (t.mode == null || Number.isNaN(t.mode)) return null;
+    let base: string;
+    switch (key) {
+        case 'tef':
+            base = `most likely: a threat event ${t.mode >= 1 ? 'occurs' : 'is expected'} ${reflectFrequency(t.mode)}`;
+            break;
+        case 'vulnerability':
+            base = `most likely: an attempted event succeeds with ${reflectProbability(t.mode)}`;
+            break;
+        case 'plm':
+            base = `most likely: each primary loss event costs ${formatCompactCurrency(t.mode)}`;
+            break;
+        case 'slef':
+            base = `most likely: secondary losses follow ${reflectProbability(t.mode)} of primary events`;
+            break;
+        case 'slm':
+            base = `most likely: each secondary fallout costs ${formatCompactCurrency(t.mode)}`;
+            break;
+    }
+    if (isComplete(t) && t.min > 0 && t.max / t.min >= 10) {
+        const ratio = Math.round(t.max / t.min);
+        return `${base} — that's a ~${ratio}× spread; anchor it with a reference event`;
+    }
+    return base;
+}
+
+/**
+ * RQ3-2 — warn-only checks across the five calibrated ranges:
+ * `validatePertTriple` (inverted ordering, >3-orders span) on every
+ * complete triple, plus the factor-specific bounds the point-era
+ * `validateFairInputs` carried (probabilities on 0–1, no negative
+ * frequencies or loss amounts) applied to every entered bound.
+ * Warn-only by contract — the return feeds an advisory notice.
+ */
+export function validateFairTriples(
+    triples: Record<FairFactorKey, TripleDraft>,
+): CalibrationWarning[] {
+    const warnings: CalibrationWarning[] = [];
+    const PROBABILITY_FACTORS: ReadonlyArray<FairFactorKey> = ['vulnerability', 'slef'];
+    for (const key of FAIR_FACTOR_KEYS) {
+        const t = triples[key];
+        const label = FAIR_FACTOR_LABELS[key];
+        if (isComplete(t)) warnings.push(...validatePertTriple(label, t));
+        const bounds = [t.min, t.mode, t.max].filter(
+            (v): v is number => v != null && !Number.isNaN(v),
+        );
+        if (PROBABILITY_FACTORS.includes(key)) {
+            if (bounds.some((v) => v < 0 || v > 1)) {
+                warnings.push({
+                    field: 'pertRange',
+                    message: `${label} is a probability — every bound lives on 0–1`,
+                });
+            }
+        } else if (bounds.some((v) => v < 0)) {
+            warnings.push({
+                field: 'pertRange',
+                message: `${label} cannot be negative — negative values invert the model`,
+            });
+        }
+    }
+    return warnings;
+}
+
 // ─── Category priors ─────────────────────────────────────────────────
 
 export interface CategoryPrior {

@@ -1,12 +1,22 @@
 'use client';
 
 /**
- * RQ-1 — FAIR Analysis panel on the risk detail page.
+ * RQ-1 / RQ3-2 — FAIR Analysis panel on the risk detail page.
  *
- * Structured FAIR inputs (TEF / vulnerability / loss magnitude /
- * secondary loss) with a LIVE client-side ALE preview (the pure
- * `fair-calculator` runs in the browser). On save the server recomputes
- * + persists the derived LEF/ALE via PUT /risks/:id/fair.
+ * Range-first estimation (RQ3-2): every loss/frequency factor is a
+ * calibrated min/likely/max interval — "give the range you're 90%
+ * sure contains the true value" — replacing the false-precision
+ * point-float ritual. The derived point estimate (Beta-PERT mean) is
+ * SHOWN per factor, never asked. Legacy point values load as
+ * degenerate triples (min = likely = max), so the round-trip is
+ * backward compatible; saving writes the five PERT triples to
+ * `fairInputsJson` (the simulator's preferred input) and the server
+ * derives the point columns + LEF/ALE from the PERT means.
+ *
+ * Calibration aids (RQ2-7, extended to ranges): live reflections
+ * mirror the likely value and call out wide spreads; warnings
+ * (`validateFairTriples` + `validatePertTriple`) stay warn-only —
+ * they NEVER disable the save button.
  */
 import { useState, useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
@@ -21,12 +31,16 @@ import {
     computeLEF,
     computePLM,
     computeFairALE,
+    pertMean,
 } from '@/app-layer/usecases/fair-calculator';
 import {
-    reflectFairInput,
-    validateFairInputs,
+    reflectTriple,
+    validateFairTriples,
     getCategoryPrior,
-    type FairFieldKey,
+    FAIR_FACTOR_KEYS,
+    FAIR_FACTOR_LABELS,
+    type FairFactorKey,
+    type TripleDraft,
 } from '@/lib/fair-calibration';
 
 type Conf = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -45,11 +59,72 @@ export interface FairInitial {
     secondaryLossEventFrequency: number | null;
     secondaryLossMagnitude: number | null;
     fairConfidence: Conf | null;
+    /** RQ3-2 — stored PERT triples; preferred over the point columns. */
+    fairInputsJson?: Record<string, unknown> | null;
 }
 
-type FieldKey = Exclude<keyof FairInitial, 'fairConfidence'>;
+type Bound = 'min' | 'mode' | 'max';
+type Triples = Record<FairFactorKey, TripleDraft>;
+
+const EMPTY: TripleDraft = { min: null, mode: null, max: null };
 const N = (v: string): number | null => (v.trim() === '' ? null : Number(v));
-// RQ3-OB-A — money speaks the tenant's currency (useMoneyFormatter).
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+const complete = (t: TripleDraft): t is { min: number; mode: number; max: number } =>
+    t.min != null && t.mode != null && t.max != null;
+
+/** Parse one stored triple from fairInputsJson, if well-formed. */
+function parseStoredTriple(json: Record<string, unknown> | null | undefined, key: FairFactorKey): TripleDraft | null {
+    const raw = json?.[key];
+    if (!raw || typeof raw !== 'object') return null;
+    const t = raw as Record<string, unknown>;
+    if (typeof t.min !== 'number' || typeof t.mode !== 'number' || typeof t.max !== 'number') return null;
+    return { min: t.min, mode: t.mode, max: t.max };
+}
+
+/**
+ * RQ3-2 — backward-compatible seeding: stored triples win; otherwise
+ * legacy point values (including the sub-factor derivations the
+ * point-era panel offered: CF×P(action) → TEF, capability vs control
+ * → vulnerability, cost components → PLM) migrate as DEGENERATE
+ * triples (min = likely = max) the user then widens.
+ */
+export function seedTriples(initial: FairInitial): Triples {
+    const json = initial.fairInputsJson ?? null;
+    const degenerate = (v: number | null): TripleDraft =>
+        v == null ? { ...EMPTY } : { min: v, mode: v, max: v };
+
+    const tefPoint =
+        initial.threatEventFrequency ??
+        (initial.contactFrequency != null && initial.probabilityOfAction != null
+            ? computeTEF(initial.contactFrequency, initial.probabilityOfAction)
+            : null);
+    const vulnPoint =
+        initial.vulnerabilityProbability ??
+        (initial.threatCapability != null && initial.controlStrength != null
+            ? computeVulnerability(initial.threatCapability, initial.controlStrength)
+            : null);
+    const hasPlm =
+        initial.primaryLossMagnitude != null ||
+        initial.productivityLoss != null ||
+        initial.responseCost != null ||
+        initial.replacementCost != null;
+    const plmPoint = hasPlm
+        ? computePLM({
+              productivityLoss: initial.productivityLoss,
+              responseCost: initial.responseCost,
+              replacementCost: initial.replacementCost,
+              flatEstimate: initial.primaryLossMagnitude,
+          })
+        : null;
+
+    return {
+        tef: parseStoredTriple(json, 'tef') ?? degenerate(tefPoint),
+        vulnerability: parseStoredTriple(json, 'vulnerability') ?? degenerate(vulnPoint),
+        plm: parseStoredTriple(json, 'plm') ?? degenerate(plmPoint),
+        slef: parseStoredTriple(json, 'slef') ?? degenerate(initial.secondaryLossEventFrequency),
+        slm: parseStoredTriple(json, 'slm') ?? degenerate(initial.secondaryLossMagnitude),
+    };
+}
 
 export function FairAnalysisPanel({
     riskId,
@@ -63,107 +138,124 @@ export function FairAnalysisPanel({
 }) {
     const apiUrl = useTenantApiUrl();
     const money = useMoneyFormatter();
-    const [v, setV] = useState<FairInitial>(initial);
+    const [triples, setTriples] = useState<Triples>(() => seedTriples(initial));
     const [conf, setConf] = useState<Conf | null>(initial.fairConfidence);
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState<string | null>(null);
 
-    const set = (k: FieldKey) => (e: React.ChangeEvent<HTMLInputElement>) =>
-        setV((cur) => ({ ...cur, [k]: N(e.target.value) }));
+    const set = (k: FairFactorKey, b: Bound) => (e: React.ChangeEvent<HTMLInputElement>) =>
+        setTriples((cur) => ({ ...cur, [k]: { ...cur[k], [b]: N(e.target.value) } }));
 
-    // Live derived values (mirror the server's recomputeFairDerived).
+    // Live derived values — PERT means feed the same pure formulas the
+    // server recomputes on save. "Shown, not asked."
     const derived = useMemo(() => {
-        const tef = v.threatEventFrequency ??
-            (v.contactFrequency != null && v.probabilityOfAction != null
-                ? computeTEF(v.contactFrequency, v.probabilityOfAction) : null);
-        const vuln = v.vulnerabilityProbability ??
-            (v.threatCapability != null && v.controlStrength != null
-                ? computeVulnerability(v.threatCapability, v.controlStrength) : null);
-        if (tef == null || vuln == null) return { tef, vuln, lef: null as number | null, ale: null as number | null };
-        const lef = computeLEF(tef, vuln);
-        const plm = computePLM({ productivityLoss: v.productivityLoss, responseCost: v.responseCost, replacementCost: v.replacementCost, flatEstimate: v.primaryLossMagnitude });
-        const ale = computeFairALE({ tef, vulnerability: vuln, plm, slef: v.secondaryLossEventFrequency ?? 0, slm: v.secondaryLossMagnitude ?? 0 });
-        return { tef, vuln, lef, ale };
-    }, [v]);
+        const mean = (t: TripleDraft) => (complete(t) ? pertMean(t) : null);
+        const tef = mean(triples.tef);
+        const vuln = mean(triples.vulnerability);
+        const plm = mean(triples.plm);
+        const slef = mean(triples.slef);
+        const slm = mean(triples.slm);
+        const lef = tef != null && vuln != null ? computeLEF(tef, clamp01(vuln)) : null;
+        const ale =
+            tef != null && vuln != null && plm != null
+                ? computeFairALE({ tef, vulnerability: clamp01(vuln), plm, slef: clamp01(slef ?? 0), slm: slm ?? 0 })
+                : null;
+        return { means: { tef, vulnerability: vuln, plm, slef, slm }, lef, ale };
+    }, [triples]);
 
     const save = useCallback(async () => {
         setSaving(true);
         setMsg(null);
         try {
+            const distributions = Object.fromEntries(
+                FAIR_FACTOR_KEYS.map((k) => [k, complete(triples[k]) ? triples[k] : null]),
+            );
             const res = await fetch(apiUrl(`/risks/${riskId}/fair`), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...v, fairConfidence: conf }),
+                body: JSON.stringify({ distributions, fairConfidence: conf }),
             });
-            setMsg(res.ok ? 'FAIR inputs saved.' : 'Save failed.');
+            setMsg(res.ok ? 'FAIR ranges saved.' : 'Save failed.');
         } catch {
             setMsg('Save failed — network error.');
         } finally {
             setSaving(false);
         }
-    }, [apiUrl, riskId, v, conf]);
+    }, [apiUrl, riskId, triples, conf]);
 
-    // RQ2-7 — every numeric input carries a live plain-language
-    // reflection of what the entered number MEANS, so a mis-scaled
-    // value reads wrong immediately (calibration aid, never a gate).
-    const field = (label: string, k: FieldKey, hint?: string) => {
-        const reflection = reflectFairInput(k as FairFieldKey, v[k]);
+    // RQ2-7 → RQ3-2 — warn-only range checks + category anchors.
+    const warnings = useMemo(() => validateFairTriples(triples), [triples]);
+    const prior = getCategoryPrior(category);
+
+    const FACTOR_META: Record<FairFactorKey, { unit: string; isMoney: boolean; ghost?: string | null }> = {
+        tef: { unit: '/yr', isMoney: false, ghost: prior?.tefHint },
+        vulnerability: { unit: '0–1', isMoney: false },
+        plm: { unit: 'per event', isMoney: true, ghost: prior?.lossHint },
+        slef: { unit: '0–1', isMoney: false },
+        slm: { unit: 'per event', isMoney: true },
+    };
+
+    const bound = (k: FairFactorKey, b: Bound, label: string) => (
+        <label className="block flex-1 min-w-0">
+            <span className="text-[10px] uppercase tracking-wide text-content-subtle">{label}</span>
+            <Input
+                type="text"
+                inputMode="decimal"
+                value={triples[k][b] ?? ''}
+                onChange={set(k, b)}
+                data-testid={`fair-triple-${k}-${b}`}
+            />
+        </label>
+    );
+
+    const factorGroup = (k: FairFactorKey) => {
+        const meta = FACTOR_META[k];
+        const reflection = reflectTriple(k, triples[k]);
+        const mean = derived.means[k];
         return (
-            <label className="block">
-                <span className="text-xs text-content-muted">{label}{hint ? ` (${hint})` : ''}</span>
-                <Input type="text" inputMode="decimal" value={v[k] ?? ''} onChange={set(k)} />
+            <div key={k} className="space-y-tight rounded-md border border-border-subtle p-3">
+                <div className="flex items-baseline justify-between gap-default">
+                    <p className="text-xs font-medium text-content-emphasis">
+                        {FAIR_FACTOR_LABELS[k]} <span className="font-normal text-content-subtle">({meta.unit})</span>
+                    </p>
+                    {/* RQ3-2 — the point estimate is derived (PERT
+                        mean), shown, never asked. */}
+                    {mean != null && (
+                        <span className="text-[10px] tabular-nums text-content-subtle" data-testid={`fair-derived-${k}`}>
+                            derived ≈ {meta.isMoney ? money(mean) : Math.round(mean * 1000) / 1000}
+                        </span>
+                    )}
+                </div>
+                {meta.ghost && (
+                    <p className="text-[10px] italic text-content-subtle" data-testid="fair-prior-hint">
+                        {meta.ghost}
+                    </p>
+                )}
+                <div className="flex gap-tight">
+                    {bound(k, 'min', 'Min')}
+                    {bound(k, 'mode', 'Likely')}
+                    {bound(k, 'max', 'Max')}
+                </div>
                 {reflection && (
-                    <span className="mt-0.5 block text-[10px] text-content-subtle" data-testid={`fair-reflection-${k}`}>
+                    <span className="block text-[10px] text-content-subtle" data-testid={`fair-reflection-${k}`}>
                         {reflection}
                     </span>
                 )}
-            </label>
+            </div>
         );
     };
-    const group = (title: string, children: React.ReactNode, ghost?: string | null) => (
-        <div className="space-y-tight rounded-md border border-border-subtle p-3">
-            <p className="text-xs font-medium text-content-emphasis">{title}</p>
-            {ghost && (
-                <p className="text-[10px] italic text-content-subtle" data-testid="fair-prior-hint">
-                    {ghost}
-                </p>
-            )}
-            {children}
-        </div>
-    );
-
-    // RQ2-7 — warn-only sanity checks + category reference anchors.
-    const warnings = useMemo(() => validateFairInputs(v), [v]);
-    const prior = getCategoryPrior(category);
 
     return (
         <Card className="space-y-default p-6">
             <Heading level={3}>FAIR Analysis</Heading>
             <p className="text-sm text-content-muted">
-                Decompose this risk into Factor Analysis of Information Risk inputs for quantitative simulation.
+                Calibrate each factor as a range — give the interval you&apos;re 90% sure
+                contains the true value. The simulation samples the full range; the
+                derived point is the Beta-PERT mean.
             </p>
 
             <div className="grid grid-cols-1 gap-default md:grid-cols-2">
-                {group('Threat Event Frequency', <>
-                    {field('Contact frequency', 'contactFrequency', '/yr')}
-                    {field('P(action)', 'probabilityOfAction', '0–1')}
-                    {field('TEF (override)', 'threatEventFrequency', '/yr')}
-                </>, prior?.tefHint)}
-                {group('Vulnerability', <>
-                    {field('Threat capability', 'threatCapability', '1–10')}
-                    {field('Control strength', 'controlStrength', '1–10')}
-                    {field('Vulnerability (override)', 'vulnerabilityProbability', '0–1')}
-                </>)}
-                {group('Primary Loss Magnitude', <>
-                    {field('Productivity', 'productivityLoss', '$')}
-                    {field('Response', 'responseCost', '$')}
-                    {field('Replacement', 'replacementCost', '$')}
-                    {field('PLM (flat override)', 'primaryLossMagnitude', '$')}
-                </>, prior?.lossHint)}
-                {group('Secondary Loss', <>
-                    {field('SLEF', 'secondaryLossEventFrequency', '0–1')}
-                    {field('SLM', 'secondaryLossMagnitude', '$')}
-                </>)}
+                {FAIR_FACTOR_KEYS.map((k) => factorGroup(k))}
             </div>
 
             <div className="flex flex-wrap items-center gap-default">
@@ -194,7 +286,7 @@ export function FairAnalysisPanel({
 
             {msg && <InlineNotice variant={msg.includes('saved') ? 'success' : 'error'}>{msg}</InlineNotice>}
             <div className="flex justify-end">
-                <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save FAIR inputs'}</Button>
+                <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save FAIR ranges'}</Button>
             </div>
         </Card>
     );

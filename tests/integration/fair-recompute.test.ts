@@ -109,4 +109,91 @@ describeFn('RQ-1 — FAIR recompute (integration)', () => {
         expect(r.fairAle).toBeNull();
         expect(r.lossEventFrequency).toBeNull();
     });
+
+    // ── RQ3-2 — range-first write path ────────────────────────────
+
+    it('the distributions path persists triples + derives point columns from PERT means', async () => {
+        const id = await freshRisk();
+        await updateRiskFair(ctx, id, {
+            distributions: {
+                tef: { min: 6, mode: 12, max: 18 },              // mean 12
+                vulnerability: { min: 0.2, mode: 0.4, max: 0.6 }, // mean 0.4
+                plm: { min: 50_000, mode: 150_000, max: 250_000 }, // mean 150k
+            },
+        });
+        const r = await globalPrisma.risk.findUniqueOrThrow({ where: { id } });
+        expect(r.fairInputsJson).toMatchObject({
+            tef: { min: 6, mode: 12, max: 18 },
+            vulnerability: { min: 0.2, mode: 0.4, max: 0.6 },
+            plm: { min: 50_000, mode: 150_000, max: 250_000 },
+        });
+        // Derived (PERT mean) point columns — shown, not asked.
+        expect(r.threatEventFrequency).toBeCloseTo(12, 4);
+        expect(r.vulnerabilityProbability).toBeCloseTo(0.4, 4);
+        expect(r.primaryLossMagnitude).toBeCloseTo(150_000, 0);
+        // Derived ALE from the means: 12 × 0.4 × 150000 = 720,000.
+        expect(r.lossEventFrequency).toBeCloseTo(4.8, 4);
+        expect(r.fairAle).toBeCloseTo(720_000, 0);
+    });
+
+    it('an unordered wire triple is canonicalised (sorted) before persisting', async () => {
+        const id = await freshRisk();
+        await updateRiskFair(ctx, id, {
+            distributions: {
+                tef: { min: 18, mode: 6, max: 12 }, // arrives scrambled
+                vulnerability: { min: 0.4, mode: 0.4, max: 0.4 },
+                plm: { min: 100_000, mode: 100_000, max: 100_000 },
+            },
+        });
+        const r = await globalPrisma.risk.findUniqueOrThrow({ where: { id } });
+        expect(r.fairInputsJson).toMatchObject({ tef: { min: 6, mode: 12, max: 18 } });
+    });
+
+    it('a legacy numeric point write clears stale stored triples', async () => {
+        const id = await freshRisk();
+        await updateRiskFair(ctx, id, {
+            distributions: {
+                tef: { min: 1, mode: 2, max: 3 },
+                vulnerability: { min: 0.5, mode: 0.5, max: 0.5 },
+                plm: { min: 1_000, mode: 1_000, max: 1_000 },
+            },
+        });
+        await updateRiskFair(ctx, id, { threatEventFrequency: 9 });
+        const r = await globalPrisma.risk.findUniqueOrThrow({ where: { id } });
+        expect(r.fairInputsJson).toBeNull();
+        expect(r.threatEventFrequency).toBe(9);
+    });
+
+    it('a confidence-only write leaves stored triples alone', async () => {
+        const id = await freshRisk();
+        await updateRiskFair(ctx, id, {
+            distributions: {
+                tef: { min: 1, mode: 2, max: 3 },
+                vulnerability: { min: 0.5, mode: 0.5, max: 0.5 },
+                plm: { min: 1_000, mode: 1_000, max: 1_000 },
+            },
+        });
+        await updateRiskFair(ctx, id, { fairConfidence: 'HIGH' });
+        const r = await globalPrisma.risk.findUniqueOrThrow({ where: { id } });
+        expect(r.fairInputsJson).toMatchObject({ tef: { min: 1, mode: 2, max: 3 } });
+        expect(r.fairConfidence).toBe('HIGH');
+    });
+
+    it('clearing every factor clears the JSON and the derived columns', async () => {
+        const id = await freshRisk();
+        await updateRiskFair(ctx, id, {
+            distributions: {
+                tef: { min: 1, mode: 2, max: 3 },
+                vulnerability: { min: 0.5, mode: 0.5, max: 0.5 },
+                plm: { min: 1_000, mode: 1_000, max: 1_000 },
+            },
+        });
+        await updateRiskFair(ctx, id, {
+            distributions: { tef: null, vulnerability: null, plm: null, slef: null, slm: null },
+        });
+        const r = await globalPrisma.risk.findUniqueOrThrow({ where: { id } });
+        expect(r.fairInputsJson).toBeNull();
+        expect(r.fairAle).toBeNull();
+        expect(r.lossEventFrequency).toBeNull();
+    });
 });

@@ -98,6 +98,17 @@ export function pointToPert(value: number, spread = 0.2): PertDistribution {
     return { min: value * (1 - spread), mode: value, max: value * (1 + spread) };
 }
 
+/**
+ * RQ3-2 — the Beta-PERT mean: (min + 4·mode + max) / 6. The derived
+ * point estimate the UI SHOWS (never asks for) once inputs are
+ * calibrated ranges. Degenerate triples (min = mode = max) collapse
+ * to the point value, which is what makes the migration of legacy
+ * point estimates a true round-trip.
+ */
+export function pertMean(d: PertDistribution): number {
+    return (d.min + 4 * d.mode + d.max) / 6;
+}
+
 // ── Backward compatibility ────────────────────────────────────────────
 
 /** Legacy ALE = SLE × ARO. Used when FAIR fields are absent. */

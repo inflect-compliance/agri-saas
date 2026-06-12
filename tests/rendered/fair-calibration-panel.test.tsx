@@ -1,9 +1,11 @@
 /**
- * RQ2-7 — FairAnalysisPanel calibration aids rendered tests.
+ * RQ2-7 / RQ3-2 — FairAnalysisPanel calibration aids, range-first.
  *
- * Locks: live reflections beside the inputs, warn-only sanity
- * notices (save stays enabled), and the per-category prior ghost
- * text — plus the zero-cost default for blank/unknown inputs.
+ * Locks: live reflections beside the calibrated ranges (including
+ * the wide-spread call-out), warn-only sanity notices (save stays
+ * enabled), the per-category prior ghost text, the derived-PERT-mean
+ * chip ("shown, not asked"), and the degenerate-triple migration of
+ * legacy point values.
  */
 import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
@@ -16,7 +18,7 @@ jest.mock('@/lib/tenant-context-provider', () => ({
         jest.requireActual('@/lib/risk-coherence').formatCompactCurrency(v),
 }));
 
-import { FairAnalysisPanel, type FairInitial } from '@/app/t/[tenantSlug]/(app)/risks/[riskId]/FairAnalysisPanel';
+import { FairAnalysisPanel, seedTriples, type FairInitial } from '@/app/t/[tenantSlug]/(app)/risks/[riskId]/FairAnalysisPanel';
 
 const BLANK: FairInitial = {
     threatEventFrequency: null,
@@ -32,63 +34,113 @@ const BLANK: FairInitial = {
     secondaryLossEventFrequency: null,
     secondaryLossMagnitude: null,
     fairConfidence: null,
+    fairInputsJson: null,
 };
 
-describe('FairAnalysisPanel — calibration aids', () => {
-    it('blank inputs render no reflections, no warnings, no prior (zero-cost default)', () => {
+const setBound = (factor: string, bound: string, value: string) =>
+    fireEvent.change(screen.getByTestId(`fair-triple-${factor}-${bound}`), {
+        target: { value },
+    });
+
+describe('FairAnalysisPanel — range-first calibration aids', () => {
+    it('blank inputs render no reflections, no warnings, no prior, no derived chip (zero-cost default)', () => {
         render(<FairAnalysisPanel riskId="r-1" initial={BLANK} />);
         expect(screen.queryAllByTestId(/fair-reflection-/)).toHaveLength(0);
         expect(screen.queryByTestId('fair-calibration-warnings')).toBeNull();
         expect(screen.queryByTestId('fair-prior-hint')).toBeNull();
+        expect(screen.queryAllByTestId(/fair-derived-/)).toHaveLength(0);
     });
 
-    it('a populated TEF renders its plain-language reflection live', () => {
-        render(
-            <FairAnalysisPanel
-                riskId="r-1"
-                initial={{ ...BLANK, threatEventFrequency: 0.1 }}
-            />,
-        );
-        expect(screen.getByTestId('fair-reflection-threatEventFrequency').textContent).toMatch(
+    it('a populated likely value renders its plain-language reflection live', () => {
+        render(<FairAnalysisPanel riskId="r-1" initial={BLANK} />);
+        setBound('tef', 'mode', '0.1');
+        expect(screen.getByTestId('fair-reflection-tef').textContent).toMatch(
             /every 10 years/,
         );
     });
 
-    it('an out-of-range probability warns but the save button stays enabled', () => {
-        render(
-            <FairAnalysisPanel
-                riskId="r-1"
-                initial={{ ...BLANK, vulnerabilityProbability: 1.4 }}
-            />,
+    it('a complete wide range appends the spread call-out', () => {
+        render(<FairAnalysisPanel riskId="r-1" initial={BLANK} />);
+        setBound('plm', 'min', '10000');
+        setBound('plm', 'mode', '80000');
+        setBound('plm', 'max', '400000');
+        expect(screen.getByTestId('fair-reflection-plm').textContent).toMatch(
+            /~40× spread; anchor it with a reference event/,
         );
-        expect(screen.getByTestId('fair-calibration-warnings').textContent).toMatch(
-            /probability — expected 0–1/,
-        );
-        const save = screen.getByText('Save FAIR inputs').closest('button')!;
-        expect(save).not.toBeDisabled();
     });
 
-    it('warnings update live as the user types', () => {
+    it('an out-of-range probability warns but the save button stays enabled', () => {
         render(<FairAnalysisPanel riskId="r-1" initial={BLANK} />);
-        const inputs = screen.getAllByRole('textbox');
-        // P(action) is the second input in the TEF group.
-        fireEvent.change(inputs[1], { target: { value: '5' } });
+        setBound('vulnerability', 'mode', '1.4');
         expect(screen.getByTestId('fair-calibration-warnings').textContent).toMatch(
-            /probabilityOfAction/,
+            /probability/i,
         );
-        fireEvent.change(inputs[1], { target: { value: '0.5' } });
-        expect(screen.queryByTestId('fair-calibration-warnings')).toBeNull();
+        expect(screen.getByRole('button', { name: /Save FAIR ranges/ })).toBeEnabled();
+    });
+
+    it('an inverted range warns (validatePertTriple live) without blocking', () => {
+        render(<FairAnalysisPanel riskId="r-1" initial={BLANK} />);
+        setBound('tef', 'min', '5');
+        setBound('tef', 'mode', '2');
+        setBound('tef', 'max', '1');
+        expect(screen.getByTestId('fair-calibration-warnings').textContent).toMatch(
+            /inverted/,
+        );
+        expect(screen.getByRole('button', { name: /Save FAIR ranges/ })).toBeEnabled();
+    });
+
+    it('a complete range shows the derived PERT mean — shown, not asked', () => {
+        render(<FairAnalysisPanel riskId="r-1" initial={BLANK} />);
+        setBound('tef', 'min', '0.1');
+        setBound('tef', 'mode', '0.2');
+        setBound('tef', 'max', '0.6');
+        // (0.1 + 4·0.2 + 0.6) / 6 = 0.25
+        expect(screen.getByTestId('fair-derived-tef').textContent).toMatch(/0\.25/);
     });
 
     it('a known category renders both prior anchors as ghost text', () => {
         render(<FairAnalysisPanel riskId="r-1" initial={BLANK} category="Technical" />);
         const hints = screen.getAllByTestId('fair-prior-hint');
         expect(hints).toHaveLength(2);
-        expect(hints[0].textContent).toMatch(/ransomware/i);
+        expect(hints[0].textContent).toMatch(/TEF 0\.05–0\.5\/yr/);
+        expect(hints[1].textContent).toMatch(/€50K–€500K/);
     });
 
     it('an unknown category renders no prior (anchors, not noise)', () => {
-        render(<FairAnalysisPanel riskId="r-1" initial={BLANK} category="Quantum" />);
+        render(<FairAnalysisPanel riskId="r-1" initial={BLANK} category="Esoteric" />);
         expect(screen.queryByTestId('fair-prior-hint')).toBeNull();
+    });
+});
+
+describe('seedTriples — backward-compatible migration', () => {
+    it('legacy point values become degenerate triples (min = likely = max)', () => {
+        const t = seedTriples({ ...BLANK, threatEventFrequency: 0.3, secondaryLossMagnitude: 50_000 });
+        expect(t.tef).toEqual({ min: 0.3, mode: 0.3, max: 0.3 });
+        expect(t.slm).toEqual({ min: 50_000, mode: 50_000, max: 50_000 });
+        expect(t.plm).toEqual({ min: null, mode: null, max: null });
+    });
+
+    it('sub-factor decompositions fold into the seeds', () => {
+        const t = seedTriples({
+            ...BLANK,
+            contactFrequency: 2,
+            probabilityOfAction: 0.25,
+            threatCapability: 5,
+            controlStrength: 5,
+            productivityLoss: 10_000,
+            responseCost: 20_000,
+        });
+        expect(t.tef.mode).toBeCloseTo(0.5); // 2 × 0.25
+        expect(t.vulnerability.mode).toBeCloseTo(0.5); // parity
+        expect(t.plm.mode).toBe(30_000); // component sum
+    });
+
+    it('stored triples win over the point columns (round-trip)', () => {
+        const t = seedTriples({
+            ...BLANK,
+            threatEventFrequency: 9,
+            fairInputsJson: { tef: { min: 0.1, mode: 0.2, max: 0.5 } },
+        });
+        expect(t.tef).toEqual({ min: 0.1, mode: 0.2, max: 0.5 });
     });
 });

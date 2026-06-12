@@ -1,5 +1,7 @@
 /**
- * RQ2-7 — calibration-aids ratchet.
+ * RQ2-7 — calibration-aids ratchet (re-grounded by RQ3-2's
+ * range-first panel: the aids now cover calibrated min/likely/max
+ * triples instead of point floats — same contracts, new shape).
  *
  * Regression classes guarded:
  *
@@ -7,8 +9,8 @@
  *     wiring (raw floats again — garbage-in one typo away);
  *   - warnings mutating from advisory into blocking (the save
  *     button must never couple to the validator output);
- *   - the reflection map silently losing a field (the TS switch in
- *     reflectFairInput is exhaustive over FairFieldKey — this test
+ *   - the reflection map silently losing a factor (the TS switch in
+ *     reflectTriple is exhaustive over FairFactorKey — this test
  *     pins the panel-side coverage);
  *   - accepted AI suggestions losing their AI-source provenance
  *     event (RQ2-1 would silently mis-attribute them again).
@@ -26,16 +28,16 @@ const suggestions = read('src/app-layer/usecases/risk-suggestions.ts');
 const detailPage = read('src/app/t/[tenantSlug]/(app)/risks/[riskId]/page.tsx');
 
 describe('RQ2-7 — the FAIR panel speaks human', () => {
-    test('every input renders through the reflecting field helper', () => {
-        expect(panel).toMatch(/reflectFairInput/);
-        // The field() helper is the single input renderer — no bare
-        // <Input> for a FAIR number outside it.
-        const fieldCalls = panel.match(/\{field\(/g) ?? [];
-        expect(fieldCalls.length).toBeGreaterThanOrEqual(12);
+    test('every calibrated range renders a live reflection', () => {
+        expect(panel).toMatch(/reflectTriple/);
+        expect(panel).toMatch(/fair-reflection-/);
+        // The factorGroup() helper is the single range renderer —
+        // every factor flows through it.
+        expect(panel).toMatch(/FAIR_FACTOR_KEYS\.map\(\(k\) => factorGroup\(k\)\)/);
     });
 
     test('warnings are wired and advisory-only (save never couples to them)', () => {
-        expect(panel).toMatch(/validateFairInputs/);
+        expect(panel).toMatch(/validateFairTriples/);
         expect(panel).toMatch(/fair-calibration-warnings/);
         // The save button's disabled state depends on `saving` ONLY.
         expect(panel).toMatch(/disabled=\{saving\}/);
@@ -47,20 +49,15 @@ describe('RQ2-7 — the FAIR panel speaks human', () => {
         expect(detailPage).toMatch(/category=\{risk\.category\}/);
     });
 
-    test('the reflection switch is exhaustive over the panel field set', () => {
-        // Every FieldKey the panel renders must appear in the lib's
-        // FairFieldKey union (TS enforces switch exhaustiveness; this
-        // pins the union ↔ panel pairing).
-        const fields = [
-            'contactFrequency', 'probabilityOfAction', 'threatEventFrequency',
-            'threatCapability', 'controlStrength', 'vulnerabilityProbability',
-            'productivityLoss', 'responseCost', 'replacementCost',
-            'primaryLossMagnitude', 'secondaryLossEventFrequency', 'secondaryLossMagnitude',
-        ];
-        for (const f of fields) {
-            expect(lib).toMatch(new RegExp(`'${f}'`));
-            expect(panel).toMatch(new RegExp(`'${f}'`));
+    test('the reflection switch is exhaustive over the panel factor set', () => {
+        // Every FairFactorKey the panel renders must carry a switch
+        // arm in reflectTriple (TS enforces exhaustiveness; this pins
+        // the union ↔ panel pairing).
+        for (const f of ['tef', 'vulnerability', 'plm', 'slef', 'slm']) {
+            expect(lib).toMatch(new RegExp(`case '${f}':`));
         }
+        expect(panel).toMatch(/FAIR_FACTOR_KEYS/);
+        expect(panel).toMatch(/FAIR_FACTOR_LABELS/);
     });
 });
 
