@@ -215,6 +215,11 @@ export type {
     LossReferenceLine,
 } from './loss-exceedance-curve';
 
+// RQ3-5 — "from heatmaps to histograms": the log-x ALE histogram,
+// stacked by tenant matrix band, with the per-risk appetite line.
+export { AleHistogram, bucketByDecade } from './ale-histogram';
+export type { AleHistogramDatum, AleHistogramProps } from './ale-histogram';
+
 // ─── Shared scale / layout helpers (Epic 59) ─────────────────────────
 //
 // Pure helpers charts (and non-chart consumers that need to speak the

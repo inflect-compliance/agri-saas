@@ -144,6 +144,7 @@
         "risksIdentified": "{count} risks identified",
         "addRisk": "Risk",
         "heatmap": "Matrix",
+        "histogram": "Histogram",
         "register": "Register",
         "loading": "Loading risks...",
         "riskTitle": "Risk Title",

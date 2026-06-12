@@ -97,6 +97,12 @@ export interface RiskMatrixCellProps {
     totalAle?: number;
     /** This cell's ALE ÷ the max cell ALE (0..1). */
     aleShare?: number;
+    /**
+     * RQ3-5 — same-cell ALEs differ by this ratio (>10× threshold).
+     * Renders the range-compression marker: the matrix structurally
+     * compresses these risks into one cell; the marker says so.
+     */
+    collisionRatio?: number;
     /** Stable DOM id (E2E hook). */
     id?: string;
     /** Test id forwarded to the cell wrapper. */
@@ -151,6 +157,7 @@ export function RiskMatrixCell({
     aleOverlay = false,
     totalAle,
     aleShare,
+    collisionRatio,
     id,
     'data-testid': dataTestId,
     className = '',
@@ -163,12 +170,16 @@ export function RiskMatrixCell({
     const isEmpty = count <= 0;
 
     const hasAle = typeof totalAle === 'number' && totalAle > 0;
+    const hasCollision = typeof collisionRatio === 'number' && collisionRatio > 1;
     const ariaLabel =
         `${config.axisLikelihoodLabel} ${likelihoodLabel} × ` +
         `${config.axisImpactLabel} ${impactLabel} = ${score} (${band.name})` +
         ` — ${count} ${pluralize(count, 'risk')}` +
         (aleOverlay && hasAle
             ? ` — annualised loss expectancy ${formatCompactCurrency(totalAle)}`
+            : '') +
+        (hasCollision
+            ? ` — warning: same-cell loss estimates differ ~${Math.round(collisionRatio)}×`
             : '');
 
     const tooltipContent = (
@@ -185,6 +196,12 @@ export function RiskMatrixCell({
             {hasAle && (
                 <p className="text-content-default">
                     ALE {formatCompactCurrency(totalAle)}
+                </p>
+            )}
+            {hasCollision && (
+                <p className="text-content-warning">
+                    ALEs in this cell differ ~{Math.round(collisionRatio)}× — the
+                    matrix compresses them into one box; check the histogram view.
                 </p>
             )}
             {description && (
@@ -223,6 +240,7 @@ export function RiskMatrixCell({
             data-score={score}
             data-count={count}
             data-ale={aleOverlay && hasAle ? Math.round(totalAle) : undefined}
+            data-collision-ratio={hasCollision ? Math.round(collisionRatio) : undefined}
             onClick={interactive ? onClick : undefined}
             onKeyDown={
                 interactive
@@ -300,6 +318,17 @@ export function RiskMatrixCell({
                             {formatCompactCurrency(totalAle)}
                         </span>
                     )}
+                </span>
+            )}
+            {/* RQ3-5 — range-compression marker. Decorative (the
+                aria-label + tooltip carry the words). */}
+            {!isEmpty && hasCollision && (
+                <span
+                    aria-hidden="true"
+                    data-testid="risk-matrix-cell-collision"
+                    className="absolute right-0.5 top-0.5 rounded-sm bg-bg-default/80 px-0.5 text-[9px] font-bold leading-none text-content-error"
+                >
+                    ≠
                 </span>
             )}
             {!isEmpty && mode === 'bubble' && (

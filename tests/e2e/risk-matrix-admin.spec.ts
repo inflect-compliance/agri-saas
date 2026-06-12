@@ -87,10 +87,16 @@ test.describe('Risk matrix admin → live rendering loop', () => {
         });
         await page.waitForLoadState('networkidle').catch(() => {});
 
-        // The page header carries a Matrix/Register toggle button.
-        const heatmapToggle = page
-            .getByRole('button', { name: /Matrix/i })
-            .first();
+        // RQ3-5 — the page header carries a three-option ToggleGroup
+        // (Register / Matrix / Histogram); options render with
+        // role="radio". The old single-button selector returned
+        // nothing and the matrix never opened, so we look for the
+        // radio first and fall back to the legacy button shape so the
+        // spec stays portable across a future toggle redesign.
+        const heatmapToggle =
+            (await page.getByRole('radio', { name: /Matrix/i }).count())
+                ? page.getByRole('radio', { name: /Matrix/i }).first()
+                : page.getByRole('button', { name: /Matrix/i }).first();
         if (await heatmapToggle.isVisible().catch(() => false)) {
             await heatmapToggle.click();
         }

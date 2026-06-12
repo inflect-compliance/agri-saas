@@ -84,6 +84,12 @@ export interface RiskMatrixDataCell {
      * behaves exactly as before — the toggle never renders.
      */
     totalAle?: number;
+    /**
+     * RQ3-5 — when this cell's quantified ALEs differ by more than
+     * the collision threshold (10×), the max/min ratio. The cell
+     * renders the range-compression marker.
+     */
+    collisionRatio?: number;
 }
 
 /**
@@ -398,6 +404,7 @@ export function RiskMatrix({
                                             config={config}
                                             aleOverlay={aleOverlayActive}
                                             totalAle={cell.totalAle}
+                                            collisionRatio={cell.collisionRatio}
                                             aleShare={
                                                 aleOverlayActive && maxCellAle > 0
                                                     ? (cell.totalAle ?? 0) / maxCellAle

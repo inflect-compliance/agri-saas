@@ -67,6 +67,10 @@ import { RiskScoreExplainer } from '@/components/RiskScoreExplainer';
 import { resolveALE } from '@/app-layer/usecases/fair-calculator';
 import { formatCompactCurrency } from '@/lib/risk-coherence';
 import { formatTailAwareAle } from '@/lib/tail-language';
+import { detectCellCollisions } from '@/lib/risk-collisions';
+import { AleHistogram, type AleHistogramDatum } from '@/components/ui/charts';
+import { ToggleGroup } from '@/components/ui/toggle-group';
+import { useLocalStorage } from '@/components/ui/hooks';
 
 /** RQ2-5 — resolved ALE for a list row (null = not quantified). */
 function riskAle(r: RiskListItem): number | null {
@@ -132,6 +136,7 @@ interface RisksClientProps {
         listDescription: string;
         risksIdentified: string;
         heatmap: string;
+        histogram: string;
         register: string;
         addRisk: string;
         riskTitle: string;
@@ -203,14 +208,31 @@ function RisksPageInner({
     // RQ3-4 — per-risk tail percentiles (RQ3-1 cache); failure-soft:
     // without a run the chips render the mean register.
     const [tailByRisk, setTailByRisk] = useState<Record<string, { aleMean: number; aleP90: number }> | null>(null);
+    // RQ3-5 — the per-risk appetite cap draws on the histogram
+    // (honest there: its x-axis IS per-risk ALE). Failure-soft.
+    const [appetiteCap, setAppetiteCap] = useState<number | null>(null);
+    useEffect(() => {
+        fetch(`/api/t/${tenantSlug}/risk-appetite`)
+            .then((r) => (r.ok ? r.json() : null))
+             
+            .then((d) => setAppetiteCap(d?.config?.singleRiskAleMax ?? null))
+            .catch(() => setAppetiteCap(null));
+    }, [tenantSlug]);
+
     useEffect(() => {
         fetch(`/api/t/${tenantSlug}/risks/tail-percentiles`)
             .then((r) => (r.ok ? r.json() : null))
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+             
             .then((d) => setTailByRisk(d?.snapshot?.byRisk ?? null))
             .catch(() => setTailByRisk(null));
     }, [tenantSlug]);
-    const [view, setView] = useState<'register' | 'heatmap'>('register');
+    // RQ3-5 — three register views, persisted per tenant (polish #13
+    // localStorage pattern) so the histogram preference survives
+    // navigation without leaking across tenants.
+    const [view, setView] = useLocalStorage<'register' | 'heatmap' | 'histogram'>(
+        `inflect:risks-view:${tenantSlug}`,
+        'register',
+    );
 
     // Epic 54 — create-risk modal. Also auto-opens on `?create=1`, which
     // the `/risks/new` redirect shim lands on; keeps legacy deep-links
@@ -438,6 +460,35 @@ function RisksPageInner({
             cards: kpiCards,
         });
 
+    // RQ3-5 — cell collisions (pure detector): same-matrix-cell risks
+    // whose ALEs differ >10×. Flagged on the heatmap AND the histogram.
+    const collisions = useMemo(
+        () =>
+            detectCellCollisions(
+                risks.map((r) => ({
+                    id: r.id,
+                    title: r.title,
+                    likelihood: r.likelihood,
+                    impact: r.impact,
+                    ale: riskAle(r),
+                })),
+            ),
+        [risks],
+    );
+
+    // RQ3-5 — histogram data: each quantified risk with its tenant
+    // band (the histogram stacks by the same colours the heatmap paints).
+    const histogramData = useMemo<AleHistogramDatum[]>(() => {
+        const out: AleHistogramDatum[] = [];
+        for (const r of risks) {
+            const ale = riskAle(r);
+            if (ale == null || ale <= 0) continue;
+            const band = resolveBandForScore(r.inherentScore, matrixConfig.bands);
+            out.push({ id: r.id, title: r.title, ale, bandName: band.name, bandColor: band.color });
+        }
+        return out;
+    }, [risks, matrixConfig]);
+
     // Epic 44.3 — collapse the loaded page into the sparse `(L, I)`
     // shape the new `<RiskMatrix>` engine consumes. Each cell carries
     // count + risk titles for the bubble overlay; the engine handles
@@ -463,8 +514,16 @@ function RisksPageInner({
             cell.risks.push({ id: r.id, title: r.title });
             lookup.set(key, cell);
         }
-        return Array.from(lookup.values());
-    }, [risks]);
+        // RQ3-5 — flag range-compression: same-cell ALEs differing
+        // >10× get the collision marker on the heatmap.
+        const cells = Array.from(lookup.values());
+        for (const c of collisions) {
+            const hit = cells.find((x) => x.likelihood === c.likelihood && x.impact === c.impact);
+            if (hit) (hit as { collisionRatio?: number }).collisionRatio = c.ratio;
+        }
+        return cells;
+         
+    }, [risks, collisions]);
 
     // RQ2-9 — inherent → residual movements for the matrix overlay.
     // Only decomposed residuals (RQ2-1 dims) qualify: a legacy
@@ -781,11 +840,18 @@ function RisksPageInner({
                                 </Link>
                             </Tooltip>
                         ))}
-                        <IconAction
-                            variant="secondary"
-                            onClick={() => setView(view === 'register' ? 'heatmap' : 'register')}
-                            icon={<AppIcon name={view === 'register' ? 'dashboard' : 'overview'} size={16} />}
-                            label={view === 'register' ? t.heatmap : t.register}
+                        {/* RQ3-5 — three peer register views. The
+                            choice persists (polish #13 pattern). */}
+                        <ToggleGroup
+                            size="sm"
+                            ariaLabel="Risks view"
+                            options={[
+                                { value: 'register', label: t.register, id: 'risks-view-register' },
+                                { value: 'heatmap', label: t.heatmap, id: 'risks-view-heatmap' },
+                                { value: 'histogram', label: t.histogram, id: 'risks-view-histogram' },
+                            ]}
+                            selected={view}
+                            selectAction={(v) => setView(v as 'register' | 'heatmap' | 'histogram')}
                         />
                         {permissions.canWrite && (
                             <>
@@ -871,7 +937,67 @@ function RisksPageInner({
 
             <ListPageShell.Body aside={aiAssistRail}>
                 <TruncationBanner truncated={truncated} />
-                {view === 'heatmap' ? (
+                {view === 'histogram' ? (
+                    <div className="space-y-default" data-testid="risk-histogram-view">
+                        <div>
+                            <Heading level={3} className="mb-1">ALE histogram</Heading>
+                            <p className="mb-tight text-xs text-content-subtle">
+                                Each quantified risk lands in a log-scale loss bucket,
+                                stacked by its matrix band — the distribution the
+                                heatmap structurally compresses.
+                            </p>
+                            <AleHistogram
+                                data={histogramData}
+                                referenceLine={
+                                    appetiteCap != null
+                                        ? { value: appetiteCap, label: 'Per-risk appetite' }
+                                        : null
+                                }
+                                testId="risk-ale-histogram"
+                            />
+                            {histogramData.length === 0 && (
+                                <p className="text-sm text-content-muted">
+                                    No quantified risks yet — set FAIR ranges or SLE × ARO
+                                    on a risk to populate the histogram.
+                                </p>
+                            )}
+                        </div>
+                        {/* RQ3-5 — range-compression callouts: the
+                            same collisions the heatmap flags, spelled
+                            out. Click drills into the cell's risks. */}
+                        {collisions.length > 0 && (
+                            <div data-testid="risk-collision-callouts">
+                                <Heading level={3} className="mb-1">Cell collisions</Heading>
+                                <p className="mb-tight text-xs text-content-subtle">
+                                    Risks sharing a matrix cell whose loss estimates differ
+                                    more than 10× — the matrix cannot show the difference.
+                                </p>
+                                <div className="space-y-tight">
+                                    {collisions.map((c) => (
+                                        <button
+                                            key={`${c.likelihood}-${c.impact}`}
+                                            type="button"
+                                            className="flex w-full items-center justify-between gap-default rounded p-2 text-left text-sm hover:bg-bg-muted/50 transition-colors duration-100 ease-out"
+                                            data-testid={`risk-collision-${c.likelihood}-${c.impact}`}
+                                            onClick={() => {
+                                                const score = c.likelihood * c.impact;
+                                                filterCtx.set('score', `${score}|${score}`);
+                                                setView('register');
+                                            }}
+                                        >
+                                            <span className="truncate text-content-emphasis">
+                                                L{c.likelihood}×I{c.impact}: {c.minRisk.title} vs {c.maxRisk.title}
+                                            </span>
+                                            <span className="shrink-0 tabular-nums text-content-muted">
+                                                {formatCompactCurrency(c.minRisk.ale)} vs {formatCompactCurrency(c.maxRisk.ale)} (~{Math.round(c.ratio)}×)
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : view === 'heatmap' ? (
                     <RiskMatrix
                         config={matrixConfig}
                         cells={matrixCells}

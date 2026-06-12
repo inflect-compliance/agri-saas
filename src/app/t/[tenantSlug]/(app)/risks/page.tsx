@@ -82,6 +82,7 @@ export default async function RisksPage({
                 listDescription: t('listDescription'),
                 risksIdentified: t('risksIdentified', { count: risks.length }),
                 heatmap: t('heatmap'),
+                histogram: t('histogram'),
                 register: t('register'),
                 addRisk: t('addRisk'),
                 riskTitle: t('riskTitle'),
