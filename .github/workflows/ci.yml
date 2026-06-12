@@ -44,6 +44,14 @@ permissions:
   security-events: write # CodeQL SARIF upload
   actions: read          # CodeQL analysis
 
+# ── CI runner sizing ──
+# Heavy jobs read `runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}`.
+# On Team / Enterprise plans, set the `LARGE_RUNNER` repository
+# variable (Settings → Variables → Actions) to a configured
+# GitHub-hosted larger-runner label (e.g. `ubuntu-4core`,
+# `ubuntu-8core`). Unset → workflow falls back to the free 2-vCPU
+# `ubuntu-latest`, so this file works on every plan.
+
 env:
   NODE_VERSION: "22"
   SKIP_ENV_VALIDATION: "1"
@@ -75,27 +83,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        # Roadmap-27 CI hardening — `prisma generate` intermittently
-        # crashes the runner with a V8 SIGILL (exit 132, internal
-        # "Check failed" assertion). Retry up to 3× so a flaky codegen
-        # crash never fails an otherwise-green job. The `if` form is
-        # errexit-safe — a failed attempt does not abort the step.
-        run: |
-          for attempt in 1 2 3; do
-            if ./node_modules/.bin/prisma generate; then exit 0; fi
-            echo "::warning::prisma generate failed (attempt ${attempt}/3) — retrying"
-            sleep 5
-          done
-          exit 1
 
       - name: Run ESLint
         run: npm run lint
@@ -112,27 +103,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        # Roadmap-27 CI hardening — `prisma generate` intermittently
-        # crashes the runner with a V8 SIGILL (exit 132, internal
-        # "Check failed" assertion). Retry up to 3× so a flaky codegen
-        # crash never fails an otherwise-green job. The `if` form is
-        # errexit-safe — a failed attempt does not abort the step.
-        run: |
-          for attempt in 1 2 3; do
-            if ./node_modules/.bin/prisma generate; then exit 0; fi
-            echo "::warning::prisma generate failed (attempt ${attempt}/3) — retrying"
-            sleep 5
-          done
-          exit 1
 
       - name: Run tsc --noEmit
         run: npm run typecheck
@@ -140,16 +114,37 @@ jobs:
   # ═══════════════════════════════════════════════════════════════
   #  Job 3: Test — Jest unit + integration + architectural guards
   #  Needs Postgres for integration tests.
+  #
+  #  Sharded across N matrix jobs via `jest --shard=K/N`. The default
+  #  TOTAL_SHARDS = 4 turns a ~30-min single-process run into ~4×8-min
+  #  parallel runs (each shard owns ~1/N of the suite). Each shard
+  #  still runs serially inside its own process (`--runInBand`) to
+  #  preserve the test-suite's "one DB per worker" invariant.
+  #
+  #  When `vars.LARGE_RUNNER` is set on Team / Enterprise plans, the
+  #  shards land on the larger runner — combined with sharding,
+  #  end-to-end Test time drops from ~30 min → ~3-5 min per PR.
+  #
+  #  Branch protection: the required check is the "Test" SUMMARY
+  #  job below (see `test-summary`), not the matrix members. That
+  #  way a future shard-count change doesn't require updating the
+  #  required-check set.
   # ═══════════════════════════════════════════════════════════════
   test:
-    name: Test
-    runs-on: ubuntu-latest
-    # 35-minute budget. The unit + integration + guards + contracts
-    # suite now runs ~24-25m on its own, so the prior 25m ceiling left
-    # no headroom — it cancelled at ~25m on back-to-back runs (#770,
-    # #774) even though every test passed. Bumped to 35m so normal
-    # runtime variance no longer trips the job timeout.
+    name: "Test (shard ${{ matrix.shard }}/${{ matrix.total }})"
+    runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
+    # 35-minute budget. Pre-shard, the unit + integration + guards
+    # + contracts suite ran ~24-25m and bumped this to 35m for
+    # variance headroom. Each shard now does ~1/N of the work, but
+    # we keep the 35m cap as a safety net — the cluster of shards
+    # finishes well under that.
     timeout-minutes: 35
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        total: [4]
 
     env:
       DATABASE_URL: postgresql://ci:ci_password@localhost:5432/ci_testdb?schema=public
@@ -181,27 +176,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        # Roadmap-27 CI hardening — `prisma generate` intermittently
-        # crashes the runner with a V8 SIGILL (exit 132, internal
-        # "Check failed" assertion). Retry up to 3× so a flaky codegen
-        # crash never fails an otherwise-green job. The `if` form is
-        # errexit-safe — a failed attempt does not abort the step.
-        run: |
-          for attempt in 1 2 3; do
-            if ./node_modules/.bin/prisma generate; then exit 0; fi
-            echo "::warning::prisma generate failed (attempt ${attempt}/3) — retrying"
-            sleep 5
-          done
-          exit 1
 
       # ── Quality gate: migrations must exist ──
       - name: "Gate: Prisma migrations exist"
@@ -229,39 +207,75 @@ jobs:
       - name: Apply Prisma migrations
         run: ./node_modules/.bin/prisma migrate deploy
 
-      # ── Jest: unit + integration tests ──
-      - name: "Run tests: unit + integration"
-        run: npm run test:ci
+      # ── Jest: unit + integration tests (sharded) ──
+      # Each matrix worker runs Jest's deterministic 1-of-N hash split.
+      # `--shard=${{ matrix.shard }}/${{ matrix.total }}` keeps each
+      # test file on exactly one shard, so per-DB-row test fixtures
+      # never collide across shards. The intra-shard run stays
+      # `--runInBand` for the "one DB per worker" invariant.
+      - name: "Run tests: unit + integration (shard)"
+        run: npx jest --runInBand --no-coverage --shard=${{ matrix.shard }}/${{ matrix.total }}
 
-      # ── Architectural guard tests ──
-      - name: "Run tests: architectural guards"
-        run: npx jest tests/guards/ --runInBand --forceExit --no-coverage
-
-      # ── API contract regression gate (GAP-10 step 6) ──
-      # Runs the per-schema snapshot suite + the full-spec drift
-      # check from `tests/contracts/api-schemas.test.ts`. The
-      # explicit step (rather than relying on default Jest discovery
-      # in `test:ci` above) gives reviewers a clean PASS/FAIL signal
-      # in the CI log: a failure here is ALWAYS an unintentional
-      # API-shape change and the failure message includes the
-      # remediation commands.
+      # ── Architectural guard + API contract gates ──
+      # These suites are fast (~30s combined) and not sharded — they
+      # are an EXPLICIT pass/fail signal in the CI log distinct from
+      # the wider Jest run. Pinned to shard 1 so they execute exactly
+      # once per CI run (no redundant work across shards).
       #
       # On legitimate contract changes:
       #   1. `npm run openapi:generate`         (rewrites public/openapi.json)
       #   2. `npx jest tests/contracts/ -u`     (updates per-schema snapshots)
       #   3. Commit both files together. Reviewer sees the diff
       #      against the previous contract and approves explicitly.
+      - name: "Run tests: architectural guards"
+        if: matrix.shard == 1
+        run: npx jest tests/guards/ --runInBand --forceExit --no-coverage
+
       - name: "Gate: API contract tests"
+        if: matrix.shard == 1
         run: npx jest tests/contracts/ --runInBand --forceExit --no-coverage --ci
+
+  # ═══════════════════════════════════════════════════════════════
+  #  Job 3b: Test (summary) — single required check for the matrix
+  #
+  #  GitHub branch-protection rules can target a stable check name;
+  #  this job aggregates the matrix shards into one. A future
+  #  shard-count change here keeps the required check name the same.
+  # ═══════════════════════════════════════════════════════════════
+  test-summary:
+    name: Test
+    needs: [test]
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+    steps:
+      - name: Verify every shard succeeded
+        # `needs.test.result` is the aggregated status across all
+        # matrix variants — `success` only when every shard passed.
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "::error::One or more Test shards failed (result=${{ needs.test.result }})"
+            exit 1
+          fi
+          echo "All Test shards passed."
 
   # ═══════════════════════════════════════════════════════════════
   #  Job 4: Coverage — enforce minimum test coverage threshold
   #  Blocking gate: fails if coverage drops below 60%.
-  #  Runs on PRs AND main pushes to catch regressions everywhere.
+  #
+  #  RUNS ON MAIN PUSH + WEEKLY SCHEDULE ONLY.
+  #
+  #  Rationale: the Test matrix above (sharded) is the per-PR pass/
+  #  fail gate; Coverage runs the SAME Jest suite a second time with
+  #  instrumentation, adding ~30 min of CPU to every PR for what is
+  #  effectively a duplicate signal at the PR level (coverage drift
+  #  comes from MERGED code). Catching it on main + nightly is
+  #  enough — if a PR causes a regression, the FIRST main push will
+  #  block.
   # ═══════════════════════════════════════════════════════════════
   coverage:
     name: "Coverage (≥60%)"
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     # 35-minute budget. R30 (group nodes) cancelled at 25m16s on
     # #716 even with the prior 25-min ceiling — the coverage-
     # instrumented variant has grown slower as the suite size +
@@ -296,27 +310,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        # Roadmap-27 CI hardening — `prisma generate` intermittently
-        # crashes the runner with a V8 SIGILL (exit 132, internal
-        # "Check failed" assertion). Retry up to 3× so a flaky codegen
-        # crash never fails an otherwise-green job. The `if` form is
-        # errexit-safe — a failed attempt does not abort the step.
-        run: |
-          for attempt in 1 2 3; do
-            if ./node_modules/.bin/prisma generate; then exit 0; fi
-            echo "::warning::prisma generate failed (attempt ${attempt}/3) — retrying"
-            sleep 5
-          done
-          exit 1
 
       # ── Create roles required by RLS migrations ──
       - name: Create PostgreSQL roles for RLS
@@ -368,33 +365,16 @@ jobs:
   # ═══════════════════════════════════════════════════════════════
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        # Roadmap-27 CI hardening — `prisma generate` intermittently
-        # crashes the runner with a V8 SIGILL (exit 132, internal
-        # "Check failed" assertion). Retry up to 3× so a flaky codegen
-        # crash never fails an otherwise-green job. The `if` form is
-        # errexit-safe — a failed attempt does not abort the step.
-        run: |
-          for attempt in 1 2 3; do
-            if ./node_modules/.bin/prisma generate; then exit 0; fi
-            echo "::warning::prisma generate failed (attempt ${attempt}/3) — retrying"
-            sleep 5
-          done
-          exit 1
 
       # Env validation is INTENTIONALLY skipped at build time.
       # `SKIP_ENV_VALIDATION: "1"` (workflow-level `env:` above)
@@ -433,13 +413,18 @@ jobs:
   e2e:
     name: E2E
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
     # The Playwright suite runs serially (workers: 1, fullyParallel:
-    # false — specs share seeded-tenant state) and is ~25 min wall-clock
-    # even all-green. 25 was too tight: a single flaky-retry pushed the
-    # job past the cap and it died as `cancelled` before Playwright
-    # could even print the failure summary. 40 gives real headroom for
+    # false — specs share seeded-tenant state) and is ~17-25 min
+    # wall-clock all-green. 40-min budget gives real headroom for
     # the 2-retry budget without masking failures behind a timeout.
+    #
+    # E2E sharding was attempted in an earlier revision of this PR
+    # and reverted: one shard's slice of specs surfaced a real
+    # cross-shard state coupling that needs its own investigation
+    # before the matrix is safe to enable. Future follow-up — a
+    # dedicated PR can pin state-dependent specs to shard 1 or
+    # rework the global-setup to be per-shard idempotent.
     timeout-minutes: 40
 
     env:
@@ -493,30 +478,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
       - name: Setup environment
         run: cp .env.e2e.example .env
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        # Roadmap-27 CI hardening — `prisma generate` intermittently
-        # crashes the runner with a V8 SIGILL (exit 132, internal
-        # "Check failed" assertion). Retry up to 3× so a flaky codegen
-        # crash never fails an otherwise-green job. The `if` form is
-        # errexit-safe — a failed attempt does not abort the step.
-        run: |
-          for attempt in 1 2 3; do
-            if ./node_modules/.bin/prisma generate; then exit 0; fi
-            echo "::warning::prisma generate failed (attempt ${attempt}/3) — retrying"
-            sleep 5
-          done
-          exit 1
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       # ── Create roles required by RLS migrations ──
       - name: Create PostgreSQL roles for RLS
@@ -633,7 +601,7 @@ jobs:
   load-smoke:
     name: "Load Smoke (k6)"
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 12
 
     env:
@@ -683,30 +651,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
       - name: Setup environment
         run: cp .env.e2e.example .env
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        # Roadmap-27 CI hardening — `prisma generate` intermittently
-        # crashes the runner with a V8 SIGILL (exit 132, internal
-        # "Check failed" assertion). Retry up to 3× so a flaky codegen
-        # crash never fails an otherwise-green job. The `if` form is
-        # errexit-safe — a failed attempt does not abort the step.
-        run: |
-          for attempt in 1 2 3; do
-            if ./node_modules/.bin/prisma generate; then exit 0; fi
-            echo "::warning::prisma generate failed (attempt ${attempt}/3) — retrying"
-            sleep 5
-          done
-          exit 1
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup k6
         uses: grafana/setup-k6-action@v1
@@ -914,7 +865,7 @@ jobs:
   docker:
     name: Docker Build
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
     # Roadmap-27 CI hardening — bumped 15 → 25. semantic-release
     # bumps the package.json version on every release, which
     # cache-misses the Docker `npm ci` layer; a cold full install
@@ -963,7 +914,7 @@ jobs:
   trivy:
     name: "Trivy Image Scan"
     needs: [docker]
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
     # The in-job Docker rebuild ("Build Docker image for scanning")
     # consistently takes ~7.5 min — the `cache-from: type=gha` layer
     # cache from the `docker` job barely helps here. That + the

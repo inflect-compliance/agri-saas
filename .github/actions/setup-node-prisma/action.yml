@@ -1,0 +1,43 @@
+name: "Setup Node + Prisma client"
+description: >-
+  Sets up Node.js (with npm cache), runs `npm ci`, and generates the
+  Prisma client with a 3-attempt retry loop. Used by every job that
+  needs `node_modules` + a generated Prisma client. Centralises the
+  retry workaround for the Roadmap-27 SIGILL (`prisma generate`
+  intermittently crashes the runner with a V8 internal-check exit
+  132) so the workaround stays in ONE place — a future fix in
+  upstream Prisma can be removed here without touching seven copies.
+
+inputs:
+  node-version:
+    description: "Node.js major version (e.g. 22). Defaults to 22."
+    required: false
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Generate Prisma client
+      shell: bash
+      # Roadmap-27 CI hardening — `prisma generate` intermittently
+      # crashes the runner with a V8 SIGILL (exit 132, internal
+      # "Check failed" assertion). Retry up to 3× so a flaky codegen
+      # crash never fails an otherwise-green job. The `if` form is
+      # errexit-safe — a failed attempt does not abort the step.
+      run: |
+        for attempt in 1 2 3; do
+          if ./node_modules/.bin/prisma generate; then exit 0; fi
+          echo "::warning::prisma generate failed (attempt ${attempt}/3) — retrying"
+          sleep 5
+        done
+        exit 1
