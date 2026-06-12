@@ -17,6 +17,7 @@ import { assertCanRead, assertCanAdmin, assertCanWrite } from '../policies/commo
 import { notFound, badRequest } from '@/lib/errors/types';
 import { logEvent } from '../events/audit';
 import { resolveALE } from './fair-calculator';
+import { getLatestSimulation } from './monte-carlo';
 import { formatCompactCurrency } from '@/lib/risk-coherence';
 import { formatDate } from '@/lib/format-date';
 import { createTask, addTaskLink } from './task';
@@ -31,9 +32,22 @@ export interface Breach {
     actual: number;
 }
 
+/** RQ3-3 — what the portfolio ceiling was actually tested against. */
+export interface PortfolioTested {
+    /** The figure compared to the ceiling. */
+    value: number;
+    /** Which percentile (50/80/90/95/99) — meaningful when simulated. */
+    percentile: number;
+    /** True when the value came from a simulation run; false = Σ(mean) fallback. */
+    simulated: boolean;
+}
+
 export interface BreachCheckResult {
     breaches: Breach[];
+    /** Σ of mean ALEs — kept for the subordinate "naive sum" line. */
     portfolioAle: number;
+    /** RQ3-3 — the honest portfolio figure the ceiling was tested at. */
+    portfolioTested: PortfolioTested;
     isWithinAppetite: boolean;
 }
 
@@ -45,7 +59,12 @@ interface AppetiteThresholds {
     singleRiskAleMax: number | null;
     qualScoreMax: number | null;
     categoryOverridesJson: unknown;
+    /** RQ3-3 — which simulated percentile the ceiling is tested at. */
+    testedPercentile?: number | null;
 }
+
+/** RQ3-3 — simulated portfolio percentiles, keyed by percentile (50/80/…). */
+export type SimulatedPortfolioPercentiles = Partial<Record<number, number>>;
 
 /** A risk reduced to the fields appetite cares about. */
 export interface AppetiteRisk {
@@ -61,14 +80,33 @@ export interface AppetiteRisk {
  * Detect every appetite breach for a portfolio. Pure — no DB. A null
  * threshold means that check is skipped. Per-category overrides take
  * precedence over the global thresholds.
+ *
+ * RQ3-3 — the PORTFOLIO ceiling is tested at the configured
+ * percentile of the simulated loss distribution when percentiles are
+ * supplied (Raydugin: a portfolio is a distribution, not a sum of
+ * averages). Without a simulation the Σ(mean) fallback keeps the
+ * check alive — `portfolioTested.simulated` tells the caller which
+ * figure was used. Per-risk / per-category checks stay on resolved
+ * ALEs: those thresholds are per-risk statements, not portfolio ones.
  */
-export function detectBreaches(config: AppetiteThresholds, risks: AppetiteRisk[]): BreachCheckResult {
+export function detectBreaches(
+    config: AppetiteThresholds,
+    risks: AppetiteRisk[],
+    simulatedPercentiles?: SimulatedPortfolioPercentiles | null,
+): BreachCheckResult {
     const overrides = (config.categoryOverridesJson ?? {}) as CategoryOverrides;
     const breaches: Breach[] = [];
     const portfolioAle = risks.reduce((s, r) => s + r.ale, 0);
 
-    if (config.totalAleThreshold != null && portfolioAle > config.totalAleThreshold) {
-        breaches.push({ type: 'PORTFOLIO_ALE', threshold: config.totalAleThreshold, actual: portfolioAle });
+    const percentile = config.testedPercentile ?? 80;
+    const simulatedValue = simulatedPercentiles?.[percentile];
+    const portfolioTested: PortfolioTested =
+        simulatedValue != null
+            ? { value: simulatedValue, percentile, simulated: true }
+            : { value: portfolioAle, percentile, simulated: false };
+
+    if (config.totalAleThreshold != null && portfolioTested.value > config.totalAleThreshold) {
+        breaches.push({ type: 'PORTFOLIO_ALE', threshold: config.totalAleThreshold, actual: portfolioTested.value });
     }
 
     for (const r of risks) {
@@ -96,7 +134,7 @@ export function detectBreaches(config: AppetiteThresholds, risks: AppetiteRisk[]
         }
     }
 
-    return { breaches, portfolioAle, isWithinAppetite: breaches.length === 0 };
+    return { breaches, portfolioAle, portfolioTested, isWithinAppetite: breaches.length === 0 };
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────
@@ -112,6 +150,8 @@ export interface UpsertAppetiteInput {
     totalAleThreshold?: number | null;
     singleRiskAleMax?: number | null;
     qualScoreMax?: number | null;
+    /** RQ3-3 — which simulated percentile the ceiling is tested at. */
+    testedPercentile?: 50 | 80 | 90 | 95 | 99;
     categoryOverridesJson?: Record<string, CategoryOverride> | null;
     appetiteStatement?: string | null;
     approvedByUserId?: string | null;
@@ -127,6 +167,8 @@ export async function upsertAppetiteConfig(ctx: RequestContext, input: UpsertApp
             totalAleThreshold: input.totalAleThreshold ?? null,
             singleRiskAleMax: input.singleRiskAleMax ?? null,
             qualScoreMax: input.qualScoreMax ?? null,
+            // RQ3-3 — board-level policy; absent keeps the default (P80).
+            testedPercentile: input.testedPercentile,
             categoryOverridesJson: (input.categoryOverridesJson ?? undefined) as Prisma.InputJsonValue | undefined,
             appetiteStatement: input.appetiteStatement ?? null,
             approvedByUserId: input.approvedByUserId ?? null,
@@ -167,12 +209,41 @@ async function loadAppetiteRisks(ctx: RequestContext): Promise<AppetiteRisk[]> {
     }));
 }
 
+/**
+ * RQ3-3 — the latest run's portfolio percentiles, keyed for
+ * `detectBreaches`. Null when no completed simulation exists (the
+ * pure check then falls back to Σ of means).
+ */
+async function loadSimulatedPercentiles(
+    ctx: RequestContext,
+): Promise<SimulatedPortfolioPercentiles | null> {
+    const run = await getLatestSimulation(ctx);
+    if (!run) return null;
+    const out: SimulatedPortfolioPercentiles = {};
+    if (run.portfolioP50 != null) out[50] = run.portfolioP50;
+    if (run.portfolioP80 != null) out[80] = run.portfolioP80;
+    if (run.portfolioP90 != null) out[90] = run.portfolioP90;
+    if (run.portfolioP95 != null) out[95] = run.portfolioP95;
+    if (run.portfolioP99 != null) out[99] = run.portfolioP99;
+    return Object.keys(out).length > 0 ? out : null;
+}
+
 export async function checkPortfolioAppetite(ctx: RequestContext): Promise<BreachCheckResult> {
     assertCanRead(ctx);
     const config = await getAppetiteConfig(ctx);
-    if (!config) return { breaches: [], portfolioAle: 0, isWithinAppetite: true };
-    const risks = await loadAppetiteRisks(ctx);
-    return detectBreaches(config, risks);
+    if (!config) {
+        return {
+            breaches: [],
+            portfolioAle: 0,
+            portfolioTested: { value: 0, percentile: 80, simulated: false },
+            isWithinAppetite: true,
+        };
+    }
+    const [risks, simulated] = await Promise.all([
+        loadAppetiteRisks(ctx),
+        loadSimulatedPercentiles(ctx),
+    ]);
+    return detectBreaches(config, risks, simulated);
 }
 
 export async function checkSingleRiskAppetite(
@@ -379,16 +450,25 @@ export async function createBreachRemediationTask(
 /** Dashboard badge status: within / approaching (>80% of ceiling) / breached. */
 export async function getAppetiteStatus(
     ctx: RequestContext,
-): Promise<{ status: 'NONE' | 'WITHIN' | 'APPROACHING' | 'BREACHED'; portfolioAle: number; activeBreaches: number }> {
+): Promise<{
+    status: 'NONE' | 'WITHIN' | 'APPROACHING' | 'BREACHED';
+    portfolioAle: number;
+    /** RQ3-3 — the figure the ceiling was actually tested against. */
+    portfolioTested: PortfolioTested | null;
+    activeBreaches: number;
+}> {
     assertCanRead(ctx);
     const config = await getAppetiteConfig(ctx);
-    if (!config) return { status: 'NONE', portfolioAle: 0, activeBreaches: 0 };
+    if (!config) return { status: 'NONE', portfolioAle: 0, portfolioTested: null, activeBreaches: 0 };
     const result = await checkPortfolioAppetite(ctx);
+    const base = { portfolioAle: result.portfolioAle, portfolioTested: result.portfolioTested };
     if (result.breaches.length > 0) {
-        return { status: 'BREACHED', portfolioAle: result.portfolioAle, activeBreaches: result.breaches.length };
+        return { status: 'BREACHED', ...base, activeBreaches: result.breaches.length };
     }
-    if (config.totalAleThreshold != null && result.portfolioAle > config.totalAleThreshold * 0.8) {
-        return { status: 'APPROACHING', portfolioAle: result.portfolioAle, activeBreaches: 0 };
+    // RQ3-3 — "approaching" tracks the same figure the ceiling is
+    // tested at, not the naive sum.
+    if (config.totalAleThreshold != null && result.portfolioTested.value > config.totalAleThreshold * 0.8) {
+        return { status: 'APPROACHING', ...base, activeBreaches: 0 };
     }
-    return { status: 'WITHIN', portfolioAle: result.portfolioAle, activeBreaches: 0 };
+    return { status: 'WITHIN', ...base, activeBreaches: 0 };
 }

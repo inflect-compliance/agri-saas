@@ -491,6 +491,11 @@ model RiskAppetiteConfig {
   singleRiskAleMax      Float?
   /// Max acceptable qualitative score (likelihood × impact).
   qualScoreMax          Int?
+  /// RQ3-3 — which simulated portfolio percentile the ceiling is
+  /// tested at (board-level policy). Breach detection reads the
+  /// latest run's portfolioP<NN>; falls back to Σ(mean ALE) when no
+  /// simulation exists. Supported: 50 / 80 / 90 / 95 / 99.
+  testedPercentile      Int           @default(80)
   /// category → { totalAleMax, singleAleMax, qualScoreMax } overrides.
   categoryOverridesJson Json?
   /// Board-approved narrative statement.

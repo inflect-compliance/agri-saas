@@ -21,6 +21,10 @@ const ConfigSchema = z.object({
     totalAleThreshold: num,
     singleRiskAleMax: num,
     qualScoreMax: z.number().int().nullable().optional(),
+    /** RQ3-3 — which simulated percentile the ceiling is tested at. */
+    testedPercentile: z
+        .union([z.literal(50), z.literal(80), z.literal(90), z.literal(95), z.literal(99)])
+        .optional(),
     categoryOverridesJson: z
         .record(z.string(), z.object({
             totalAleMax: z.number().optional(),

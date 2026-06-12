@@ -15,7 +15,7 @@
  * portfolio threshold; it gets an honest per-risk note computed from
  * the cached per-risk P90s instead of a line that would lie.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { KPIStat } from '@/components/ui/metric';
@@ -37,7 +37,9 @@ export interface AppetitePayload {
     } | null;
 }
 
-interface Run {
+/** RQ3-3 — the run is page-level state (the quant headline tiles and
+ *  this stage both read it), so the shape is exported. */
+export interface SimulationRun {
     portfolioMean: number | null; portfolioP50: number | null; portfolioP80: number | null;
     portfolioP90: number | null; portfolioP95: number | null; portfolioP99: number | null;
     portfolioStdDev: number | null;
@@ -67,25 +69,25 @@ function exceedanceProbabilityAt(
     return 0;
 }
 
-export function MonteCarloPanel({ appetite }: { appetite?: AppetitePayload | null }) {
+export function MonteCarloPanel({
+    appetite,
+    run,
+    onReload,
+}: {
+    appetite?: AppetitePayload | null;
+    /** RQ3-3 — lifted to the page; the headline tiles share it. */
+    run: SimulationRun | null;
+    onReload: () => Promise<void>;
+}) {
     const apiUrl = useTenantApiUrl();
     const money = useMoneyFormatter();
-    const [run, setRun] = useState<Run | null>(null);
     const [running, setRunning] = useState(false);
-
-    const load = useCallback(async () => {
-        try {
-            const res = await fetch(apiUrl('/risks/simulate'));
-            if (res.ok) setRun((await res.json()).run);
-        } catch { /* ignore */ }
-    }, [apiUrl]);
-    useEffect(() => { void load(); }, [load]);
 
     const runSim = async () => {
         setRunning(true);
         try {
             const res = await fetch(apiUrl('/risks/simulate'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ iterations: 10000 }) });
-            if (res.ok) await load();
+            if (res.ok) await onReload();
         } finally { setRunning(false); }
     };
 

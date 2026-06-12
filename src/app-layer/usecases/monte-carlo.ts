@@ -300,6 +300,43 @@ function parseDistributions(json: unknown): FairDistributions | undefined {
     return { tef: j.tef!, vulnerability: j.vulnerability!, plm: j.plm!, slef: j.slef!, slm: j.slm! };
 }
 
+/**
+ * RQ3-3 — load the tenant's stored pairwise correlations (RQ-8) as an
+ * NxN matrix aligned to the simulated risk order. Returns undefined
+ * when no non-zero pair touches the simulated risks (identity matrix
+ * — independent sampling is equivalent and cheaper) or when the
+ * portfolio exceeds the matrix cap (Cholesky is O(n³); 500 matches
+ * the correlation-page bound).
+ */
+async function loadStoredCorrelationMatrix(
+    ctx: RequestContext,
+    riskIds: string[],
+): Promise<number[][] | undefined> {
+    if (riskIds.length === 0 || riskIds.length > 500) return undefined;
+    const pairs = await runInTenantContext(ctx, (db) =>
+        db.riskCorrelation.findMany({
+            where: { tenantId: ctx.tenantId },
+            select: { riskAId: true, riskBId: true, coefficient: true },
+            take: 50000,
+        }),
+    );
+    const idx = new Map(riskIds.map((id, i) => [id, i]));
+    const n = riskIds.length;
+    let any = false;
+    const matrix: number[][] = Array.from({ length: n }, (_, i) =>
+        Array.from({ length: n }, (_, j): number => (i === j ? 1 : 0)),
+    );
+    for (const p of pairs) {
+        const i = idx.get(p.riskAId);
+        const j = idx.get(p.riskBId);
+        if (i == null || j == null || p.coefficient === 0) continue;
+        matrix[i][j] = p.coefficient;
+        matrix[j][i] = p.coefficient;
+        any = true;
+    }
+    return any ? matrix : undefined;
+}
+
 /** Run + persist a simulation. Returns the result + the run id. */
 export async function runSimulation(
     ctx: RequestContext,
@@ -307,7 +344,12 @@ export async function runSimulation(
 ): Promise<SimulationResult & { runId: string }> {
     assertCanRead(ctx);
     const risks = await loadSimRisks(ctx);
-    const result = simulatePortfolio(risks, config);
+    // RQ3-3 — stored correlations apply by default; an explicit
+    // matrix (scenario engine) still wins.
+    const correlationMatrix =
+        config.correlationMatrix ??
+        (await loadStoredCorrelationMatrix(ctx, risks.map((r) => r.id)));
+    const result = simulatePortfolio(risks, { ...config, correlationMatrix });
     const run = await runInTenantContext(ctx, (db) =>
         db.riskSimulationRun.create({
             data: {

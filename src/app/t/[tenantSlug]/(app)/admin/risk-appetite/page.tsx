@@ -14,10 +14,13 @@ import { useTenantApiUrl, useTenantHref, useMoneyFormatter } from '@/lib/tenant-
 import { formatDate } from '@/lib/format-date';
 
 type Cadence = 'MONTHLY' | 'QUARTERLY' | 'SEMI_ANNUALLY' | 'ANNUALLY';
+type TestedPercentile = 50 | 80 | 90 | 95 | 99;
 interface Config {
     totalAleThreshold: number | null;
     singleRiskAleMax: number | null;
     qualScoreMax: number | null;
+    /** RQ3-3 — which simulated percentile the ceiling is tested at. */
+    testedPercentile: TestedPercentile;
     appetiteStatement: string | null;
     reviewCadence: Cadence;
 }
@@ -34,8 +37,14 @@ export default function RiskAppetitePage() {
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const money = useMoneyFormatter();
-    const [cfg, setCfg] = useState<Config>({ totalAleThreshold: null, singleRiskAleMax: null, qualScoreMax: null, appetiteStatement: null, reviewCadence: 'ANNUALLY' });
-    const [status, setStatus] = useState<{ status: string; portfolioAle: number; activeBreaches: number } | null>(null);
+    const [cfg, setCfg] = useState<Config>({ totalAleThreshold: null, singleRiskAleMax: null, qualScoreMax: null, testedPercentile: 80, appetiteStatement: null, reviewCadence: 'ANNUALLY' });
+    const [status, setStatus] = useState<{
+        status: string;
+        portfolioAle: number;
+        /** RQ3-3 — the figure the ceiling was actually tested at. */
+        portfolioTested: { value: number; percentile: number; simulated: boolean } | null;
+        activeBreaches: number;
+    } | null>(null);
     const [breaches, setBreaches] = useState<Breach[]>([]);
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState<string | null>(null);
@@ -98,7 +107,9 @@ export default function RiskAppetitePage() {
                 <Heading level={1}>Risk Appetite</Heading>
                 {status && status.status !== 'NONE' && (
                     <StatusBadge variant={statusVariant}>
-                        {status.status === 'BREACHED' ? `Breached (${status.activeBreaches})` : status.status === 'APPROACHING' ? 'Approaching' : 'Within appetite'} · {money(status.portfolioAle)}/yr
+                        {status.status === 'BREACHED' ? `Breached (${status.activeBreaches})` : status.status === 'APPROACHING' ? 'Approaching' : 'Within appetite'} · {status.portfolioTested?.simulated
+                            ? `P${status.portfolioTested.percentile} ${money(status.portfolioTested.value)}/yr`
+                            : `${money(status.portfolioAle)}/yr`}
                     </StatusBadge>
                 )}
             </div>
@@ -113,6 +124,25 @@ export default function RiskAppetitePage() {
                     {numField('Portfolio ALE ceiling', 'totalAleThreshold', '$/yr')}
                     {numField('Single-risk ALE max', 'singleRiskAleMax', '$')}
                     {numField('Qualitative score max', 'qualScoreMax', 'of 25')}
+                </div>
+                {/* RQ3-3 — board-level policy: which simulated
+                    percentile the portfolio ceiling is tested at.
+                    P50 = a typical year; P95 = severe-tail planning. */}
+                <div className="flex flex-wrap items-center gap-tight" data-testid="appetite-tested-percentile">
+                    <span className="text-xs text-content-muted">Ceiling tested at:</span>
+                    {([50, 80, 90, 95, 99] as TestedPercentile[]).map((pVal) => (
+                        <Button
+                            key={pVal}
+                            size="sm"
+                            variant={cfg.testedPercentile === pVal ? 'secondary' : 'ghost'}
+                            onClick={() => setCfg({ ...cfg, testedPercentile: pVal })}
+                        >
+                            P{pVal}
+                        </Button>
+                    ))}
+                    <span className="text-[10px] text-content-subtle">
+                        simulated portfolio percentile (falls back to Σ of means until a simulation runs)
+                    </span>
                 </div>
                 {msg && <InlineNotice variant={msg === 'Saved.' ? 'success' : 'error'}>{msg}</InlineNotice>}
                 <div className="flex justify-end">

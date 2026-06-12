@@ -10,7 +10,7 @@ import { DB_URL, DB_AVAILABLE } from './db-helper';
 import { hashForLookup } from '@/lib/security/encryption';
 import { makeRequestContext } from '../helpers/make-context';
 import { setCorrelation, getCorrelationMatrix } from '@/app-layer/usecases/risk-correlation';
-import { simulatePortfolio, type SimRisk } from '@/app-layer/usecases/monte-carlo';
+import { simulatePortfolio, runSimulation, type SimRisk } from '@/app-layer/usecases/monte-carlo';
 
 const globalPrisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: DB_URL }) });
 const describeFn = DB_AVAILABLE ? describe : describe.skip;
@@ -36,7 +36,7 @@ describeFn('RQ-8 — correlation + simulation (integration)', () => {
 
     afterAll(async () => {
         const t = { tenantId: TENANT_ID };
-        for (const m of ['riskCorrelation', 'risk', 'tenantMembership'] as const) {
+        for (const m of ['riskSimulationRun', 'riskCorrelation', 'risk', 'tenantMembership'] as const) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             try { await (globalPrisma as any)[m].deleteMany({ where: t }); } catch { /* best effort */ }
         }
@@ -70,5 +70,23 @@ describeFn('RQ-8 — correlation + simulation (integration)', () => {
         const correlated = simulatePortfolio(risks, { iterations: 8000, seed: 5, correlationMatrix: m.matrix });
         // Correlated risks co-materialise → fatter tail → larger stdDev.
         expect(correlated.portfolioAle.stdDev).toBeGreaterThan(independent.portfolioAle.stdDev);
+    });
+
+    // ── RQ3-3 — stored correlations apply on the DEFAULT path ─────
+
+    it('runSimulation applies stored correlations without an explicit matrix', async () => {
+        // Same seed, default path (loads the ρ=0.8 pair from the DB)
+        // vs. an explicit-identity run: the correlated default must
+        // produce the wider distribution.
+        const withStored = await runSimulation(ctx, { iterations: 8000, seed: 5 });
+        const identity = await runSimulation(ctx, {
+            iterations: 8000,
+            seed: 5,
+            correlationMatrix: [
+                [1, 0],
+                [0, 1],
+            ],
+        });
+        expect(withStored.portfolioAle.stdDev).toBeGreaterThan(identity.portfolioAle.stdDev);
     });
 });

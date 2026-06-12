@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useTenantApiUrl, useTenantHref, useTenantContext, useMoneyFormatter } from '@/lib/tenant-context-provider';
@@ -13,7 +13,8 @@ import { SkeletonDashboard } from '@/components/ui/skeleton';
 import { getStatusTone } from '@/lib/design/status-tone';
 import type { CoherenceReport } from '@/lib/risk-coherence';
 import type { StalenessReport } from '@/app-layer/usecases/risk-staleness';
-import { MonteCarloPanel, type AppetitePayload } from './MonteCarloPanel';
+import { InfoTooltip } from '@/components/ui/tooltip';
+import { MonteCarloPanel, type AppetitePayload, type SimulationRun } from './MonteCarloPanel';
 import { VelocityCard } from './VelocityCard';
 
 // B10 — Quantitative risk analytics shape. Mirrors the
@@ -109,6 +110,17 @@ export default function RiskDashboardPage() {
             .catch(() => setRisks([]))
             .finally(() => setLoading(false));
     }, [apiUrl]);
+
+    // RQ3-3 — the latest simulation run is page-level state: the
+    // quant headline tiles AND the MonteCarloPanel stage read it.
+    const [simRun, setSimRun] = useState<SimulationRun | null>(null);
+    const loadSimRun = useCallback(async () => {
+        try {
+            const r = await fetch(apiUrl('/risks/simulate'));
+            if (r.ok) setSimRun((await r.json()).run);
+        } catch { /* failure-soft like the other widgets */ }
+    }, [apiUrl]);
+    useEffect(() => { void loadSimRun(); }, [loadSimRun]);
 
     useEffect(() => {
         fetch(apiUrl('/risks/analytics'))
@@ -257,39 +269,70 @@ export default function RiskDashboardPage() {
                         {analytics.totals.totalCount} risks quantified
                         (SLE × ARO).
                     </p>
-                    {/* KPI tiles inside the analytics card — plain
-                        divs with a subtle inset boundary. The outer
-                        frame already provides the container; the
-                        inset bg + rounded edge gives each KPI a
-                        "tile" feel without a nested primitive. */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-default mb-default">
-                        <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-total">
-                            <KPIStat
-                                value={money(analytics.totals.totalAle)}
-                                label="Total ALE / year"
-                            />
-                        </div>
-                        <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-avg">
-                            <KPIStat
-                                value={money(analytics.totals.avgAle)}
-                                label="Average ALE"
-                                tone="attention"
-                            />
-                        </div>
-                        <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-max">
-                            <KPIStat
-                                value={money(analytics.totals.maxAle)}
-                                label="Max single ALE"
-                                tone="critical"
-                            />
-                        </div>
-                        <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-cats">
-                            <KPIStat
-                                value={analytics.byCategory.length}
-                                label="Categories carrying loss"
-                            />
-                        </div>
-                    </div>
+                    {/* RQ3-3 — portfolio honesty. With a simulation
+                        run, the headline is the loss DISTRIBUTION
+                        (P50/P80/P95, correlations applied) — never
+                        the sum of averages. The Σ figure survives
+                        only as the subordinate line below, with the
+                        tooltip explaining the gap. */}
+                    {simRun ? (
+                        <>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-default mb-default">
+                                <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-p50">
+                                    <KPIStat value={money(simRun.portfolioP50)} label="Portfolio P50 / year" />
+                                </div>
+                                <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-p80">
+                                    <KPIStat value={money(simRun.portfolioP80)} label="Portfolio P80 / year" tone="attention" />
+                                </div>
+                                <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-p95">
+                                    <KPIStat value={money(simRun.portfolioP95)} label="Portfolio P95 / year" tone="critical" />
+                                </div>
+                                <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-max">
+                                    <KPIStat value={money(analytics.totals.maxAle)} label="Max single ALE" />
+                                </div>
+                            </div>
+                            <p className="mb-default flex items-center gap-tight text-xs text-content-subtle tabular-nums" data-testid="risk-quant-sum-line">
+                                Σ of mean ALEs: {money(analytics.totals.totalAle)} — a sum of
+                                averages, not a distribution.
+                                <InfoTooltip content="Summing each risk's mean ALE ignores correlation and tail compounding — bad years cluster. The simulated percentiles above are the portfolio's actual loss distribution: P50 is a typical year, P80/P95 are the years the board plans reserves for. The gap between the sum and these figures is real information, not noise." />
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-default mb-default">
+                                <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-total">
+                                    <KPIStat
+                                        value={money(analytics.totals.totalAle)}
+                                        label="Total ALE / year"
+                                    />
+                                </div>
+                                <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-avg">
+                                    <KPIStat
+                                        value={money(analytics.totals.avgAle)}
+                                        label="Average ALE"
+                                        tone="attention"
+                                    />
+                                </div>
+                                <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-max">
+                                    <KPIStat
+                                        value={money(analytics.totals.maxAle)}
+                                        label="Max single ALE"
+                                        tone="critical"
+                                    />
+                                </div>
+                                <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-cats">
+                                    <KPIStat
+                                        value={analytics.byCategory.length}
+                                        label="Categories carrying loss"
+                                    />
+                                </div>
+                            </div>
+                            <p className="mb-default text-xs text-content-subtle" data-testid="risk-quant-sum-nudge">
+                                These figures are sums of averages. Run a simulation below to
+                                replace them with calibrated portfolio percentiles.
+                            </p>
+                        </>
+                    )}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-section">
                         <div>
                             <Heading level={3} className="mb-2">Top 10 by ALE</Heading>
@@ -341,7 +384,7 @@ export default function RiskDashboardPage() {
 
             {/* RQ-3 / RQ3-1 — the portfolio loss exceedance stage:
                 simulated curve, VaR tiles, appetite thresholds. */}
-            <MonteCarloPanel appetite={appetite} />
+            <MonteCarloPanel appetite={appetite} run={simRun} onReload={loadSimRun} />
 
             {/* RQ2-5 — qual ↔ quant coherence. Renders only when the
                 detector has enough quantified risks to rank; an

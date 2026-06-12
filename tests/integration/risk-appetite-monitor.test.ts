@@ -42,7 +42,7 @@ describeFn('RQ-2 — appetite monitor (integration)', () => {
 
     afterAll(async () => {
         const t = { tenantId: TENANT_ID };
-        for (const m of ['riskAppetiteBreach', 'riskAppetiteConfig', 'auditLog', 'risk', 'tenantMembership'] as const) {
+        for (const m of ['riskSimulationRun', 'riskAppetiteBreach', 'riskAppetiteConfig', 'auditLog', 'risk', 'tenantMembership'] as const) {
             try { await (globalPrisma as any)[m].deleteMany({ where: t }); } catch { /* best effort */ }
         }
         try { await globalPrisma.user.deleteMany({ where: { id: adminId } }); } catch { /* best effort */ }
@@ -76,5 +76,36 @@ describeFn('RQ-2 — appetite monitor (integration)', () => {
         expect(resolved).toBeGreaterThanOrEqual(1);
         const open = await globalPrisma.riskAppetiteBreach.findMany({ where: { tenantId: TENANT_ID, resolvedAt: null } });
         expect(open).toHaveLength(0);
+    });
+
+    // ── RQ3-3 — the ceiling is tested at the configured percentile ──
+
+    it('with a simulation, the check runs against portfolioP<NN>, not Σ of means', async () => {
+        const { runSimulation } = await import('@/app-layer/usecases/monte-carlo');
+        await runSimulation(ctx, { iterations: 2000, seed: 7 });
+        const run = await globalPrisma.riskSimulationRun.findFirstOrThrow({
+            where: { tenantId: TENANT_ID, status: 'COMPLETED' },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        await upsertAppetiteConfig(ctx, { totalAleThreshold: 10_000_000, testedPercentile: 95 });
+        const result = await checkPortfolioAppetite(ctx);
+        expect(result.portfolioTested.simulated).toBe(true);
+        expect(result.portfolioTested.percentile).toBe(95);
+        expect(result.portfolioTested.value).toBeCloseTo(run.portfolioP95!, 0);
+        // Σ stays available for the subordinate line.
+        expect(result.portfolioAle).toBe(4_000_000);
+    });
+
+    it('a tight ceiling breaches with the simulated percentile as the actual', async () => {
+        await upsertAppetiteConfig(ctx, { totalAleThreshold: 1, testedPercentile: 95 });
+        const result = await checkPortfolioAppetite(ctx);
+        const breach = result.breaches.find((b) => b.type === 'PORTFOLIO_ALE');
+        expect(breach).toBeDefined();
+        expect(breach!.actual).toBeCloseTo(result.portfolioTested.value, 0);
+        expect(result.portfolioTested.simulated).toBe(true);
+        // Leave the tenant tidy for the cleanup hooks.
+        await upsertAppetiteConfig(ctx, { totalAleThreshold: 10_000_000, testedPercentile: 80 });
+        await globalPrisma.riskSimulationRun.deleteMany({ where: { tenantId: TENANT_ID } });
     });
 });

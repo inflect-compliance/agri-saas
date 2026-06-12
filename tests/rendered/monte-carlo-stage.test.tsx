@@ -6,7 +6,7 @@
  * the breach-probability note reads the curve at the ceiling; the
  * per-risk cap renders as the P90-count note, never as a line.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import * as React from 'react';
 
 jest.mock('@/lib/tenant-context-provider', () => ({
@@ -22,9 +22,9 @@ jest.mock('@visx/responsive', () => ({
         children({ width: 600 }),
 }));
 
-import { MonteCarloPanel, type AppetitePayload } from '@/app/t/[tenantSlug]/(app)/risks/dashboard/MonteCarloPanel';
+import { MonteCarloPanel, type AppetitePayload, type SimulationRun } from '@/app/t/[tenantSlug]/(app)/risks/dashboard/MonteCarloPanel';
 
-const RUN = {
+const RUN: SimulationRun = {
     portfolioMean: 400_000,
     portfolioP50: 380_000,
     portfolioP80: 520_000,
@@ -52,17 +52,13 @@ const APPETITE: AppetitePayload = {
     status: { status: 'WITHIN', portfolioAle: 400_000, activeBreaches: 0 },
 };
 
-beforeEach(() => {
-    global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ run: RUN }),
-    }) as unknown as typeof fetch;
-});
+// RQ3-3 — the run is lifted page state, passed as a prop.
+const noReload = async () => {};
 
 describe('MonteCarloPanel — the simulated LEC stage (RQ3-1)', () => {
-    it('renders the percentile markers and the portfolio-appetite line', async () => {
-        render(<MonteCarloPanel appetite={APPETITE} />);
-        await waitFor(() => expect(screen.getByTestId('risk-mc-lec')).toBeInTheDocument());
+    it('renders the percentile markers and the portfolio-appetite line', () => {
+        render(<MonteCarloPanel appetite={APPETITE} run={RUN} onReload={noReload} />);
+        expect(screen.getByTestId('risk-mc-lec')).toBeInTheDocument();
         const markers = screen.getAllByTestId('lec-reference-line');
         const labels = markers.map((m) => m.textContent ?? '');
         expect(labels.some((l) => l.startsWith('P50'))).toBe(true);
@@ -73,24 +69,24 @@ describe('MonteCarloPanel — the simulated LEC stage (RQ3-1)', () => {
         expect(labels.some((l) => l.includes('Per-risk'))).toBe(false);
     });
 
-    it('reads the breach probability off the curve at the ceiling', async () => {
-        render(<MonteCarloPanel appetite={APPETITE} />);
-        await waitFor(() => expect(screen.getByTestId('lec-portfolio-appetite-note')).toBeInTheDocument());
+    it('reads the breach probability off the curve at the ceiling', () => {
+        render(<MonteCarloPanel appetite={APPETITE} run={RUN} onReload={noReload} />);
+        expect(screen.getByTestId('lec-portfolio-appetite-note')).toBeInTheDocument();
         // Ceiling 600k falls between the 520k (p=0.2) and 700k (p=0.05)
         // steps — step semantics read the first point ≥ threshold.
         expect(screen.getByTestId('lec-portfolio-appetite-note').textContent).toMatch(/≈5% chance/);
     });
 
-    it('answers the per-risk cap with the P90 count note', async () => {
-        render(<MonteCarloPanel appetite={APPETITE} />);
-        await waitFor(() => expect(screen.getByTestId('mc-per-risk-appetite-note')).toBeInTheDocument());
+    it('answers the per-risk cap with the P90 count note', () => {
+        render(<MonteCarloPanel appetite={APPETITE} run={RUN} onReload={noReload} />);
+        expect(screen.getByTestId('mc-per-risk-appetite-note')).toBeInTheDocument();
         // r1 P90 450k > 200k cap; r2 P90 140k < cap → 1 of 2.
         expect(screen.getByTestId('mc-per-risk-appetite-note').textContent).toMatch(/1 of 2/);
     });
 
-    it('renders no threshold chrome without an appetite config', async () => {
-        render(<MonteCarloPanel appetite={{ config: null, status: null }} />);
-        await waitFor(() => expect(screen.getByTestId('risk-mc-lec')).toBeInTheDocument());
+    it('renders no threshold chrome without an appetite config', () => {
+        render(<MonteCarloPanel appetite={{ config: null, status: null }} run={RUN} onReload={noReload} />);
+        expect(screen.getByTestId('risk-mc-lec')).toBeInTheDocument();
         expect(screen.queryByTestId('lec-portfolio-appetite-note')).toBeNull();
         expect(screen.queryByTestId('mc-per-risk-appetite-note')).toBeNull();
         // Percentile markers still render — they come from the run.
