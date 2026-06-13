@@ -103,7 +103,7 @@
     "@tiptap/starter-kit": "^3.24.0",
     "@tmcw/togeojson": "^7.1.2",
     "@turf/bbox": "^7.3.5",
-    "@types/diff": "^7.0.2",
+    "@types/diff": "^8.0.0",
     "@types/react-grid-layout": "^2.1.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.2",
