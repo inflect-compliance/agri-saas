@@ -250,4 +250,14 @@ describe('setEnabledModules', () => {
         const [, , payload] = (logEvent as jest.Mock).mock.calls[0];
         expect(payload.details).toContain('(none)');
     });
+
+    it('normalizes the input — drops unknown keys and dedupes — before persisting', async () => {
+        (ModuleSettingsRepository.upsert as jest.Mock).mockResolvedValue({
+            id: 'tms-1',
+            enabledModules: ['JOURNAL', 'INVENTORY'],
+        });
+        await setEnabledModules(adminCtx, ['JOURNAL', 'JOURNAL', 'NONSENSE', 'INVENTORY'] as never);
+        // The upsert receives a deduped, known-only list.
+        expect(ModuleSettingsRepository.upsert).toHaveBeenCalledWith(mockDb, adminCtx, ['JOURNAL', 'INVENTORY']);
+    });
 });

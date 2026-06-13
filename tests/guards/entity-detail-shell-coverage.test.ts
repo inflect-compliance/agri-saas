@@ -153,6 +153,10 @@ describe("EntityDetailLayout adoption — PR-4", () => {
       "src/app/t/[tenantSlug]/(app)/issues/[issueId]/page.tsx", // legacy redirect → /tasks/[id]
       "src/app/t/[tenantSlug]/(app)/admin/vendor-templates/[templateId]/page.tsx",
       "src/app/t/[tenantSlug]/(app)/admin/vendor-assessment-reviews/[assessmentId]/page.tsx",
+      // Offline operator PWA — phones-with-gloves field-execution surface
+      // (big touch targets, queue-and-sync). Intentionally NOT an
+      // EntityDetailLayout chrome page; it renders the operator panel.
+      "src/app/t/[tenantSlug]/(app)/field/[taskId]/page.tsx",
     ]);
 
     function walk(dir: string, out: string[] = []): string[] {

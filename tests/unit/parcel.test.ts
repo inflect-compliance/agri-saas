@@ -22,6 +22,7 @@ jest.mock('@/app-layer/repositories/ParcelRepository', () => ({
         softDeleteOne: jest.fn(),
         getOne: jest.fn(),
         boundsForLocation: jest.fn(),
+        isValidGeometry: jest.fn(),
     },
 }));
 
@@ -45,6 +46,7 @@ const square = {
 beforeEach(() => {
     jest.clearAllMocks();
     (ParcelRepository.boundsForLocation as jest.Mock).mockResolvedValue([0, 0, 0.01, 0.01]);
+    (ParcelRepository.isValidGeometry as jest.Mock).mockResolvedValue(true);
 });
 
 // ─── geometry validation ───────────────────────────────────────────
@@ -100,6 +102,13 @@ describe('createParcel', () => {
     it('READER cannot draw a parcel', async () => {
         await expect(createParcel(readerCtx, 'loc-1', { name: 'P', geometry: square })).rejects.toThrow(/permission/i);
     });
+
+    it('rejects an invalid (self-intersecting) polygon', async () => {
+        (mockDb.location.findFirst as jest.Mock).mockResolvedValue({ id: 'loc-1' });
+        (ParcelRepository.isValidGeometry as jest.Mock).mockResolvedValue(false);
+        await expect(createParcel(editorCtx, 'loc-1', { name: 'Bowtie', geometry: square })).rejects.toThrow(/invalid/i);
+        expect(ParcelRepository.createOne).not.toHaveBeenCalled();
+    });
 });
 
 // ─── updateParcel ──────────────────────────────────────────────────
@@ -125,6 +134,13 @@ describe('updateParcel', () => {
     it('404s an unknown parcel', async () => {
         (ParcelRepository.getOne as jest.Mock).mockResolvedValue(null);
         await expect(updateParcel(editorCtx, 'nope', { name: 'X' })).rejects.toThrow(/not found/i);
+    });
+
+    it('rejects a reshape to an invalid polygon', async () => {
+        (ParcelRepository.getOne as jest.Mock).mockResolvedValue({ id: 'par-1', name: 'P', locationId: 'loc-1' });
+        (ParcelRepository.isValidGeometry as jest.Mock).mockResolvedValue(false);
+        await expect(updateParcel(editorCtx, 'par-1', { geometry: square })).rejects.toThrow(/invalid/i);
+        expect(ParcelRepository.updateOne).not.toHaveBeenCalled();
     });
 });
 

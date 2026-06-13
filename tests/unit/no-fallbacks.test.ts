@@ -91,6 +91,13 @@ describe('Static Analysis: No process.env fallbacks', () => {
             // environments that don't set NEXT_PUBLIC_TEST_MODE
             // explicitly (e.g. jsdom + jest).
             if (file.endsWith('layout/ClientProviders.tsx')) continue;
+            // The operator-PWA service-worker registrar gates registration
+            // on `process.env.NODE_ENV === 'production'` — a SW intercepting
+            // fetches in dev fights Next.js HMR. Same rationale as the
+            // swr-devtools / docs-route prod gates: env.ts's snapshot
+            // freezes at import time, and a client prod-gate must read
+            // NODE_ENV directly.
+            if (file.endsWith('pwa/ServiceWorkerRegistrar.tsx')) continue;
             // use-calendar-badge gates the sidebar polling fetch via
             // NEXT_PUBLIC_TEST_MODE for the same build-time-inlining
             // reason. Two SidebarContent mounts × N test page loads

@@ -8,6 +8,7 @@ import {
     col,
     parseGeometry,
     locationParcelBoundsSql,
+    isValidGeometrySql,
 } from '@/lib/db/geo';
 import type { ParsedParcel } from '@/lib/spatial/parse';
 import type { Geometry, Polygon, MultiPolygon } from 'geojson';
@@ -169,6 +170,18 @@ export class ParcelRepository {
             where: { id: parcelId },
             data: { deletedAt: new Date(), deletedByUserId: ctx.userId ?? null },
         });
+    }
+
+    /**
+     * Topology check for a hand-drawn polygon (rejects self-intersections
+     * before they become a meaningless areaHa). Runs `ST_IsValid` via the
+     * geo helper so the `ST_*` stays contained in geo.ts.
+     */
+    static async isValidGeometry(db: PrismaTx, geometry: Polygon | MultiPolygon): Promise<boolean> {
+        const rows = await db.$queryRaw<Array<{ valid: boolean }>>(
+            Prisma.sql`SELECT ${isValidGeometrySql(geometry)} AS "valid"`,
+        );
+        return rows[0]?.valid === true;
     }
 
     /** Fetch one parcel's identity (ownership/location lookup). Tenant-scoped. */

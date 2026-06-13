@@ -44,6 +44,17 @@ export function col(name: string): Prisma.Sql {
 }
 
 /**
+ * SQL fragment evaluating to `true` when the GeoJSON geometry is
+ * topologically valid (no self-intersections, properly-closed rings).
+ * `ST_GeomFromGeoJSON` accepts self-intersecting polygons that then
+ * produce a meaningless `ST_Area`, so hand-drawn parcels are validated
+ * with this before they're persisted.
+ */
+export function isValidGeometrySql(geometry: Polygon | MultiPolygon): Prisma.Sql {
+    return Prisma.sql`ST_IsValid(${geometrySql(geometry)})`;
+}
+
+/**
  * Full query computing the WGS84 bounding box of all non-deleted parcels
  * of a location, as four corners (xmin/ymin/xmax/ymax = west/south/east/
  * north). Returns no row (or NULL corners) when the location has no

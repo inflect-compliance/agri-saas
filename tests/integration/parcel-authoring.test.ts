@@ -83,6 +83,15 @@ describeFn('parcel authoring (PostGIS)', () => {
         expect(res.areaHa).toBeGreaterThan(before * 3);
     });
 
+    test('rejects a self-intersecting polygon (real ST_IsValid)', async () => {
+        // A classic "bowtie" — the ring crosses itself.
+        const bowtie: Polygon = {
+            type: 'Polygon',
+            coordinates: [[[0, 0], [0.01, 0.01], [0.01, 0], [0, 0.01], [0, 0]]],
+        };
+        await expect(createParcel(ctx(), locationId, { name: 'Bowtie', geometry: bowtie })).rejects.toThrow(/invalid/i);
+    });
+
     test('deleteParcel soft-deletes and clears the location bounds', async () => {
         await deleteParcel(ctx(), parcelId);
         const row = await prisma.parcel.findUnique({ where: { id: parcelId }, select: { deletedAt: true } });

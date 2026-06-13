@@ -56,6 +56,10 @@ export async function createParcel(ctx: RequestContext, locationId: string, inpu
         });
         if (!location) throw notFound('Location not found');
 
+        if (!(await ParcelRepository.isValidGeometry(db, input.geometry))) {
+            throw badRequest('Parcel shape is invalid (edges cross). Redraw it without self-intersections.');
+        }
+
         const created = await ParcelRepository.createOne(db, ctx, locationId, {
             name,
             cropType: input.cropType ? sanitizePlainText(input.cropType.trim()) : null,
@@ -85,6 +89,10 @@ export async function updateParcel(ctx: RequestContext, parcelId: string, input:
     return runInTenantContext(ctx, async (db) => {
         const parcel = await ParcelRepository.getOne(db, ctx, parcelId);
         if (!parcel) throw notFound('Parcel not found');
+
+        if (input.geometry && !(await ParcelRepository.isValidGeometry(db, input.geometry))) {
+            throw badRequest('Parcel shape is invalid (edges cross). Redraw it without self-intersections.');
+        }
 
         const res = await ParcelRepository.updateOne(db, ctx, parcelId, {
             name: input.name !== undefined ? sanitizePlainText(input.name.trim()) : undefined,

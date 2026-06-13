@@ -1,0 +1,25 @@
+{
+  "name": "AgriSaaS — Field Operations",
+  "short_name": "AgriSaaS",
+  "description": "Map fields, log work, track stock — execute spray jobs in the field, online or off.",
+  "start_url": "/tenants",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b1220",
+  "theme_color": "#15803d",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ]
+}
