@@ -43,7 +43,7 @@ export const ParcelDTOSchema = z.object({
     geometry: z.unknown().nullable().optional(),
     properties: z.unknown().nullable().optional(),
 }).passthrough().openapi('Parcel', {
-    description: 'One imported parcel polygon. geometry is GeoJSON MultiPolygon in WGS84; areaHa is hectares (ST_Area).',
+    description: 'One imported parcel polygon. geometry is GeoJSON MultiPolygon in WGS84; areaHa is the on-ellipsoid area in hectares.',
 });
 
 export type ParcelDTO = z.infer<typeof ParcelDTOSchema>;
