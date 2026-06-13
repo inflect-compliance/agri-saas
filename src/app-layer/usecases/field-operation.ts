@@ -6,11 +6,12 @@ import { runInTenantContext } from '@/lib/db-context';
 import { createTask } from './task';
 import { WorkItemRepository, TaskLinkRepository } from '../repositories/WorkItemRepository';
 import { ParcelRepository } from '../repositories/ParcelRepository';
+import { TERMINAL_WORK_ITEM_STATUSES } from '../domain/work-item-status';
 
 type OperationType = 'SPRAY' | 'FERTILIZE' | 'SEED' | 'OTHER';
 type ParcelStatus = 'PENDING' | 'DONE' | 'SKIPPED';
 
-const TERMINAL_STATUSES = new Set(['RESOLVED', 'CLOSED', 'CANCELED']);
+const TERMINAL_STATUSES: readonly string[] = TERMINAL_WORK_ITEM_STATUSES;
 
 export interface CreateFieldOperationInput {
     title?: string;
@@ -218,7 +219,7 @@ export async function markOperationParcel(
 
         // Auto-resolve the job when no PENDING lines remain.
         let resolved = false;
-        if (status !== 'PENDING' && !TERMINAL_STATUSES.has(line.task.status)) {
+        if (status !== 'PENDING' && !TERMINAL_STATUSES.includes(line.task.status)) {
             const pending = await db.operationParcel.count({
                 where: { taskId, tenantId: ctx.tenantId, status: 'PENDING' },
             });

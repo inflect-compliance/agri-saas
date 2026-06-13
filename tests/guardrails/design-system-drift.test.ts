@@ -248,7 +248,11 @@ describe('New page token discipline', () => {
         // Each increment names the epic + page + reason; promotion
         // to MIGRATED_PAGES is the path forward, never silent
         // floor-bumping.
-        expect(unmigrated.length).toBeLessThanOrEqual(106);
+        //   - 109: Feature 1 (spray-prescription map) adds three new
+        //     surfaces — locations list (page + LocationsClient island)
+        //     and the location detail page. Semantic tokens throughout;
+        //     they count as new until promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(109);
     });
 
     it('migrated page count is at least 4', () => {

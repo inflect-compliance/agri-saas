@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { ListPageShell } from '@/components/layout/ListPageShell';
+import { DataTable, createColumns } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface LocationItem {
     id: string;
@@ -43,6 +45,30 @@ export function LocationsClient({ tenantSlug }: { tenantSlug: string }) {
         }
     };
 
+    const columns = useMemo(
+        () => createColumns<LocationItem>([
+            {
+                accessorKey: 'name',
+                header: 'Name',
+                cell: ({ row }) => (
+                    <Link
+                        href={`/t/${tenantSlug}/locations/${row.original.id}`}
+                        className="font-medium text-content-link hover:underline"
+                    >
+                        {row.original.name}
+                    </Link>
+                ),
+            },
+            { accessorKey: 'status', header: 'Status' },
+            {
+                id: 'parcels',
+                header: 'Parcels',
+                cell: ({ row }) => row.original._count?.parcels ?? 0,
+            },
+        ]),
+        [tenantSlug],
+    );
+
     const rows = data ?? [];
 
     return (
@@ -57,36 +83,22 @@ export function LocationsClient({ tenantSlug }: { tenantSlug: string }) {
                 </div>
             </ListPageShell.Header>
             <ListPageShell.Body>
-                {isLoading && !data ? (
-                    <div className="text-sm text-content-secondary">Loading…</div>
-                ) : rows.length === 0 ? (
-                    <div className="rounded-lg border border-border-default p-8 text-center text-sm text-content-secondary">
-                        No locations yet. Create one, then import a parcel file.
-                    </div>
-                ) : (
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border-default text-left text-content-secondary">
-                                <th className="py-2 pr-4 font-medium">Name</th>
-                                <th className="py-2 pr-4 font-medium">Status</th>
-                                <th className="py-2 pr-4 font-medium">Parcels</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((loc) => (
-                                <tr key={loc.id} className="border-b border-border-subtle hover:bg-bg-subtle">
-                                    <td className="py-2 pr-4">
-                                        <Link href={`/t/${tenantSlug}/locations/${loc.id}`} className="font-medium text-content-link hover:underline">
-                                            {loc.name}
-                                        </Link>
-                                    </td>
-                                    <td className="py-2 pr-4">{loc.status}</td>
-                                    <td className="py-2 pr-4">{loc._count?.parcels ?? 0}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
+                <DataTable
+                    fillBody
+                    data-testid="locations-table"
+                    data={rows}
+                    columns={columns}
+                    loading={isLoading && !data}
+                    getRowId={(l) => l.id}
+                    emptyState={(
+                        <EmptyState
+                            size="sm"
+                            variant="no-records"
+                            title="No locations yet"
+                            description="Create one, then import a shapefile, KML, or GeoJSON to populate parcels."
+                        />
+                    )}
+                />
             </ListPageShell.Body>
 
             <Modal showModal={showNew} setShowModal={setShowNew} size="md" title="New location" description="Create a field block.">

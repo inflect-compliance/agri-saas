@@ -229,6 +229,24 @@ const FK_INDEX_EXEMPT: Record<string, string> = {
     'VendorAssessmentAnswer.questionId': R_CHILD_VIA_PARENT,
     'VendorAssessmentAnswer.evidenceId': R_ONE_TO_ONE,
     'VendorEvidenceBundle.createdByUserId': R_ACTOR,
+
+    // ─── Agriculture (Feature 1 — spray-prescription map) ───
+    // Actor FKs — same R_ACTOR rationale as every createdBy/owner/
+    // completedBy reference above.
+    'Item.createdByUserId': R_ACTOR,
+    'Location.ownerUserId': R_ACTOR,
+    'Location.createdByUserId': R_ACTOR,
+    'OperationParcel.completedByUserId': R_ACTOR,
+    // Catalog / file references — reverse lookups are not Feature-1 query
+    // paths (access leads with [tenantId, …] / [tenantId, taskId]).
+    'Item.defaultUnitId':
+        'Feature 1 — Unit is a small global catalog; "items using unit X" is not a hot path. Revisit with the Phase 2 inventory module.',
+    'Location.spatialFileId':
+        'Feature 1 — near 1:1 to the original uploaded FileRecord; the reverse direction is never list-queried.',
+    'OperationParcel.productItemId':
+        'Feature 1 — "operations using product X" is deferred to the Phase 2 inventory ledger; per-job access is via [tenantId, taskId].',
+    'OperationParcel.doseUnitId':
+        'Feature 1 — Unit is a small global catalog; reverse lookup not on a hot path.',
 };
 
 // ─────────────────────────────────────────────────────────────────────
@@ -350,6 +368,15 @@ const LIST_QUERY_INDEXES: readonly CompositeIndex[] = [
 // curated composite index is needed."
 
 const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
+    // ─── Agriculture (Feature 1 — spray-prescription map) ───
+    Location:
+        'listLocations filters by tenantId + status and searches name/description, orders by createdAt — covered by @@index([tenantId, status]) / @@index([tenantId, name]); the paginated path is cursor-bounded.',
+    Parcel:
+        'Parcel is never tenant-wide list-queried — reads are scoped to a location (ParcelRepository.listForLocation, [tenantId, locationId]) or to an id set (validIdsForLocation, PK).',
+    Item:
+        'listItems filters by tenantId + category and searches name — covered by @@index([tenantId, category]) / @@index([tenantId, name]).',
+    OperationParcel:
+        'OperationParcel is read per-job (taskId + tenantId) — covered by @@index([tenantId, taskId]); status rollups use @@index([tenantId, status]).',
     // EI-3 — SCIM Groups listed/looked-up by tenantId (+ unique externalId);
     // covered by @@index([tenantId]) + @@unique([tenantId, externalId]); bounded take:200.
     ScimGroup:
