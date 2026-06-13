@@ -51,8 +51,11 @@ describe('Roadmap-16 PR-5 — DonutChart visual rebuild', () => {
             // The whole rebuild rides on visx's `<Pie>` arc
             // geometry. Without it, we're back to dasharray
             // and can't carry per-segment gradient fills.
+            // visx 4 ships ESM and dropped the deep
+            // `@visx/shape/lib/shapes/Pie` subpath export — `Pie`
+            // is now a named export of the package root.
             expect(DONUT_SRC).toMatch(
-                /import\s+Pie\s+from\s+['"]@visx\/shape\/lib\/shapes\/Pie['"]/,
+                /import\s*\{\s*Pie\s*\}\s*from\s*['"]@visx\/shape['"]/,
             );
         });
 
