@@ -50,6 +50,9 @@ const EXEMPTIONS: Record<string, string> = {
     // Agriculture (Feature 1) — lean locations roster.
     "src/app/t/[tenantSlug]/(app)/locations/LocationsClient.tsx":
         "Lean agriculture roster — name/status/parcel-count with no faceted filters yet; search/filter arrives with the Phase 2 inventory module.",
+    // Agriculture (Phase 1) — lean inventory lots roster.
+    "src/app/t/[tenantSlug]/(app)/inventory/InventoryClient.tsx":
+        "Lean inventory lots roster — lot/product/on-hand/expiry; faceted filtering (by item/low-stock) arrives once the catalog grows past a single screen.",
     // ── Cross-tenant read-only aggregation views (org-level) ──
     // These render a portfolio of tenant-scoped data without the
     // per-tenant filtering surface that FilterToolbar provides.

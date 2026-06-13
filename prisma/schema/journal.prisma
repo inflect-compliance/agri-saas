@@ -1,0 +1,83 @@
+// ═══════════════════════════════════════════════════════════════════
+//  JOURNAL DOMAIN — Phase 1: the field record (LogEntry + LogQuantity)
+// ═══════════════════════════════════════════════════════════════════
+//
+//  Design lineage: farmOS log-type ontology + Quantity (GPL-2.0 —
+//  CONCEPTS ONLY, reimplemented; no code copied; license-hygiene
+//  guardrail enforces).
+//
+//  Phase-1 scope is deliberately narrow: enough journal to make a spray
+//  job a compliant, inventory-accurate field record. When an
+//  OperationParcel is marked DONE the field-operation usecase emits one
+//  INPUT_APPLICATION LogEntry (the spray record) + a LogQuantity (the
+//  applied amount), and the StockTransaction it drives points back at
+//  the LogEntry. The full journal (LogLocation/LogEquipment/LogPlanting
+//  /LogEntryFile link tables, a quick-entry UI, PLANNED-as-task) is
+//  deferred — see docs/implementation-notes for the cut line.
+//
+//  Back-relations added elsewhere (Prisma needs both sides):
+//    • auth.prisma        Tenant:   logEntries LogEntry[]
+//    • auth.prisma        User:     LogEntryCreator
+//    • agriculture.prisma OperationParcel: logEntries LogEntry[]
+//    • agriculture.prisma Unit:     logQuantities LogQuantity[]
+//    • inventory.prisma   StockTransaction.logEntry → LogEntry
+// ═══════════════════════════════════════════════════════════════════
+
+/// A field event — the durable record of work done (or planned) on the
+/// farm. INPUT_APPLICATION is the traceability-critical spray/fertiliser
+/// record; free text runs through sanitizePlainText() at the usecase
+/// boundary like every write path (Epic D.2).
+model LogEntry {
+  id                String         @id @default(cuid())
+  tenantId          String
+  type              LogEntryType
+  status            LogEntryStatus @default(DONE)
+  /// When the event happened. Time matters for spray records.
+  occurredAt        DateTime
+  title             String
+  notes             String?
+  /// Spray-record compliance fields (wind, temp, operator cert no.,
+  /// REI/PHI). JSON until the certification module promotes what
+  /// schemes require.
+  conditionsJson    Json?
+  /// The spray prescription line this record was emitted from (simple
+  /// FK — OperationParcel has no [id, tenantId] barrier). Lets the job
+  /// answer "what did this application consume?".
+  operationParcelId String?
+  createdByUserId   String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  deletedAt         DateTime?
+  deletedByUserId   String?
+  retentionUntil    DateTime?
+
+  tenant          Tenant             @relation(fields: [tenantId], references: [id])
+  operationParcel OperationParcel?   @relation(fields: [operationParcelId], references: [id])
+  createdBy       User?              @relation("LogEntryCreator", fields: [createdByUserId], references: [id])
+  quantities      LogQuantity[]
+  stockTx         StockTransaction[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, type, occurredAt])
+  @@index([tenantId, status, occurredAt])
+  @@index([tenantId, operationParcelId])
+}
+
+/// farmOS Quantity: measure + value + unit + label. A spray record
+/// carries the applied amount (e.g. { VOLUME 42.5 "L applied" }).
+/// Cascade-deleted with its LogEntry.
+model LogQuantity {
+  id         String          @id @default(cuid())
+  tenantId   String
+  logEntryId String
+  measure    QuantityMeasure
+  value      Decimal         @db.Decimal(18, 6)
+  unitId     String
+  label      String?
+
+  logEntry LogEntry @relation(fields: [logEntryId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  unit     Unit     @relation("LogQuantityUnit", fields: [unitId], references: [id])
+
+  @@index([tenantId, logEntryId])
+  @@index([tenantId, unitId])
+}

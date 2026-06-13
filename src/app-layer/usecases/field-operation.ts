@@ -7,6 +7,7 @@ import { createTask } from './task';
 import { WorkItemRepository, TaskLinkRepository } from '../repositories/WorkItemRepository';
 import { ParcelRepository } from '../repositories/ParcelRepository';
 import { TERMINAL_WORK_ITEM_STATUSES } from '../domain/work-item-status';
+import { recordInputApplication, type InputApplicationResult } from './inventory';
 
 type OperationType = 'SPRAY' | 'FERTILIZE' | 'SEED' | 'OTHER';
 type ParcelStatus = 'PENDING' | 'DONE' | 'SKIPPED';
@@ -217,6 +218,25 @@ export async function markOperationParcel(
             },
         });
 
+        // Phase 1 — completing a line (from a non-DONE state) makes it a
+        // compliant, inventory-accurate spray record: emit the
+        // INPUT_APPLICATION journal entry + the CONSUMPTION ledger entry
+        // against the product's FEFO lot. Module-gated (JOURNAL /
+        // INVENTORY) inside recordInputApplication; a no-op when both are
+        // off, so this is backward-compatible with Feature 1. Un-completing
+        // does NOT auto-reverse (the ledger is append-only — post an
+        // ADJUSTMENT); re-completing re-emits a fresh application.
+        let application: InputApplicationResult | null = null;
+        if (status === 'DONE' && fromStatus !== 'DONE') {
+            application = await recordInputApplication(db, ctx, {
+                id: line.id,
+                parcelId: line.parcelId,
+                productItemId: line.productItemId,
+                doseValue: line.doseValue,
+                doseUnitId: line.doseUnitId,
+            });
+        }
+
         // Auto-resolve the job when no PENDING lines remain.
         let resolved = false;
         if (status !== 'PENDING' && !TERMINAL_STATUSES.includes(line.task.status)) {
@@ -242,7 +262,7 @@ export async function markOperationParcel(
             }
         }
 
-        return { success: true, resolved };
+        return { success: true, resolved, application };
     });
 }
 

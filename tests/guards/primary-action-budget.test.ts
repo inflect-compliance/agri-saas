@@ -60,6 +60,10 @@ const PRIMARY_BUDGET: Record<string, number> = {
     // and the create-modal confirm ("Create") are each the single primary
     // of their region (list header vs dialog) and never on screen together.
     "src/app/t/[tenantSlug]/(app)/locations/LocationsClient.tsx": 2,
+    // Agriculture (Phase 1) — inventory list: the "New lot" header CTA + the
+    // three dialog confirms (Create product / Create lot / Post movement),
+    // each the single primary of a distinct modal region, never co-visible.
+    "src/app/t/[tenantSlug]/(app)/inventory/InventoryClient.tsx": 4,
     // Automation Epic 3 — the rule builder is a step wizard: "Next"
     // (steps 1-2) and "Create/Save rule" (step 3) are each the single
     // primary of their step and are never on screen together. The static

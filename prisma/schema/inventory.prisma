@@ -1,0 +1,122 @@
+// ═══════════════════════════════════════════════════════════════════
+//  INVENTORY DOMAIN — Phase 1: lots + append-only stock ledger
+// ═══════════════════════════════════════════════════════════════════
+//
+//  Design lineage:
+//    • Item / lot / location tree — InvenTree (MIT; schema concepts
+//      translated, attribution in THIRD_PARTY_NOTICES.md).
+//    • Append-only StockTransaction ledger — ERPNext stock-ledger
+//      concept (reimplemented), hardened with the in-house AuditLog
+//      hash-chain pattern: entryHash = SHA-256(canonical(fields,
+//      previousHash)); UPDATE/DELETE forbidden by a DB trigger
+//      (mirrors the AuditLog immutable trigger). This is the
+//      food-safety traceability spine: product lot → field
+//      (LogEntry link) → consumed quantity.
+//
+//  Invariants (usecase-enforced; the ledger trigger is the backstop):
+//    • InventoryLot.quantityOnHand is a DENORMALIZED cache of
+//      SUM(StockTransaction.quantityDelta) for the lot — recomputed in
+//      the same transaction as every ledger append; never client-set.
+//    • Every append flows through src/lib/inventory/stock-ledger.ts
+//      (the only writer) so the per-tenant hash chain + the lot cache
+//      stay consistent. Direct StockTransaction writes from usecases
+//      are banned by tests/guardrails/no-direct-stock-writes.test.ts.
+//
+//  Focused Phase-1 scope: lot genealogy (LotLink split/merge),
+//  bin→bin TRANSFER from/to-location columns, and per-unit conversion
+//  are deferred — see docs/implementation-notes for the cut line.
+//
+//  Back-relations added elsewhere (Prisma needs both sides):
+//    • auth.prisma     Tenant: inventoryLots / stockTransactions
+//    • auth.prisma     User:   StockTxActor
+//    • agriculture.prisma Item:     lots InventoryLot[]
+//    • agriculture.prisma Location: inventoryLots InventoryLot[]
+//    • agriculture.prisma Unit:     invLots / stockTransactions
+//    • journal.prisma  LogEntry: stockTransactions StockTransaction[]
+// ═══════════════════════════════════════════════════════════════════
+
+/// A physical batch of an Item — one fertiliser-product delivery, one
+/// chemical batch. Lot granularity is what certification audits and
+/// recalls operate on. The unit is fixed at creation (defaults from
+/// Item.defaultUnit); quantityOnHand is the ledger-derived cache.
+model InventoryLot {
+  id               String    @id @default(cuid())
+  tenantId         String
+  itemId           String
+  /// Supplier batch no. or internal code; unique per item per tenant.
+  lotCode          String
+  /// Where the lot currently sits (a STORAGE/BARN Location). Position
+  /// only — there is no TRANSFER flow in Phase 1.
+  locationId       String?
+  expiresAt        DateTime?
+  receivedAt       DateTime?
+  /// Denormalised ledger sum — see file-header invariant. Never set by
+  /// a client/DTO; refreshed by the ledger writer on every append.
+  quantityOnHand   Decimal   @default(0) @db.Decimal(16, 4)
+  /// Unit fixed at lot creation; mixed-unit lots are forbidden.
+  unitId           String
+  /// Grain/batch attributes (moisture %, organic flag, …).
+  attributesJson   Json?
+  /// Per-unit acquisition cost (valuation snapshot source).
+  unitCostAmount   Decimal?  @db.Decimal(14, 4)
+  unitCostCurrency String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+  deletedByUserId  String?
+  retentionUntil   DateTime?
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  item         Item               @relation(fields: [itemId, tenantId], references: [id, tenantId])
+  location     Location?          @relation(fields: [locationId, tenantId], references: [id, tenantId])
+  unit         Unit               @relation("InventoryLotUnit", fields: [unitId], references: [id])
+  transactions StockTransaction[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, itemId, lotCode])
+  @@index([tenantId, itemId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, expiresAt])
+}
+
+/// THE LEDGER. Append-only; immutability enforced by a DB trigger
+/// (mirrors AuditLog) + a no-direct-writes guardrail. Every row carries
+/// the per-tenant hash chain (previousHash → entryHash) computed by the
+/// single ledger writer inside an advisory-locked transaction.
+model StockTransaction {
+  id            String               @id @default(cuid())
+  tenantId      String
+  lotId         String
+  type          StockTransactionType
+  /// Signed delta in `unitId` units: positive for RECEIPT/HARVEST_IN,
+  /// negative for CONSUMPTION/SALE_OUT/DISPOSAL, either for ADJUSTMENT.
+  quantityDelta Decimal              @db.Decimal(16, 4)
+  unitId        String
+  occurredAt    DateTime
+  /// Journal linkage — set for CONSUMPTION/HARVEST_IN so the
+  /// traceability walk pivots here (field → lot).
+  logEntryId    String?
+  /// Required (usecase-enforced) for ADJUSTMENT — the audited escape
+  /// hatch for count corrections.
+  reason        String?
+  /// Cost snapshot for this movement (valuation at transaction time).
+  costAmount    Decimal?             @db.Decimal(14, 2)
+  costCurrency  String?
+  actorUserId   String?
+  createdAt     DateTime             @default(now())
+  /// Per-tenant hash chain — same canonical SHA-256 discipline as
+  /// AuditLog. previousHash is null for the tenant's first entry.
+  previousHash  String?
+  entryHash     String
+
+  tenant   Tenant       @relation(fields: [tenantId], references: [id])
+  lot      InventoryLot @relation(fields: [lotId, tenantId], references: [id, tenantId])
+  unit     Unit         @relation("StockTransactionUnit", fields: [unitId], references: [id])
+  logEntry LogEntry?    @relation(fields: [logEntryId, tenantId], references: [id, tenantId])
+  actor    User?        @relation("StockTxActor", fields: [actorUserId], references: [id])
+
+  @@unique([id, tenantId])
+  @@index([tenantId, lotId, occurredAt])
+  @@index([tenantId, type, occurredAt])
+  @@index([tenantId, logEntryId])
+}

@@ -1001,3 +1001,41 @@ enum ModuleKey {
   PROCESSES
   AI
 }
+
+/// Phase-1 inventory ledger event types (ERPNext stock-ledger concept,
+/// reimplemented). Signed `quantityDelta`: RECEIPT/HARVEST_IN positive,
+/// CONSUMPTION/SALE_OUT/DISPOSAL negative, ADJUSTMENT either sign
+/// (reason required), TRANSFER paired. CONSUMPTION on spray completion
+/// carries a `logEntryId` so the journal and ledger reconcile.
+enum StockTransactionType {
+  RECEIPT
+  CONSUMPTION
+  HARVEST_IN
+  TRANSFER
+  ADJUSTMENT
+  SALE_OUT
+  DISPOSAL
+}
+
+/// Journal entry types (farmOS log-type ontology, reimplemented).
+/// INPUT_APPLICATION is the traceability-critical spray/fertiliser
+/// record auto-emitted on OperationParcel completion.
+enum LogEntryType {
+  ACTIVITY
+  OBSERVATION
+  INPUT_APPLICATION
+  SEEDING
+  TRANSPLANTING
+  HARVEST
+  IRRIGATION
+  MAINTENANCE
+  LAB_TEST
+  GRAZING
+}
+
+/// A PLANNED journal entry doubles as scheduled field work; DONE is the
+/// recorded field event. Spray-completion records are written DONE.
+enum LogEntryStatus {
+  PLANNED
+  DONE
+}

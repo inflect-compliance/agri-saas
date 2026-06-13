@@ -149,9 +149,12 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // Measured = 126.
 // WP-2 (module gating): +1 primary — the admin Modules settings page
 // "Save" CTA (one earned page primary, matching the notifications
-// settings Save). Measured = 127; ceiling at 127 (no headroom slot —
-// the next new primary must pay for itself with a demotion).
-const MAX_PRIMARY_COUNT = 127;
+// settings Save). Measured = 127.
+// Inventory ledger (Phase 1): +4 primaries — the inventory list "New lot"
+// header CTA + three modal confirms (Create product / Create lot / Post
+// movement), each the single primary of a distinct dialog region.
+// Measured = 131; ceiling at 131 (no headroom slot).
+const MAX_PRIMARY_COUNT = 131;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

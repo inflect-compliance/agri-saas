@@ -47,8 +47,11 @@ model Unit {
   measure   QuantityMeasure
   createdAt DateTime        @default(now())
 
-  itemsDefault Item[]            @relation("ItemDefaultUnit")
-  doseLines    OperationParcel[] @relation("OperationParcelDoseUnit")
+  itemsDefault      Item[]             @relation("ItemDefaultUnit")
+  doseLines         OperationParcel[]  @relation("OperationParcelDoseUnit")
+  invLots           InventoryLot[]     @relation("InventoryLotUnit")
+  stockTransactions StockTransaction[] @relation("StockTransactionUnit")
+  logQuantities     LogQuantity[]      @relation("LogQuantityUnit")
 }
 
 /// Tenant-scoped input-product catalog (the structured spray product).
@@ -62,6 +65,10 @@ model Item {
   category        ItemCategory
   sku             String?
   defaultUnitId   String
+  /// Low-stock alert threshold in defaultUnit (InvenTree pattern). The
+  /// lots list surfaces "low stock" when SUM(lot.quantityOnHand) drops
+  /// below it; null disables the check.
+  reorderLevel    Decimal?     @db.Decimal(14, 3)
   attributesJson  Json?
   createdByUserId String?
   createdAt       DateTime     @default(now())
@@ -74,6 +81,7 @@ model Item {
   defaultUnit    Unit              @relation("ItemDefaultUnit", fields: [defaultUnitId], references: [id])
   createdBy      User?             @relation("ItemCreator", fields: [createdByUserId], references: [id])
   operationLines OperationParcel[]
+  lots           InventoryLot[]
 
   @@unique([id, tenantId])
   @@index([tenantId, category])
@@ -105,11 +113,12 @@ model Location {
   deletedByUserId String?
   retentionUntil  DateTime?
 
-  tenant      Tenant      @relation(fields: [tenantId], references: [id])
-  owner       User?       @relation("LocationOwner", fields: [ownerUserId], references: [id])
-  createdBy   User?       @relation("LocationCreator", fields: [createdByUserId], references: [id])
-  spatialFile FileRecord? @relation("LocationSpatialFile", fields: [spatialFileId], references: [id])
-  parcels     Parcel[]
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  owner         User?          @relation("LocationOwner", fields: [ownerUserId], references: [id])
+  createdBy     User?          @relation("LocationCreator", fields: [createdByUserId], references: [id])
+  spatialFile   FileRecord?    @relation("LocationSpatialFile", fields: [spatialFileId], references: [id])
+  parcels       Parcel[]
+  inventoryLots InventoryLot[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, key])
@@ -165,12 +174,13 @@ model OperationParcel {
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
-  tenant      Tenant @relation(fields: [tenantId], references: [id])
-  task        Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  parcel      Parcel @relation(fields: [parcelId, tenantId], references: [id, tenantId])
-  product     Item   @relation(fields: [productItemId, tenantId], references: [id, tenantId])
-  doseUnit    Unit   @relation("OperationParcelDoseUnit", fields: [doseUnitId], references: [id])
-  completedBy User?  @relation("OperationParcelCompleter", fields: [completedByUserId], references: [id])
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  parcel      Parcel     @relation(fields: [parcelId, tenantId], references: [id, tenantId])
+  product     Item       @relation(fields: [productItemId, tenantId], references: [id, tenantId])
+  doseUnit    Unit       @relation("OperationParcelDoseUnit", fields: [doseUnitId], references: [id])
+  completedBy User?      @relation("OperationParcelCompleter", fields: [completedByUserId], references: [id])
+  logEntries  LogEntry[]
 
   @@unique([taskId, parcelId])
   @@index([tenantId, taskId])

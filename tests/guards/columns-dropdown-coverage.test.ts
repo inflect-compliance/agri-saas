@@ -42,6 +42,9 @@ const EXEMPTIONS: Record<string, string> = {
     // Agriculture (Feature 1) — lean locations roster, three fixed columns.
     "locations/LocationsClient.tsx":
         "(c) lean agriculture roster — three fixed columns (name/status/parcels); column-visibility gear deferred to the Phase 2 inventory module.",
+    // Agriculture (Phase 1) — lean inventory lots roster, four fixed columns.
+    "inventory/InventoryClient.tsx":
+        "(c) lean inventory roster — four fixed columns (lot/product/on-hand/expiry); column-visibility gear deferred until the lots table grows wider.",
     // ─── (a) Sub-components — parent owns the toolbar ──────────────
     // R13-PR10 — `admin/AdminClient.tsx` was deleted; audit log
     // moved to `admin/audit-log/AuditLogClient.tsx`. The new sub-

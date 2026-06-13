@@ -29,6 +29,7 @@ import {
     PanelLeftClose,
     PanelLeftOpen,
     MapPin,
+    Boxes,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -92,6 +93,7 @@ export function useNavSections(): NavSectionDef[] {
             items: [
                 { href: tenantHref('/assets'), label: 'Asset', icon: Building2 },
                 { href: tenantHref('/locations'), label: 'Location', icon: MapPin },
+                { href: tenantHref('/inventory'), label: 'Inventory', icon: Boxes },
                 { href: tenantHref('/risks'), label: 'Risk', icon: AlertTriangle },
                 { href: tenantHref('/controls'), label: 'Control', icon: ShieldCheck },
             ],

@@ -258,7 +258,12 @@ describe('New page token discipline', () => {
         //     <Heading>/<PageBreadcrumbs>/cardVariants); in the unmigrated
         //     tally only because the surface is new and not yet promoted
         //     to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(110);
+        //   - 112 (+2): inventory ledger — inventory/page.tsx shim +
+        //     inventory/InventoryClient.tsx (the lots list + ledger
+        //     surface). Token-clean (semantic tokens + platform primitives:
+        //     DataTable/Modal/Combobox/DatePicker/ToggleGroup/StatusBadge);
+        //     new surfaces, not yet promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(112);
     });
 
     it('migrated page count is at least 4', () => {

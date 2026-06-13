@@ -220,12 +220,16 @@ model Tenant {
   organization                      Organization?                      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   // Agriculture domain (Feature 1).
-  locations        Location[]
-  parcels          Parcel[]
-  items            Item[]
-  operationParcels OperationParcel[]
+  locations         Location[]
+  parcels           Parcel[]
+  items             Item[]
+  operationParcels  OperationParcel[]
   // WP-2 — per-tenant module gating.
-  moduleSettings   TenantModuleSettings?
+  moduleSettings    TenantModuleSettings?
+  // Phase 1 — inventory ledger + journal.
+  inventoryLots     InventoryLot[]
+  stockTransactions StockTransaction[]
+  logEntries        LogEntry[]
 
   @@index([organizationId])
 }
@@ -756,6 +760,9 @@ model User {
   locationsCreated              Location[]                   @relation("LocationCreator")
   itemsCreated                  Item[]                       @relation("ItemCreator")
   operationParcelsCompleted     OperationParcel[]            @relation("OperationParcelCompleter")
+  // Phase 1 — inventory ledger + journal.
+  stockTxActed                  StockTransaction[]           @relation("StockTxActor")
+  logEntriesCreated             LogEntry[]                   @relation("LogEntryCreator")
 }
 
 model Account {
