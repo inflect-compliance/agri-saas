@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "rootDir": ".",
     "target": "ES2017",
     "lib": [
       "dom",
@@ -26,8 +27,7 @@
       "@/*": [
         "./src/*"
       ]
-    },
-    "baseUrl": "."
+    }
   },
   "include": [
     "next-env.d.ts",
