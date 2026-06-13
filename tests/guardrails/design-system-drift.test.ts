@@ -263,7 +263,11 @@ describe('New page token discipline', () => {
         //     surface). Token-clean (semantic tokens + platform primitives:
         //     DataTable/Modal/Combobox/DatePicker/ToggleGroup/StatusBadge);
         //     new surfaces, not yet promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(112);
+        //   - 113 (+1): offline operator PWA — field/[taskId]/page.tsx, the
+        //     phones-with-gloves field-execution surface. Token-clean
+        //     (semantic tokens + Button/StatusBadge/Heading/MapCanvas);
+        //     new surface, not yet promoted.
+        expect(unmigrated.length).toBeLessThanOrEqual(113);
     });
 
     it('migrated page count is at least 4', () => {

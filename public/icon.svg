@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AgriSaaS">
+  <rect width="512" height="512" rx="96" fill="#15803d"/>
+  <!-- stylised furrows / field rows -->
+  <g fill="none" stroke="#bbf7d0" stroke-width="22" stroke-linecap="round">
+    <path d="M104 360 C 180 300, 332 300, 408 360"/>
+    <path d="M104 300 C 180 240, 332 240, 408 300"/>
+    <path d="M104 240 C 180 180, 332 180, 408 240"/>
+  </g>
+  <!-- sprout -->
+  <g fill="#bbf7d0">
+    <path d="M256 196 C 256 150, 232 120, 196 116 C 200 156, 224 184, 256 196 Z"/>
+    <path d="M256 196 C 256 150, 280 120, 316 116 C 312 156, 288 184, 256 196 Z"/>
+  </g>
+  <rect x="248" y="188" width="16" height="56" rx="8" fill="#bbf7d0"/>
+</svg>

@@ -3,12 +3,16 @@ import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { Providers } from './providers';
+import { ServiceWorkerRegistrar } from '@/components/pwa/ServiceWorkerRegistrar';
 import { CSP_NONCE_HEADER } from '@/lib/security/csp';
 import './globals.css';
 
 export const metadata: Metadata = {
     title: 'Inflect Compliance — Платформа за съответствие по ISO 27001',
     description: 'Цялостно управление на съответствието по ISO 27001:2022 с карти на SOC 2 и NIS2.',
+    // Operator PWA — installable field-ops client (queue-and-sync).
+    manifest: '/manifest.webmanifest',
+    appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'AgriSaaS' },
 };
 
 /**
@@ -101,6 +105,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 )}
             </head>
             <body suppressHydrationWarning nonce={nonce}>
+                <ServiceWorkerRegistrar />
                 <Providers>
                     <NextIntlClientProvider messages={messages} locale={locale}>
                         {children}
