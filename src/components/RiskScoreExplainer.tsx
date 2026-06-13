@@ -86,17 +86,23 @@ export function RiskScoreExplainer({
         description: 'Close the risk score explainer',
     });
 
+    // RQ3-OB-B — load fn is hoisted so the Retry affordance can
+    // call it without re-triggering open-change semantics.
+    const loadExplanation = () => {
+        setState('loading');
+        fetch(`/api/t/${tenantSlug}/risks/${riskId}/score-explanation`)
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))))
+            .then((d) => {
+                setData(d);
+                setState('idle');
+            })
+            .catch(() => setState('error'));
+    };
+
     const onOpenChange = (next: boolean) => {
         setOpen(next);
         if (next && !data && state !== 'loading') {
-            setState('loading');
-            fetch(`/api/t/${tenantSlug}/risks/${riskId}/score-explanation`)
-                .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))))
-                .then((d) => {
-                    setData(d);
-                    setState('idle');
-                })
-                .catch(() => setState('error'));
+            loadExplanation();
         }
     };
 
@@ -116,7 +122,17 @@ export function RiskScoreExplainer({
                         <p className="text-content-muted">Loading explanation…</p>
                     )}
                     {state === 'error' && (
-                        <p className="text-content-muted">Couldn&apos;t load the explanation.</p>
+                        <div className="space-y-tight" data-testid="score-explainer-error">
+                            <p className="text-content-muted">Couldn&apos;t load the explanation.</p>
+                            <button
+                                type="button"
+                                onClick={loadExplanation}
+                                className="text-content-emphasis underline hover:text-content-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                data-testid="score-explainer-retry"
+                            >
+                                Retry
+                            </button>
+                        </div>
                     )}
                     {data && (
                         <>

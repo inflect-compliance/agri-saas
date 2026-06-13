@@ -5,7 +5,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { formatDate } from '@/lib/format-date';
-import { SkeletonCard } from '@/components/ui/skeleton';
+import { SkeletonCard, SkeletonDetailPage } from '@/components/ui/skeleton';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useTenantContext, useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
@@ -305,9 +305,14 @@ export default function RiskDetailPage() {
         { label: risk?.title ?? 'Risk' },
     ];
     if (loading) {
+        // RQ3-OB-B — structured skeleton instead of an empty shell.
+        // The empty `<>` left a flash of bare layout chrome on slow
+        // detail-page loads; `SkeletonDetailPage` paints the breadcrumb,
+        // title, meta pills, and a card stub so the page reads as
+        // intentional content rather than as a render miss.
         return (
             <EntityDetailLayout loading title="" breadcrumbs={breadcrumbs}>
-                <></>
+                <SkeletonDetailPage />
             </EntityDetailLayout>
         );
     }

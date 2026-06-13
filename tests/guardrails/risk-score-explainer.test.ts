@@ -42,15 +42,27 @@ describe('RQ2-3 — score chips explain themselves', () => {
     });
 
     test('the explainer lazy-fetches on open — no eager per-chip fetch', () => {
-        // The fetch lives inside the open-change handler…
+        // RQ3-OB-B — the fetch was hoisted into `loadExplanation`
+        // so the Retry affordance can re-fire the same path. The
+        // open-change handler now calls `loadExplanation()` instead
+        // of inlining the fetch.
         const handler = component.slice(
             component.indexOf('const onOpenChange'),
             component.indexOf('return ('),
         );
-        expect(handler).toMatch(/fetch\(/);
-        // …and nowhere else (a useEffect-fetch on mount would fire
-        // once per rendered chip).
+        expect(handler).toMatch(/loadExplanation\(\)/);
+        // The hoisted load fn is the single fetch site.
+        const loadFn = component.slice(
+            component.indexOf('const loadExplanation'),
+            component.indexOf('const onOpenChange'),
+        );
+        expect(loadFn).toMatch(/fetch\(/);
+        // No useEffect-fetch on mount (that would fire once per
+        // rendered chip on a list page).
         expect(component).not.toMatch(/useEffect/);
+        // Exactly one fetch call in the whole component — the one
+        // inside loadExplanation, reused by both open-change AND
+        // the Retry button.
         const fetches = component.match(/fetch\(/g) ?? [];
         expect(fetches).toHaveLength(1);
     });

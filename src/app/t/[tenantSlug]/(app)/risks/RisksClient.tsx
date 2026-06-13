@@ -333,6 +333,17 @@ function RisksPageInner({
                     return r.threat || '';
                 case 'inherentScore':
                     return r.inherentScore || 0;
+                // RQ3-OB-B — ALE sortability. The risks list already
+                // surfaces an ALE chip next to the score; making the
+                // column sortable lets an analyst pivot a register
+                // of 200 risks into "the ones the money points at".
+                // Honest-null: un-quantified rows sort as -Infinity
+                // so they cluster at the bottom on desc (where you
+                // want them) and at the top on asc.
+                case 'ale': {
+                    const v = riskAle(r);
+                    return v ?? -Infinity;
+                }
                 case 'treatment':
                     return r.treatment || '';
                 case 'status':
@@ -350,7 +361,7 @@ function RisksPageInner({
         });
     }, [rawRisks, sortBy, sortOrder]);
     const sortableRiskColumns = useMemo(
-        () => ['title', 'asset', 'threat', 'inherentScore', 'treatment', 'status'],
+        () => ['title', 'asset', 'threat', 'inherentScore', 'ale', 'treatment', 'status'],
         [],
     );
 
@@ -717,6 +728,26 @@ function RisksPageInner({
                             {band.name}
                         </span>
                     </Tooltip>
+                );
+            },
+        },
+        {
+            // RQ3-OB-B — dedicated ALE column. The inline chip next
+            // to the score (above) keeps the qual↔quant side-by-side
+            // (RQ2-5 / RQ3-4); THIS column adds sortability — a
+            // 200-row register pivots to "the ones the money points
+            // at" via the column header.
+            id: 'ale',
+            header: 'ALE',
+            accessorFn: (r) => riskAle(r) ?? null,
+            cell: ({ getValue }) => {
+                const ale = getValue<number | null>();
+                return ale !== null ? (
+                    <span className="text-xs tabular-nums text-content-muted">
+                        {formatCompactCurrency(ale)}
+                    </span>
+                ) : (
+                    <span className="text-xs text-content-subtle">—</span>
                 );
             },
         },

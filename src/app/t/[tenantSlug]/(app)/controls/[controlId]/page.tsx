@@ -5,7 +5,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { formatDate, formatDateTime } from '@/lib/format-date';
-import { SkeletonCard } from '@/components/ui/skeleton';
+import { SkeletonCard, SkeletonDetailPage } from '@/components/ui/skeleton';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
@@ -609,9 +609,13 @@ export default function ControlDetailPage() {
     // EntityDetailLayout — same skeleton + same error/empty copy
     // every detail page in Inflect uses.
     if (loading) {
+        // RQ3-OB-B — structured skeleton instead of an empty shell.
+        // Mirrors the risk detail page; the empty children left a
+        // flash of bare layout chrome before the page-data SWR call
+        // resolved.
         return (
             <EntityDetailLayout loading title="">
-                {null}
+                <SkeletonDetailPage />
             </EntityDetailLayout>
         );
     }
