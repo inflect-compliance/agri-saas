@@ -145,6 +145,54 @@ export async function appendStockTransaction(
     };
 }
 
+// ─── Lot genealogy (append-only provenance graph) ───────────────────
+
+export interface LotLinkInput {
+    /** The source/consumed lot (e.g. a seed or fertiliser lot). */
+    parentLotId: string;
+    /** The produced lot (e.g. the HARVEST_IN lot). */
+    childLotId: string;
+    type?: 'DERIVATION' | 'SPLIT' | 'MERGE';
+    /** The HARVEST journal entry that recorded this derivation. */
+    logEntryId?: string | null;
+    note?: string | null;
+    actorUserId?: string | null;
+}
+
+/**
+ * Append one lot-genealogy edge. Like the ledger, LotLink is append-only
+ * (a DB trigger blocks UPDATE/DELETE) and is the SECOND table written
+ * only here, so `no-direct-stock-writes` can cover both. The write is
+ * idempotent on the `(tenantId, parentLotId, childLotId)` unique edge
+ * (`skipDuplicates`), and a self-edge (`parent === child`) is rejected
+ * outright — a lot can never be its own ancestor. MUST run inside a
+ * `runInTenantContext` transaction.
+ */
+export async function appendLotLink(
+    db: PrismaTx,
+    ctx: RequestContext,
+    input: LotLinkInput,
+): Promise<{ created: boolean }> {
+    if (input.parentLotId === input.childLotId) {
+        return { created: false };
+    }
+    const res = await db.lotLink.createMany({
+        data: [
+            {
+                tenantId: ctx.tenantId,
+                parentLotId: input.parentLotId,
+                childLotId: input.childLotId,
+                type: input.type ?? 'DERIVATION',
+                logEntryId: input.logEntryId ?? null,
+                note: input.note ?? null,
+                actorUserId: input.actorUserId ?? ctx.userId ?? null,
+            },
+        ],
+        skipDuplicates: true,
+    });
+    return { created: res.count > 0 };
+}
+
 export interface StockChainVerification {
     tenantId: string;
     totalEntries: number;

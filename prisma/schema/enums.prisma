@@ -472,6 +472,11 @@ enum NotificationType {
   // overdue vendor (routed to the vendor's `ownerUserId`). Bumps
   // the date forward by the cadence so the reminder isn't spam.
   VENDOR_REVIEW_DUE
+  // Phase 1 inventory (2026-06-14) — fired by the `low-stock-monitor`
+  // daily job when an item's total on-hand (Σ lot quantityOnHand) drops
+  // below `Item.reorderLevel`. One bell notification per (item, owner,
+  // day); routed to the tenant's OWNER/ADMIN members.
+  LOW_STOCK
   GENERAL
 }
 
@@ -1038,4 +1043,16 @@ enum LogEntryType {
 enum LogEntryStatus {
   PLANNED
   DONE
+}
+
+/// Lot genealogy edge kind (OFBiz lot-genealogy concept, reimplemented).
+/// DERIVATION: the child lot was produced using the parent — a harvest
+/// lot derived from the seed/fertiliser/pesticide lots consumed on its
+/// field. SPLIT: one parent lot divided into several child lots. MERGE:
+/// several parent lots combined into one. Phase 1 wires DERIVATION on
+/// harvest; SPLIT/MERGE are reserved for repackaging/re-lotting.
+enum LotLinkType {
+  DERIVATION
+  SPLIT
+  MERGE
 }

@@ -9,7 +9,7 @@ import { InventoryRepository } from '../repositories/InventoryRepository';
 import { JournalRepository } from '../repositories/JournalRepository';
 import { ModuleSettingsRepository } from '../repositories/ModuleSettingsRepository';
 import { resolveEnabledModules } from '@/lib/modules';
-import { appendStockTransaction } from '@/lib/inventory/stock-ledger';
+import { appendStockTransaction, appendLotLink } from '@/lib/inventory/stock-ledger';
 
 /**
  * Inventory — lots + the append-only stock ledger.
@@ -318,4 +318,253 @@ export async function recordInputApplication(
     }
 
     return { journalEntryId, consumed, deductedFromLotId, note };
+}
+
+// ─── Harvest → lot wiring (HARVEST_IN + genealogy) ─────────────────
+
+/** What a HARVEST journal entry needs to mint an output lot. */
+export interface HarvestLotInput {
+    /** The HARVEST LogEntry that produced this lot (provenance link). */
+    logEntryId: string;
+    /** The harvested-produce Item the new lot holds. */
+    itemId: string;
+    /** Harvested amount (positive); posted as the HARVEST_IN delta. */
+    quantity: number;
+    /** Optional explicit lot code; auto-derived from the entry otherwise. */
+    lotCode?: string | null;
+    /** Storage Location the harvest lot lands in (a barn/silo). */
+    locationId?: string | null;
+    expiresAt?: string | null;
+    /** The field harvested — drives both the recorded provenance and the
+     *  DERIVATION genealogy (input lots consumed on this parcel). */
+    parcelId?: string | null;
+    /** Extra explicit parent lots to link (seed lots not auto-discovered). */
+    sourceLotIds?: string[];
+    costAmount?: number | null;
+    costCurrency?: string | null;
+}
+
+export interface HarvestLotResult {
+    lotId: string | null;
+    lotCode: string | null;
+    /** How many DERIVATION genealogy edges were recorded. */
+    derivedFrom: number;
+    note?: 'inventory_disabled' | 'item_not_found' | 'zero_quantity';
+}
+
+/**
+ * Mint the inventory lot a HARVEST journal entry produces, post its
+ * HARVEST_IN ledger entry, and record lot genealogy. Runs INSIDE the
+ * caller's tenant transaction (`db`) — called from `journal.createLogEntry`
+ * when a HARVEST entry carries a `harvest` payload. INVENTORY-module
+ * gated: with inventory off the journal entry still stands, no lot is
+ * minted. Genealogy: every input lot CONSUMED on `parcelId` (plus any
+ * explicit `sourceLotIds`) becomes a DERIVATION parent of the harvest
+ * lot, so the traceability walk threads seed-lot → field → harvest-lot.
+ */
+export async function recordHarvestLot(
+    db: PrismaTx,
+    ctx: RequestContext,
+    input: HarvestLotInput,
+): Promise<HarvestLotResult> {
+    const modules = resolveEnabledModules(await ModuleSettingsRepository.get(db, ctx));
+    if (!modules.includes('INVENTORY')) {
+        return { lotId: null, lotCode: null, derivedFrom: 0, note: 'inventory_disabled' };
+    }
+    if (!(input.quantity > 0)) {
+        return { lotId: null, lotCode: null, derivedFrom: 0, note: 'zero_quantity' };
+    }
+
+    const item = await InventoryRepository.getItem(db, ctx, input.itemId);
+    if (!item) {
+        return { lotId: null, lotCode: null, derivedFrom: 0, note: 'item_not_found' };
+    }
+
+    const lotCode =
+        sanitizePlainText((input.lotCode ?? '').trim()) ||
+        `HARV-${new Date().toISOString().slice(0, 10)}-${input.logEntryId.slice(-6)}`;
+
+    const lot = await InventoryRepository.createLot(db, ctx, {
+        itemId: item.id,
+        lotCode,
+        unitId: item.defaultUnitId,
+        locationId: input.locationId ?? null,
+        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        receivedAt: new Date(),
+        ...(input.parcelId ? { attributesJson: { harvestedFromParcelId: input.parcelId } } : {}),
+    });
+
+    // HARVEST_IN — the output stock, chained + linked to the journal entry.
+    await appendStockTransaction(db, ctx, {
+        lotId: lot.id,
+        type: 'HARVEST_IN',
+        quantityDelta: input.quantity,
+        unitId: lot.unitId,
+        logEntryId: input.logEntryId,
+        costAmount: input.costAmount ?? null,
+        costCurrency: input.costCurrency ?? null,
+        actorUserId: ctx.userId ?? null,
+    });
+
+    // Genealogy — input lots consumed on the field + any explicit sources.
+    const parentIds = new Set<string>(input.sourceLotIds ?? []);
+    if (input.parcelId) {
+        for (const id of await InventoryRepository.findInputLotsConsumedOnParcel(db, ctx, input.parcelId)) {
+            parentIds.add(id);
+        }
+    }
+    parentIds.delete(lot.id); // never self-derive
+    let derivedFrom = 0;
+    for (const parentLotId of parentIds) {
+        const { created } = await appendLotLink(db, ctx, {
+            parentLotId,
+            childLotId: lot.id,
+            type: 'DERIVATION',
+            logEntryId: input.logEntryId,
+        });
+        if (created) derivedFrom += 1;
+    }
+
+    await logEvent(db, ctx, {
+        action: 'HARVEST_LOT_CREATED',
+        entityType: 'InventoryLot',
+        entityId: lot.id,
+        details: `Harvest produced lot ${lot.lotCode} of ${item.name} (${input.quantity})`,
+        detailsJson: {
+            category: 'entity_lifecycle',
+            entityName: 'InventoryLot',
+            operation: 'created',
+            after: { itemId: item.id, lotCode: lot.lotCode, quantity: input.quantity, derivedFrom },
+            summary: `Harvest lot ${lot.lotCode} created from ${derivedFrom} input lot(s)`,
+        },
+    });
+
+    return { lotId: lot.id, lotCode: lot.lotCode, derivedFrom };
+}
+
+// ─── Traceability walk (seed-lot → field → harvest-lot) ────────────
+
+const TRACE_MAX_DEPTH = 12;
+
+export interface TraceLotNode {
+    id: string;
+    lotCode: string;
+    item: { id: string; name: string; category: string };
+    unitSymbol: string;
+    quantityOnHand: number;
+    /** Fields this lot touched — consumed-on parcels + (harvest) source field. */
+    fields: { id: string; name: string }[];
+}
+
+export interface TraceLotEdge {
+    parentLotId: string;
+    childLotId: string;
+    type: string;
+}
+
+export interface TraceLotResult {
+    root: TraceLotNode;
+    /** Upstream input/seed lots (BFS up the genealogy graph). */
+    ancestors: TraceLotNode[];
+    /** Downstream harvest/output lots (BFS down). */
+    descendants: TraceLotNode[];
+    edges: TraceLotEdge[];
+}
+
+/**
+ * Walk a lot's provenance both ways: ancestors (the seed/input lots it
+ * derives from) and descendants (the harvest lots derived from it),
+ * annotating every lot with the fields it touched. This is the
+ * food-safety recall query — "given this seed lot, which fields and which
+ * harvest lots are implicated?" and its inverse.
+ */
+export async function traceLot(ctx: RequestContext, rootLotId: string): Promise<TraceLotResult> {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const [root] = await InventoryRepository.getLotsByIds(db, ctx, [rootLotId]);
+        if (!root) throw notFound('Lot not found');
+
+        const edges: TraceLotEdge[] = [];
+        const seen = new Set<string>([rootLotId]);
+
+        // BFS up (ancestors) and down (descendants), one query per level.
+        const ancestorIds = new Set<string>();
+        let frontier = [rootLotId];
+        for (let depth = 0; depth < TRACE_MAX_DEPTH && frontier.length; depth++) {
+            const links = await InventoryRepository.listParentLinks(db, ctx, frontier);
+            const next: string[] = [];
+            for (const l of links) {
+                edges.push({ parentLotId: l.parentLotId, childLotId: l.childLotId, type: l.type });
+                if (!seen.has(l.parentLotId)) {
+                    seen.add(l.parentLotId);
+                    ancestorIds.add(l.parentLotId);
+                    next.push(l.parentLotId);
+                }
+            }
+            frontier = next;
+        }
+
+        const descendantIds = new Set<string>();
+        frontier = [rootLotId];
+        const seenDown = new Set<string>([rootLotId]);
+        for (let depth = 0; depth < TRACE_MAX_DEPTH && frontier.length; depth++) {
+            const links = await InventoryRepository.listChildLinks(db, ctx, frontier);
+            const next: string[] = [];
+            for (const l of links) {
+                edges.push({ parentLotId: l.parentLotId, childLotId: l.childLotId, type: l.type });
+                if (!seenDown.has(l.childLotId)) {
+                    seenDown.add(l.childLotId);
+                    descendantIds.add(l.childLotId);
+                    next.push(l.childLotId);
+                }
+            }
+            frontier = next;
+        }
+
+        const allIds = [rootLotId, ...ancestorIds, ...descendantIds];
+        const lots = await InventoryRepository.getLotsByIds(db, ctx, allIds);
+
+        // Fields per lot: consumed-on parcels + (harvest) recorded source field.
+        const consumptions = await InventoryRepository.findConsumptionParcels(db, ctx, allIds);
+        const fieldsByLot = new Map<string, Map<string, string>>();
+        const addField = (lotId: string, id: string | undefined, name: string | undefined) => {
+            if (!id || !name) return;
+            if (!fieldsByLot.has(lotId)) fieldsByLot.set(lotId, new Map());
+            fieldsByLot.get(lotId)!.set(id, name);
+        };
+        for (const c of consumptions) {
+            addField(c.lotId, c.logEntry?.operationParcel?.parcel?.id, c.logEntry?.operationParcel?.parcel?.name);
+        }
+        // Harvest lots record their source field in attributesJson; resolve names in one query.
+        const harvestParcelIds = new Map<string, string>(); // lotId → parcelId
+        for (const l of lots) {
+            const pid = (l.attributesJson as { harvestedFromParcelId?: string } | null)?.harvestedFromParcelId;
+            if (pid) harvestParcelIds.set(l.id, pid);
+        }
+        if (harvestParcelIds.size) {
+            const parcels = await db.parcel.findMany({
+                where: { tenantId: ctx.tenantId, id: { in: [...new Set(harvestParcelIds.values())] } },
+                select: { id: true, name: true },
+            });
+            const pname = new Map(parcels.map((p) => [p.id, p.name]));
+            for (const [lotId, pid] of harvestParcelIds) addField(lotId, pid, pname.get(pid));
+        }
+
+        const toNode = (l: (typeof lots)[number]): TraceLotNode => ({
+            id: l.id,
+            lotCode: l.lotCode,
+            item: { id: l.item.id, name: l.item.name, category: l.item.category },
+            unitSymbol: l.unit.symbol,
+            quantityOnHand: toNum(l.quantityOnHand),
+            fields: [...(fieldsByLot.get(l.id) ?? new Map()).entries()].map(([id, name]) => ({ id, name })),
+        });
+        const byId = new Map(lots.map((l) => [l.id, l]));
+
+        return {
+            root: toNode(byId.get(rootLotId)!),
+            ancestors: [...ancestorIds].map((id) => byId.get(id)).filter(Boolean).map((l) => toNode(l!)),
+            descendants: [...descendantIds].map((id) => byId.get(id)).filter(Boolean).map((l) => toNode(l!)),
+            edges,
+        };
+    });
 }

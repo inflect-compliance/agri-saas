@@ -119,4 +119,91 @@ export class InventoryRepository {
             select: { id: true, unitId: true, lotCode: true, quantityOnHand: true },
         });
     }
+
+    // ─── Lot genealogy + traceability (Phase 1 follow-up) ───────────
+
+    /**
+     * Batch-hydrate lots by id for the traceability walk — one query for
+     * a whole BFS level (never a per-node read). `attributesJson` carries
+     * `harvestedFromParcelId` for HARVEST_IN lots.
+     */
+    static async getLotsByIds(db: PrismaTx, ctx: RequestContext, ids: string[]) {
+        if (ids.length === 0) return [];
+        return db.inventoryLot.findMany({ // guardrail-allow: unbounded — bounded by the id:{in} BFS frontier (≤ TRACE_MAX_DEPTH × 500)
+            where: { tenantId: ctx.tenantId, id: { in: ids } },
+            select: {
+                id: true,
+                lotCode: true,
+                quantityOnHand: true,
+                attributesJson: true,
+                receivedAt: true,
+                item: { select: { id: true, name: true, category: true } },
+                unit: { select: { id: true, symbol: true } },
+            },
+        });
+    }
+
+    /** Genealogy edges INTO a set of child lots (one BFS level up). */
+    static async listParentLinks(db: PrismaTx, ctx: RequestContext, childLotIds: string[]) {
+        if (childLotIds.length === 0) return [];
+        return db.lotLink.findMany({
+            where: { tenantId: ctx.tenantId, childLotId: { in: childLotIds } },
+            select: { parentLotId: true, childLotId: true, type: true, logEntryId: true },
+            take: 500,
+        });
+    }
+
+    /** Genealogy edges OUT of a set of parent lots (one BFS level down). */
+    static async listChildLinks(db: PrismaTx, ctx: RequestContext, parentLotIds: string[]) {
+        if (parentLotIds.length === 0) return [];
+        return db.lotLink.findMany({
+            where: { tenantId: ctx.tenantId, parentLotId: { in: parentLotIds } },
+            select: { parentLotId: true, childLotId: true, type: true, logEntryId: true },
+            take: 500,
+        });
+    }
+
+    /**
+     * The fields (parcels) a set of lots was CONSUMED on — walks the
+     * ledger's `logEntry → operationParcel → parcel` chain. One query for
+     * all lots; the caller groups by `lotId` in memory.
+     */
+    static async findConsumptionParcels(db: PrismaTx, ctx: RequestContext, lotIds: string[]) {
+        if (lotIds.length === 0) return [];
+        return db.stockTransaction.findMany({
+            where: { tenantId: ctx.tenantId, type: 'CONSUMPTION', lotId: { in: lotIds } },
+            select: {
+                lotId: true,
+                occurredAt: true,
+                logEntry: {
+                    select: {
+                        operationParcel: {
+                            select: { parcel: { select: { id: true, name: true } } },
+                        },
+                    },
+                },
+            },
+            orderBy: [{ occurredAt: 'desc' }],
+            take: 500,
+        });
+    }
+
+    /**
+     * Distinct input lots that were CONSUMED on a given parcel (field) —
+     * the parents of a harvest recorded from that field. Used when wiring
+     * the DERIVATION genealogy on a HARVEST entry.
+     */
+    static async findInputLotsConsumedOnParcel(db: PrismaTx, ctx: RequestContext, parcelId: string) {
+        const rows = await db.stockTransaction.findMany({
+            where: {
+                tenantId: ctx.tenantId,
+                type: 'CONSUMPTION',
+                logEntry: { is: { operationParcel: { is: { parcelId } } } },
+            },
+            select: { lotId: true },
+            distinct: ['lotId'],
+            take: 500,
+        });
+        return rows.map((r) => r.lotId);
+    }
 }
