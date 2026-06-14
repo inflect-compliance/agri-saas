@@ -97,7 +97,7 @@ describe('useLocalStorage', () => {
         act(() => {
             window.localStorage.setItem('shared', JSON.stringify('v2'));
             window.dispatchEvent(
-                new StorageEvent('storage', {
+                Object.assign(new Event('storage'), {
                     key: 'shared',
                     newValue: JSON.stringify('v2'),
                     storageArea: window.localStorage,
@@ -117,7 +117,7 @@ describe('useLocalStorage', () => {
         // about the localStorage area.
         act(() => {
             window.dispatchEvent(
-                new StorageEvent('storage', {
+                Object.assign(new Event('storage'), {
                     key: 'iso',
                     newValue: JSON.stringify('other'),
                     storageArea: window.sessionStorage,
@@ -138,7 +138,7 @@ describe('useLocalStorage', () => {
         act(() => {
             window.localStorage.setItem('nosync', JSON.stringify('remote'));
             window.dispatchEvent(
-                new StorageEvent('storage', {
+                Object.assign(new Event('storage'), {
                     key: 'nosync',
                     newValue: JSON.stringify('remote'),
                     storageArea: window.localStorage,
@@ -178,7 +178,7 @@ describe('useLocalStorage', () => {
         act(() => {
             window.localStorage.clear();
             window.dispatchEvent(
-                new StorageEvent('storage', {
+                Object.assign(new Event('storage'), {
                     key: null,
                     newValue: null,
                     storageArea: window.localStorage,
