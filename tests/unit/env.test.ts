@@ -10,7 +10,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 
 describe('Environment Variable Validation', () => {
-    const scriptPath = path.resolve(__dirname, '../../scripts/print-env-ok.ts');
+    const projectRoot = path.resolve(__dirname, '../..');
 
     const validEnv = {
         NODE_ENV: 'test',
@@ -36,7 +36,8 @@ describe('Environment Variable Validation', () => {
 
         // Use ts-node (tsx) to run the script since it imports TS files
         try {
-            const output = execSync(`npx tsx ${scriptPath}`, {
+            const output = execSync('npx tsx scripts/print-env-ok.ts', {
+                cwd: projectRoot,
                 env: testEnv,
                 encoding: 'utf-8',
                 stdio: 'pipe',

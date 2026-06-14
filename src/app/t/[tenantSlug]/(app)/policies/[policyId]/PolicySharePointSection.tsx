@@ -98,15 +98,13 @@ export function PolicySharePointSection({ policyId }: { policyId: string }) {
 
     return (
         <Card className="space-y-default p-6">
-            {connId && (
-                <SharePointFilePicker
-                    showModal={pickerOpen}
-                    setShowModal={setPickerOpen}
-                    connectionId={connId}
-                    multiple={false}
-                    onConfirm={link}
-                />
-            )}
+            <SharePointFilePicker
+                showModal={pickerOpen}
+                setShowModal={setPickerOpen}
+                connectionId={connId}
+                multiple={false}
+                onConfirm={link}
+            />
             <div className="flex items-center justify-between">
                 <Heading level={3}>SharePoint</Heading>
                 {status?.linked ? (

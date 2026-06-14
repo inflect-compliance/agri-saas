@@ -65,40 +65,46 @@ describe('Due Planning — Idempotency', () => {
     });
 });
 
+// Production rate formula (guards divide-by-zero). Extracted so the
+// zero-guard branch is exercised via varying inputs rather than a
+// constant comparison at each call site.
+const pct = (numerator: number, denominator: number): number =>
+    denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
+
 describe('Dashboard Metrics — Computation Logic', () => {
     test('completion rate is totalCompleted / totalRuns * 100', () => {
         const completedRuns = 8;
         const totalRuns = 10;
-        const rate = totalRuns > 0 ? Math.round((completedRuns / totalRuns) * 100) : 0;
+        const rate = pct(completedRuns, totalRuns);
         expect(rate).toBe(80);
     });
 
     test('pass rate is passRuns / completedRuns * 100', () => {
         const passRuns = 6;
         const completedRuns = 8;
-        const rate = completedRuns > 0 ? Math.round((passRuns / completedRuns) * 100) : 0;
+        const rate = pct(passRuns, completedRuns);
         expect(rate).toBe(75);
     });
 
     test('fail rate is failRuns / completedRuns * 100', () => {
         const failRuns = 2;
         const completedRuns = 8;
-        const rate = completedRuns > 0 ? Math.round((failRuns / completedRuns) * 100) : 0;
+        const rate = pct(failRuns, completedRuns);
         expect(rate).toBe(25);
     });
 
     test('evidence rate is runsWithEvidence / completedRuns * 100', () => {
         const runsWithEvidence = 5;
         const completedRuns = 10;
-        const rate = completedRuns > 0 ? Math.round((runsWithEvidence / completedRuns) * 100) : 0;
+        const rate = pct(runsWithEvidence, completedRuns);
         expect(rate).toBe(50);
     });
 
     test('handles zero runs gracefully', () => {
         const totalRuns = 0;
         const completedRuns = 0;
-        const completionRate = totalRuns > 0 ? Math.round((completedRuns / totalRuns) * 100) : 0;
-        const passRate = completedRuns > 0 ? Math.round((0 / completedRuns) * 100) : 0;
+        const completionRate = pct(completedRuns, totalRuns);
+        const passRate = pct(0, completedRuns);
         expect(completionRate).toBe(0);
         expect(passRate).toBe(0);
     });
@@ -152,7 +158,7 @@ describe('Test Readiness — Coverage Computation', () => {
 
     test('handles zero mapped controls gracefully', () => {
         const totalMapped = 0;
-        const coverage = totalMapped > 0 ? Math.round((0 / totalMapped) * 100) : 0;
+        const coverage = pct(0, totalMapped);
         expect(coverage).toBe(0);
     });
 });

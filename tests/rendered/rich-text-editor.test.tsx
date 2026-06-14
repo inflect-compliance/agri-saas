@@ -138,7 +138,7 @@ describe('<RichTextEditor>', () => {
         );
         fireEvent.click(screen.getByTestId('rich-text-editor-toggle'));
         const seeded = onChange.mock.calls.at(-1)?.[0] as string;
-        expect(seeded).not.toMatch(/<script>/);
+        expect(seeded).not.toMatch(/<script>/i);
         expect(seeded).toMatch(/&lt;script&gt;/);
     });
 

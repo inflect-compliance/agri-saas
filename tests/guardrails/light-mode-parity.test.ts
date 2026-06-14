@@ -93,7 +93,7 @@ describe('Epic 51 — light-mode parity', () => {
     it('every theme-dependent token has a light-mode override', () => {
         const missing: string[] = [];
         for (const token of THEME_TOKENS) {
-            const decl = new RegExp(`${token.replace(/[-/]/g, '\\$&')}\\s*:`, 'm');
+            const decl = new RegExp(`${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`, 'm');
             if (!decl.test(lightBlock)) {
                 missing.push(token);
             }
@@ -106,7 +106,7 @@ describe('Epic 51 — light-mode parity', () => {
         // from the parity list.
         const missing: string[] = [];
         for (const token of THEME_TOKENS) {
-            const decl = new RegExp(`${token.replace(/[-/]/g, '\\$&')}\\s*:`, 'm');
+            const decl = new RegExp(`${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`, 'm');
             if (!decl.test(rootBlock)) {
                 missing.push(token);
             }

@@ -111,7 +111,7 @@ describe('Epic 54 — modal surface consistency', () => {
         if (surface.cacheKey) {
             it(`invalidates ${surface.cacheKey} on success`, () => {
                 const keyRe = new RegExp(
-                    surface.cacheKey.replace(/\./g, '\\.'),
+                    surface.cacheKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
                 );
                 expect(src).toMatch(keyRe);
                 expect(src).toMatch(/invalidateQueries/);
@@ -165,7 +165,7 @@ describe('Epic 54 — sheet surface consistency', () => {
         if (surface.cacheKey) {
             it(`invalidates ${surface.cacheKey} on save`, () => {
                 const keyRe = new RegExp(
-                    surface.cacheKey.replace(/\./g, '\\.'),
+                    surface.cacheKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
                 );
                 expect(src).toMatch(keyRe);
                 expect(src).toMatch(/invalidateQueries/);

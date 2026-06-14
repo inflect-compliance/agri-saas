@@ -40,7 +40,6 @@ const csvCell = (v: string | number | null | undefined) => {
 
 /** CSV export — portfolio KPIs + top risks. Deterministic. */
 export function renderCsv(data: ReportData): Buffer {
-    const money = moneyFor(data);
     const lines: string[] = [];
     lines.push(`Report,${csvCell(data.title)}`);
     lines.push(`Generated,${csvCell(data.generatedAt)}`);

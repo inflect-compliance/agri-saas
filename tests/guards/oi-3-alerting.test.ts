@@ -232,7 +232,7 @@ describe('OI-3 — receivers.yml routing', () => {
         // No PagerDuty Events API v2 32-char hex integration keys
         expect(src).not.toMatch(/\b[0-9a-f]{32}\b/);
         // No Slack webhook URL hostnames with paths
-        expect(src).not.toMatch(/https:\/\/hooks\.slack\.com\/services\/T[A-Z0-9]+\//);
+        expect(src).not.toContain('hooks.slack.com/services/');
     });
 
     it('inhibit_rules collapse warning + critical of same alertname (anti-double-page)', () => {

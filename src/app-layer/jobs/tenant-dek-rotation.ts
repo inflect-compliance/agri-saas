@@ -202,7 +202,7 @@ async function sweepV2Field(
     model: string,
     field: string,
     batchSize: number,
-    onBatch?: (batch: TenantDekRotationPerFieldResult) => Promise<void>,
+    onBatch: (batch: TenantDekRotationPerFieldResult) => Promise<void>,
 ): Promise<TenantDekRotationPerFieldResult> {
     assertIdentifier(model, 'model');
     assertIdentifier(field, 'field');
@@ -329,13 +329,11 @@ async function sweepV2Field(
 
         // GAP-22: per-batch progress hook. Snapshot, not mutation —
         // the caller assembles the cross-field aggregate.
-        if (onBatch) {
-            try {
-                await onBatch({ ...out });
-            } catch {
-                // Progress reporting is best-effort. A Redis blip on
-                // updateProgress must not stop the sweep.
-            }
+        try {
+            await onBatch({ ...out });
+        } catch {
+            // Progress reporting is best-effort. A Redis blip on
+            // updateProgress must not stop the sweep.
         }
 
         if (rows.length < batchSize) break;

@@ -137,7 +137,7 @@ describe('OI-3 — repository metric instruments', () => {
         ['repo.method.result_count', 'createHistogram'],
     ])('uses metric name %s with %s', (name, kind) => {
         const src = read(METRICS);
-        expect(src).toMatch(new RegExp(`${kind}\\('${name.replace(/\./g, '\\.')}'`));
+        expect(src).toMatch(new RegExp(`${kind}\\('${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'`));
     });
 });
 
@@ -158,7 +158,7 @@ describe('OI-3 — sample repository instrumentation', () => {
         for (const method of methods) {
             // traceRepository('<method>', ctx, ...)
             expect(src).toMatch(
-                new RegExp(`traceRepository\\(\\s*'${method.replace(/\./g, '\\.')}'\\s*,\\s*ctx`),
+                new RegExp(`traceRepository\\(\\s*'${method.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'\\s*,\\s*ctx`),
             );
         }
     });

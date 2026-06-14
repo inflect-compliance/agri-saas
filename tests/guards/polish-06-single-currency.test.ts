@@ -16,17 +16,17 @@ describe('polish #6 — single compact-currency formatter', () => {
         // Any `function|const formatMoney|formatCurrency|formatCompactCurrency`
         // declaration outside the canonical home is the regression class.
         const out = execSync(
-            `grep -rnE "(function|const)\\s+(formatMoney|formatCurrency)\\b" ${path.join(ROOT, 'src')} --include="*.ts" --include="*.tsx" || true`,
-            { encoding: 'utf-8' },
+            `grep -rnE "(function|const)\\s+(formatMoney|formatCurrency)\\b" src --include="*.ts" --include="*.tsx" || true`,
+            { encoding: 'utf-8', cwd: ROOT },
         ).trim();
         expect(out).toBe('');
     });
 
     test('formatCompactCurrency is declared once (the canonical home in risk-coherence.ts)', () => {
         const out = execSync(
-            `grep -rln "export function formatCompactCurrency" ${path.join(ROOT, 'src')} --include="*.ts"`,
-            { encoding: 'utf-8' },
+            `grep -rln "export function formatCompactCurrency" src --include="*.ts"`,
+            { encoding: 'utf-8', cwd: ROOT },
         ).trim().split('\n');
-        expect(out).toEqual(['src/lib/risk-coherence.ts'].map((p) => path.join(ROOT, p)));
+        expect(out).toEqual(['src/lib/risk-coherence.ts']);
     });
 });

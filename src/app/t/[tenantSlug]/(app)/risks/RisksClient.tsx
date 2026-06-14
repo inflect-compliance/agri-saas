@@ -23,7 +23,6 @@ import { NewRiskModal } from './NewRiskModal';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { AppIcon, type AppIconName } from '@/components/icons/AppIcon';
-import { IconAction } from '@/components/ui/icon-action';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { EmptyState } from '@/components/ui/empty-state';

@@ -26,10 +26,10 @@ function grepSrc(pattern: string): string[] {
     // -F fixed-string + single quotes: the patterns contain backticks
     // and dollar signs that must never reach shell interpolation.
     const out = execSync(
-        `grep -rlnF -e '${pattern}' ${path.join(ROOT, 'src')} --include="*.ts" --include="*.tsx" || true`,
-        { encoding: 'utf-8' },
+        `grep -rlnF -e '${pattern}' src --include="*.ts" --include="*.tsx" || true`,
+        { encoding: 'utf-8', cwd: ROOT },
     );
-    return out.split('\n').filter(Boolean).map((p) => path.relative(ROOT, p)).sort();
+    return out.split('\n').filter(Boolean).sort();
 }
 
 describe('RQ3-OB-A — one voice', () => {
@@ -41,8 +41,8 @@ describe('RQ3-OB-A — one voice', () => {
 
     test('no local money-formatter declarations (useMoneyFormatter is the seam)', () => {
         const out = execSync(
-            `grep -rnF -e 'const money = (n' ${path.join(ROOT, 'src')} --include="*.ts" --include="*.tsx" || true`,
-            { encoding: 'utf-8' },
+            `grep -rnF -e 'const money = (n' src --include="*.ts" --include="*.tsx" || true`,
+            { encoding: 'utf-8', cwd: ROOT },
         ).trim();
         expect(out).toBe('');
     });

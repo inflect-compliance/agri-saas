@@ -31,10 +31,10 @@ const pdf = read('src/app-layer/reports/pdf/riskRegister.ts');
 
 function srcImportersOf(symbol: string): string[] {
     const out = execSync(
-        `grep -rl "${symbol}" ${path.join(ROOT, 'src')} --include="*.ts" --include="*.tsx" || true`,
-        { encoding: 'utf-8' },
+        `grep -rl "${symbol}" src --include="*.ts" --include="*.tsx" || true`,
+        { encoding: 'utf-8', cwd: ROOT },
     );
-    return out.split('\n').filter(Boolean).map((p) => path.relative(ROOT, p)).sort();
+    return out.split('\n').filter(Boolean).sort();
 }
 
 describe('RQ2-10 — unified surfaces', () => {

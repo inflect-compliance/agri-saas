@@ -98,10 +98,7 @@ describe('Epic 59 — chart platform foundation', () => {
         ])('re-exports from %s', (mod) => {
             // Either a star re-export or a named re-export is fine.
             const pattern = new RegExp(
-                `export\\s*(?:\\*|\\{[^}]+\\})\\s*from\\s*['"]${mod.replace(
-                    /\./g,
-                    '\\.',
-                )}['"]`,
+                `export\\s*(?:\\*|\\{[^}]+\\})\\s*from\\s*['"]${mod.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`,
             );
             expect(barrel).toMatch(pattern);
         });

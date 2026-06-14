@@ -152,14 +152,16 @@ export function sanitizePlainText(input: string | null | undefined): string {
     // stripping tags. Decode the canonical handful so the stored value
     // is the literal text a user would expect.
     return stripped
-        .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"')
         .replace(/&#x27;/g, "'")
         .replace(/&#39;/g, "'")
         .replace(/&#x2F;/g, '/')
-        .replace(/&#47;/g, '/');
+        .replace(/&#47;/g, '/')
+        // Decode `&amp;` LAST: a value like `&amp;lt;` then resolves to the
+        // literal text `&lt;` rather than being double-unescaped into `<`.
+        .replace(/&amp;/g, '&');
 }
 
 // ─── Convenience helpers ────────────────────────────────────────────
