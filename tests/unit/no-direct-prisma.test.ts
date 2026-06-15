@@ -77,6 +77,16 @@ describe('CI Guard: No direct prisma in tenant-scoped code', () => {
         // mutations themselves run inside runInTenantContext.
         'scim-groups.ts',
         'framework.ts', 'audit-hardening.ts',
+        // Phase 7 — certification schemes ARE global `Framework` rows
+        // (kind=AG_SCHEME); `certification-scheme.ts` is a thin facade over
+        // the framework catalog. listSchemes/createScheme query the global
+        // `Framework` / `FrameworkRequirement` tables, which have no
+        // `tenantId` to filter on — identical rationale to `framework.ts`
+        // and the Epic-47 `search.ts` entry below. Reads gate with
+        // `assertCanViewFrameworks`, the create with `assertCanAdmin`; the
+        // audit write routes through `appendAuditEntry(ctx.tenantId)`, so
+        // the global prisma handle carries no RLS risk.
+        'certification-scheme.ts',
         // Epic 1, PR 3 — redeemInvite and previewInviteByToken operate without
         // a tenant-scoped RequestContext (the caller is not yet a tenant member),
         // so they use the global prisma client directly. RLS policies are
