@@ -52,7 +52,7 @@ export default function RecentJournalCard({ href, items }: RecentJournalCardProp
                     </Link>
                 ))}
                 {items.length === 0 && (
-                    <p className="text-content-subtle text-xs">No journal entries yet</p>
+                    <p className="text-content-subtle text-xs">No journal entries logged</p>
                 )}
             </div>
         </Card>

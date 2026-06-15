@@ -274,7 +274,18 @@ describe('New page token discipline', () => {
         //     phones-with-gloves field-execution surface. Token-clean
         //     (semantic tokens + Button/StatusBadge/Heading/MapCanvas);
         //     new surface, not yet promoted.
-        expect(unmigrated.length).toBeLessThanOrEqual(113);
+        //   - 115 (+2): farm tasks (#28) — farm-tasks/page.tsx shim +
+        //     farm-tasks/FarmTasksClient.tsx, the operator field-work queue
+        //     on the IC Task module. Token-clean (semantic tokens +
+        //     EntityListPage/DataTable/StatusBadge/Modal); new surfaces,
+        //     not yet promoted to MIGRATED_PAGES.
+        //   - 118 (+3): knowledge base (#29) — knowledge/page.tsx +
+        //     knowledge/KnowledgeClient.tsx + knowledge/[id]/page.tsx, the
+        //     versioned-SOP/growing-guide surface (the Policy feature's
+        //     twin). Token-clean (semantic tokens + EntityListPage/
+        //     EntityDetailLayout/StatusBadge/Modal); new surfaces, not yet
+        //     promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(118);
     });
 
     it('migrated page count is at least 4', () => {

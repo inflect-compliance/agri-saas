@@ -2628,6 +2628,356 @@ exports[`API contract — per-schema snapshots schema: LocationUpdateRequest 1`]
 }"
 `;
 
+exports[`API contract — per-schema snapshots schema: LogEntryCreateRequest 1`] = `
+"{
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "ACTIVITY",
+        "OBSERVATION",
+        "INPUT_APPLICATION",
+        "SEEDING",
+        "TRANSPLANTING",
+        "HARVEST",
+        "IRRIGATION",
+        "MAINTENANCE",
+        "LAB_TEST",
+        "GRAZING"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PLANNED",
+        "DONE"
+      ]
+    },
+    "occurredAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 20000
+    },
+    "quantities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "measure": {
+            "type": "string",
+            "enum": [
+              "COUNT",
+              "WEIGHT",
+              "VOLUME",
+              "AREA",
+              "LENGTH",
+              "RATE",
+              "OTHER"
+            ]
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unitId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          }
+        },
+        "required": [
+          "measure",
+          "value",
+          "unitId"
+        ]
+      },
+      "maxItems": 50
+    },
+    "locationIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "maxItems": 100
+    },
+    "equipmentIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "maxItems": 100
+    },
+    "operationParcelId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "costAmount": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "costCurrency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 8
+    },
+    "harvest": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "lotCode": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120
+        },
+        "locationId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expiresAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parcelId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourceLotIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxItems": 100
+        },
+        "costAmount": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "costCurrency": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 8
+        }
+      },
+      "required": [
+        "itemId",
+        "quantity"
+      ]
+    }
+  },
+  "required": [
+    "type",
+    "title"
+  ],
+  "description": "Create a field-journal entry (LogEntry). title is sanitized as plain text; notes is sanitized as rich-text HTML (TipTap). quantities carry the farmOS measure+value+unit lines (an INPUT_APPLICATION entry records the applied amount); locationIds / equipmentIds link the entry to field blocks and equipment. occurredAt defaults to now. On a HARVEST entry, an optional harvest payload mints a HARVEST_IN inventory lot of the harvested item and records lot genealogy (the input lots consumed on parcelId become DERIVATION parents)."
+}"
+`;
+
+exports[`API contract — per-schema snapshots schema: LogEntryFileAttachRequest 1`] = `
+"{
+  "type": "object",
+  "properties": {
+    "fileRecordId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "caption": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 500
+    }
+  },
+  "required": [
+    "fileRecordId"
+  ],
+  "description": "Attach an already-uploaded FileRecord (photo / document) to a journal entry. Upload the file first via /journal/{id}/files (multipart) or /evidence/uploads, then reference its id here."
+}"
+`;
+
+exports[`API contract — per-schema snapshots schema: LogEntryUpdateRequest 1`] = `
+"{
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "ACTIVITY",
+        "OBSERVATION",
+        "INPUT_APPLICATION",
+        "SEEDING",
+        "TRANSPLANTING",
+        "HARVEST",
+        "IRRIGATION",
+        "MAINTENANCE",
+        "LAB_TEST",
+        "GRAZING"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PLANNED",
+        "DONE"
+      ]
+    },
+    "occurredAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 20000
+    },
+    "quantities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "measure": {
+            "type": "string",
+            "enum": [
+              "COUNT",
+              "WEIGHT",
+              "VOLUME",
+              "AREA",
+              "LENGTH",
+              "RATE",
+              "OTHER"
+            ]
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unitId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          }
+        },
+        "required": [
+          "measure",
+          "value",
+          "unitId"
+        ]
+      },
+      "maxItems": 50
+    },
+    "locationIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "maxItems": 100
+    },
+    "equipmentIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "maxItems": 100
+    },
+    "operationParcelId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "costAmount": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "costCurrency": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 8
+    }
+  },
+  "description": "Partial update for a field-journal entry. Every field optional. When quantities / locationIds / equipmentIds are supplied they fully REPLACE the existing set (full-replace semantics, matching the create shape)."
+}"
+`;
+
 exports[`API contract — per-schema snapshots schema: OperationParcelUpdateRequest 1`] = `
 "{
   "type": "object",

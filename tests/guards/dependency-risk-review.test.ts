@@ -44,7 +44,7 @@ const REVIEWED: Record<string, { major: number }> = {
     'js-yaml': { major: 4 },
     jszip: { major: 3 },
     pdfkit: { major: 0 },
-    nodemailer: { major: 8 },
+    nodemailer: { major: 9 },
 };
 
 /** Major of a caret/tilde/plain semver range (`^8.0.7` → 8). */

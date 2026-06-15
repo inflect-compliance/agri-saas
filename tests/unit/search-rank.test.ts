@@ -171,6 +171,7 @@ describe('capPerType', () => {
             asset: 0,
             task: 0,
             test: 0,
+            knowledge: 0,
         });
         expect(out.truncated).toBe(false);
     });

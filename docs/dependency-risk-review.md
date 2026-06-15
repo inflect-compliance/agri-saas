@@ -85,17 +85,17 @@ declared in `dependencies`.
 | **Maintenance** | Active (last publish 2026-03), not deprecated. |
 | **Decision** | **Reviewed — correctly classified, at latest, no action.** |
 
-### nodemailer — `^8.0.7`
+### nodemailer — `^9.0.0`
 
 | | |
 |---|---|
 | **Direct?** | Yes (also a peer of `next-auth@4`, pinned to the root version via the `overrides` block — `"nodemailer": "$nodemailer"`). |
 | **Runtime use** | `src/lib/mailer.ts` — `NodemailerProvider` wraps `nodemailer.createTransport` for production SMTP; selected by `initMailerFromEnv()` when `SMTP_HOST` is set. Underpins all transactional email. |
 | **Classification** | `dependencies` — **correct**. The mailer ships and runs in production. |
-| **Version** | `8.0.7` is `latest`. A `2.4.0-beta.0` exists on the `beta` tag — *not* a newer major, just an unrelated pre-release line; ignore it. The repo is current. |
-| **Exposure** | Handles SMTP credentials + outbound network egress. nodemailer has a CVE history (header-injection classes); v8 is the current hardened line. The code passes only structured fields (`to`, `subject`, `text`/`html`, `bcc`) to `sendMail` — no raw header construction. |
-| **Maintenance** | Actively maintained; v8 line shipped eight patches Feb–Apr 2026. |
-| **Decision** | **Reviewed — correctly classified, at latest, no action.** |
+| **Version** | Bumped `8.0.11 → 9.0.0` (Dependabot, 2026-06). `9.0.0` is `latest`. The v9 major is a maintenance break — it drops support for end-of-life Node versions and removes the long-deprecated built-in `xoauth2` token generator and a few legacy options. None of those are reachable from our usage. |
+| **Exposure** | Handles SMTP credentials + outbound network egress. nodemailer has a CVE history (header-injection classes); v9 is the current hardened line. The code passes only structured fields (`to`, `subject`, `text`/`html`, `bcc`, `attachments`) to `sendMail` — no raw header construction, no `xoauth2`. The v9 surface our two call sites touch (`createTransport` SMTP options + `sendMail` structured fields) is unchanged from v8; `npm run typecheck` is clean against the installed v9 + `@types/nodemailer@^8`. |
+| **Maintenance** | Actively maintained; v9 is the current major line. |
+| **Decision** | **Reviewed — v9 major bump verified safe for our usage; reviewed major raised 8 → 9.** |
 
 ## Summary
 
@@ -104,7 +104,7 @@ declared in `dependencies`.
 | `js-yaml` | `dependencies` ✓ | `4.1.1` = latest | No action |
 | `jszip` | `dependencies` ✓ | `3.10.1` = latest | No action |
 | `pdfkit` | `dependencies` ✓ | `0.18.0` = latest | No action |
-| `nodemailer` | `dependencies` ✓ | `8.0.7` = latest | No action |
+| `nodemailer` | `dependencies` ✓ | `9.0.0` = latest | Reviewed — v9 bump safe |
 
 `npm audit --omit=dev --audit-level=moderate` reports **0
 vulnerabilities** in production dependencies. No package is
