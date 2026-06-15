@@ -297,6 +297,11 @@ enum WorkItemType {
   /// machine operator. Carries per-parcel prescription lines via
   /// OperationParcel; links to its Location through TaskLink.
   FIELD_OPERATION
+  /// Agriculture: a general farm task (irrigation, scouting, harvest,
+  /// maintenance, …). The specific LiteFarm-catalog type + category live
+  /// in `Task.metadataJson` (farmTaskType / farmTaskCategory); links to
+  /// Location/Parcel/Equipment via TaskLink. Reuses the IC Task module.
+  FARM_TASK
 }
 
 enum WorkItemSeverity {
@@ -345,6 +350,10 @@ enum TaskLinkEntityType {
   // Agriculture domain
   LOCATION
   PARCEL
+  // Farm Tasks — link a task to a piece of equipment or (reserved) a
+  // crop planting. LOCATION/PARCEL landed with Feature 1.
+  EQUIPMENT
+  PLANTING
 }
 
 enum TaskLinkRelation {

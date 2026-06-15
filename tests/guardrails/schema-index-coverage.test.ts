@@ -405,7 +405,7 @@ const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
     LogEntry:
         'listLogEntries filters by tenantId (+ optional type / status / occurredAt range), searches title/notes, orders by occurredAt DESC — covered by @@index([tenantId, type, occurredAt]) + @@index([tenantId, status, occurredAt]); the paginated path is cursor-bounded and the flat path is take:200-bounded.',
     Equipment:
-        'JournalRepository.validEquipmentIds looks up an id-set scoped to tenantId (link-validation, PK + tenantId) — never a tenant-wide filtered list; @@index([tenantId, name]) / @@index([tenantId, category]) cover the future register list.',
+        'listEquipment filters by tenantId ordered by createdAt DESC (take:200, the farm-task equipment picker); validEquipmentIds does id-set link-validation. @@index([tenantId, name]) / @@index([tenantId, category]) cover the register; the small per-tenant equipment set keeps the createdAt sort a bounded scan.',
     // EI-3 — SCIM Groups listed/looked-up by tenantId (+ unique externalId);
     // covered by @@index([tenantId]) + @@unique([tenantId, externalId]); bounded take:200.
     ScimGroup:

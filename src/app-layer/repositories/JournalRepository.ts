@@ -214,6 +214,28 @@ export class JournalRepository {
         return new Set(rows.map((r) => r.id));
     }
 
+    /** Returns the subset of the given parcel ids that belong to the tenant. */
+    static async validParcelIds(db: PrismaTx, ctx: RequestContext, ids: string[]): Promise<Set<string>> {
+        if (!ids.length) return new Set();
+        // Bounded by the caller's id set (farm-task Zod caps parcelIds at 100).
+        const rows = await db.parcel.findMany({
+            where: { id: { in: ids }, tenantId: ctx.tenantId, deletedAt: null },
+            select: { id: true },
+            take: ids.length,
+        });
+        return new Set(rows.map((r) => r.id));
+    }
+
+    /** List the tenant's active equipment (newest first) for pickers. */
+    static async listEquipment(db: PrismaTx, ctx: RequestContext, take = 200) {
+        return db.equipment.findMany({
+            where: { tenantId: ctx.tenantId, deletedAt: null },
+            select: { id: true, name: true, category: true, make: true, model: true },
+            orderBy: [{ createdAt: 'desc' }],
+            take: take,
+        });
+    }
+
     // ─── Mutations ───────────────────────────────────────────────────
 
     static async createLogEntry(db: PrismaTx, ctx: RequestContext, input: CreateLogEntryInput) {

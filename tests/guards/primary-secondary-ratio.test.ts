@@ -162,7 +162,12 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // single primary of its surface. Mirrors the Feature-1 Locations bump
 // (+2: list create + modal confirm). Measured = 134; ceiling at 134
 // (no headroom slot).
-const MAX_PRIMARY_COUNT = 134;
+// Farm Tasks: +2 primaries — the farm-tasks list "Task" header CTA +
+// the create-modal confirm ("Create task"), each the single primary of
+// its surface. Mirrors the Field Journal / Locations bump (+2: list
+// create + modal confirm). Measured = 136; ceiling at 136 (no headroom
+// slot).
+const MAX_PRIMARY_COUNT = 136;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

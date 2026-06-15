@@ -55,7 +55,7 @@ are independent.
 | farmOS | GPL-2.0 | Log / Asset / Quantity ontology (journal `LogEntry` / `LogQuantity` types) |
 | ERPNext | GPL-3.0 | Append-only stock-ledger valuation concept (`StockTransaction`) |
 | Ekylibre | AGPL-3.0 | Intervention + per-activity costing concept (`LogEntry.costAmount`) |
-| LiteFarm | GPL-3.0 | Farm-management domain breadth (general reference) |
+| LiteFarm | GPL-3.0 | Farm-management domain breadth; the farm task-type catalog (`src/lib/agriculture/farm-task-types.ts`) — type names + category grouping, reimplemented (keys/enum/TS surface are ours) |
 
 ---
 

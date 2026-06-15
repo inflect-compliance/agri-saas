@@ -96,6 +96,11 @@ export function useNavSections(): NavSectionDef[] {
                 { href: tenantHref('/locations'), label: 'Location', icon: MapPin },
                 { href: tenantHref('/journal'), label: 'Journal', icon: NotebookPen },
                 { href: tenantHref('/inventory'), label: 'Inventory', icon: Boxes },
+                // Farm Tasks — the operator's field-work queue (FARM_TASK /
+                // FIELD_OPERATION). Sits with the agriculture surfaces in
+                // Govern. Reuses the already-imported ClipboardList glyph
+                // (the task affordance) — no new lucide import.
+                { href: tenantHref('/farm-tasks'), label: 'Farm Tasks', icon: ClipboardList },
                 { href: tenantHref('/risks'), label: 'Risk', icon: AlertTriangle },
                 { href: tenantHref('/controls'), label: 'Control', icon: ShieldCheck },
             ],

@@ -1,12 +1,13 @@
 # ag-saas — MEMORY (latest status)
 
 **Repo:** `agri-saas` (the product), built ON the inflect-compliance (IC) chassis.
-**Updated:** end of Inventory traceability build.
-**Active branch:** `feat/inventory` (pushed; **not yet merged to main**),
-branched from `feat/journal`. The feat/journal→feat/inventory line carries the
-full ag stack: Feature-1 (spray map), WP-2 module gating, the inventory ledger
-(#13), the Field Journal, and now lot traceability. (`feat/phase0-platform` is
-a SEPARATE, richer module-gating cut off `main` — see Open follow-ups.)
+**Updated:** end of Farm Tasks build.
+**Active branch:** `feat/farm-tasks` (pushed; **not yet merged to main**),
+branched from `feat/inventory`. The feat/journal→feat/inventory→feat/farm-tasks
+line carries the full ag stack: Feature-1 (spray map), WP-2 module gating, the
+inventory ledger (#13), the Field Journal, lot traceability, and now farm tasks.
+(`feat/phase0-platform` is a SEPARATE, richer module-gating cut off `main` — see
+Open follow-ups.)
 
 ## Product (1-liner)
 Enterprise agriculture-management SaaS on the IC chassis. Moat = a repurposed
@@ -34,9 +35,48 @@ The compliance domain is **repurposed + module-gated** (NOT deleted).
 - **Phase 0 — module gating** (`feat/phase0-platform`, PUSHED, not merged —
   separate/richer than the WP-2 gating on the feat/journal line).
 - **Field Journal** (`feat/journal`, PUSHED, not merged).
-- **Inventory traceability** (THIS session, `feat/inventory`, PUSHED, not merged).
+- **Inventory traceability** (`feat/inventory`, PUSHED, not merged).
+- **Farm Tasks** (THIS session, `feat/farm-tasks`, PUSHED, not merged).
 
-## Inventory traceability (this session) — what + where
+## Farm Tasks (this session) — what + where
+Goal: assignable farm work tied to places/crops/equipment, with a calendar —
+built ON the IC Task module, **reused unchanged**. The realisation: almost
+everything already existed, so this is a thin orchestration + two enum
+widenings, not a new module. Commits `cf7fa0a0` (backend) + `7112bab4` (UI).
+
+Why it was lean (all pre-existing): `TaskMetadataJsonSchema` is a free-form
+`z.record` (catalog type/category ride in `Task.metadataJson`, no schema
+change); `TaskFilters` already has type/assignee filters (operator queue =
+`listTasks` reuse); `loadTaskEvents` already sweeps every Task with a `dueAt`
+(calendar shows farm tasks with NO change); Feature-1 added LOCATION/PARCEL to
+`TaskLinkEntityType` and `addTaskLink` takes a plain string (Equipment link =
+enum-only); create-with-assignee already fires `TASK_ASSIGNED`.
+
+- Schema (migration `20260614210000`, enum-only → no table → no RLS):
+  `WorkItemType += FARM_TASK` (the queryable "is farm work" discriminator,
+  distinct from Feature-1's `FIELD_OPERATION` spray job); `TaskLinkEntityType
+  += EQUIPMENT, PLANTING` (PLANTING reserved for a future crop-planting model).
+- `src/lib/agriculture/farm-task-types.ts` — the LiteFarm task-type catalog
+  (28 types × 11 categories; names/categories only — LiteFarm is GPL,
+  reimplemented + attributed) + `getFarmTaskType`/`isFarmTaskType`.
+- `usecases/farm-task.ts` — `createFarmTask` (validate type + link ownership
+  BEFORE create → reuse `createTask`/`addTaskLink`; type/category in
+  `metadataJson`) + `listMyFarmTasks` (operator queue: FARM_TASK ∪
+  FIELD_OPERATION assigned to me, soonest-due first, via `listTasks`).
+- `usecases/equipment.ts` + `JournalRepository.listEquipment`/`validParcelIds`
+  (equipment picker + parcel link validation; reuses `validLocationIds`/
+  `validEquipmentIds`).
+- API: `POST/GET /farm-tasks`, `GET /equipment`. UI: farm-tasks operator-queue
+  page (EntityListPage) + create modal (catalog picker + Location/Equipment
+  links + assignee); SidebarNav += Farm Tasks.
+
+**Verified:** tsc 0; farm-task-types unit (4) + farm-task integration (5: real
+Task/TaskLink reuse, metadata, calendar inclusion, foreign-tenant link
+rejection, unknown-type rejection); schema-index/query-shape/module-gate/
+api-permission/async-params/contract-drift + 10 design-system ratchets green
+(primary-secondary-ratio 134→136, documented).
+
+## Inventory traceability (prior session) — what + where
 Goal: a traceability-grade ledger for seeds/fertiliser/pesticide/harvest. The
 ledger spine (InventoryLot + append-only hash-chained StockTransaction, single
 writer `stock-ledger.ts`, immutability trigger, FEFO consumption, spray→
@@ -130,8 +170,10 @@ PostgreSQL 16 + `postgresql-16-postgis-3`; cluster `16/main`.
 ## Next (MVP core — expected build prompts)
 Locations/Fields on the map · ~~Farm Journal~~ ✓ · ~~Inventory/traceability~~ ✓
 (ledger + lots + genealogy + low-stock done; a richer InvenTree-style stock
-list UI is still open) · Ag Tasks · Weather feed · Onboarding + simple-mode +
-PWA field entry · Certification module (the gated GRC surface, returns later).
+list UI is still open) · ~~Ag Tasks~~ ✓ (farm tasks on the IC Task module) ·
+Weather feed · Onboarding + simple-mode + PWA field entry · Certification
+module (the gated GRC surface, returns later) · Plantings/crops (the PLANTING
+TaskLink target + harvest provenance).
 
 ## Open follow-ups / deferrals
 - **Branch topology:** the ag work lives on a `feat/spray-map → … → feat/journal
@@ -145,7 +187,17 @@ PWA field entry · Certification module (the gated GRC surface, returns later).
   endpoint + picker to close the loop.
 - **LotLink SPLIT/MERGE + bin→bin TRANSFER + unit conversion** deferred (only
   DERIVATION on harvest is wired).
-- **Equipment** still has no standalone CRUD UI (model + journal link target only).
+- **Farm-task UI gaps:** (a) the operator-queue list shows the WorkItemType,
+  not the LiteFarm catalog name — the shared `taskListSelect` doesn't return
+  `metadataJson` (Task module reused unchanged); widen the select or do a
+  per-task metadata read to light up the catalog name in the list. (b) The
+  create modal omits the parcel picker — `/locations/{id}/parcels` returns a
+  GeoJSON envelope, not a flat list; the API's `parcelIds` is wired + validated
+  but unset from the UI (Location + Equipment links cover the common case).
+- **`PLANTING` TaskLink value is reserved** — there is no Planting/crop model
+  yet; wire it when plantings land.
+- **Equipment** still has no standalone CRUD UI (model + `GET /equipment` list +
+  journal/farm-task link target only; the Assets-template page is a follow-up).
 - **Vocabulary pass deferred** (nav brand hardcoded; bg.json i18n parity).
 - Nav module resolution uses a raw prisma read (dev-superuser correct; prod
   `app_user` falls back to `DEFAULT_MODULES` — page/API gates stay RLS-correct).
