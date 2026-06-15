@@ -141,6 +141,12 @@ export const CACHE_KEYS = {
     units: () => '/units' as const,
     findings: makeResource('findings'),
     frameworks: makeResource('frameworks'),
+    // Certification schemes — global AG_SCHEME frameworks, surfaced per
+    // tenant via /schemes. `detail(key)` keys on the scheme key.
+    schemes: {
+        ...makeResource('schemes'),
+        readiness: (key: string) => `/schemes/${key}/readiness` as const,
+    },
     issues: makeResource('issues'),
 
     // ─── Workflow automation (Automation Epics 1–10) ─────────────

@@ -303,3 +303,57 @@ certified producers).
 - **Vocabulary pass deferred** (nav brand hardcoded; bg.json i18n parity).
 - Nav module resolution uses a raw prisma read (dev-superuser correct; prod
   `app_user` falls back to `DEFAULT_MODULES` — page/API gates stay RLS-correct).
+
+---
+
+## Phase 7 — Certification Reseat (feat/certification-reseat)
+
+Turned the (now CERTIFICATION-gated) IC compliance domain back ON as ag
+"Certification" — minimal schema, mostly vocabulary + a thin scheme layer.
+
+- **`AG_SCHEME` is just a `FrameworkKind` value.** A "certification scheme" =
+  a GLOBAL `Framework` row (no tenantId) with `kind='AG_SCHEME'`; requirements
+  are ordinary `FrameworkRequirement` rows. The whole compliance engine
+  (control↔requirement mapping, readiness scoring, coverage) works against
+  AG_SCHEME rows verbatim. `certification-scheme.ts` is a thin kind-filtered
+  facade — no new tenant-scoped tables, no new link endpoints.
+- **Scheme creation is admin-gated + GLOBAL.** Because Framework is a shared
+  catalog, `createScheme` writes a global row (assertCanAdmin). A tenant-private
+  scheme would need a tenant-scoped Framework (deferred) — today schemes are
+  shared like ISO frameworks (fine for industry standards: Organic/GLOBALG.A.P.).
+- **Vocabulary reseat is messages/en.json VALUES only** (keys unchanged, so the
+  i18n-completeness guardrail — which checks key presence — stays green). Global
+  reseat: every tenant (incl. the inherited GRC demo) sees Practice/Records/
+  Inspection/Nonconformity/Scheme. `nav.controls`→Practice, `nav.evidence`→
+  Records, `nav.audits`→Inspection, `nav.findings`→Nonconformities,
+  `nav.mapping`→Scheme Mapping + the matching `*.title` keys. Risk/Policy/
+  Vendor/Process left as-is (not in the prompt's map). SidebarNav literals
+  Control→Practice, Audit→Inspection + a new Schemes nav item (reused
+  ClipboardCheck — no new lucide import).
+- **E2E label churn from the reseat:** only the `#frameworks-heading` text
+  ("Compliance Frameworks"→"Certification Schemes") broke specs —
+  `frameworks.spec.ts` + `reporting.spec.ts` updated. Nav E2E uses
+  `data-testid="nav-<slug>"` (structural), so the nav label swaps didn't break
+  navigation specs. bg.json values keep the old GRC terms (translation debt).
+- **Three ratchet ceilings bumped (documented up-increments):** design-drift
+  118→120 (schemes page+client), primary-secondary-ratio 141→143 (Scheme header
+  primary + create-modal submit), ux-foundation CONFIRM 20→21 (NewSchemeModal
+  unsaved-changes window.confirm, same as NewPolicyModal/NewArticleModal).
+
+### Remaining gaps (Phase 7)
+- **No tenant-private schemes** — all schemes are global catalog rows. A tenant
+  authoring a truly custom scheme would expose it to all tenants. Add a
+  tenant-scoped scheme layer (or a Framework.tenantId nullable + filter) when
+  per-tenant custom schemes are needed.
+- **Scheme requirements are create-only via the modal** — no edit/reorder/delete
+  of requirements after creation (reuse the existing framework reorder/tree
+  surface to close this).
+- **Readiness on the dashboard card uses the top scheme only** (first AG_SCHEME
+  by key) — a multi-scheme tenant sees one. A scheme picker is a follow-up.
+- **`generateReadinessReport` weights** still use the ISO/NIS2 tables; an
+  ag-scheme-specific weight profile (`AG_SCHEME_WEIGHTS`) was NOT added —
+  schemes score on the default coverage/evidence/tasks dimensions.
+- **LiteFarm organic-cert EXPORT** (the ⚖️ borrow) not built — only the scheme
+  authoring + readiness. The export (a certifier-ready PDF/CSV of records
+  against requirements) is a follow-up; the readiness report export
+  (`exportReadinessReport`) is the nearest existing primitive to reuse.

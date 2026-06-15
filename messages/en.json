@@ -49,16 +49,16 @@
         "clauses": "Clauses (4–10)",
         "assets": "Asset",
         "risks": "Risk",
-        "controls": "Control",
-        "evidence": "Docs",
+        "controls": "Practice",
+        "evidence": "Records",
         "policies": "Policy",
-        "audits": "Audit",
-        "findings": "Findings",
+        "audits": "Inspection",
+        "findings": "Nonconformities",
         "issues": "Issues",
         "tasks": "Plan",
         "calendar": "Schedule",
         "tests": "Review",
-        "mapping": "Framework Map",
+        "mapping": "Scheme Mapping",
         "reports": "Report",
         "notifications": "Notify",
         "admin": "Admin"
@@ -172,7 +172,7 @@
         "critical": "CRITICAL"
     },
     "controls": {
-        "title": "Controls Library",
+        "title": "Practices & Controls",
         "listDescription": "Every control mapped to its requirements and evidence.",
         "stats": "{implemented}/{total} implemented · {implementing} in progress",
         "addCustom": "Create Custom Control",
@@ -218,7 +218,7 @@
         "justificationRequired": "Justification is required when marking a control as Not Applicable"
     },
     "evidence": {
-        "title": "Evidence Library",
+        "title": "Records",
         "listDescription": "Proof for every control — collected, reviewed, and audit-ready.",
         "evidenceItems": "{count} evidence items",
         "addEvidence": "Evidence",
@@ -274,7 +274,7 @@
         "selectPolicy": "Select a policy to view details"
     },
     "audits": {
-        "title": "Internal Audits",
+        "title": "Inspections",
         "listDescription": "Cycles, packs, and findings — the audit trail your assessors will see.",
         "auditsCount": "{count} audits",
         "newAudit": "Audit",
@@ -301,7 +301,7 @@
         "selectAudit": "Select an audit to view details"
     },
     "findings": {
-        "title": "Findings Register",
+        "title": "Nonconformity Register",
         "listDescription": "Issues raised in audit and assessment — owned, dated, closed.",
         "findingsCount": "{count} findings",
         "newFinding": "Finding",
@@ -332,7 +332,7 @@
         "selectFinding": "Select a finding to view details"
     },
     "mapping": {
-        "title": "Framework Mapping",
+        "title": "Scheme Mapping",
         "subtitle": "Cross-framework readiness view. All descriptions are original paraphrases.",
         "loading": "Loading framework mappings...",
         "soc2": "SOC 2",

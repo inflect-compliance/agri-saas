@@ -5,6 +5,8 @@ import { listLogEntries } from './journal';
 import { listLots } from './inventory';
 import { listMyFarmTasks } from './farm-task';
 import { getEnabledModules } from './modules';
+import { listSchemes } from './certification-scheme';
+import { generateReadinessReport } from './framework/coverage';
 
 /**
  * Agriculture dashboard strip — the small "your farm today" read-model
@@ -50,12 +52,25 @@ export interface AgDashboardTaskItem {
     dueAt: string | null;
 }
 
+export interface AgDashboardCertification {
+    schemeKey: string;
+    schemeName: string;
+    /** Readiness score (0–100) of the tenant's top certification scheme. */
+    score: number;
+}
+
 export interface AgDashboardPayload {
     /** The tenant's enabled modules — drives client-side card gating. */
     enabledModules: ModuleKey[];
     recentJournal: AgDashboardJournalItem[];
     lowStock: AgDashboardLowStockItem[];
     myTasks: AgDashboardTaskItem[];
+    /**
+     * Readiness of the top certification scheme — present only when the
+     * CERTIFICATION module is enabled AND at least one AG_SCHEME exists.
+     * Null otherwise so the client card stays hidden for pure-farm tenants.
+     */
+    certification: AgDashboardCertification | null;
 }
 
 function toIso(d: Date | string | null | undefined): string | null {
@@ -69,6 +84,7 @@ export async function getAgDashboard(ctx: RequestContext): Promise<AgDashboardPa
     const enabledModules = await getEnabledModules(ctx);
     const journalOn = enabledModules.includes('JOURNAL');
     const inventoryOn = enabledModules.includes('INVENTORY');
+    const certificationOn = enabledModules.includes('CERTIFICATION');
 
     // Fetch only what's enabled. Each underlying list is already bounded
     // (`take` in the repository) and authorizes independently; we run them
@@ -113,5 +129,22 @@ export async function getAgDashboard(ctx: RequestContext): Promise<AgDashboardPa
             dueAt: toIso(t.dueAt),
         }));
 
-    return { enabledModules, recentJournal, lowStock, myTasks };
+    // Certification readiness — top scheme only, gated on the module so a
+    // pure-farm tenant never pays the readiness query. `listSchemes`
+    // already orders AG_SCHEMEs by key asc, so the first is the "top".
+    let certification: AgDashboardCertification | null = null;
+    if (certificationOn) {
+        const schemes = await listSchemes(ctx);
+        const top = schemes[0];
+        if (top) {
+            const report = await generateReadinessReport(ctx, top.key);
+            certification = {
+                schemeKey: top.key,
+                schemeName: top.name,
+                score: report.summary.readinessScore,
+            };
+        }
+    }
+
+    return { enabledModules, recentJournal, lowStock, myTasks, certification };
 }
