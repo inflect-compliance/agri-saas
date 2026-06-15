@@ -245,6 +245,40 @@ async function main() {
         );
     }
 
+    // ── Demo certification scheme (global AG_SCHEME framework) ──
+    // A certification scheme is a GLOBAL Framework (no tenantId) with
+    // kind = 'AG_SCHEME'; its requirements are ordinary
+    // FrameworkRequirement rows. The enterprise farms (ENTERPRISE plan +
+    // ALL_MODULES) can map practices to it. Direct prisma writes (not the
+    // usecases) to avoid the BullMQ/Redis enqueue hang in dev. Idempotent
+    // via upsert on the unique `key`. Concept-only requirement text — no
+    // proprietary scheme wording (LICENSE hygiene).
+    const SCHEME_KEY = 'ORGANIC-DEMO';
+    const scheme = await prisma.framework.upsert({
+        where: { key: SCHEME_KEY },
+        update: {},
+        create: {
+            key: SCHEME_KEY,
+            name: 'Organic Certification (demo)',
+            description: 'Illustrative organic-production scheme for the demo — concept content only.',
+            kind: 'AG_SCHEME',
+        },
+    });
+    const schemeRequirements = [
+        { code: 'OC-1', title: 'No prohibited synthetic inputs applied within the conversion window', sortOrder: 0 },
+        { code: 'OC-2', title: 'Input applications recorded with date, product, rate, and location', sortOrder: 1 },
+        { code: 'OC-3', title: 'Buffer zones maintained between organic and conventional parcels', sortOrder: 2 },
+        { code: 'OC-4', title: 'Harvest lots traceable to the field of origin', sortOrder: 3 },
+    ];
+    for (const r of schemeRequirements) {
+        await prisma.frameworkRequirement.upsert({
+            where: { frameworkId_code: { frameworkId: scheme.id, code: r.code } },
+            update: {},
+            create: { frameworkId: scheme.id, code: r.code, title: r.title, sortOrder: r.sortOrder },
+        });
+    }
+    console.log(`✅ Certification scheme: ${scheme.name} (${SCHEME_KEY}) with ${schemeRequirements.length} requirements`);
+
     // Org admin who sees the whole portfolio.
     const orgAdmin = await upsertOwner('admin@bigfarm.demo', 'Olivia OrgAdmin', pwd);
     await prisma.orgMembership.upsert({

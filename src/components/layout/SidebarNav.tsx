@@ -130,7 +130,7 @@ export function useNavSections(): NavSectionDef[] {
                 // Risk + Control are GRC surfaces gated behind the
                 // CERTIFICATION module — hidden for simple-mode farm tenants.
                 { href: tenantHref('/risks'), label: 'Risk', icon: AlertTriangle, visible: certAvailable },
-                { href: tenantHref('/controls'), label: 'Control', icon: ShieldCheck, visible: certAvailable },
+                { href: tenantHref('/controls'), label: 'Practice', icon: ShieldCheck, visible: certAvailable },
             ]),
         },
         {
@@ -141,7 +141,7 @@ export function useNavSections(): NavSectionDef[] {
                 // workflow (Plan / Schedule / Review / Docs), not
                 // ongoing governance configuration.
                 // GRC surface — gated behind the CERTIFICATION module.
-                { href: tenantHref('/audits'), label: 'Audit', icon: ClipboardCheck, visible: certAvailable },
+                { href: tenantHref('/audits'), label: 'Inspection', icon: ClipboardCheck, visible: certAvailable },
                 { href: tenantHref('/tasks'), label: 'Plan', icon: ClipboardList },
                 {
                     href: tenantHref('/calendar'),
@@ -163,6 +163,12 @@ export function useNavSections(): NavSectionDef[] {
                 // R13-PR16 — Audit moved up to Comply (see above).
                 // Policy is a GRC surface — gated behind CERTIFICATION.
                 { href: tenantHref('/policies'), label: 'Policy', icon: FileText, visible: certAvailable },
+                // Certification Schemes — the catalog of AG_SCHEME frameworks
+                // (Organic, GLOBALG.A.P., etc.) the tenant maps practices to.
+                // GRC surface — gated behind CERTIFICATION. Reuses the
+                // already-imported ClipboardCheck glyph (a verified-standard
+                // affordance) — no new lucide import.
+                { href: tenantHref('/schemes'), label: 'Schemes', icon: ClipboardCheck, visible: certAvailable },
                 // Knowledge Base — versioned SOPs / guides / reference
                 // articles (the Policy feature's twin). Sits under Manage
                 // alongside Policy. Reuses the already-imported FileText

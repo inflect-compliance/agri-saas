@@ -56,6 +56,10 @@ const MODULE_GATED_ROUTES: ReadonlyArray<{
         module: 'CERTIFICATION',
     },
     {
+        file: 'src/app/api/t/[tenantSlug]/schemes/route.ts',
+        module: 'CERTIFICATION',
+    },
+    {
         file: 'src/app/api/t/[tenantSlug]/mapping/route.ts',
         module: 'CERTIFICATION',
     },

@@ -32,7 +32,7 @@ test.describe('Framework Coverage UI', () => {
         await page.goto(`/t/${tenantSlug}/frameworks`);
         await page.waitForLoadState('networkidle').catch(() => {});
         await page.waitForSelector('#frameworks-heading', { timeout: 60000 });
-        await expect(page.locator('#frameworks-heading')).toContainText('Compliance Frameworks');
+        await expect(page.locator('#frameworks-heading')).toContainText('Certification Schemes');
     });
 
     test('framework cards are visible', async () => {

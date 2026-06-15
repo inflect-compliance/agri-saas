@@ -145,7 +145,8 @@ test.describe('DataTable Platform — Cross-page regression', () => {
     test('Findings page renders DataTable', async ({ page }) => {
         tenantSlug = await loginAndGetTenant(page);
         await assertTableRendered(page, '/findings', {
-            heading: 'Finding',
+            // Reseated: findings.title → "Nonconformity Register" (ag vocabulary).
+            heading: 'Nonconformity',
             testId: 'findings-table',
             minHeaders: 3,
         });
@@ -156,7 +157,8 @@ test.describe('DataTable Platform — Cross-page regression', () => {
     test('Evidence page renders DataTable', async ({ page }) => {
         tenantSlug = await loginAndGetTenant(page);
         await assertTableRendered(page, '/evidence', {
-            heading: 'Evidence',
+            // Reseated: evidence.title → "Records" (ag vocabulary).
+            heading: 'Records',
             minHeaders: 3,
         });
     });

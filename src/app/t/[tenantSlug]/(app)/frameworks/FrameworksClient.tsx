@@ -162,7 +162,7 @@ export function FrameworksClient({
                         className="mb-1"
                     />
                     <Heading level={1} id="frameworks-heading">
-                        Compliance Frameworks
+                        Certification Schemes
                     </Heading>
                     <p className="text-sm text-content-muted mt-1">
                         Browse standards, install control packs, and track requirement coverage

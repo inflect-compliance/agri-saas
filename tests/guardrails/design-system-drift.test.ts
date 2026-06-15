@@ -285,7 +285,12 @@ describe('New page token discipline', () => {
         //     twin). Token-clean (semantic tokens + EntityListPage/
         //     EntityDetailLayout/StatusBadge/Modal); new surfaces, not yet
         //     promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(118);
+        //   - 120 (+2): certification schemes (Certification Reseat) —
+        //     schemes/page.tsx shim + schemes/SchemesClient.tsx, the
+        //     AG_SCHEME framework catalog surface. Token-clean (semantic
+        //     tokens + EntityListPage/DataTable/Modal/FormField/Input/
+        //     ProgressBar); new surfaces, not yet promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(120);
     });
 
     it('migrated page count is at least 4', () => {

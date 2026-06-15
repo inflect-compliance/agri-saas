@@ -602,6 +602,11 @@ enum FrameworkKind {
   REGULATION
   INDUSTRY_STANDARD
   CUSTOM
+  // Phase-7 — agriculture certification schemes (Organic, GlobalGAP, LEAF,
+  // Red Tractor, …). A thin `kind` discriminator over the existing Framework
+  // catalog so ag schemes coexist with ISO/NIST frameworks and reuse the
+  // whole compliance engine (requirements, control links, readiness scoring).
+  AG_SCHEME
 }
 
 // Defines the semantic strength of a mapping between two requirement nodes.

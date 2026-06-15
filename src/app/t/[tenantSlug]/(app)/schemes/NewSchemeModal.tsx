@@ -1,0 +1,277 @@
+'use client';
+
+/**
+ * NewSchemeModal — create a certification scheme (a global AG_SCHEME
+ * framework) plus its requirements.
+ *
+ * Carries the scheme identity (name + stable key) and a small
+ * repeatable requirements editor (code + title). Mirrors the
+ * Modal.Form shell + unsaved-changes guard used by JournalEntryModal.
+ */
+
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { apiPost } from '@/lib/api-client';
+import { Button } from '@/components/ui/button';
+import { Plus, Trash } from '@/components/ui/icons/nucleo';
+import { Modal } from '@/components/ui/modal';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
+
+interface RequirementRow {
+    code: string;
+    title: string;
+    description: string;
+}
+
+interface CreatedScheme {
+    framework: { id: string; key: string; name: string };
+}
+
+export interface NewSchemeModalProps {
+    open: boolean;
+    setOpen: Dispatch<SetStateAction<boolean>>;
+    tenantSlug: string;
+    onSaved?: (scheme: CreatedScheme) => void;
+}
+
+function emptyRequirement(): RequirementRow {
+    return { code: '', title: '', description: '' };
+}
+
+export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) {
+    const buildUrl = useTenantApiUrl();
+
+    const [name, setName] = useState('');
+    const [key, setKey] = useState('');
+    const [description, setDescription] = useState('');
+    const [requirements, setRequirements] = useState<RequirementRow[]>([emptyRequirement()]);
+    const [dirty, setDirty] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Re-seed the form whenever the modal (re)opens.
+    /* eslint-disable react-hooks/set-state-in-effect -- intentional form re-seed on open. */
+    useEffect(() => {
+        if (!open) return;
+        setName('');
+        setKey('');
+        setDescription('');
+        setRequirements([emptyRequirement()]);
+        setDirty(false);
+        setError(null);
+    }, [open]);
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    const markDirty = () => setDirty(true);
+
+    const addRequirement = () => {
+        setRequirements((rs) => [...rs, emptyRequirement()]);
+        markDirty();
+    };
+    const updateRequirement = (i: number, patch: Partial<RequirementRow>) => {
+        setRequirements((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+        markDirty();
+    };
+    const removeRequirement = (i: number) => {
+        setRequirements((rs) => (rs.length > 1 ? rs.filter((_, idx) => idx !== i) : rs));
+        markDirty();
+    };
+
+    const validRequirements = requirements.filter((r) => r.code.trim() && r.title.trim());
+    const canSubmit =
+        name.trim().length > 0 &&
+        key.trim().length > 0 &&
+        validRequirements.length > 0 &&
+        !submitting;
+
+    const submit = async () => {
+        setSubmitting(true);
+        setError(null);
+        try {
+            const body = {
+                key: key.trim(),
+                name: name.trim(),
+                description: description.trim() || undefined,
+                requirements: validRequirements.map((r) => ({
+                    code: r.code.trim(),
+                    title: r.title.trim(),
+                    description: r.description.trim() || undefined,
+                })),
+            };
+            const saved = await apiPost<CreatedScheme>(buildUrl('/schemes'), body);
+            setDirty(false);
+            setOpen(false);
+            onSaved?.(saved);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create scheme');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // Unsaved-changes guard — same shape as JournalEntryModal.
+    const guardedSetOpen = useCallback<Dispatch<SetStateAction<boolean>>>(
+        (next) => {
+            const wantClose = typeof next === 'function' ? !next(true) : next === false;
+            if (wantClose) {
+                if (submitting) return;
+                if (dirty && !window.confirm('Discard scheme? Anything you entered will be lost.')) {
+                    return;
+                }
+            }
+            setOpen(next);
+        },
+        [submitting, dirty, setOpen],
+    );
+    const close = () => guardedSetOpen(false);
+
+    const heading = 'New certification scheme';
+    const subheading = 'Define the scheme and the requirements practices will be mapped to.';
+
+    return (
+        <Modal
+            showModal={open}
+            setShowModal={guardedSetOpen}
+            size="lg"
+            title={heading}
+            description={subheading}
+            preventDefaultClose={submitting}
+        >
+            <Modal.Header title={heading} description={subheading} />
+            <Modal.Form
+                id="new-scheme-form"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    void submit();
+                }}
+            >
+                <Modal.Body>
+                    {error && (
+                        <div
+                            className="mb-4 rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error"
+                            id="new-scheme-error"
+                            role="alert"
+                        >
+                            {error}
+                        </div>
+                    )}
+                    <fieldset disabled={submitting} className="m-0 p-0 border-0 space-y-default">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
+                            <FormField label="Name" required>
+                                <Input
+                                    value={name}
+                                    onChange={(e) => {
+                                        setName(e.target.value);
+                                        markDirty();
+                                    }}
+                                    placeholder="e.g. Organic Certification"
+                                    id="new-scheme-name"
+                                />
+                            </FormField>
+                            <FormField label="Key" required hint="Stable identifier — letters, digits, . _ -">
+                                <Input
+                                    value={key}
+                                    onChange={(e) => {
+                                        setKey(e.target.value.replace(/[^A-Za-z0-9._-]/g, ''));
+                                        markDirty();
+                                    }}
+                                    placeholder="e.g. ORGANIC-2026"
+                                    id="new-scheme-key"
+                                />
+                            </FormField>
+                        </div>
+
+                        <FormField label="Description">
+                            <Input
+                                value={description}
+                                onChange={(e) => {
+                                    setDescription(e.target.value);
+                                    markDirty();
+                                }}
+                                placeholder="What this scheme certifies"
+                                id="new-scheme-description"
+                            />
+                        </FormField>
+
+                        <div className="space-y-default">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-content-emphasis">Requirements</span>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    icon={<Plus className="size-3.5" />}
+                                    onClick={addRequirement}
+                                    id="new-scheme-add-requirement"
+                                >
+                                    Requirement
+                                </Button>
+                            </div>
+                            <div className="space-y-tight">
+                                {requirements.map((r, i) => (
+                                    <div
+                                        key={i}
+                                        className="grid grid-cols-12 gap-tight items-end"
+                                        data-testid={`scheme-requirement-row-${i}`}
+                                    >
+                                        <div className="col-span-3">
+                                            <Input
+                                                value={r.code}
+                                                onChange={(e) => updateRequirement(i, { code: e.target.value })}
+                                                placeholder="Code"
+                                                aria-label={`Requirement ${i + 1} code`}
+                                            />
+                                        </div>
+                                        <div className="col-span-8">
+                                            <Input
+                                                value={r.title}
+                                                onChange={(e) => updateRequirement(i, { title: e.target.value })}
+                                                placeholder="Title"
+                                                aria-label={`Requirement ${i + 1} title`}
+                                            />
+                                        </div>
+                                        <div className="col-span-1 flex justify-end">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeRequirement(i)}
+                                                disabled={requirements.length <= 1}
+                                                aria-label={`Remove requirement ${i + 1}`}
+                                            >
+                                                <Trash className="size-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </fieldset>
+                </Modal.Body>
+                <Modal.Actions>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        type="button"
+                        onClick={close}
+                        disabled={submitting}
+                        id="new-scheme-cancel"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        disabled={!canSubmit}
+                        loading={submitting}
+                        id="new-scheme-submit"
+                    >
+                        Create scheme
+                    </Button>
+                </Modal.Actions>
+            </Modal.Form>
+        </Modal>
+    );
+}

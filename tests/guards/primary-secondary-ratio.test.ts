@@ -173,8 +173,14 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // primary of a distinct surface (list create, modal confirm, the
 // readership-receipt moment, the publish moment, the editor confirm).
 // Mirrors the Policy feature's primary set (the Knowledge feature is its
-// twin). Measured = 141; ceiling at 141 (no headroom slot).
-const MAX_PRIMARY_COUNT = 141;
+// twin). Certification Reseat (2026-06-15) bumped 141 → 143 for the two
+// earned primaries on the Schemes surface: the `<Button variant="primary"
+// icon={<Plus/>}>Scheme</Button>` list-header trigger (mandated by the
+// action-button vocabulary) and the create modal's "Create scheme" submit
+// (confirm-surface convention). Both are balanced by the modal's two
+// secondary buttons (Cancel + add-Requirement), so the secondary:primary
+// ratio is preserved. Measured = 143; ceiling at 143 (no headroom slot).
+const MAX_PRIMARY_COUNT = 143;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

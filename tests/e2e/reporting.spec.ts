@@ -37,7 +37,7 @@ test.describe('Reporting & Audit Narrative', () => {
         const tenantSlug = await loginAndGetTenant(page);
         await gotoAndVerify(page, `/t/${tenantSlug}/frameworks`, '#frameworks-heading');
         await expect(page.locator('#frameworks-heading')).toContainText(
-            'Compliance Frameworks',
+            'Certification Schemes',
         );
         await page.waitForLoadState('networkidle').catch(() => {});
         const cardCount = await page.locator('[data-testid^="fw-card-"]').count();

@@ -129,9 +129,16 @@ describe('Epic 64 — window.confirm() ceiling', () => {
     // silently drop a typed draft (title, category, summary, TipTap
     // content). Same sync-close rationale as the sites above.
     //
+    // Certification Schemes (2026-06-15) bumped 20 → 21 for the
+    // `NewSchemeModal` create surface. It carries the SAME
+    // unsaved-changes discard guard as `NewPolicyModal` / `NewArticleModal`
+    // — a synchronous `window.confirm` on close so a mis-click can't
+    // silently drop a typed scheme (name, key, requirement rows). Same
+    // sync-close rationale as the sites above.
+    //
     // To LOWER this number: migrate one or more remaining sites and
     // bump the constant down. Don't lower without a real migration.
-    const CONFIRM_CALL_CEILING = 20;
+    const CONFIRM_CALL_CEILING = 21;
 
     it(`has at most ${CONFIRM_CALL_CEILING} native-confirm call sites under the tenant app`, () => {
         const offenders: string[] = [];

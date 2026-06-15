@@ -22,6 +22,8 @@ const listLogEntries = jest.fn();
 const listLots = jest.fn();
 const listMyFarmTasks = jest.fn();
 const getEnabledModules = jest.fn();
+const listSchemes = jest.fn();
+const generateReadinessReport = jest.fn();
 
 jest.mock('@/app-layer/usecases/journal', () => ({
     listLogEntries: (...a: any[]) => listLogEntries(...a),
@@ -35,6 +37,12 @@ jest.mock('@/app-layer/usecases/farm-task', () => ({
 jest.mock('@/app-layer/usecases/modules', () => ({
     getEnabledModules: (...a: any[]) => getEnabledModules(...a),
 }));
+jest.mock('@/app-layer/usecases/certification-scheme', () => ({
+    listSchemes: (...a: any[]) => listSchemes(...a),
+}));
+jest.mock('@/app-layer/usecases/framework/coverage', () => ({
+    generateReadinessReport: (...a: any[]) => generateReadinessReport(...a),
+}));
 
 import { getAgDashboard } from '@/app-layer/usecases/ag-dashboard';
 import { makeRequestContext } from '../helpers/make-context';
@@ -43,6 +51,8 @@ const ctx = makeRequestContext('READER');
 
 beforeEach(() => {
     jest.clearAllMocks();
+    // Default: no certification schemes exist → certification resolves null.
+    listSchemes.mockResolvedValue([]);
 });
 
 function journalEntry(i: number) {
@@ -67,6 +77,9 @@ describe('getAgDashboard', () => {
         listLogEntries.mockResolvedValue(Array.from({ length: 7 }, (_, i) => journalEntry(i)));
         listLots.mockResolvedValue([lot('a', true), lot('b', false), lot('c', true)]);
         listMyFarmTasks.mockResolvedValue(Array.from({ length: 6 }, (_, i) => task(i)));
+        // Top scheme present → certification reading from its readiness report.
+        listSchemes.mockResolvedValue([{ id: 'fw-1', key: 'ORGANIC', name: 'Organic' }]);
+        generateReadinessReport.mockResolvedValue({ summary: { readinessScore: 64 } });
 
         const out = await getAgDashboard(ctx);
 
@@ -85,6 +98,23 @@ describe('getAgDashboard', () => {
         // Tasks sliced 6 → 5.
         expect(out.myTasks).toHaveLength(5);
         expect(out.myTasks[0]).toEqual({ id: 't0', title: 'Task 0', status: 'TODO', dueAt: '2026-06-10T00:00:00.000Z' });
+        // Certification — top scheme's readiness score.
+        expect(out.certification).toEqual({ schemeKey: 'ORGANIC', schemeName: 'Organic', score: 64 });
+        expect(generateReadinessReport).toHaveBeenCalledWith(ctx, 'ORGANIC');
+    });
+
+    it('CERTIFICATION on but no scheme exists → certification is null', async () => {
+        getEnabledModules.mockResolvedValue(['JOURNAL', 'CERTIFICATION']);
+        listLogEntries.mockResolvedValue([]);
+        listLots.mockResolvedValue([]);
+        listMyFarmTasks.mockResolvedValue([]);
+        listSchemes.mockResolvedValue([]); // explicit — no AG_SCHEME
+
+        const out = await getAgDashboard(ctx);
+
+        expect(out.certification).toBeNull();
+        // No scheme → no readiness query.
+        expect(generateReadinessReport).not.toHaveBeenCalled();
     });
 
     it('pure-GRC tenant (no ag modules) short-circuits journal + inventory fetches', async () => {
@@ -101,6 +131,19 @@ describe('getAgDashboard', () => {
         // Farm tasks are always fetched — Tasks is not module-gated.
         expect(listMyFarmTasks).toHaveBeenCalledTimes(1);
         expect(out.myTasks).toHaveLength(1);
+    });
+
+    it('CERTIFICATION off → certification is null and listSchemes is never called', async () => {
+        getEnabledModules.mockResolvedValue(['JOURNAL']);
+        listLogEntries.mockResolvedValue([]);
+        listLots.mockResolvedValue([]);
+        listMyFarmTasks.mockResolvedValue([]);
+
+        const out = await getAgDashboard(ctx);
+
+        expect(out.certification).toBeNull();
+        expect(listSchemes).not.toHaveBeenCalled();
+        expect(generateReadinessReport).not.toHaveBeenCalled();
     });
 
     it('handles null occurredAt / dueAt as null in the payload', async () => {
