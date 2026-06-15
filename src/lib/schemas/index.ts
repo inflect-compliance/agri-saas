@@ -925,6 +925,21 @@ const LogQuantitySchema = z.object({
     label: z.string().max(255).nullable().optional(),
 }).strip();
 
+/** Optional output-lot payload on a HARVEST entry — mints a HARVEST_IN
+ *  inventory lot + DERIVATION genealogy (INVENTORY-module gated
+ *  server-side; silently no-ops when inventory is off). */
+const HarvestLotPayloadSchema = z.object({
+    itemId: z.string().min(1, 'A harvested item is required'),
+    quantity: z.coerce.number().positive('Harvest quantity must be positive'),
+    lotCode: z.string().max(120).optional().nullable(),
+    locationId: z.string().optional().nullable(),
+    expiresAt: z.string().optional().nullable(),
+    parcelId: z.string().optional().nullable(),
+    sourceLotIds: z.array(z.string().min(1)).max(100).optional(),
+    costAmount: z.coerce.number().nonnegative().optional().nullable(),
+    costCurrency: z.string().max(8).optional().nullable(),
+}).strip();
+
 export const CreateLogEntrySchema = z.object({
     type: z.enum(LOG_ENTRY_TYPE_VALUES),
     status: z.enum(['PLANNED', 'DONE']).optional(),
@@ -937,8 +952,9 @@ export const CreateLogEntrySchema = z.object({
     operationParcelId: z.string().optional().nullable(),
     costAmount: z.coerce.number().nonnegative().optional().nullable(),
     costCurrency: z.string().max(8).optional().nullable(),
+    harvest: HarvestLotPayloadSchema.optional().nullable(),
 }).strip().openapi('LogEntryCreateRequest', {
-    description: 'Create a field-journal entry (LogEntry). title is sanitized as plain text; notes is sanitized as rich-text HTML (TipTap). quantities carry the farmOS measure+value+unit lines (an INPUT_APPLICATION entry records the applied amount); locationIds / equipmentIds link the entry to field blocks and equipment. occurredAt defaults to now.',
+    description: 'Create a field-journal entry (LogEntry). title is sanitized as plain text; notes is sanitized as rich-text HTML (TipTap). quantities carry the farmOS measure+value+unit lines (an INPUT_APPLICATION entry records the applied amount); locationIds / equipmentIds link the entry to field blocks and equipment. occurredAt defaults to now. On a HARVEST entry, an optional harvest payload mints a HARVEST_IN inventory lot of the harvested item and records lot genealogy (the input lots consumed on parcelId become DERIVATION parents).',
 });
 
 export const UpdateLogEntrySchema = z.object({

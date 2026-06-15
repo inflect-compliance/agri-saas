@@ -22,17 +22,19 @@
 //      stay consistent. Direct StockTransaction writes from usecases
 //      are banned by tests/guardrails/no-direct-stock-writes.test.ts.
 //
-//  Focused Phase-1 scope: lot genealogy (LotLink split/merge),
-//  bin→bin TRANSFER from/to-location columns, and per-unit conversion
-//  are deferred — see docs/implementation-notes for the cut line.
+//  Phase-1 scope: lot genealogy (LotLink) NOW LANDS — a DERIVATION edge
+//  per consumed input lot → harvest output lot, wired on HARVEST journal
+//  entries. SPLIT/MERGE edge kinds, bin→bin TRANSFER from/to-location
+//  columns, and per-unit conversion remain deferred — see the
+//  implementation note for the cut line.
 //
 //  Back-relations added elsewhere (Prisma needs both sides):
-//    • auth.prisma     Tenant: inventoryLots / stockTransactions
-//    • auth.prisma     User:   StockTxActor
+//    • auth.prisma     Tenant: inventoryLots / stockTransactions / lotLinks
+//    • auth.prisma     User:   StockTxActor / LotLinkActor
 //    • agriculture.prisma Item:     lots InventoryLot[]
 //    • agriculture.prisma Location: inventoryLots InventoryLot[]
 //    • agriculture.prisma Unit:     invLots / stockTransactions
-//    • journal.prisma  LogEntry: stockTransactions StockTransaction[]
+//    • journal.prisma  LogEntry: stockTx StockTransaction[] / lotLinks LotLink[]
 // ═══════════════════════════════════════════════════════════════════
 
 /// A physical batch of an Item — one fertiliser-product delivery, one
@@ -66,11 +68,16 @@ model InventoryLot {
   deletedByUserId  String?
   retentionUntil   DateTime?
 
-  tenant       Tenant             @relation(fields: [tenantId], references: [id])
-  item         Item               @relation(fields: [itemId, tenantId], references: [id, tenantId])
-  location     Location?          @relation(fields: [locationId, tenantId], references: [id, tenantId])
-  unit         Unit               @relation("InventoryLotUnit", fields: [unitId], references: [id])
-  transactions StockTransaction[]
+  tenant        Tenant             @relation(fields: [tenantId], references: [id])
+  item          Item               @relation(fields: [itemId, tenantId], references: [id, tenantId])
+  location      Location?          @relation(fields: [locationId, tenantId], references: [id, tenantId])
+  unit          Unit               @relation("InventoryLotUnit", fields: [unitId], references: [id])
+  transactions  StockTransaction[]
+  /// Lot genealogy (Phase 1): edges where THIS lot is the parent
+  /// (consumed/derived into a child) and where it is the child
+  /// (produced from parents). The traceability walk pivots on both.
+  linksAsParent LotLink[]          @relation("LotLinkParent")
+  linksAsChild  LotLink[]          @relation("LotLinkChild")
 
   @@unique([id, tenantId])
   @@unique([tenantId, itemId, lotCode])
@@ -118,5 +125,42 @@ model StockTransaction {
   @@unique([id, tenantId])
   @@index([tenantId, lotId, occurredAt])
   @@index([tenantId, type, occurredAt])
+  @@index([tenantId, logEntryId])
+}
+
+/// Lot genealogy — the food-safety provenance graph (OFBiz lot-genealogy
+/// concept, reimplemented). A directed edge: `parentLot` was consumed /
+/// used to produce `childLot`. The Phase-1 wiring creates one DERIVATION
+/// edge per input lot consumed on a field → the HARVEST_IN lot recorded
+/// from that field, so the traceability walk answers both directions:
+///   seed/input lot → (fields it was applied on) → harvest lot(s)
+///   harvest lot    → input lots → their supplier RECEIPTs.
+///
+/// Append-only for traceability integrity: a DB trigger blocks
+/// UPDATE/DELETE (mirrors the StockTransaction ledger). Edges are written
+/// ONLY through `appendLotLink` in src/lib/inventory/stock-ledger.ts; the
+/// no-direct-stock-writes guardrail covers LotLink alongside the ledger.
+model LotLink {
+  id          String      @id @default(cuid())
+  tenantId    String
+  parentLotId String
+  childLotId  String
+  type        LotLinkType @default(DERIVATION)
+  /// The HARVEST journal entry that recorded this derivation (provenance).
+  logEntryId  String?
+  note        String?
+  actorUserId String?
+  createdAt   DateTime    @default(now())
+
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  parentLot InventoryLot @relation("LotLinkParent", fields: [parentLotId, tenantId], references: [id, tenantId])
+  childLot  InventoryLot @relation("LotLinkChild", fields: [childLotId, tenantId], references: [id, tenantId])
+  logEntry  LogEntry?    @relation(fields: [logEntryId, tenantId], references: [id, tenantId])
+  actor     User?        @relation("LotLinkActor", fields: [actorUserId], references: [id])
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, parentLotId, childLotId])
+  @@index([tenantId, parentLotId])
+  @@index([tenantId, childLotId])
   @@index([tenantId, logEntryId])
 }

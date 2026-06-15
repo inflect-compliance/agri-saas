@@ -508,6 +508,14 @@ executorRegistry.register('vendor-renewal-check', async (payload) => {
     return result;
 });
 
+// ── low-stock-monitor ────────────────────────────────────────────────
+
+executorRegistry.register('low-stock-monitor', async (payload) => {
+    const { runLowStockMonitor } = await import('./low-stock-monitor');
+    const { result } = await runLowStockMonitor({ tenantId: payload.tenantId });
+    return result;
+});
+
 // ── deadline-monitor ─────────────────────────────────────────────────
 
 executorRegistry.register('deadline-monitor', async (payload) => {

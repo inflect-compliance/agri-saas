@@ -50,11 +50,38 @@ interface LocationOption {
     name: string;
 }
 
+interface ItemOption {
+    id: string;
+    name: string;
+    category: string;
+}
+
 interface QuantityRow {
     measure: QuantityMeasure;
     value: string;
     unitId: string;
     label: string;
+}
+
+/**
+ * Optional harvest-output payload (HARVEST entries only). The server mints a
+ * HARVEST_IN lot of `itemId` and records genealogy when this is present.
+ */
+interface HarvestPayload {
+    itemId: string;
+    quantity: number;
+    lotCode?: string | null;
+}
+
+interface JournalSubmitBody {
+    type: string;
+    status: string;
+    occurredAt: string | null;
+    title: string;
+    notes: string | null;
+    quantities: Array<{ measure: QuantityMeasure; value: number; unitId: string; label: string | null }>;
+    locationIds: string[];
+    harvest?: HarvestPayload;
 }
 
 export interface JournalEntryInitial {
@@ -91,6 +118,8 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
     // Catalogs for the pickers.
     const { data: units } = useTenantSWR<UnitOption[]>(open ? '/units' : null);
     const { data: locations } = useTenantSWR<LocationOption[]>(open ? '/locations' : null);
+    // Items catalog — backs the optional harvest-output picker (HARVEST only).
+    const { data: items } = useTenantSWR<ItemOption[]>(open ? '/items' : null);
 
     // ── Form state ──
     const [type, setType] = useState<string>(initial?.type ?? 'ACTIVITY');
@@ -109,6 +138,11 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
         })),
     );
     const [locationIds, setLocationIds] = useState<string[]>(initial?.locationIds ?? []);
+    // Harvest-output state — only consumed when type === 'HARVEST'. Editing an
+    // existing entry never re-mints a lot, so these reset to empty on open.
+    const [harvestItemId, setHarvestItemId] = useState<string>('');
+    const [harvestQty, setHarvestQty] = useState<string>('');
+    const [harvestLotCode, setHarvestLotCode] = useState<string>('');
     const [dirty, setDirty] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -131,6 +165,9 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
             })),
         );
         setLocationIds(initial?.locationIds ?? []);
+        setHarvestItemId('');
+        setHarvestQty('');
+        setHarvestLotCode('');
         setDirty(false);
         setError(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,6 +182,14 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
         () => (locations ?? []).map((l) => ({ value: l.id, label: l.name })),
         [locations],
     );
+    // Harvest item options — surface HARVESTED_PRODUCE first (the expected
+    // output category) but keep every item selectable.
+    const harvestItemOptions: ComboboxOption[] = useMemo(() => {
+        const all = items ?? [];
+        const produce = all.filter((i) => i.category === 'HARVESTED_PRODUCE');
+        const rest = all.filter((i) => i.category !== 'HARVESTED_PRODUCE');
+        return [...produce, ...rest].map((i) => ({ value: i.id, label: i.name }));
+    }, [items]);
 
     const markDirty = () => setDirty(true);
 
@@ -166,11 +211,27 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
         quantities.every((q) => q.unitId && q.value.trim() !== '' && !Number.isNaN(Number(q.value)))
     );
 
+    // The harvest payload rides along only on a HARVEST entry that actually
+    // names an output item + quantity. Everything else (lot code) is optional;
+    // a HARVEST entry with no item set still submits with no harvest object.
+    const harvestPayload = useMemo<HarvestPayload | null>(() => {
+        if (type !== 'HARVEST') return null;
+        const qty = Number(harvestQty);
+        if (!harvestItemId || harvestQty.trim() === '' || Number.isNaN(qty) || qty <= 0) {
+            return null;
+        }
+        return {
+            itemId: harvestItemId,
+            quantity: qty,
+            lotCode: harvestLotCode.trim() || null,
+        };
+    }, [type, harvestItemId, harvestQty, harvestLotCode]);
+
     const submit = async () => {
         setSubmitting(true);
         setError(null);
         try {
-            const body = {
+            const body: JournalSubmitBody = {
                 type,
                 status,
                 occurredAt: occurredAt ? occurredAt.toISOString() : null,
@@ -184,6 +245,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                 })),
                 locationIds,
             };
+            if (harvestPayload) body.harvest = harvestPayload;
             let saved: { id: string };
             if (isEdit && initial?.id) {
                 const res = await apiPatch<{ entry: { id: string } }>(
@@ -331,6 +393,61 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                 matchTriggerWidth
                             />
                         </FormField>
+
+                        {/* Harvest output — HARVEST entries only. Optional: leave the
+                            item blank and the entry submits with no lot minted. */}
+                        {type === 'HARVEST' && (
+                            <div
+                                className="space-y-default rounded-lg border border-border-subtle bg-bg-default p-3"
+                                id="journal-harvest-section"
+                            >
+                                <div>
+                                    <span className="text-sm font-medium text-content-emphasis">Harvest output</span>
+                                    <p className="mt-1 text-xs text-content-muted">
+                                        Optional — name the harvested product and amount to mint a stock lot and record its lineage.
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
+                                    <FormField label="Harvested item">
+                                        <Combobox
+                                            options={harvestItemOptions}
+                                            selected={harvestItemOptions.find((o) => o.value === harvestItemId) ?? null}
+                                            setSelected={(o) => {
+                                                setHarvestItemId(o?.value ?? '');
+                                                markDirty();
+                                            }}
+                                            placeholder={harvestItemOptions.length ? 'Select product' : 'No products yet'}
+                                            aria-label="Harvested item"
+                                            matchTriggerWidth
+                                        />
+                                    </FormField>
+                                    <FormField label="Quantity">
+                                        <Input
+                                            inputMode="decimal"
+                                            value={harvestQty}
+                                            onChange={(e) => {
+                                                setHarvestQty(e.target.value.replace(/[^0-9.]/g, ''));
+                                                markDirty();
+                                            }}
+                                            placeholder="Amount harvested"
+                                            aria-label="Harvest quantity"
+                                            id="journal-harvest-qty"
+                                        />
+                                    </FormField>
+                                </div>
+                                <FormField label="Lot code" hint="Optional — auto-generated if blank.">
+                                    <Input
+                                        value={harvestLotCode}
+                                        onChange={(e) => {
+                                            setHarvestLotCode(e.target.value);
+                                            markDirty();
+                                        }}
+                                        placeholder="e.g. HARVEST-2026-06"
+                                        aria-label="Harvest lot code"
+                                    />
+                                </FormField>
+                            </div>
+                        )}
 
                         {/* Quantities — farmOS measure + value + unit + label lines. */}
                         <div className="space-y-default">

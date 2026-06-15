@@ -509,6 +509,11 @@ export interface ReportDeliveryPayload {
     requestId?: string;
 }
 
+/** Inventory Phase 1 — daily cross-tenant low-stock sweep + LOW_STOCK alerts. */
+export interface LowStockMonitorPayload {
+    tenantId?: string;
+}
+
 export interface JobPayloadMap {
     'health-check': HealthCheckPayload;
     'automation-runner': AutomationRunnerPayload;
@@ -544,6 +549,7 @@ export interface JobPayloadMap {
     'risk-appetite-monitor': RiskAppetiteMonitorPayload;
     'risk-snapshot': RiskSnapshotPayload;
     'report-delivery': ReportDeliveryPayload;
+    'low-stock-monitor': LowStockMonitorPayload;
 }
 
 /** Union of all valid job names */
@@ -675,6 +681,12 @@ export const JOB_DEFAULTS: Record<JobName, {
         attempts: 1,
         backoff: { type: 'fixed', delay: 0 },
         removeOnComplete: 50,
+        removeOnFail: 200,
+    },
+    'low-stock-monitor': {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: 100,
         removeOnFail: 200,
     },
     'exception-expiry-monitor': {

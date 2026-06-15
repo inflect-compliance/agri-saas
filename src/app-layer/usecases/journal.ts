@@ -9,6 +9,7 @@ import {
     type LogQuantityInput,
 } from '../repositories/JournalRepository';
 import { FileRepository } from '../repositories/FileRepository';
+import { recordHarvestLot } from './inventory';
 import { assertCanRead, assertCanWrite, assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { notFound, badRequest } from '@/lib/errors/types';
@@ -49,6 +50,22 @@ interface QuantityPayload {
     label?: string | null;
 }
 
+/** Optional output-lot payload on a HARVEST entry — mints a HARVEST_IN
+ *  inventory lot + lot genealogy (INVENTORY-module gated, see
+ *  `recordHarvestLot`). Ignored for non-HARVEST types. */
+interface HarvestPayload {
+    itemId: string;
+    quantity: number;
+    lotCode?: string | null;
+    locationId?: string | null;
+    expiresAt?: string | null;
+    /** The field harvested — drives provenance + DERIVATION genealogy. */
+    parcelId?: string | null;
+    sourceLotIds?: string[];
+    costAmount?: number | null;
+    costCurrency?: string | null;
+}
+
 interface CreateLogEntryData {
     type: CreateLogEntryInput['type'];
     status?: 'PLANNED' | 'DONE';
@@ -61,6 +78,7 @@ interface CreateLogEntryData {
     operationParcelId?: string | null;
     costAmount?: number | null;
     costCurrency?: string | null;
+    harvest?: HarvestPayload | null;
 }
 
 interface UpdateLogEntryData {
@@ -176,6 +194,23 @@ export async function createLogEntry(ctx: RequestContext, data: CreateLogEntryDa
                 summary: `Created journal entry: ${entry.title}`,
             },
         });
+
+        // A HARVEST entry can mint its output lot + record genealogy in the
+        // same transaction (INVENTORY-module gated inside recordHarvestLot).
+        if (data.type === 'HARVEST' && data.harvest) {
+            await recordHarvestLot(db, ctx, {
+                logEntryId: entry.id,
+                itemId: data.harvest.itemId,
+                quantity: data.harvest.quantity,
+                lotCode: data.harvest.lotCode ?? null,
+                locationId: data.harvest.locationId ?? null,
+                expiresAt: data.harvest.expiresAt ?? null,
+                parcelId: data.harvest.parcelId ?? null,
+                sourceLotIds: data.harvest.sourceLotIds,
+                costAmount: data.harvest.costAmount ?? null,
+                costCurrency: data.harvest.costCurrency ?? null,
+            });
+        }
 
         return entry;
     });

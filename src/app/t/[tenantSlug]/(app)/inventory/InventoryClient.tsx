@@ -57,6 +57,22 @@ interface UnitRow {
     measure: string;
 }
 
+// Lot-genealogy contract — GET /inventory/lots/{lotId}/trace.
+interface TraceLotNode {
+    id: string;
+    lotCode: string;
+    item: { id: string; name: string; category: string };
+    unitSymbol: string;
+    quantityOnHand: number;
+    fields: { id: string; name: string }[];
+}
+interface TraceLotResult {
+    root: TraceLotNode;
+    ancestors: TraceLotNode[];
+    descendants: TraceLotNode[];
+    edges: { parentLotId: string; childLotId: string; type: string }[];
+}
+
 const CATEGORIES = ['SEED', 'PESTICIDE', 'FERTILIZER', 'AMENDMENT', 'FUEL', 'HARVESTED_PRODUCE', 'OTHER'] as const;
 
 export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
@@ -89,6 +105,13 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
     const [mvMode, setMvMode] = useState<'receive' | 'adjust'>('receive');
     const [mvQty, setMvQty] = useState('');
     const [mvReason, setMvReason] = useState('');
+
+    // Lot traceability (food-safety recall walk) — fetched lazily when the
+    // operator opens the genealogy section for the active lot.
+    const [showTrace, setShowTrace] = useState(false);
+    const { data: trace, isLoading: traceLoading } = useTenantSWR<TraceLotResult>(
+        showTrace && activeLotId ? `/inventory/lots/${activeLotId}/trace` : null,
+    );
 
     const itemOptions = useMemo(
         () => (items ?? []).map((i) => ({ label: `${i.name}`, value: i.id })),
@@ -226,6 +249,7 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                         setActiveLotId(l.id);
                         setError(null);
                         setMvMode('receive');
+                        setShowTrace(false);
                     }}
                     emptyState={
                         <EmptyState
@@ -367,11 +391,95 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                             <p className="mt-2 text-sm text-content-subtle">No movements yet.</p>
                         )}
                     </div>
+
+                    {/* Traceability — lot genealogy both ways (recall query). */}
+                    <div className="mt-default border-t border-border-subtle pt-default">
+                        <div className="flex items-center justify-between">
+                            <Heading level={3}>Traceability</Heading>
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                type="button"
+                                onClick={() => setShowTrace((v) => !v)}
+                                aria-expanded={showTrace}
+                            >
+                                {showTrace ? 'Hide genealogy' : 'Show genealogy'}
+                            </Button>
+                        </div>
+                        {showTrace && (
+                            <div className="mt-default">
+                                {traceLoading && !trace ? (
+                                    <p className="text-sm text-content-subtle">Loading genealogy…</p>
+                                ) : trace ? (
+                                    trace.ancestors.length === 0 && trace.descendants.length === 0 ? (
+                                        <p className="text-sm text-content-subtle">No genealogy recorded for this lot yet.</p>
+                                    ) : (
+                                        <div className="space-y-default">
+                                            <TraceGroup title="Derived from" tone="muted" nodes={trace.ancestors} />
+                                            <TraceGroup title="This lot" tone="emphasis" nodes={[trace.root]} />
+                                            <TraceGroup title="Produced" tone="muted" nodes={trace.descendants} />
+                                        </div>
+                                    )
+                                ) : (
+                                    <p className="text-sm text-content-subtle">No genealogy recorded for this lot yet.</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </Modal.Body>
                 <Modal.Actions>
                     <Button variant="secondary" size="sm" type="button" onClick={() => setActiveLotId(null)}>Close</Button>
                 </Modal.Actions>
             </Modal>
         </ListPageShell>
+    );
+}
+
+/**
+ * One genealogy group (Derived from / This lot / Produced) — renders each
+ * lot node with its product, category, on-hand quantity, and the parcels it
+ * touched. `tone="emphasis"` marks the root lot apart from up/downstream lots.
+ */
+function TraceGroup({
+    title,
+    tone,
+    nodes,
+}: {
+    title: string;
+    tone: 'muted' | 'emphasis';
+    nodes: TraceLotNode[];
+}) {
+    return (
+        <section className="space-y-tight">
+            <h4 className="text-xs font-medium uppercase tracking-wide text-content-muted">{title}</h4>
+            {nodes.length === 0 ? (
+                <p className="text-sm text-content-subtle">None.</p>
+            ) : (
+                <ul className="space-y-tight">
+                    {nodes.map((n) => (
+                        <li
+                            key={n.id}
+                            className={`rounded-lg border px-3 py-2 ${tone === 'emphasis' ? 'border-border-emphasis bg-bg-muted' : 'border-border-subtle'}`}
+                        >
+                            <div className="flex items-center justify-between gap-compact">
+                                <span className="flex items-center gap-compact">
+                                    <span className="font-medium text-content-emphasis">{n.lotCode}</span>
+                                    <StatusBadge variant="neutral">{n.item.category.replace('_', ' ')}</StatusBadge>
+                                </span>
+                                <span className="text-sm text-content-muted">
+                                    {n.quantityOnHand} {n.unitSymbol}
+                                </span>
+                            </div>
+                            <p className="mt-1 text-sm text-content-secondary">{n.item.name}</p>
+                            {n.fields.length > 0 && (
+                                <p className="mt-1 text-xs text-content-subtle">
+                                    Fields: {n.fields.map((f) => f.name).join(', ')}
+                                </p>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
     );
 }

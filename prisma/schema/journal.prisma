@@ -63,6 +63,8 @@ model LogEntry {
   locations       LogLocation[]
   equipment       LogEquipment[]
   files           LogEntryFile[]
+  /// Lot-genealogy edges recorded by a HARVEST entry (provenance link).
+  lotLinks        LotLink[]
 
   @@unique([id, tenantId])
   @@index([tenantId, type, occurredAt])

@@ -253,6 +253,7 @@ const FK_INDEX_EXEMPT: Record<string, string> = {
     'StockTransaction.unitId':
         'Phase 1 — Unit is a small global catalog; the movement unit is read via the parent include, never reverse-scanned.',
     'StockTransaction.actorUserId': R_ACTOR,
+    'LotLink.actorUserId': R_ACTOR,
     'LogEntry.createdByUserId': R_ACTOR,
     // ─── Field Journal ───
     'Equipment.createdByUserId': R_ACTOR,
@@ -397,7 +398,9 @@ const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
     InventoryLot:
         'listLots filters by tenantId (+ optional itemId), orders by createdAt DESC — covered by @@index([tenantId, itemId]); getFefoLot filters tenantId+itemId+quantityOnHand>0 ordered by expiresAt — covered by @@index([tenantId, expiresAt]); bounded take:200.',
     StockTransaction:
-        'lotLedger filters by tenantId + lotId ordered by occurredAt DESC — covered exactly by @@index([tenantId, lotId, occurredAt]); the verifyStockChain integrity sweep is an explicit unbounded full-tenant scan (guardrail-allow).',
+        'lotLedger filters by tenantId + lotId ordered by occurredAt DESC — covered exactly by @@index([tenantId, lotId, occurredAt]); the verifyStockChain integrity sweep is an explicit unbounded full-tenant scan (guardrail-allow). findConsumptionParcels / findInputLotsConsumedOnParcel filter tenantId + type (+ lotId set / nested operationParcel) — covered by @@index([tenantId, type, occurredAt]); bounded take:500.',
+    LotLink:
+        'The traceability walk reads genealogy edges by tenantId + childLotId (listParentLinks, BFS up) and tenantId + parentLotId (listChildLinks, BFS down) — both leading-indexed by @@index([tenantId, parentLotId]) / @@index([tenantId, childLotId]); each level is take:500-bounded.',
     // ─── Field Journal (LogEntry + Equipment) ───
     LogEntry:
         'listLogEntries filters by tenantId (+ optional type / status / occurredAt range), searches title/notes, orders by occurredAt DESC — covered by @@index([tenantId, type, occurredAt]) + @@index([tenantId, status, occurredAt]); the paginated path is cursor-bounded and the flat path is take:200-bounded.',

@@ -1,20 +1,23 @@
 /**
- * Guardrail: the stock ledger has exactly one writer.
+ * Guardrail: the append-only inventory tables have exactly one writer.
  *
- * StockTransaction is the append-only, hash-chained inventory ledger.
- * Every append MUST flow through `appendStockTransaction` in
- * `src/lib/inventory/stock-ledger.ts` so that the per-tenant hash chain
- * and the denormalised `InventoryLot.quantityOnHand` cache stay
- * consistent within one advisory-locked step. A direct
- * `db.stockTransaction.create(...)` from a usecase or repository would
- * write an unchained row (breaking `verifyStockChain`) and skip the
- * cache refresh.
+ * StockTransaction is the hash-chained stock ledger; LotLink is the
+ * append-only lot-genealogy graph. Both are DB-immutable (a trigger
+ * blocks UPDATE/DELETE) and BOTH must be written ONLY through the
+ * sanctioned writer `src/lib/inventory/stock-ledger.ts`
+ * (`appendStockTransaction` / `appendLotLink`). For the ledger this keeps
+ * the per-tenant hash chain and the denormalised
+ * `InventoryLot.quantityOnHand` cache consistent within one
+ * advisory-locked step; a direct `db.stockTransaction.create(...)` would
+ * write an unchained row (breaking `verifyStockChain`) and skip the cache
+ * refresh. For genealogy it keeps every provenance edge funnelled through
+ * one idempotent, self-edge-rejecting writer.
  *
- * This ratchet scans the source tree for direct StockTransaction write
- * calls and fails on any found outside the one sanctioned writer. It is
- * the structural twin of the DB immutability trigger (which blocks
- * UPDATE/DELETE) — together they make "append-only, single-writer" a
- * property the codebase cannot regress out of silently.
+ * This ratchet scans the source tree for direct StockTransaction / LotLink
+ * write calls and fails on any found outside the one sanctioned writer. It
+ * is the structural twin of the DB immutability triggers — together they
+ * make "append-only, single-writer" a property the codebase cannot
+ * regress out of silently.
  *
  * Mirrors the spirit of the AuditLog append-only enforcement.
  */
@@ -24,12 +27,12 @@ import * as path from 'path';
 const REPO_ROOT = path.resolve(__dirname, '../..');
 const SCAN_DIRS = [path.join(REPO_ROOT, 'src')];
 
-/** The ONLY file allowed to write StockTransaction rows. */
+/** The ONLY file allowed to write StockTransaction / LotLink rows. */
 const SANCTIONED_WRITER = path.join(REPO_ROOT, 'src/lib/inventory/stock-ledger.ts');
 
-/** Prisma write verbs on the stockTransaction model. */
+/** Prisma write verbs on the append-only inventory models. */
 const WRITE_RE =
-    /\.stockTransaction\s*\.\s*(create|createMany|update|updateMany|upsert|delete|deleteMany)\b/g;
+    /\.(stockTransaction|lotLink)\s*\.\s*(create|createMany|update|updateMany|upsert|delete|deleteMany)\b/g;
 
 function walk(dir: string): string[] {
     const out: string[] = [];
@@ -53,7 +56,7 @@ describe('stock ledger — single writer', () => {
         expect(files.length).toBeGreaterThan(100);
     });
 
-    it('only src/lib/inventory/stock-ledger.ts writes StockTransaction rows directly', () => {
+    it('only src/lib/inventory/stock-ledger.ts writes StockTransaction / LotLink rows directly', () => {
         const violations: string[] = [];
         for (const file of files) {
             if (file === SANCTIONED_WRITER) continue;
@@ -61,17 +64,19 @@ describe('stock ledger — single writer', () => {
             const matches = [...src.matchAll(WRITE_RE)];
             if (matches.length > 0) {
                 const rel = path.relative(REPO_ROOT, file);
-                const verbs = [...new Set(matches.map((m) => m[1]))].join(', ');
-                violations.push(`${rel} — direct stockTransaction.${verbs}`);
+                const detail = [...new Set(matches.map((m) => `${m[1]}.${m[2]}`))].join(', ');
+                violations.push(`${rel} — direct ${detail}`);
             }
         }
         if (violations.length > 0) {
             throw new Error(
-                'Direct StockTransaction write(s) detected outside the sanctioned ledger writer:\n  ' +
+                'Direct StockTransaction/LotLink write(s) detected outside the sanctioned writer:\n  ' +
                     violations.join('\n  ') +
-                    '\n\nAppend via `appendStockTransaction(db, ctx, ...)` from ' +
-                    '`@/lib/inventory/stock-ledger` instead — it extends the hash chain ' +
-                    'and refreshes the lot on-hand cache atomically.',
+                    '\n\nAppend via `appendStockTransaction(db, ctx, ...)` or ' +
+                    '`appendLotLink(db, ctx, ...)` from `@/lib/inventory/stock-ledger` ' +
+                    'instead — the ledger writer extends the hash chain and refreshes the ' +
+                    'lot on-hand cache atomically; the genealogy writer is idempotent and ' +
+                    'self-edge-rejecting.',
             );
         }
         expect(violations).toEqual([]);

@@ -98,6 +98,12 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
         defaultPayload: {},
     },
     {
+        name: 'low-stock-monitor',
+        pattern: '0 9 * * *',     // daily at 09:00 UTC
+        description: 'Scan inventory items below reorderLevel and fire LOW_STOCK notifications to tenant OWNER/ADMIN members',
+        defaultPayload: {},
+    },
+    {
         name: 'schedule-trigger-sweep',
         pattern: '0 7 * * *',     // daily at 07:00 UTC
         description: 'Fire SCHEDULE automation rules whose target entity is N days from its due date',

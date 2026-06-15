@@ -25,6 +25,7 @@
     "db:backfill-org-widgets": "tsx scripts/backfill-org-dashboard-widgets.ts",
     "framework:import": "tsx scripts/framework-import.ts",
     "import:units": "tsx scripts/import-units.ts",
+    "verify:stock-chain": "tsx scripts/verify-stock-chain.ts",
     "test": "jest",
     "test:e2e": "playwright test",
     "test:a11y": "playwright test tests/e2e/a11y.spec.ts",

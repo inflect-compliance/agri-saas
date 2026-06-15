@@ -234,6 +234,7 @@ model Tenant {
   logLocations      LogLocation[]
   logEquipments     LogEquipment[]
   logEntryFiles     LogEntryFile[]
+  lotLinks          LotLink[]
 
   @@index([organizationId])
 }
@@ -768,6 +769,7 @@ model User {
   stockTxActed                  StockTransaction[]           @relation("StockTxActor")
   logEntriesCreated             LogEntry[]                   @relation("LogEntryCreator")
   equipmentCreated              Equipment[]                  @relation("EquipmentCreator")
+  lotLinksActed                 LotLink[]                    @relation("LotLinkActor")
 }
 
 model Account {
