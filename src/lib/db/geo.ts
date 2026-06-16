@@ -11,7 +11,7 @@
  * in this file, so the spatial surface stays auditable.
  */
 import { Prisma } from '@prisma/client';
-import type { Geometry, Polygon, MultiPolygon } from 'geojson';
+import type { Geometry, Polygon, MultiPolygon, LineString } from 'geojson';
 
 /**
  * SQL fragment that converts a GeoJSON geometry (passed as a JSON
@@ -73,6 +73,66 @@ export function locationParcelBoundsSql(locationId: string, tenantId: string): P
               AND "deletedAt" IS NULL
         ) s
         WHERE ext IS NOT NULL`;
+}
+
+/**
+ * SQL fragment converting a GeoJSON LineString (the split "blade") into a
+ * PostGIS `geometry(LineString, 4326)`. Used as the second argument to
+ * `ST_Split` in `splitParcelGeoJsonSql`.
+ */
+export function lineSql(line: LineString): Prisma.Sql {
+    const json = JSON.stringify(line);
+    return Prisma.sql`ST_SetSRID(ST_GeomFromGeoJSON(${json}), 4326)`;
+}
+
+/**
+ * Full query: the geometric UNION of the named parcels, returned as a
+ * single GeoJSON MultiPolygon string (column `geojson`). Tenant- AND
+ * location-scoped — only non-deleted parcels of `locationId` belonging to
+ * `tenantId` are unioned, so a caller can never merge across a tenant or
+ * field boundary. Run via `$queryRaw`; one row, `geojson` NULL when no
+ * matching parcel has geometry.
+ */
+export function unionParcelsGeoJsonSql(
+    locationId: string,
+    tenantId: string,
+    parcelIds: string[],
+): Prisma.Sql {
+    return Prisma.sql`
+        SELECT ST_AsGeoJSON(ST_Multi(ST_Union("geometry"))) AS "geojson"
+        FROM "Parcel"
+        WHERE "id" IN (${Prisma.join(parcelIds)})
+          AND "locationId" = ${locationId}
+          AND "tenantId" = ${tenantId}
+          AND "deletedAt" IS NULL
+          AND "geometry" IS NOT NULL`;
+}
+
+/**
+ * Full query: SPLIT a parcel's geometry along a LineString blade, dumping
+ * the resulting pieces to one GeoJSON polygon per row (column `geojson`).
+ * `ST_Split` returns a collection; `ST_Dump` expands it; the outer filter
+ * keeps only polygonal pieces (the blade itself can surface otherwise).
+ * Tenant-scoped on the source parcel. When the blade does not fully cross
+ * the parcel, `ST_Split` yields a single piece — the caller treats
+ * `< 2 rows` as "the cut didn't divide the parcel".
+ */
+export function splitParcelGeoJsonSql(
+    parcelId: string,
+    tenantId: string,
+    line: LineString,
+): Prisma.Sql {
+    return Prisma.sql`
+        SELECT ST_AsGeoJSON((d).geom) AS "geojson"
+        FROM (
+            SELECT (ST_Dump(ST_Split("geometry", ${lineSql(line)}))).*
+            FROM "Parcel"
+            WHERE "id" = ${parcelId}
+              AND "tenantId" = ${tenantId}
+              AND "deletedAt" IS NULL
+              AND "geometry" IS NOT NULL
+        ) d
+        WHERE ST_GeometryType((d).geom) IN ('ST_Polygon', 'ST_MultiPolygon')`;
 }
 
 /** Parse a GeoJSON string returned by `ST_AsGeoJSON` back into a typed geometry. */

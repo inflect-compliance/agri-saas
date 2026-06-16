@@ -9,9 +9,11 @@ import {
     parseGeometry,
     locationParcelBoundsSql,
     isValidGeometrySql,
+    unionParcelsGeoJsonSql,
+    splitParcelGeoJsonSql,
 } from '@/lib/db/geo';
 import type { ParsedParcel } from '@/lib/spatial/parse';
-import type { Geometry, Polygon, MultiPolygon } from 'geojson';
+import type { Geometry, Polygon, MultiPolygon, LineString } from 'geojson';
 
 /** A parcel returned to the client — geometry serialized to GeoJSON. */
 export interface ParcelGeo {
@@ -182,6 +184,55 @@ export class ParcelRepository {
             Prisma.sql`SELECT ${isValidGeometrySql(geometry)} AS "valid"`,
         );
         return rows[0]?.valid === true;
+    }
+
+    /**
+     * Geometric UNION of the given parcels (a MERGE), as a single
+     * MultiPolygon — or null when no matching parcel has geometry. The
+     * query is tenant- AND location-scoped (geo.ts), so it can never union
+     * across a tenant or field. The caller validates the ids belong to the
+     * location first, persists the union via `createOne`, then soft-deletes
+     * the originals.
+     */
+    static async unionForLocation(
+        db: PrismaTx,
+        ctx: RequestContext,
+        locationId: string,
+        parcelIds: string[],
+    ): Promise<MultiPolygon | null> {
+        const rows = await db.$queryRaw<Array<{ geojson: string | null }>>(
+            unionParcelsGeoJsonSql(locationId, ctx.tenantId, parcelIds),
+        );
+        const g = parseGeometry(rows[0]?.geojson ?? null);
+        if (g && (g.type === 'MultiPolygon' || g.type === 'Polygon')) {
+            return g as MultiPolygon;
+        }
+        return null;
+    }
+
+    /**
+     * SPLIT a parcel along a LineString blade into its polygonal pieces.
+     * Returns one geometry per piece (empty/single when the blade did not
+     * divide the parcel — the caller rejects `< 2`). Tenant-scoped on the
+     * source parcel via geo.ts.
+     */
+    static async splitOne(
+        db: PrismaTx,
+        ctx: RequestContext,
+        parcelId: string,
+        line: LineString,
+    ): Promise<Array<Polygon | MultiPolygon>> {
+        const rows = await db.$queryRaw<Array<{ geojson: string | null }>>(
+            splitParcelGeoJsonSql(parcelId, ctx.tenantId, line),
+        );
+        const pieces: Array<Polygon | MultiPolygon> = [];
+        for (const r of rows) {
+            const g = parseGeometry(r.geojson);
+            if (g && (g.type === 'Polygon' || g.type === 'MultiPolygon')) {
+                pieces.push(g);
+            }
+        }
+        return pieces;
     }
 
     /** Fetch one parcel's identity (ownership/location lookup). Tenant-scoped. */

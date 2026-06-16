@@ -7,7 +7,7 @@ import { runInTenantContext } from '@/lib/db-context';
 import type { PrismaTx } from '@/lib/db-context';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { ParcelRepository } from '../repositories/ParcelRepository';
-import type { Polygon, MultiPolygon } from 'geojson';
+import type { Polygon, MultiPolygon, LineString } from 'geojson';
 
 /**
  * In-map parcel authoring — the create / edit / delete write paths behind
@@ -146,5 +146,118 @@ export async function deleteParcel(ctx: RequestContext, parcelId: string) {
             },
         });
         return { success: true };
+    });
+}
+
+/**
+ * Merge ≥2 parcels of a location into ONE new parcel (their geometric
+ * union). The originals are soft-deleted; the union becomes a fresh parcel
+ * named `name`. All geometry I/O is server-side + tenant/location-scoped
+ * (a caller can never union across a tenant or field); areaHa is
+ * re-derived from the union.
+ */
+export async function mergeParcels(
+    ctx: RequestContext,
+    locationId: string,
+    parcelIds: string[],
+    name: string,
+) {
+    assertCanWrite(ctx);
+    const cleanName = sanitizePlainText((name ?? '').trim());
+    if (!cleanName) throw badRequest('Merged parcel name is required.');
+    // De-dupe defensively so a repeated id can't undercount the validation.
+    const ids = [...new Set(parcelIds)];
+    if (ids.length < 2) throw badRequest('Select at least two parcels to merge.');
+
+    return runInTenantContext(ctx, async (db) => {
+        const location = await db.location.findFirst({
+            where: { id: locationId, tenantId: ctx.tenantId, deletedAt: null },
+            select: { id: true },
+        });
+        if (!location) throw notFound('Location not found');
+
+        const valid = await ParcelRepository.validIdsForLocation(db, ctx, locationId, ids);
+        if (valid.size !== ids.length) {
+            throw badRequest('One or more parcels were not found in this field.');
+        }
+
+        const merged = await ParcelRepository.unionForLocation(db, ctx, locationId, ids);
+        if (!merged) throw badRequest('Could not merge the selected parcels.');
+        if (!(await ParcelRepository.isValidGeometry(db, merged))) {
+            throw badRequest('The merged shape is invalid. Check the selected parcels do not overlap badly.');
+        }
+
+        const created = await ParcelRepository.createOne(db, ctx, locationId, {
+            name: cleanName,
+            geometry: merged,
+        });
+        for (const id of ids) {
+            await ParcelRepository.softDeleteOne(db, ctx, id);
+        }
+        await refreshLocationBounds(db, ctx, locationId);
+
+        await logEvent(db, ctx, {
+            action: 'PARCEL_MERGED',
+            entityType: 'Parcel',
+            entityId: created.id,
+            details: `Merged ${ids.length} parcels into ${cleanName} (${created.areaHa ?? '?'} ha)`,
+            detailsJson: {
+                category: 'entity_lifecycle',
+                entityName: 'Parcel',
+                operation: 'created',
+                after: { locationId, name: cleanName, areaHa: created.areaHa, mergedFrom: ids.length },
+                summary: `Merged ${ids.length} parcels into ${cleanName}`,
+            },
+        });
+        return created;
+    });
+}
+
+/**
+ * Split ONE parcel along a drawn line into the pieces the blade cuts it
+ * into (≥2). The original is soft-deleted; each piece becomes a new parcel
+ * named `${original} (n)`. Rejects a blade that doesn't fully divide the
+ * parcel. Geometry I/O is server-side + tenant-scoped.
+ */
+export async function splitParcel(ctx: RequestContext, parcelId: string, line: LineString) {
+    assertCanWrite(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const parcel = await ParcelRepository.getOne(db, ctx, parcelId);
+        if (!parcel) throw notFound('Parcel not found');
+
+        const pieces = await ParcelRepository.splitOne(db, ctx, parcelId, line);
+        if (pieces.length < 2) {
+            throw badRequest('The cut line must fully cross the parcel into two or more pieces.');
+        }
+
+        const created: Array<{ id: string; areaHa: number | null }> = [];
+        let n = 0;
+        for (const piece of pieces) {
+            n += 1;
+            created.push(
+                await ParcelRepository.createOne(db, ctx, parcel.locationId, {
+                    name: `${parcel.name} (${n})`,
+                    geometry: piece,
+                }),
+            );
+        }
+        await ParcelRepository.softDeleteOne(db, ctx, parcelId);
+        await refreshLocationBounds(db, ctx, parcel.locationId);
+
+        await logEvent(db, ctx, {
+            action: 'PARCEL_SPLIT',
+            entityType: 'Parcel',
+            entityId: parcelId,
+            details: `Split parcel ${parcel.name} into ${created.length} pieces`,
+            detailsJson: {
+                category: 'entity_lifecycle',
+                entityName: 'Parcel',
+                operation: 'updated',
+                before: { name: parcel.name },
+                after: { pieces: created.length },
+                summary: `Split parcel ${parcel.name} into ${created.length} pieces`,
+            },
+        });
+        return { pieces: created };
     });
 }
