@@ -896,6 +896,34 @@ executorRegistry.register('risk-appetite-monitor', async (payload) => {
     });
 });
 
+// ── spatial-import (parcel-boundary upload hardening) ────────────────
+//
+// One job invocation per staged shapefile/KML/GeoJSON. The HTTP layer
+// enforces the per-format byte cap + stages the upload; the worker
+// parses it off-thread under a 30s budget, enforces the parcel-
+// complexity caps, validates every geometry's topology (ST_IsValid),
+// and only then replaces the location's parcels. See `spatial-import.ts`
+// for the full defence-layer flow.
+executorRegistry.register('spatial-import', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runLocationSpatialImport } = await import('./spatial-import');
+    const r = await runLocationSpatialImport(payload);
+    return makeResult(
+        'spatial-import', startedAt, startMs,
+        r.parcelCount, r.parcelCount, r.skipped,
+        {
+            tenantId: r.tenantId,
+            locationId: r.locationId,
+            fileRecordId: r.fileRecordId,
+            format: r.format,
+            parcelCount: r.parcelCount,
+            bounds: r.bounds,
+            jobRunId: r.jobRunId,
+        },
+    );
+});
+
 // RQ-9 — daily cross-tenant risk + portfolio snapshot.
 executorRegistry.register('risk-snapshot', async (payload) => {
     const startedAt = new Date().toISOString();

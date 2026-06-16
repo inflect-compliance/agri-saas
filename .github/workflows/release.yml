@@ -64,12 +64,72 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Capture the newest release tag BEFORE semantic-release runs so
+      # the SBOM step below can tell whether THIS run actually
+      # published a new version (tag changed) vs. found nothing
+      # release-worthy (tag unchanged). semantic-release has no
+      # first-class "did it publish?" GHA output, and parsing its
+      # stdout is brittle — the created git tag is the durable,
+      # unambiguous signal.
+      - name: Capture previous release tag
+        id: prev_tag
+        run: echo "tag=$(git describe --tags --abbrev=0 2>/dev/null || echo none)" >> "$GITHUB_OUTPUT"
+
       # semantic-release reads .releaserc.json and does everything:
       # analyze commits → determine version → generate notes → publish
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      # Re-read the newest tag after the release. If it changed, a new
+      # GitHub Release was published this run and `released` is `true`;
+      # `version` carries the tag (e.g. v1.2.3) for the SBOM asset
+      # upload below.
+      - name: Detect published release
+        id: release
+        if: success()
+        run: |
+          NEW_TAG="$(git describe --tags --abbrev=0 2>/dev/null || echo none)"
+          echo "version=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+          if [ "${NEW_TAG}" != "none" ] && [ "${NEW_TAG}" != "${{ steps.prev_tag.outputs.tag }}" ]; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "A new release was published: ${NEW_TAG}"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            echo "No new release published this run."
+          fi
+
+      # ── SBOM (SPDX-JSON) generation — only on a real release ──
+      # anchore/sbom-action wraps syft; pinned to a release tag (not a
+      # mutable major) so the supply-chain tooling itself is
+      # reproducible. Scans the repository source tree (the built
+      # `app`/`worker` images are produced + scanned separately by
+      # Watchtower/Trivy on the deploy VM; the source SBOM is what we
+      # attach to the GitHub Release for downstream consumers /
+      # vulnerability-feed ingestion). Gated on
+      # `steps.release.outputs.released == 'true'` so dry/no-op release
+      # runs don't emit a stray SBOM.
+      - name: Generate SBOM (SPDX-JSON)
+        if: success() && steps.release.outputs.released == 'true'
+        uses: anchore/sbom-action@v0.24.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: "sbom.spdx.json"
+          # Name the artifact deterministically off the released tag.
+          artifact-name: "sbom-${{ steps.release.outputs.version }}.spdx.json"
+
+      # Attach the SBOM to the just-published GitHub Release as a
+      # downloadable asset. `gh release upload --clobber` is idempotent
+      # if the workflow is re-run for the same tag.
+      - name: Attach SBOM to GitHub Release
+        if: success() && steps.release.outputs.released == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ steps.release.outputs.version }}" \
+            sbom.spdx.json --clobber
 
       - name: Post release summary
         if: success()
@@ -79,3 +139,6 @@ jobs:
           echo "semantic-release analyzed commits and either:" >> $GITHUB_STEP_SUMMARY
           echo "- Created a new release (check [Releases](/${{ github.repository }}/releases))" >> $GITHUB_STEP_SUMMARY
           echo "- Determined no release-worthy changes exist" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.release.outputs.released }}" = "true" ]; then
+            echo "- 🧾 SBOM (SPDX-JSON) generated + attached to release ${{ steps.release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          fi

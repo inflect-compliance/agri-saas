@@ -55,6 +55,40 @@ export function isValidGeometrySql(geometry: Polygon | MultiPolygon): Prisma.Sql
 }
 
 /**
+ * Full query: of the supplied GeoJSON geometries, return the 0-based
+ * indices (column `idx`) of those that are NOT topologically valid —
+ * self-intersecting rings, malformed polygons, etc. The geometries are
+ * passed as an unnested `VALUES` list so a bulk parcel-import's validity
+ * check is ONE round-trip, never an N+1 loop of per-parcel `ST_IsValid`.
+ *
+ * Mirrors `geometrySql`'s construction
+ * (`ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(...), 4326))`) so a geometry
+ * that passes here is byte-identical to the one `replaceForLocation`
+ * persists. Run via `$queryRaw`; the caller maps each `idx` back to its
+ * parcel. Lives here so the `ST_*` stays contained in geo.ts.
+ *
+ * NOTE: `ST_GeomFromGeoJSON` *throws* (aborting the whole statement) on
+ * structurally-malformed JSON rather than returning an invalid geometry.
+ * The spatial parser only ever produces well-formed MultiPolygon
+ * structures, so the realistic failure here is topological (caught by
+ * `ST_IsValid`); the caller treats a thrown statement as "import
+ * contains malformed geometry" and fails closed.
+ */
+export function invalidGeometryIndicesSql(
+    geometries: ReadonlyArray<Polygon | MultiPolygon>,
+): Prisma.Sql {
+    const rows = geometries.map(
+        (g, i) => Prisma.sql`(${i}::int, ${JSON.stringify(g)}::text)`,
+    );
+    return Prisma.sql`
+        SELECT t."idx" AS "idx"
+        FROM (VALUES ${Prisma.join(rows)}) AS t("idx", "geojson")
+        WHERE NOT ST_IsValid(
+            ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(t."geojson"), 4326))
+        )`;
+}
+
+/**
  * Full query computing the WGS84 bounding box of all non-deleted parcels
  * of a location, as four corners (xmin/ymin/xmax/ymax = west/south/east/
  * north). Returns no row (or NULL corners) when the location has no

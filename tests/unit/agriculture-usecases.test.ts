@@ -21,8 +21,8 @@ describe('agriculture usecases — exported surface', () => {
         expect(typeof location.getLocationWithParcels).toBe('function');
     });
 
-    it('spatial-import exposes importLocationSpatialFile', () => {
-        expect(typeof spatialImport.importLocationSpatialFile).toBe('function');
+    it('spatial-import exposes stageLocationSpatialImport', () => {
+        expect(typeof spatialImport.stageLocationSpatialImport).toBe('function');
     });
 
     it('field-operation exposes create / get / mark / list', () => {

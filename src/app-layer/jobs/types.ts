@@ -523,6 +523,40 @@ export interface WeatherPullPayload {
     tenantId?: string;
 }
 
+/**
+ * Spatial-upload abuse hardening — off-thread parcel-boundary import.
+ *
+ * The HTTP layer stages the uploaded shapefile/KML/GeoJSON to storage
+ * (domain `spatial`, after the per-format byte cap), records a
+ * FileRecord, and enqueues this job. The worker streams the bytes back,
+ * parses them under a 30s wall-clock budget OFF the request thread,
+ * enforces the parcel-complexity caps, validates every geometry's
+ * topology (`ST_IsValid`) pre-persist, and only then replaces the
+ * location's parcels. A hostile 200 MB shapefile or a million-vertex
+ * polygon can therefore never pin the Next.js runtime.
+ *
+ * Payload is JSON-serialisable (no Buffers) — the bytes live in storage
+ * at `stagingPathKey`; the worker reads them back.
+ */
+export interface SpatialImportJobPayload {
+    /** Tenant whose location is being imported into. Required for isolation. */
+    tenantId: string;
+    /** Member who uploaded — actor attribution + write-permission gate. */
+    initiatedByUserId: string;
+    /** Target Location to replace parcels on. */
+    locationId: string;
+    /** Storage key of the staged upload (under `spatial`). */
+    stagingPathKey: string;
+    /** FileRecord.id of the staged upload — stamped onto Location.spatialFileId. */
+    stagingFileRecordId: string;
+    /** Original filename — drives parser format detection + the audit message. */
+    filename: string;
+    /** Upload MIME type, when the browser supplied one. */
+    mimeType?: string;
+    /** Upstream request id for log correlation. */
+    requestId?: string;
+}
+
 export interface JobPayloadMap {
     'health-check': HealthCheckPayload;
     'automation-runner': AutomationRunnerPayload;
@@ -560,6 +594,7 @@ export interface JobPayloadMap {
     'report-delivery': ReportDeliveryPayload;
     'low-stock-monitor': LowStockMonitorPayload;
     'weather-pull': WeatherPullPayload;
+    'spatial-import': SpatialImportJobPayload;
 }
 
 /** Union of all valid job names */
@@ -826,6 +861,19 @@ export const JOB_DEFAULTS: Record<JobName, {
         attempts: 2,
         backoff: { type: 'exponential', delay: 10000 },
         removeOnComplete: 500,
+        removeOnFail: 1000,
+    },
+    'spatial-import': {
+        // No auto-retry: a parse failure, a complexity-cap breach, a
+        // self-intersecting polygon, or a blown 30s parse budget is a
+        // HARD reject — re-running would just burn the same CPU on the
+        // same hostile file. A transient storage flake leaves the staged
+        // upload intact for the operator to re-trigger manually. Keep
+        // the failed job around (removeOnFail) so the GET status route
+        // can surface `failedReason` to the upload modal.
+        attempts: 1,
+        backoff: { type: 'fixed', delay: 0 },
+        removeOnComplete: 200,
         removeOnFail: 1000,
     },
 };

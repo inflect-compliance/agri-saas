@@ -1,13 +1,13 @@
-import { Prisma } from '@prisma/client';
 import { RequestContext } from '../types';
 import { assertCanWrite } from '../policies/common';
-import { logEvent } from '../events/audit';
-import { notFound } from '@/lib/errors/types';
+import { badRequest, notFound } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
-import { parseSpatialFile } from '@/lib/spatial/parse';
+import { detectFormat } from '@/lib/spatial/parse';
+import { assertUploadWithinSize } from '@/lib/spatial/limits';
 import { getStorageProvider, buildTenantObjectKey } from '@/lib/storage';
 import { FileRepository } from '../repositories/FileRepository';
-import { ParcelRepository } from '../repositories/ParcelRepository';
+import { enqueue } from '@/app-layer/jobs/queue';
+import { logger } from '@/lib/observability/logger';
 import { env } from '@/env';
 import { Readable } from 'node:stream';
 
@@ -17,57 +17,74 @@ export interface SpatialImportInput {
     mimeType?: string;
 }
 
-export interface SpatialImportResult {
-    locationId: string;
+export interface SpatialImportStageResult {
+    /** BullMQ job id — poll `GET .../spatial-import/:jobId` for progress. */
+    jobId: string;
+    /** FileRecord of the staged upload (becomes Location.spatialFileId on success). */
     fileRecordId: string;
-    format: string;
-    parcelCount: number;
-    bounds: [number, number, number, number] | null;
-    skipped: number;
+    /** Detected spatial format ('shapefile' | 'kml' | 'geojson'). */
+    format: 'shapefile' | 'kml' | 'geojson';
 }
 
 /**
- * Import a spatial file into a Location:
- *   1. parse it (pure — shpjs/togeojson, normalized to WGS84 GeoJSON),
- *   2. store the original upload via the existing FileRecord pipeline
- *      (domain "spatial"; ClamAV scans asynchronously via the webhook —
- *      markStored leaves scanStatus = PENDING),
- *   3. replace the location's parcels, writing geometry + areaHa through
- *      the geo helpers (ST_GeomFromGeoJSON / ST_Area),
- *   4. stamp the spatial file + format + bounding box on the Location.
+ * Stage a parcel-boundary upload and enqueue the off-thread import job.
  *
- * Steps 2–4 run inside one tenant transaction; the byte-write to object
- * storage happens first (outside the txn, like the evidence-import path).
+ * Abuse hardening (Epic harden-security #2): parsing a shapefile/KML/
+ * GeoJSON is attacker-influenced CPU (vertex-count-scaled PostGIS +
+ * `shpjs` decompression). We refuse to run it on the request thread.
+ * This usecase is the cheap, synchronous boundary:
+ *   1. authorize (write),
+ *   2. detect format + enforce the per-format byte cap (caller — the
+ *      route — surfaces the precise 413/415; this re-asserts as the
+ *      single source of truth so a non-HTTP caller is bounded too),
+ *   3. verify the target Location exists (tenant-scoped) BEFORE spending
+ *      a storage write on it,
+ *   4. stage the original bytes + record a FileRecord (ClamAV scans
+ *      async; markStored → scanStatus PENDING),
+ *   5. enqueue the `spatial-import` job, which parses + validates +
+ *      persists off-thread.
+ *
+ * Returns immediately with the job id; the route answers 202. The actual
+ * parcel replacement happens in `runLocationSpatialImport`.
  */
-export async function importLocationSpatialFile(
+export async function stageLocationSpatialImport(
     ctx: RequestContext,
     locationId: string,
     file: SpatialImportInput,
-): Promise<SpatialImportResult> {
+): Promise<SpatialImportStageResult> {
     assertCanWrite(ctx);
 
-    // 1 — parse (throws SpatialParseError on unsupported / empty)
-    const parsed = await parseSpatialFile({
-        filename: file.filename,
-        buffer: file.buffer,
-        mimeType: file.mimeType,
+    // 1 — format detection + per-format byte cap. detectFormat returns
+    //     null for an unsupported type (the route already 415s on
+    //     extension, so this is a belt-and-braces 400); the size cap
+    //     throws SpatialLimitError(413), which the route maps to a 413.
+    const format = detectFormat(file.filename, file.mimeType);
+    if (!format) {
+        throw badRequest(
+            'Unsupported file type. Upload a shapefile (.zip), KML (.kml/.kmz), or GeoJSON (.geojson/.json).',
+        );
+    }
+    assertUploadWithinSize(format, file.buffer.length);
+
+    // 2 — verify the target location exists before staging bytes for it.
+    await runInTenantContext(ctx, async (db) => {
+        const location = await db.location.findFirst({
+            where: { id: locationId, tenantId: ctx.tenantId, deletedAt: null },
+            select: { id: true },
+        });
+        if (!location) throw notFound('Location not found');
     });
 
-    // 2 — persist the original upload's bytes through the storage abstraction
+    // 3 — stage the original upload through the storage abstraction.
     const storage = getStorageProvider();
     const mimeType = file.mimeType || 'application/octet-stream';
     const pathKey = buildTenantObjectKey(ctx.tenantId, 'spatial', file.filename);
     const writeResult = await storage.write(pathKey, Readable.from(file.buffer), { mimeType });
 
-    // 3 + 4 — FileRecord + parcels + Location stamp, atomically
-    return runInTenantContext(ctx, async (db) => {
-        const location = await db.location.findFirst({
-            where: { id: locationId, tenantId: ctx.tenantId, deletedAt: null },
-            select: { id: true, name: true },
-        });
-        if (!location) throw notFound('Location not found');
-
-        const fileRecord = await FileRepository.createPending(db, ctx, {
+    // 4 — record the FileRecord (becomes the Location's canonical spatial
+    //     file on success; the job stamps it onto Location.spatialFileId).
+    const fileRecord = await runInTenantContext(ctx, async (db) => {
+        const fr = await FileRepository.createPending(db, ctx, {
             pathKey,
             originalName: file.filename,
             mimeType,
@@ -77,42 +94,30 @@ export async function importLocationSpatialFile(
             bucket: env.S3_BUCKET || null,
             domain: 'spatial',
         });
-        await FileRepository.markStored(db, ctx, fileRecord.id);
-
-        const parcelCount = await ParcelRepository.replaceForLocation(db, ctx, locationId, parsed.parcels);
-
-        await db.location.update({
-            where: { id: locationId },
-            data: {
-                spatialFileId: fileRecord.id,
-                spatialFormat: parsed.format,
-                boundsJson: parsed.bounds
-                    ? (parsed.bounds as unknown as Prisma.InputJsonValue)
-                    : Prisma.JsonNull,
-            },
-        });
-
-        await logEvent(db, ctx, {
-            action: 'LOCATION_SPATIAL_IMPORTED',
-            entityType: 'Location',
-            entityId: locationId,
-            details: `Imported ${parcelCount} parcels from ${file.filename}`,
-            detailsJson: {
-                category: 'entity_lifecycle',
-                entityName: 'Location',
-                operation: 'updated',
-                after: { spatialFormat: parsed.format, parcelCount },
-                summary: `Imported ${parcelCount} parcels from ${file.filename}`,
-            },
-        });
-
-        return {
-            locationId,
-            fileRecordId: fileRecord.id,
-            format: parsed.format,
-            parcelCount,
-            bounds: parsed.bounds,
-            skipped: parsed.skipped,
-        };
+        await FileRepository.markStored(db, ctx, fr.id);
+        return fr;
     });
+
+    // 5 — enqueue the off-thread parse + validate + persist job.
+    const job = await enqueue('spatial-import', {
+        tenantId: ctx.tenantId,
+        initiatedByUserId: ctx.userId,
+        locationId,
+        stagingPathKey: pathKey,
+        stagingFileRecordId: fileRecord.id,
+        filename: file.filename,
+        mimeType: file.mimeType,
+        requestId: ctx.requestId,
+    });
+
+    logger.info('spatial-import.enqueued', {
+        component: 'spatial-import-stage',
+        tenantId: ctx.tenantId,
+        locationId,
+        jobId: job.id,
+        format,
+        sizeBytes: writeResult.sizeBytes,
+    });
+
+    return { jobId: String(job.id), fileRecordId: fileRecord.id, format };
 }

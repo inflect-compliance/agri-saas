@@ -4,6 +4,12 @@
  * SpatialImportModal — upload a parcel-boundary file (shapefile .zip /
  * KML / GeoJSON) into a Location. Posts multipart/form-data to the
  * spatial-import route; existing parcels are replaced.
+ *
+ * The import is processed OFF the request thread (abuse hardening): the
+ * POST stages the file + enqueues a job (202 + jobId), then this modal
+ * polls the per-job status route until the parse + validate + persist
+ * completes. A per-format/complexity/topology rejection surfaces as the
+ * job's `failedReason`.
  */
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Modal } from '@/components/ui/modal';
@@ -18,11 +24,40 @@ export interface SpatialImportModalProps {
     onImported?: (result: { parcelCount: number; format: string }) => void;
 }
 
+interface JobStatus {
+    state: 'completed' | 'failed' | 'active' | 'waiting' | 'delayed' | 'unknown' | string;
+    result?: { details?: { parcelCount?: number; format?: string } } | null;
+    failedReason?: string | null;
+}
+
+const POLL_INTERVAL_MS = 1000;
+const MAX_POLLS = 90; // ~90s ceiling — comfortably past the 30s parse budget.
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 export function SpatialImportModal({ locationId, open, setOpen, onImported }: SpatialImportModalProps) {
     const buildUrl = useTenantApiUrl();
     const [file, setFile] = useState<File | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    /** Poll the job status route until the import completes or fails. */
+    const pollUntilDone = async (jobId: string): Promise<JobStatus> => {
+        for (let i = 0; i < MAX_POLLS; i++) {
+            await sleep(POLL_INTERVAL_MS);
+            const res = await fetch(buildUrl(`/locations/${locationId}/spatial-import/${jobId}`));
+            if (!res.ok) {
+                const body = await res.json().catch(() => null);
+                throw new Error(body?.error?.message || body?.error || `Status check failed (${res.status})`);
+            }
+            const status = (await res.json()) as JobStatus;
+            if (status.state === 'completed') return status;
+            if (status.state === 'failed') {
+                throw new Error(status.failedReason || 'Import failed during processing.');
+            }
+        }
+        throw new Error('Import is taking longer than expected. Check the location shortly.');
+    };
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,8 +75,14 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
                 const body = await res.json().catch(() => null);
                 throw new Error(body?.error?.message || body?.error || `Import failed (${res.status})`);
             }
-            const result = await res.json();
-            onImported?.(result);
+            // 202 Accepted → poll the job to completion.
+            const { jobId } = await res.json();
+            const status = await pollUntilDone(jobId);
+            const details = status.result?.details ?? {};
+            onImported?.({
+                parcelCount: details.parcelCount ?? 0,
+                format: details.format ?? '',
+            });
             setOpen(false);
             setFile(null);
         } catch (err) {

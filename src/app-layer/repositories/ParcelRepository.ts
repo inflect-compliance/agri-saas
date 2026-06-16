@@ -9,6 +9,7 @@ import {
     parseGeometry,
     locationParcelBoundsSql,
     isValidGeometrySql,
+    invalidGeometryIndicesSql,
     unionParcelsGeoJsonSql,
     splitParcelGeoJsonSql,
 } from '@/lib/db/geo';
@@ -184,6 +185,33 @@ export class ParcelRepository {
             Prisma.sql`SELECT ${isValidGeometrySql(geometry)} AS "valid"`,
         );
         return rows[0]?.valid === true;
+    }
+
+    /**
+     * Of the freshly-parsed parcels, return the NAMES of those whose
+     * geometry is NOT topologically valid (self-intersecting rings,
+     * malformed polygons). Runs ONE batched `ST_IsValid` query (no
+     * N+1) over every parcel's geometry. The spatial-import job rejects
+     * the whole import when this is non-empty, so a pathological polygon
+     * never reaches `replaceForLocation` — where `ST_GeomFromGeoJSON`
+     * would happily accept it and then yield a meaningless `ST_Area`.
+     *
+     * No tenant/location scope: the geometries here are the in-memory
+     * parsed payload, not persisted rows, so there is nothing to leak —
+     * they're validated BEFORE the first write.
+     */
+    static async findInvalidGeometryNames(
+        db: PrismaTx,
+        parcels: ReadonlyArray<ParsedParcel>,
+    ): Promise<string[]> {
+        if (parcels.length === 0) return [];
+        const rows = await db.$queryRaw<Array<{ idx: number }>>(
+            invalidGeometryIndicesSql(parcels.map((p) => p.geometry)),
+        );
+        return rows.map((r) => {
+            const i = Number(r.idx);
+            return parcels[i]?.name ?? `Parcel ${i + 1}`;
+        });
     }
 
     /**

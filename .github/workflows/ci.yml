@@ -779,6 +779,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # ── Gate: lockfile integrity (deterministic, in-sync install) ──
+      # `npm ci` already HARD-FAILS if package.json and
+      # package-lock.json disagree (that is its contract vs `npm
+      # install`), so a green install above is the first half of the
+      # guarantee. This step closes the remaining gap: `npm ci` can
+      # still silently NORMALISE the lockfile on disk (re-sort keys,
+      # rewrite a drifted `resolved`/`integrity` field) without
+      # erroring. `git diff --exit-code` fails the build if the
+      # committed lockfile is not byte-identical to what a clean
+      # install produces — i.e. the lockfile is stale and a
+      # contributor forgot to commit the regenerated file. Combined
+      # with the caret-free pins on the spatial-parse + map libs
+      # (shpjs / @tmcw/togeojson / maplibre-gl) this makes the
+      # dependency set reproducible build-over-build.
+      - name: "Gate: lockfile integrity (deterministic install)"
+        run: git diff --exit-code package-lock.json
+
+      # ── Advisory: registry signature verification (supply-chain) ──
+      # `npm audit signatures` verifies each installed package's
+      # registry-published signature + attestation against the npm
+      # public keys — surfacing a tampered tarball or compromised-
+      # registry swap that the integrity-hash pin alone would not catch.
+      # ADVISORY (continue-on-error), NOT a hard blocker: the npm
+      # registry has not back-signed every legacy package *version*, so
+      # an unsigned transitive dep is a normal state of the world, not
+      # evidence of compromise — failing the build on it would be a
+      # frequent false positive. The signature report still prints in
+      # the CI log for review; the hard supply-chain blockers are the
+      # lockfile-integrity gate above + the vulnerability `npm audit`
+      # below + the Trivy container scan. Promote to blocking once the
+      # dependency tree is confirmed fully signed.
+      - name: "Advisory: npm registry signature verification"
+        continue-on-error: true
+        run: npm audit signatures
+
       # ── npm audit: BLOCKING on moderate+ severity (production deps) ──
       # `--omit=dev` scans only the runtime dependency tree, so a
       # MODERATE-or-higher finding here implies an exploitable
