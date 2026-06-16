@@ -26,7 +26,7 @@
  * />
  * ```
  */
-import { type LucideIcon } from 'lucide-react';
+import { type ElementType } from 'react';
 
 import { AnimatedNumber, type AnimatedNumberFormat } from '@/components/ui/animated-number';
 import { MetricCard } from '@/components/ui/MetricCard';
@@ -45,8 +45,9 @@ export interface KpiCardProps {
     value: number | null | undefined;
     /** How to format the value */
     format?: KpiFormat;
-    /** Optional Lucide icon */
-    icon?: LucideIcon;
+    /** Optional icon component — any icon family (Lucide or the
+     *  canonical Nucleo set); forwarded to MetricCard's ElementType slot. */
+    icon?: ElementType;
     /** Tailwind gradient classes for headline text, e.g. "from-blue-500 to-cyan-500" */
     gradient?: string;
     /** Secondary text below the value */

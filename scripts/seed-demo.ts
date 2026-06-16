@@ -528,6 +528,21 @@ async function main() {
         }
     }
 
+    // Enterprise-grain demo data on a SECOND child farm (South Estate) so the
+    // org-level grain portfolio dashboard aggregates non-zero figures across
+    // MORE THAN ONE farm. `seedGrainDemo` is per-tenant idempotent (bins keyed
+    // on (tenantId, key); lots/contracts/yields skip when a stable-key row
+    // exists), so re-running the seed never duplicates. Illustrative figures
+    // only — same marked-illustrative data shape as North Estate.
+    const south = seededChildren['bigfarm-south'];
+    if (south) {
+        try {
+            await seedGrainDemo(south.tenant.id, south.owner.id);
+        } catch (e) {
+            console.warn('  ⚠️  Enterprise-grain demo seed (South Estate) skipped:', e instanceof Error ? e.message : e);
+        }
+    }
+
     // Org admin who sees the whole portfolio.
     const orgAdmin = await upsertOwner('admin@bigfarm.demo', 'Olivia OrgAdmin', pwd);
     await prisma.orgMembership.upsert({

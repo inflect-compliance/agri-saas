@@ -7,6 +7,7 @@ import {
     ShieldCheck,
     AlertTriangle,
     Paperclip,
+    Wheat,
     Users,
     Settings,
     ScrollText,
@@ -90,6 +91,16 @@ export function useOrgNavSections(): OrgNavSectionDef[] {
                     label: 'Overdue Evidence',
                     icon: Paperclip,
                     requiresDrillDown: true,
+                },
+                {
+                    // Enterprise-grain — portfolio grain dashboard
+                    // (contracted volume / yield / cost / storage
+                    // aggregated across child farms). Same read gate
+                    // as Portfolio Overview (`canViewPortfolio`), so no
+                    // `requires*` flag — visible to every org member.
+                    href: orgHref('/grain'),
+                    label: 'Grain',
+                    icon: Wheat,
                 },
             ],
         },

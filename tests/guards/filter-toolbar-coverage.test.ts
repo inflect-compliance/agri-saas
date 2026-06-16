@@ -69,6 +69,8 @@ const EXEMPTIONS: Record<string, string> = {
         "Org-level critical-risk digest — fixed scope (severity >= HIGH) + sort.",
     "src/app/org/[orgSlug]/(app)/tenants/TenantsTable.tsx":
         "Org-level tenant health roll-up — fixed scope, no faceted filtering at portfolio tier.",
+    "src/app/org/[orgSlug]/(app)/grain/PortfolioGrainClient.tsx":
+        "Org-level grain portfolio roll-up — per-farm contracted/yield/cost/bin aggregation with sort only; faceted filtering is not meaningful over a cross-tenant aggregate.",
 
     // ── Admin sub-pages with one fixed entity-type ──
     // Each surface owns a small fixed entity list with inline

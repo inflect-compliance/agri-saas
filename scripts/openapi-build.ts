@@ -61,6 +61,7 @@ import * as assetDTOs from '@/lib/dto/asset.dto';
 import * as taskDTOs from '@/lib/dto/task.dto';
 import * as vendorDTOs from '@/lib/dto/vendor.dto';
 import * as frameworkDTOs from '@/lib/dto/framework.dto';
+import * as grainDTOs from '@/lib/dto/grain.dto';
 
 export const REPO_ROOT = process.cwd();
 export const OUTPUT_PATH = resolve(REPO_ROOT, 'public/openapi.json');
@@ -151,6 +152,7 @@ export function buildOpenApiDoc(opts: BuildOptions = {}): {
         { ns: taskDTOs, label: '@/lib/dto/task.dto' },
         { ns: vendorDTOs, label: '@/lib/dto/vendor.dto' },
         { ns: frameworkDTOs, label: '@/lib/dto/framework.dto' },
+        { ns: grainDTOs, label: '@/lib/dto/grain.dto' },
     ];
 
     let totalRegistered = 0;

@@ -691,6 +691,127 @@
         ],
         "description": "Self-service signup payload (gated by AUTH_TEST_MODE in non-prod). The password is checked against HIBP via k-anonymity before persistence; emailVerification is initiated server-side."
       },
+      "Contract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "seasonId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "counterparty": {
+            "type": "string"
+          },
+          "commodity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "SALE",
+              "PURCHASE"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "volumeTonnes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pricePerTonne": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priceCurrency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deliveryStart": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deliveryEnd": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "terms": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pricingNotes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "season": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "counterparty",
+          "type",
+          "status"
+        ],
+        "additionalProperties": {},
+        "description": "Grain marketing/supply contract — a forward SALE of produce or PURCHASE of inputs against a counterparty. volumeTonnes/pricePerTonne are decimal strings; terms/pricingNotes are encrypted at rest and returned decrypted."
+      },
       "ContributorAddRequest": {
         "type": "object",
         "properties": {
@@ -2470,6 +2591,124 @@
         "additionalProperties": {},
         "description": "Compliance framework record (e.g. ISO 27001:2022, SOC 2, NIS2). Key is the stable lookup identifier."
       },
+      "GrainBin": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "BIN",
+              "STORAGE"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "capacityTonnes": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "storedQuantity": {
+            "type": "number"
+          },
+          "lotCount": {
+            "type": "number"
+          },
+          "fillPct": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "key",
+          "kind",
+          "description",
+          "capacityTonnes",
+          "storedQuantity",
+          "lotCount",
+          "fillPct"
+        ],
+        "additionalProperties": {},
+        "description": "A grain bin — a BIN/STORAGE Location with a computed fill (storedQuantity = sum of HARVESTED_PRODUCE lots; fillPct = storedQuantity / capacityTonnes when a capacity is configured)."
+      },
+      "GrainCostRow": {
+        "type": "object",
+        "properties": {
+          "plantingId": {
+            "type": "string"
+          },
+          "plantingName": {
+            "type": "string"
+          },
+          "cropVariety": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "seasonId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "locationId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "logEntryCost": {
+            "type": "number"
+          },
+          "stockCost": {
+            "type": "number"
+          },
+          "totalCost": {
+            "type": "number"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "plantingId",
+          "plantingName",
+          "cropVariety",
+          "seasonId",
+          "locationId",
+          "logEntryCost",
+          "stockCost",
+          "totalCost",
+          "currency"
+        ],
+        "additionalProperties": {},
+        "description": "One row of the per-activity grain cost rollup, grouped by planting. totalCost = logEntryCost (field-event cost) + stockCost (linked stock-movement cost)."
+      },
       "LocationCreateRequest": {
         "type": "object",
         "properties": {
@@ -3543,6 +3782,141 @@
           "contentType"
         ],
         "description": "Create a new draft version of a policy. contentText is required for MARKDOWN/HTML; externalUrl is required for EXTERNAL_LINK. contentText is sanitized + encrypted at rest."
+      },
+      "PortfolioGrainSummary": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string"
+          },
+          "organizationSlug": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "totals": {
+            "type": "object",
+            "properties": {
+              "contractedSaleTonnes": {
+                "type": "number"
+              },
+              "contractedPurchaseTonnes": {
+                "type": "number"
+              },
+              "totalYieldTonnes": {
+                "type": "number"
+              },
+              "totalActivityCost": {
+                "type": "number"
+              },
+              "currency": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "binCount": {
+                "type": "number"
+              },
+              "binCapacityTonnes": {
+                "type": "number"
+              },
+              "binStoredTonnes": {
+                "type": "number"
+              },
+              "binUtilisationPct": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "tenantsWithGrain": {
+                "type": "number"
+              },
+              "tenantsTotal": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "contractedSaleTonnes",
+              "contractedPurchaseTonnes",
+              "totalYieldTonnes",
+              "totalActivityCost",
+              "currency",
+              "binCount",
+              "binCapacityTonnes",
+              "binStoredTonnes",
+              "binUtilisationPct",
+              "tenantsWithGrain",
+              "tenantsTotal"
+            ],
+            "additionalProperties": {}
+          },
+          "perTenant": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tenantId": {
+                  "type": "string"
+                },
+                "tenantName": {
+                  "type": "string"
+                },
+                "contractedSaleTonnes": {
+                  "type": "number"
+                },
+                "contractedPurchaseTonnes": {
+                  "type": "number"
+                },
+                "totalYieldTonnes": {
+                  "type": "number"
+                },
+                "totalActivityCost": {
+                  "type": "number"
+                },
+                "currency": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "binCount": {
+                  "type": "number"
+                },
+                "binCapacityTonnes": {
+                  "type": "number"
+                },
+                "binStoredTonnes": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tenantId",
+                "tenantName",
+                "contractedSaleTonnes",
+                "contractedPurchaseTonnes",
+                "totalYieldTonnes",
+                "totalActivityCost",
+                "currency",
+                "binCount",
+                "binCapacityTonnes",
+                "binStoredTonnes"
+              ],
+              "additionalProperties": {}
+            }
+          }
+        },
+        "required": [
+          "organizationId",
+          "organizationSlug",
+          "generatedAt",
+          "totals",
+          "perTenant"
+        ],
+        "additionalProperties": {},
+        "description": "Org-level grain portfolio rollup: contracted volume (sale/purchase), harvested yield, activity cost and bin storage aggregated across every child farm tenant, with org totals plus a per-tenant breakdown. Each per-tenant figure is computed inside an RLS-bound query against that tenant."
       },
       "Requirement": {
         "type": "object",
@@ -4951,6 +5325,149 @@
           }
         },
         "description": "Partial update for a vendor. residualRisk is computed from inherentRisk + control coverage; allow direct override here for SoC analyst workflow."
+      },
+      "YieldRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "plantingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "locationId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "seasonId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "commodity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "harvestedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "grossTonnes": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "moisturePct": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "areaHa": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "tPerHa": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "valuationNotes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "planting": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "successionNumber": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "successionNumber"
+            ],
+            "additionalProperties": {}
+          },
+          "location": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": {}
+          },
+          "season": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "id",
+          "grossTonnes",
+          "moisturePct",
+          "areaHa",
+          "tPerHa"
+        ],
+        "additionalProperties": {},
+        "description": "Actual harvest production total. tPerHa is computed (grossTonnes / areaHa) and not stored. valuationNotes is encrypted at rest and returned decrypted."
       }
     },
     "parameters": {}

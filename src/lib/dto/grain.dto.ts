@@ -1,0 +1,208 @@
+/**
+ * Enterprise-grain DTOs — response shapes for the GRAIN-module API
+ * (contracts, yield records, grain bins, per-activity cost rollup) and
+ * the org-level grain portfolio summary.
+ *
+ * Field types mirror what the routes ACTUALLY serialise:
+ *   - `Contract` is returned as the raw Prisma model
+ *     (`listContracts` / `getContract`), so its `Decimal` columns
+ *     (`volumeTonnes`, `pricePerTonne`) serialise to JSON STRINGS
+ *     (Prisma `Decimal.toJSON()` → string), and dates to ISO strings.
+ *   - `YieldRecord`, `GrainBin` and `GrainCostRow` are mapped to DTOs
+ *     in their usecases (`yield-record.ts::toDto`, `grain-bin.ts`,
+ *     `cost-rollup.ts`) which convert `Decimal` → number, so those
+ *     numeric fields are JSON NUMBERS.
+ *
+ * The encrypted free-text columns (Contract.terms / pricingNotes,
+ * YieldRecord.valuationNotes) decrypt transparently on read and are
+ * plain strings on the wire.
+ */
+import { z } from '@/lib/openapi/zod';
+
+// ─── Season summary sub-shape (shared include) ───
+
+const GrainSeasonRefSchema = z
+    .object({
+        id: z.string(),
+        name: z.string(),
+        status: z.string().optional(),
+    })
+    .passthrough();
+
+// ─── Contract ───
+// Raw Prisma model (listContracts / getContract). Decimals serialise
+// as strings; the `season` include is present when the contract is
+// linked to a marketing-year season.
+
+export const ContractDTOSchema = z
+    .object({
+        id: z.string(),
+        tenantId: z.string(),
+        seasonId: z.string().nullable().optional(),
+        key: z.string().nullable().optional(),
+        counterparty: z.string(),
+        commodity: z.string().nullable().optional(),
+        type: z.enum(['SALE', 'PURCHASE']),
+        status: z.string(),
+        // Decimal → string over JSON.
+        volumeTonnes: z.string().nullable().optional(),
+        pricePerTonne: z.string().nullable().optional(),
+        priceCurrency: z.string().nullable().optional(),
+        deliveryStart: z.string().nullable().optional(),
+        deliveryEnd: z.string().nullable().optional(),
+        // ENCRYPTED at rest (Epic B) — plaintext on read.
+        terms: z.string().nullable().optional(),
+        pricingNotes: z.string().nullable().optional(),
+        createdAt: z.string().optional(),
+        updatedAt: z.string().optional(),
+        season: GrainSeasonRefSchema.nullable().optional(),
+    })
+    .passthrough()
+    .openapi('Contract', {
+        description:
+            'Grain marketing/supply contract — a forward SALE of produce or PURCHASE of inputs against a counterparty. volumeTonnes/pricePerTonne are decimal strings; terms/pricingNotes are encrypted at rest and returned decrypted.',
+    });
+
+export type ContractDTO = z.infer<typeof ContractDTOSchema>;
+
+// ─── YieldRecord ───
+// Mapped DTO (yield-record.ts::toDto). Numeric Decimals → numbers;
+// tPerHa is COMPUTED (grossTonnes / areaHa), not stored.
+
+export const YieldRecordDTOSchema = z
+    .object({
+        id: z.string(),
+        plantingId: z.string().nullable().optional(),
+        locationId: z.string().nullable().optional(),
+        seasonId: z.string().nullable().optional(),
+        commodity: z.string().nullable().optional(),
+        harvestedAt: z.string().nullable().optional(),
+        grossTonnes: z.number().nullable(),
+        moisturePct: z.number().nullable(),
+        areaHa: z.number().nullable(),
+        /** Computed yield intensity = grossTonnes / areaHa (null when area is 0/absent). */
+        tPerHa: z.number().nullable(),
+        valuationNotes: z.string().nullable().optional(),
+        createdAt: z.string().optional(),
+        updatedAt: z.string().optional(),
+        planting: z
+            .object({ id: z.string(), successionNumber: z.number() })
+            .passthrough()
+            .nullable()
+            .optional(),
+        location: z
+            .object({ id: z.string(), name: z.string() })
+            .passthrough()
+            .nullable()
+            .optional(),
+        season: GrainSeasonRefSchema.nullable().optional(),
+    })
+    .passthrough()
+    .openapi('YieldRecord', {
+        description:
+            'Actual harvest production total. tPerHa is computed (grossTonnes / areaHa) and not stored. valuationNotes is encrypted at rest and returned decrypted.',
+    });
+
+export type YieldRecordDTO = z.infer<typeof YieldRecordDTOSchema>;
+
+// ─── GrainBin ───
+// BinDto (grain-bin.ts). A BIN/STORAGE Location with computed fill.
+
+export const GrainBinDTOSchema = z
+    .object({
+        id: z.string(),
+        name: z.string(),
+        key: z.string().nullable(),
+        kind: z.enum(['BIN', 'STORAGE']),
+        description: z.string().nullable(),
+        capacityTonnes: z.number().nullable(),
+        /** Sum of quantityOnHand across the bin's HARVESTED_PRODUCE lots. */
+        storedQuantity: z.number(),
+        /** Number of stored produce lots in the bin. */
+        lotCount: z.number(),
+        /** storedQuantity / capacityTonnes when a capacity is set; else null. */
+        fillPct: z.number().nullable(),
+    })
+    .passthrough()
+    .openapi('GrainBin', {
+        description:
+            'A grain bin — a BIN/STORAGE Location with a computed fill (storedQuantity = sum of HARVESTED_PRODUCE lots; fillPct = storedQuantity / capacityTonnes when a capacity is configured).',
+    });
+
+export type GrainBinDTO = z.infer<typeof GrainBinDTOSchema>;
+
+// ─── GrainCostRow ───
+// PlantingCostRow (cost-rollup.ts). One row of the per-activity cost
+// rollup: LogEntry.costAmount + linked StockTransaction.costAmount.
+
+export const GrainCostRowDTOSchema = z
+    .object({
+        plantingId: z.string(),
+        plantingName: z.string(),
+        cropVariety: z.string().nullable(),
+        seasonId: z.string().nullable(),
+        locationId: z.string().nullable(),
+        logEntryCost: z.number(),
+        stockCost: z.number(),
+        totalCost: z.number(),
+        currency: z.string().nullable(),
+    })
+    .passthrough()
+    .openapi('GrainCostRow', {
+        description:
+            'One row of the per-activity grain cost rollup, grouped by planting. totalCost = logEntryCost (field-event cost) + stockCost (linked stock-movement cost).',
+    });
+
+export type GrainCostRowDTO = z.infer<typeof GrainCostRowDTOSchema>;
+
+// ─── PortfolioGrainSummary ───
+// Org-level cross-tenant aggregation (portfolio-grain.ts). Numbers
+// throughout (Decimals converted in the usecase).
+
+const PortfolioGrainTenantRowSchema = z
+    .object({
+        tenantId: z.string(),
+        tenantName: z.string(),
+        contractedSaleTonnes: z.number(),
+        contractedPurchaseTonnes: z.number(),
+        totalYieldTonnes: z.number(),
+        totalActivityCost: z.number(),
+        currency: z.string().nullable(),
+        binCount: z.number(),
+        binCapacityTonnes: z.number(),
+        binStoredTonnes: z.number(),
+    })
+    .passthrough();
+
+const PortfolioGrainTotalsSchema = z
+    .object({
+        contractedSaleTonnes: z.number(),
+        contractedPurchaseTonnes: z.number(),
+        totalYieldTonnes: z.number(),
+        totalActivityCost: z.number(),
+        currency: z.string().nullable(),
+        binCount: z.number(),
+        binCapacityTonnes: z.number(),
+        binStoredTonnes: z.number(),
+        /** binStoredTonnes / binCapacityTonnes × 100 (clamped); null when no capacity. */
+        binUtilisationPct: z.number().nullable(),
+        tenantsWithGrain: z.number(),
+        tenantsTotal: z.number(),
+    })
+    .passthrough();
+
+export const PortfolioGrainSummaryDTOSchema = z
+    .object({
+        organizationId: z.string(),
+        organizationSlug: z.string(),
+        generatedAt: z.string(),
+        totals: PortfolioGrainTotalsSchema,
+        perTenant: z.array(PortfolioGrainTenantRowSchema),
+    })
+    .passthrough()
+    .openapi('PortfolioGrainSummary', {
+        description:
+            'Org-level grain portfolio rollup: contracted volume (sale/purchase), harvested yield, activity cost and bin storage aggregated across every child farm tenant, with org totals plus a per-tenant breakdown. Each per-tenant figure is computed inside an RLS-bound query against that tenant.',
+    });
+
+export type PortfolioGrainSummaryDTO = z.infer<typeof PortfolioGrainSummaryDTOSchema>;

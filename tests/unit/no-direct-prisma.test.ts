@@ -226,6 +226,14 @@ describe('CI Guard: No direct prisma in tenant-scoped code', () => {
         // `runInTenantContext` because that expects a single tenant id
         // on the RequestContext — drill-down is many tenants.
         'portfolio.ts',
+        // Enterprise-grain — org portfolio grain aggregation. Same
+        // cross-tenant fan-out shape as `portfolio.ts`: walks the org's
+        // child tenants and runs each per-tenant grain aggregate inside
+        // `withTenantDb(tid, ...)` (RLS-bound, app_user role). Does NOT
+        // import the global prisma client — the tenant list comes from
+        // the org-scoped `getPortfolioData` helper. Single-tenant
+        // `runInTenantContext` can't express the many-tenant fan-out.
+        'portfolio-grain.ts',
     ];
 
     for (const file of usecases) {

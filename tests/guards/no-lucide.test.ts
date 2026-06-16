@@ -175,7 +175,6 @@ const LEGACY_LUCIDE_USERS = new Set<string>([
     'src/components/ui/icons/index.tsx',
     'src/components/ui/inline-notice.tsx',
     'src/components/ui/input.tsx',
-    'src/components/ui/KpiCard.tsx',
     'src/components/ui/metric.tsx',
     'src/components/ui/modal.tsx',
     'src/components/ui/RichTextEditor.tsx',

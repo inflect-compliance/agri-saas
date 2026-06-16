@@ -182,7 +182,10 @@ describe('Widget Dependency Guard', () => {
         const content = fs.readFileSync(path.join(UI_DIR, 'KpiCard.tsx'), 'utf-8');
         const importLines = content.split('\n').filter(l => l.trim().startsWith('import'));
         // Allowed externals:
-        //   - lucide-react (icons)
+        //   - react (the `ElementType` icon-prop type — KpiCard is now
+        //     icon-family-agnostic, forwarding any icon component to
+        //     MetricCard's ElementType slot rather than coupling to the
+        //     lucide `LucideIcon` type; canonical icons are Nucleo.)
         //   - @/components/ui/mini-area-chart (Epic 59 sparkline)
         //   - @/components/ui/animated-number (Epic 61 number-flow)
         //   - @/components/ui/shimmer-dots (Epic 64 ShimmerDots primitive)
@@ -200,7 +203,7 @@ describe('Widget Dependency Guard', () => {
         expect(externalImports.length).toBeLessThanOrEqual(6);
         for (const line of externalImports) {
             const allowed =
-                line.includes('lucide-react') ||
+                line.includes("from 'react'") ||
                 line.includes('@/components/ui/mini-area-chart') ||
                 line.includes('@/components/ui/animated-number') ||
                 line.includes('@/components/ui/shimmer-dots') ||
