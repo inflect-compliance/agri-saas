@@ -11,7 +11,7 @@
  * via apiPatch) — this is the installable-PWA field client.
  */
 import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Geometry } from 'geojson';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -19,6 +19,7 @@ import { Heading } from '@/components/ui/typography';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
+import { saveFieldSnapshot, readFieldSnapshot } from '@/lib/offline/field-snapshot';
 import type { MapParcel } from '@/components/ui/map/MapCanvas';
 
 const MapCanvas = dynamic(() => import('@/components/ui/map/MapCanvas').then((m) => m.MapCanvas), { ssr: false });
@@ -46,49 +47,66 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
     const { online, pending, submit, flush } = useOfflineSync();
     const [error, setError] = useState<string | null>(null);
 
+    // Single render source. Seeded from the offline snapshot so the page
+    // opens with no signal (cold reload), synced from the server whenever
+    // SWR delivers fresh data, and optimistically updated on every mark.
+    const [view, setView] = useState<FieldOpView | null>(() =>
+        readFieldSnapshot<FieldOpView>(taskId),
+    );
+    useEffect(() => {
+        // Mirror fresh server data (SWR) into the offline-capable view +
+        // snapshot when it arrives. Not a render-time derivation: the view is
+        // ALSO seeded from the offline snapshot (cold open) and mutated
+        // optimistically on marks, so server data is one of three writers.
+        if (data) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional server→view sync (see above)
+            setView(data);
+            saveFieldSnapshot(taskId, data);
+        }
+    }, [data, taskId]);
+
     const doneIds = useMemo(
-        () => (data?.lines ?? [])
+        () => (view?.lines ?? [])
             .filter((l) => l.status !== 'PENDING')
             .map((l) => l.parcel?.id)
             .filter((id): id is string => Boolean(id)),
-        [data],
+        [view],
     );
     const mapParcels = useMemo<MapParcel[]>(
-        () => (data?.parcels ?? []).map((p) => ({
+        () => (view?.parcels ?? []).map((p) => ({
             id: p.id,
             name: p.name,
             areaHa: p.areaHa ?? null,
             geometry: (p.geometry ?? null) as Geometry | null,
         })),
-        [data],
+        [view],
     );
-    const bounds = (data?.location?.boundsJson as [number, number, number, number] | null) ?? null;
+    const bounds = (view?.location?.boundsJson as [number, number, number, number] | null) ?? null;
 
     const mark = useCallback(
         async (line: Line, status: LineStatus) => {
             setError(null);
-            // 1 — optimistic local update so the field UI responds instantly,
-            //     online or off.
-            await mutate(
-                (prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              lines: prev.lines.map((l) => (l.id === line.id ? { ...l, status } : l)),
-                              progress: {
-                                  total: prev.progress.total,
-                                  done: prev.lines.filter((l) =>
-                                      l.id === line.id ? status !== 'PENDING' : l.status !== 'PENDING',
-                                  ).length,
-                              },
-                          }
-                        : prev,
-                { revalidate: false },
-            );
+            // 1 — optimistic update of the local view (responds instantly,
+            //     online OR offline) + persist the snapshot so a cold offline
+            //     reload reflects work already queued.
+            setView((prev) => {
+                if (!prev) return prev;
+                const next: FieldOpView = {
+                    ...prev,
+                    lines: prev.lines.map((l) => (l.id === line.id ? { ...l, status } : l)),
+                    progress: {
+                        total: prev.progress.total,
+                        done: prev.lines.filter((l) =>
+                            l.id === line.id ? status !== 'PENDING' : l.status !== 'PENDING',
+                        ).length,
+                    },
+                };
+                saveFieldSnapshot(taskId, next);
+                return next;
+            });
             // 2 — send-or-queue. A terminal failure (server rejected the
-            //     mark) throws — roll the optimistic update back to server
-            //     truth and surface the error rather than leaving a phantom
-            //     "Done" on screen.
+            //     mark) throws — revalidate to server truth and surface the
+            //     error rather than leaving a phantom "Done" on screen.
             const label = `Mark ${line.parcel?.name ?? 'parcel'} ${status.toLowerCase()}`;
             try {
                 const result = await submit({
@@ -98,18 +116,19 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                     label,
                 });
                 // 3 — when it actually went out, revalidate against the server
-                //     (picks up the job auto-resolve + any stock deduction).
+                //     (picks up the job auto-resolve + any stock deduction);
+                //     the SWR effect resyncs `view` + the snapshot.
                 if (result === 'sent') await mutate();
             } catch {
                 setError('Could not save that change — it was reverted. Please retry.');
-                await mutate(); // revalidate → discard the optimistic update
+                await mutate(); // revalidate → SWR effect discards the optimistic update
             }
         },
-        [mutate, submit, buildUrl, taskId],
+        [submit, buildUrl, taskId, mutate],
     );
 
-    if (isLoading && !data) return <div className="p-6 text-base text-content-secondary">Loading field operation…</div>;
-    if (!data) return <div className="p-6 text-base text-content-secondary">Field operation not found.</div>;
+    if (isLoading && !view) return <div className="p-6 text-base text-content-secondary">Loading field operation…</div>;
+    if (!view) return <div className="p-6 text-base text-content-secondary">Field operation not found.</div>;
 
     return (
         <div className="mx-auto max-w-xl space-y-default p-4">
@@ -131,14 +150,14 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
             )}
 
             <div>
-                <Heading level={2}>{data.task.key ? `${data.task.key} · ` : ''}{data.task.title}</Heading>
-                <p className="text-sm text-content-secondary">{data.progress.done} / {data.progress.total} parcels complete · {data.task.status}</p>
+                <Heading level={2}>{view.task.key ? `${view.task.key} · ` : ''}{view.task.title}</Heading>
+                <p className="text-sm text-content-secondary">{view.progress.done} / {view.progress.total} parcels complete · {view.task.status}</p>
             </div>
 
             <MapCanvas parcels={mapParcels} bounds={bounds} interactive={false} doneIds={doneIds} className="h-[300px] w-full overflow-hidden rounded-lg border border-border-subtle" />
 
             <ul className="space-y-tight">
-                {data.lines.map((l) => (
+                {view.lines.map((l) => (
                     <li key={l.id} className="rounded-lg border border-border-subtle p-4">
                         <div className="mb-3">
                             <div className="text-base font-semibold">{l.parcel?.name ?? 'Parcel'}</div>
