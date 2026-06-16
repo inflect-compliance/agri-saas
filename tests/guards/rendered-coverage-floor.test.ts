@@ -51,8 +51,13 @@ const ROOT = path.resolve(__dirname, '../..');
 // accumulated rendered-test gains since the last bump.
 // Raised 143 → 152 (2026-06-06): asset/risk modal-field, asset-criticality,
 // and asset-KPI-trendline rendered tests.
-const RENDERED_TEST_FLOOR = 173;
-const E2E_SPEC_FLOOR = 36;
+// Raised 173 → 181 + 36 → 41 (2026-06-16): offline operator PWA harden —
+// the offline-field-panel rendered test (cold-reload snapshot + offline
+// mark→queue→reconnect→sync) + the offline-field-sync Playwright E2E, plus
+// accumulated rendered/e2e gains since the last bump. Locked to the live
+// counts so the added real-behaviour verification can't silently regress.
+const RENDERED_TEST_FLOOR = 181;
+const E2E_SPEC_FLOOR = 41;
 const REGISTRY_FLOOR = 5;
 
 /** Max a live count may exceed its floor before the floor must rise. */
