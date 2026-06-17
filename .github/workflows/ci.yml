@@ -733,6 +733,12 @@ jobs:
             -e RUN_ID=ci-${{ github.run_id }}-${{ github.run_attempt }} \
             tests/load/mutations.js
 
+      - name: "Gate: k6 ag parcel-list smoke"
+        run: k6 run -e VUS=10 -e DURATION=20s -e RAMP_UP=5s -e RAMP_DOWN=5s -e RUN_ID=ci-${{ github.run_id }}-parcel tests/load/ag-parcel-list.js
+
+      - name: "Gate: k6 ag inventory-pagination smoke"
+        run: k6 run -e VUS=10 -e DURATION=20s -e RAMP_UP=5s -e RAMP_DOWN=5s -e RUN_ID=ci-${{ github.run_id }}-inv tests/load/ag-inventory-pagination.js
+
       - name: Stop app
         if: always()
         run: |

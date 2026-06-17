@@ -1,6 +1,15 @@
 import { Prisma } from '@prisma/client';
 import { PrismaTx } from '@/lib/db-context';
 import { RequestContext } from '../types';
+import { buildCursorWhere, CURSOR_ORDER_BY, computePageInfo, clampLimit } from '@/lib/pagination';
+import type { PaginatedResponse } from '@/lib/dto/pagination';
+
+/** Shared include for the lot list projections (list + paginated). */
+const LOT_LIST_INCLUDE = {
+    item: { select: { id: true, name: true, category: true, reorderLevel: true } },
+    unit: { select: { id: true, symbol: true, name: true } },
+    location: { select: { id: true, name: true } },
+} satisfies Prisma.InventoryLotInclude;
 
 /**
  * InventoryLot repository — all reads/writes tenant-scoped. The ledger
@@ -21,14 +30,41 @@ export class InventoryRepository {
                 deletedAt: null,
                 ...(opts.itemId ? { itemId: opts.itemId } : {}),
             },
-            include: {
-                item: { select: { id: true, name: true, category: true, reorderLevel: true } },
-                unit: { select: { id: true, symbol: true, name: true } },
-                location: { select: { id: true, name: true } },
-            },
+            include: LOT_LIST_INCLUDE,
             orderBy: [{ createdAt: 'desc' }],
             take: opts.take ?? 200,
         });
+    }
+
+    /**
+     * Cursor-paginated lots (mirrors LocationRepository.listPaginated): a
+     * stable (createdAt, id) cursor + a `limit+1` over-fetch to detect the
+     * next page. Backs the inventory-traceability list on large fields
+     * (10k+ lots) where the unbounded `listLots` take would be unsafe.
+     */
+    static async listLotsPaginated(
+        db: PrismaTx,
+        ctx: RequestContext,
+        params: { limit?: number; cursor?: string; itemId?: string },
+    ): Promise<PaginatedResponse<unknown>> {
+        const limit = clampLimit(params.limit);
+        const where: Prisma.InventoryLotWhereInput = {
+            tenantId: ctx.tenantId,
+            deletedAt: null,
+            ...(params.itemId ? { itemId: params.itemId } : {}),
+        };
+        const cursorWhere = buildCursorWhere(params.cursor);
+        if (cursorWhere) {
+            where.AND = [cursorWhere as Prisma.InventoryLotWhereInput];
+        }
+        const items = await db.inventoryLot.findMany({
+            where,
+            orderBy: CURSOR_ORDER_BY,
+            take: limit + 1,
+            include: LOT_LIST_INCLUDE,
+        });
+        const { trimmedItems, nextCursor, hasNextPage } = computePageInfo(items, limit);
+        return { items: trimmedItems, pageInfo: { nextCursor, hasNextPage } };
     }
 
     /** A single lot with its recent ledger (most-recent first). */

@@ -62,6 +62,9 @@ import * as taskDTOs from '@/lib/dto/task.dto';
 import * as vendorDTOs from '@/lib/dto/vendor.dto';
 import * as frameworkDTOs from '@/lib/dto/framework.dto';
 import * as grainDTOs from '@/lib/dto/grain.dto';
+import * as locationDTOs from '@/lib/dto/location.dto';
+import * as operationParcelDTOs from '@/lib/dto/operation-parcel.dto';
+import * as inventoryDTOs from '@/lib/dto/inventory.dto';
 
 export const REPO_ROOT = process.cwd();
 export const OUTPUT_PATH = resolve(REPO_ROOT, 'public/openapi.json');
@@ -153,6 +156,9 @@ export function buildOpenApiDoc(opts: BuildOptions = {}): {
         { ns: vendorDTOs, label: '@/lib/dto/vendor.dto' },
         { ns: frameworkDTOs, label: '@/lib/dto/framework.dto' },
         { ns: grainDTOs, label: '@/lib/dto/grain.dto' },
+        { ns: locationDTOs, label: '@/lib/dto/location.dto' },
+        { ns: operationParcelDTOs, label: '@/lib/dto/operation-parcel.dto' },
+        { ns: inventoryDTOs, label: '@/lib/dto/inventory.dto' },
     ];
 
     let totalRegistered = 0;

@@ -117,7 +117,14 @@ const RATCHET_FLOOR: Record<string, Metrics> = {
     //   - lines: 75 → 77 (+2)
     //   - statements: 72 → 74 (+2)
     // Leaves ~1-2pp slack against measured for single-test flake.
-    './src/app-layer/usecases/': { branches: 66, functions: 62, lines: 77, statements: 74 },
+    // QA-depth uplift (2026-06-17): the ag-demo-fixture integration test +
+    // listLotsPaginated coverage add headroom against the same measured
+    // floor (67.78/65.55/77.99/76.32). Conservative bump within it:
+    //   - branches: 66 → 67 (+1, < 67.78)
+    //   - functions: 62 → 63 (+1, < 65.55)
+    //   - statements: 74 → 75 (+1, < 76.32)
+    //   - lines: 77 (held — already near the 77.99 ceiling)
+    './src/app-layer/usecases/': { branches: 67, functions: 63, lines: 77, statements: 75 },
     // `policies/` — quality roadmap P3. Authorization decisions —
     // a wrong branch is a security hole. Measured ≈82 branches /
     // 91 funcs / 91 lines; seeded a few points below.

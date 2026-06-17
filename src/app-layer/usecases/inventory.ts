@@ -34,25 +34,61 @@ function toNum(d: unknown): number {
 
 // ─── Reads ─────────────────────────────────────────────────────────
 
+/**
+ * Map a raw lot row (with item/unit/location includes) to the wire DTO —
+ * Decimal `quantityOnHand` → number + computed `lowStock`. Shared by the
+ * array and cursor-paginated list paths so both serialise identically
+ * (see src/lib/dto/inventory.dto.ts::InventoryLotDTOSchema).
+ */
+function mapLotRow(l: {
+    id: string;
+    lotCode: string;
+    item: { id: string; name: string; category: string; reorderLevel: unknown };
+    unit: { id: string; symbol: string };
+    location: { id: string; name: string } | null;
+    quantityOnHand: unknown;
+    expiresAt: Date | null;
+    receivedAt: Date | null;
+}) {
+    const onHand = toNum(l.quantityOnHand);
+    const reorder = l.item.reorderLevel !== null ? toNum(l.item.reorderLevel) : null;
+    return {
+        id: l.id,
+        lotCode: l.lotCode,
+        item: { id: l.item.id, name: l.item.name, category: l.item.category },
+        unit: { id: l.unit.id, symbol: l.unit.symbol },
+        location: l.location ? { id: l.location.id, name: l.location.name } : null,
+        quantityOnHand: onHand,
+        expiresAt: l.expiresAt,
+        receivedAt: l.receivedAt,
+        lowStock: reorder !== null ? onHand < reorder : false,
+    };
+}
+
 export async function listLots(ctx: RequestContext, opts: { itemId?: string; take?: number } = {}) {
     assertCanRead(ctx);
     return runInTenantContext(ctx, async (db) => {
         const lots = await InventoryRepository.listLots(db, ctx, opts);
-        return lots.map((l) => {
-            const onHand = toNum(l.quantityOnHand);
-            const reorder = l.item.reorderLevel !== null ? toNum(l.item.reorderLevel) : null;
-            return {
-                id: l.id,
-                lotCode: l.lotCode,
-                item: { id: l.item.id, name: l.item.name, category: l.item.category },
-                unit: { id: l.unit.id, symbol: l.unit.symbol },
-                location: l.location ? { id: l.location.id, name: l.location.name } : null,
-                quantityOnHand: onHand,
-                expiresAt: l.expiresAt,
-                receivedAt: l.receivedAt,
-                lowStock: reorder !== null ? onHand < reorder : false,
-            };
-        });
+        return lots.map(mapLotRow);
+    });
+}
+
+/**
+ * Cursor-paginated lots — the dual-mode `GET /inventory/lots?limit=&cursor=`
+ * path for inventory traceability on large fields. Returns
+ * `{ items: InventoryLot[], pageInfo }`; items map identically to `listLots`.
+ */
+export async function listLotsPaginated(
+    ctx: RequestContext,
+    params: { limit?: number; cursor?: string; itemId?: string } = {},
+) {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const page = await InventoryRepository.listLotsPaginated(db, ctx, params);
+        return {
+            items: (page.items as Parameters<typeof mapLotRow>[0][]).map(mapLotRow),
+            pageInfo: page.pageInfo,
+        };
     });
 }
 

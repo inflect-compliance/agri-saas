@@ -56,8 +56,13 @@ const ROOT = path.resolve(__dirname, '../..');
 // mark→queue→reconnect→sync) + the offline-field-sync Playwright E2E, plus
 // accumulated rendered/e2e gains since the last bump. Locked to the live
 // counts so the added real-behaviour verification can't silently regress.
+// Raised 41 → 50 (2026-06-17): the QA-depth ag E2E suite — 9 new
+// tests/e2e/ag-*.spec.ts (location-import, spray-operation, inventory-
+// traceability, harvest-yield, crop-plan, grain-contracts, agro-signals,
+// offline-queue, and the parcel/spray-map visual baseline). Locked to the
+// live count of 50.
 const RENDERED_TEST_FLOOR = 181;
-const E2E_SPEC_FLOOR = 41;
+const E2E_SPEC_FLOOR = 50;
 const REGISTRY_FLOOR = 5;
 
 /** Max a live count may exceed its floor before the floor must rise. */

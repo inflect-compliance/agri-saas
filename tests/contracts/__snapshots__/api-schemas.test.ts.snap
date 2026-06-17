@@ -2805,6 +2805,136 @@ exports[`API contract — per-schema snapshots schema: GrainCostRow 1`] = `
 }"
 `;
 
+exports[`API contract — per-schema snapshots schema: InventoryLot 1`] = `
+"{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "lotCode": {
+      "type": "string"
+    },
+    "item": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "category"
+      ],
+      "additionalProperties": {}
+    },
+    "unit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "symbol"
+      ],
+      "additionalProperties": {}
+    },
+    "location": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": {}
+    },
+    "quantityOnHand": {
+      "type": "number"
+    },
+    "expiresAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "receivedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "lowStock": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "lotCode",
+    "item",
+    "unit",
+    "quantityOnHand",
+    "lowStock"
+  ],
+  "additionalProperties": {},
+  "description": "An inventory lot of a catalog input (seed / pesticide / fertilizer / …). quantityOnHand is the ledger-derived on-hand quantity in the lot unit; lowStock flags reorder. Cursor-paginate with ?limit=&cursor= for large fields."
+}"
+`;
+
+exports[`API contract — per-schema snapshots schema: InventoryLotPage 1`] = `
+"{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/components/schemas/InventoryLot"
+      }
+    },
+    "pageInfo": {
+      "type": "object",
+      "properties": {
+        "nextCursor": {
+          "type": "string"
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "hasNextPage"
+      ]
+    }
+  },
+  "required": [
+    "items",
+    "pageInfo"
+  ],
+  "description": "A cursor page of inventory lots — returned by GET /inventory/lots?limit=&cursor=."
+}"
+`;
+
 exports[`API contract — per-schema snapshots schema: LocationCreateRequest 1`] = `
 "{
   "type": "object",
@@ -2839,6 +2969,115 @@ exports[`API contract — per-schema snapshots schema: LocationCreateRequest 1`]
     "name"
   ],
   "description": "Create a Location (a farm/field block). Parcels are populated by importing a spatial file (shapefile/KML/GeoJSON)."
+}"
+`;
+
+exports[`API contract — per-schema snapshots schema: LocationDetail 1`] = `
+"{
+  "allOf": [
+    {
+      "$ref": "#/components/schemas/LocationListItem"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "parcels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Parcel"
+          }
+        }
+      },
+      "additionalProperties": {}
+    }
+  ],
+  "description": "Location with its parcels. Returned by GET /locations/{id}."
+}"
+`;
+
+exports[`API contract — per-schema snapshots schema: LocationListItem 1`] = `
+"{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "tenantId": {
+      "type": "string"
+    },
+    "key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "type": "string"
+    },
+    "ownerUserId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "spatialFileId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "spatialFormat": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "boundsJson": {},
+    "createdAt": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "type": "string"
+    },
+    "owner": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/UserRef"
+        },
+        {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      ]
+    },
+    "_count": {
+      "type": "object",
+      "properties": {
+        "parcels": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "name",
+    "status"
+  ],
+  "additionalProperties": {},
+  "description": "Location as it appears in list views. A Location holds a set of imported Parcels (PostGIS polygons)."
 }"
 `;
 
@@ -3226,6 +3465,147 @@ exports[`API contract — per-schema snapshots schema: LogEntryUpdateRequest 1`]
 }"
 `;
 
+exports[`API contract — per-schema snapshots schema: OperationParcel 1`] = `
+"{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "tenantId": {
+      "type": "string"
+    },
+    "taskId": {
+      "type": "string"
+    },
+    "parcelId": {
+      "type": "string"
+    },
+    "productItemId": {
+      "type": "string"
+    },
+    "doseValue": {
+      "type": "string"
+    },
+    "doseUnitId": {
+      "type": "string"
+    },
+    "targetNote": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "type": "string"
+    },
+    "completedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "completedByUserId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "createdAt": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "type": "string"
+    },
+    "product": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": {}
+    },
+    "doseUnit": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "symbol"
+      ],
+      "additionalProperties": {}
+    },
+    "parcel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "areaHa": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": {}
+    },
+    "completedBy": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/UserRef"
+        },
+        {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "tenantId",
+    "taskId",
+    "parcelId",
+    "productItemId",
+    "doseValue",
+    "doseUnitId",
+    "status",
+    "product",
+    "doseUnit",
+    "parcel"
+  ],
+  "additionalProperties": {},
+  "description": "A spray-prescription line of a field-operation job: one parcel, one product, one dose. Marking it DONE deducts dose×area from the FEFO inventory lot and writes an INPUT_APPLICATION journal record."
+}"
+`;
+
 exports[`API contract — per-schema snapshots schema: OperationParcelUpdateRequest 1`] = `
 "{
   "type": "object",
@@ -3250,6 +3630,40 @@ exports[`API contract — per-schema snapshots schema: OperationParcelUpdateRequ
     "status"
   ],
   "description": "Operator updates one per-parcel prescription line. The job auto-resolves when every line is DONE or SKIPPED."
+}"
+`;
+
+exports[`API contract — per-schema snapshots schema: Parcel 1`] = `
+"{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "cropType": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "areaHa": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "geometry": {},
+    "properties": {}
+  },
+  "required": [
+    "id",
+    "name"
+  ],
+  "additionalProperties": {},
+  "description": "One imported parcel polygon. geometry is GeoJSON MultiPolygon in WGS84; areaHa is the on-ellipsoid area in hectares."
 }"
 `;
 

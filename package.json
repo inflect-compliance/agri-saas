@@ -52,6 +52,8 @@
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "load:auth": "k6 run tests/load/auth.js",
     "load:lists": "k6 run tests/load/lists.js",
+    "load:ag-parcels": "k6 run tests/load/ag-parcel-list.js",
+    "load:ag-inventory": "k6 run tests/load/ag-inventory-pagination.js",
     "load:auth:50": "k6 run -e VUS=50 -e DURATION=2m tests/load/auth.js",
     "load:auth:100": "k6 run -e VUS=100 -e DURATION=2m tests/load/auth.js",
     "load:auth:200": "k6 run -e VUS=200 -e DURATION=2m tests/load/auth.js",
