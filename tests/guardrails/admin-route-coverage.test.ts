@@ -52,6 +52,8 @@ const ADMIN_ONLY_ROUTES = [
     'admin/key-rotation/route.ts',
     'admin/tenant-dek-rotation/route.ts',
     'admin/rotate-dek/route.ts',
+    // Ag observability — stock-ledger reconciliation (integrity sweep)
+    'admin/ledger-reconciliation/route.ts',
     'admin/sessions/route.ts',
     // Epic 1, PR 3 — token-redemption invite flow (admin invite management)
     'admin/invites/route.ts',

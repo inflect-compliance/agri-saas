@@ -74,6 +74,20 @@ describe('Epic 19 Coherence: metric names', () => {
             'scim.auth.count',
         ]);
 
+        // feat/observability — the ag field-workflow SLO metrics
+        // (`ag.operation.*`) live on their OWN dashboard + Prometheus rules
+        // (the ag operations board), not the API SLO board. They ARE
+        // SLO-relevant (they back the AgFieldOperationLatencyHigh /
+        // AgOperationFailureRateHigh / AgLedgerReconciliationDrift alerts),
+        // so they belong in the reference corpus rather than diagnosticOnly.
+        const agReferenceCorpus = [
+            'docs/grafana/ag-operations.json',
+            'infra/observability/prometheus/rules/recording-rules.yml',
+            'infra/observability/prometheus/rules/alerting-rules.yml',
+        ]
+            .map((rel) => fs.readFileSync(path.join(ROOT, rel), 'utf-8'))
+            .join('\n');
+
         // Dot → underscore: api.request.count → api_request_count
         for (const otelName of otelNames) {
             if (diagnosticOnly.has(otelName)) continue;
@@ -81,8 +95,9 @@ describe('Epic 19 Coherence: metric names', () => {
             const promName = otelName.replace(/\./g, '_');
             const referencedInDashboard = dashboardContent.includes(promName);
             const referencedInAlerts = alertContent.includes(promName);
+            const referencedInAgInfra = agReferenceCorpus.includes(promName);
 
-            if (!referencedInDashboard && !referencedInAlerts) {
+            if (!referencedInDashboard && !referencedInAlerts && !referencedInAgInfra) {
                 fail(
                     `Metric '${otelName}' (Prometheus: '${promName}') is emitted by metrics.ts ` +
                     `but not referenced in any dashboard panel or alert rule. ` +
