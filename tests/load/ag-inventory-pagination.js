@@ -1,11 +1,12 @@
 // k6 load-test scenario — authenticated inventory-lot cursor pagination
 // baseline ("ag-inventory-pagination").
 //
-// Each VU logs in once at iteration 0 and reuses the resulting
-// session-token cookie (carried automatically by the per-VU jar)
-// for all subsequent iterations, so we measure the steady-state
-// paged-read path rather than the cold login path. (auth.js covers
-// the cold-login throughput separately.)
+// A single global login in setup() extracts the NextAuth session-token
+// cookie and hands it to every VU via the setup→default data channel;
+// each request re-attaches it explicitly (`cookies: { … }`). This mirrors
+// mutations.js — the per-VU cookie jar does NOT reliably carry the
+// session-token across iterations under `next start`, so we never rely
+// on it. We measure the steady-state paged-read path, not the cold login.
 //
 // Design profile: "10 operators × 10k-lot location, p95<500ms". The
 // realistic access pattern is an operator scrolling a large field's
@@ -50,11 +51,6 @@ const MAX_PAGES = 3;
 const lotsRequests = new Counter('inventory_lots_requests');
 const listSuccessRate = new Rate('list_success_rate');
 
-// Per-VU module state — k6 loads each module once per VU init, so a
-// top-level `let` is effectively a per-VU singleton. Used to gate the
-// once-per-VU login.
-let loggedIn = false;
-
 export const options = {
     scenarios: {
         inventory_pagination_baseline: {
@@ -94,11 +90,12 @@ export const options = {
 // One paged GET against the lots endpoint. Tags + checks every request
 // uniformly so the threshold covers the whole cursor walk. Returns the
 // nextCursor if the page reports hasNextPage, else null.
-function fetchLotsPage(base, cursor) {
+function fetchLotsPage(base, cursor, auth) {
     const url = cursor
         ? `${base}/inventory/lots?limit=${PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}`
         : `${base}/inventory/lots?limit=${PAGE_SIZE}`;
     const r = http.get(url, {
+        ...auth,
         tags: { type: 'list', endpoint: 'inventory_lots' },
     });
     const ok = check(
@@ -131,30 +128,39 @@ function fetchLotsPage(base, cursor) {
     return null;
 }
 
-export default function inventoryPaginationIteration() {
-    // ── Per-VU one-time login ──
-    if (!loggedIn) {
-        const ok = login(cfg);
-        if (!ok) {
-            // No point in this VU walking the cursor without a session
-            // — let the iteration return so the threshold on
-            // login_failed picks it up rather than spamming 401s.
-            sleep(1);
-            return;
-        }
-        loggedIn = true;
+// Single global login — extract the session-token cookie and share it
+// via the setup→default data channel (mirrors mutations.js). Never
+// trust the per-VU jar to carry it across iterations.
+export function setup() {
+    const ok = login(cfg);
+    if (!ok) {
+        throw new Error(
+            'ag-inventory-pagination.js setup login failed — refusing to run the read smoke without a session. ' +
+            'Verify the SUT is up at ' + cfg.baseUrl + ' with AUTH_TEST_MODE=1.',
+        );
     }
+    const cookies = http.cookieJar().cookiesForURL(cfg.baseUrl);
+    const tokenName = cookies['next-auth.session-token']
+        ? 'next-auth.session-token'
+        : '__Secure-next-auth.session-token';
+    const tokenArr = cookies[tokenName];
+    if (!Array.isArray(tokenArr) || tokenArr.length === 0) {
+        throw new Error('login succeeded but no session cookie surfaced in the jar');
+    }
+    return { tokenName, tokenValue: tokenArr[0] };
+}
 
-    // Use the per-VU default jar — it now carries the session cookie
-    // from the login call above and will attach it to every request.
+export default function inventoryPaginationIteration(data) {
     const base = `${cfg.baseUrl}/api/t/${cfg.tenant}`;
+    // Re-attach the shared session cookie on every paged request.
+    const auth = { cookies: { [data.tokenName]: data.tokenValue } };
 
     group('inventory:lots-cursor-walk', () => {
         // Walk the cursor: first page, then follow nextCursor for up to
         // MAX_PAGES total — simulating an operator paging a large field.
         let cursor = null;
         for (let page = 0; page < MAX_PAGES; page++) {
-            cursor = fetchLotsPage(base, cursor);
+            cursor = fetchLotsPage(base, cursor, auth);
             if (!cursor) break;
         }
     });

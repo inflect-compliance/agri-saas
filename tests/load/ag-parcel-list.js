@@ -1,11 +1,12 @@
 // k6 load-test scenario — authenticated parcel/field list-read baseline
 // ("ag-parcel-list").
 //
-// Each VU logs in once at iteration 0 and reuses the resulting
-// session-token cookie (carried automatically by the per-VU jar)
-// for all subsequent iterations, so we measure the steady-state
-// list-read path rather than the cold login path. (auth.js covers
-// the cold-login throughput separately.)
+// A single global login in setup() extracts the NextAuth session-token
+// cookie and hands it to every VU via the setup→default data channel;
+// each request re-attaches it explicitly (`cookies: { … }`). This mirrors
+// mutations.js — the per-VU cookie jar does NOT reliably carry the
+// session-token across iterations under `next start`, so we never rely
+// on it. We measure the steady-state list-read path, not the cold login.
 //
 // The surface under test is the parcel/field list — `locations` are
 // the fields that hold parcels:
@@ -41,11 +42,6 @@ const cfg = loadConfig();
 // Per-endpoint counters so the summary breaks throughput out by surface.
 const locationsRequests = new Counter('list_locations_requests');
 const listSuccessRate = new Rate('list_success_rate');
-
-// Per-VU module state — k6 loads each module once per VU init, so a
-// top-level `let` is effectively a per-VU singleton. Used to gate the
-// once-per-VU login.
-let loggedIn = false;
 
 export const options = {
     scenarios: {
@@ -98,29 +94,39 @@ function pickFilter(filters, iter) {
     return filters[iter % filters.length];
 }
 
-export default function parcelListIteration() {
-    // ── Per-VU one-time login ──
-    if (!loggedIn) {
-        const ok = login(cfg);
-        if (!ok) {
-            // No point in this VU running list scenarios without a
-            // session — let the iteration return so the threshold on
-            // login_failed picks it up rather than spamming 401s.
-            sleep(1);
-            return;
-        }
-        loggedIn = true;
+// Single global login — extract the session-token cookie and share it
+// via the setup→default data channel (mirrors mutations.js). Never
+// trust the per-VU jar to carry it across iterations.
+export function setup() {
+    const ok = login(cfg);
+    if (!ok) {
+        throw new Error(
+            'ag-parcel-list.js setup login failed — refusing to run the read smoke without a session. ' +
+            'Verify the SUT is up at ' + cfg.baseUrl + ' with AUTH_TEST_MODE=1.',
+        );
     }
+    const cookies = http.cookieJar().cookiesForURL(cfg.baseUrl);
+    const tokenName = cookies['next-auth.session-token']
+        ? 'next-auth.session-token'
+        : '__Secure-next-auth.session-token';
+    const tokenArr = cookies[tokenName];
+    if (!Array.isArray(tokenArr) || tokenArr.length === 0) {
+        throw new Error('login succeeded but no session cookie surfaced in the jar');
+    }
+    return { tokenName, tokenValue: tokenArr[0] };
+}
 
-    // Use the per-VU default jar — it now carries the session cookie
-    // from the login call above and will attach it to every request.
+export default function parcelListIteration(data) {
     const iter = __ITER;
     const base = `${cfg.baseUrl}/api/t/${cfg.tenant}`;
+    // Re-attach the shared session cookie on every request.
+    const auth = { cookies: { [data.tokenName]: data.tokenValue } };
 
     group('list:locations', () => {
         const qs = pickFilter(LOCATIONS_FILTERS, iter);
         const url = qs ? `${base}/locations?${qs}` : `${base}/locations`;
         const r = http.get(url, {
+            ...auth,
             tags: { type: 'list', endpoint: 'locations' },
         });
         const ok = check(
