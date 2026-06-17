@@ -43,9 +43,9 @@ test('crop plan: a 3-succession plan generates three planting waves', async ({ a
     // Generate the succession plantings (3 waves).
     const gen = await api.post(`/api/t/${slug}/planning/crop-plans/${plan.id}/generate`);
     expect(gen.ok(), `generate: ${await gen.text()}`).toBeTruthy();
+    // generatePlantings returns { cropPlanId, plantingsGenerated, tasksCreated }.
     const genBody = await gen.json();
-    const count = genBody.count ?? (genBody.plantings?.length ?? 0);
-    expect(count).toBeGreaterThanOrEqual(3);
+    expect(genBody.plantingsGenerated).toBeGreaterThanOrEqual(3);
 
     // UI: the planning page lists the plan.
     await authedPage.goto(`/t/${slug}/planning`);
