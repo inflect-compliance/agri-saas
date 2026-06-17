@@ -306,7 +306,13 @@ describe('New page token discipline', () => {
         //     EntityListPage/DataTable/Modal/FormField/Combobox/
         //     DatePicker/RadioGroup/StatusBadge/ProgressBar/ToggleGroup);
         //     new surfaces, not yet promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(133);
+        //   - 135 (+2, 2026-06-17): Stock Ledger Integrity admin page —
+        //     admin/ledger-integrity/page.tsx + LedgerIntegrityClient.tsx
+        //     (the reconciliation status hero + run button + history
+        //     table). Token-clean (semantic tokens only: content-*/bg-*/
+        //     border-* + Card/Button/DataTable/StatusBadge/InlineNotice/
+        //     Heading); new surfaces, not yet promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(135);
     });
 
     it('migrated page count is at least 4', () => {

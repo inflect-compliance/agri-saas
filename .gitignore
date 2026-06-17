@@ -147,3 +147,4 @@ cred-list.txt
 # ./tests/load/results/ directory is purely a developer artefact
 # and must never land in git.
 tests/load/results/
+dump.rdb

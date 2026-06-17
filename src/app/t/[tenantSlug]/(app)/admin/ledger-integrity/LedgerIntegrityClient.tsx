@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, ShieldAlert, ShieldQuestion, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -42,6 +42,56 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
     const [error, setError] = useState<string | null>(null);
 
     const latest = history[0] ?? null;
+
+    const historyColumns = useMemo(
+        () =>
+            createColumns<LedgerReconciliationRun>([
+                {
+                    accessorKey: 'runAt',
+                    header: 'Run at',
+                    cell: ({ row }) => (
+                        <span className="text-sm text-content-default">
+                            {formatDateTime(row.original.runAt)}
+                        </span>
+                    ),
+                },
+                {
+                    accessorKey: 'valid',
+                    header: 'Result',
+                    cell: ({ row }) => <ResultBadge valid={row.original.valid} />,
+                },
+                {
+                    accessorKey: 'totalEntries',
+                    header: 'Entries',
+                    cell: ({ row }) => (
+                        <span className="text-sm tabular-nums text-content-muted">
+                            {row.original.totalEntries ?? '—'}
+                        </span>
+                    ),
+                },
+                {
+                    accessorKey: 'firstBreakAt',
+                    header: 'Break',
+                    cell: ({ row }) => {
+                        const { valid, firstBreakAt } = row.original;
+                        if (valid !== false) return <span className="text-content-subtle">—</span>;
+                        return (
+                            <span className="text-sm text-content-error">
+                                entry #{firstBreakAt ?? '?'}
+                            </span>
+                        );
+                    },
+                },
+                {
+                    accessorKey: 'runBy',
+                    header: 'Run by',
+                    cell: ({ row }) => (
+                        <span className="text-sm text-content-muted">{row.original.runBy ?? 'System'}</span>
+                    ),
+                },
+            ]),
+        [],
+    );
 
     const runReconciliation = useCallback(async () => {
         setRunning(true);
@@ -96,53 +146,10 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
             <div className="space-y-default">
                 <Heading level={2}>History</Heading>
                 <DataTable<LedgerReconciliationRun>
+                    data-testid="ledger-reconciliation-history-table"
                     data={history}
                     getRowId={(r) => r.id}
-                    columns={createColumns<LedgerReconciliationRun>([
-                        {
-                            accessorKey: 'runAt',
-                            header: 'Run at',
-                            cell: ({ row }) => (
-                                <span className="text-sm text-content-default">
-                                    {formatDateTime(row.original.runAt)}
-                                </span>
-                            ),
-                        },
-                        {
-                            accessorKey: 'valid',
-                            header: 'Result',
-                            cell: ({ row }) => <ResultBadge valid={row.original.valid} />,
-                        },
-                        {
-                            accessorKey: 'totalEntries',
-                            header: 'Entries',
-                            cell: ({ row }) => (
-                                <span className="text-sm tabular-nums text-content-muted">
-                                    {row.original.totalEntries ?? '—'}
-                                </span>
-                            ),
-                        },
-                        {
-                            accessorKey: 'firstBreakAt',
-                            header: 'Break',
-                            cell: ({ row }) => {
-                                const { valid, firstBreakAt } = row.original;
-                                if (valid !== false) return <span className="text-content-subtle">—</span>;
-                                return (
-                                    <span className="text-sm text-content-error">
-                                        entry #{firstBreakAt ?? '?'}
-                                    </span>
-                                );
-                            },
-                        },
-                        {
-                            accessorKey: 'runBy',
-                            header: 'Run by',
-                            cell: ({ row }) => (
-                                <span className="text-sm text-content-muted">{row.original.runBy ?? 'System'}</span>
-                            ),
-                        },
-                    ])}
+                    columns={historyColumns}
                     emptyState={
                         <div className="py-8 text-center text-sm text-content-muted">
                             No reconciliation runs yet. Run one to verify the stock ledger.
