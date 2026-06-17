@@ -135,11 +135,14 @@ export class ParcelRepository {
         x: number,
         y: number,
     ): Promise<Buffer> {
-        const rows = await db.$queryRaw<Array<{ mvt: Buffer | null }>>(
+        const rows = await db.$queryRaw<Array<{ mvt: Uint8Array | null }>>(
             mvtTileSql(z, x, y, locationId, ctx.tenantId),
         );
         const mvt = rows[0]?.mvt;
-        return mvt ?? Buffer.alloc(0);
+        // The pg adapter returns `bytea` as a Uint8Array, not a Node Buffer
+        // — normalise (Buffer.from copies the view) so the return type is
+        // exact and the route streams a real Buffer.
+        return mvt ? Buffer.from(mvt) : Buffer.alloc(0);
     }
 
     /** Count a location's (non-deleted) parcels. */
