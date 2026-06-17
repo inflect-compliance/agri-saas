@@ -257,6 +257,15 @@ export default function LocationDetailPage() {
                             onCreateSplitLine={(line) => { void splitParcel(line); }}
                             showNdvi={showNdvi && ndviConfigured}
                             ndviTileUrl={ndviTileUrl}
+                            // Read-only vector-tile source (perf at scale). The
+                            // {z}/{x}/{y} placeholders are kept literal for
+                            // MapLibre to substitute (buildUrl doesn't encode
+                            // the path). This Map tab is interactive (select +
+                            // draw/edit/split), so MapCanvas no-ops the vector
+                            // source here — it only engages on pure read-only
+                            // mounts. Passed so the prop is exercised + ready
+                            // for a future read-only farm view.
+                            vectorTileUrl={buildUrl(`/locations/${locationId}/tiles/{z}/{x}/{y}.pbf`)}
                         />
                         {mapMode === 'select' ? (
                             <div className="rounded-lg border border-border-subtle p-4">

@@ -318,6 +318,78 @@ describe('cachedListRead — error propagation', () => {
     });
 });
 
+describe('cachedListRead — agronomy catalog + weather entities (feat/perf-scale)', () => {
+    // The four entities added for the agri-saas perf work. Each must be a
+    // valid CacheableEntity (compile-time) AND behave like the existing
+    // entities at runtime: hit/miss + per-tenant isolation.
+    const NEW_ENTITIES = ['crop-type', 'crop-variety', 'unit', 'weather-observation'] as const;
+
+    it.each(NEW_ENTITIES)(
+        '%s — runs the loader once on miss, serves the second call from cache',
+        async (entity) => {
+            const ctx = fakeCtx('t-1');
+            const loader = jest.fn(async () => [{ id: `${entity}-1` }]);
+
+            const first = await cachedListRead({ ctx, entity, operation: 'list', params: { measure: null }, loader });
+            const second = await cachedListRead({ ctx, entity, operation: 'list', params: { measure: null }, loader });
+
+            expect(first).toEqual(second);
+            expect(loader).toHaveBeenCalledTimes(1);
+        },
+    );
+
+    it.each(NEW_ENTITIES)(
+        '%s — two tenants with identical params get independent cache entries (tenant isolation)',
+        async (entity) => {
+            const ctxA = fakeCtx('t-A');
+            const ctxB = fakeCtx('t-B');
+            const loaderA = jest.fn(async () => [{ tenantId: 't-A' }]);
+            const loaderB = jest.fn(async () => [{ tenantId: 't-B' }]);
+
+            const a = await cachedListRead({ ctx: ctxA, entity, operation: 'list', params: {}, loader: loaderA });
+            const b = await cachedListRead({ ctx: ctxB, entity, operation: 'list', params: {}, loader: loaderB });
+
+            // Both loaders fired — tenant A's cache entry can't be read by tenant B.
+            expect(loaderA).toHaveBeenCalledTimes(1);
+            expect(loaderB).toHaveBeenCalledTimes(1);
+            expect(a).toEqual([{ tenantId: 't-A' }]);
+            expect(b).toEqual([{ tenantId: 't-B' }]);
+        },
+    );
+
+    it("crop-type — a version bump (mirrors createCropType) forces the next read to miss", async () => {
+        const ctx = fakeCtx('t-1');
+        let counter = 0;
+        const loader = jest.fn(async () => {
+            counter++;
+            return { value: counter };
+        });
+
+        const first = await cachedListRead({ ctx, entity: 'crop-type', operation: 'list', params: {}, loader });
+        const cached = await cachedListRead({ ctx, entity: 'crop-type', operation: 'list', params: {}, loader });
+        await bumpEntityCacheVersion(ctx, 'crop-type');
+        const afterBump = await cachedListRead({ ctx, entity: 'crop-type', operation: 'list', params: {}, loader });
+
+        expect(first).toEqual({ value: 1 });
+        expect(cached).toEqual({ value: 1 }); // hit
+        expect(afterBump).toEqual({ value: 2 }); // miss after bump
+        expect(loader).toHaveBeenCalledTimes(2);
+    });
+
+    it('weather-observation — the gdd operation keys independently from a list op on the same entity', async () => {
+        const ctx = fakeCtx('t-1');
+        const loaderGdd = jest.fn(async () => ({ totalGdd: 42, days: [] }));
+        const loaderList = jest.fn(async () => ['obs']);
+
+        await cachedListRead({ ctx, entity: 'weather-observation', operation: 'gdd', params: { plantingId: 'p1' }, loader: loaderGdd });
+        await cachedListRead({ ctx, entity: 'weather-observation', operation: 'list', params: { plantingId: 'p1' }, loader: loaderList });
+
+        // Different ops on the same entity are different keys — both fire.
+        expect(loaderGdd).toHaveBeenCalledTimes(1);
+        expect(loaderList).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('stableStringify — primitive', () => {
     it('produces the same output regardless of property order', () => {
         const a = stableStringify({ z: 1, a: 2, m: { y: 3, x: 4 } });

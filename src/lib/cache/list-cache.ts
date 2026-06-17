@@ -1,7 +1,9 @@
 /**
  * List-read cache (Redis-backed).
  *
- * Wraps the hottest list usecases — controls, risks, evidence — so
+ * Wraps the hottest list usecases — controls, risks, evidence, tasks,
+ * plus the slow-changing agronomy catalogs (crop types, crop
+ * varieties, units) and per-planting weather-derived reads — so
  * cache hits skip the DB round-trip entirely. Mutation paths bump
  * a per-tenant version counter to invalidate every cached entry of
  * the same entity in O(1).
@@ -66,7 +68,15 @@ const VERSION_KEY_TTL_SECONDS = 60 * 60 * 24 * 30;
  * `bumpEntityCacheVersion` on every write) — adding a new entity
  * here without wiring the writes is a correctness bug.
  */
-export type CacheableEntity = 'control' | 'risk' | 'evidence' | 'task';
+export type CacheableEntity =
+    | 'control'
+    | 'risk'
+    | 'evidence'
+    | 'task'
+    | 'crop-type'
+    | 'crop-variety'
+    | 'unit'
+    | 'weather-observation';
 
 export interface CachedReadOptions<T> {
     ctx: RequestContext;

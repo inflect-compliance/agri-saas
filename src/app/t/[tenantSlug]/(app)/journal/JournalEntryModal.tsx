@@ -116,7 +116,11 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
     const isEdit = !!initial?.id;
 
     // Catalogs for the pickers.
-    const { data: units } = useTenantSWR<UnitOption[]>(open ? '/units' : null);
+    // Units are a slow-changing catalog — relax SWR revalidation.
+    const { data: units } = useTenantSWR<UnitOption[]>(open ? '/units' : null, {
+        revalidateOnFocus: false,
+        dedupingInterval: 60_000,
+    });
     const { data: locations } = useTenantSWR<LocationOption[]>(open ? '/locations' : null);
     // Items catalog — backs the optional harvest-output picker (HARVEST only).
     const { data: items } = useTenantSWR<ItemOption[]>(open ? '/items' : null);

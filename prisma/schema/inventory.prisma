@@ -84,6 +84,9 @@ model InventoryLot {
   @@index([tenantId, itemId])
   @@index([tenantId, locationId])
   @@index([tenantId, expiresAt])
+  // perf-scale: the cursor-paginated lot list (listLotsPaginated) orders
+  // by (createdAt, id) over tenantId — back a 100k-lot field's page walk.
+  @@index([tenantId, createdAt])
 }
 
 /// THE LEDGER. Append-only; immutability enforced by a DB trigger
@@ -126,6 +129,9 @@ model StockTransaction {
   @@index([tenantId, lotId, occurredAt])
   @@index([tenantId, type, occurredAt])
   @@index([tenantId, logEntryId])
+  // perf-scale: the cursor-paginated ledger (lotLedger) orders by
+  // (createdAt, id) within a lot — back a high-volume lot's ledger pages.
+  @@index([tenantId, lotId, createdAt])
 }
 
 /// Lot genealogy — the food-safety provenance graph (OFBiz lot-genealogy

@@ -19,6 +19,7 @@ import { assertCanRead } from '../policies/common';
 import { runInTenantContext } from '@/lib/db-context';
 import { notFound } from '@/lib/errors/types';
 import { accumulateGdd, type DailyTemp, type GddDay } from '@/lib/agro/gdd';
+import { cachedListRead } from '@/lib/cache/list-cache';
 
 /**
  * Default GDD base temperature (°C). Module constant — see the file
@@ -84,35 +85,63 @@ export async function getPlantingGdd(
             targetGdd: null,
         };
 
-        // No sow date or no location ⇒ no accumulation window.
+        // No sow date or no location ⇒ no accumulation window. Returned
+        // OUTSIDE the cache wrapper (cheap, no weather read) — only the
+        // weather-dependent accumulation below is cached.
         if (!planting.sowDate || !planting.locationId) return empty;
+        const sowDate = planting.sowDate;
+        const locationId = planting.locationId;
 
-        const obs = await db.weatherObservation.findMany({
-            where: {
-                tenantId: ctx.tenantId,
-                locationId: planting.locationId,
-                obsDate: { gte: planting.sowDate, lte: now },
+        // Cache the weather-read + GDD accumulation. The window grows
+        // daily (lte: now) so the `day` bucket (today, UTC) is part of
+        // the key — the 6h cache still rolls over each calendar day, and
+        // a same-day weather-pull invalidates via the
+        // `'weather-observation'` version bump. The planting lookup and
+        // the empty-window early-return above stay OUTSIDE the cache so a
+        // `notFound` / no-window result is never cached.
+        const { totalGdd, days } = await cachedListRead({
+            ctx,
+            entity: 'weather-observation',
+            operation: 'gdd',
+            params: {
+                plantingId: planting.id,
+                locationId,
+                sowDate: sowDate.toISOString().slice(0, 10),
+                day: now.toISOString().slice(0, 10),
             },
-            orderBy: { obsDate: 'asc' },
-            take: GDD_MAX_DAYS,
-            select: { obsDate: true, tempMaxC: true, tempMinC: true },
+            ttlSeconds: 21600,
+            loader: () =>
+                runInTenantContext(ctx, async (innerDb) => {
+                    const obs = await innerDb.weatherObservation.findMany({
+                        where: {
+                            tenantId: ctx.tenantId,
+                            locationId,
+                            obsDate: { gte: sowDate, lte: now },
+                        },
+                        orderBy: { obsDate: 'asc' },
+                        take: GDD_MAX_DAYS,
+                        select: { obsDate: true, tempMaxC: true, tempMinC: true },
+                    });
+
+                    const series: DailyTemp[] = [];
+                    for (const o of obs) {
+                        const tMax = num(o.tempMaxC);
+                        const tMin = num(o.tempMinC);
+                        // A day missing either bound contributes nothing — skip it
+                        // rather than feed a NaN into the accumulator.
+                        if (tMax == null || tMin == null) continue;
+                        series.push({ date: o.obsDate.toISOString().slice(0, 10), tempMaxC: tMax, tempMinC: tMin });
+                    }
+
+                    const acc = accumulateGdd(series, { baseTempC: GDD_BASE_TEMP_C });
+                    return { totalGdd: acc.totalGdd, days: acc.days };
+                }),
         });
 
-        const series: DailyTemp[] = [];
-        for (const o of obs) {
-            const tMax = num(o.tempMaxC);
-            const tMin = num(o.tempMinC);
-            // A day missing either bound contributes nothing — skip it
-            // rather than feed a NaN into the accumulator.
-            if (tMax == null || tMin == null) continue;
-            series.push({ date: o.obsDate.toISOString().slice(0, 10), tempMaxC: tMax, tempMinC: tMin });
-        }
-
-        const acc = accumulateGdd(series, { baseTempC: GDD_BASE_TEMP_C });
         return {
             ...empty,
-            totalGdd: acc.totalGdd,
-            days: acc.days,
+            totalGdd,
+            days,
         };
     });
 }

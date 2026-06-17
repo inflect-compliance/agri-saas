@@ -172,9 +172,14 @@ describeFn('inventory ledger (DB)', () => {
         expect(res.application?.consumed).toBe(20);
         expect(res.application?.deductedFromLotId).toBe(lotId);
 
-        // A CONSUMPTION ledger row linked to a LogEntry exists.
+        // A CONSUMPTION ledger row linked to a LogEntry exists. An earlier
+        // test in this file appended a raw -20 CONSUMPTION to the same lot,
+        // so order by newest to deterministically pick THIS spray's row
+        // (a bare findFirst is order-undefined once an index makes the scan
+        // order createdAt-based).
         const consumption = await prisma.stockTransaction.findFirst({
             where: { tenantId: TENANT_ID, lotId, type: 'CONSUMPTION', quantityDelta: -20 },
+            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
             select: { logEntryId: true },
         });
         expect(consumption).not.toBeNull();

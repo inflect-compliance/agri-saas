@@ -51,15 +51,41 @@ export async function getLocationWithParcels(ctx: RequestContext, id: string) {
     });
 }
 
-/** Just the parcels for a location, as GeoJSON. */
-export async function listLocationParcels(ctx: RequestContext, id: string) {
+/**
+ * Just the parcels for a location, as GeoJSON. `simplifyTolerance`
+ * (degrees) opts into `ST_Simplify` on the export path for a lighter
+ * payload on a many-field location; omit it for exact sketch/edit
+ * geometry.
+ */
+export async function listLocationParcels(
+    ctx: RequestContext,
+    id: string,
+    opts: { simplifyTolerance?: number } = {},
+) {
     assertCanRead(ctx);
     return runInTenantContext(ctx, async (db) => {
         const location = await LocationRepository.getById(db, ctx, id);
         if (!location) throw notFound('Location not found');
-        const parcels = await ParcelRepository.listForLocation(db, ctx, id);
+        const parcels = await ParcelRepository.listForLocation(db, ctx, id, opts);
         return { locationId: id, bounds: location.boundsJson ?? null, parcels };
     });
+}
+
+/**
+ * Render a location's parcels as a Mapbox Vector Tile (binary protobuf)
+ * for the z/x/y tile — the map's vector source at zoom ≥ 6. Tenant- +
+ * location-scoped in the repository; an empty buffer means no parcel
+ * touches the tile.
+ */
+export async function getLocationParcelTile(
+    ctx: RequestContext,
+    locationId: string,
+    z: number,
+    x: number,
+    y: number,
+): Promise<Buffer> {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, (db) => ParcelRepository.mvtForTile(db, ctx, locationId, z, x, y));
 }
 
 export async function createLocation(ctx: RequestContext, data: CreateLocationInput) {

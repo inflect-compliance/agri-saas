@@ -60,6 +60,7 @@ const EXCLUDED_PATHS: readonly string[] = [
  *   - Non-GET methods (mutations have their own tier via withApiErrorHandling)
  *   - Anything not under /api/t/
  *   - Anything in EXCLUDED_PATHS (health probes, /api/docs)
+ *   - Vector-tile requests (`.pbf`) — see below
  *
  * The exclusion check uses prefix-match against `path` or `path + '/'`
  * so `/api/health` matches but `/api/healthcheck` does not.
@@ -67,6 +68,12 @@ const EXCLUDED_PATHS: readonly string[] = [
 export function isApiReadRateLimited(method: string, pathname: string): boolean {
     if (method !== 'GET') return false;
     if (!pathname.startsWith('/api/t/')) return false;
+    // Map vector tiles (`/locations/:id/tiles/:z/:x/:y.pbf`) are still
+    // auth'd + tenant-scoped (the middleware's JWT + tenant-access gate runs
+    // first) and are browser/edge-cacheable, but they fire in bursts during
+    // pan/zoom. Throttling them at 120/min would tear holes in the map.
+    // `.pbf` is the only tile surface, so a suffix match is exact + narrow.
+    if (pathname.endsWith('.pbf')) return false;
     for (const excluded of EXCLUDED_PATHS) {
         if (pathname === excluded || pathname.startsWith(excluded + '/')) {
             return false;

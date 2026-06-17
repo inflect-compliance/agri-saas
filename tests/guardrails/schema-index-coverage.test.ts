@@ -423,9 +423,9 @@ const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
     // exists for any future date-ordered read.
     // ─── Inventory ledger (Phase 1) ───
     InventoryLot:
-        'listLots filters by tenantId (+ optional itemId), orders by createdAt DESC — covered by @@index([tenantId, itemId]); getFefoLot filters tenantId+itemId+quantityOnHand>0 ordered by expiresAt — covered by @@index([tenantId, expiresAt]); bounded take:200.',
+        'listLots filters by tenantId (+ optional itemId), orders by createdAt DESC — covered by @@index([tenantId, itemId]); listLotsPaginated cursor-walks tenantId ordered by (createdAt, id) — covered by the perf-scale @@index([tenantId, createdAt]); getFefoLot filters tenantId+itemId+quantityOnHand>0 ordered by expiresAt — covered by @@index([tenantId, expiresAt]); bounded take.',
     StockTransaction:
-        'lotLedger filters by tenantId + lotId ordered by occurredAt DESC — covered exactly by @@index([tenantId, lotId, occurredAt]); the verifyStockChain integrity sweep is an explicit unbounded full-tenant scan (guardrail-allow). findConsumptionParcels / findInputLotsConsumedOnParcel filter tenantId + type (+ lotId set / nested operationParcel) — covered by @@index([tenantId, type, occurredAt]); bounded take:500.',
+        'lotLedger filters by tenantId + lotId ordered by occurredAt DESC — covered by @@index([tenantId, lotId, occurredAt]); lotLedgerPage cursor-walks tenantId+lotId ordered by (createdAt, id) — covered by the perf-scale @@index([tenantId, lotId, createdAt]); the verifyStockChain integrity sweep is an explicit unbounded full-tenant scan (guardrail-allow). findConsumptionParcels / findInputLotsConsumedOnParcel filter tenantId + type (+ lotId set / nested operationParcel) — covered by @@index([tenantId, type, occurredAt]); bounded take:500.',
     LotLink:
         'The traceability walk reads genealogy edges by tenantId + childLotId (listParentLinks, BFS up) and tenantId + parentLotId (listChildLinks, BFS down) — both leading-indexed by @@index([tenantId, parentLotId]) / @@index([tenantId, childLotId]); each level is take:500-bounded.',
     // ─── Field Journal (LogEntry + Equipment) ───

@@ -38,6 +38,56 @@ export function asGeoJsonSql(column: Prisma.Sql): Prisma.Sql {
     return Prisma.sql`ST_AsGeoJSON(${column})`;
 }
 
+/**
+ * SQL fragment serializing a geometry column to SIMPLIFIED GeoJSON text —
+ * `ST_AsGeoJSON(ST_Simplify(col, tolerance))`. Tolerance is in degrees
+ * (the column SRID is WGS84/4326): 0.0001° ≈ 11 m at the equator. Used on
+ * the export/display read path so a 50-field location ships a fraction of
+ * the vertices; the exact geometry is still used for sketch/edit and for
+ * area (`ST_Area`). `preserveCollapsed` is left default (collapsed slivers
+ * drop out) — acceptable for display, never used for persisted area.
+ */
+export function simplifiedGeoJsonSql(column: Prisma.Sql, toleranceDegrees = 0.0001): Prisma.Sql {
+    return Prisma.sql`ST_AsGeoJSON(ST_Simplify(${column}, ${toleranceDegrees}))`;
+}
+
+/**
+ * Full query: a Mapbox Vector Tile (MVT) for the z/x/y tile covering a
+ * location's parcels. The geometry is reprojected to Web Mercator (3857),
+ * clipped to the tile envelope, and quantised to a 4096-unit extent by
+ * `ST_AsMVTGeom`; `ST_AsMVT` aggregates the rows into a single `bytea`
+ * (the protobuf tile). The MVT layer is named `parcels` — the map's
+ * vector source-layer must match.
+ *
+ * Tenant- AND location-scoped in the WHERE, so a tile can never leak a
+ * sibling tenant's or another field's parcels. The intersection filter is
+ * evaluated in 3857 (same as the tile envelope) so the GiST index on the
+ * geometry is usable after the reprojection is inlined. Run via
+ * `$queryRaw`; one row, `mvt` is NULL when no parcel touches the tile (the
+ * caller maps that to an empty tile). Lives here so `ST_*` stays in geo.ts.
+ */
+export function mvtTileSql(z: number, x: number, y: number, locationId: string, tenantId: string): Prisma.Sql {
+    return Prisma.sql`
+        SELECT ST_AsMVT(q, 'parcels', 4096, 'geom') AS "mvt"
+        FROM (
+            SELECT
+                "id",
+                "name",
+                ST_AsMVTGeom(
+                    ST_Transform("geometry", 3857),
+                    ST_TileEnvelope(${z}::int, ${x}::int, ${y}::int),
+                    4096, 64, true
+                ) AS "geom"
+            FROM "Parcel"
+            WHERE "locationId" = ${locationId}
+              AND "tenantId" = ${tenantId}
+              AND "deletedAt" IS NULL
+              AND "geometry" IS NOT NULL
+              AND ST_Transform("geometry", 3857) && ST_TileEnvelope(${z}::int, ${x}::int, ${y}::int)
+        ) AS q
+        WHERE q."geom" IS NOT NULL`;
+}
+
 /** Bare column reference helper (keeps quoting in one place). */
 export function col(name: string): Prisma.Sql {
     return Prisma.raw(`"${name}"`);

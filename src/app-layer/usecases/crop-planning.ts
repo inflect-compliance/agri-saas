@@ -6,6 +6,7 @@ import { logEvent } from '../events/audit';
 import { createTask, addTaskLink } from './task';
 import { notFound, badRequest } from '@/lib/errors/types';
 import { sanitizePlainText } from '@/lib/security/sanitize';
+import { cachedListRead, bumpEntityCacheVersion } from '@/lib/cache/list-cache';
 import {
     generateSuccessions,
     mergeTiming,
@@ -191,14 +192,24 @@ export async function updateSeason(ctx: RequestContext, id: string, input: Updat
 
 export async function listCropTypes(ctx: RequestContext, opts: { take?: number } = {}) {
     assertCanRead(ctx);
-    return runInTenantContext(ctx, (db) =>
-        db.cropType.findMany({
-            where: { tenantId: ctx.tenantId, deletedAt: null },
-            orderBy: [{ name: 'asc' }],
-            include: { _count: { select: { varieties: true } } },
-            take: opts.take ?? LIST_TAKE,
-        }),
-    );
+    // Crop types are a slow-changing catalog — cache for a day. Writes
+    // (`createCropType`) bump the per-tenant version to invalidate.
+    return cachedListRead({
+        ctx,
+        entity: 'crop-type',
+        operation: 'list',
+        params: { take: opts.take ?? null },
+        ttlSeconds: 86400,
+        loader: () =>
+            runInTenantContext(ctx, (db) =>
+                db.cropType.findMany({
+                    where: { tenantId: ctx.tenantId, deletedAt: null },
+                    orderBy: [{ name: 'asc' }],
+                    include: { _count: { select: { varieties: true } } },
+                    take: opts.take ?? LIST_TAKE,
+                }),
+            ),
+    });
 }
 
 export interface CreateCropTypeInput {
@@ -214,7 +225,7 @@ export async function createCropType(ctx: RequestContext, input: CreateCropTypeI
     const name = sanitizePlainText(input.name);
     if (!name) throw badRequest('Crop type name is required');
 
-    return runInTenantContext(ctx, async (db) => {
+    const created = await runInTenantContext(ctx, async (db) => {
         const cropType = await db.cropType.create({
             data: {
                 tenantId: ctx.tenantId,
@@ -240,6 +251,8 @@ export async function createCropType(ctx: RequestContext, input: CreateCropTypeI
         });
         return cropType;
     });
+    await bumpEntityCacheVersion(ctx, 'crop-type');
+    return created;
 }
 
 export async function listCropVarieties(
@@ -248,18 +261,28 @@ export async function listCropVarieties(
     opts: { take?: number } = {},
 ) {
     assertCanRead(ctx);
-    return runInTenantContext(ctx, (db) =>
-        db.cropVariety.findMany({
-            where: {
-                tenantId: ctx.tenantId,
-                deletedAt: null,
-                ...(filters.cropTypeId ? { cropTypeId: filters.cropTypeId } : {}),
-            },
-            orderBy: [{ name: 'asc' }],
-            include: { cropType: { select: { id: true, name: true } } },
-            take: opts.take ?? LIST_TAKE,
-        }),
-    );
+    // Crop varieties are a slow-changing catalog — cache for a day.
+    // Writes (`createCropVariety`) bump the per-tenant version.
+    return cachedListRead({
+        ctx,
+        entity: 'crop-variety',
+        operation: 'list',
+        params: { cropTypeId: filters.cropTypeId ?? null, take: opts.take ?? null },
+        ttlSeconds: 86400,
+        loader: () =>
+            runInTenantContext(ctx, (db) =>
+                db.cropVariety.findMany({
+                    where: {
+                        tenantId: ctx.tenantId,
+                        deletedAt: null,
+                        ...(filters.cropTypeId ? { cropTypeId: filters.cropTypeId } : {}),
+                    },
+                    orderBy: [{ name: 'asc' }],
+                    include: { cropType: { select: { id: true, name: true } } },
+                    take: opts.take ?? LIST_TAKE,
+                }),
+            ),
+    });
 }
 
 export interface CreateCropVarietyInput {
@@ -285,7 +308,7 @@ export async function createCropVariety(ctx: RequestContext, input: CreateCropVa
     const name = sanitizePlainText(input.name);
     if (!name) throw badRequest('Variety name is required');
 
-    return runInTenantContext(ctx, async (db) => {
+    const created = await runInTenantContext(ctx, async (db) => {
         // Tenant-scope the parent crop type via the RLS-bound session.
         const cropType = await db.cropType.findFirst({
             where: { id: input.cropTypeId, tenantId: ctx.tenantId, deletedAt: null },
@@ -328,6 +351,8 @@ export async function createCropVariety(ctx: RequestContext, input: CreateCropVa
         });
         return variety;
     });
+    await bumpEntityCacheVersion(ctx, 'crop-variety');
+    return created;
 }
 
 // ═════════════════════════════════════════════════════════════════════

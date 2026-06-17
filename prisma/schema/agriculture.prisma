@@ -167,6 +167,10 @@ model Parcel {
 
   @@unique([id, tenantId])
   @@index([tenantId, locationId])
+  // perf-scale: the parcel-list read filters tenantId + locationId +
+  // deletedAt IS NULL — folding deletedAt into the index lets a 5k-parcel
+  // field scan only live rows. (The GiST index on `geometry` is separate.)
+  @@index([tenantId, locationId, deletedAt])
 }
 
 /// The per-parcel prescription line — the heart of the feature. The

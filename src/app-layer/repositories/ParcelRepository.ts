@@ -5,6 +5,8 @@ import {
     geometrySql,
     areaHectaresSql,
     asGeoJsonSql,
+    simplifiedGeoJsonSql,
+    mvtTileSql,
     col,
     parseGeometry,
     locationParcelBoundsSql,
@@ -75,8 +77,23 @@ export class ParcelRepository {
         return parcels.length;
     }
 
-    /** List a location's parcels with geometry serialized to GeoJSON. */
-    static async listForLocation(db: PrismaTx, ctx: RequestContext, locationId: string): Promise<ParcelGeo[]> {
+    /**
+     * List a location's parcels with geometry serialized to GeoJSON.
+     *
+     * `simplifyTolerance` (degrees) opts into `ST_Simplify` on the export
+     * read path — a 50-field location ships a fraction of the vertices for
+     * display. Omit it (the default) for the exact geometry the sketch /
+     * edit map and the area computation need.
+     */
+    static async listForLocation(
+        db: PrismaTx,
+        ctx: RequestContext,
+        locationId: string,
+        opts: { simplifyTolerance?: number } = {},
+    ): Promise<ParcelGeo[]> {
+        const geojsonSql = opts.simplifyTolerance != null
+            ? simplifiedGeoJsonSql(col('geometry'), opts.simplifyTolerance)
+            : asGeoJsonSql(col('geometry'));
         const rows = await db.$queryRaw<Array<{
             id: string;
             name: string;
@@ -86,7 +103,7 @@ export class ParcelRepository {
             propertiesJson: unknown;
         }>>(
             Prisma.sql`SELECT "id", "name", "cropType", "areaHa"::text AS "areaHa",
-                    ${asGeoJsonSql(col('geometry'))} AS "geojson", "propertiesJson"
+                    ${geojsonSql} AS "geojson", "propertiesJson"
                 FROM "Parcel"
                 WHERE "locationId" = ${locationId}
                   AND "tenantId" = ${ctx.tenantId}
@@ -102,6 +119,30 @@ export class ParcelRepository {
             geometry: parseGeometry(r.geojson),
             properties: r.propertiesJson ?? null,
         }));
+    }
+
+    /**
+     * Render a location's parcels as a Mapbox Vector Tile (the binary
+     * protobuf the map's vector source consumes) for the z/x/y tile.
+     * Tenant- + location-scoped via the geo fragment; returns an empty
+     * buffer when no parcel touches the tile (the route answers 204).
+     */
+    static async mvtForTile(
+        db: PrismaTx,
+        ctx: RequestContext,
+        locationId: string,
+        z: number,
+        x: number,
+        y: number,
+    ): Promise<Buffer> {
+        const rows = await db.$queryRaw<Array<{ mvt: Uint8Array | null }>>(
+            mvtTileSql(z, x, y, locationId, ctx.tenantId),
+        );
+        const mvt = rows[0]?.mvt;
+        // The pg adapter returns `bytea` as a Uint8Array, not a Node Buffer
+        // — normalise (Buffer.from copies the view) so the return type is
+        // exact and the route streams a real Buffer.
+        return mvt ? Buffer.from(mvt) : Buffer.alloc(0);
     }
 
     /** Count a location's (non-deleted) parcels. */

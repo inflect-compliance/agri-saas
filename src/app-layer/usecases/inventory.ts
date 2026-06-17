@@ -121,6 +121,49 @@ export async function getLot(ctx: RequestContext, id: string) {
     });
 }
 
+interface LedgerRowRaw {
+    id: string;
+    type: string;
+    quantityDelta: unknown;
+    unit: { symbol: string };
+    occurredAt: Date;
+    reason: string | null;
+    actor: { id: string; name: string | null } | null;
+    entryHash: string;
+}
+
+/**
+ * Cursor-paginated ledger for a lot — the deep-history companion to
+ * `getLot` (whose inline `ledger` is the recent first page). Each entry
+ * has the same shape as the getLot ledger rows; `pageInfo` carries the
+ * next cursor. Backed by the `[tenantId, lotId, createdAt]` index.
+ */
+export async function listLotLedger(
+    ctx: RequestContext,
+    lotId: string,
+    params: { limit?: number; cursor?: string } = {},
+) {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const lot = await InventoryRepository.getLot(db, ctx, lotId);
+        if (!lot) throw notFound('Lot not found');
+        const page = await InventoryRepository.lotLedgerPage(db, ctx, lotId, params);
+        return {
+            items: (page.items as LedgerRowRaw[]).map((t) => ({
+                id: t.id,
+                type: t.type,
+                quantityDelta: toNum(t.quantityDelta),
+                unitSymbol: t.unit.symbol,
+                occurredAt: t.occurredAt,
+                reason: t.reason,
+                actor: t.actor ? { id: t.actor.id, name: t.actor.name } : null,
+                entryHash: t.entryHash,
+            })),
+            pageInfo: page.pageInfo,
+        };
+    });
+}
+
 // ─── Writes ────────────────────────────────────────────────────────
 
 export interface CreateLotInput {

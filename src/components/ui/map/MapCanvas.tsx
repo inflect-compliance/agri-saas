@@ -61,6 +61,18 @@ export interface MapCanvasProps {
      */
     showNdvi?: boolean;
     ndviTileUrl?: string;
+    /**
+     * Vector-tile source for read-only display (perf at scale). When set
+     * AND the map is pure read-only (`!interactive` and `mode` is not a
+     * drawing mode), a MapLibre `vector` `<Source>` is drawn from this
+     * `{z}/{x}/{y}.pbf` template at zoom ≥ 6 (the `parcels` source-layer
+     * carries `id` + `name` per feature). In that branch the GeoJSON
+     * parcel layers are capped at `maxzoom={6}` so the two never
+     * double-draw — GeoJSON below 6, vector tiles at/above 6. Ignored
+     * (no-op) when interactive or drawing: selection + sketch stay on the
+     * full GeoJSON source exactly as before.
+     */
+    vectorTileUrl?: string;
     className?: string;
 }
 
@@ -79,6 +91,7 @@ export function MapCanvas({
     onCreateSplitLine,
     showNdvi = false,
     ndviTileUrl,
+    vectorTileUrl,
     className,
 }: MapCanvasProps) {
     const ndviActive = showNdvi && !!ndviTileUrl && ndviTileUrl.length > 0;
@@ -90,6 +103,12 @@ export function MapCanvas({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const drawRef = useRef<any>(null);
     const drawing = mode === 'draw' || mode === 'edit' || mode === 'split';
+    // Vector tiles only serve PURE read-only display: a tile URL is set,
+    // the map is non-interactive, and no sketch mode owns the pointer.
+    // In that case the GeoJSON layers cap at maxzoom 6 and the vector
+    // source takes over at zoom ≥ 6 (no double-draw). When interactive or
+    // drawing this is false → behave exactly as before (GeoJSON only).
+    const vectorActive = !!vectorTileUrl && vectorTileUrl.length > 0 && !interactive && !drawing;
 
     const data = useMemo<FeatureCollection>(() => ({
         type: 'FeatureCollection',
@@ -263,6 +282,10 @@ export function MapCanvas({
                         <Layer
                             id="parcel-fill"
                             type="fill"
+                            // In read-only vector-tile mode, hand off to the
+                            // vector source at zoom ≥ 6 so the two never
+                            // double-draw. Uncapped otherwise (interactive/draw).
+                            {...(vectorActive ? { maxzoom: 6 } : {})}
                             paint={{
                                 'fill-color': [
                                     'case',
@@ -276,12 +299,45 @@ export function MapCanvas({
                         <Layer
                             id="parcel-line"
                             type="line"
+                            {...(vectorActive ? { maxzoom: 6 } : {})}
                             paint={{
                                 'line-color': [
                                     'case',
                                     ['boolean', ['get', 'selected'], false], '#1d4ed8',
                                     '#475569',
                                 ],
+                                'line-width': 1.5,
+                            }}
+                        />
+                    </Source>
+                )}
+
+                {/* Vector-tile source for read-only display at scale. Takes
+                    over from the GeoJSON layers at zoom ≥ 6 (those cap at
+                    maxzoom 6 above). The `parcels` source-layer carries no
+                    selected/done state, so the neutral default fill/line
+                    colors are used — mirroring the un-selected/un-done
+                    GeoJSON paint values exactly. Only rendered for pure
+                    read-only display (see `vectorActive`). */}
+                {vectorActive && (
+                    <Source id="parcels-vector" type="vector" tiles={[vectorTileUrl!]} minzoom={6}>
+                        <Layer
+                            id="parcels-vector-fill"
+                            type="fill"
+                            source-layer="parcels"
+                            minzoom={6}
+                            paint={{
+                                'fill-color': '#94a3b8',
+                                'fill-opacity': 0.4,
+                            }}
+                        />
+                        <Layer
+                            id="parcels-vector-line"
+                            type="line"
+                            source-layer="parcels"
+                            minzoom={6}
+                            paint={{
+                                'line-color': '#475569',
                                 'line-width': 1.5,
                             }}
                         />

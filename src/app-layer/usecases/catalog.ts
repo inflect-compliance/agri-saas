@@ -4,6 +4,7 @@ import { runInTenantContext } from '@/lib/db-context';
 import { logEvent } from '../events/audit';
 import { badRequest } from '@/lib/errors/types';
 import { sanitizePlainText } from '@/lib/security/sanitize';
+import { cachedListRead } from '@/lib/cache/list-cache';
 import { Prisma, ItemCategory, QuantityMeasure } from '@prisma/client';
 
 /**
@@ -86,12 +87,29 @@ export async function createItem(ctx: RequestContext, input: CreateItemInput) {
 
 export async function listUnits(ctx: RequestContext, measure?: string) {
     assertCanRead(ctx);
-    // Unit is a global catalog (no tenantId / no RLS); read inside the
-    // tenant context for a single, consistent connection path.
-    return runInTenantContext(ctx, (db) =>
-        db.unit.findMany({
-            where: measure ? { measure: measure as QuantityMeasure } : {},
-            orderBy: [{ measure: 'asc' }, { name: 'asc' }],
-        }),
-    );
+    // Units are a static, seeded catalog — cache for a day. NOTE: there
+    // is NO Unit write path (the catalog is seeded), so there is nothing
+    // to `bumpEntityCacheVersion` — the entry is TTL-only.
+    //
+    // NOTE: Unit is a GLOBAL catalog (no tenantId / no RLS), but
+    // `cachedListRead` keys by `ctx.tenantId`. That means every tenant
+    // gets its OWN cached copy of the same global list — a harmless
+    // per-tenant duplication (correct, just slightly redundant). We
+    // accept it rather than add a separate global-key cache path.
+    return cachedListRead({
+        ctx,
+        entity: 'unit',
+        operation: 'list',
+        params: { measure: measure ?? null },
+        ttlSeconds: 86400,
+        loader: () =>
+            // Read inside the tenant context for a single, consistent
+            // connection path.
+            runInTenantContext(ctx, (db) =>
+                db.unit.findMany({
+                    where: measure ? { measure: measure as QuantityMeasure } : {},
+                    orderBy: [{ measure: 'asc' }, { name: 'asc' }],
+                }),
+            ),
+    });
 }

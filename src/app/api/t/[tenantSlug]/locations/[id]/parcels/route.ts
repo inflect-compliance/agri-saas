@@ -10,7 +10,15 @@ import { jsonResponse } from '@/lib/api-response';
 export const GET = withApiErrorHandling(async (req: NextRequest, { params: paramsPromise }: { params: Promise<{ tenantSlug: string; id: string }> }) => {
     const params = await paramsPromise;
     const ctx = await getTenantCtx(params, req);
-    const data = await listLocationParcels(ctx, params.id);
+    // `?simplify=<degrees>` opts into ST_Simplify for a lighter display
+    // payload on a many-field location; clamped to a sane range, omitted
+    // (full geometry) otherwise — sketch/edit must keep exact geometry.
+    const rawSimplify = req.nextUrl.searchParams.get('simplify');
+    const simplify = rawSimplify != null ? Number.parseFloat(rawSimplify) : NaN;
+    const opts = Number.isFinite(simplify) && simplify > 0
+        ? { simplifyTolerance: Math.min(simplify, 0.01) }
+        : {};
+    const data = await listLocationParcels(ctx, params.id, opts);
     return jsonResponse(data);
 });
 

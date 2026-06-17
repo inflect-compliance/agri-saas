@@ -92,6 +92,39 @@ export class InventoryRepository {
         });
     }
 
+    /**
+     * Cursor-paginated ledger for a lot — orders by (createdAt, id), the
+     * canonical append / hash-chain order and the stable cursor key. Backs
+     * the `/ledger` endpoint so a high-volume lot's full history pages
+     * instead of being capped at the getLot inline first page. The
+     * `[tenantId, lotId, createdAt]` index (perf-scale migration) serves
+     * exactly this filter+sort.
+     */
+    static async lotLedgerPage(
+        db: PrismaTx,
+        ctx: RequestContext,
+        lotId: string,
+        params: { limit?: number; cursor?: string },
+    ): Promise<PaginatedResponse<unknown>> {
+        const limit = clampLimit(params.limit);
+        const where: Prisma.StockTransactionWhereInput = { tenantId: ctx.tenantId, lotId };
+        const cursorWhere = buildCursorWhere(params.cursor);
+        if (cursorWhere) {
+            where.AND = [cursorWhere as Prisma.StockTransactionWhereInput];
+        }
+        const items = await db.stockTransaction.findMany({
+            where,
+            orderBy: CURSOR_ORDER_BY,
+            take: limit + 1,
+            include: {
+                unit: { select: { symbol: true } },
+                actor: { select: { id: true, name: true } },
+            },
+        });
+        const { trimmedItems, nextCursor, hasNextPage } = computePageInfo(items, limit);
+        return { items: trimmedItems, pageInfo: { nextCursor, hasNextPage } };
+    }
+
     /** Validate + fetch an item the lot/consumption will reference. */
     static async getItem(db: PrismaTx, ctx: RequestContext, itemId: string) {
         return db.item.findFirst({

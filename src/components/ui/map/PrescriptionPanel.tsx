@@ -41,7 +41,11 @@ const SELECT_CLASS = 'block w-full rounded-md border border-border-subtle bg-bg-
 export function PrescriptionPanel({ locationId, tenantSlug, selectedParcelIds, onCreated }: PrescriptionPanelProps) {
     const buildUrl = useTenantApiUrl();
     const { data: items } = useTenantSWR<ItemDTO[]>('/items');
-    const { data: units } = useTenantSWR<UnitDTO[]>('/units?measure=RATE');
+    // Units are a slow-changing catalog — relax SWR revalidation.
+    const { data: units } = useTenantSWR<UnitDTO[]>('/units?measure=RATE', {
+        revalidateOnFocus: false,
+        dedupingInterval: 60_000,
+    });
 
     const [productItemId, setProductItemId] = useState('');
     const [doseValue, setDoseValue] = useState('');

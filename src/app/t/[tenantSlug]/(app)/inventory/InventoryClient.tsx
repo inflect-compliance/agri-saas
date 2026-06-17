@@ -79,7 +79,11 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
     const buildUrl = useTenantApiUrl();
     const { data: lots, mutate, isLoading } = useTenantSWR<Lot[]>('/inventory/lots');
     const { data: items, mutate: mutateItems } = useTenantSWR<ItemRow[]>('/items');
-    const { data: units } = useTenantSWR<UnitRow[]>('/units');
+    // Units are a slow-changing catalog — relax SWR revalidation.
+    const { data: units } = useTenantSWR<UnitRow[]>('/units', {
+        revalidateOnFocus: false,
+        dedupingInterval: 60_000,
+    });
 
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);

@@ -31,6 +31,7 @@ import { runInTenantContext } from '@/lib/db-context';
 import { ParcelRepository } from '@/app-layer/repositories/ParcelRepository';
 import { fetchDailyWeather, type DailyWeather } from '@/lib/weather/open-meteo-client';
 import { evaluateLocationSignals } from '@/app-layer/usecases/agro-signals';
+import { bumpEntityCacheVersion } from '@/lib/cache/list-cache';
 import { logger } from '@/lib/observability/logger';
 import type { WeatherPullPayload } from './types';
 
@@ -196,6 +197,14 @@ export async function runWeatherPull(
                 }
                 return processed;
             });
+
+            // Invalidate this tenant's weather-derived read cache (e.g.
+            // per-planting GDD) now that its WeatherObservation rows have
+            // been upserted. The job runs per-tenant, so bump once per
+            // tenant with the per-tenant ctx — `bumpEntityCacheVersion`
+            // only reads `ctx.tenantId`. Fires AFTER the upsert tx commits
+            // and NEVER throws.
+            await bumpEntityCacheVersion(ctx, 'weather-observation');
 
             // Per-location signal evaluation — AFTER weather is persisted.
             // `evaluateLocationSignals` manages its own tx(s); calling it
