@@ -154,7 +154,7 @@ describe('POST /api/t/:tenantSlug/admin/key-rotation', () => {
     test('non-admin is rejected with 403 before any queue interaction', async () => {
         getTenantCtxMock.mockResolvedValueOnce(readerCtx());
 
-        const res = await POST(req('POST'), { params: { tenantSlug: 'acme' } });
+        const res = await POST(req('POST'), { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(403);
         expect(enqueueMock).not.toHaveBeenCalled();
         expect(logEventMock).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('POST /api/t/:tenantSlug/admin/key-rotation', () => {
         getTenantCtxMock.mockResolvedValueOnce(adminCtx());
         enqueueMock.mockResolvedValueOnce({ id: 'bullmq-job-42' });
 
-        const res = await POST(req('POST'), { params: { tenantSlug: 'acme' } });
+        const res = await POST(req('POST'), { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(202);
 
         // Job enqueued with the right payload shape.
@@ -203,11 +203,11 @@ describe('POST /api/t/:tenantSlug/admin/key-rotation', () => {
 
         const maxAttempts = API_KEY_CREATE_LIMIT.maxAttempts; // 5
         for (let i = 0; i < maxAttempts; i++) {
-            const res = await POST(req('POST'), { params: { tenantSlug: 'acme' } });
+            const res = await POST(req('POST'), { params: Promise.resolve({ tenantSlug: 'acme' }) });
             expect(res.status).toBe(202);
         }
         // (max+1)-th request blocked by rate-limit wrapper.
-        const blocked = await POST(req('POST'), { params: { tenantSlug: 'acme' } });
+        const blocked = await POST(req('POST'), { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(blocked.status).toBe(429);
         expect(blocked.headers.get('Retry-After')).toMatch(/^\d+$/);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -242,7 +242,7 @@ describe('GET /api/t/:tenantSlug/admin/key-rotation', () => {
         const r = req('GET', {
             url: 'http://localhost/api/t/acme/admin/key-rotation?jobId=job-7',
         });
-        const res = await GET(r, { params: { tenantSlug: 'acme' } });
+        const res = await GET(r, { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(200);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const body: any = await res.json();
@@ -258,7 +258,7 @@ describe('GET /api/t/:tenantSlug/admin/key-rotation', () => {
 
     test('missing jobId parameter → 400', async () => {
         getTenantCtxMock.mockResolvedValueOnce(adminCtx());
-        const res = await GET(req('GET'), { params: { tenantSlug: 'acme' } });
+        const res = await GET(req('GET'), { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(400);
     });
 
@@ -273,7 +273,7 @@ describe('GET /api/t/:tenantSlug/admin/key-rotation', () => {
         const r = req('GET', {
             url: 'http://localhost/api/t/acme/admin/key-rotation?jobId=foreign',
         });
-        const res = await GET(r, { params: { tenantSlug: 'acme' } });
+        const res = await GET(r, { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(404);
     });
 
@@ -285,7 +285,7 @@ describe('GET /api/t/:tenantSlug/admin/key-rotation', () => {
         const r = req('GET', {
             url: 'http://localhost/api/t/acme/admin/key-rotation?jobId=missing',
         });
-        const res = await GET(r, { params: { tenantSlug: 'acme' } });
+        const res = await GET(r, { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(404);
     });
 
@@ -294,7 +294,7 @@ describe('GET /api/t/:tenantSlug/admin/key-rotation', () => {
         const r = req('GET', {
             url: 'http://localhost/api/t/acme/admin/key-rotation?jobId=x',
         });
-        const res = await GET(r, { params: { tenantSlug: 'acme' } });
+        const res = await GET(r, { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(403);
         expect(getQueueMock).not.toHaveBeenCalled();
     });

@@ -116,7 +116,7 @@ describe('GET /api/t/:slug/admin/scim — admin.scim', () => {
 
         const res = await scimGET(
             makeReq('GET', '/api/t/acme/admin/scim'),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
 
         expect(res.status).toBe(200);
@@ -134,7 +134,7 @@ describe('GET /api/t/:slug/admin/scim — admin.scim', () => {
 
         const res = await scimGET(
             makeReq('GET', '/api/t/acme/admin/scim'),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
 
         expect(res.status).toBe(403);
@@ -168,7 +168,7 @@ describe('GET /api/t/:slug/admin/scim — admin.scim', () => {
 
         const res = await scimGET(
             makeReq('GET', '/api/t/acme/admin/scim'),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
 
         expect(res.status).toBe(403);
@@ -185,7 +185,7 @@ describe('GET /api/t/:slug/admin/members — admin.members', () => {
 
         const res = await membersGET(
             makeReq('GET', '/api/t/acme/admin/members'),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
 
         expect(res.status).toBe(200);
@@ -204,7 +204,7 @@ describe('GET /api/t/:slug/admin/members — admin.members', () => {
 
         const res = await membersGET(
             makeReq('GET', '/api/t/acme/admin/members'),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
 
         expect(res.status).toBe(403);
