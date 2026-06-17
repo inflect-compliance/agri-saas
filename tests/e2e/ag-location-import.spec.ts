@@ -27,8 +27,9 @@ test('field setup: author parcels + accept a spatial import upload', async ({ au
     // Parcels persisted; areaHa derived server-side via ST_Area (never the client).
     const listRes = await api.get(`/api/t/${slug}/locations/${locationId}/parcels`);
     expect(listRes.ok(), `list parcels: ${listRes.status()}`).toBeTruthy();
-    const parcels = await listRes.json();
-    const arr = Array.isArray(parcels) ? parcels : parcels.items;
+    // GET /locations/{id}/parcels → { locationId, bounds, parcels: [...] }.
+    const body = await listRes.json();
+    const arr = Array.isArray(body) ? body : body.parcels;
     expect(arr.length).toBeGreaterThanOrEqual(2);
     expect(Number(arr[0].areaHa)).toBeGreaterThan(0);
 

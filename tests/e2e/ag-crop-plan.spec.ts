@@ -20,11 +20,17 @@ test('crop plan: a 3-succession plan generates three planting waves', async ({ a
     const cropType = await (await api.post(`/api/t/${slug}/planning/crop-types`, {
         data: { name: 'Wheat' },
     })).json();
+    // The succession engine needs a variety with daysToMaturity to place
+    // the harvest windows — without it, generate returns CROP_PLAN_NOT_READY.
+    const variety = await (await api.post(`/api/t/${slug}/planning/crop-varieties`, {
+        data: { cropTypeId: cropType.id, name: 'Maris Widgeon', daysToGermination: 10, daysToMaturity: 90 },
+    })).json();
 
     const planRes = await api.post(`/api/t/${slug}/planning/crop-plans`, {
         data: {
             seasonId: season.id,
             cropTypeId: cropType.id,
+            cropVarietyId: variety.id,
             name: 'North Wheat Plan',
             firstSowDate: '2026-03-01',
             successions: 3,
