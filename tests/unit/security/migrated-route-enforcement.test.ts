@@ -131,7 +131,7 @@ beforeEach(() => {
 // ─── Billing — admin.manage ────────────────────────────────────────
 
 describe('GET /api/t/:slug/billing/events — admin.manage', () => {
-    const params = { params: { tenantSlug: 'acme' } };
+    const params = { params: Promise.resolve({ tenantSlug: 'acme' }) };
     const path = '/api/t/acme/billing/events';
 
     it('returns events for an ADMIN', async () => {
@@ -157,7 +157,7 @@ describe('GET /api/t/:slug/billing/events — admin.manage', () => {
 // ─── security/sessions/revoke-all — admin.members ──────────────────
 
 describe('POST /api/t/:slug/security/sessions/revoke-all — admin.members', () => {
-    const params = { params: { tenantSlug: 'acme' } };
+    const params = { params: Promise.resolve({ tenantSlug: 'acme' }) };
     const path = '/api/t/acme/security/sessions/revoke-all';
 
     it('revokes for an ADMIN', async () => {
@@ -183,7 +183,7 @@ describe('POST /api/t/:slug/security/sessions/revoke-all — admin.members', () 
 // ─── security/sessions/revoke-user — admin.members ─────────────────
 
 describe('POST /api/t/:slug/security/sessions/revoke-user — admin.members', () => {
-    const params = { params: { tenantSlug: 'acme' } };
+    const params = { params: Promise.resolve({ tenantSlug: 'acme' }) };
     const path = '/api/t/acme/security/sessions/revoke-user';
 
     // The schema requires `targetUserId` to be a cuid.
@@ -215,7 +215,7 @@ describe('POST /api/t/:slug/security/sessions/revoke-user — admin.members', ()
 // ─── security/mfa/policy PUT — admin.manage ────────────────────────
 
 describe('PUT /api/t/:slug/security/mfa/policy — admin.manage', () => {
-    const params = { params: { tenantSlug: 'acme' } };
+    const params = { params: Promise.resolve({ tenantSlug: 'acme' }) };
     const path = '/api/t/acme/security/mfa/policy';
 
     it('updates policy for an ADMIN', async () => {
@@ -244,7 +244,7 @@ describe('PUT /api/t/:slug/security/mfa/policy — admin.manage', () => {
 // ─── sso GET — admin.manage ────────────────────────────────────────
 
 describe('GET /api/t/:slug/sso — admin.manage', () => {
-    const params = { params: { tenantSlug: 'acme' } };
+    const params = { params: Promise.resolve({ tenantSlug: 'acme' }) };
     const path = '/api/t/acme/sso';
 
     it('lists providers for an ADMIN', async () => {

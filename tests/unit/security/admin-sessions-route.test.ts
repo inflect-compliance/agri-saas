@@ -108,7 +108,7 @@ describe('GET /api/t/:slug/admin/sessions', () => {
             { sessionId: 's2', userId: 'u2', tenantId: 'tenant-1' },
         ]);
 
-        const res = await GET(makeReq('GET'), { params: { tenantSlug: 'acme' } });
+        const res = await GET(makeReq('GET'), { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(200);
         const body = await res.json() as { sessions: unknown[]; count: number };
         expect(body.count).toBe(2);
@@ -119,7 +119,7 @@ describe('GET /api/t/:slug/admin/sessions', () => {
         mockGetTenantCtx.mockResolvedValue(makeCtx('READER'));
         mockAppendAuditEntry.mockResolvedValue({ id: 'a', entryHash: 'h', previousHash: null });
 
-        const res = await GET(makeReq('GET'), { params: { tenantSlug: 'acme' } });
+        const res = await GET(makeReq('GET'), { params: Promise.resolve({ tenantSlug: 'acme' }) });
         expect(res.status).toBe(403);
         expect(mockListActiveSessionsForTenant).not.toHaveBeenCalled();
         const audit = mockAppendAuditEntry.mock.calls[0][0];
@@ -135,7 +135,7 @@ describe('GET /api/t/:slug/admin/sessions', () => {
 
         const res = await GET(
             makeReq('GET', { userId: 'target-user' }),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
         expect(res.status).toBe(200);
         // The per-user lookup must be tenant-scoped — never a bare
@@ -170,7 +170,7 @@ describe('DELETE /api/t/:slug/admin/sessions', () => {
 
         const res = await DELETE(
             makeReq('DELETE', { body: { sessionId: 'sid-1', reason: 'stolen device' } }),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
 
         expect(res.status).toBe(200);
@@ -203,7 +203,7 @@ describe('DELETE /api/t/:slug/admin/sessions', () => {
 
         const res = await DELETE(
             makeReq('DELETE', { body: { sessionId: 'sid-foreign' } }),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
         expect(res.status).toBe(404);
         expect(mockRevokeSessionById).not.toHaveBeenCalled();
@@ -219,7 +219,7 @@ describe('DELETE /api/t/:slug/admin/sessions', () => {
 
         const res = await DELETE(
             makeReq('DELETE', { body: { sessionId: 'sid-1' } }),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
         expect(res.status).toBe(404);
         expect(mockRevokeSessionById).not.toHaveBeenCalled();
@@ -230,7 +230,7 @@ describe('DELETE /api/t/:slug/admin/sessions', () => {
 
         const res = await DELETE(
             makeReq('DELETE', { body: {} }),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
         expect(res.status).toBe(400);
         expect(mockFindOwnTenantSession).not.toHaveBeenCalled();
@@ -242,7 +242,7 @@ describe('DELETE /api/t/:slug/admin/sessions', () => {
 
         const res = await DELETE(
             makeReq('DELETE', { body: { sessionId: 'sid-1' } }),
-            { params: { tenantSlug: 'acme' } },
+            { params: Promise.resolve({ tenantSlug: 'acme' }) },
         );
         expect(res.status).toBe(403);
         expect(mockFindOwnTenantSession).not.toHaveBeenCalled();

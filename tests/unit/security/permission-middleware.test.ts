@@ -77,7 +77,7 @@ function makeReq(method = 'POST', path = '/api/t/acme/risks') {
     } as unknown as import('next/server').NextRequest;
 }
 
-const routeArgs = { params: { tenantSlug: 'acme' } };
+const routeArgs = { params: Promise.resolve({ tenantSlug: 'acme' }) };
 
 // ─── hasPermission ───
 
@@ -121,7 +121,10 @@ describe('requirePermission — allowed', () => {
         const res = await wrapped(req, routeArgs);
 
         expect(handler).toHaveBeenCalledTimes(1);
-        expect(handler).toHaveBeenCalledWith(req, routeArgs, ctx);
+        // GAP-05: the wrapper now resolves the params Promise once and
+        // forwards them RESOLVED, so the inner handler reads params.foo
+        // synchronously (not the original Promise-bearing routeArgs).
+        expect(handler).toHaveBeenCalledWith(req, { params: { tenantSlug: 'acme' } }, ctx);
         expect(mockAppendAuditEntry).not.toHaveBeenCalled();
         expect(res).toBeInstanceOf(Response);
     });

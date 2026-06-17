@@ -74,10 +74,11 @@ export function hasPermission(
 // ─── Handler signature plumbing ─────────────────────────────────────
 
 /**
- * Route handler signature consumed by `requirePermission`. Mirrors the
- * App Router `(req, { params })` shape and adds the resolved
- * `RequestContext` as a third argument so the handler doesn't need to
- * re-resolve it (saves a round-trip through `getTenantCtx`).
+ * Inner handler signature the caller writes. `requirePermission`
+ * resolves the route params ONCE (awaiting the Next 16 Promise) and
+ * forwards them RESOLVED, so the handler reads `params.foo` directly —
+ * no `await` — and gets the already-hydrated `RequestContext` as a
+ * third argument (saving a round-trip through `getTenantCtx`).
  */
 export type PermissionedHandler<
     TParams extends { tenantSlug: string } = { tenantSlug: string },
@@ -89,16 +90,21 @@ export type PermissionedHandler<
 ) => Promise<TResponse> | TResponse;
 
 /**
- * Plain App Router handler signature returned by the wrapper so the
- * outer `withApiErrorHandling` (which doesn't know about ctx) keeps
- * type-checking cleanly.
+ * The App Router handler signature `requirePermission` RETURNS — the
+ * thing `withApiErrorHandling` wraps and the route exports. Next 16
+ * delivers a dynamic route's `params` as a Promise, so the outer
+ * signature types it `Promise<TParams>`; the wrapper awaits it once
+ * before handing the resolved params to the inner `PermissionedHandler`.
+ * (GAP-05: this Promise typing is what retired the `AsyncifyParams`
+ * transform in `withApiErrorHandling` — the export is now Next-shaped
+ * without a type bridge.)
  */
 export type RouteHandler<
     TParams extends { tenantSlug: string } = { tenantSlug: string },
     TResponse = Response | NextResponse,
 > = (
     req: NextRequest,
-    routeArgs: { params: TParams },
+    routeArgs: { params: Promise<TParams> },
 ) => Promise<TResponse>;
 
 // ─── Audit + logging ────────────────────────────────────────────────
@@ -193,21 +199,20 @@ export function requirePermission<
     const { keys, mode } = normaliseRequirement(required);
 
     return async function permissionedRoute(req, routeArgs) {
+        // GAP-05: Next 16 delivers `routeArgs.params` as a Promise.
+        // Resolve it ONCE here, then (a) feed the resolved params to
+        // `getTenantCtx`, and (b) forward the SAME resolved params to
+        // the inner handler — so handlers read `params.keyId` directly
+        // without each awaiting (and without the per-route latent bug of
+        // a sync read against an unresolved Promise). `await` on a plain
+        // sync object (the unit-test call shape, `Promise.resolve(...)`)
+        // resolves to itself, so both call shapes stay correct.
+        const params = await routeArgs.params;
+
         // `getTenantCtx` handles auth (session or API key), tenant
         // resolution, membership check, and custom-role-aware
         // appPermissions hydration. Throws AppError on auth failure.
-        //
-        // `routeArgs.params` must be awaited: under the Next 15+ runtime
-        // the route export receives `params` as a Promise, and the
-        // transparent-await shim in `withApiErrorHandling` was retired
-        // by the async-params migration (#636) — the wrapper now
-        // forwards `ctx` untouched. Without the await, `getTenantCtx`
-        // (and `resolveTenantContext` under it) sees `params.tenantSlug`
-        // as `undefined` on a Promise and throws "Tenant identifier
-        // required", 404-ing every privileged route. `await` on a plain
-        // sync object (the unit-test call shape) resolves to itself, so
-        // both call shapes stay correct.
-        const ctx = await getTenantCtx(await routeArgs.params, req);
+        const ctx = await getTenantCtx(params, req);
 
         const granted = checkPermissions(ctx.appPermissions, keys, mode);
         if (!granted) {
@@ -218,7 +223,7 @@ export function requirePermission<
             throw forbidden('Permission denied');
         }
 
-        return handler(req, routeArgs, ctx) as Promise<TResponse>;
+        return handler(req, { params }, ctx) as Promise<TResponse>;
     };
 }
 

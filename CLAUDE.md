@@ -85,14 +85,20 @@ CI if either gate is silently re-lowered (`moderate` → `high` /
 `critical`, or `CRITICAL,HIGH` → `CRITICAL`) or `next` is downgraded
 back to 14.x.
 
-Async-request-API caveat: wrapped route handlers still type
-`params` synchronously; the transparent-await shim in
-`src/lib/errors/api.ts::withApiErrorHandling` resolves the Promise
-before forwarding ctx to the inner handler so existing call sites stay
-correct. The codebase now runs on Next 16 — migrating every site to
-explicit `await params` (retiring the shim) is the remaining
-outstanding follow-up. See
-`docs/implementation-notes/2026-04-25-gap-05-next15-migration.md`.
+Async-request-API: GAP-05 is **complete**. Every dynamic route
+handler under `src/app/api` types `params` as `Promise<…>` and
+`await`s it (the Next 16 contract, enforced by
+`tests/guards/async-params-route-typing.test.ts`), the runtime
+transparent-await shim was removed from `withApiErrorHandling`, and the
+last vestige — the `AsyncifyParams` type transform that bridged the
+sync-params middleware to the Promise-shaped export — is also gone.
+`requirePermission` now resolves the params Promise once and forwards
+the RESOLVED params to its inner handler (so handlers read `params.foo`
+directly), and its returned `RouteHandler` types `params` as a Promise,
+so `withApiErrorHandling` exports the Next-shaped signature with no type
+bridge. Tests invoke wrapped routes with `{ params: Promise.resolve(...) }`.
+See `docs/implementation-notes/2026-04-25-gap-05-next15-migration.md`
+and `docs/implementation-notes/2026-06-17-gap-05-asyncify-removal.md`.
 
 ### Layer Structure
 
