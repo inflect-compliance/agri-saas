@@ -42,6 +42,8 @@ const ENTITIES = [
         slug: "tasks",
         modal: "NewTaskModal",
         formHook: "useNewTaskForm",
+        // mobile-forms PR-3 — migrated to the <Modal isDirty> native guard.
+        guard: "native",
     },
     {
         slug: "policies",
@@ -105,6 +107,17 @@ describe("R32-task-63 — modal-form completeness", () => {
 
             it("modal close is dirty-state guarded (P3 contract)", () => {
                 const src = read(modalPath);
+                // mobile-forms PR-3 — `tasks` migrated to the Modal
+                // primitive's NATIVE `isDirty` guard: a styled "Discard
+                // changes?" on every dismiss (X / Escape / outside-click /
+                // mobile drag), replacing the hand-rolled
+                // `guardedSetOpen` + `window.confirm`. Same intent (no
+                // unsaved loss); other entities migrate over time.
+                if ("guard" in entity && entity.guard === "native") {
+                    expect(src).toMatch(/isDirty=\{[^}]*isDirty[^}]*\}/);
+                    expect(src).not.toMatch(/window\.confirm\(/);
+                    return;
+                }
                 // The canonical `guardedSetOpen` shape: a wrapper
                 // around `setOpen` that refuses to close on a
                 // dirty form unless the user confirms via the

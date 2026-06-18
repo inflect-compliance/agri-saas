@@ -325,7 +325,19 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
             </Modal>
 
             {/* New lot */}
-            <Modal showModal={showLot} setShowModal={setShowLot} size="md" title="New lot" description="Add a stock batch.">
+            <Modal
+                showModal={showLot}
+                setShowModal={setShowLot}
+                size="md"
+                title="New lot"
+                description="Add a stock batch."
+                isDirty={
+                    lItemId.length > 0 ||
+                    lCode.trim().length > 0 ||
+                    lQty.trim().length > 0 ||
+                    lExpires !== null
+                }
+            >
                 <Modal.Header title="New lot" description="A lot is a physical batch of a product." />
                 <Modal.Form id="new-lot-form" onSubmit={createLot}>
                     <Modal.Body>

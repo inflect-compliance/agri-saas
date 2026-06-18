@@ -58,6 +58,10 @@ const ALLOWLIST: AllowlistEntry[] = [
         reason: 'Sheet floats above the page; shadow communicates lift.',
     },
     {
+        file: 'src/components/ui/fab.tsx',
+        reason: 'mobile-forms PR-3 — the FAB is a floating action button (Material elevation); shadow-lg communicates its lift above the page + bottom-tab bar.',
+    },
+    {
         file: 'src/components/ui/popover.tsx',
         reason: 'Popover is a floating overlay — drop-shadow + shadow paint the lift.',
     },

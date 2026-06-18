@@ -26,6 +26,7 @@ import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
+import { Fab } from '@/components/ui/fab';
 import { createColumns } from '@/components/ui/table';
 import { EntityListPage } from '@/components/layout/EntityListPage';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -325,6 +326,11 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 className: 'hover:bg-bg-muted',
             }}
         >
+            <Fab
+                onClick={openCreate}
+                label="Start Field Operation"
+                icon={<Plus aria-hidden className="h-6 w-6" />}
+            />
             <Modal
                 showModal={isCreateOpen}
                 setShowModal={setIsCreateOpen}
@@ -332,6 +338,14 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 title="New farm task"
                 description="Plan field work and assign it to an operator."
                 preventDefaultClose={submitting}
+                isDirty={
+                    title.trim().length > 0 ||
+                    farmTaskType.length > 0 ||
+                    dueAt !== null ||
+                    assigneeUserId !== null ||
+                    locationIds.length > 0 ||
+                    equipmentIds.length > 0
+                }
             >
                 <Modal.Header
                     title="New farm task"

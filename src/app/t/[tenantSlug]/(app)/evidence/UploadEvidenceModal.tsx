@@ -457,6 +457,13 @@ export function UploadEvidenceModal({
             title="Upload evidence"
             description="Drag and drop one or more files — PDF, Office, CSV, image, JSON, or ZIP. Each file becomes its own evidence record."
             preventDefaultClose={uploadingAll}
+            isDirty={
+                queuedCount > 0 ||
+                title.trim().length > 0 ||
+                controlId.length > 0 ||
+                folder.trim().length > 0 ||
+                retentionUntil.length > 0
+            }
         >
             <Modal.Header
                 title="Upload evidence"

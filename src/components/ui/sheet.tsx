@@ -27,7 +27,7 @@ import { X } from "lucide-react";
 import { ComponentProps, type HTMLAttributes, type ReactNode } from "react";
 import { ContentProps, type DialogProps, Drawer } from "vaul";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
-import { useMediaQuery } from "./hooks";
+import { useKeyboardInset, useMediaQuery } from "./hooks";
 import { ProgressiveBlur } from "./progressive-blur";
 import { Tooltip } from "./tooltip";
 
@@ -80,6 +80,7 @@ function SheetRoot({
     ...rest
 }: SheetRootProps) {
     const { isMobile } = useMediaQuery();
+    const { inset: keyboardInset, height: viewportHeight } = useKeyboardInset();
     const RootComponent = nested ? Drawer.NestedRoot : Drawer.Root;
 
     const effectiveDirection: "right" | "bottom" =
@@ -141,10 +142,18 @@ function SheetRoot({
                     )}
                     style={
                         {
-                            "--initial-transform": isSide
-                                ? "calc(100% + 8px)"
-                                : "calc(100% + 8px)",
+                            "--initial-transform": "calc(100% + 8px)",
                             userSelect: "auto",
+                            // Keyboard-aware (bottom drawer only): lift onto
+                            // the keyboard's top edge + cap height to the
+                            // visible viewport so a pinned footer stays
+                            // reachable. The side panel is unaffected.
+                            ...(!isSide && keyboardInset
+                                ? {
+                                      bottom: keyboardInset + 8,
+                                      height: Math.max(0, viewportHeight - 16),
+                                  }
+                                : {}),
                             ...contentProps?.style,
                         } as React.CSSProperties
                     }
