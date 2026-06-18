@@ -18,8 +18,11 @@ import { apiPost, apiPatch, ApiClientError } from '@/lib/api-client';
 import { SpatialImportModal } from '@/components/ui/map/SpatialImportModal';
 import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
+import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
 import { SprayJobWizard } from './SprayJobWizard';
 import { Plus } from '@/components/ui/icons/nucleo';
+import { useMediaQuery } from '@/components/ui/hooks';
+import { cn } from '@/lib/cn';
 import type { MapParcel, MapMode } from '@/components/ui/map/MapCanvas';
 
 const MapCanvas = dynamic(() => import('@/components/ui/map/MapCanvas').then((m) => m.MapCanvas), { ssr: false });
@@ -51,8 +54,14 @@ interface OperationItem {
 export default function LocationDetailPage() {
     const { tenantSlug, locationId } = useParams<{ tenantSlug: string; locationId: string }>();
     const buildUrl = useTenantApiUrl();
+    const { isMobile } = useMediaQuery();
     const [tab, setTab] = useState<Tab>('overview');
     const [selected, setSelected] = useState<string[]>([]);
+    // Mobile: the tapped parcel surfaced in the bottom-sheet (vaul). The
+    // sheet replaces the inline side panel below the map on phones; desktop
+    // keeps the side panel.
+    const [sheetParcelId, setSheetParcelId] = useState<string | null>(null);
+    const [wizardParcelIds, setWizardParcelIds] = useState<string[]>([]);
     const [showImport, setShowImport] = useState(false);
     const [showSprayWizard, setShowSprayWizard] = useState(false);
     const [activeJob, setActiveJob] = useState<string | null>(null);
@@ -87,6 +96,31 @@ export default function LocationDetailPage() {
         () => parcels.map((p) => ({ id: p.id, name: p.name, areaHa: p.areaHa ?? null, geometry: (p.geometry ?? null) as Geometry | null })),
         [parcels],
     );
+
+    const sheetParcel = useMemo<ParcelSheetData | null>(() => {
+        const p = parcels.find((x) => x.id === sheetParcelId);
+        return p ? { id: p.id, name: p.name, areaHa: p.areaHa ?? null, cropType: p.cropType ?? null } : null;
+    }, [parcels, sheetParcelId]);
+
+    // On phones, tapping a parcel both selects it and opens the bottom-sheet
+    // for the freshly-tapped parcel; on desktop selection just feeds the
+    // inline side panel (no sheet).
+    const handleMapSelection = (ids: string[]) => {
+        if (isMobile) {
+            const added = ids.find((id) => !selected.includes(id));
+            if (added) setSheetParcelId(added);
+        }
+        setSelected(ids);
+    };
+
+    // "Start operation here" — seed a single-parcel spray job and open the
+    // wizard at the product step.
+    const startOperationHere = (parcelId: string) => {
+        setSheetParcelId(null);
+        setSelected([parcelId]);
+        setWizardParcelIds([parcelId]);
+        setShowSprayWizard(true);
+    };
 
     type ParcelRow = ParcelsResp['parcels'][number];
     const parcelColumns = useMemo(
@@ -207,7 +241,7 @@ export default function LocationDetailPage() {
                         variant="primary"
                         size="sm"
                         icon={<Plus className="size-4" />}
-                        onClick={() => setShowSprayWizard(true)}
+                        onClick={() => { setWizardParcelIds([]); setShowSprayWizard(true); }}
                         disabled={parcels.length === 0}
                         data-testid="new-spray-job"
                     >
@@ -282,6 +316,8 @@ export default function LocationDetailPage() {
                             <Button
                                 variant={showNdvi && ndviConfigured ? 'primary' : 'secondary'}
                                 size="sm"
+                                // Layer toggle is a field thumb target → ≥44px.
+                                className="min-h-[44px] min-w-[44px]"
                                 onClick={() => setShowNdvi((v) => !v)}
                                 disabled={!ndviConfigured}
                                 aria-pressed={showNdvi && ndviConfigured}
@@ -295,13 +331,25 @@ export default function LocationDetailPage() {
                             )}
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-section md:grid-cols-[1fr_320px]">
+                    <div className={cn('gap-section', !isMobile && 'grid grid-cols-1 md:grid-cols-[1fr_320px]')}>
                         <MapCanvas
                             parcels={mapParcels}
                             bounds={bounds}
                             selectedIds={selected}
-                            onSelectionChange={setSelected}
+                            onSelectionChange={handleMapSelection}
                             mode={mapMode}
+                            // Phone-native: thumb-reachable zoom + locate-me
+                            // (with live-tracking), lifted clear of the fixed
+                            // bottom-tab bar.
+                            showControls
+                            controlsBottomInset={isMobile ? 76 : 12}
+                            liveTracking
+                            // Full-bleed on phones — edge-to-edge (cancel the
+                            // page's px-4) and near-viewport-tall so the map is
+                            // the operator's primary screen.
+                            className={isMobile
+                                ? '-mx-4 h-[calc(100dvh-15rem)] min-h-[22rem] overflow-hidden border-y border-border-subtle'
+                                : undefined}
                             onCreateGeometry={(g) => setPendingGeometry(g)}
                             onUpdateGeometry={reshapeParcel}
                             onCreateSplitLine={(line) => { void splitParcel(line); }}
@@ -317,7 +365,9 @@ export default function LocationDetailPage() {
                             // for a future read-only farm view.
                             vectorTileUrl={buildUrl(`/locations/${locationId}/tiles/{z}/{x}/{y}.pbf`)}
                         />
-                        {mapMode === 'select' ? (
+                        {/* Desktop keeps the inline side panel; on phones the
+                            parcel bottom-sheet (below) replaces it. */}
+                        {!isMobile && (mapMode === 'select' ? (
                             <div className="rounded-lg border border-border-subtle p-4">
                                 <Heading level={3} className="mb-3">New spray job</Heading>
                                 <PrescriptionPanel
@@ -355,7 +405,7 @@ export default function LocationDetailPage() {
                                     ? 'Draw a polygon on the map. You’ll name it before it’s saved.'
                                     : 'Reshape parcels by dragging their vertices. Switch to Select to plan a spray job.'}
                             </div>
-                        )}
+                        ))}
                     </div>
                 </div>
             )}
@@ -365,11 +415,11 @@ export default function LocationDetailPage() {
                     data={parcels}
                     columns={parcelColumns}
                     getRowId={(p) => p.id}
-                    // <sm: render each parcel as a card. Parcels have no
-                    // detail route (interaction is on the Map tab), so the
-                    // card is non-clickable — it surfaces name / crop / area
-                    // at a glance.
+                    // <sm: render each parcel as a card. Tapping a card opens
+                    // the parcel bottom-sheet (area / crop / apply-rate calc /
+                    // "Start operation here") — the same sheet a map tap opens.
                     mobileFallback="card"
+                    onRowClick={(row) => setSheetParcelId(row.original.id)}
                     loading={parcelsQ.isLoading && parcels.length === 0}
                     emptyState={(
                         <div className="p-6 text-sm text-content-secondary">
@@ -421,7 +471,17 @@ export default function LocationDetailPage() {
                 onOpenChange={setShowSprayWizard}
                 locationId={locationId}
                 parcels={parcels.map((p) => ({ id: p.id, name: p.name, areaHa: p.areaHa ?? null }))}
+                initialParcelIds={wizardParcelIds}
                 onCreated={() => { setTab('operations'); void opsQ.mutate(); }}
+            />
+
+            {/* Phone parcel bottom-sheet — opened by a map tap or a parcel
+                card tap. Desktop uses the inline side panel instead. */}
+            <ParcelDetailSheet
+                open={sheetParcelId !== null}
+                onOpenChange={(o) => { if (!o) setSheetParcelId(null); }}
+                parcel={sheetParcel}
+                onStartOperation={startOperationHere}
             />
 
             <Modal

@@ -42,7 +42,12 @@ export function getSecurityHeaders(isProduction: boolean): Record<string, string
         'Referrer-Policy': 'strict-origin-when-cross-origin',
 
         // ── Feature Policy ──
-        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
+        // geolocation=(self): the operator field map ("locate me" /
+        // live-tracking on the parcel map) uses navigator.geolocation, which
+        // is gated by this policy — own-origin must be allowed or the call is
+        // silently blocked. camera/microphone stay closed (photo capture uses
+        // a file-input `capture` attribute, not getUserMedia).
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self), browsing-topics=()',
 
         // ── Cross-Origin Isolation ──
         'Cross-Origin-Opener-Policy': 'same-origin',

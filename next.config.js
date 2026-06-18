@@ -70,7 +70,11 @@ const defaultOptions = {
                     },
                     {
                         key: 'Permissions-Policy',
-                        value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
+                        // geolocation=(self) so the operator parcel map's
+                        // "locate me" / live-tracking (navigator.geolocation)
+                        // works on our own origin; camera/microphone stay
+                        // closed (photo capture uses file-input `capture`).
+                        value: 'camera=(), microphone=(), geolocation=(self), browsing-topics=()',
                     },
                     {
                         key: 'Cross-Origin-Opener-Policy',

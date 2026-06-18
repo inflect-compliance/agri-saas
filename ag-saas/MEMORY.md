@@ -540,3 +540,69 @@ NDVI map layer; feature-flagged sensor data-stream ingestion.
   next surface. Data-stream readings have no charting UI (ingest + store only).
 - **A failed createRisk orphans a disease AgroSignal** (signal exists, riskId null)
   — a reconcile pass could re-attempt.
+
+---
+
+## Phase 11 — Phone-native operator map (feat/mobile-map)
+
+Made the parcel map the operator's primary phone screen. Branch
+`feat/mobile-map` off `main`; **pushed, draft PR open, NOT merged**.
+
+- **`MapCanvas` gains opt-in on-map controls + geolocation** (`showControls`,
+  `controlsBottomInset`, `liveTracking` — all default off, so the read-only /
+  prescription / operator mounts are byte-for-byte unchanged). Bottom-right
+  thumb stack: zoom ±, locate-me, (stretch) live-tracking — each a ≥44px
+  (WCAG 2.5.5) target. Geolocation is pure client (`navigator.geolocation`):
+  `getCurrentPosition` flies to the device + drops a blue-dot `<Marker>`;
+  `watchPosition` follows + draws a breadcrumb `LineString`, high-accuracy
+  only while tracking, `clearWatch` on unmount (battery-aware); permission
+  denial → non-blocking `aria-live` hint.
+- **`ParcelDetailSheet`** (new, vaul bottom-sheet via the canonical `Sheet`,
+  `direction="bottom"`): area / crop / last-application + a pure-client
+  apply-rate calculator + "Start operation here" (→ spray wizard seeded with
+  that parcel via the new `SprayJobWizard.initialParcelIds`). On phones a
+  parcel TAP (map) or a Parcels-tab card tap opens it; **desktop keeps the
+  inline side panel** unchanged.
+- **Full-bleed layouts.** Location Map tab: edge-to-edge (`-mx-4`),
+  near-viewport-tall map, no inline panel on mobile. `OfflineFieldPanel` map:
+  300px box → full-width `60vh` and now **selectable** (tap a parcel →
+  highlight + scroll to its prescription line).
+- **TWO incidental fixes folded in (both pre-existing, both verified):**
+  1. **`Permissions-Policy: geolocation=()` → `geolocation=(self)`** in
+     `src/lib/security/headers.ts` (the middleware emitter) + `next.config.js`
+     + the pinning unit test. Geolocation was blocked app-wide — locate-me
+     (and ANY future geo feature) would silently fail in prod. camera/mic stay
+     closed (photo capture uses file-input `capture`, not getUserMedia).
+  2. **`prisma/seed.ts` ag-demo seed was dead** — it called the removed
+     synchronous `importLocationSpatialFile`; spatial import is now an async
+     BullMQ job (`stageLocationSpatialImport`). A Redis-free seed can't drive
+     that, so the demo now creates the 3 `Home Farm — Demo` parcels directly
+     via `createParcel` (seed convention). This had been silently skipping the
+     demo Location's parcels (breaking `mobile-responsive` / `ag-location-import`
+     / `mobile/lists` Home-Farm assertions from a fresh seed).
+
+**Verified:** tsc 0; full UI design-system ratchet set green (spacing,
+typography-eradication, heading-primitive, primary-action-budget,
+primary-secondary-ratio, icon-only-action-discipline, button-*, …) — fixed one
+`gap-2`→`gap-tight`; security-headers unit green; **mobile e2e green** —
+`tests/e2e/mobile/map.spec.ts` (NEW, self-seeding: controls 44px, locate-me→dot
+with granted+mocked geolocation, parcel card→bottom-sheet→apply-rate→
+start-operation→wizard) on BOTH `mobile-android` + `mobile-iphone`, and the
+updated `mobile-responsive.spec.ts` (Map-tab now asserts full-bleed + on-map
+controls instead of the removed inline panel). Local e2e ran against a postgis
+test DB (the committed `docker-compose.test.yml` still uses plain
+`postgres:16-alpine` — see gap below).
+
+### Remaining gaps (Phase 11)
+- **"Last application" in the sheet is a graceful placeholder** — the Location
+  parcels payload carries no per-parcel application history; the sheet shows
+  "No applications recorded yet" and exposes a `lastApplication` prop for when
+  a per-parcel applications query lands (backend follow-up, deliberately out of
+  scope for a map-UX change).
+- **`docker-compose.test.yml` uses non-postgis `postgres:16-alpine`** — the ag
+  migrations `CREATE EXTENSION postgis`, so local/CI e2e needs a postgis test
+  image (I ran a manual `postgis/postgis:16-3.4` test container). Bump the test
+  compose image to match dev (`postgis/postgis:16-3.4`) as a follow-up.
+- **Map-tap → sheet isn't e2e-clicked** (WebGL canvas taps are non-deterministic
+  in CI) — covered structurally; the Parcels-card → same-sheet path is the
+  deterministic e2e route.

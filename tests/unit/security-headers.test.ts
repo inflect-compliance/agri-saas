@@ -30,7 +30,9 @@ describe('getSecurityHeaders', () => {
         test('sets Permissions-Policy to deny sensitive APIs', () => {
             expect(headers['Permissions-Policy']).toContain('camera=()');
             expect(headers['Permissions-Policy']).toContain('microphone=()');
-            expect(headers['Permissions-Policy']).toContain('geolocation=()');
+            // geolocation is allowed for our OWN origin (the operator field
+            // map's locate-me / live-tracking); still denied cross-origin.
+            expect(headers['Permissions-Policy']).toContain('geolocation=(self)');
         });
 
         test('sets Cross-Origin-Opener-Policy to same-origin', () => {

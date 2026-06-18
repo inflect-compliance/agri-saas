@@ -116,29 +116,38 @@ test.describe('mobile responsive — agriculture @mobile', () => {
         ).toBeGreaterThanOrEqual(44);
 
         // The map container is the labelled, focusable group rendered by
-        // MapCanvas. Below md: the grid is single-column, so the map sits
-        // ABOVE the side panel rather than beside it. We assert vertical
-        // stacking: the map's bottom edge is at/above the side panel's top.
+        // MapCanvas.
         const mapRegion = main.getByRole('group', { name: /Parcel map/ });
         await expect(mapRegion).toBeVisible({ timeout: 30_000 });
 
-        // The side panel beneath the map carries the spray-job heading
-        // ("New spray job") in the default select mode.
-        const sidePanelHeading = main.getByRole('heading', {
-            name: 'New spray job',
-        });
-        await expect(sidePanelHeading).toBeVisible({ timeout: 30_000 });
+        // feat/mobile-map: on phones the inline "New spray job" side panel
+        // is GONE — the map is full-bleed (the operator's primary screen)
+        // and a parcel tap opens a bottom-sheet instead. So the side-panel
+        // heading must NOT render on a mobile viewport.
+        await expect(
+            main.getByRole('heading', { name: 'New spray job' }),
+        ).toHaveCount(0);
 
+        // The full-bleed map spans (near) the full viewport width.
         const mapBox = await mapRegion.boundingBox();
-        const panelBox = await sidePanelHeading.boundingBox();
+        const viewport = page.viewportSize();
         expect(mapBox, 'map region has a box').not.toBeNull();
-        expect(panelBox, 'side panel has a box').not.toBeNull();
-        // Stacked (single column): the panel starts below the map. A small
-        // negative tolerance absorbs sub-pixel overlap at the seam.
+        expect(viewport, 'viewport size known').not.toBeNull();
         expect(
-            panelBox!.y,
-            'side panel should stack BELOW the map on a mobile viewport (single-column grid)',
-        ).toBeGreaterThanOrEqual(mapBox!.y + mapBox!.height - 4);
+            mapBox!.width,
+            'full-bleed map should span (near) the full viewport width on mobile',
+        ).toBeGreaterThanOrEqual(viewport!.width - 4);
+
+        // On-map thumb controls (locate-me + zoom) render and are ≥44px
+        // (WCAG 2.5.5) touch targets.
+        const locate = main.getByTestId('map-locate');
+        await expect(locate).toBeVisible({ timeout: 30_000 });
+        const locateBox = await locate.boundingBox();
+        expect(locateBox, 'locate control has a box').not.toBeNull();
+        expect(
+            locateBox!.height,
+            'locate-me should be a ≥44px touch target',
+        ).toBeGreaterThanOrEqual(44);
 
         await expectNoHorizontalOverflow(page, 'location detail — Map tab');
     });

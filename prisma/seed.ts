@@ -9,7 +9,7 @@ import type { RequestContext } from '@/app-layer/types';
 import { Role } from '@prisma/client';
 import { getPermissionsForRole } from '@/lib/permissions';
 import { createLocation } from '@/app-layer/usecases/location';
-import { importLocationSpatialFile } from '@/app-layer/usecases/spatial-import';
+import { createParcel, type CreateParcelInput } from '@/app-layer/usecases/parcel';
 import { importUnits } from '../scripts/import-units';
 
 // Prisma 7 — adapter is required for PrismaClient construction.
@@ -1010,19 +1010,20 @@ async function main() {
                 name: 'Home Farm — Demo',
                 description: 'Seeded demo field block — three parcels ready for a spray job.',
             });
-            const demoGeoJson = JSON.stringify({
-                type: 'FeatureCollection',
-                features: [
-                    { type: 'Feature', properties: { name: 'North Field', crop: 'Winter Wheat' }, geometry: { type: 'Polygon', coordinates: [[[-1.100, 52.200], [-1.085, 52.200], [-1.085, 52.212], [-1.100, 52.212], [-1.100, 52.200]]] } },
-                    { type: 'Feature', properties: { name: 'River Meadow', crop: 'Grass' }, geometry: { type: 'Polygon', coordinates: [[[-1.100, 52.185], [-1.088, 52.185], [-1.088, 52.196], [-1.100, 52.196], [-1.100, 52.185]]] } },
-                    { type: 'Feature', properties: { name: 'Top Paddock' }, geometry: { type: 'Polygon', coordinates: [[[-1.082, 52.200], [-1.070, 52.200], [-1.070, 52.210], [-1.082, 52.210], [-1.082, 52.200]]] } },
-                ],
-            });
-            await importLocationSpatialFile(adminCtx, loc.id, {
-                filename: 'home-farm.geojson',
-                buffer: Buffer.from(demoGeoJson),
-                mimeType: 'application/geo+json',
-            });
+            // Spatial file import is now an async BullMQ job
+            // (stageLocationSpatialImport → spatial-import worker), which a
+            // Redis-free seed can't drive. Per the seed convention, create the
+            // demo parcels directly via the createParcel usecase — the same
+            // path the API uses (geometry persisted via geo.ts, areaHa
+            // re-derived server-side, RLS-scoped).
+            const demoParcels: CreateParcelInput[] = [
+                { name: 'North Field', cropType: 'Winter Wheat', geometry: { type: 'Polygon', coordinates: [[[-1.100, 52.200], [-1.085, 52.200], [-1.085, 52.212], [-1.100, 52.212], [-1.100, 52.200]]] } },
+                { name: 'River Meadow', cropType: 'Grass', geometry: { type: 'Polygon', coordinates: [[[-1.100, 52.185], [-1.088, 52.185], [-1.088, 52.196], [-1.100, 52.196], [-1.100, 52.185]]] } },
+                { name: 'Top Paddock', cropType: null, geometry: { type: 'Polygon', coordinates: [[[-1.082, 52.200], [-1.070, 52.200], [-1.070, 52.210], [-1.082, 52.210], [-1.082, 52.200]]] } },
+            ];
+            for (const p of demoParcels) {
+                await createParcel(adminCtx, loc.id, p);
+            }
             console.log('✅ Agriculture: demo Location "Home Farm — Demo" + 3 parcels seeded');
         } else {
             console.log('✅ Agriculture: demo Location already present (skipped)');

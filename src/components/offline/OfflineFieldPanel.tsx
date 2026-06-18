@@ -19,6 +19,8 @@ import { AgStatusBadge } from '@/components/ag/ag-status';
 import { Heading } from '@/components/ui/typography';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useMediaQuery } from '@/components/ui/hooks';
+import { cn } from '@/lib/cn';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
 import { saveFieldSnapshot, readFieldSnapshot } from '@/lib/offline/field-snapshot';
 import type { MapParcel } from '@/components/ui/map/MapCanvas';
@@ -44,9 +46,24 @@ interface FieldOpView {
 
 export function OfflineFieldPanel({ taskId }: { taskId: string }) {
     const buildUrl = useTenantApiUrl();
+    const { isMobile } = useMediaQuery();
     const { data, mutate, isLoading } = useTenantSWR<FieldOpView>(`/field-operations/${taskId}`);
     const { online, pending, submit, flush } = useOfflineSync();
     const [error, setError] = useState<string | null>(null);
+    // Tapping a parcel on the map selects it and scrolls its prescription
+    // line into view, so an operator can jump straight to the line they're
+    // standing on instead of scrolling the list.
+    const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
+
+    const selectParcel = useCallback((ids: string[]) => {
+        const id = ids[ids.length - 1] ?? null;
+        setSelectedParcelId(id);
+        if (id) {
+            document
+                .getElementById(`offline-line-${id}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, []);
 
     // Single render source. Seeded from the offline snapshot so the page
     // opens with no signal (cold reload), synced from the server whenever
@@ -155,11 +172,36 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                 <p className="text-sm text-content-secondary">{view.progress.done} / {view.progress.total} parcels complete · {view.task.status}</p>
             </div>
 
-            <MapCanvas parcels={mapParcels} bounds={bounds} interactive={false} doneIds={doneIds} className="h-[300px] w-full overflow-hidden rounded-lg border border-border-subtle" />
+            {/* The map is the operator's primary view: full-bleed and tall
+                on phones (was a fixed 300px box), edge-to-edge so the field
+                fills the screen. Tapping a parcel selects + scrolls to its
+                line. Locate-me helps confirm which parcel they're standing in. */}
+            <MapCanvas
+                parcels={mapParcels}
+                bounds={bounds}
+                interactive
+                selectedIds={selectedParcelId ? [selectedParcelId] : []}
+                onSelectionChange={selectParcel}
+                doneIds={doneIds}
+                showControls
+                controlsBottomInset={isMobile ? 76 : 12}
+                className={isMobile
+                    ? '-mx-4 h-[60vh] min-h-[20rem] overflow-hidden border-y border-border-subtle'
+                    : 'h-[360px] w-full overflow-hidden rounded-lg border border-border-subtle'}
+            />
 
             <ul className="space-y-tight">
                 {view.lines.map((l) => (
-                    <li key={l.id} className="rounded-lg border border-border-subtle p-4">
+                    <li
+                        key={l.id}
+                        id={l.parcel?.id ? `offline-line-${l.parcel.id}` : undefined}
+                        className={cn(
+                            'rounded-lg border p-4 transition-colors',
+                            l.parcel?.id && l.parcel.id === selectedParcelId
+                                ? 'border-border-emphasis ring-2 ring-ring'
+                                : 'border-border-subtle',
+                        )}
+                    >
                         <div className="mb-3">
                             <div className="text-base font-semibold">{l.parcel?.name ?? 'Parcel'}</div>
                             <div className="text-sm text-content-secondary">

@@ -15,7 +15,7 @@
  * field PrescriptionPanel POSTs), resolved from `/api/auth/me`.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { StepWizard, type StepWizardStep } from '@/components/ui/step-wizard';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -57,6 +57,13 @@ export interface SprayJobWizardProps {
     locationId: string;
     /** The location's parcels (already loaded by the detail page). */
     parcels: SprayParcel[];
+    /**
+     * Parcels to pre-select when the wizard opens — powers the
+     * "Start operation here" affordance from the mobile parcel sheet, so
+     * the operator lands on the product step with their parcel already
+     * chosen. Re-seeded on every open.
+     */
+    initialParcelIds?: string[];
     /** Fired after a successful (or queued) create so the page can refresh. */
     onCreated?: (result: { queued: boolean }) => void;
 }
@@ -66,6 +73,7 @@ export function SprayJobWizard({
     onOpenChange,
     locationId,
     parcels,
+    initialParcelIds,
     onCreated,
 }: SprayJobWizardProps) {
     const buildUrl = useTenantApiUrl();
@@ -83,7 +91,7 @@ export function SprayJobWizard({
     const { data: me } = useSWR<MeResponse>('/api/auth/me', apiGet);
     const assigneeUserId = me?.user?.id ?? null;
 
-    const [selectedParcelIds, setSelectedParcelIds] = useState<string[]>([]);
+    const [selectedParcelIds, setSelectedParcelIds] = useState<string[]>(initialParcelIds ?? []);
     const [productItemId, setProductItemId] = useState('');
     const [dose, setDose] = useState('');
     const [doseUnitId, setDoseUnitId] = useState('');
@@ -101,6 +109,15 @@ export function SprayJobWizard({
     const selectedUnit = unitOptions.find((o) => o.value === doseUnitId) ?? null;
     const doseNumber = Number(dose);
     const doseValid = dose.trim() !== '' && Number.isFinite(doseNumber) && doseNumber > 0;
+
+    // Seed the parcel selection from `initialParcelIds` each time the
+    // wizard opens (the "Start operation here" path). Keyed on the joined
+    // ids so a changed seed re-applies; `open` gates it to entry only.
+    const seedKey = (initialParcelIds ?? []).join(',');
+    useEffect(() => {
+        if (open) setSelectedParcelIds(initialParcelIds ?? []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- seed on open only
+    }, [open, seedKey]);
 
     const toggleParcel = (id: string) =>
         setSelectedParcelIds((prev) =>
