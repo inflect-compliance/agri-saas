@@ -210,7 +210,13 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // +1 for the "Run reconciliation" CTA on the admin Ledger Integrity
 // page — the single earned primary action on that utility surface,
 // balanced by the history table + status card secondaries. Measured = 156.
-const MAX_PRIMARY_COUNT = 156;
+// Mobile data-entry (2026-06-18): +1 primary — the "Spray job" launcher on
+// the Location detail header (the mobile-first StepWizard entry point). It is
+// the single earned primary create-CTA for starting a field operation on that
+// location, matching the sibling entity-create header triggers. The wizard's
+// own Next / Finish / Back buttons live in src/components/ui/step-wizard.tsx,
+// which this src/app-scoped ratchet does not scan. Measured = 157.
+const MAX_PRIMARY_COUNT = 157;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

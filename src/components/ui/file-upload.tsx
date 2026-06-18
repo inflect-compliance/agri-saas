@@ -159,6 +159,15 @@ export type FileUploadProps = FileUploadReadFileProps & {
    */
   accessibilityLabel?: string;
 
+  /**
+   * Mobile camera capture (mobile-data-entry PR-4). Pass `"environment"`
+   * to make a phone open the REAR camera directly on tap (field photo of
+   * a pest / crop / receipt), `"user"` for the front camera, or `true`
+   * for the default. Omit on document/file uploads. Pairs with an
+   * `image/*`-leaning `accept` preset. Ignored on desktop (no camera).
+   */
+  capture?: boolean | "user" | "environment";
+
   disabled?: boolean;
 } & VariantProps<typeof imageUploadVariants>;
 
@@ -181,6 +190,7 @@ export function FileUpload({
   maxFileSizeMB = 5,
   targetResolution,
   accessibilityLabel = "File upload",
+  capture,
   disabled = false,
 }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
@@ -360,6 +370,7 @@ export function FileUpload({
             key={fileName} // Gets us a fresh input every time a file is uploaded
             type="file"
             accept={acceptFileTypes[accept].types.join(",")}
+            capture={capture}
             onChange={onFileChange}
             disabled={disabled}
           />

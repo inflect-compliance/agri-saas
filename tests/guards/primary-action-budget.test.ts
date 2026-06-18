@@ -56,6 +56,9 @@ const PRIMARY_BUDGET: Record<string, number> = {
     // file-select ("Import/Select") and folder-select ("Use this folder").
     // Each is the single primary of its mode; the static scanner counts both.
     "src/components/integrations/sharepoint/SharePointFilePicker.tsx": 2,
+    // mobile-data-entry PR-4 — the StepWizard footer renders Next OR Finish
+    // (mutually exclusive per step), both primary; the source carries both.
+    "src/components/ui/step-wizard.tsx": 2,
     // Agriculture (Feature 1) — the locations list header ("New location")
     // and the create-modal confirm ("Create") are each the single primary
     // of their region (list header vs dialog) and never on screen together.
@@ -65,7 +68,9 @@ const PRIMARY_BUDGET: Record<string, number> = {
     // drawn polygon) and "Merge parcels" (name the union of ≥2 selected).
     // Each is the single primary of its dialog; the split flow adds zero
     // (its blade is drawn on the map, its toolbar trigger is secondary).
-    "src/app/t/[tenantSlug]/(app)/locations/[locationId]/page.tsx": 2,
+    // mobile-data-entry PR-4 — +1 for the header "Spray job" launch button
+    // (opens the offline-capable SprayJobWizard).
+    "src/app/t/[tenantSlug]/(app)/locations/[locationId]/page.tsx": 3,
     // Agriculture (Phase 1) — inventory list: the "New lot" header CTA + the
     // three dialog confirms (Create product / Create lot / Post movement),
     // each the single primary of a distinct modal region, never co-visible.

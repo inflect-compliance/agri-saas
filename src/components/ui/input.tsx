@@ -129,6 +129,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         type={effectiveType}
                         id={id}
                         ref={ref}
+                        // mobile-data-entry PR-4 — a number input opens the
+                        // phone's number pad. "decimal" (digits + point) suits
+                        // ag values (dose 2.5, qty, yield, cost, GDD). A caller
+                        // can override (e.g. inputMode="numeric" for integers)
+                        // since the spread below wins.
+                        inputMode={type === "number" ? "decimal" : undefined}
                         aria-invalid={effectiveInvalid || undefined}
                         aria-describedby={describedBy}
                         className={cn(

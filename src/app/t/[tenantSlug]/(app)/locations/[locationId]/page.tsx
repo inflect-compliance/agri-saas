@@ -18,6 +18,8 @@ import { apiPost, apiPatch, ApiClientError } from '@/lib/api-client';
 import { SpatialImportModal } from '@/components/ui/map/SpatialImportModal';
 import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
+import { SprayJobWizard } from './SprayJobWizard';
+import { Plus } from '@/components/ui/icons/nucleo';
 import type { MapParcel, MapMode } from '@/components/ui/map/MapCanvas';
 
 const MapCanvas = dynamic(() => import('@/components/ui/map/MapCanvas').then((m) => m.MapCanvas), { ssr: false });
@@ -52,6 +54,7 @@ export default function LocationDetailPage() {
     const [tab, setTab] = useState<Tab>('overview');
     const [selected, setSelected] = useState<string[]>([]);
     const [showImport, setShowImport] = useState(false);
+    const [showSprayWizard, setShowSprayWizard] = useState(false);
     const [activeJob, setActiveJob] = useState<string | null>(null);
     const [mapMode, setMapMode] = useState<MapMode>('select');
     const [pendingGeometry, setPendingGeometry] = useState<Polygon | null>(null);
@@ -197,7 +200,21 @@ export default function LocationDetailPage() {
             title={loc?.name ?? 'Location'}
             loading={locQ.isLoading && !loc}
             error={locQ.error ? 'Failed to load location.' : null}
-            actions={<Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>Import parcels</Button>}
+            actions={
+                <div className="flex items-center gap-compact">
+                    <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>Import parcels</Button>
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        icon={<Plus className="size-4" />}
+                        onClick={() => setShowSprayWizard(true)}
+                        disabled={parcels.length === 0}
+                        data-testid="new-spray-job"
+                    >
+                        Spray job
+                    </Button>
+                </div>
+            }
             tabs={tabs}
             activeTab={tab}
             onTabChange={setTab}
@@ -397,6 +414,14 @@ export default function LocationDetailPage() {
                 open={showImport}
                 setOpen={setShowImport}
                 onImported={() => { locQ.mutate(); parcelsQ.mutate(); }}
+            />
+
+            <SprayJobWizard
+                open={showSprayWizard}
+                onOpenChange={setShowSprayWizard}
+                locationId={locationId}
+                parcels={parcels.map((p) => ({ id: p.id, name: p.name, areaHa: p.areaHa ?? null }))}
+                onCreated={() => { setTab('operations'); void opsQ.mutate(); }}
             />
 
             <Modal
