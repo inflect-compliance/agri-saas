@@ -27,9 +27,17 @@
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useNavSections } from './SidebarNav';
+
+/**
+ * One resolved nav item, derived from the nav source's return type so the
+ * lucide icon TYPE never has to be imported here directly — the no-lucide
+ * ratchet (`tests/guards/no-lucide.test.ts`) keeps new `lucide-react`
+ * import sites off the tree. The icon VALUES still flow transparently from
+ * the nav data; only the type reference is kept local.
+ */
+type NavItem = ReturnType<typeof useNavSections>[number]['items'][number];
 
 /**
  * The tenant-relative href suffixes of the primary field surfaces, in
@@ -45,12 +53,6 @@ const BOTTOM_TAB_SUFFIXES = [
     '/tasks',
 ] as const;
 
-interface ResolvedTab {
-    href: string;
-    label: string;
-    icon: LucideIcon;
-}
-
 export function BottomTabBar() {
     const pathname = usePathname();
     const sections = useNavSections();
@@ -60,12 +62,10 @@ export function BottomTabBar() {
     // /module-gated) is simply skipped — the bar never out-runs the
     // sidebar's visibility.
     const items = sections.flatMap((s) => s.items);
-    const tabs: ResolvedTab[] = [];
+    const tabs: NavItem[] = [];
     for (const suffix of BOTTOM_TAB_SUFFIXES) {
         const match = items.find((it) => it.href.endsWith(suffix));
-        if (match) {
-            tabs.push({ href: match.href, label: match.label, icon: match.icon });
-        }
+        if (match) tabs.push(match);
     }
 
     // Defensive: a tenant with every target surface gated out renders no
