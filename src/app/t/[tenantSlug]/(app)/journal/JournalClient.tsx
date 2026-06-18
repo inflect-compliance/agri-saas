@@ -6,6 +6,7 @@ import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
+import { Fab } from '@/components/ui/fab';
 import { createColumns } from '@/components/ui/table';
 import {
     FilterProvider,
@@ -235,15 +236,22 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
             }}
         >
             {permissions.canWrite && (
-                <JournalEntryModal
-                    open={isCreateOpen}
-                    setOpen={setIsCreateOpen}
-                    tenantSlug={tenantSlug}
-                    onSaved={(entry) => {
-                        void entriesQuery.mutate();
-                        router.push(tenantHref(`/journal/${entry.id}`));
-                    }}
-                />
+                <>
+                    <JournalEntryModal
+                        open={isCreateOpen}
+                        setOpen={setIsCreateOpen}
+                        tenantSlug={tenantSlug}
+                        onSaved={(entry) => {
+                            void entriesQuery.mutate();
+                            router.push(tenantHref(`/journal/${entry.id}`));
+                        }}
+                    />
+                    <Fab
+                        onClick={() => setIsCreateOpen(true)}
+                        label="New Journal entry"
+                        icon={<Plus aria-hidden className="h-6 w-6" />}
+                    />
+                </>
             )}
         </EntityListPage>
     );

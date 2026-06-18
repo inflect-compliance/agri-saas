@@ -29,6 +29,16 @@ interface HardenedFlow {
     hookExport: string;
     modalPath: string;
     confirmCopy: RegExp;
+    /**
+     * The unsaved-changes guard mechanism the modal uses:
+     *   - `'confirm'` (default) — the legacy `window.confirm` +
+     *     `guardedSetOpen` pattern.
+     *   - `'native'` — the `<Modal isDirty>` primitive guard (mobile-forms
+     *     PR-3): a styled "Discard changes?" on X / Escape / outside-click /
+     *     drag-dismiss. The guard INTENT (no unsaved loss) is unchanged; only
+     *     the implementation modernised. Other flows migrate over time.
+     */
+    guard?: 'confirm' | 'native';
 }
 
 const FLOWS: HardenedFlow[] = [
@@ -44,7 +54,9 @@ const FLOWS: HardenedFlow[] = [
         hookPath: 'tasks/_form/useNewTaskForm.ts',
         hookExport: 'useNewTaskForm',
         modalPath: 'tasks/NewTaskModal.tsx',
-        confirmCopy: /Discard task\?/,
+        // mobile-forms PR-3 — migrated to the Modal primitive's native guard.
+        confirmCopy: /Discard changes\?/,
+        guard: 'native',
     },
     {
         label: 'vendors',
@@ -122,29 +134,52 @@ describe.each(FLOWS)('modal-form P3 — $label hook exposes isDirty', (flow) => 
     });
 });
 
-describe.each(FLOWS)('modal-form P3 — $label modal wires the guard', (flow) => {
-    const src = read(flow.modalPath);
+describe.each(FLOWS.filter((f) => f.guard !== 'native'))(
+    'modal-form P3 — $label modal wires the (window.confirm) guard',
+    (flow) => {
+        const src = read(flow.modalPath);
 
-    it('declares a `guardedSetOpen` callback', () => {
-        expect(src).toMatch(/guardedSetOpen/);
-    });
+        it('declares a `guardedSetOpen` callback', () => {
+            expect(src).toMatch(/guardedSetOpen/);
+        });
 
-    it('guard reads form.isDirty + form.submitting', () => {
-        expect(src).toMatch(/form\.isDirty/);
-        expect(src).toMatch(/form\.submitting/);
-    });
+        it('guard reads form.isDirty + form.submitting', () => {
+            expect(src).toMatch(/form\.isDirty/);
+            expect(src).toMatch(/form\.submitting/);
+        });
 
-    it('guard prompts before discarding', () => {
-        expect(src).toMatch(/window\.confirm\(/);
-        expect(src).toMatch(flow.confirmCopy);
-    });
+        it('guard prompts before discarding', () => {
+            expect(src).toMatch(/window\.confirm\(/);
+            expect(src).toMatch(flow.confirmCopy);
+        });
 
-    it("Modal's setShowModal receives the guarded setter (not bare setOpen)", () => {
-        // Every close path (Cancel button, X, Escape, outside click)
-        // is routed through the guard ONLY if Radix's onOpenChange
-        // (wired via `setShowModal`) hits guardedSetOpen, not setOpen.
-        expect(src).toMatch(/setShowModal=\{guardedSetOpen\}/);
-        // Defensive: no remaining `setShowModal={setOpen}` in the modal.
-        expect(src).not.toMatch(/setShowModal=\{setOpen\}/);
-    });
-});
+        it("Modal's setShowModal receives the guarded setter (not bare setOpen)", () => {
+            // Every close path (Cancel button, X, Escape, outside click)
+            // is routed through the guard ONLY if Radix's onOpenChange
+            // (wired via `setShowModal`) hits guardedSetOpen, not setOpen.
+            expect(src).toMatch(/setShowModal=\{guardedSetOpen\}/);
+            // Defensive: no remaining `setShowModal={setOpen}` in the modal.
+            expect(src).not.toMatch(/setShowModal=\{setOpen\}/);
+        });
+    },
+);
+
+// mobile-forms PR-3 — flows migrated to the Modal primitive's native
+// `isDirty` guard. Same INTENT (unsaved changes are protected on every
+// dismiss incl. mobile drag), implemented by the primitive rather than a
+// hand-rolled window.confirm. The guarded-setter pattern no longer applies.
+describe.each(FLOWS.filter((f) => f.guard === 'native'))(
+    'modal-form P3 — $label modal wires the native <Modal isDirty> guard',
+    (flow) => {
+        const src = read(flow.modalPath);
+
+        it('passes the form dirty state to <Modal isDirty>', () => {
+            expect(src).toMatch(/isDirty=\{[^}]*isDirty[^}]*\}/);
+        });
+
+        it('drops the hand-rolled window.confirm guard', () => {
+            expect(src).not.toMatch(/window\.confirm\(/);
+            expect(src).not.toMatch(/guardedSetOpen/);
+        });
+    },
+);

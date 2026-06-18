@@ -270,21 +270,27 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
         }
     };
 
-    // Unsaved-changes guard — same shape as NewAssetModal.
+    // Unsaved-changes guard.
+    //   - CREATE mode delegates to the Modal primitive's `isDirty` prop
+    //     (native "Discard changes?" confirm on drag-down / backdrop /
+    //     Escape) — see the `isDirty` prop on <Modal> below.
+    //   - EDIT mode keeps the bespoke `window.confirm` guard (untouched).
+    // Either way the explicit Cancel button calls `setOpen(false)`
+    // directly to bypass the guard.
     const guardedSetOpen = useCallback<Dispatch<SetStateAction<boolean>>>(
         (next) => {
             const wantClose = typeof next === 'function' ? !next(true) : next === false;
             if (wantClose) {
                 if (submitting) return;
-                if (dirty && !window.confirm('Discard entry? Any details you entered will be lost.')) {
+                if (isEdit && dirty && !window.confirm('Discard entry? Any details you entered will be lost.')) {
                     return;
                 }
             }
             setOpen(next);
         },
-        [submitting, dirty, setOpen],
+        [submitting, dirty, isEdit, setOpen],
     );
-    const close = () => guardedSetOpen(false);
+    const close = () => setOpen(false);
 
     const heading = isEdit ? 'Edit journal entry' : 'New journal entry';
     const description = isEdit
@@ -299,6 +305,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
             title={heading}
             description={description}
             preventDefaultClose={submitting}
+            isDirty={!isEdit && dirty}
         >
             <Modal.Header title={heading} description={description} />
             <Modal.Form

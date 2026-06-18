@@ -9,6 +9,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from '@/components/ui/icons/nucleo';
+import { Fab } from '@/components/ui/fab';
 import { NewTaskModal } from './NewTaskModal';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { AppIcon } from '@/components/icons/AppIcon';
@@ -806,7 +807,14 @@ function TasksPageInner({
             </ListPageShell.Body>
 
             {appPermissions.tasks.create && (
-                <NewTaskModal open={isCreateOpen} setOpen={setIsCreateOpen} />
+                <>
+                    <NewTaskModal open={isCreateOpen} setOpen={setIsCreateOpen} />
+                    <Fab
+                        onClick={() => setIsCreateOpen(true)}
+                        label="New Task"
+                        icon={<Plus aria-hidden className="h-6 w-6" />}
+                    />
+                </>
             )}
             {appPermissions.tasks.edit && (
                 <TaskDetailSheet

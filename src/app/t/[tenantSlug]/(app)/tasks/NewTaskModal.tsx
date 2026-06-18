@@ -11,7 +11,7 @@
  * The legacy `/tasks/new` route is now a redirect → `/tasks?create=1`;
  * the list page (TasksClient) auto-opens this modal.
  */
-import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
@@ -67,28 +67,10 @@ export function NewTaskModal({
         initialPendingLinks,
     });
 
-    // P3 — unsaved-changes guard. See NewPolicyModal for the pattern.
-    const guardedSetOpen = useCallback<Dispatch<SetStateAction<boolean>>>(
-        (next) => {
-            const wantClose =
-                typeof next === 'function' ? !next(true) : next === false;
-            if (wantClose) {
-                if (form.submitting) return;
-                if (
-                    form.isDirty &&
-                    !window.confirm(
-                        'Discard task? Any details you entered will be lost.',
-                    )
-                ) {
-                    return;
-                }
-            }
-            setOpen(next);
-        },
-        [form.submitting, form.isDirty, setOpen],
-    );
-    const close = () => guardedSetOpen(false);
-
+    // P3 — unsaved-changes guard. The Modal primitive's `isDirty` prop
+    // renders a native "Discard changes?" confirm on any stray dismiss
+    // (drag-down / backdrop / Escape); the explicit Cancel button calls
+    // `setOpen(false)` directly to bypass it.
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         void form.submit();
@@ -97,11 +79,12 @@ export function NewTaskModal({
     return (
         <Modal
             showModal={open}
-            setShowModal={guardedSetOpen}
+            setShowModal={setOpen}
             size="lg"
             title="New task"
             description="Create a new task to track."
             preventDefaultClose={form.submitting}
+            isDirty={form.isDirty}
         >
             <Modal.Header
                 title="New task"
@@ -129,7 +112,7 @@ export function NewTaskModal({
                     <Button
                         variant="secondary"
                         size="sm"
-                        onClick={close}
+                        onClick={() => setOpen(false)}
                         disabled={form.submitting}
                         id="new-task-cancel-btn"
                     >

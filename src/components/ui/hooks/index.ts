@@ -24,6 +24,7 @@ export {
 // ─── Viewport / observer ──────────────────────────────────────────────
 export { useInViewport } from "./use-in-viewport";
 export { useIntersectionObserver } from "./use-intersection-observer";
+export { useKeyboardInset, type KeyboardInset } from "./use-keyboard-inset";
 export { useMediaQuery } from "./use-media-query";
 export { useResizeObserver } from "./use-resize-observer";
 export {

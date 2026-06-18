@@ -44,11 +44,12 @@ import {
     FormEventHandler,
     ReactNode,
     SetStateAction,
+    useState,
     type HTMLAttributes,
 } from "react";
 import { Drawer } from "vaul";
 import { Button } from "./button";
-import { useMediaQuery } from "./hooks";
+import { useKeyboardInset, useMediaQuery } from "./hooks";
 import { ProgressiveBlur } from "./progressive-blur";
 import { Tooltip } from "./tooltip";
 import { Heading } from '@/components/ui/typography';
@@ -129,6 +130,13 @@ export interface ModalProps extends VariantProps<typeof modalContentVariants> {
     desktopOnly?: boolean;
     /** Ignore backdrop / Escape closes unless the user drags on mobile. */
     preventDefaultClose?: boolean;
+    /**
+     * When true, any dismiss (drag-down, backdrop, Escape) on an edited
+     * form first asks "Discard changes?" instead of throwing the input
+     * away. The explicit Cancel button should still close directly. Wire
+     * this to your form's dirty state.
+     */
+    isDirty?: boolean;
     drawerRootProps?: ComponentProps<typeof Drawer.Root>;
     // ── A11y ──
     /** Accessible name for the dialog. Required for screen readers. */
@@ -150,6 +158,7 @@ function ModalRoot({
     onClose,
     desktopOnly,
     preventDefaultClose,
+    isDirty,
     drawerRootProps,
     title,
     description,
@@ -157,15 +166,43 @@ function ModalRoot({
 }: ModalProps) {
     const router = useRouter();
     const { isMobile } = useMediaQuery();
+    const { inset: keyboardInset, height: viewportHeight } = useKeyboardInset();
+    const [showDiscard, setShowDiscard] = useState(false);
 
-    const closeModal = ({ dragged }: { dragged?: boolean } = {}) => {
-        if (preventDefaultClose && !dragged) return;
+    // The real close — fires onClose + drops the modal. Bypasses the dirty
+    // guard (the "Discard" confirm + the explicit Cancel button use this).
+    const performClose = () => {
         onClose?.();
         if (setShowModal) setShowModal(false);
         else router.back();
     };
 
+    const closeModal = ({ dragged }: { dragged?: boolean } = {}) => {
+        if (preventDefaultClose && !dragged) return;
+        // A stray swipe / backdrop / Escape on an edited form asks first.
+        if (isDirty) {
+            setShowDiscard(true);
+            return;
+        }
+        performClose();
+    };
+
     const presentation = resolveModalPresentation({ isMobile, desktopOnly });
+
+    // Rendered as a sibling of the surface so it stacks above it when a
+    // dismiss is attempted on a dirty form. Self-gated on `showDiscard`.
+    const discardConfirm = isDirty ? (
+        <Confirm
+            showModal={showDiscard}
+            setShowModal={setShowDiscard}
+            tone="warning"
+            title="Discard changes?"
+            description="Your unsaved changes will be lost."
+            confirmLabel="Discard"
+            cancelLabel="Keep editing"
+            onConfirm={performClose}
+        />
+    ) : null;
 
     const fallbackDialogTitle = (
         <VisuallyHidden.Root>
@@ -182,6 +219,7 @@ function ModalRoot({
 
     if (presentation === "drawer") {
         return (
+            <>
             <Drawer.Root
                 open={setShowModal ? showModal : true}
                 onOpenChange={(open) => {
@@ -195,6 +233,15 @@ function ModalRoot({
                         className="fixed inset-0 z-50 bg-bg-overlay backdrop-blur"
                     />
                     <Drawer.Content
+                        // Keyboard-aware: when the soft keyboard opens, lift
+                        // the drawer onto its top edge (`bottom`) and cap its
+                        // height to the visible viewport so the pinned footer
+                        // (Save/Cancel) stays reachable and the header on-screen.
+                        style={
+                            keyboardInset
+                                ? { bottom: keyboardInset, maxHeight: viewportHeight }
+                                : undefined
+                        }
                         onPointerDownOutside={(e) => {
                             if (
                                 e.target instanceof Element &&
@@ -224,10 +271,13 @@ function ModalRoot({
                     </Drawer.Content>
                 </Drawer.Portal>
             </Drawer.Root>
+            {discardConfirm}
+            </>
         );
     }
 
     return (
+        <>
         <Dialog.Root
             open={setShowModal ? showModal : true}
             onOpenChange={(open) => {
@@ -272,6 +322,8 @@ function ModalRoot({
                 </Dialog.Content>
             </Dialog.Portal>
         </Dialog.Root>
+        {discardConfirm}
+        </>
     );
 }
 
