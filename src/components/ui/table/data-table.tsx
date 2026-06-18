@@ -30,6 +30,8 @@ import { Table, useTable } from "./table";
 import { cn } from "./table-utils";
 import type { UseTableProps } from "./types";
 import { VirtualTable } from "./virtual-table-body";
+import { MobileCardList } from "./mobile-card-list";
+import { useMediaQuery } from "../hooks";
 
 // ── Public Column Helper ────────────────────────────────────────────
 
@@ -197,6 +199,21 @@ export interface DataTableProps<T> {
    */
   fillBody?: boolean;
 
+  /**
+   * Phone (<sm) rendering strategy. A horizontally-scrolling table is
+   * unusable on a 390px phone.
+   *
+   *   - `'scroll'` (default) — keep the table; it scrolls horizontally.
+   *     Correct for dense / financial tables where the columns ARE the
+   *     point (cost rollups, ledgers).
+   *   - `'card'` — below `sm`, render each row as a full-width tappable
+   *     CARD instead (title + optional subtitle + status pill + a few
+   *     key/value rows), tapping through to detail via `onRowClick`. The
+   *     card fields are driven by `column.meta.mobileCard` — see
+   *     `mobile-card-list.tsx`. At `sm`+ the normal table renders.
+   */
+  mobileFallback?: "card" | "scroll";
+
   /** Test ID for automated testing. */
   "data-testid"?: string;
 
@@ -299,6 +316,7 @@ export function DataTable<T>({
   className,
   scrollWrapperClassName,
   fillBody,
+  mobileFallback,
   "data-testid": dataTestId,
   virtualize,
   virtualRowHeight,
@@ -346,6 +364,11 @@ export function DataTable<T>({
   // visual-affordance-only path; selection mutation flows through
   // the explicit `onRowSelectionChange` prop when wired.
   const [internalSelection] = useState<RowSelectionState>({});
+  // Drives the `mobileFallback="card"` swap. Read unconditionally (rules of
+  // hooks); only consulted in the card branch below. `isMobile` is <sm,
+  // matching the card breakpoint. SSR/first render = false (desktop) so the
+  // table is the SSR markup; the swap to cards happens post-hydration.
+  const { isMobile } = useMediaQuery();
   const hasExplicitSelection = !!onRowSelectionChange || !!selectionControls;
   const hasBatchActions = batchActions && batchActions.length > 0;
 
@@ -446,33 +469,53 @@ export function DataTable<T>({
   //     <Table>'s richer empty/error chrome is the correct surface.
   const useVirtual = willVirtualizeEarly;
 
-  if (useVirtual) {
+  const tableEl = useVirtual ? (
+    <VirtualTable<T>
+      table={table}
+      rowHeight={virtualRowHeight}
+      height={virtualHeight}
+      onRowClick={onRowClick}
+      selectionEnabled={selectionEnabled}
+      sortableColumns={sortableColumns}
+      sortBy={sortBy}
+      sortOrder={sortOrder}
+      onSortChange={onSortChange}
+      containerClassName={filledContainerClassName}
+      scrollWrapperClassName={filledScrollWrapperClassName}
+    />
+  ) : (
+    <Table {...rest} table={table} data={data} />
+  );
+
+  // Card fallback (<sm): render ONLY ONE of the card list / table — never
+  // both behind CSS. A hidden card copy would still live in the DOM and
+  // duplicate every row's text, making `getByText(rowText)` match twice
+  // (strict-mode break) and `.first()` resolve to the hidden copy — which
+  // broke existing desktop assertions. Branching on `isMobile` keeps a
+  // single copy in the DOM; the table branch is identical to scroll mode so
+  // its `fillBody` flex chain is untouched. SSR/first paint renders the
+  // table (isMobile=false) and swaps to cards post-hydration on phones.
+  if (mobileFallback === "card") {
     return (
       <div id={dataTestId} data-testid={dataTestId} className={wrapperClassName}>
-        <VirtualTable<T>
-          table={table}
-          rowHeight={virtualRowHeight}
-          height={virtualHeight}
-          onRowClick={onRowClick}
-          selectionEnabled={selectionEnabled}
-          sortableColumns={sortableColumns}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSortChange={onSortChange}
-          containerClassName={filledContainerClassName}
-          scrollWrapperClassName={filledScrollWrapperClassName}
-        />
+        {isMobile ? (
+          <MobileCardList<T>
+            table={table}
+            onRowClick={onRowClick}
+            loading={loading}
+            error={error}
+            emptyState={emptyState}
+          />
+        ) : (
+          tableEl
+        )}
       </div>
     );
   }
 
   return (
     <div id={dataTestId} data-testid={dataTestId} className={wrapperClassName}>
-      <Table
-        {...rest}
-        table={table}
-        data={data}
-      />
+      {tableEl}
     </div>
   );
 }

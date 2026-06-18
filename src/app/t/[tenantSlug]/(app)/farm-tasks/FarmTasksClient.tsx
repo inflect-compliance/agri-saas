@@ -227,6 +227,8 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                     cell: ({ row }) => (
                         <span className="font-medium text-content-emphasis">{row.original.title}</span>
                     ),
+                    // Mobile (<sm) card heading.
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'taskType',
@@ -235,6 +237,8 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                     cell: ({ getValue }) => (
                         <span className="text-content-secondary">{getValue() as string}</span>
                     ),
+                    // Mobile card secondary line — the field-work type.
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     id: 'dueAt',
@@ -248,7 +252,8 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                         ) : (
                             <span className="text-content-subtle">—</span>
                         ),
-                    meta: { disableTruncate: true },
+                    // Mobile card key/value row — when the field work is due.
+                    meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: 'Due' } },
                 },
                 {
                     accessorKey: 'status',
@@ -258,6 +263,8 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                             {STATUS_LABELS[row.original.status] ?? row.original.status}
                         </StatusBadge>
                     ),
+                    // Mobile card status pill (top-right).
+                    meta: { mobileCard: { slot: 'status' } },
                 },
                 {
                     id: 'assignee',
@@ -299,6 +306,11 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 columns,
                 loading: isLoading && !tasks,
                 getRowId: (t) => t.id,
+                // <sm: render each row as a tappable card. Farm tasks have
+                // no per-row detail route, so the card is non-clickable
+                // (no onRowClick) — it surfaces title / type / due / status
+                // at a glance for the operator's field queue.
+                mobileFallback: 'card',
                 emptyState: (
                     <EmptyState
                         size="sm"

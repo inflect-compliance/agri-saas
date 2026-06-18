@@ -89,9 +89,27 @@ export default function LocationDetailPage() {
     const parcelColumns = useMemo(
         () =>
             createColumns<ParcelRow>([
-                { accessorKey: 'name', header: 'Name', cell: ({ row }) => <span className="font-medium">{row.original.name}</span> },
-                { id: 'crop', header: 'Crop', cell: ({ row }) => row.original.cropType ?? '—' },
-                { id: 'areaHa', header: 'Area (ha)', cell: ({ row }) => row.original.areaHa ?? '—' },
+                {
+                    accessorKey: 'name',
+                    header: 'Name',
+                    cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+                    // Mobile (<sm) card heading.
+                    meta: { mobileCard: { slot: 'title' } },
+                },
+                {
+                    id: 'crop',
+                    header: 'Crop',
+                    cell: ({ row }) => row.original.cropType ?? '—',
+                    // Mobile card key/value row — the parcel's crop.
+                    meta: { mobileCard: { slot: 'meta', label: 'Crop' } },
+                },
+                {
+                    id: 'areaHa',
+                    header: 'Area (ha)',
+                    cell: ({ row }) => row.original.areaHa ?? '—',
+                    // Mobile card key/value row — parcel area.
+                    meta: { mobileCard: { slot: 'meta', label: 'Area (ha)' } },
+                },
             ]),
         [],
     );
@@ -330,6 +348,11 @@ export default function LocationDetailPage() {
                     data={parcels}
                     columns={parcelColumns}
                     getRowId={(p) => p.id}
+                    // <sm: render each parcel as a card. Parcels have no
+                    // detail route (interaction is on the Map tab), so the
+                    // card is non-clickable — it surfaces name / crop / area
+                    // at a glance.
+                    mobileFallback="card"
                     loading={parcelsQ.isLoading && parcels.length === 0}
                     emptyState={(
                         <div className="p-6 text-sm text-content-secondary">

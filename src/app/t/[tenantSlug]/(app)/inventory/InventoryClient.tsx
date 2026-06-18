@@ -204,8 +204,20 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
     const columns = useMemo(
         () =>
             createColumns<Lot>([
-                { accessorKey: 'lotCode', header: 'Lot', cell: ({ row }) => <span className="font-medium">{row.original.lotCode}</span> },
-                { id: 'product', header: 'Product', cell: ({ row }) => row.original.item.name },
+                {
+                    accessorKey: 'lotCode',
+                    header: 'Lot',
+                    cell: ({ row }) => <span className="font-medium">{row.original.lotCode}</span>,
+                    // Mobile (<sm) card heading.
+                    meta: { mobileCard: { slot: 'title' } },
+                },
+                {
+                    id: 'product',
+                    header: 'Product',
+                    cell: ({ row }) => row.original.item.name,
+                    // Mobile card secondary line — the product the lot is a batch of.
+                    meta: { mobileCard: { slot: 'subtitle' } },
+                },
                 {
                     id: 'onHand',
                     header: 'On hand',
@@ -215,8 +227,16 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                             {row.original.lowStock && <StatusBadge variant="warning">Low</StatusBadge>}
                         </span>
                     ),
+                    // Mobile card key/value row — on-hand qty (carries the Low pill).
+                    meta: { mobileCard: { slot: 'meta', label: 'On hand' } },
                 },
-                { id: 'expires', header: 'Expires', cell: ({ row }) => (row.original.expiresAt ? formatDate(row.original.expiresAt) : '—') },
+                {
+                    id: 'expires',
+                    header: 'Expires',
+                    cell: ({ row }) => (row.original.expiresAt ? formatDate(row.original.expiresAt) : '—'),
+                    // Mobile card key/value row — expiry date.
+                    meta: { mobileCard: { slot: 'meta', label: 'Expires' } },
+                },
             ]),
         [],
     );
@@ -244,6 +264,7 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
             <ListPageShell.Body>
                 <DataTable
                     fillBody
+                    mobileFallback="card"
                     data-testid="inventory-lots-table"
                     data={rows}
                     columns={columns}

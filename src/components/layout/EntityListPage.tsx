@@ -166,6 +166,7 @@ export type EntityListPageTable<TRow> = Pick<
     | 'rowCount'
     | 'className'
     | 'scrollWrapperClassName'
+    | 'mobileFallback'
     | 'virtualize'
     | 'virtualRowHeight'
     | 'virtualHeight'

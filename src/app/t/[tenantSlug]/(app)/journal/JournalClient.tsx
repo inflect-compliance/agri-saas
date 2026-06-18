@@ -108,6 +108,8 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                                 String(row.original.type).replace(/_/g, ' ')}
                         </StatusBadge>
                     ),
+                    // Mobile card secondary line — the entry kind (pill).
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     accessorKey: 'title',
@@ -120,6 +122,9 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                             {getValue() as string}
                         </TableTitleCell>
                     ),
+                    // Mobile (<sm) card heading. The cell's link points to the
+                    // SAME detail route the card taps through to.
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'occurredAt',
@@ -131,7 +136,8 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                             className="text-xs text-content-muted"
                         />
                     ),
-                    meta: { disableTruncate: true },
+                    // Mobile card key/value row — when the work happened.
+                    meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: 'Date' } },
                 },
                 {
                     accessorKey: 'status',
@@ -144,6 +150,8 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                             </StatusBadge>
                         );
                     },
+                    // Mobile card status pill (top-right).
+                    meta: { mobileCard: { slot: 'status' } },
                 },
                 {
                     id: 'location',
@@ -157,6 +165,8 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">{getValue() as string}</span>
                     ),
+                    // Mobile card key/value row — the field/block.
+                    meta: { mobileCard: { slot: 'meta', label: 'Location' } },
                 },
             ]),
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,6 +204,9 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                 columns,
                 loading,
                 getRowId: (e) => e.id,
+                // <sm: render each entry as a tappable card; taps through to
+                // the journal detail via onRowClick below.
+                mobileFallback: 'card',
                 onRowClick: (row) => router.push(tenantHref(`/journal/${row.original.id}`)),
                 emptyState: hasActive ? (
                     <EmptyState

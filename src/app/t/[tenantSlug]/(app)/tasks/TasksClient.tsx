@@ -504,6 +504,10 @@ function TasksPageInner({
                         {row.original.title}
                     </TableTitleCell>
                 ),
+                // Mobile (<sm) card heading. The cell's link points to the
+                // SAME detail route the whole card taps through to, so the
+                // navigation target is consistent.
+                meta: { mobileCard: { slot: 'title' } },
             },
             {
                 accessorKey: 'type',
@@ -527,12 +531,16 @@ function TasksPageInner({
                         {STATUS_LABELS[row.original.status] || row.original.status}
                     </StatusBadge>
                 ),
+                // Mobile card status pill (top-right).
+                meta: { mobileCard: { slot: 'status' } },
             },
             {
                 id: 'assignee',
                 header: 'Assignee',
                 accessorFn: (t) => t.assignee?.name || '—',
                 cell: ({ getValue }) => <span className="text-xs text-content-muted">{getValue<string>()}</span>,
+                // Mobile card key/value row — who owns the task.
+                meta: { mobileCard: { slot: 'meta', label: 'Assignee' } },
             },
             {
                 id: 'dueAt',
@@ -543,6 +551,8 @@ function TasksPageInner({
                         className="text-xs text-content-muted"
                     />
                 ),
+                // Mobile card key/value row — when it's due.
+                meta: { mobileCard: { slot: 'meta', label: 'Due' } },
             },
             {
                 id: 'updatedAt',
@@ -670,6 +680,7 @@ function TasksPageInner({
                 <TruncationBanner truncated={truncated} />
                 <DataTable<TaskListItem>
                     fillBody
+                    mobileFallback="card"
                     data={visibleTasks}
                     columns={orderColumns(taskColumns)}
                     loading={loading}
