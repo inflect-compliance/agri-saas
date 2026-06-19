@@ -110,6 +110,30 @@ describe('Token system integrity', () => {
         expect(css).toContain('--border-default');
     });
 
+    it('defines the "sunlight" high-contrast overlay on top of the light theme', () => {
+        // feat/delight-personality — the outdoor palette is the light theme
+        // plus a [data-contrast="high"] overlay (the provider sets
+        // data-theme="light" + data-contrast="high" together), so it inherits
+        // every light token and only the contrast overrides apply. Keeping it
+        // an overlay (not a third [data-theme] block) preserves the dark+light
+        // token invariant the other theme guards rely on.
+        const css = fs.readFileSync(path.join(SRC, 'styles/tokens.css'), 'utf-8');
+        expect(css).toContain('[data-contrast="high"]');
+
+        const start = css.indexOf('[data-contrast="high"]');
+        const open = css.indexOf('{', start);
+        const close = css.indexOf('\n}', open);
+        const body = css.slice(open, close);
+        // The overlay must push the key surfaces to maximum contrast.
+        for (const tok of ['--bg-default', '--content-emphasis', '--border-default']) {
+            expect(body).toContain(tok);
+        }
+        // It must be declared AFTER [data-theme="light"] so it wins on cascade.
+        expect(css.indexOf('[data-contrast="high"]')).toBeGreaterThan(
+            css.indexOf('[data-theme="light"]'),
+        );
+    });
+
     it('tailwind.config maps semantic tokens to utility classes', () => {
         const config = fs.readFileSync(
             path.join(__dirname, '../../tailwind.config.js'), 'utf-8'

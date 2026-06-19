@@ -866,6 +866,64 @@ type-only → no prisma in the client bundle).
   edited by both this branch and the onboarding branch; additive but reconcile
   at merge.
 
+## Phase 17 — Personality: a home that greets like a colleague (feat/delight-personality)
+
+A home screen that greets the farmer like a helpful colleague, in their
+language, reflecting real weather + work. Branch off `main`; **independent of
+#57 (Phase 15) and #58 (Phase 16)** — gap 14→17 because 15/16 live on unmerged
+branches; reconcile MEMORY.md at merge. **Pushed, NOT merged** (no merge
+instruction). Three parts:
+
+- **Weather + time-aware home header** — `getHomeGreeting(ctx)`
+  (`usecases/home-greeting.ts`, delegated; read-only, bounded, no N+1) derives
+  a TENANT-WIDE summary from existing rows: `fieldsGoodToSpray` (latest
+  `WeatherObservation` per location → existing `evaluateSprayWindow()`),
+  `fieldsWithWeather`, `representativeWindKmh` (median), `tasksToday` (via
+  `listMyFarmTasks`, due-today count). The dashboard SERVER page fetches it +
+  `auth()` (user name/image) and renders `GreetingHeader` (client) above
+  `DashboardClient`. Time-of-day + calendar season are the USER's (browser tz),
+  so they resolve AFTER mount — the SSR shell shows a neutral "Hello, {name}."
+  that swaps to "Good morning, {name}." (no hydration mismatch). Graceful: no
+  name → no comma; no farm signal → a warm welcome line. `src/lib/season.ts`
+  (`calendarSeason`/`timeOfDay`, northern hemisphere, pure + unit-tested).
+  `InitialsAvatar` for the avatar/initials.
+- **"Sunlight" high-contrast outdoor theme** — added as the LIGHT palette plus
+  a `[data-contrast="high"]` OVERLAY (whites + near-black text/borders), NOT a
+  third `[data-theme]` block. The provider, on `theme==='sunlight'`, sets
+  `data-theme="light"` + `data-contrast="high"` together. This was the key
+  call: a full third theme block tripped 6 token-structure guards (r18/r27/
+  ui-create-gradient) that encode a "dark + light = exactly 2 blocks"
+  invariant; the overlay preserves that invariant. `Theme` is now
+  `dark|light|sunlight`; the toggle CYCLES the three (icon shows the next
+  theme; aria-label names the action — no binary aria-pressed). Remembered via
+  the existing localStorage `inflect:theme` (same per-user mechanism as
+  dark/light). epic51 token guard extended to lock the contrast overlay.
+- **Warm bilingual microcopy** — new `dashboard.greeting.*` keys in BOTH
+  en.json + bg.json (idiomatic Bulgarian, genuinely warm), emoji-free. ICU
+  plurals for spray-fields/tasks. The zero-tasks case is a separate plain
+  `noTasks` key (NOT an `=0 {…}` ICU clause) — the i18n parity guard's naive
+  `{word}` placeholder regex captured the ASCII word inside `=0 {nothing…}`
+  but not the Cyrillic one, flagging false placeholder drift; splitting it out
+  keeps the plural key's only token `{count}` and parity clean.
+
+**Verified:** tsc 0; full static guard sweep (599 suites / 8081 tests) green —
+including i18n-completeness + no-decorative-emoji + the extended theme-token
+guard; unit tests for the greeting usecase + season/time-of-day; `next build`
+clean (GreetingHeader's only app-layer import is the `HomeGreeting` TYPE →
+type-only, no prisma in the client bundle).
+
+### Remaining gaps (Phase 17)
+- **"Good window until noon" not derivable** — `WeatherObservation` is daily
+  (no hourly forecast / window-end time), so the greeting states
+  "{n} fields ready to spray — wind {x} km/h" without a precise end time. An
+  hourly forecast source would unlock the time-bounded window.
+- **Theme is per-browser (localStorage), not per-device-synced** — same as
+  dark/light; a durable cross-device preference needs a `User.theme` column.
+- **Greeting `tasksToday` is the user's queue** (listMyFarmTasks), not a
+  tenant-wide count — matches "your day", but a manager sees only their own.
+- **Calendar season is northern-hemisphere only** — fine for the BG/EU user
+  base; a hemisphere flag would generalise it.
+
 ## Phase 19 — Swappable AI provider (feat/ai-provider)
 
 One swappable AI provider so local dev runs a clean-licensed small model

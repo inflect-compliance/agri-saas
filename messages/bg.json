@@ -91,7 +91,22 @@
         "newPolicy": "Нова политика",
         "exportReports": "Експорт на отчети",
         "recentActivity": "Последна активност",
-        "noRecentActivity": "Няма скорошна активност"
+        "noRecentActivity": "Няма скорошна активност",
+        "greeting": {
+            "morning": "Добро утро",
+            "afternoon": "Добър ден",
+            "evening": "Добър вечер",
+            "hello": "Здравейте",
+            "sprayFields": "{count, plural, one {# поле е готово за пръскане} other {# полета са готови за пръскане}}",
+            "sprayWind": "вятър {wind} км/ч",
+            "tasksToday": "{count, plural, one {# задача за днес} other {# задачи за днес}}",
+            "noTasks": "няма задачи за днес",
+            "welcome": "Добре дошли отново — ето как изглежда фермата ви днес.",
+            "seasonSpring": "Пролет",
+            "seasonSummer": "Лято",
+            "seasonAutumn": "Есен",
+            "seasonWinter": "Зима"
+        }
     },
     "clauses": {
         "title": "Проследяване на клаузи по ISO 27001:2022",

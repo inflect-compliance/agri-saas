@@ -41,7 +41,7 @@ test.describe('Epic 51 — theme toggle', () => {
         });
     });
 
-    test('flips html[data-theme] between dark and light and persists across reload', async ({
+    test('cycles html[data-theme] dark → light → sunlight → dark and persists across reload', async ({
         page,
     }) => {
         // Pin the starting theme to dark regardless of the chromium
@@ -111,13 +111,33 @@ test.describe('Epic 51 — theme toggle', () => {
             )
             .toBe('light');
 
-        // Toggle back to dark — leaves the environment in the state
-        // other tests expect.
+        // Second flip → sunlight. The high-contrast outdoor mode is the light
+        // palette PLUS a data-contrast="high" overlay, so data-theme stays
+        // "light" and data-contrast becomes "high".
+        await flipTheme();
+        await expect
+            .poll(() =>
+                page.evaluate(() => document.documentElement.dataset.contrast ?? null),
+            )
+            .toBe('high');
+        await expect
+            .poll(() =>
+                page.evaluate(() => document.documentElement.dataset.theme),
+            )
+            .toBe('light');
+
+        // Third flip → back to dark (cycle complete; data-contrast cleared) —
+        // leaves the environment in the state other tests expect.
         await flipTheme();
         await expect
             .poll(() =>
                 page.evaluate(() => document.documentElement.dataset.theme),
             )
             .toBe('dark');
+        await expect
+            .poll(() =>
+                page.evaluate(() => document.documentElement.dataset.contrast ?? null),
+            )
+            .toBe(null);
     });
 });

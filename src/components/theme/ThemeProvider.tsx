@@ -28,7 +28,18 @@ import {
     type ReactNode,
 } from 'react';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'sunlight';
+
+/**
+ * Cycle order for the toggle: dark → light → sunlight → dark. "sunlight" is
+ * the high-contrast outdoor palette (readable in bright field light); it sits
+ * after light so the two daytime palettes are adjacent.
+ */
+export const THEME_CYCLE: readonly Theme[] = ['dark', 'light', 'sunlight'];
+
+function isTheme(value: unknown): value is Theme {
+    return value === 'dark' || value === 'light' || value === 'sunlight';
+}
 
 export interface ThemeContextValue {
     theme: Theme;
@@ -45,7 +56,7 @@ function readInitialTheme(): Theme {
     if (typeof window === 'undefined') return 'dark';
     try {
         const stored = window.localStorage.getItem(STORAGE_KEY);
-        if (stored === 'light' || stored === 'dark') return stored;
+        if (isTheme(stored)) return stored;
     } catch {
         // localStorage may throw in private / sandboxed contexts — ignore.
     }
@@ -53,9 +64,21 @@ function readInitialTheme(): Theme {
     return 'dark';
 }
 
+const CONTRAST_ATTR = 'data-contrast';
+
 function applyTheme(theme: Theme) {
     if (typeof document === 'undefined') return;
-    document.documentElement.setAttribute(ATTR, theme);
+    const el = document.documentElement;
+    if (theme === 'sunlight') {
+        // Sunlight is the light palette plus a high-contrast overlay — set
+        // both attributes so it inherits every light token and only the
+        // contrast overrides apply on top (see tokens.css [data-contrast]).
+        el.setAttribute(ATTR, 'light');
+        el.setAttribute(CONTRAST_ATTR, 'high');
+    } else {
+        el.setAttribute(ATTR, theme);
+        el.removeAttribute(CONTRAST_ATTR);
+    }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -83,7 +106,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const toggle = useCallback(() => {
-        setTheme(theme === 'dark' ? 'light' : 'dark');
+        const idx = THEME_CYCLE.indexOf(theme);
+        const next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
+        setTheme(next);
     }, [theme, setTheme]);
 
     const value = useMemo(
