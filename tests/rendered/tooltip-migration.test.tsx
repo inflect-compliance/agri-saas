@@ -60,7 +60,10 @@ describe('ThemeToggle (title → Tooltip migration)', () => {
     it('keeps an accessible name via aria-label', () => {
         renderToggle();
         const button = screen.getByRole('button');
-        expect(button).toHaveAccessibleName(/Switch to (light|dark) theme/);
+        // The toggle cycles dark → light → sunlight (feat/delight-personality),
+        // so the label names the current theme + the next ("dark theme —
+        // switch to light").
+        expect(button).toHaveAccessibleName(/switch to (light|dark|sunlight)/i);
     });
 
     it('toggles theme on click — the tooltip wrapper must not swallow the event', async () => {

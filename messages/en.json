@@ -91,7 +91,22 @@
         "newPolicy": "New Policy",
         "exportReports": "Export Reports",
         "recentActivity": "Recent Activity",
-        "noRecentActivity": "No recent activity"
+        "noRecentActivity": "No recent activity",
+        "greeting": {
+            "morning": "Good morning",
+            "afternoon": "Good afternoon",
+            "evening": "Good evening",
+            "hello": "Hello",
+            "sprayFields": "{count, plural, one {# field ready to spray} other {# fields ready to spray}}",
+            "sprayWind": "wind {wind} km/h",
+            "tasksToday": "{count, plural, one {# task due today} other {# tasks due today}}",
+            "noTasks": "nothing due today",
+            "welcome": "Welcome back — here's your farm today.",
+            "seasonSpring": "Spring",
+            "seasonSummer": "Summer",
+            "seasonAutumn": "Autumn",
+            "seasonWinter": "Winter"
+        }
     },
     "clauses": {
         "title": "ISO 27001:2022 Clause Tracker",
