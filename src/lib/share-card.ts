@@ -17,10 +17,6 @@ function safeFilename(label: string): string {
     return `${stem || 'card'}.png`;
 }
 
-interface ShareCapableNavigator extends Navigator {
-    canShare?: (data?: ShareData) => boolean;
-}
-
 export type ShareCardResult = 'shared' | 'downloaded' | 'failed';
 
 /** Render `el` to a 2× PNG, then share (mobile) or download (desktop). */
@@ -34,7 +30,17 @@ export async function exportShareCard(el: HTMLElement, label: string): Promise<S
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], fileName, { type: 'image/png' });
 
-        const nav = typeof navigator !== 'undefined' ? (navigator as ShareCapableNavigator) : null;
+        // Web Share API. Use an INTERSECTION cast (not `interface extends`)
+        // so it compiles whether or not the active lib.dom declares
+        // share/canShare — avoids the TS2430 conflict that bit CI when the two
+        // TS lib versions disagreed.
+        const nav =
+            typeof navigator !== 'undefined'
+                ? (navigator as Navigator & {
+                      share?: (data: ShareData) => Promise<void>;
+                      canShare?: (data?: ShareData) => boolean;
+                  })
+                : null;
         if (nav?.share && nav.canShare?.({ files: [file] })) {
             await nav.share({ files: [file], title: label });
             return 'shared';
