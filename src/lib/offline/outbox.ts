@@ -11,6 +11,8 @@
  * (the in-memory store) and the browser binding is a thin adapter.
  */
 
+import { IndexedDbOutboxStore, indexedDbAvailable } from './idb-outbox';
+
 export type OutboxMethod = 'POST' | 'PATCH' | 'DELETE';
 
 export interface OutboxItem {
@@ -128,9 +130,17 @@ export async function enqueue(store: OutboxStore, input: EnqueueInput): Promise<
 let browserStore: OutboxStore | null = null;
 export function getOutboxStore(): OutboxStore {
     if (!browserStore) {
-        browserStore = typeof globalThis.localStorage !== 'undefined'
-            ? new LocalStorageOutboxStore()
-            : new InMemoryOutboxStore();
+        // Prefer IndexedDB: it's the only queue the service worker can read
+        // for Background Sync replay (localStorage is window-only). jsdom/SSR
+        // have no IndexedDB, so those fall back to localStorage / in-memory —
+        // keeping the rendered-test + SSR behaviour exactly as before.
+        if (indexedDbAvailable()) {
+            browserStore = new IndexedDbOutboxStore();
+        } else if (typeof globalThis.localStorage !== 'undefined') {
+            browserStore = new LocalStorageOutboxStore();
+        } else {
+            browserStore = new InMemoryOutboxStore();
+        }
     }
     return browserStore;
 }

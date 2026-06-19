@@ -177,6 +177,8 @@
     "terra-draw-maplibre-gl-adapter": "^1.4.1",
     "use-debounce": "^10.1.1",
     "vaul": "^1.1.2",
+    "web-push": "^3.6.7",
+    "web-vitals": "^4.2.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -210,6 +212,7 @@
     "@types/react-window": "^2.0.0",
     "@types/sanitize-html": "^2.16.1",
     "@types/shpjs": "^3.4.7",
+    "@types/web-push": "^3.6.4",
     "@typescript-eslint/eslint-plugin": "^8.61.0",
     "autoprefixer": "^10.5.0",
     "conventional-changelog-conventionalcommits": "^9.3.1",

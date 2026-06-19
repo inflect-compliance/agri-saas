@@ -150,6 +150,9 @@ describe('Structural Guard: Tenant Isolation Conventions', () => {
             'admin', 'auth', 't', 'risk-templates', 'audit', 'staging',
             'health', 'livez', 'readyz', 'stripe', 'security', 'csp-report',
             'storage', 'integrations', 'scim',
+            // PWA web-vitals RUM sink — anonymous, public, no tenant scope
+            // (mirrors the health/livez probes). See src/app/api/metrics.
+            'metrics',
             // SP-4 — external webhook receivers (MS Graph change notifications).
             // Caller is Graph, not a tenant member; the receiver verifies
             // clientState + resolves the tenant itself.

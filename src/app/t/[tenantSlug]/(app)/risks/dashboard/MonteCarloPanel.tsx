@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { KPIStat } from '@/components/ui/metric';
 import { Heading } from '@/components/ui/typography';
 import { LossExceedanceCurve, type LossReferenceLine } from '@/components/ui/charts';
+import { DeferredOnMobile } from '@/components/ui/DeferredOnMobile';
 import { useTenantApiUrl, useMoneyFormatter } from '@/lib/tenant-context-provider';
 import { formatDateTime } from '@/lib/format-date';
 
@@ -147,12 +148,17 @@ export function MonteCarloPanel({
                                 threshold.
                             </p>
                             {lec.length > 0 && (
-                                <LossExceedanceCurve
-                                    data={lec}
-                                    testId="risk-mc-lec"
-                                    ariaLabel="Monte Carlo loss exceedance curve"
-                                    referenceLines={referenceLines.length > 0 ? referenceLines : undefined}
-                                />
+                                // Heavy visx curve — defer its render until idle
+                                // on phones so it never blocks first paint/input
+                                // on a mid-range device.
+                                <DeferredOnMobile placeholder={<div className="h-48" aria-hidden="true" />}>
+                                    <LossExceedanceCurve
+                                        data={lec}
+                                        testId="risk-mc-lec"
+                                        ariaLabel="Monte Carlo loss exceedance curve"
+                                        referenceLines={referenceLines.length > 0 ? referenceLines : undefined}
+                                    />
+                                </DeferredOnMobile>
                             )}
                             {/* RQ3-1 — on the portfolio axis the ceiling
                                 is a genuine x-threshold: the curve's

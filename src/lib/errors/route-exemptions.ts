@@ -29,7 +29,8 @@ export interface BareRouteExemption {
         | 'external_webhook'
         | 'scim_2_0'
         | 'staging_fixture'
-        | 'sse_stream';
+        | 'sse_stream'
+        | 'telemetry_sink';
     /** Why this route does not use `withApiErrorHandling`. */
     reason: string;
 }
@@ -51,6 +52,15 @@ export const BARE_ROUTE_EXEMPTIONS: ReadonlyArray<BareRouteExemption> = [
             'Legacy k8s health probe. Structured CheckResult contract; ' +
             'every dependency check is internally try/catch-wrapped. ' +
             'Must never return ApiErrorResponse JSON.',
+    },
+    {
+        file: 'metrics/route.ts',
+        category: 'telemetry_sink',
+        reason:
+            'Anonymous web-vitals RUM beacon sink. Public + bare on purpose: ' +
+            'it must not carry the mutation rate-limit (vitals fire several ' +
+            'times per page load) and always 204s — a malformed beacon is ' +
+            'swallowed, never an ApiErrorResponse.',
     },
     {
         file: 'livez/route.ts',

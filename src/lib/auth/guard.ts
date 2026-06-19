@@ -21,6 +21,7 @@ const PUBLIC_PATH_PREFIXES = [
     '/api/health',       // Health check (no auth) — deprecated alias
     '/api/livez',        // Liveness probe (no auth)
     '/api/readyz',       // Readiness probe (no auth)
+    '/api/metrics',      // web-vitals telemetry sink (no auth — anonymous RUM beacons)
     '/api/staging/seed', // Staging seed endpoint (token-gated internally)
     '/audit/shared',     // Shared audit pack read-only view (token-gated, no login)
     '/api/audit/shared', // Shared audit pack API endpoint (token-gated)

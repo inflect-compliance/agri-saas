@@ -1,0 +1,132 @@
+name: Lighthouse
+
+# Mobile performance budget (390px). Builds + starts the app like the
+# load-smoke job, then runs Lighthouse CI against the public /login page on a
+# throttled mobile profile and asserts LCP / TBT / CLS budgets (see
+# lighthouserc.json). INP is a field-only metric — tracked via web-vitals RUM
+# (src/components/pwa/WebVitalsReporter.tsx), not here.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  lighthouse:
+    name: "Lighthouse (mobile budget)"
+    runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+
+    env:
+      AUTH_TEST_MODE: "1"
+      AUTH_TRUST_HOST: "1"
+      AUTH_SECRET: "test-auth-secret-that-is-long-enough-32chars" # pragma: allowlist secret — test-only stub for the Lighthouse CI job
+      JWT_SECRET: "test-auth-secret-that-is-long-enough-32chars" # pragma: allowlist secret — test-only stub for the Lighthouse CI job
+      AUTH_URL: "http://localhost:3006"
+      DATABASE_URL: postgresql://ci:ci_password@localhost:5432/ci_testdb?schema=public
+      DATABASE_URL_TEST: postgresql://ci:ci_password@localhost:5432/ci_testdb?schema=public
+      DIRECT_DATABASE_URL: postgresql://ci:ci_password@localhost:5432/ci_testdb?schema=public
+      REDIS_URL: redis://localhost:6379
+      RATE_LIMIT_ENABLED: "0"
+      DATA_ENCRYPTION_KEY: ci-test-data-encryption-key-32-chars-or-more-deterministic-x
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: ci_testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ci -d ci_testdb"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup environment
+        run: cp .env.e2e.example .env
+
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Create PostgreSQL roles for RLS
+        run: |
+          PGPASSWORD=ci_password psql -h localhost -U ci -d ci_testdb <<'SQL'
+          DO $$ BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'app_user') THEN CREATE ROLE app_user NOLOGIN; END IF;
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'postgres') THEN CREATE ROLE postgres NOLOGIN; END IF;
+          END $$;
+          GRANT app_user TO ci;
+          GRANT app_user TO postgres;
+          SQL
+
+      - name: Apply Prisma migrations
+        run: ./node_modules/.bin/prisma migrate deploy
+
+      - name: Create upload directory
+        run: mkdir -p tmp/test-uploads
+
+      - name: Build Next.js app
+        run: npx next build --webpack
+        env:
+          NODE_ENV: production
+
+      - name: Start app (background)
+        run: |
+          nohup npx next start -p 3006 > /tmp/app.log 2>&1 &
+          echo $! > /tmp/app.pid
+
+      - name: Wait for /api/health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3006/api/health > /dev/null 2>&1; then
+              echo "App is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::App failed to start within 60s. Last 100 lines of log:"
+          tail -n 100 /tmp/app.log || true
+          exit 1
+
+      - name: "Gate: Lighthouse mobile budget"
+        run: npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.json
+
+      - name: Stop app
+        if: always()
+        run: |
+          if [ -f /tmp/app.pid ]; then
+            kill "$(cat /tmp/app.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lighthouse-reports-${{ github.run_id }}
+          path: |
+            .lighthouseci/*
+            /tmp/app.log
+          retention-days: 14
+        continue-on-error: true

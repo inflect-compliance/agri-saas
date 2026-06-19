@@ -31,6 +31,7 @@ import { runInTenantContext } from '@/lib/db-context';
 import { ParcelRepository } from '@/app-layer/repositories/ParcelRepository';
 import { fetchDailyWeather, type DailyWeather } from '@/lib/weather/open-meteo-client';
 import { evaluateLocationSignals } from '@/app-layer/usecases/agro-signals';
+import { sendWebPushToUser } from '@/lib/notifications/web-push';
 import { bumpEntityCacheVersion } from '@/lib/cache/list-cache';
 import { logger } from '@/lib/observability/logger';
 import type { WeatherPullPayload } from './types';
@@ -214,6 +215,17 @@ export async function runWeatherPull(
                 try {
                     const r = await evaluateLocationSignals(ctx, locationId);
                     signals += r.created;
+                    // Fan a NEW spray-window warning out to Web Push (no-op
+                    // unless push is configured + the recipient subscribed).
+                    // Post-tx so the network send holds no transaction open.
+                    if (r.sprayPush) {
+                        await sendWebPushToUser(ctx, r.sprayPush.recipientUserId, {
+                            title: r.sprayPush.title,
+                            body: r.sprayPush.message,
+                            url: r.sprayPush.linkUrl,
+                            tag: `spray-${locationId}`,
+                        });
+                    }
                 } catch (err) {
                     logger.warn('weather-pull: signal eval failed', {
                         component: 'weather-pull',

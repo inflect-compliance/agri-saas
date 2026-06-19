@@ -606,3 +606,77 @@ test DB (the committed `docker-compose.test.yml` still uses plain
 - **Map-tap → sheet isn't e2e-clicked** (WebGL canvas taps are non-deterministic
   in CI) — covered structurally; the Parcels-card → same-sheet path is the
   deterministic e2e route.
+
+---
+
+## Phase 12 — Installable offline PWA + Web Push + perf budget (feat/mobile-pwa)
+
+Turned the operator app into an installable, dead-zone-capable, push-enabled
+PWA with a CI perf budget. Branch `feat/mobile-pwa` off `main`.
+
+- **Offline outbox moved to IndexedDB** (`src/lib/offline/idb-outbox.ts`,
+  `IndexedDbOutboxStore`) so the service worker can replay it — `localStorage`
+  is window-only. `getOutboxStore()` prefers IDB, falls back to localStorage /
+  in-memory (jsdom/SSR keep old behaviour). One-time migration drains the
+  legacy `localStorage` queue into IDB. DB/store names are a CONTRACT shared
+  with `public/sw.js`.
+- **Background Sync** — `useOfflineSync` registers a `flush-outbox` sync tag on
+  first queue (`FLUSH_OUTBOX_SYNC_TAG`). `public/sw.js` (bumped to `agri-v2`)
+  gained a `sync` handler that replays the IDB outbox with the SAME policy as
+  `sync.ts` (2xx/terminal-4xx remove, transient keep+attempts, MAX 8, reject to
+  reschedule). iOS Safari (no Background Sync) falls back to the page-side
+  `online` flush + a SW `postMessage('flush-outbox')` from ServiceWorkerRegistrar.
+- **Install affordance** — `InstallPrompt` (rendered by `ServiceWorkerRegistrar`):
+  captures `beforeinstallprompt` → dismissible mobile banner (7-day localStorage
+  snooze); iOS gets an "Add to Home Screen" Share-sheet hint. Mobile-only,
+  hidden when already standalone.
+- **Offline-first field data** — `sw.js` network-first-with-cache-fallback for a
+  NARROW allowlist of field GETs (locations/:id(/parcels), field-operations/:id,
+  farm-tasks) so Map / my-Tasks / Field-execute open with no signal; navigations
+  already cache. `OfflineSyncBar` extracted (Sync now + pending count), reused in
+  `OfflineFieldPanel`.
+- **Web Push** — `web-push` dep; VAPID env (`VAPID_PUBLIC_KEY`/`_PRIVATE_KEY`/
+  `_SUBJECT` + `NEXT_PUBLIC_VAPID_PUBLIC_KEY`), all OPTIONAL → unconfigured =
+  silent no-op (dev/CI/self-hosted). `PushSubscription` model (migration
+  `20260619000000`, RLS trio, `@@unique([tenantId,userId,endpoint])`).
+  `src/lib/notifications/web-push.ts::sendWebPushToUser` reads subs in a short
+  tenant tx, sends OUTSIDE any tx, prunes 404/410. Wired post-tx at the
+  TASK_ASSIGNED caller (`task.ts`) + the spray-window path (`agro-signals` →
+  `weather-pull`), reusing the notification copy returned by the (extended)
+  `createAssignmentNotification` / `createAgroSignalNotification` outcomes.
+  Self-service subscribe/unsubscribe at `POST/DELETE
+  /api/t/:slug/push-subscriptions` (+ `push-subscription.ts` usecase, Zod
+  schema, public `/api/metrics` allowlist NOT needed for it). `PushOptIn`
+  opt-in UI (permission-graceful, key-gated) on the OfflineFieldPanel. SW
+  `push` + `notificationclick` handlers focus the deep link.
+- **Perf** — `web-vitals` dep → `WebVitalsReporter` (dynamic-imported, beacons
+  LCP/INP/CLS/FCP/TTFB to the public `/api/metrics` sink) mounted in layout.
+  `.github/workflows/lighthouse.yml` + `lighthouserc.json`: mobile (390px,
+  throttled) Lighthouse-CI on `/login` asserting LCP≤4500 / TBT≤800 / CLS≤0.15
+  (error) + perf-score/FCP (warn). Map + terra-draw were ALREADY code-split
+  (`dynamic(ssr:false)` + `await import('terra-draw')`); added `DeferredOnMobile`
+  (renders heavy children on idle on phones, eager on desktop, eager under jest)
+  and applied it to the heavy Monte-Carlo loss-exceedance curve.
+
+**Verified:** tsc 0; full static guard sweep (488 suites / 4080 tests) green;
+web-push unit (send/prune/no-op) + offline-pwa-coverage + notif-assignment
+wiring + assignment/agro/weather-pull/offline suites (200) green; rls-coverage
+(PushSubscription RLS) + schema-index + contract-drift + api-permission +
+no-explicit-any green. Mobile e2e + local Lighthouse verified pre-merge.
+
+### Remaining gaps (Phase 12)
+- **Real push DELIVERY isn't e2e-tested** — needs a live push service + VAPID;
+  CI proves the send wiring via the mocked-web-push unit + the subscribe
+  endpoint. Verify delivery manually on staging with real VAPID keys.
+- **Offline field-data cache is per-browser tenant data** — narrowly scoped +
+  documented; a shared device shows the last operator's cached field data until
+  the SW cache is evicted. Acceptable for the field PWA; revisit if shared
+  devices become common.
+- **INP is field-only** (web-vitals RUM); the Lighthouse lab budget uses TBT as
+  its proxy. The `/api/metrics` sink only logs — no dashboard/aggregation yet.
+- **Lighthouse audits `/login`** (the public page); authenticated field routes
+  need a session Lighthouse can't easily establish in CI. A logged-in run via a
+  seeded session cookie is a follow-up.
+- **`docker-compose.test.yml` still non-postgis** (carried from Phase 11) — the
+  new Lighthouse + e2e CI jobs use the inline `postgis/postgis:16-3.4` service,
+  so CI is fine; only the local compose helper needs the bump.

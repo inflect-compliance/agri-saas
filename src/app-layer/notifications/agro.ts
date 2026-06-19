@@ -79,6 +79,8 @@ export function buildAgroDedupeKey(
 
 export interface AgroNotificationOutcome {
     status: 'created' | 'duplicate';
+    /** Notification copy, present only when `status === 'created'` (for Web Push fan-out). */
+    notification?: { title: string; message: string; linkUrl: string };
 }
 
 export async function createAgroSignalNotification(
@@ -123,5 +125,7 @@ export async function createAgroSignalNotification(
         });
     }
 
-    return { status: result.count > 0 ? 'created' : 'duplicate' };
+    return result.count > 0
+        ? { status: 'created', notification: { title: row.title, message: row.message, linkUrl: row.linkUrl } }
+        : { status: 'duplicate' };
 }
