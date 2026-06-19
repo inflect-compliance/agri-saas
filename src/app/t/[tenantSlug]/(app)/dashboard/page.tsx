@@ -1,15 +1,18 @@
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
+import { auth } from '@/auth';
 import { getTenantCtx } from '@/app-layer/context';
 import { getExecutiveDashboard } from '@/app-layer/usecases/dashboard';
 import { getRiskMatrixConfig } from '@/app-layer/usecases/risk-matrix-config';
+import { getHomeGreeting } from '@/app-layer/usecases/home-greeting';
 import {
     getComplianceTrends,
     type TrendPayload,
 } from '@/app-layer/usecases/compliance-trends';
 
 import DashboardClient from './DashboardClient';
+import GreetingHeader from './GreetingHeader';
 import RecentActivityCard from './RecentActivityCard';
 import { Card } from '@/components/ui/card';
 
@@ -56,9 +59,11 @@ export default async function DashboardPage({
     const { tenantSlug } = await params;
     const ctx = await getTenantCtx({ tenantSlug });
 
-    const [exec, matrixConfig] = await Promise.all([
+    const [exec, matrixConfig, greeting, session] = await Promise.all([
         getExecutiveDashboard(ctx),
         getRiskMatrixConfig(ctx),
+        getHomeGreeting(ctx),
+        auth(),
     ]);
 
     // Trend snapshot is best-effort. A daily-snapshot row may not
@@ -74,11 +79,17 @@ export default async function DashboardPage({
     }
 
     return (
-        <DashboardClient
-            initialExec={exec}
-            initialTrends={trends}
-            matrixConfig={matrixConfig}
-        >
+        <div className="space-y-section">
+            <GreetingHeader
+                name={session?.user?.name ?? null}
+                avatarUrl={session?.user?.image ?? null}
+                data={greeting}
+            />
+            <DashboardClient
+                initialExec={exec}
+                initialTrends={trends}
+                matrixConfig={matrixConfig}
+            >
             <Suspense
                 fallback={
                     <Card className="space-y-compact">
@@ -92,6 +103,7 @@ export default async function DashboardPage({
                     noActivityLabel="No recent activity"
                 />
             </Suspense>
-        </DashboardClient>
+            </DashboardClient>
+        </div>
     );
 }
