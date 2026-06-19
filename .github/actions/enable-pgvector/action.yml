@@ -1,0 +1,20 @@
+name: Enable pgvector
+description: >-
+  Install the pgvector extension into the running postgis/postgis service
+  container from PGDG (the official PostgreSQL apt repo the postgis image
+  already trusts), so `CREATE EXTENSION vector` works in the RAG migration.
+  Keeps the vetted postgis image — no new image in the trust boundary.
+runs:
+  using: composite
+  steps:
+    - name: Install postgresql-16-pgvector into the postgis service container
+      shell: bash
+      run: |
+        set -euo pipefail
+        cid="$(docker ps --filter 'ancestor=postgis/postgis:16-3.4' --format '{{.ID}}' | head -1)"
+        if [ -z "$cid" ]; then
+          echo "::error::postgis service container not found — cannot install pgvector" >&2
+          exit 1
+        fi
+        docker exec "$cid" sh -c 'apt-get update -qq && apt-get install -y -qq postgresql-16-pgvector'
+        echo "pgvector installed into container $cid"
