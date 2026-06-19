@@ -14,7 +14,8 @@ import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Geometry } from 'geojson';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
+import { PushOptIn } from '@/components/pwa/PushOptIn';
 import { AgStatusBadge } from '@/components/ag/ag-status';
 import { Heading } from '@/components/ui/typography';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -150,16 +151,8 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
 
     return (
         <div className="mx-auto max-w-xl space-y-default p-4">
-            {/* sync status bar */}
-            <div className="flex items-center justify-between rounded-lg border border-border-subtle bg-bg-default px-3 py-2">
-                <span className="flex items-center gap-compact text-sm">
-                    <StatusBadge variant={online ? 'success' : 'warning'}>{online ? 'Online' : 'Offline'}</StatusBadge>
-                    {pending > 0 && <span className="text-content-secondary">{pending} queued</span>}
-                </span>
-                {pending > 0 && online && (
-                    <Button variant="secondary" size="sm" onClick={() => void flush()}>Sync now</Button>
-                )}
-            </div>
+            {/* sync status bar (shared across offline-capable surfaces) */}
+            <OfflineSyncBar online={online} pending={pending} onSyncNow={() => void flush()} />
 
             {error && (
                 <div role="alert" className="rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error">
@@ -167,9 +160,12 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                 </div>
             )}
 
-            <div>
-                <Heading level={2}>{view.task.key ? `${view.task.key} · ` : ''}{view.task.title}</Heading>
-                <p className="text-sm text-content-secondary">{view.progress.done} / {view.progress.total} parcels complete · {view.task.status}</p>
+            <div className="flex items-start justify-between gap-default">
+                <div className="min-w-0">
+                    <Heading level={2}>{view.task.key ? `${view.task.key} · ` : ''}{view.task.title}</Heading>
+                    <p className="text-sm text-content-secondary">{view.progress.done} / {view.progress.total} parcels complete · {view.task.status}</p>
+                </div>
+                <PushOptIn className="shrink-0" />
             </div>
 
             {/* The map is the operator's primary view: full-bleed and tall

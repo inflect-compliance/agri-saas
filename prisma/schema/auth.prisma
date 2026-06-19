@@ -132,6 +132,7 @@ model Tenant {
   integrationExecutions             IntegrationExecution[]
   integrationWebhookEvents          IntegrationWebhookEvent[]
   notifications                     Notification[]
+  pushSubscriptions                 PushSubscription[]
   notificationOutbox                NotificationOutbox[]
   policies                          Policy[]
   policyVersions                    PolicyVersion[]
@@ -710,6 +711,7 @@ model User {
   ownedEvidence                 Evidence[]                   @relation("EvidenceOwner")
   uploadedFiles                 FileRecord[]                 @relation("FileUploader")
   notifications                 Notification[]
+  pushSubscriptions             PushSubscription[]
   ownedPolicies                 Policy[]                     @relation("PolicyOwner")
   policyAcknowledgements        PolicyAcknowledgement[]
   policyApprovals               PolicyApproval[]             @relation("PolicyApprover")

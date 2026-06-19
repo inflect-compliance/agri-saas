@@ -148,3 +148,6 @@ cred-list.txt
 # and must never land in git.
 tests/load/results/
 dump.rdb
+
+# Lighthouse CI local reports
+.lighthouseci/

@@ -6,6 +6,7 @@ import { emitAutomationEvent } from '../automation';
 import { enqueueEmail } from '../notifications/enqueue';
 import { createTaskDueNotification } from '../notifications/task-due';
 import { createAssignmentNotification } from '../notifications/assignment';
+import { sendWebPushToUser } from '@/lib/notifications/web-push';
 import { runInTenantContext } from '@/lib/db-context';
 import { env } from '@/env';
 import { notFound, badRequest } from '@/lib/errors/types';
@@ -512,7 +513,7 @@ async function emitTaskAssignedNotification(
     const tenantSlug = ctx.tenantSlug;
     const assigneeUserId = task.assigneeUserId;
     try {
-        await runInTenantContext(ctx, (db) =>
+        const outcome = await runInTenantContext(ctx, (db) =>
             createAssignmentNotification(db, 'TASK_ASSIGNED', {
                 tenantId: task.tenantId,
                 assigneeUserId,
@@ -522,6 +523,18 @@ async function emitTaskAssignedNotification(
                 tenantSlug,
             }),
         );
+        // Fan the fresh assignment out to Web Push (no-op when push isn't
+        // configured or the assignee hasn't subscribed). Awaited but
+        // best-effort — done OUTSIDE the notification tx so the network send
+        // never holds a transaction open. Skip duplicates (already pushed).
+        if (outcome.status === 'created' && outcome.notification) {
+            await sendWebPushToUser(ctx, assigneeUserId, {
+                title: outcome.notification.title,
+                body: outcome.notification.message,
+                url: outcome.notification.linkUrl,
+                tag: `task-${task.id}`,
+            });
+        }
     } catch (err) {
         logger.warn('failed to create task-assigned notification', {
             component: 'notifications',

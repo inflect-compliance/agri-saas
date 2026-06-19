@@ -266,6 +266,17 @@ export const env = createEnv({
                 },
                 { message: 'NOTIFICATIONS_TZ must be a valid IANA timezone' },
             ),
+
+        // ── Web Push (VAPID) ──
+        // All optional: Web Push is opt-in. When the key pair is unset the
+        // push layer is a silent no-op (subscribe endpoint 503s, sends skip),
+        // so dev/CI/self-hosted run without push configured. Generate a pair
+        // with `npx web-push generate-vapid-keys`.
+        VAPID_PUBLIC_KEY: z.string().optional(),
+        VAPID_PRIVATE_KEY: z.string().optional(),
+        // `mailto:` or https contact URL embedded in the push request (push
+        // services use it to reach you about delivery problems).
+        VAPID_SUBJECT: z.string().optional(),
     },
 
     /**
@@ -280,6 +291,11 @@ export const env = createEnv({
         // a real browser. Server-side stream is wired regardless;
         // flipping this to '1' is the only step to engage SSE.
         NEXT_PUBLIC_NOTIFICATIONS_SSE: z.enum(['0', '1']).optional(),
+
+        // The VAPID public key, exposed to the browser so the client can
+        // subscribe via PushManager. Mirror of VAPID_PUBLIC_KEY; absent →
+        // the push opt-in UI stays hidden (feature-detected + key-gated).
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
     },
 
     /**
@@ -355,8 +371,12 @@ export const env = createEnv({
         PLATFORM_ADMIN_API_KEY: process.env.PLATFORM_ADMIN_API_KEY,
         PLATFORM_ADMIN_API_KEY_PREVIOUS: process.env.PLATFORM_ADMIN_API_KEY_PREVIOUS,
         NOTIFICATIONS_TZ: process.env.NOTIFICATIONS_TZ,
+        VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
+        VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+        VAPID_SUBJECT: process.env.VAPID_SUBJECT,
 
         NEXT_PUBLIC_NOTIFICATIONS_SSE: process.env.NEXT_PUBLIC_NOTIFICATIONS_SSE,
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     },
     /**
      * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.

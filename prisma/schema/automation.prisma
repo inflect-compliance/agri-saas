@@ -43,6 +43,28 @@ model Notification {
   @@index([tenantId, userId])
 }
 
+// A browser/device Web Push subscription owned by a tenant member. One row
+// per (user, endpoint) — a user with two devices has two rows. Tenant-scoped
+// → carries the canonical RLS trio (see the migration). Dead endpoints
+// (410/404 on send) are pruned by the push sender.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // tenant-leading so a browser subscribed under two tenants keeps a row per
+  // tenant (and the index serves the per-recipient [tenantId, userId] lookup
+  // the push sender does).
+  @@unique([tenantId, userId, endpoint])
+}
+
 model ReminderHistory {
   id         String   @id @default(cuid())
   tenantId   String

@@ -18,6 +18,29 @@ function isTerminalClientError(status: number): boolean {
     return status >= 400 && status < 500 && status !== 408 && status !== 429;
 }
 
+/** Shared with public/sw.js — the Background Sync tag that triggers a replay. */
+export const FLUSH_OUTBOX_SYNC_TAG = 'flush-outbox';
+
+/**
+ * Ask the service worker to flush the outbox when connectivity returns —
+ * even if the app has been closed. Progressive enhancement:
+ *   - Background Sync API present (Android/Chrome) → register the
+ *     'flush-outbox' tag; the SW's `sync` handler replays from IndexedDB.
+ *   - Not present (iOS Safari, Firefox) → no-op here; the page-side
+ *     `online`-event flush already covers reconnect-while-open.
+ * Always best-effort — a failure here is swallowed so queueing never breaks.
+ */
+async function registerOutboxSync(): Promise<void> {
+    try {
+        if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+        const reg = await navigator.serviceWorker.ready;
+        const sync = (reg as ServiceWorkerRegistration & { sync?: { register(tag: string): Promise<void> } }).sync;
+        if (sync) await sync.register(FLUSH_OUTBOX_SYNC_TAG);
+    } catch {
+        /* Background Sync unavailable / denied — fall back to online-event flush. */
+    }
+}
+
 export interface OfflineSync {
     online: boolean;
     pending: number;
@@ -95,6 +118,9 @@ export function useOfflineSync(): OfflineSync {
             }
             await enqueue(getOutboxStore(), input);
             await refresh();
+            // First failure → ask the SW to replay when the network returns,
+            // even if the operator closes the app (Background Sync).
+            void registerOutboxSync();
             return 'queued';
         },
         [refresh],

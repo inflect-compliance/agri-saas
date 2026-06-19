@@ -57,6 +57,12 @@ export interface EvaluateLocationSignalsResult {
     created: number;
     spray: { fired: boolean; status: string | null };
     disease: { fired: boolean; level: string | null; riskId: string | null };
+    /**
+     * When a NEW spray-window warning fired, the Web Push payload for the
+     * caller (weather-pull job) to deliver AFTER the tx commits — so the
+     * push network send never holds a DB transaction open.
+     */
+    sprayPush?: { recipientUserId: string; title: string; message: string; linkUrl: string };
 }
 
 /** Decimal | number | null → number | null. Prisma Decimals stringify. */
@@ -194,9 +200,14 @@ export async function evaluateLocationSignals(
         }
 
         // ── Spray notification + audit, inside this tx (no own-tx call). ──
+        // Web Push is fanned out by the CALLER after this tx commits (so the
+        // network send never holds the tx) — capture its payload here.
+        let sprayNotification: { title: string; message: string; linkUrl: string } | null = null;
+        let sprayRecipientUserId: string | null = null;
         if (sprayNew) {
             const recipient = location.ownerUserId ?? ctx.userId;
-            await createAgroSignalNotification(db, 'SPRAY_WINDOW_WARNING', {
+            sprayRecipientUserId = recipient;
+            const sprayOut = await createAgroSignalNotification(db, 'SPRAY_WINDOW_WARNING', {
                 tenantId: ctx.tenantId,
                 recipientUserId: recipient,
                 locationId,
@@ -204,6 +215,7 @@ export async function evaluateLocationSignals(
                 tenantSlug: ctx.tenantSlug ?? '',
                 detail: spray.reasons[0] ?? null,
             }, now);
+            sprayNotification = sprayOut.notification ?? null;
             await db.agroSignal.updateMany({
                 where: { tenantId: ctx.tenantId, locationId, kind: 'SPRAY_WINDOW', signalDate },
                 data: { notified: true },
@@ -229,12 +241,17 @@ export async function evaluateLocationSignals(
             sprayStatus: spray.status,
             diseaseLevel: disease.level,
             diseaseReasons: disease.reasons.join('; '),
+            sprayNotification,
+            sprayRecipientUserId,
         };
     });
 
     if (!phase1) return result;
     result.spray.status = phase1.sprayStatus;
     result.disease.level = phase1.diseaseLevel;
+    if (phase1.sprayNew && phase1.sprayNotification && phase1.sprayRecipientUserId) {
+        result.sprayPush = { recipientUserId: phase1.sprayRecipientUserId, ...phase1.sprayNotification };
+    }
     if (phase1.sprayNew) {
         result.created += 1;
         result.spray.fired = true;

@@ -1,0 +1,26 @@
+{
+  "ci": {
+    "collect": {
+      "url": ["http://localhost:3006/login"],
+      "numberOfRuns": 3,
+      "settings": {
+        "formFactor": "mobile",
+        "screenEmulation": { "mobile": true, "width": 390, "height": 844, "deviceScaleFactor": 3, "disabled": false },
+        "throttlingMethod": "simulate",
+        "onlyCategories": ["performance"],
+        "chromeFlags": "--no-sandbox --headless=new --disable-gpu --disable-dev-shm-usage --disable-renderer-backgrounding --disable-backgrounding-occluded-windows --disable-background-timer-throttling"
+      }
+    },
+    "assert": {
+      "//": "Thresholds are the measured simulated-mobile /login baseline + headroom — a budget must pass at HEAD and fail on a real regression (it's a regression gate, not an aspirational target). Baseline (2026-06-19): LCP ~4.7s, TBT ~360ms, CLS ~0.18, FCP ~2.9s, perf ~0.65. simulate throttling is host-independent so CI matches local.",
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.45 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 6000 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 900 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.25 }],
+        "first-contentful-paint": ["warn", { "maxNumericValue": 3800 }]
+      }
+    },
+    "upload": { "target": "filesystem", "outputDir": ".lighthouseci" }
+  }
+}

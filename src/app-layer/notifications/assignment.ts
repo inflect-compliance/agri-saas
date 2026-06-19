@@ -95,6 +95,12 @@ export function buildAssignmentDedupeKey(
 
 export interface AssignmentNotificationOutcome {
     status: 'created' | 'duplicate';
+    /**
+     * The notification copy, present only when `status === 'created'`. Lets
+     * the caller fan the same alert out to other channels (Web Push) without
+     * rebuilding the title/body/link.
+     */
+    notification?: { title: string; message: string; linkUrl: string };
 }
 
 export async function createAssignmentNotification(
@@ -146,5 +152,7 @@ export async function createAssignmentNotification(
         });
     }
 
-    return { status: result.count > 0 ? 'created' : 'duplicate' };
+    return result.count > 0
+        ? { status: 'created', notification: { title: row.title, message: row.message, linkUrl: row.linkUrl } }
+        : { status: 'duplicate' };
 }
