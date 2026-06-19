@@ -923,3 +923,64 @@ type-only, no prisma in the client bundle).
   tenant-wide count — matches "your day", but a manager sees only their own.
 - **Calendar season is northern-hemisphere only** — fine for the BG/EU user
   base; a hemisphere flag would generalise it.
+
+## Phase 19 — Swappable AI provider (feat/ai-provider)
+
+One swappable AI provider so local dev runs a clean-licensed small model
+(Ollama / `qwen3:1.7b`, Apache-2.0) at zero API cost, and prod swaps backend by
+ENV alone. Branch off `main` (has #58); independent of the unmerged delight PRs
+(#57/#59/#60) — gap 16→19, reconcile MEMORY.md at merge. Built per AI-KIT #31 +
+the AI-LOCAL-QUICKSTART runbook (Ollama OpenAI-compatible `/v1`). **Pushed.**
+
+- **Thin `AiProvider` interface** (`src/app-layer/ai/provider/types.ts`):
+  `complete<T>({ messages, schema?, tools?, stream?, temperature?, maxTokens?,
+  model? }) → { text, parsed?, toolCalls? }` + `health() → { ok, model,
+  modelAvailable, detail? }` + `readonly backend`.
+- **ONE OpenAI-compatible impl** (`openai-compatible-provider.ts`) backed by the
+  `openai` SDK (`new OpenAI({ baseURL, apiKey })`) — serves Ollama / OpenRouter
+  / Groq / Together by config (baseURL/apiKey/model/backend); they differ only
+  by those + a **capability map** (`{ jsonSchema, tools, streaming }` per
+  backend). Ollama is `jsonSchema:false` ON PURPOSE (qwen3:1.7b is small +
+  Ollama's json_schema support is version-dependent) → it always takes the
+  reliable json_object path.
+- **Structured output + validate/repair:** `schema` (Zod) → JSON Schema →
+  `response_format: json_schema (strict)` when the backend supports it; else (or
+  on Zod-validation failure) fall back to `json_object` with the schema injected
+  into the system prompt, ONE repair re-prompt feeding back the bad output +
+  error, then a typed `AiProviderError`. Tools pass through as OpenAI `tools` →
+  `toolCalls`; streaming assembles deltas. **Zod 4 note:** the converter uses
+  Zod 4's native `z.toJSONSchema()` (the v3-era `zod-to-json-schema` returns an
+  empty schema on Zod 4 — kept only as the documented Zod-3 fallback).
+- **health() probe:** GET `${baseURL}/models`, checks the configured model is
+  listed (Ollama lists pulled models); never throws.
+- **OpenRouter risk provider is now ONE config of the new impl** —
+  `openrouter-provider.ts` became a thin adapter over `OpenAiCompatibleProvider`
+  (configured for OpenRouter) calling `complete({ messages, schema })`. The
+  `RiskSuggestionProvider` interface + the call site (`usecases/risk-suggestions`)
+  + feature-gate/stub selection are all preserved → the same risk-assessment
+  call site now runs on local Ollama OR OpenRouter purely via env.
+- **Env + compose:** `AI_BACKEND` / `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL`
+  (+ reserved `AI_EMBED_MODEL`) added to `src/env.ts` with Ollama dev defaults
+  (zero-config local dev; routed through env.ts — no raw process.env, clears the
+  no-fallbacks guard). Dev `docker-compose.yml` gains an `ollama` service
+  (`ollama/ollama:latest`, 11434, named volume).
+- **Deps:** `openai@6.44.0` + `zod-to-json-schema@3.25.2`; `npm audit fix`
+  bumped a transitive `ws` 8.20.1 (HIGH, unused Realtime peer) → 8.21.0. Prod
+  audit (MODERATE+) clean.
+
+**Verified:** tsc 0; full static guard sweep (599 suites / 8093 tests) green
+incl. both `no-explicit-any` ratchets + no-fallbacks + usecase-test-coverage;
+new mocked-client tests (`ai-provider.test.ts`: structured round-trip,
+json_schema→json_object fallback, validate/repair, tool calls, health
+ok/missing/fail-no-throw, factory env selection + backend inference, streaming;
+`ai-risk-openrouter-adapter.test.ts`) + the existing risk suites green;
+`npm audit` clean; `next build`.
+
+### Remaining gaps (Phase 19)
+- **Embeddings (RAG, AI-KIT #32) out of scope** — `AI_EMBED_MODEL` reserved but
+  no embedding path yet.
+- **Capability map is conservative** — Ollama json_schema is hardcoded off; a
+  version/probe-based detection could enable strict mode on newer Ollama.
+- **Streaming returns assembled text**, not a token-by-token UI stream surface
+  yet — the provider supports `stream`, but no call site consumes it
+  incrementally.

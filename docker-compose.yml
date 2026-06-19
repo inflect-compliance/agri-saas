@@ -87,7 +87,29 @@ services:
       retries: 5
       start_period: 120s   # ClamAV needs ~2 min to download defs on first boot
 
+  # ── Ollama (local AI provider — feat/ai-provider) ──
+  # OpenAI-compatible model server for zero-cost local dev. After the
+  # container is up, pull the clean-licensed default model once:
+  #   docker compose exec ollama ollama pull qwen3:1.7b
+  # The app's swappable AI provider defaults to this endpoint
+  # (AI_BASE_URL=http://localhost:11434/v1, AI_MODEL=qwen3:1.7b). Prod
+  # swaps to a hosted OpenAI-compatible backend by env alone — Ollama is
+  # a dev-only service. The bearer key is ignored by Ollama (the SDK just
+  # needs a non-empty string, hence AI_API_KEY=ollama).
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - '11434:11434'
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama --version >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   pgdata:
   redisdata:
   clamav-defs:
+  ollama:

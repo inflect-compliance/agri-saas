@@ -1,35 +1,52 @@
 /**
- * AI Risk Assessment — OpenRouter Provider (Enhanced)
+ * AI Risk Assessment — OpenRouter Provider (thin adapter).
  *
- * Real LLM-backed provider that calls the OpenRouter API.
- * Requires OPENROUTER_API_KEY env var.
- * Falls back to deterministic templates if the API call fails.
+ * Previously this was a bespoke fetch implementation. It is now a thin
+ * adapter over the single swappable `OpenAiCompatibleProvider`
+ * (src/app-layer/ai/provider) configured for OpenRouter. The same risk
+ * call site therefore runs on local Ollama OR OpenRouter purely via env
+ * — the only thing that changes is the provider's base URL / key / model.
+ *
+ * The class name + `RiskSuggestionProvider` interface are preserved so
+ * the factory + call site + existing tests keep working. On any failure
+ * it still falls back to the deterministic knowledge-base stub.
  */
 import type { RiskAssessmentInput, RiskSuggestionOutput, RiskSuggestionProvider } from './types';
 import { buildRiskAssessmentPrompt } from './prompt-builder';
 import { RiskSuggestionOutputSchema } from './schemas';
 import { StubRiskSuggestionProvider } from './stub-provider';
 import { logger } from '@/lib/observability/logger';
+import { OpenAiCompatibleProvider } from '@/app-layer/ai/provider';
+import type { AiProvider } from '@/app-layer/ai/provider';
 
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet';
 
 export class OpenRouterRiskSuggestionProvider implements RiskSuggestionProvider {
     readonly providerName = 'openrouter';
-    private apiKey: string;
-    private model: string;
-    private fallback: StubRiskSuggestionProvider;
+    private readonly model: string;
+    private readonly ai: AiProvider;
+    private readonly fallback: StubRiskSuggestionProvider;
 
-    constructor(apiKey: string, model?: string) {
-        this.apiKey = apiKey;
+    constructor(apiKey: string, model?: string, aiProvider?: AiProvider) {
         this.model = model ?? DEFAULT_MODEL;
+        // Default to a real OpenRouter-configured OpenAiCompatibleProvider;
+        // `aiProvider` is injectable for tests.
+        this.ai =
+            aiProvider ??
+            new OpenAiCompatibleProvider({
+                backend: 'openrouter',
+                baseURL: OPENROUTER_BASE_URL,
+                apiKey,
+                model: this.model,
+            });
         this.fallback = new StubRiskSuggestionProvider(/* isFallbackMode */ true);
     }
 
     async generateSuggestions(input: RiskAssessmentInput): Promise<RiskSuggestionOutput> {
         try {
             return await this.callApi(input);
-        } catch (error) {
+        } catch {
             logger.error('OpenRouter API call failed, using fallback', { component: 'ai' });
             return this.fallback.generateSuggestions(input);
         }
@@ -38,54 +55,24 @@ export class OpenRouterRiskSuggestionProvider implements RiskSuggestionProvider 
     private async callApi(input: RiskAssessmentInput): Promise<RiskSuggestionOutput> {
         const prompt = buildRiskAssessmentPrompt(input);
 
-        const response = await fetch(OPENROUTER_API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${this.apiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://inflect-compliance.app',
-                'X-Title': 'Inflect Compliance - Risk Assessment',
-            },
-            body: JSON.stringify({
-                model: this.model,
-                messages: [
-                    { role: 'system', content: prompt.system },
-                    {
-                        role: 'user',
-                        content: `${prompt.user}\n\nRespond with ONLY JSON matching this schema:\n${prompt.responseSchema}`,
-                    },
-                ],
-                temperature: 0.3,
-                max_tokens: 4096,
-                response_format: { type: 'json_object' },
-            }),
+        const completion = await this.ai.complete({
+            schema: RiskSuggestionOutputSchema,
+            schemaName: 'risk_suggestions',
+            temperature: 0.3,
+            maxTokens: 4096,
+            messages: [
+                { role: 'system', content: prompt.system },
+                { role: 'user', content: prompt.user },
+            ],
         });
 
-        if (!response.ok) {
-            const errorText = await response.text().catch(() => 'unknown');
-            throw new Error(`OpenRouter API error ${response.status}: ${errorText}`);
+        const validated = completion.parsed;
+        if (!validated) {
+            throw new Error('AI provider returned no parsed structured output');
         }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data: any = await response.json();
-        const content = data?.choices?.[0]?.message?.content;
-
-        if (!content) {
-            throw new Error('OpenRouter returned empty content');
-        }
-
-        // Parse and validate the JSON response
-        let parsed: unknown;
-        try {
-            parsed = JSON.parse(content);
-        } catch {
-            throw new Error(`Failed to parse AI response as JSON: ${content.substring(0, 200)}`);
-        }
-
-        const validated = RiskSuggestionOutputSchema.parse(parsed);
 
         return {
-            suggestions: validated.suggestions.map(s => ({
+            suggestions: validated.suggestions.map((s) => ({
                 ...s,
                 suggestedControls: s.suggestedControls ?? [],
                 confidence: s.confidence ?? 'medium',
