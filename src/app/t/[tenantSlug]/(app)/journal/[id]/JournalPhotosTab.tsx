@@ -6,6 +6,7 @@ import { ImageIcon, Trash, CloudUpload, NucleoPhoto } from '@/components/ui/icon
 import { EmptyState } from '@/components/ui/empty-state';
 import { apiDelete } from '@/lib/api-client';
 import { useToastWithUndo } from '@/components/ui/hooks';
+import { haptic } from '@/lib/haptics';
 import { cn } from '@/lib/cn';
 import { cardVariants } from '@/components/ui/card';
 import { formatDateTime } from '@/lib/format-date';
@@ -71,9 +72,11 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
                 }
                 throw new Error(typeof msg === 'string' ? msg : 'Upload failed');
             }
+            haptic('success');
             onChanged();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Upload failed');
+            haptic('error');
         } finally {
             setUploading(false);
         }
@@ -91,6 +94,8 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
         const file = e.target.files?.[0];
         e.target.value = '';
         if (!file) return;
+        // Crisp tactile confirmation the shutter captured (field + gloves).
+        haptic('tap');
         // Show the thumbnail instantly (offline-safe), then upload.
         setPreviewSrc((prev) => {
             if (prev) URL.revokeObjectURL(prev);

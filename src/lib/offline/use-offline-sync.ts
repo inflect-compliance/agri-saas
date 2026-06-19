@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { getOutboxStore, enqueue, type EnqueueInput } from './outbox';
 import { flushOutbox, fetchSender, type FlushSummary } from './sync';
+import { haptic } from '@/lib/haptics';
 
 function isTerminalClientError(status: number): boolean {
     return status >= 400 && status < 500 && status !== 408 && status !== 429;
@@ -118,6 +119,9 @@ export function useOfflineSync(): OfflineSync {
             }
             await enqueue(getOutboxStore(), input);
             await refresh();
+            // Tactile confirmation that the action was saved offline (gloves +
+            // no signal) — capability-gated, no-op on desktop/reduced-motion.
+            haptic('tap');
             // First failure → ask the SW to replay when the network returns,
             // even if the operator closes the app (Background Sync).
             void registerOutboxSync();

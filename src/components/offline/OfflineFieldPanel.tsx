@@ -16,6 +16,8 @@ import type { Geometry } from 'geojson';
 import { Button } from '@/components/ui/button';
 import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
 import { PushOptIn } from '@/components/pwa/PushOptIn';
+import { FadeIn } from '@/components/ui/motion/FadeIn';
+import { haptic } from '@/lib/haptics';
 import { AgStatusBadge } from '@/components/ag/ag-status';
 import { Heading } from '@/components/ui/typography';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -55,6 +57,8 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
     // line into view, so an operator can jump straight to the line they're
     // standing on instead of scrolling the list.
     const [selectedParcelId, setSelectedParcelId] = useState<string | null>(null);
+    // Per-line in-flight marker → inline spinner (never a blocking modal).
+    const [markingId, setMarkingId] = useState<string | null>(null);
 
     const selectParcel = useCallback((ids: string[]) => {
         const id = ids[ids.length - 1] ?? null;
@@ -105,6 +109,7 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
     const mark = useCallback(
         async (line: Line, status: LineStatus) => {
             setError(null);
+            setMarkingId(line.id);
             // 1 — optimistic update of the local view (responds instantly,
             //     online OR offline) + persist the snapshot so a cold offline
             //     reload reflects work already queued.
@@ -137,10 +142,19 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                 // 3 — when it actually went out, revalidate against the server
                 //     (picks up the job auto-resolve + any stock deduction);
                 //     the SWR effect resyncs `view` + the snapshot.
-                if (result === 'sent') await mutate();
+                if (result === 'sent') {
+                    // Online confirmation (the offline/queued path already
+                    // fired a tap haptic in useOfflineSync). A done feels
+                    // weightier than a skip/reopen.
+                    haptic(status === 'DONE' ? 'success' : 'tap');
+                    await mutate();
+                }
             } catch {
                 setError('Could not save that change — it was reverted. Please retry.');
+                haptic('error');
                 await mutate(); // revalidate → SWR effect discards the optimistic update
+            } finally {
+                setMarkingId(null);
             }
         },
         [submit, buildUrl, taskId, mutate],
@@ -150,7 +164,9 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
     if (!view) return <div className="p-6 text-base text-content-secondary">Field operation not found.</div>;
 
     return (
-        <div className="mx-auto max-w-xl space-y-default p-4">
+        // Content cross-fades in once the field op loads (skeleton/loader →
+        // content), on the sanctioned animate-fade-in token.
+        <FadeIn className="mx-auto max-w-xl space-y-default p-4">
             {/* sync status bar (shared across offline-capable surfaces) */}
             <OfflineSyncBar online={online} pending={pending} onSyncNow={() => void flush()} />
 
@@ -180,6 +196,7 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                 onSelectionChange={selectParcel}
                 doneIds={doneIds}
                 showControls
+                flyToOnSelect
                 controlsBottomInset={isMobile ? 76 : 12}
                 className={isMobile
                     ? '-mx-4 h-[60vh] min-h-[20rem] overflow-hidden border-y border-border-subtle'
@@ -192,7 +209,8 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                         key={l.id}
                         id={l.parcel?.id ? `offline-line-${l.parcel.id}` : undefined}
                         className={cn(
-                            'rounded-lg border p-4 transition-colors',
+                            // list-add: each line fades in on mount (one-shot)
+                            'animate-fade-in rounded-lg border p-4 transition-colors',
                             l.parcel?.id && l.parcel.id === selectedParcelId
                                 ? 'border-border-emphasis ring-2 ring-ring'
                                 : 'border-border-subtle',
@@ -206,19 +224,19 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                         </div>
                         {l.status === 'PENDING' ? (
                             <div className="grid grid-cols-2 gap-compact">
-                                <Button variant="primary" size="lg" onClick={() => void mark(l, 'DONE')}>Done</Button>
-                                <Button variant="secondary" size="lg" onClick={() => void mark(l, 'SKIPPED')}>Skip</Button>
+                                <Button variant="primary" size="lg" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'DONE')}>Done</Button>
+                                <Button variant="secondary" size="lg" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'SKIPPED')}>Skip</Button>
                             </div>
                         ) : (
                             <div className="flex items-center justify-between">
                                 <AgStatusBadge entity="operationParcel" status={l.status} size="md" />
-                                <Button variant="secondary" size="sm" onClick={() => void mark(l, 'PENDING')}>Reopen</Button>
+                                <Button variant="secondary" size="sm" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'PENDING')}>Reopen</Button>
                             </div>
                         )}
                     </li>
                 ))}
             </ul>
-        </div>
+        </FadeIn>
     );
 }
 

@@ -118,3 +118,6 @@ export {
     type TriggerUndoToast,
     type TriggerUndoToastInput,
 } from "./use-toast-with-undo";
+
+// ─── Reduced motion (feat/delight-motion) ─────────────────────────────
+export { useReducedMotion, prefersReducedMotion } from "./use-reduced-motion";

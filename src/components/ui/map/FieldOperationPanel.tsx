@@ -17,6 +17,7 @@ import { AgStatusBadge } from '@/components/ag/ag-status';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPatch } from '@/lib/api-client';
+import { haptic } from '@/lib/haptics';
 import type { MapParcel } from '@/components/ui/map/MapCanvas';
 
 // Browser-only (MapLibre touches window) — load client-side only.
@@ -69,7 +70,11 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
         setBusyId(lineId);
         try {
             await apiPatch(buildUrl(`/field-operations/${taskId}/parcels/${lineId}`), { status });
+            haptic(status === 'DONE' ? 'success' : 'tap');
             await mutate();
+        } catch (err) {
+            haptic('error');
+            throw err;
         } finally {
             setBusyId(null);
         }
@@ -100,11 +105,11 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
                             <AgStatusBadge entity="operationParcel" status={l.status} />
                             {l.status === 'PENDING' ? (
                                 <>
-                                    <Button size="sm" variant="primary" disabled={busyId === l.id} onClick={() => mark(l.id, 'DONE')}>Done</Button>
-                                    <Button size="sm" variant="secondary" disabled={busyId === l.id} onClick={() => mark(l.id, 'SKIPPED')}>Skip</Button>
+                                    <Button size="sm" variant="primary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'DONE')}>Done</Button>
+                                    <Button size="sm" variant="secondary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'SKIPPED')}>Skip</Button>
                                 </>
                             ) : (
-                                <Button size="sm" variant="secondary" disabled={busyId === l.id} onClick={() => mark(l.id, 'PENDING')}>Reopen</Button>
+                                <Button size="sm" variant="secondary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'PENDING')}>Reopen</Button>
                             )}
                         </div>
                     </li>

@@ -680,3 +680,65 @@ no-explicit-any green. Mobile e2e + local Lighthouse verified pre-merge.
 - **`docker-compose.test.yml` still non-postgis** (carried from Phase 11) — the
   new Lighthouse + e2e CI jobs use the inline `postgis/postgis:16-3.4` service,
   so CI is fine; only the local compose helper needs the bump.
+
+---
+
+## Phase 13 — Delight motion layer (feat/delight-motion)
+
+Every tap feels alive + responsive without slowing the field user. Built
+ENTIRELY on the sanctioned motion tokens so the 9 existing motion guards stay
+green. Branch `feat/delight-motion` off `main` — **pushed, NOT merged** (the
+prompt asked for commit/push/MEMORY only).
+
+- **Key constraint learned:** `src/styles/tokens.css` globally flattens
+  `animation-duration` to ~1ms under `prefers-reduced-motion`, so any animation
+  using a sanctioned `animate-*` utility is reduced-motion-safe for free. The
+  motion guards BAN: `hover:transition-all`, `hover:translate/scale/shadow`,
+  `animate-bounce/ping`, hardcoded durations, new animate-* utilities outside
+  the tailwind.config allowlist, raw `sonner` imports (must go through the toast
+  hooks). I stayed inside all of that → no guard bumps needed.
+- **`useReducedMotion` + `prefersReducedMotion`** (`components/ui/hooks/
+  use-reduced-motion.ts`, exported from the hooks barrel) — the public hook for
+  JS-driven motion (the charts kept their private copies to avoid touching the
+  r16 guard).
+- **Haptics** (`src/lib/haptics.ts`): `haptic('tap'|'success'|'warning'|
+  'error')` + `canVibrate()` — capability-gated (Vibration API) AND
+  reduced-motion-gated → silent no-op on desktop/iOS Safari/reduced-motion.
+  Wired on: mark-done (OfflineFieldPanel sent + FieldOperationPanel),
+  offline-submit (useOfflineSync queue path), photo capture+upload
+  (JournalPhotosTab). error pattern on failures.
+- **Map fly-to easing** (MapCanvas): locate-me `flyTo` duration is now
+  reduced-motion-aware (0 vs 1200); new opt-in `flyToOnSelect` eases
+  (`fitBounds` via `@turf/bbox`, padding 64, 800ms) to the SOLE selected parcel
+  — enabled on OfflineFieldPanel (operator focus), left OFF on the desktop
+  multi-select Map tab so merge isn't disrupted.
+- **Cross-fade + list motion** (`components/ui/motion/FadeIn.tsx`): `<FadeIn>`
+  + `<SkeletonFade>` on the existing `animate-fade-in` token (opacity-only → no
+  CLS, GPU-composited). OfflineFieldPanel content cross-fades in on load;
+  prescription lines fade in on mount (list-add). Reduced-motion handled by the
+  global token flatten.
+- **Optimistic + inline spinners:** mark-done already optimistic (local view +
+  outbox); added per-line `loading` spinners (Button `loading` prop) on
+  OfflineFieldPanel + FieldOperationPanel — never a blocking modal. Toast
+  vocabulary + Undo-on-destructive already shipped (Epic 67 `useToastWithUndo`,
+  e.g. JournalPhotosTab photo delete) — reused, not rebuilt.
+
+**Verified:** tsc 0; all 9 motion guards green (81); full static guard sweep;
+new haptics unit (capability/reduced-motion gating) + FadeIn/SkeletonFade
+rendered tests; no-explicit-any green (caught + fixed a `: any` in a doc
+comment, twice now — the regex matches prose). No new animate-* utility, no
+guard ratchet bump.
+
+### Remaining gaps (Phase 13)
+- **List reorder is not FLIP-animated** — add (enter) + remove (Epic 67 undo
+  toast) are covered; true position-swap reorder animation is a follow-up (FLIP
+  risks CLS, deferred).
+- **`flyToOnSelect` is opt-in, wired only on OfflineFieldPanel** — not on the
+  in-app FieldOperationPanel (read-only, no selection) or the desktop Map tab
+  (multi-select). Extend if a single-focus desktop view appears.
+- **Haptics suppressed under reduced-motion** by choice (treated as
+  non-essential feedback) — if a user wants haptics-without-visual-motion,
+  that'd need a separate preference.
+- **60fps / no-CLS is by construction** (opacity/transform only, GPU layers) —
+  not yet asserted by an automated perf test; the Lighthouse CLS budget (Phase
+  12) is the nearest gate.

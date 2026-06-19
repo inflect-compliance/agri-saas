@@ -24,7 +24,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, Source, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre';
 import type { Feature, FeatureCollection, Geometry, LineString, Polygon } from 'geojson';
 import { validatePolygonGeometry, type PolygonValidity } from '@/lib/geo/polygon-validity';
+import bbox from '@turf/bbox';
 import { Crosshairs3, MapPosition, Minus, Plus } from '@/components/ui/icons/nucleo';
+import { useReducedMotion } from '@/components/ui/hooks';
 import { cn } from '@/lib/cn';
 
 export interface MapParcel {
@@ -97,6 +99,13 @@ export interface MapCanvasProps {
      */
     liveTracking?: boolean;
     /**
+     * Ease the camera to frame a parcel when it becomes the sole selection
+     * (operator focus). Opt-in so multi-select authoring (merge) on the
+     * desktop Map tab isn't disrupted. Honors prefers-reduced-motion
+     * (instant jump instead of a fly).
+     */
+    flyToOnSelect?: boolean;
+    /**
      * Vector-tile source for read-only display (perf at scale). When set
      * AND the map is pure read-only (`!interactive` and `mode` is not a
      * drawing mode), a MapLibre `vector` `<Source>` is drawn from this
@@ -130,9 +139,11 @@ export function MapCanvas({
     showControls = false,
     controlsBottomInset = 12,
     liveTracking = false,
+    flyToOnSelect = false,
     vectorTileUrl,
     className,
 }: MapCanvasProps) {
+    const reducedMotion = useReducedMotion();
     const ndviActive = showNdvi && !!ndviTileUrl && ndviTileUrl.length > 0;
     const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
     const done = useMemo(() => new Set(doneIds), [doneIds]);
@@ -209,13 +220,33 @@ export function MapCanvas({
             (pos) => {
                 const { longitude, latitude } = pos.coords;
                 setUserLoc({ lon: longitude, lat: latitude });
-                mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 16, duration: 1200 });
+                mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 16, duration: reducedMotion ? 0 : 1200 });
                 setLocating(false);
             },
             (err) => { setGeoError(geoErrMessage(err)); setLocating(false); },
             { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 },
         );
-    }, [geoAvailable, geoErrMessage]);
+    }, [geoAvailable, geoErrMessage, reducedMotion]);
+
+    // Ease the camera to frame the sole selected parcel (operator focus).
+    // Only fires for a single selection so multi-select authoring isn't
+    // disrupted; instant when the user prefers reduced motion.
+    useEffect(() => {
+        if (!flyToOnSelect || selectedIds.length !== 1) return;
+        const parcel = parcels.find((p) => p.id === selectedIds[0] && p.geometry);
+        if (!parcel?.geometry) return;
+        try {
+            const [minX, minY, maxX, maxY] = bbox(parcel.geometry);
+            mapRef.current?.fitBounds(
+                [[minX, minY], [maxX, maxY]],
+                { padding: 64, duration: reducedMotion ? 0 : 800, maxZoom: 16 },
+            );
+        } catch {
+            /* a malformed geometry shouldn't break selection */
+        }
+        // selectedIds is the trigger; parcels/reducedMotion read at fire time.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedIds, flyToOnSelect]);
 
     const stopTracking = useCallback(() => {
         if (watchId.current !== null) {
