@@ -151,3 +151,4 @@ dump.rdb
 
 # Lighthouse CI local reports
 .lighthouseci/
+ag-saas/MEMORY.md
