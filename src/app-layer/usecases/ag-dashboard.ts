@@ -4,6 +4,7 @@ import { assertCanRead } from '../policies/common';
 import { listLogEntries } from './journal';
 import { listLots } from './inventory';
 import { listMyFarmTasks } from './farm-task';
+import { getAchievements, type AchievementsResult } from './achievements';
 import { getEnabledModules } from './modules';
 import { listSchemes } from './certification-scheme';
 import { generateReadinessReport } from './framework/coverage';
@@ -71,6 +72,12 @@ export interface AgDashboardPayload {
      * Null otherwise so the client card stays hidden for pure-farm tenants.
      */
     certification: AgDashboardCertification | null;
+    /**
+     * Earned milestones + journaling streak (derived from existing rows).
+     * Null for a pure-GRC tenant with no ag module enabled, so the
+     * achievements card stays hidden there.
+     */
+    achievements: AchievementsResult | null;
 }
 
 function toIso(d: Date | string | null | undefined): string | null {
@@ -85,11 +92,14 @@ export async function getAgDashboard(ctx: RequestContext): Promise<AgDashboardPa
     const journalOn = enabledModules.includes('JOURNAL');
     const inventoryOn = enabledModules.includes('INVENTORY');
     const certificationOn = enabledModules.includes('CERTIFICATION');
+    // Achievements are an ag-product surface — computed for any farm tenant,
+    // null for a pure-GRC tenant so the card never appears there.
+    const achievementsOn = journalOn || inventoryOn || certificationOn || enabledModules.includes('PLANNING');
 
     // Fetch only what's enabled. Each underlying list is already bounded
     // (`take` in the repository) and authorizes independently; we run them
     // in parallel and slice to the strip cap below.
-    const [journalEntries, lots, tasks] = await Promise.all([
+    const [journalEntries, lots, tasks, achievements] = await Promise.all([
         // LogEntry list — newest occurredAt first (repository orderBy).
         journalOn ? listLogEntries(ctx) : Promise.resolve([]),
         // Lots carry a computed `lowStock` boolean; we filter to those.
@@ -99,6 +109,8 @@ export async function getAgDashboard(ctx: RequestContext): Promise<AgDashboardPa
         // The caller's FARM_TASK + FIELD_OPERATION queue, soonest-due first.
         // Always fetched — Tasks is not module-gated.
         listMyFarmTasks(ctx),
+        // Milestones + journaling streak (own tenant context; derived rows).
+        achievementsOn ? getAchievements(ctx) : Promise.resolve(null),
     ]);
 
     const recentJournal: AgDashboardJournalItem[] = journalEntries
@@ -146,5 +158,5 @@ export async function getAgDashboard(ctx: RequestContext): Promise<AgDashboardPa
         }
     }
 
-    return { enabledModules, recentJournal, lowStock, myTasks, certification };
+    return { enabledModules, recentJournal, lowStock, myTasks, certification, achievements };
 }

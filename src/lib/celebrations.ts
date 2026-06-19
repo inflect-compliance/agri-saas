@@ -50,7 +50,14 @@ export type MilestoneKey =
     | 'framework-100'
     | 'evidence-all-current'
     | 'audit-pack-complete'
-    | 'first-control-mapped';
+    | 'first-control-mapped'
+    // ─── Agriculture milestones (feat/delight-celebrations) ───
+    | 'first-field-mapped'
+    | 'spray-job-complete'
+    | 'first-harvest'
+    | 'season-closed'
+    | 'inspection-passed'
+    | 'sop-100-ack';
 
 // ─── Definition shape ──────────────────────────────────────────────
 
@@ -91,6 +98,44 @@ export const MILESTONES: Record<MilestoneKey, MilestoneDefinition> = {
         preset: 'burst',
         message: 'First control mapped 🚀',
         description: "You're on your way — keep going.",
+    },
+
+    // ─── Agriculture milestones — meaningful events only, never routine saves ───
+    'first-field-mapped': {
+        key: 'first-field-mapped',
+        preset: 'burst',
+        message: 'First field on the map 🗺️',
+        description: 'Your operation has its first mapped location.',
+    },
+    'spray-job-complete': {
+        key: 'spray-job-complete',
+        preset: 'burst',
+        message: 'Spray job complete 🚜',
+        description: 'Every parcel on the job is done.',
+    },
+    'first-harvest': {
+        key: 'first-harvest',
+        preset: 'burst',
+        message: 'First harvest logged 🌾',
+        description: 'The first crop is in the book.',
+    },
+    'season-closed': {
+        key: 'season-closed',
+        preset: 'fireworks',
+        message: 'Season closed 🎉',
+        description: 'A full season, start to finish — well done.',
+    },
+    'inspection-passed': {
+        key: 'inspection-passed',
+        preset: 'fireworks',
+        message: 'Inspection passed 🏅',
+        description: 'Your records stood up to the certifier.',
+    },
+    'sop-100-ack': {
+        key: 'sop-100-ack',
+        preset: 'rain',
+        message: 'Every SOP acknowledged ✨',
+        description: 'The whole team has read and signed off.',
     },
 };
 
@@ -152,6 +197,37 @@ export function clearCelebrated(key: string): void {
         window.sessionStorage.removeItem(celebrationDedupeKey(key));
     } catch {
         // Storage unavailable — nothing to clear.
+    }
+}
+
+// ─── Achievement celebration dedupe (localStorage — fires once per browser) ─
+//
+// The ag achievements card fires a milestone celebration ONCE per browser; the
+// per-tab `sessionStorage` helpers above would re-fire in every new tab. Raw
+// localStorage is fine in this lib layer — the `src/app/**` localStorage ban
+// (Epic 60) is about UI components reaching past the `useLocalStorage` hook,
+// and that hook defers hydration (returns its initial value on first render),
+// which a fire-once-on-mount check can't use. SSR-safe; fails soft.
+
+const ACHIEVEMENTS_CELEBRATED_KEY = 'agri.achievements.celebrated.v1';
+
+export function readCelebratedAchievements(): Set<string> {
+    if (typeof window === 'undefined') return new Set();
+    try {
+        return new Set(JSON.parse(window.localStorage.getItem(ACHIEVEMENTS_CELEBRATED_KEY) ?? '[]') as string[]);
+    } catch {
+        return new Set();
+    }
+}
+
+export function markAchievementsCelebrated(keys: string[]): void {
+    if (typeof window === 'undefined') return;
+    try {
+        const current = readCelebratedAchievements();
+        for (const k of keys) current.add(k);
+        window.localStorage.setItem(ACHIEVEMENTS_CELEBRATED_KEY, JSON.stringify([...current]));
+    } catch {
+        /* private mode — celebration just isn't deduped persistently */
     }
 }
 

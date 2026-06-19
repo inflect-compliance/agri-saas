@@ -9,6 +9,7 @@ import RecentJournalCard from './RecentJournalCard';
 import LowStockCard from './LowStockCard';
 import MyFarmTasksCard from './MyFarmTasksCard';
 import CertificationSchemeCard from './CertificationSchemeCard';
+import AchievementsCard from './AchievementsCard';
 
 /**
  * Agriculture dashboard strip — a small "your farm today" row of cards
@@ -47,7 +48,7 @@ export default function AgDashboardStrip() {
     // The strip exists only for ag tenants. With no core ag module enabled
     // (journal / inventory) AND no certification reading, render nothing —
     // the farm row is invisible for pure-GRC.
-    if (!journalOn && !inventoryOn && !certificationOn) return null;
+    if (!journalOn && !inventoryOn && !certificationOn && !data.achievements) return null;
 
     return (
         <div
@@ -64,6 +65,7 @@ export default function AgDashboardStrip() {
                 <CertificationSchemeCard href={href('/schemes')} certification={data.certification} />
             )}
             <MyFarmTasksCard href={href('/farm-tasks')} items={data.myTasks} />
+            {data.achievements && <AchievementsCard achievements={data.achievements} />}
         </div>
     );
 }

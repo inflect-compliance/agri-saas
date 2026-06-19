@@ -24,6 +24,7 @@ const listMyFarmTasks = jest.fn();
 const getEnabledModules = jest.fn();
 const listSchemes = jest.fn();
 const generateReadinessReport = jest.fn();
+const getAchievements = jest.fn();
 
 jest.mock('@/app-layer/usecases/journal', () => ({
     listLogEntries: (...a: any[]) => listLogEntries(...a),
@@ -43,6 +44,9 @@ jest.mock('@/app-layer/usecases/certification-scheme', () => ({
 jest.mock('@/app-layer/usecases/framework/coverage', () => ({
     generateReadinessReport: (...a: any[]) => generateReadinessReport(...a),
 }));
+jest.mock('@/app-layer/usecases/achievements', () => ({
+    getAchievements: (...a: any[]) => getAchievements(...a),
+}));
 
 import { getAgDashboard } from '@/app-layer/usecases/ag-dashboard';
 import { makeRequestContext } from '../helpers/make-context';
@@ -53,6 +57,8 @@ beforeEach(() => {
     jest.clearAllMocks();
     // Default: no certification schemes exist → certification resolves null.
     listSchemes.mockResolvedValue([]);
+    // Default achievements payload (overridden where a test asserts it).
+    getAchievements.mockResolvedValue({ milestones: [], streak: { current: 0, best: 0 } });
 });
 
 function journalEntry(i: number) {
