@@ -196,6 +196,15 @@ describeFn('Guardrail: RLS coverage (pg_policies ↔ schema)', () => {
             // would be a permissive sibling that re-introduces the
             // cross-tenant UPDATE leak documented in the migration.
             'UserSession',
+            // feat/ai-rag — `KnowledgeChunk` has a NULLABLE tenantId:
+            // NULL = the GLOBAL licensed catalog (KCC / FAIR-Forward QA /
+            // EU/USDA organic), readable by every tenant; non-null =
+            // tenant-private RAG chunks. Same asymmetric single-policy
+            // form as UserSession — USING (tenantId IS NULL OR own)
+            // WITH CHECK (own). A split tenant_isolation_insert policy
+            // would be a permissive sibling letting app_user re-tenant a
+            // NULL GLOBAL row. See migration 20260619100000_ai_rag_pgvector.
+            'KnowledgeChunk',
         ]);
 
         const { Prisma } = require('@prisma/client');

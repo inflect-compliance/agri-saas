@@ -29,12 +29,22 @@ import type {
     AiCapabilities,
     AiCompleteOptions,
     AiCompletion,
+    AiEmbedding,
+    AiEmbedOptions,
     AiHealth,
     AiMessage,
     AiProvider,
     AiToolCall,
     OpenAiCompatibleConfig,
 } from './types';
+
+/**
+ * Default embedding model — nomic-embed-text (768 dims, the
+ * `KnowledgeChunk.embedding vector(768)` column width). Ollama serves
+ * it locally; hosted backends expose a same-named model. The configured
+ * `AI_EMBED_MODEL` (env, default 'nomic-embed-text') overrides it.
+ */
+export const DEFAULT_EMBED_MODEL = 'nomic-embed-text';
 
 /**
  * Per-backend capability map. Drives the structured-output path and is
@@ -59,12 +69,20 @@ import type {
  *             unknown host always gets the universally-supported
  *             json_object path.
  */
+//   embeddings — ollama + openrouter expose an OpenAI-compatible
+//             `/embeddings` endpoint (Ollama serves nomic-embed-text
+//             locally; OpenRouter proxies embedding models). groq +
+//             together do NOT serve embeddings via this surface, and the
+//             generic catch-all stays conservative FALSE — callers that
+//             need embeddings on those backends configure a dedicated
+//             embedding host. `embed()` throws if the flag is false so
+//             the failure is loud, not a silent empty vector.
 export const CAPABILITIES: Record<AiBackend, AiCapabilities> = {
-    ollama: { jsonSchema: false, tools: true, streaming: true },
-    openrouter: { jsonSchema: true, tools: true, streaming: true },
-    groq: { jsonSchema: true, tools: true, streaming: true },
-    together: { jsonSchema: true, tools: true, streaming: true },
-    'openai-compatible': { jsonSchema: false, tools: true, streaming: true },
+    ollama: { jsonSchema: false, tools: true, streaming: true, embeddings: true },
+    openrouter: { jsonSchema: true, tools: true, streaming: true, embeddings: true },
+    groq: { jsonSchema: true, tools: true, streaming: true, embeddings: false },
+    together: { jsonSchema: true, tools: true, streaming: true, embeddings: false },
+    'openai-compatible': { jsonSchema: false, tools: true, streaming: true, embeddings: false },
 };
 
 /** Typed error for unrecoverable provider failures. */
@@ -108,12 +126,14 @@ export class OpenAiCompatibleProvider implements AiProvider {
     readonly backend: AiBackend;
     private readonly client: OpenAI;
     private readonly model: string;
+    private readonly embedModel: string;
     private readonly baseURL: string;
     private readonly capabilities: AiCapabilities;
 
     constructor(config: OpenAiCompatibleConfig) {
         this.backend = config.backend;
         this.model = config.model;
+        this.embedModel = config.embedModel ?? DEFAULT_EMBED_MODEL;
         this.baseURL = config.baseURL;
         this.capabilities = CAPABILITIES[config.backend];
         this.client = new OpenAI({ baseURL: config.baseURL, apiKey: config.apiKey });
@@ -248,6 +268,39 @@ export class OpenAiCompatibleProvider implements AiProvider {
             this.backend,
             `Structured output failed validation after repair attempt: ${repairedParse.error}`,
         );
+    }
+
+    async embed(opts: AiEmbedOptions): Promise<AiEmbedding[]> {
+        if (!this.capabilities.embeddings) {
+            throw new AiProviderError(
+                this.backend,
+                `Backend "${this.backend}" does not expose an embeddings endpoint. ` +
+                    `Configure an embedding-capable backend (ollama / openrouter) ` +
+                    `for the RAG ingestion + retrieval paths.`,
+            );
+        }
+        if (opts.texts.length === 0) return [];
+
+        const model = opts.model ?? this.embedModel;
+        const response = await this.client.embeddings.create({
+            model,
+            input: opts.texts,
+        });
+        // The OpenAI embeddings API returns one datum per input, carrying
+        // an `index` — sort by it so the vectors line up with the inputs
+        // regardless of server ordering.
+        const sorted = [...response.data].sort((a, b) => a.index - b.index);
+        if (sorted.length !== opts.texts.length) {
+            throw new AiProviderError(
+                this.backend,
+                `Embedding count mismatch: requested ${opts.texts.length}, ` +
+                    `received ${sorted.length}.`,
+            );
+        }
+        return sorted.map((datum, i): AiEmbedding => ({
+            text: opts.texts[i],
+            vector: datum.embedding as number[],
+        }));
     }
 
     async health(): Promise<AiHealth> {

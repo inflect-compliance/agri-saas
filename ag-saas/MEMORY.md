@@ -926,3 +926,66 @@ ok/missing/fail-no-throw, factory env selection + backend inference, streaming;
 - **Streaming returns assembled text**, not a token-by-token UI stream surface
   yet — the provider supports `stream`, but no call site consumes it
   incrementally.
+
+## Phase 20 — Agricultural RAG: grounded, cited retrieval (feat/ai-rag)
+
+Make the general model agricultural via retrieval (RAG > fine-tune for facts):
+cited grounded answers from a curated, licence-gated corpus + the tenant's own
+data, with strict tenant isolation. Branch off `feat/ai-provider` (needs the
+embeddings path); independent of the unmerged delight PRs — reconcile MEMORY.md
+at merge. **Pushed.** AI-KIT #32; the AI-LOCAL-QUICKSTART RAG runbook.
+
+- **pgvector + KnowledgeChunk** (mirrors the PostGIS pattern). New
+  `KnowledgeChunk` (`prisma/schema/knowledge.prisma`): `tenantId String?`
+  (NULL = GLOBAL catalog, readable by all; non-null = tenant-private), optional
+  `articleId` FK, `source` (provenance/licence), `sourceType`
+  (`KB|JOURNAL|CROP_PLAN|LABEL|EXTERNAL`), `sourceRef?`, `text`, `chunkIndex`,
+  `embedding Unsupported("vector(768)")?` (768 = nomic-embed-text;
+  `EMBED_DIM`). Hand-authored migration `20260619100000_ai_rag_pgvector`:
+  `CREATE EXTENSION vector` → table (raw `vector(768)` column) → `@@index([tenantId,articleId])`
+  → ivfflat `vector_cosine_ops` index → **asymmetric nullable-tenant RLS**
+  (`tenant_isolation` USING `(tenantId IS NULL OR own)` WITH CHECK `(own)` —
+  single policy, NOT split, to block UPDATE-NULL→foreign-tenant — + superuser_bypass
+  + FORCE). Registered in `SINGLE_POLICY_EXCEPTIONS` (rls-coverage) +
+  `LIST_MODELS_TENANT_INDEX_SUFFICIENT` (schema-index). `src/lib/db/embeddings.ts`
+  mirrors geo.ts (vector literal + cosine `Prisma.sql` fragments; writes via raw
+  `$executeRaw` since Prisma can't model the Unsupported column).
+- **Embeddings** on the AiProvider: `embed({texts})` via the OpenAI-compatible
+  `/embeddings` endpoint (`AI_EMBED_MODEL`, default `nomic-embed-text`);
+  capability map gains `embeddings` (ollama/openrouter true). `embed-chunks`
+  BullMQ job (`runEmbedChunks`) embeds NULL-embedding chunks in batches +
+  writes vectors, all in `runInTenantContext`.
+- **Licence-gated ingestion** (`scripts/rag/`): `corpus.ts` has a
+  `LICENSED_SOURCES` allowlist — ONLY KCC (GODL), FAIR-Forward/Digital Green QA,
+  EU 2018/848, USDA 7 CFR 205 — and `assertLicensedSource()` HARD-REFUSES
+  anything matching `/globalg.?a.?p/i` (copyrighted → cite-only, never ingest).
+  `ingest-corpus.ts` (GLOBAL, tenantId NULL) + `ingest-tenant.ts` (tenant
+  LogEntry/CropPlan/Planting/Item/InventoryLot/published KB → tenant chunks).
+  `THIRD_PARTY_NOTICES.md` gains a per-corpus provenance/licence section + an
+  explicit GlobalG.A.P. PROHIBITION note. `npm run rag:ingest` / `rag:ingest-tenant`.
+- **Hybrid retrieve() + buildContext()** (`src/app-layer/ai/rag/`): keyword
+  (`text contains`, tenant + optional GLOBAL) ⊕ vector (raw cosine `<=>` NN over
+  the query embedding), merged/deduped/ranked, bounded, tenant-filtered in-app
+  (defence-in-depth on top of RLS). `buildContext` lists numbered citable
+  sources + instructs answer-only-from-sources / cite-by-number / a fixed
+  "not in my sources" refusal. `usecases/rag.ts` `askKnowledgeBase` →
+  assertCanRead → retrieve → no-sources short-circuit (no model call) →
+  `complete([system,user])` → `{ answer, sources }`.
+
+**Verified:** tsc 0; full static guard sweep (600 suites / 8109 tests) green
+incl. schema-index-coverage + the static rls-coverage ratchets + no-explicit-any
++ no-fallbacks + usecase-test-coverage; unit tests (rag-retrieve merge/rank,
+rag-context citation+refusal, ai-provider embed()); `npm audit` clean;
+`next build`. The DB-backed `knowledge-chunk-rls` integration test + the 12
+DB-backed rls-coverage assertions run in CI (local Postgres down → skip);
+the migration RLS SQL + the exception registration are in place for them.
+
+### Remaining gaps (Phase 20)
+- **Sample corpus is tiny** — a few attributed snippets per licensed source to
+  prove the pipeline; real ingestion of the full corpora is an ops follow-up.
+- **No `/ask` UI yet** — `askKnowledgeBase` usecase exists; a chat/copilot
+  surface that calls it (with streaming + clickable citations) is the next step.
+- **ivfflat lists=100 is a default** — fine for a small corpus; tune (or move to
+  HNSW) as the corpus grows.
+- **Re-embedding on model change** — chunks store vectors for one embed model;
+  switching `AI_EMBED_MODEL` (different dims) needs a re-embed sweep.

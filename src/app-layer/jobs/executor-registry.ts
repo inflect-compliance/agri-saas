@@ -285,6 +285,28 @@ executorRegistry.register('health-check', async (payload) => {
     });
 });
 
+// ── embed-chunks (RAG — feat/ai-rag) ─────────────────────────────────
+//
+// Embeds the tenant's un-embedded KnowledgeChunk rows (bounded batch).
+// tenantId scopes the run via runInTenantContext inside runEmbedChunks;
+// the executor requires it (the GLOBAL catalog is embedded by the
+// ingestion script, not this job).
+
+executorRegistry.register('embed-chunks', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    if (!payload.tenantId) {
+        throw new Error('embed-chunks requires a tenantId (GLOBAL catalog is embedded by the ingestion script).');
+    }
+    const { runEmbedChunks } = await import('./embed-chunks');
+    const r = await runEmbedChunks({ tenantId: payload.tenantId, batchSize: payload.batchSize });
+    return makeResult(
+        'embed-chunks', startedAt, startMs,
+        r.scanned, r.embedded, r.scanned - r.embedded,
+        { tenantId: r.tenantId, embedded: r.embedded },
+    );
+});
+
 // ── automation-runner ────────────────────────────────────────────────
 
 executorRegistry.register('automation-runner', async (payload) => {

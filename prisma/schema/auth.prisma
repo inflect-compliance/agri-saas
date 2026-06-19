@@ -254,6 +254,7 @@ model Tenant {
   knowledgeArticles        KnowledgeArticle[]
   knowledgeArticleVersions KnowledgeArticleVersion[]
   knowledgeAcks            KnowledgeAcknowledgement[]
+  knowledgeChunks          KnowledgeChunk[]
 
   @@index([organizationId])
 }

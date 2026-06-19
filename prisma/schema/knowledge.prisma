@@ -51,6 +51,7 @@ model KnowledgeArticle {
   owner          User?                     @relation("KnowledgeArticleOwner", fields: [ownerUserId], references: [id])
   currentVersion KnowledgeArticleVersion?  @relation("KnowledgeCurrentVersion", fields: [currentVersionId], references: [id])
   versions       KnowledgeArticleVersion[] @relation("KnowledgeArticleVersions")
+  chunks         KnowledgeChunk[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, slug])
@@ -102,4 +103,66 @@ model KnowledgeAcknowledgement {
   @@unique([articleVersionId, userId])
   @@index([tenantId, articleVersionId])
   @@index([tenantId, userId])
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  RAG — retrieval-augmented knowledge chunks (feat/ai-rag)
+// ═══════════════════════════════════════════════════════════════════
+//
+//  Grounds the general LLM in agricultural knowledge. Each row is a
+//  short text passage + its embedding vector; `retrieve()` ranks them
+//  by cosine distance + keyword match and feeds the top-K to the model
+//  as numbered, citable sources.
+//
+//  NULLABLE tenantId — the asymmetric-RLS twist (mirrors UserSession /
+//  IntegrationWebhookEvent):
+//    • tenantId NULL  → GLOBAL catalog: licensed external corpora
+//                       (KCC, FAIR-Forward QA, EU/USDA organic) ingested
+//                       by `scripts/rag/ingest-corpus.ts`. Readable by
+//                       EVERY tenant; only the superuser-bypassed
+//                       ingestion script may write a NULL-tenant row.
+//    • tenantId set   → tenant-private: that tenant's own journal /
+//                       crop-plan / label / KB chunks. Readable + writable
+//                       only by its owning tenant.
+//  The single asymmetric policy (USING (NULL OR own) WITH CHECK (own))
+//  is mandatory: a split INSERT policy would be a permissive sibling
+//  that lets app_user re-tenant a NULL row. See the migration
+//  20260619100000_ai_rag_pgvector + the UserSession migration rationale.
+//
+//  The `embedding` column is `vector(768)` (pgvector). Prisma cannot
+//  model it, so it is declared `Unsupported(...)` here and the real
+//  column type + the ivfflat cosine index are hand-authored in the
+//  migration. All vector I/O goes through src/lib/db/embeddings.ts via
+//  raw $executeRaw / $queryRaw (mirrors the PostGIS geometry pattern).
+//
+//  Back-relations added elsewhere (Prisma needs both sides):
+//    • auth.prisma      Tenant:           knowledgeChunks
+//    • knowledge.prisma KnowledgeArticle: chunks
+// ═══════════════════════════════════════════════════════════════════
+model KnowledgeChunk {
+  id         String                   @id @default(cuid())
+  /// NULL = GLOBAL licensed catalog; non-null = tenant-private. See header.
+  tenantId   String?
+  /// Optional FK → the source KnowledgeArticle (KB chunks). Null for
+  /// tenant-data (journal/crop-plan/label) and external/global chunks.
+  articleId  String?
+  /// Human-readable provenance + licence label, e.g. "KCC (GODL)".
+  source     String
+  sourceType KnowledgeChunkSourceType
+  /// The originating record id (LogEntry id, external doc id, …).
+  sourceRef  String?
+  text       String                   @db.Text
+  chunkIndex Int                      @default(0)
+  /// pgvector `vector(768)` (nomic-embed-text dims). Prisma can't model
+  /// it — real column + ivfflat index live in the migration; writes/reads
+  /// go through src/lib/db/embeddings.ts raw SQL.
+  embedding  Unsupported("vector(768)")?
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+
+  tenant  Tenant?           @relation(fields: [tenantId], references: [id])
+  article KnowledgeArticle? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Layer A (tenantId-leading) + the articleId FK in the 2nd slot.
+  @@index([tenantId, articleId])
 }

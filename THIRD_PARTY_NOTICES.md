@@ -51,6 +51,51 @@ and are not re-listed here.
 
 ---
 
+## RAG knowledge corpora (feat/ai-rag — ingested as retrievable text)
+
+The retrieval-augmented-generation layer (`src/app-layer/ai/rag/`,
+`scripts/rag/`) ingests third-party agricultural knowledge into the GLOBAL
+`KnowledgeChunk` catalog so the general model can give grounded, cited
+answers. **Only the corpora below are permitted for TEXT ingestion** — the
+allowlist `LICENSED_SOURCES` in `scripts/rag/corpus.ts` is the single source
+of truth and `assertLicensedSource()` refuses anything else. Each ingested
+chunk records its corpus + licence in its `source` field.
+
+### KCC (Kisan Call Centre) — Government Open Data Licence – India (GODL)
+- **Project:** Kisan Call Centre transcripts, data.gov.in.
+- **Licence:** GODL-India — permits reuse + redistribution with attribution.
+- **Used for:** GLOBAL agronomy Q&A chunks (pest/disease + nutrient advice).
+- **Attribution:** Chunks record `source = "KCC (GODL)"`.
+
+### FAIR Forward / Digital Green — open agricultural advisory Q&A
+- **Project:** FAIR Forward (GIZ) / Digital Green open datasets.
+- **Licence:** Open / permissive (CC-BY-class) — redistribution with credit.
+- **Used for:** GLOBAL crop-advisory Q&A chunks.
+- **Attribution:** Chunks record `source = "FAIR-Forward / Digital Green QA"`.
+
+### EU Regulation 2018/848 — organic production rules
+- **Project:** Official Journal of the European Union.
+- **Licence:** EU legislation — reusable (CELEX/EUR-Lex reuse policy).
+- **Used for:** GLOBAL organic-compliance chunks (conversion, GMO ban, …).
+- **Attribution:** Chunks record `source = "EU 2018/848"`.
+
+### USDA National Organic Program — 7 CFR Part 205
+- **Project:** US Code of Federal Regulations.
+- **Licence:** US Government work — public domain.
+- **Used for:** GLOBAL organic-compliance chunks (buffer zones, records, …).
+- **Attribution:** Chunks record `source = "USDA 7 CFR 205"`.
+
+### ⛔ GlobalG.A.P. — PROHIBITED (proprietary; cite-only, NEVER ingested)
+GlobalG.A.P. standards, checklists, and control points are **proprietary
+and copyrighted**. They are **CITE-ONLY**: the product may reference that a
+GlobalG.A.P. requirement exists and direct the user to the official
+document, but it **MUST NEVER ingest GlobalG.A.P. text** into a RAG chunk.
+`assertLicensedSource()` in `scripts/rag/corpus.ts` **hard-refuses** any
+source matching GlobalG.A.P. regardless of the allowlist. No GlobalG.A.P.
+text is bundled, sampled, or ingested anywhere in this repository.
+
+---
+
 ## Concept-only (copyleft — NO code used)
 
 The following projects are GPL/AGPL-licensed. We studied them for **domain

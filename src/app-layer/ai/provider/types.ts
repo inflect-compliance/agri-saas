@@ -26,6 +26,8 @@ export interface AiCapabilities {
     tools: boolean;
     /** Backend supports streamed chat completions. */
     streaming: boolean;
+    /** Backend exposes an OpenAI-compatible `/embeddings` endpoint. */
+    embeddings: boolean;
 }
 
 // ─── Messages ───
@@ -103,6 +105,21 @@ export interface AiHealth {
     detail?: string;
 }
 
+// ─── Embeddings ───
+
+export interface AiEmbedOptions {
+    /** Texts to embed (one vector returned per input, order-preserved). */
+    texts: string[];
+    /** Per-call embedding-model override (defaults to the configured embed model). */
+    model?: string;
+}
+
+/** One embedding result — the source text paired with its vector. */
+export interface AiEmbedding {
+    text: string;
+    vector: number[];
+}
+
 // ─── Provider ───
 
 export interface AiProvider {
@@ -110,6 +127,11 @@ export interface AiProvider {
     readonly backend: AiBackend;
     /** Structured / tool / streaming completion. */
     complete<T = unknown>(opts: AiCompleteOptions<T>): Promise<AiCompletion<T>>;
+    /**
+     * Embed one or more texts. Returns one `{ text, vector }` per input,
+     * in the same order. Used by the RAG ingestion + retrieval paths.
+     */
+    embed(opts: AiEmbedOptions): Promise<AiEmbedding[]>;
     /** Non-throwing backend probe (model availability + reachability). */
     health(): Promise<AiHealth>;
 }
@@ -120,4 +142,6 @@ export interface OpenAiCompatibleConfig {
     baseURL: string;
     apiKey: string;
     model: string;
+    /** Embedding model id (defaults handled by the factory via env). */
+    embedModel?: string;
 }

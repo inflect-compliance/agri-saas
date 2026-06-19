@@ -20,16 +20,19 @@ import { z } from 'zod';
 // and `models.list` are jest.fn()s reset per test.
 const mockCreate = jest.fn();
 const mockModelsList = jest.fn();
+const mockEmbeddingsCreate = jest.fn();
 const constructorCalls: Array<{ baseURL?: string; apiKey?: string }> = [];
 
 jest.mock('openai', () => {
     class MockOpenAI {
         chat: { completions: { create: jest.Mock } };
         models: { list: jest.Mock };
+        embeddings: { create: jest.Mock };
         constructor(opts: { baseURL?: string; apiKey?: string }) {
             constructorCalls.push({ baseURL: opts.baseURL, apiKey: opts.apiKey });
             this.chat = { completions: { create: mockCreate } };
             this.models = { list: mockModelsList };
+            this.embeddings = { create: mockEmbeddingsCreate };
         }
     }
     return { __esModule: true, default: MockOpenAI, OpenAI: MockOpenAI };
@@ -92,6 +95,7 @@ const Schema = z.object({
 beforeEach(() => {
     mockCreate.mockReset();
     mockModelsList.mockReset();
+    mockEmbeddingsCreate.mockReset();
     constructorCalls.length = 0;
 });
 
@@ -346,6 +350,71 @@ describe('streaming', () => {
     });
 });
 
+// ─── Embeddings (feat/ai-rag) ───
+
+describe('embed()', () => {
+    it('embeds texts via the embeddings endpoint, order-preserved', async () => {
+        const provider = new OpenAiCompatibleProvider({
+            backend: 'ollama', // embeddings: true
+            baseURL: 'http://localhost:11434/v1',
+            apiKey: 'ollama',
+            model: 'qwen3:1.7b',
+            embedModel: 'nomic-embed-text',
+        });
+        // Return out-of-order to prove sort-by-index lines up with inputs.
+        mockEmbeddingsCreate.mockResolvedValueOnce({
+            data: [
+                { index: 1, embedding: [0.4, 0.5, 0.6] },
+                { index: 0, embedding: [0.1, 0.2, 0.3] },
+            ],
+        });
+
+        const result = await provider.embed({ texts: ['first', 'second'] });
+
+        expect(result).toEqual([
+            { text: 'first', vector: [0.1, 0.2, 0.3] },
+            { text: 'second', vector: [0.4, 0.5, 0.6] },
+        ]);
+        const call = mockEmbeddingsCreate.mock.calls[0][0];
+        expect(call.model).toBe('nomic-embed-text');
+        expect(call.input).toEqual(['first', 'second']);
+    });
+
+    it('returns [] for empty input without calling the backend', async () => {
+        const provider = new OpenAiCompatibleProvider({
+            backend: 'ollama',
+            baseURL: 'http://localhost:11434/v1',
+            apiKey: 'ollama',
+            model: 'qwen3:1.7b',
+        });
+        const result = await provider.embed({ texts: [] });
+        expect(result).toEqual([]);
+        expect(mockEmbeddingsCreate).not.toHaveBeenCalled();
+    });
+
+    it('throws AiProviderError on a backend that lacks embeddings (groq)', async () => {
+        const provider = new OpenAiCompatibleProvider({
+            backend: 'groq', // embeddings: false
+            baseURL: 'https://api.groq.com/openai/v1',
+            apiKey: 'k',
+            model: 'm',
+        });
+        await expect(provider.embed({ texts: ['x'] })).rejects.toBeInstanceOf(AiProviderError);
+        expect(mockEmbeddingsCreate).not.toHaveBeenCalled();
+    });
+
+    it('throws on an embedding-count mismatch', async () => {
+        const provider = new OpenAiCompatibleProvider({
+            backend: 'ollama',
+            baseURL: 'http://localhost:11434/v1',
+            apiKey: 'ollama',
+            model: 'qwen3:1.7b',
+        });
+        mockEmbeddingsCreate.mockResolvedValueOnce({ data: [{ index: 0, embedding: [0.1] }] });
+        await expect(provider.embed({ texts: ['a', 'b'] })).rejects.toBeInstanceOf(AiProviderError);
+    });
+});
+
 // ─── Capability map sanity ───
 
 describe('capability map', () => {
@@ -358,6 +427,13 @@ describe('capability map', () => {
         expect(CAPABILITIES.openrouter.jsonSchema).toBe(true);
         expect(CAPABILITIES.groq.jsonSchema).toBe(true);
         expect(CAPABILITIES.together.jsonSchema).toBe(true);
+    });
+    it('marks embeddings on ollama/openrouter, off on groq/together/generic', () => {
+        expect(CAPABILITIES.ollama.embeddings).toBe(true);
+        expect(CAPABILITIES.openrouter.embeddings).toBe(true);
+        expect(CAPABILITIES.groq.embeddings).toBe(false);
+        expect(CAPABILITIES.together.embeddings).toBe(false);
+        expect(CAPABILITIES['openai-compatible'].embeddings).toBe(false);
     });
 });
 
