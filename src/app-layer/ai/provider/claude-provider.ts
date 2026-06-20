@@ -34,6 +34,7 @@ import { z, type ZodType } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { logger } from '@/lib/observability/logger';
 import { AiProviderError } from './openai-compatible-provider';
+import { estimateTokens, estimateMessageTokens } from '../token-estimate';
 import type {
     AiBackend,
     AiCompleteOptions,
@@ -44,6 +45,7 @@ import type {
     AiMessage,
     AiProvider,
     AiToolCall,
+    AiUsage,
 } from './types';
 
 /**
@@ -115,7 +117,7 @@ export class ClaudeProvider implements AiProvider {
         }
 
         const tools = this.buildTools(opts);
-        const { text, toolCalls } = await this.runMessages({
+        const { text, toolCalls, usage } = await this.runMessages({
             model,
             maxTokens,
             system,
@@ -126,9 +128,44 @@ export class ClaudeProvider implements AiProvider {
             signal: opts.signal,
         });
 
-        const result: AiCompletion<T> = { text };
+        const result: AiCompletion<T> = { text, usage };
         if (toolCalls.length > 0) result.toolCalls = toolCalls;
         return result;
+    }
+
+    /**
+     * Map Anthropic usage (input_tokens / output_tokens) to AiUsage. When
+     * the SDK omitted usage (e.g. a streamed call that yielded no
+     * message_delta), fall back to a char/4 estimate over the request +
+     * response and flag `estimated`.
+     */
+    private toUsage(
+        sdkUsage: { input_tokens?: number; output_tokens?: number } | null | undefined,
+        promptMessages: MessageParam[],
+        completionText: string,
+    ): AiUsage {
+        const input = sdkUsage?.input_tokens;
+        const output = sdkUsage?.output_tokens;
+        if (typeof input === 'number' && typeof output === 'number') {
+            return { promptTokens: input, completionTokens: output, totalTokens: input + output };
+        }
+        const promptTokens = this.estimatePromptTokens(promptMessages);
+        const completionTokens = estimateTokens(completionText);
+        return {
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+            estimated: true,
+        };
+    }
+
+    /** Rough prompt-token estimate over Anthropic message params. */
+    private estimatePromptTokens(messages: MessageParam[]): number {
+        const flat: AiMessage[] = messages.map((m): AiMessage => ({
+            role: m.role === 'assistant' ? 'assistant' : 'user',
+            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        }));
+        return estimateMessageTokens(flat);
     }
 
     private async completeStructured<T>(
@@ -160,8 +197,10 @@ export class ClaudeProvider implements AiProvider {
             temperature: opts.temperature,
             signal: opts.signal,
         });
-        const firstParse = this.tryParse(schema, first);
-        if (firstParse.ok) return { text: JSON.stringify(first), parsed: firstParse.value };
+        const firstParse = this.tryParse(schema, first.input);
+        if (firstParse.ok) {
+            return { text: JSON.stringify(first.input), parsed: firstParse.value, usage: first.usage };
+        }
 
         logger.warn('claude structured tool output failed validation, attempting one repair', {
             component: 'ai',
@@ -173,7 +212,7 @@ export class ClaudeProvider implements AiProvider {
         // re-force the tool.
         const repairMessages: MessageParam[] = [
             ...messages,
-            { role: 'assistant', content: JSON.stringify(first) },
+            { role: 'assistant', content: JSON.stringify(first.input) },
             {
                 role: 'user',
                 content:
@@ -190,8 +229,10 @@ export class ClaudeProvider implements AiProvider {
             temperature: opts.temperature,
             signal: opts.signal,
         });
-        const repairedParse = this.tryParse(schema, repaired);
-        if (repairedParse.ok) return { text: JSON.stringify(repaired), parsed: repairedParse.value };
+        const repairedParse = this.tryParse(schema, repaired.input);
+        if (repairedParse.ok) {
+            return { text: JSON.stringify(repaired.input), parsed: repairedParse.value, usage: repaired.usage };
+        }
 
         throw new AiProviderError(
             this.backend,
@@ -316,7 +357,7 @@ export class ClaudeProvider implements AiProvider {
         tool: ToolParam;
         temperature?: number;
         signal?: AbortSignal;
-    }): Promise<unknown> {
+    }): Promise<{ input: unknown; usage: AiUsage }> {
         const response = await this.client.messages.create(
             {
                 model: args.model,
@@ -332,7 +373,8 @@ export class ClaudeProvider implements AiProvider {
 
         for (const block of response.content) {
             if (block.type === 'tool_use' && block.name === args.tool.name) {
-                return block.input;
+                const usage = this.toUsage(response.usage, args.messages, JSON.stringify(block.input));
+                return { input: block.input, usage };
             }
         }
         throw new AiProviderError(
@@ -354,7 +396,7 @@ export class ClaudeProvider implements AiProvider {
         temperature?: number;
         stream: boolean;
         signal?: AbortSignal;
-    }): Promise<{ text: string; toolCalls: AiToolCall[] }> {
+    }): Promise<{ text: string; toolCalls: AiToolCall[]; usage: AiUsage }> {
         const reqOpts = args.signal ? { signal: args.signal } : undefined;
         const base = {
             model: args.model,
@@ -370,9 +412,20 @@ export class ClaudeProvider implements AiProvider {
             let text = '';
             // Accumulate tool_use blocks by content-block index.
             const toolAcc = new Map<number, { id: string; name: string; input: string }>();
+            // Streaming usage: input_tokens lands on message_start,
+            // output_tokens accumulates on message_delta.
+            let inputTokens: number | undefined;
+            let outputTokens: number | undefined;
 
             for await (const event of stream) {
-                if (event.type === 'content_block_start') {
+                if (event.type === 'message_start') {
+                    inputTokens = event.message.usage?.input_tokens;
+                    outputTokens = event.message.usage?.output_tokens;
+                } else if (event.type === 'message_delta') {
+                    if (typeof event.usage?.output_tokens === 'number') {
+                        outputTokens = event.usage.output_tokens;
+                    }
+                } else if (event.type === 'content_block_start') {
                     const block = event.content_block;
                     if (block.type === 'tool_use') {
                         toolAcc.set(event.index, { id: block.id, name: block.name, input: '' });
@@ -391,7 +444,12 @@ export class ClaudeProvider implements AiProvider {
             const toolCalls = [...toolAcc.values()]
                 .filter((t) => t.name)
                 .map((t): AiToolCall => ({ id: t.id, name: t.name, arguments: t.input }));
-            return { text, toolCalls };
+            const usage = this.toUsage(
+                { input_tokens: inputTokens, output_tokens: outputTokens },
+                args.messages,
+                text,
+            );
+            return { text, toolCalls, usage };
         }
 
         const response = await this.client.messages.create(base, reqOpts);
@@ -408,6 +466,7 @@ export class ClaudeProvider implements AiProvider {
                 });
             }
         }
-        return { text, toolCalls };
+        const usage = this.toUsage(response.usage, args.messages, text);
+        return { text, toolCalls, usage };
     }
 }

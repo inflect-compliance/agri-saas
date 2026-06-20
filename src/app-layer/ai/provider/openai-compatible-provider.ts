@@ -24,6 +24,7 @@ import OpenAI from 'openai';
 import { z, type ZodType } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { logger } from '@/lib/observability/logger';
+import { estimateTokens, estimateMessageTokens } from '../token-estimate';
 import type {
     AiBackend,
     AiCapabilities,
@@ -35,6 +36,7 @@ import type {
     AiMessage,
     AiProvider,
     AiToolCall,
+    AiUsage,
     OpenAiCompatibleConfig,
 } from './types';
 
@@ -157,7 +159,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
         }
 
         // ── Plain / tool / streaming branch ──
-        const { text, toolCalls } = await this.runChat({
+        const { text, toolCalls, usage } = await this.runChat({
             model,
             messages: this.toChatMessages(opts.messages),
             tools,
@@ -167,9 +169,38 @@ export class OpenAiCompatibleProvider implements AiProvider {
             signal: opts.signal,
         });
 
-        const result: AiCompletion<T> = { text };
+        const result: AiCompletion<T> = { text, usage };
         if (toolCalls.length > 0) result.toolCalls = toolCalls;
         return result;
+    }
+
+    /**
+     * Map OpenAI usage (prompt_tokens / completion_tokens) to AiUsage,
+     * falling back to a char/4 estimate (flagged `estimated`) when the
+     * host omitted the usage object.
+     */
+    private toUsage(
+        sdkUsage: { prompt_tokens?: number; completion_tokens?: number } | null | undefined,
+        promptMessages: ChatMessage[],
+        completionText: string,
+    ): AiUsage {
+        const input = sdkUsage?.prompt_tokens;
+        const output = sdkUsage?.completion_tokens;
+        if (typeof input === 'number' && typeof output === 'number') {
+            return { promptTokens: input, completionTokens: output, totalTokens: input + output };
+        }
+        const flat: AiMessage[] = promptMessages.map((m): AiMessage => ({
+            role: 'user',
+            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? ''),
+        }));
+        const promptTokens = estimateMessageTokens(flat);
+        const completionTokens = estimateTokens(completionText);
+        return {
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+            estimated: true,
+        };
     }
 
     private async completeStructured<T>(
@@ -190,7 +221,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
                 json_schema: { name: schemaName, schema: jsonSchema, strict: true },
             };
             try {
-                const { text } = await this.runChat({
+                const { text, usage } = await this.runChat({
                     model,
                     messages: this.toChatMessages(opts.messages),
                     tools,
@@ -201,7 +232,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
                     signal: opts.signal,
                 });
                 const parsed = this.tryParse(schema, text);
-                if (parsed.ok) return { text, parsed: parsed.value };
+                if (parsed.ok) return { text, parsed: parsed.value, usage };
                 logger.warn('ai json_schema response failed validation, falling back to json_object', {
                     component: 'ai',
                     backend: this.backend,
@@ -250,7 +281,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
             signal: opts.signal,
         });
         const firstParse = this.tryParse(schema, first.text);
-        if (firstParse.ok) return { text: first.text, parsed: firstParse.value };
+        if (firstParse.ok) return { text: first.text, parsed: firstParse.value, usage: first.usage };
 
         // One repair re-prompt — feed back the invalid output + the error.
         const repairMessages: AiMessage[] = [
@@ -274,7 +305,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
             signal: opts.signal,
         });
         const repairedParse = this.tryParse(schema, repaired.text);
-        if (repairedParse.ok) return { text: repaired.text, parsed: repairedParse.value };
+        if (repairedParse.ok) return { text: repaired.text, parsed: repairedParse.value, usage: repaired.usage };
 
         throw new AiProviderError(
             this.backend,
@@ -407,7 +438,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
         temperature?: number;
         maxTokens?: number;
         signal?: AbortSignal;
-    }): Promise<{ text: string; toolCalls: AiToolCall[] }> {
+    }): Promise<{ text: string; toolCalls: AiToolCall[]; usage: AiUsage }> {
         const reqOpts = args.signal ? { signal: args.signal } : undefined;
         const base = {
             model: args.model,
@@ -419,10 +450,22 @@ export class OpenAiCompatibleProvider implements AiProvider {
         };
 
         if (args.stream) {
-            const stream = await this.client.chat.completions.create({ ...base, stream: true }, reqOpts);
+            // `stream_options.include_usage` asks the server to emit a final
+            // usage-only chunk; hosts that ignore it just fall through to the
+            // char/4 estimate in `toUsage`.
+            const stream = await this.client.chat.completions.create(
+                { ...base, stream: true, stream_options: { include_usage: true } },
+                reqOpts,
+            );
             let text = '';
             const toolAcc = new Map<number, { id: string; name: string; arguments: string }>();
+            let promptTokens: number | undefined;
+            let completionTokens: number | undefined;
             for await (const chunk of stream) {
+                if (chunk.usage) {
+                    promptTokens = chunk.usage.prompt_tokens;
+                    completionTokens = chunk.usage.completion_tokens;
+                }
                 const delta = chunk.choices[0]?.delta;
                 if (delta?.content) text += delta.content;
                 for (const tc of delta?.tool_calls ?? []) {
@@ -436,7 +479,12 @@ export class OpenAiCompatibleProvider implements AiProvider {
             const toolCalls = [...toolAcc.values()]
                 .filter((t) => t.name)
                 .map((t): AiToolCall => ({ id: t.id, name: t.name, arguments: t.arguments }));
-            return { text, toolCalls };
+            const usage = this.toUsage(
+                { prompt_tokens: promptTokens, completion_tokens: completionTokens },
+                args.messages,
+                text,
+            );
+            return { text, toolCalls, usage };
         }
 
         const completion = await this.client.chat.completions.create({ ...base, stream: false }, reqOpts);
@@ -450,6 +498,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
                 name: tc.function.name,
                 arguments: tc.function.arguments,
             }));
-        return { text, toolCalls };
+        const usage = this.toUsage(completion.usage, args.messages, text);
+        return { text, toolCalls, usage };
     }
 }

@@ -109,7 +109,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Run tsc --noEmit
-        run: npm run typecheck
+        # tsc's peak heap grows with the codebase + the generated Prisma
+        # client; the runner's default ~2 GB ceiling started OOMing. Invoke
+        # tsc through node with the heap flag applied DIRECTLY to that V8
+        # instance (NODE_OPTIONS does not reliably reach the tsc process).
+        run: node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit
 
   # ═══════════════════════════════════════════════════════════════
   #  Job 2b: AI evals — NON-BLOCKING quality report (feat/ai-evals-safety)

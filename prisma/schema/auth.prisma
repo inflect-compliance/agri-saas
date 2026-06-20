@@ -133,6 +133,7 @@ model Tenant {
   integrationWebhookEvents          IntegrationWebhookEvent[]
   notifications                     Notification[]
   pushSubscriptions                 PushSubscription[]
+  aiUsageEvents                     AiUsageEvent[]
   notificationOutbox                NotificationOutbox[]
   policies                          Policy[]
   policyVersions                    PolicyVersion[]

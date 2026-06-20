@@ -21,6 +21,8 @@ import { Prisma } from '@prisma/client';
 import { getAiProvider } from '@/app-layer/ai/provider';
 import { runInTenantContext } from '@/lib/db-context';
 import { toVectorLiteral } from '@/lib/db/embeddings';
+import { getCachedEmbedding, setCachedEmbedding } from '@/lib/cache/ai-cache';
+import { env } from '@/env';
 import type { RequestContext } from '@/app-layer/types';
 import type { KnowledgeChunkSourceType } from '@prisma/client';
 
@@ -64,9 +66,17 @@ export async function retrieve(
     // to rank, then trim to topK.
     const branchTake = topK * 2;
 
-    // Embed the query up front (one call) for the vector branch.
-    const [embedding] = await getAiProvider().embed({ texts: [query] });
-    const queryLiteral = toVectorLiteral(embedding.vector);
+    // Embed the query up front (one call) for the vector branch. Repeated
+    // identical queries are served from the Redis embedding cache (long
+    // TTL — embeddings are deterministic). Graceful when Redis is absent.
+    const embedModel = env.AI_EMBED_MODEL;
+    let queryVector = await getCachedEmbedding(embedModel, query);
+    if (!queryVector) {
+        const [embedding] = await getAiProvider().embed({ texts: [query] });
+        queryVector = embedding.vector;
+        await setCachedEmbedding(embedModel, query, queryVector);
+    }
+    const queryLiteral = toVectorLiteral(queryVector);
 
     return runInTenantContext(ctx, async (db) => {
         // ── (a) Keyword branch ──

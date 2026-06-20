@@ -93,6 +93,42 @@ export interface AiCompleteOptions<T = unknown> {
      * timeout). Provider-agnostic — honoured by both backends.
      */
     signal?: AbortSignal;
+
+    // ── Guardrail hints (feat/ai-guardrails) ─────────────────────────
+    // Consumed by `completeWithRouting`, ignored by the providers. All
+    // optional — existing callers are unaffected.
+
+    /**
+     * Mark this request as handling sensitive content. Combined with PII
+     * detection, it biases routing toward a LOCAL backend (ollama) when
+     * one is configured — "prefer local for sensitive content".
+     */
+    sensitive?: boolean;
+    /**
+     * Extra exact spans (contract terms / identifiers) the caller knows
+     * are sensitive — redacted before any EXTERNAL provider call.
+     */
+    sensitiveTerms?: string[];
+    /**
+     * Citations to fold into the immutable AI_COMPLETION audit entry.
+     * Opaque to routing — passed straight through to the audit detailsJson.
+     */
+    citations?: unknown;
+}
+
+/**
+ * Token usage for one completion. Drives the per-tenant token budget
+ * ledger (`AiUsageEvent`) + the cost estimate. When the backend SDK did
+ * NOT return usage, the provider fills these from a char/4 estimate and
+ * sets `estimated:true` so downstream consumers know the numbers are
+ * approximate.
+ */
+export interface AiUsage {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    /** True when the counts are an estimate (SDK returned no usage). */
+    estimated?: boolean;
 }
 
 export interface AiCompletion<T = unknown> {
@@ -102,6 +138,12 @@ export interface AiCompletion<T = unknown> {
     parsed?: T;
     /** Present when the model emitted tool calls. */
     toolCalls?: AiToolCall[];
+    /**
+     * Token usage for the call. Always populated by both providers —
+     * actual when the SDK reports it, otherwise estimated (char/4) with
+     * `usage.estimated === true`.
+     */
+    usage?: AiUsage;
 }
 
 /** Result of a non-throwing backend probe. */

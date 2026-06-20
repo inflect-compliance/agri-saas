@@ -31,6 +31,16 @@ const SENSITIVE_PATTERNS = [
     /hash$/i,        // passwordHash, tokenHash, etc.
     /^salt$/i,
     /^ssn$/i,
+    // ── AI prompt/response fields (feat/ai-guardrails) ──
+    // Never store the raw prompt/response/messages of an AI call in an
+    // audit row — only the promptHash. These are ANCHORED so they DON'T
+    // match `promptHash` (which is safe to store + is the correlation key).
+    /^prompt$/i,
+    /^rawPrompt$/i,
+    /^response$/i,
+    /^rawResponse$/i,
+    /^completionText$/i,
+    /^messages$/i,
 ];
 
 // ─── Large blob field patterns (content that should be summarized, not stored) ───

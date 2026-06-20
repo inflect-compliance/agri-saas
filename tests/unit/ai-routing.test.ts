@@ -29,6 +29,33 @@ jest.mock('@/lib/billing/entitlements', () => ({
     AI_TIER_ORDER: ['cheap', 'standard', 'premium'],
 }));
 
+// ─── Mock the guardrail side-channels so routing tests stay offline ───
+// (budget / rate-limit / usage ledger / audit are exercised by their own
+// dedicated suites; here they are no-ops so the failover logic is isolated.)
+jest.mock('@/app-layer/ai/budget', () => ({
+    assertAiBudget: jest.fn().mockResolvedValue({
+        used: 0,
+        limit: null,
+        remaining: null,
+        softWarn: false,
+        mode: 'SELFHOSTED',
+    }),
+}));
+jest.mock('@/lib/rate-limit/aiRateLimit', () => ({
+    assertAiRateLimit: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/app-layer/ai/usage', () => ({
+    recordAiUsage: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/app-layer/events/audit', () => ({
+    logEvent: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/lib/db-context', () => ({
+    runInTenantContext: jest.fn(
+        async (_ctx: unknown, cb: (db: unknown) => Promise<unknown>) => cb({}),
+    ),
+}));
+
 // ─── Mock both providers: capture which target each constructor got
 // and let each instance's complete() be driven per test. ───
 type Complete = jest.Mock;

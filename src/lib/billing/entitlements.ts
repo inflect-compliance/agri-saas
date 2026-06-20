@@ -75,7 +75,7 @@ export type BillingMode = 'SAAS' | 'SELFHOSTED';
  * `assertWithinLimit(ctx, '<resource>')` at the resource's create
  * site.
  */
-export type GatedResource = 'control' | 'user' | 'location';
+export type GatedResource = 'control' | 'user' | 'location' | 'ai_tokens';
 
 /**
  * Numeric cap by (plan, resource). `null` means unlimited.
@@ -91,11 +91,19 @@ export type GatedResource = 'control' | 'user' | 'location';
  * TRIAL inherits PRO — a paying-customer-on-trial gets the full
  * working surface, not an artificially constrained one.
  */
+//
+// `ai_tokens` is a MONTHLY (current-UTC-month) cap on total AI tokens
+// consumed across all completions — the abuse/cost guardrail. Unlike the
+// other resources (pure row counts), it is a SUM over a time window. The
+// caps are sized for a working farm: FREE is a "try it out" budget
+// (~50k tokens ≈ a few dozen copilot turns), TRIAL/PRO get a generous
+// working budget, ENTERPRISE is unlimited. Per-request size is separately
+// capped by the route's `maxTokens`; this is the cumulative monthly cap.
 const PLAN_LIMITS: Record<Plan, Record<GatedResource, number | null>> = {
-    FREE: { control: 10, user: 3, location: 5 },
-    TRIAL: { control: 100, user: 25, location: 50 },
-    PRO: { control: 100, user: 25, location: 50 },
-    ENTERPRISE: { control: null, user: null, location: null },
+    FREE: { control: 10, user: 3, location: 5, ai_tokens: 50_000 },
+    TRIAL: { control: 100, user: 25, location: 50, ai_tokens: 1_000_000 },
+    PRO: { control: 100, user: 25, location: 50, ai_tokens: 5_000_000 },
+    ENTERPRISE: { control: null, user: null, location: null, ai_tokens: null },
 };
 
 // ─── Mode decision ───────────────────────────────────────────────
@@ -206,6 +214,16 @@ export function getLimit(plan: Plan, resource: GatedResource): number | null {
 }
 
 /**
+ * SUM of AI tokens this tenant has consumed in the current UTC month —
+ * the windowed quantity behind the `ai_tokens` budget. Exported so the
+ * AI budget helper (`src/app-layer/ai/budget.ts`) can report
+ * used/remaining without duplicating the month-window aggregate.
+ */
+export async function getAiTokensUsedThisMonth(ctx: RequestContext): Promise<number> {
+    return getCurrentCount(ctx, 'ai_tokens');
+}
+
+/**
  * The current count of `resource` for the tenant — used by the
  * limit assertion. Soft-deleted rows are excluded so a tenant that
  * deleted some controls can immediately create new ones again.
@@ -230,6 +248,23 @@ async function getCurrentCount(
                 return db.location.count({
                     where: { tenantId: ctx.tenantId, deletedAt: null },
                 });
+            case 'ai_tokens': {
+                // SUM of total tokens consumed this calendar month (UTC).
+                // Unlike the other resources this is a windowed aggregate,
+                // not a row count — the AI budget resets monthly.
+                const now = new Date();
+                const monthStart = new Date(
+                    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+                );
+                const agg = await db.aiUsageEvent.aggregate({
+                    _sum: { totalTokens: true },
+                    where: {
+                        tenantId: ctx.tenantId,
+                        createdAt: { gte: monthStart },
+                    },
+                });
+                return agg._sum.totalTokens ?? 0;
+            }
             default: {
                 // Exhaustive — TypeScript flags any new GatedResource
                 // value that isn't handled above.

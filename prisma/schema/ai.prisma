@@ -1,0 +1,56 @@
+// ═══════════════════════════════════════════════════════════════════
+//  AI — usage ledger (feat/ai-guardrails)
+// ═══════════════════════════════════════════════════════════════════
+//
+//  Append-only ledger of every routed AI completion. One row per call
+//  (cache hits included, flagged `cacheHit`), written AFTER the call by
+//  `completeWithRouting` via `recordAiUsage`. It powers:
+//    • the per-tenant+plan MONTHLY token budget — entitlements'
+//      `getCurrentCount(ctx,'ai_tokens')` SUMs `totalTokens` over the
+//      current UTC month (see src/lib/billing/entitlements.ts);
+//    • cost/abuse observability — `costMicros` aggregates spend.
+//
+//  PRIVACY: this table NEVER stores the raw prompt or response — only a
+//  sha256 `promptHash` for dedupe/correlation. Real PII lives nowhere
+//  near it. The immutable AuditLog entry written alongside also carries
+//  only the hash (see src/app-layer/events/audit.ts callers).
+//
+//  Standard tenant-scoped table (tenantId NON-null) → the canonical RLS
+//  trio (tenant_isolation USING + tenant_isolation_insert WITH CHECK +
+//  superuser_bypass + FORCE ROW LEVEL SECURITY) lives in the migration
+//  20260620000000_ai_usage_event. `userId` is a plain optional column
+//  (no FK) — the ledger must survive a user deletion as an audit record,
+//  so it is intentionally NOT cascaded.
+//
+//  Back-relation added elsewhere (Prisma needs both sides):
+//    • auth.prisma  Tenant: aiUsageEvents
+// ═══════════════════════════════════════════════════════════════════
+model AiUsageEvent {
+  id               String   @id @default(cuid())
+  tenantId         String
+  /// The acting user, when known. No FK — kept as audit history even if
+  /// the user is later deleted.
+  userId           String?
+  /// Routed task name (copilot-chat, dosage-calc, …).
+  task             String
+  /// Resolved model id the completion actually ran on.
+  model            String
+  /// Resolved backend (claude / openrouter / groq / ollama / …).
+  backend          String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  /// Estimated cost in USD micro-dollars (1_000_000 = $1). 0 for local /
+  /// cache hits / un-priced models. See src/app-layer/ai/cost.ts.
+  costMicros       Int
+  /// True when served from the Redis response cache (no new provider call).
+  cacheHit         Boolean  @default(false)
+  /// sha256 of the normalised prompt — correlation key, NEVER the prompt.
+  promptHash       String
+  createdAt        DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Layer A (tenantId-leading) + backs the monthly-sum budget aggregate.
+  @@index([tenantId, createdAt])
+}

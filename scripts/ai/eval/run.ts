@@ -25,6 +25,7 @@ import { fileURLToPath } from 'url';
 import type { ZodType } from 'zod';
 import { env } from '@/env';
 import { getAiProvider, type AiProvider } from '@/app-layer/ai/provider';
+import { OpenAiCompatibleProvider, inferBackend } from '@/app-layer/ai/provider';
 import { getPermissionsForRole } from '@/lib/permissions';
 import {
     askAgronomyAdvisor,
@@ -153,6 +154,88 @@ async function runOpen(provider: AiProvider | null): Promise<CaseResult[]> {
             detail: judgeSkipped
                 ? `contains=${contains} (judge skipped)`
                 : `contains=${contains}, judge=${judge.score.toFixed(2)}`,
+        });
+    }
+    return results;
+}
+
+// ── Dhenu2 A/B hook (OPTIONAL, config-driven, default OFF) ──
+//
+// When AI_EVAL_AB_BACKEND is set to "<baseURL>|<model>", run the
+// open-ended agronomy suite a SECOND time against that operator-supplied
+// endpoint and report it side-by-side (suite "agronomy-open-ab") with the
+// default (general + RAG) backend. Intended for evaluating an agri-tuned
+// model such as Dhenu2-1B (KissanAI) — but NO model is bundled or
+// downloaded; the operator points this at their own running endpoint.
+//
+// LICENCE NOTE: Dhenu2-1B's licence MUST be verified before any
+// commercial use — see docs/ai-data-flow.md. This harness only POSTs to
+// an operator-supplied endpoint (no redistribution), so it stays
+// compliant regardless of the model licence. Default unset → no A/B run,
+// CI unaffected.
+function parseAbBackend(spec: string): { baseURL: string; model: string } | null {
+    const [baseURL, model] = spec.split('|');
+    if (!baseURL || !model) return null;
+    return { baseURL: baseURL.trim(), model: model.trim() };
+}
+
+async function runOpenAb(spec: string, judge: AiProvider | null): Promise<CaseResult[]> {
+    const cfg = parseAbBackend(spec);
+    if (!cfg) {
+        console.error(
+            'AI_EVAL_AB_BACKEND set but malformed — expected "<baseURL>|<model>", skipping A/B run.',
+        );
+        return [];
+    }
+    let provider: OpenAiCompatibleProvider;
+    try {
+        provider = new OpenAiCompatibleProvider({
+            backend: inferBackend(cfg.baseURL),
+            baseURL: cfg.baseURL,
+            apiKey: process.env.AI_API_KEY ?? 'ab',
+            model: cfg.model,
+        });
+    } catch (err) {
+        console.error('A/B provider construction failed, skipping:', err);
+        return [];
+    }
+
+    const data = readJson<{ cases: OpenCase[] }>(join(DATASETS, 'agronomy-open.json'));
+    const results: CaseResult[] = [];
+    for (const c of data.cases) {
+        let answer = '';
+        try {
+            const completion = await provider.complete({
+                messages: [{ role: 'user', content: c.question }],
+                maxTokens: 512,
+            });
+            answer = completion.text;
+        } catch (err) {
+            results.push({
+                id: c.id,
+                suite: 'agronomy-open-ab',
+                score: 0,
+                passed: false,
+                skipped: false,
+                judgeSkipped: true,
+                detail: `ab backend error: ${err instanceof Error ? err.message : String(err)}`,
+            });
+            continue;
+        }
+        const contains = scoreContains(answer, c.mustContain);
+        const judgeResult = await scoreWithJudge(judge, c.question, answer, c.reference);
+        const judgeSkipped = judgeResult.skipped;
+        const score = judgeSkipped ? contains : (contains + judgeResult.score) / 2;
+        results.push({
+            id: c.id,
+            suite: 'agronomy-open-ab',
+            score,
+            passed: contains === 1,
+            skipped: false,
+            judgeSkipped,
+            detail: judgeSkipped
+                ? `[AB:${cfg.model}] contains=${contains} (judge skipped)`
+                : `[AB:${cfg.model}] contains=${contains}, judge=${judgeResult.score.toFixed(2)}`,
         });
     }
     return results;
@@ -379,6 +462,13 @@ async function main(): Promise<number> {
     results.push(...runMcq(provider));
     results.push(...(await runOpen(provider)));
     results.push(...(await runSafety()));
+
+    // Optional Dhenu2 A/B run — default OFF (env unset). CI unaffected.
+    const abSpec = process.env.AI_EVAL_AB_BACKEND;
+    if (abSpec) {
+        console.error(`AI_EVAL_AB_BACKEND set — running open-suite A/B against operator endpoint.`);
+        results.push(...(await runOpenAb(abSpec, provider)));
+    }
 
     const summaries = summarise(results);
     const baseline = existsSync(BASELINE_PATH)

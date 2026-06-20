@@ -277,6 +277,28 @@ export const env = createEnv({
         // no secrets and never touches a live backend.
         AI_EVAL_LLM_JUDGE: z.enum(['0', '1']).default('0'),
 
+        // ── AI guardrails (feat/ai-guardrails) ──
+        //   AI_CACHE_TTL_SECONDS       — Redis TTL for cached deterministic
+        //                                completion responses. Default 3600.
+        //   AI_EMBED_CACHE_TTL_SECONDS — Redis TTL for cached query/text
+        //                                embeddings (longer — embeddings are
+        //                                fully deterministic). Default 30 days.
+        //   AI_RATE_LIMIT_PER_MIN      — per-(tenant,user) AI completion rate
+        //                                ceiling per minute. Default 30.
+        // All optional with sane defaults so AI works with zero config; an
+        // operator tunes throughput/abuse posture by setting them.
+        AI_CACHE_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+        AI_EMBED_CACHE_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+        AI_RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().optional(),
+        // ── Dhenu2 A/B eval hook (feat/ai-guardrails, OPTIONAL) ──
+        // When set to a base URL + model (`<baseURL>|<model>`), the offline
+        // eval harness runs the agronomy suites a SECOND time against this
+        // operator-supplied endpoint and reports it side-by-side with the
+        // default (general + RAG) backend. Default unset → no A/B run; CI is
+        // unaffected. NO model is bundled — see docs/ai-data-flow.md for the
+        // Dhenu2 licence note. Read only by scripts/ai/eval/* (eval-only).
+        AI_EVAL_AB_BACKEND: z.string().optional(),
+
         // Agro-intel — sensor/data-stream ingestion endpoint feature flag.
         // '1' enables the token-gated POST ingestion route; anything else
         // (default) returns 503 feature_disabled. Off by default — the
@@ -440,6 +462,10 @@ export const env = createEnv({
         AI_RISK_USER_RPM: process.env.AI_RISK_USER_RPM,
         AI_RISK_ENABLED: process.env.AI_RISK_ENABLED,
         AI_EVAL_LLM_JUDGE: process.env.AI_EVAL_LLM_JUDGE,
+        AI_CACHE_TTL_SECONDS: process.env.AI_CACHE_TTL_SECONDS,
+        AI_EMBED_CACHE_TTL_SECONDS: process.env.AI_EMBED_CACHE_TTL_SECONDS,
+        AI_RATE_LIMIT_PER_MIN: process.env.AI_RATE_LIMIT_PER_MIN,
+        AI_EVAL_AB_BACKEND: process.env.AI_EVAL_AB_BACKEND,
         AI_RISK_PLAN_REQUIRED: process.env.AI_RISK_PLAN_REQUIRED,
         AGRO_DATASTREAMS_ENABLED: process.env.AGRO_DATASTREAMS_ENABLED,
         AGRO_NDVI_TILE_URL: process.env.AGRO_NDVI_TILE_URL,
