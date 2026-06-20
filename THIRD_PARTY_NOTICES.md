@@ -96,6 +96,45 @@ text is bundled, sampled, or ingested anywhere in this repository.
 
 ---
 
+## Machine-learning models (on-device vision — permissive)
+
+### CropNet / MobileNetV2-PlantVillage — Apache License 2.0
+
+- **Models:**
+  - CropNet cassava/crop-disease classifier — https://tfhub.dev/google/cropnet (Apache-2.0, Google)
+  - MobileNetV2 trained on the PlantVillage dataset — widely redistributed
+    under Apache-2.0 / MIT (e.g. https://github.com/spMohanty/PlantVillage-Dataset
+    for the dataset; the ImageNet-pretrained MobileNetV2 backbone is
+    Apache-2.0).
+- **Used by:** The on-device vision backend
+  (`src/app-layer/ai/vision/onnx-provider.ts`) — a leaf/crop photo →
+  likely pest/disease classifier run locally via `onnxruntime-node`.
+- **Binary NOT vendored.** The model WEIGHTS are **not** committed to this
+  repository (they are large binaries and would bloat the tree). The ONNX
+  file is loaded at runtime from a **configurable path**:
+    - `VISION_MODEL_PATH` — absolute path to the `.onnx` classifier
+      weights. When unset or the file is missing, the on-device backend
+      reports unavailable and the orchestrator falls back to the Claude
+      cloud backend (`VISION_BACKEND=auto`, the default).
+    - `VISION_LABELS_PATH` — optional newline-delimited labels file that
+      overrides the bundled PlantVillage 38-class list
+      (`src/app-layer/ai/vision/labels.ts`) when pointing
+      `VISION_MODEL_PATH` at a model with a different taxonomy.
+- **Setup (operator).** Export a CropNet / MobileNetV2-PlantVillage model
+  to ONNX (input `1×3×224×224`, ImageNet-normalised RGB; output: one logit
+  per class in label order), place the `.onnx` file on the worker host,
+  and set `VISION_MODEL_PATH` to its absolute path. The bundled label list
+  matches the standard 38-class PlantVillage taxonomy; supply
+  `VISION_LABELS_PATH` for any other class set. Only Apache-2.0 / MIT
+  models may be configured here.
+- **Class labels** (text metadata only, not weights) are bundled in
+  `src/app-layer/ai/vision/labels.ts` — the public PlantVillage class
+  taxonomy. `modelVersion` records the model id plus a short SHA-256 hash
+  of the loaded weights so each persisted result is traceable to the exact
+  file that produced it.
+
+---
+
 ## Concept-only (copyleft — NO code used)
 
 The following projects are GPL/AGPL-licensed. We studied them for **domain

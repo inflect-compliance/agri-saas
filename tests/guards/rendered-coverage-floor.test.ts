@@ -61,7 +61,13 @@ const ROOT = path.resolve(__dirname, '../..');
 // traceability, harvest-yield, crop-plan, grain-contracts, agro-signals,
 // offline-queue, and the parcel/spray-map visual baseline). Locked to the
 // live count of 50.
-const RENDERED_TEST_FLOOR = 181;
+// Raised 181 → 190 (feat/ai-vision): the PestSuggestionCard rendered test
+// (tests/rendered/pest-suggestion-card.test.tsx) locks the advisory
+// invariants — confidence %, the "not a diagnosis" disclaimer, the
+// lab-vs-field caveat, low-confidence flagging, and the absence of an
+// "apply" mutation — plus accumulated rendered gains. Locked to the live
+// count of 190.
+const RENDERED_TEST_FLOOR = 190;
 const E2E_SPEC_FLOOR = 50;
 const REGISTRY_FLOOR = 5;
 

@@ -535,6 +535,20 @@ export interface PhotoPestIdPayload {
 }
 
 /**
+ * AI vision (feat/ai-vision) — async leaf/crop photo → likely pest/disease
+ * + grounded recommendation. Enqueued from the LogEntry photo-upload path;
+ * the worker reads the image bytes, runs the vision orchestrator
+ * (on-device ONNX → Claude fallback), gates low confidence, grounds the
+ * recommendation via the RAG knowledge base, and writes the advisory
+ * result under `LogEntry.attributesJson.pestId`. Never mutates the entry.
+ */
+export interface ClassifyPhotoPayload {
+    tenantId: string;
+    logEntryId: string;
+    fileId: string;
+}
+
+/**
  * Agro-intel — daily cross-tenant weather pull (Open-Meteo) + agro-signal
  * evaluation. Scoped to one tenant when `tenantId` is set, else every
  * tenant that owns a Location.
@@ -630,6 +644,7 @@ export interface JobPayloadMap {
     'reconcile-inventory-ledgers': ReconcileInventoryLedgersPayload;
     'agronomy-copilot': AgronomyCopilotPayload;
     'photo-pest-id': PhotoPestIdPayload;
+    'classify-photo': ClassifyPhotoPayload;
     'weather-pull': WeatherPullPayload;
     'spatial-import': SpatialImportJobPayload;
 }
@@ -800,6 +815,16 @@ export const JOB_DEFAULTS: Record<JobName, {
     'photo-pest-id': {
         // On-demand AI vision; one retry. Idempotent — overwrites
         // attributesJson.pestId; notification dedupeKey prevents re-notify.
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 15000 },
+        removeOnComplete: 100,
+        removeOnFail: 200,
+    },
+    'classify-photo': {
+        // Async vision classification; one retry. Idempotent — overwrites
+        // attributesJson.pestId on a re-run. A transient inference / RAG /
+        // DB blip retries once; beyond that the photo + entry stand
+        // untouched (the suggestion is advisory, never load-bearing).
         attempts: 2,
         backoff: { type: 'exponential', delay: 15000 },
         removeOnComplete: 100,

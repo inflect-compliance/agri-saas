@@ -243,6 +243,27 @@ export const env = createEnv({
         // gateway (Anthropic's default host when unset).
         ANTHROPIC_API_KEY: z.string().optional(),
         ANTHROPIC_BASE_URL: z.string().url().optional(),
+
+        // ── Vision subsystem (feat/ai-vision) — leaf/crop photo → pest/disease ──
+        //   VISION_BACKEND    — orchestrator policy. 'auto' (default) tries the
+        //                       on-device ONNX model first and falls back to
+        //                       Claude when the model is absent OR confidence
+        //                       is below the fallback threshold. 'onnx' /
+        //                       'claude' pin a single backend.
+        //   VISION_MODEL_PATH — absolute path to the ONNX classifier weights
+        //                       (CropNet / MobileNetV2-PlantVillage, Apache-2.0).
+        //                       Optional — when unset/missing the ONNX backend
+        //                       reports unavailable and the orchestrator uses
+        //                       Claude. The weights are NEVER vendored into the
+        //                       repo — see THIRD_PARTY_NOTICES.md for setup.
+        //   VISION_LABELS_PATH — optional newline-delimited labels file that
+        //                       overrides the bundled PlantVillage class list
+        //                       (use when pointing VISION_MODEL_PATH at a model
+        //                       with a different class taxonomy).
+        VISION_BACKEND: z.enum(['auto', 'onnx', 'claude']).default('auto'),
+        VISION_MODEL_PATH: z.string().optional(),
+        VISION_LABELS_PATH: z.string().optional(),
+
         AI_RISK_DAILY_QUOTA: z.string().optional(),
         AI_RISK_USER_RPM: z.string().optional(),
         AI_RISK_ENABLED: z.string().default('true'),
@@ -404,6 +425,9 @@ export const env = createEnv({
         AI_EMBED_MODEL: process.env.AI_EMBED_MODEL,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
+        VISION_BACKEND: process.env.VISION_BACKEND,
+        VISION_MODEL_PATH: process.env.VISION_MODEL_PATH,
+        VISION_LABELS_PATH: process.env.VISION_LABELS_PATH,
         AI_RISK_DAILY_QUOTA: process.env.AI_RISK_DAILY_QUOTA,
         AI_RISK_USER_RPM: process.env.AI_RISK_USER_RPM,
         AI_RISK_ENABLED: process.env.AI_RISK_ENABLED,

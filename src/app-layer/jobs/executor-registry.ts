@@ -571,6 +571,24 @@ executorRegistry.register('photo-pest-id', async (payload) => {
     return result;
 });
 
+// ── classify-photo (AI vision — async LogEntry photo classification) ──
+//
+// Reads the image bytes, runs the vision orchestrator (on-device ONNX →
+// Claude fallback), gates low confidence, grounds the recommendation via
+// the RAG knowledge base, and writes the advisory result under
+// LogEntry.attributesJson.pestId. tenantId scopes the persist + RAG read
+// via runInTenantContext inside runClassifyPhoto.
+
+executorRegistry.register('classify-photo', async (payload) => {
+    const { runClassifyPhoto } = await import('./classify-photo');
+    const { result } = await runClassifyPhoto({
+        tenantId: payload.tenantId,
+        logEntryId: payload.logEntryId,
+        fileId: payload.fileId,
+    });
+    return result;
+});
+
 // ── weather-pull (Agro-intel) ────────────────────────────────────────
 
 executorRegistry.register('weather-pull', async (payload) => {

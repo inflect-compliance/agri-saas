@@ -26,7 +26,6 @@ import {
 import { env } from '@/env';
 import { traceAgUsecase, logger } from '@/lib/observability';
 import { enqueue } from '../jobs/queue';
-import { isLlmConfigured } from '../ai/llm-client';
 import { trace } from '@opentelemetry/api';
 
 /**
@@ -504,14 +503,16 @@ export async function uploadLogEntryPhoto(
         return { link, fileRecordId, isImage: mimeType.startsWith('image/') };
     });
 
-    // Photo pest/disease ID — async Claude vision (fail-safe, gated).
-    // Only for image uploads, only when an LLM key is configured; a queue
-    // failure must never fail the upload.
-    if (isImage && isLlmConfigured()) {
+    // Photo pest/disease classification — async vision (feat/ai-vision).
+    // On-device ONNX first, Claude fallback; the job + orchestrator are
+    // fully fail-safe (no-op when no backend is available), so we enqueue
+    // for every image upload and let the job decide. Fire-and-forget — a
+    // queue failure must NEVER fail the upload.
+    if (isImage) {
         try {
-            await enqueue('photo-pest-id', { tenantId: ctx.tenantId, logEntryId, fileRecordId });
+            await enqueue('classify-photo', { tenantId: ctx.tenantId, logEntryId, fileId: fileRecordId });
         } catch (err) {
-            logger.warn('journal: photo-pest-id enqueue failed', {
+            logger.warn('journal: classify-photo enqueue failed', {
                 component: 'journal',
                 tenantId: ctx.tenantId,
                 logEntryId,
