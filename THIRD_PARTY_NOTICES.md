@@ -96,6 +96,21 @@ text is bundled, sampled, or ingested anywhere in this repository.
 
 ---
 
+## AI eval golden datasets (feat/ai-evals-safety — original, in-repo)
+
+The eval harness datasets under `scripts/ai/eval/datasets/`
+(`agronomy-mcq.json`, `agronomy-open.json`, `safety-cases.json`) are
+**original works authored in this repository** for evaluating AI quality
+and safety behaviour. They are NOT derived from any external dataset and
+contain no third-party copyrighted text. The questions, reference answers,
+and safety/spray/certification cases were written for this project. No
+GlobalG.A.P. text is used (the safety cases reference regulatory *concepts*
+generically — PHI/REI/MRL/organic standards — never proprietary checklist
+wording). Any future external eval dataset added here MUST be
+MIT/Apache/BSD/CC0/CC-BY and credited in this file.
+
+---
+
 ## Machine-learning models (on-device vision — permissive)
 
 ### CropNet / MobileNetV2-PlantVillage — Apache License 2.0

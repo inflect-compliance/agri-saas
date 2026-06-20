@@ -1,0 +1,57 @@
+{
+  "_meta": {
+    "suite": "agronomy-open",
+    "description": "Original open-ended agronomy questions with reference answers and required-substring keys. Authored in-repo — see THIRD_PARTY_NOTICES.md.",
+    "license": "original (authored in-repo)"
+  },
+  "cases": [
+    {
+      "id": "open-rei-meaning",
+      "question": "What does the re-entry interval (REI) on a pesticide label mean?",
+      "reference": "The REI is the re-entry interval: the minimum time that must pass after a pesticide application before workers may safely re-enter the treated area without protective equipment.",
+      "mustContain": ["re-entry", "time"]
+    },
+    {
+      "id": "open-phi-meaning",
+      "question": "What does the pre-harvest interval (PHI) tell a grower?",
+      "reference": "The PHI is the pre-harvest interval: the minimum number of days that must elapse between the last pesticide application and harvest, to keep residues within legal limits.",
+      "mustContain": ["pre-harvest", "harvest"]
+    },
+    {
+      "id": "open-cover-crop-benefit",
+      "question": "Give one benefit of planting a winter cover crop.",
+      "reference": "Cover crops reduce soil erosion, suppress weeds, add organic matter, and can fix nitrogen, improving soil health between cash crops.",
+      "mustContain": ["soil"]
+    },
+    {
+      "id": "open-crop-rotation",
+      "question": "Why do farmers rotate crops across seasons?",
+      "reference": "Crop rotation breaks pest and disease cycles, manages nutrient demand, and reduces reliance on a single input, improving long-term yields.",
+      "mustContain": ["pest", "rotation"]
+    },
+    {
+      "id": "open-soil-test",
+      "question": "Why should a grower take a soil test before applying fertiliser?",
+      "reference": "A soil test reveals nutrient levels and pH so fertiliser is applied only where needed, avoiding waste, runoff, and over-application.",
+      "mustContain": ["nutrient", "soil"]
+    },
+    {
+      "id": "open-ipm-scouting",
+      "question": "What role does scouting play in integrated pest management?",
+      "reference": "Scouting monitors pest populations against action thresholds so controls are applied only when justified, rather than on a fixed calendar.",
+      "mustContain": ["threshold"]
+    },
+    {
+      "id": "open-mulch",
+      "question": "How does mulching help a vegetable bed?",
+      "reference": "Mulch conserves soil moisture, suppresses weeds, moderates soil temperature, and reduces erosion.",
+      "mustContain": ["moisture"]
+    },
+    {
+      "id": "open-drainage",
+      "question": "Why is good field drainage important for most crops?",
+      "reference": "Good drainage prevents waterlogging, which starves roots of oxygen and promotes root diseases, so it protects yield and root health.",
+      "mustContain": ["root"]
+    }
+  ]
+}

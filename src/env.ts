@@ -269,6 +269,14 @@ export const env = createEnv({
         AI_RISK_ENABLED: z.string().default('true'),
         AI_RISK_PLAN_REQUIRED: z.string().default(''),
 
+        // ── AI eval harness (feat/ai-evals-safety) ──
+        // Opt-in flag for the LLM-judge rubric scorer in the offline eval
+        // runner (`scripts/ai/eval/run.ts`). '1' enables the live-model
+        // judge + any case that needs a model; the CI default ('0') runs
+        // the deterministic exact/contains + safety-behaviour subset with
+        // no secrets and never touches a live backend.
+        AI_EVAL_LLM_JUDGE: z.enum(['0', '1']).default('0'),
+
         // Agro-intel — sensor/data-stream ingestion endpoint feature flag.
         // '1' enables the token-gated POST ingestion route; anything else
         // (default) returns 503 feature_disabled. Off by default — the
@@ -431,6 +439,7 @@ export const env = createEnv({
         AI_RISK_DAILY_QUOTA: process.env.AI_RISK_DAILY_QUOTA,
         AI_RISK_USER_RPM: process.env.AI_RISK_USER_RPM,
         AI_RISK_ENABLED: process.env.AI_RISK_ENABLED,
+        AI_EVAL_LLM_JUDGE: process.env.AI_EVAL_LLM_JUDGE,
         AI_RISK_PLAN_REQUIRED: process.env.AI_RISK_PLAN_REQUIRED,
         AGRO_DATASTREAMS_ENABLED: process.env.AGRO_DATASTREAMS_ENABLED,
         AGRO_NDVI_TILE_URL: process.env.AGRO_NDVI_TILE_URL,

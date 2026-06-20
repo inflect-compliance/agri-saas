@@ -112,6 +112,44 @@ jobs:
         run: npm run typecheck
 
   # ═══════════════════════════════════════════════════════════════
+  #  Job 2b: AI evals — NON-BLOCKING quality report (feat/ai-evals-safety)
+  #
+  #  Runs the offline eval harness (`npm run eval:ai`): deterministic
+  #  MCQ/contains scoring + the safety-behaviour cases (real advisor with
+  #  stubbed RAG/routing/product-safety). NO AI secrets required — the
+  #  LLM-judge stays skipped unless AI_EVAL_LLM_JUDGE=1 + a backend is
+  #  configured. `continue-on-error: true` keeps it advisory: it reports
+  #  (artifact + job summary) and never fails the build.
+  # ═══════════════════════════════════════════════════════════════
+  ai-evals:
+    name: AI evals (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node + Prisma client
+        uses: ./.github/actions/setup-node-prisma
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run AI eval harness (offline, no secrets)
+        env:
+          SKIP_ENV_VALIDATION: "1"
+        run: npm run eval:ai
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ai-eval-report
+          path: scripts/ai/eval/report.json
+          if-no-files-found: warn
+        continue-on-error: true
+
+  # ═══════════════════════════════════════════════════════════════
   #  Job 3: Test — Jest unit + integration + architectural guards
   #  Needs Postgres for integration tests.
   #

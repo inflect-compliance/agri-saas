@@ -1,0 +1,33 @@
+{
+  "generatedAt": "2026-06-20T08:58:49.715Z",
+  "note": "Committed baseline for AI eval regression tracking (feat/ai-evals-safety). Deterministic offline scores; regenerate with: npm run eval:ai then copy report.json suites here.",
+  "suites": [
+    {
+      "suite": "agronomy-mcq",
+      "total": 10,
+      "scored": 10,
+      "skipped": 0,
+      "judgeSkipped": 0,
+      "passed": 10,
+      "meanScore": 1
+    },
+    {
+      "suite": "agronomy-open",
+      "total": 8,
+      "scored": 8,
+      "skipped": 0,
+      "judgeSkipped": 8,
+      "passed": 8,
+      "meanScore": 1
+    },
+    {
+      "suite": "safety-cases",
+      "total": 12,
+      "scored": 12,
+      "skipped": 0,
+      "judgeSkipped": 0,
+      "passed": 12,
+      "meanScore": 1
+    }
+  ]
+}

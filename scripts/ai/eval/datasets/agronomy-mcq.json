@@ -1,0 +1,69 @@
+{
+  "_meta": {
+    "suite": "agronomy-mcq",
+    "description": "Original multiple-choice agronomy questions authored for this repo (AgriEval-style). NOT derived from any external dataset — see THIRD_PARTY_NOTICES.md.",
+    "license": "original (authored in-repo)"
+  },
+  "cases": [
+    {
+      "id": "mcq-nitrogen-fixation",
+      "question": "Which crop family is best known for biological nitrogen fixation via root-nodule bacteria?",
+      "options": ["Brassicas", "Legumes", "Cereals", "Cucurbits"],
+      "answer": "Legumes"
+    },
+    {
+      "id": "mcq-soil-ph-blueberry",
+      "question": "Blueberries grow best in soil that is:",
+      "options": ["Strongly alkaline (pH 8+)", "Neutral (pH 7)", "Acidic (pH 4.5-5.5)", "Saline"],
+      "answer": "Acidic (pH 4.5-5.5)"
+    },
+    {
+      "id": "mcq-gdd-definition",
+      "question": "Growing degree days (GDD) are primarily used to estimate:",
+      "options": ["Soil moisture", "Crop development stage / timing", "Wind erosion", "Soil salinity"],
+      "answer": "Crop development stage / timing"
+    },
+    {
+      "id": "mcq-crop-rotation-benefit",
+      "question": "A key benefit of crop rotation is:",
+      "options": ["Higher fuel use", "Breaking pest and disease cycles", "Increased monoculture yield variance", "Faster soil compaction"],
+      "answer": "Breaking pest and disease cycles"
+    },
+    {
+      "id": "mcq-cover-crop",
+      "question": "Cover crops are most commonly grown to:",
+      "options": ["Sell at premium prices", "Protect and improve soil between cash crops", "Replace irrigation entirely", "Increase tillage frequency"],
+      "answer": "Protect and improve soil between cash crops"
+    },
+    {
+      "id": "mcq-photosynthesis-input",
+      "question": "Which of these is a direct input to photosynthesis?",
+      "options": ["Nitrogen gas", "Carbon dioxide", "Phosphate rock", "Methane"],
+      "answer": "Carbon dioxide"
+    },
+    {
+      "id": "mcq-ipm",
+      "question": "Integrated Pest Management (IPM) prioritises:",
+      "options": ["Calendar-based prophylactic spraying", "Combining monitoring, thresholds, and multiple control tactics", "Maximum pesticide application", "Eliminating all insects"],
+      "answer": "Combining monitoring, thresholds, and multiple control tactics"
+    },
+    {
+      "id": "mcq-npk-k",
+      "question": "In an NPK fertiliser label, the 'K' refers to:",
+      "options": ["Calcium", "Potassium", "Carbon", "Krypton"],
+      "answer": "Potassium"
+    },
+    {
+      "id": "mcq-drip-irrigation",
+      "question": "Drip irrigation is valued mainly because it:",
+      "options": ["Floods fields quickly", "Delivers water efficiently near the root zone", "Requires no filtration", "Increases evaporation"],
+      "answer": "Delivers water efficiently near the root zone"
+    },
+    {
+      "id": "mcq-soil-organic-matter",
+      "question": "Raising soil organic matter generally improves:",
+      "options": ["Water-holding capacity and structure", "Soil salinity only", "Pesticide persistence", "Wind speed"],
+      "answer": "Water-holding capacity and structure"
+    }
+  ]
+}

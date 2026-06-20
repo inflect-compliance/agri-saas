@@ -152,3 +152,6 @@ dump.rdb
 # Lighthouse CI local reports
 .lighthouseci/
 ag-saas/MEMORY.md
+
+# AI eval runner output (generated; baseline.json IS committed)
+scripts/ai/eval/report.json
