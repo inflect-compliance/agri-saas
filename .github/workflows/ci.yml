@@ -204,6 +204,8 @@ jobs:
           SQL
 
       # ── Apply schema to test DB ──
+      - name: Enable pgvector (PGDG)
+        uses: ./.github/actions/enable-pgvector
       - name: Apply Prisma migrations
         run: ./node_modules/.bin/prisma migrate deploy
 
@@ -327,6 +329,8 @@ jobs:
           GRANT app_user TO postgres;
           SQL
 
+      - name: Enable pgvector (PGDG)
+        uses: ./.github/actions/enable-pgvector
       - name: Apply Prisma migrations
         run: ./node_modules/.bin/prisma migrate deploy
 
@@ -498,6 +502,8 @@ jobs:
           GRANT app_user TO postgres;
           SQL
 
+      - name: Enable pgvector (PGDG)
+        uses: ./.github/actions/enable-pgvector
       - name: Apply Prisma migrations
         run: ./node_modules/.bin/prisma migrate deploy
 
@@ -674,6 +680,8 @@ jobs:
           GRANT app_user TO postgres;
           SQL
 
+      - name: Enable pgvector (PGDG)
+        uses: ./.github/actions/enable-pgvector
       - name: Apply Prisma migrations
         run: ./node_modules/.bin/prisma migrate deploy
 

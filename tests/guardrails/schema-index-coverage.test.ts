@@ -399,6 +399,9 @@ const LIST_QUERY_INDEXES: readonly CompositeIndex[] = [
 // curated composite index is needed."
 
 const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
+    // ─── RAG (feat/ai-rag) — KnowledgeChunk retrieval store ───
+    KnowledgeChunk:
+        'retrieve() keyword branch findMany filters by (tenantId OR tenantId IS NULL) + text contains — covered by @@index([tenantId, articleId]) for the tenant predicate; the text match is a substring scan with no useful index (the ranked path is the vector branch, a raw ivfflat $queryRaw not a findMany). Both branches are take-bounded (topK*2). Nullable tenantId GLOBAL catalog.',
     // ─── Agriculture (Feature 1 — spray-prescription map) ───
     Location:
         'listLocations filters by tenantId + status and searches name/description, orders by createdAt — covered by @@index([tenantId, status]) / @@index([tenantId, name]); the paginated path is cursor-bounded.',

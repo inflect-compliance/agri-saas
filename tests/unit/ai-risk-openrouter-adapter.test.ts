@@ -26,6 +26,7 @@ function fakeAi(complete: jest.Mock): AiProvider {
     return {
         backend: 'openrouter',
         complete: ((opts) => complete(opts)) as AiProvider['complete'],
+        embed: async () => [],
         health: async () => ({ ok: true, model: 'm', modelAvailable: true }),
     };
 }

@@ -399,6 +399,21 @@ enum KnowledgeContentType {
   MARKDOWN
 }
 
+/// Provenance class of a RAG `KnowledgeChunk` (feat/ai-rag).
+///   KB        — chunk derived from a published KnowledgeArticleVersion.
+///   JOURNAL   — chunk derived from a tenant LogEntry (field record).
+///   CROP_PLAN — chunk derived from a CropPlan / Planting.
+///   LABEL     — chunk derived from an Item / InventoryLot label.
+///   EXTERNAL  — chunk ingested from a licensed external corpus (the
+///               GLOBAL catalog: KCC, FAIR-Forward QA, EU/USDA organic).
+enum KnowledgeChunkSourceType {
+  KB
+  JOURNAL
+  CROP_PLAN
+  LABEL
+  EXTERNAL
+}
+
 enum ApprovalDecision {
   APPROVED
   REJECTED

@@ -577,8 +577,22 @@ export interface SpatialImportJobPayload {
     requestId?: string;
 }
 
+/**
+ * RAG (feat/ai-rag) — embed KnowledgeChunk rows that have a NULL
+ * embedding. Scoped to one tenant when `tenantId` is set; the GLOBAL
+ * catalog (tenantId NULL) is embedded by the ingestion script directly
+ * (which runs under the superuser bypass). `batchSize` bounds both the
+ * findMany `take` and the per-call embed batch.
+ */
+export interface EmbedChunksPayload {
+    tenantId?: string;
+    /** Max chunks to embed per run (bounded findMany take). Default 128. */
+    batchSize?: number;
+}
+
 export interface JobPayloadMap {
     'health-check': HealthCheckPayload;
+    'embed-chunks': EmbedChunksPayload;
     'automation-runner': AutomationRunnerPayload;
     'daily-evidence-expiry': DailyEvidenceExpiryPayload;
     'data-lifecycle': DataLifecyclePayload;
@@ -638,6 +652,15 @@ export const JOB_DEFAULTS: Record<JobName, {
     'health-check': {
         attempts: 1,
         backoff: { type: 'fixed', delay: 1000 },
+        removeOnComplete: 100,
+        removeOnFail: 200,
+    },
+    'embed-chunks': {
+        // Embedding is idempotent (only NULL-embedding rows are picked
+        // up; a re-run re-embeds whatever's still NULL). One retry on a
+        // transient AI/DB blip; the next run catches any remainder.
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 10000 },
         removeOnComplete: 100,
         removeOnFail: 200,
     },

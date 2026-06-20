@@ -61,6 +61,7 @@ export function getAiProvider(): AiProvider {
         baseURL: env.AI_BASE_URL,
         apiKey: env.AI_API_KEY,
         model: env.AI_MODEL,
+        embedModel: env.AI_EMBED_MODEL,
     });
 }
 
@@ -75,6 +76,8 @@ export type {
     AiToolCall,
     AiCompleteOptions,
     AiCompletion,
+    AiEmbedOptions,
+    AiEmbedding,
     AiHealth,
     OpenAiCompatibleConfig,
 } from './types';

@@ -222,15 +222,16 @@ export const env = createEnv({
         //   AI_API_KEY   — bearer key. Ollama ignores it but the SDK needs a
         //                  non-empty string, hence the 'ollama' default.
         //   AI_MODEL     — model id (qwen3:1.7b locally).
-        //   AI_EMBED_MODEL — reserved for a later RAG task (embeddings are
-        //                  out of scope here); optional, no default.
+        //   AI_EMBED_MODEL — embedding model for RAG (feat/ai-rag). 768-dim
+        //                  nomic-embed-text by default (matches the
+        //                  KnowledgeChunk.embedding vector(768) column).
         AI_BACKEND: z
             .enum(['ollama', 'openrouter', 'groq', 'together', 'openai-compatible'])
             .default('ollama'),
         AI_BASE_URL: z.string().url().default('http://localhost:11434/v1'),
         AI_API_KEY: z.string().min(1).default('ollama'),
         AI_MODEL: z.string().min(1).default('qwen3:1.7b'),
-        AI_EMBED_MODEL: z.string().optional(),
+        AI_EMBED_MODEL: z.string().min(1).default('nomic-embed-text'),
         AI_RISK_DAILY_QUOTA: z.string().optional(),
         AI_RISK_USER_RPM: z.string().optional(),
         AI_RISK_ENABLED: z.string().default('true'),

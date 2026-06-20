@@ -1,8 +1,12 @@
 services:
   postgres:
-    # Agriculture SaaS: PostGIS-enabled image (superset of postgres:16)
-    # for spatial parcel geometry. Drop-in for existing migrations.
-    image: postgis/postgis:16-3.4
+    # Agriculture SaaS: PostGIS + pgvector (built from the official postgis
+    # image + PGDG pgvector — see deploy/postgres/Dockerfile) for spatial
+    # parcel geometry AND RAG embeddings. Matches the CI enable-pgvector step.
+    build:
+      context: .
+      dockerfile: deploy/postgres/Dockerfile
+    image: agri-saas-postgres:16-3.4-pgvector
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
