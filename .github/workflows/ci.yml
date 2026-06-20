@@ -109,6 +109,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Run tsc --noEmit
+        # tsc's peak heap grows with the codebase + the generated Prisma
+        # client; the runner's default ~2 GB ceiling started OOMing. Give
+        # Node the same 4 GB headroom used elsewhere for tsc.
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: npm run typecheck
 
   # ═══════════════════════════════════════════════════════════════

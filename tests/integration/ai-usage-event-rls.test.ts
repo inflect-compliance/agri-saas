@@ -46,11 +46,14 @@ function row(tenantId: string) {
 }
 
 async function cleanup() {
+    // Only the tagged usage rows are removed. The two test tenants are left
+    // in place: tenant creation leaves an AuditLog row, AuditLog is
+    // append-only (an IMMUTABLE_AUDIT_LOG trigger forbids DELETE), and the
+    // AuditLog_tenantId_fkey then blocks deleting the tenant. The CI test DB
+    // is ephemeral and the tenant ids/slugs are unique per run, so leaving
+    // them is harmless — cleaner than fighting the immutable-audit invariant.
     await globalPrisma.aiUsageEvent.deleteMany({
         where: { tenantId: { in: [TENANT_A, TENANT_B] } },
-    });
-    await globalPrisma.tenant.deleteMany({
-        where: { id: { in: [TENANT_A, TENANT_B] } },
     });
 }
 
