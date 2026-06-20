@@ -1,8 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useMemo, useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import type { Geometry, LineString, Polygon } from 'geojson';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { DataTable, createColumns } from '@/components/ui/table';
@@ -22,6 +22,7 @@ import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
 import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
 import { SprayJobWizard } from './SprayJobWizard';
 import { SmartDefaultsBanner } from './SmartDefaultsBanner';
+import { FieldReportCard } from './FieldReportCard';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { useMediaQuery, useToast } from '@/components/ui/hooks';
@@ -66,6 +67,19 @@ export default function LocationDetailPage() {
     // sheet replaces the inline side panel below the map on phones; desktop
     // keeps the side panel.
     const [sheetParcelId, setSheetParcelId] = useState<string | null>(null);
+    // Deep-link entry (QR codes on parcels): `?parcelId` opens that parcel's
+    // detail sheet on the map tab; `?tab` selects a tab. Read once on mount.
+    const searchParams = useSearchParams();
+    useEffect(() => {
+        const t = searchParams.get('tab');
+        if (t === 'overview' || t === 'map' || t === 'parcels' || t === 'operations') setTab(t);
+        const pid = searchParams.get('parcelId');
+        if (pid) {
+            setSheetParcelId(pid);
+            if (!t) setTab('map');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link read on mount only
+    }, []);
     const [wizardParcelIds, setWizardParcelIds] = useState<string[]>([]);
     const [showImport, setShowImport] = useState(false);
     const [showSprayWizard, setShowSprayWizard] = useState(false);
@@ -281,6 +295,9 @@ export default function LocationDetailPage() {
                         <div className="rounded-lg border border-border-subtle p-6 text-sm text-content-secondary">
                             No parcels yet — use “Import parcels” to upload a shapefile, KML, or GeoJSON.
                         </div>
+                    )}
+                    {loc && parcels.length > 0 && (
+                        <FieldReportCard locationName={loc.name} parcels={parcels} />
                     )}
                 </div>
             )}
@@ -516,6 +533,11 @@ export default function LocationDetailPage() {
                 onOpenChange={(o) => { if (!o) setSheetParcelId(null); }}
                 parcel={sheetParcel}
                 onStartOperation={startOperationHere}
+                deepLinkUrl={
+                    sheetParcelId && typeof window !== 'undefined'
+                        ? `${window.location.origin}/t/${tenantSlug}/locations/${locationId}?parcelId=${sheetParcelId}&tab=map`
+                        : undefined
+                }
             />
 
             <Modal

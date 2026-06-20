@@ -21,6 +21,8 @@ import type { LineString } from 'geojson';
 jest.mock('next/navigation', () => ({
     useParams: () => ({ tenantSlug: 'acme', locationId: 'loc1' }),
     useRouter: () => ({ push: jest.fn(), replace: jest.fn(), refresh: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
+    // The page reads `?parcelId` / `?tab` deep-links (feat/delight-shareables).
+    useSearchParams: () => new URLSearchParams(),
 }));
 
 // ─── tenant API url helper (mirrors the real `/api/t/{slug}` prefix) ─

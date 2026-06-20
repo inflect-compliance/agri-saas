@@ -10,6 +10,7 @@
  * wants a crisp confirmation, never a buzz that slows them down.
  */
 import { prefersReducedMotion } from '@/components/ui/hooks/use-reduced-motion';
+import { isHapticsEnabled } from '@/lib/feedback-prefs';
 
 export type HapticKind = 'tap' | 'success' | 'warning' | 'error';
 
@@ -25,7 +26,8 @@ export function canVibrate(): boolean {
     return (
         typeof navigator !== 'undefined' &&
         typeof navigator.vibrate === 'function' &&
-        !prefersReducedMotion()
+        !prefersReducedMotion() &&
+        isHapticsEnabled()
     );
 }
 

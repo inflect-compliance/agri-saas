@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
@@ -18,6 +19,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { DatePicker } from '@/components/ui/date-picker';
 import { formatDate } from '@/lib/format-date';
+import { QrCode } from '@/components/ui/qr-code';
 
 interface Lot {
     id: string;
@@ -103,6 +105,14 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
 
     // Lot detail / movement modal
     const [activeLotId, setActiveLotId] = useState<string | null>(null);
+    // Deep-link entry (QR codes on lots): `?lotId` opens that lot's detail
+    // modal. Read once on mount.
+    const searchParams = useSearchParams();
+    useEffect(() => {
+        const lotId = searchParams.get('lotId');
+        if (lotId) setActiveLotId(lotId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link read on mount only
+    }, []);
     const { data: lotDetail, mutate: mutateLot } = useTenantSWR<LotDetail>(
         activeLotId ? `/inventory/lots/${activeLotId}` : null,
     );
@@ -381,6 +391,19 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                 <Modal.Body>
                     {error && activeLotId && (
                         <div role="alert" className="mb-4 rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error">{error}</div>
+                    )}
+                    {activeLotId && typeof window !== 'undefined' && (
+                        <div className="mb-default flex items-center gap-default rounded-lg border border-border-subtle p-3">
+                            <QrCode
+                                value={`${window.location.origin}/t/${tenantSlug}/inventory?lotId=${activeLotId}`}
+                                size={84}
+                                title={`QR code for lot ${lotDetail?.lotCode ?? ''}`}
+                                className="shrink-0 rounded-md bg-white p-1"
+                            />
+                            <p className="text-xs text-content-secondary">
+                                Scan to open this lot — print it on the bin or pallet label for traceability.
+                            </p>
+                        </div>
                     )}
                     <form id="movement-form" onSubmit={postMovement} className="space-y-default border-b border-border-subtle pb-default">
                         <ToggleGroup

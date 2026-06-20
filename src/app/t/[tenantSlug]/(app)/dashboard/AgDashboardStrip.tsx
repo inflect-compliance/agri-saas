@@ -6,6 +6,7 @@ import { CACHE_KEYS } from '@/lib/swr-keys';
 import type { AgDashboardPayload } from '@/app-layer/usecases/ag-dashboard';
 
 import FirstRunCard from './FirstRunCard';
+import SeasonRecapCard from './SeasonRecapCard';
 import RecentJournalCard from './RecentJournalCard';
 import LowStockCard from './LowStockCard';
 import MyFarmTasksCard from './MyFarmTasksCard';
@@ -56,6 +57,9 @@ export default function AgDashboardStrip() {
             {/* Guided first-run ring — self-hides once the farm is set up
                 or the operator dismisses it (see FirstRunCard). */}
             <FirstRunCard payload={data} onChanged={() => { void mutate(); }} />
+            {/* Shareable season recap + "Year on the farm" PDF — self-hides
+                until there's something to recap. */}
+            <SeasonRecapCard />
             <div
                 id="ag-dashboard-strip"
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-default"

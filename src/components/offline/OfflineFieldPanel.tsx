@@ -18,6 +18,7 @@ import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
 import { PushOptIn } from '@/components/pwa/PushOptIn';
 import { FadeIn } from '@/components/ui/motion/FadeIn';
 import { haptic } from '@/lib/haptics';
+import { playSound } from '@/lib/sound';
 import { AgStatusBadge } from '@/components/ag/ag-status';
 import { Heading } from '@/components/ui/typography';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -142,11 +143,15 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                 // 3 — when it actually went out, revalidate against the server
                 //     (picks up the job auto-resolve + any stock deduction);
                 //     the SWR effect resyncs `view` + the snapshot.
+                // Sensory confirmation fires whether the write went out now
+                // ('sent') or was saved offline ('queued') — marking a parcel
+                // done is the satisfying moment a field operator wants
+                // confirmed, signal or not. A DONE feels weightier than a
+                // skip/reopen.
+                const kind = status === 'DONE' ? 'success' : 'tap';
+                haptic(kind);
+                playSound(kind);
                 if (result === 'sent') {
-                    // Online confirmation (the offline/queued path already
-                    // fired a tap haptic in useOfflineSync). A done feels
-                    // weightier than a skip/reopen.
-                    haptic(status === 'DONE' ? 'success' : 'tap');
                     await mutate();
                 }
             } catch {

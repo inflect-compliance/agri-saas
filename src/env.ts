@@ -206,6 +206,31 @@ export const env = createEnv({
         AI_RISK_PROVIDER: z.string().default('stub'),
         OPENROUTER_API_KEY: z.string().optional(),
         OPENROUTER_MODEL: z.string().optional(),
+
+        // ── Swappable AI provider (feat/ai-provider) ──
+        // ONE OpenAI-compatible provider serves local dev (Ollama) and
+        // any hosted backend (OpenRouter / Groq / Together) — they differ
+        // only by base URL + key + model. Dev defaults point at a local
+        // Ollama server (zero API cost, clean-licensed qwen3:1.7b), so
+        // local dev works with NO configuration. Prod swaps the backend
+        // purely by setting these env vars.
+        //   AI_BACKEND   — explicit backend hint; when unset it is inferred
+        //                  from the base-URL host (openrouter.ai → openrouter,
+        //                  groq → groq, together → together, else ollama).
+        //                  Drives the per-backend capability map.
+        //   AI_BASE_URL  — OpenAI-compatible base (…/v1).
+        //   AI_API_KEY   — bearer key. Ollama ignores it but the SDK needs a
+        //                  non-empty string, hence the 'ollama' default.
+        //   AI_MODEL     — model id (qwen3:1.7b locally).
+        //   AI_EMBED_MODEL — reserved for a later RAG task (embeddings are
+        //                  out of scope here); optional, no default.
+        AI_BACKEND: z
+            .enum(['ollama', 'openrouter', 'groq', 'together', 'openai-compatible'])
+            .default('ollama'),
+        AI_BASE_URL: z.string().url().default('http://localhost:11434/v1'),
+        AI_API_KEY: z.string().min(1).default('ollama'),
+        AI_MODEL: z.string().min(1).default('qwen3:1.7b'),
+        AI_EMBED_MODEL: z.string().optional(),
         AI_RISK_DAILY_QUOTA: z.string().optional(),
         AI_RISK_USER_RPM: z.string().optional(),
         AI_RISK_ENABLED: z.string().default('true'),
@@ -360,6 +385,11 @@ export const env = createEnv({
         AI_RISK_PROVIDER: process.env.AI_RISK_PROVIDER,
         OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
         OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
+        AI_BACKEND: process.env.AI_BACKEND,
+        AI_BASE_URL: process.env.AI_BASE_URL,
+        AI_API_KEY: process.env.AI_API_KEY,
+        AI_MODEL: process.env.AI_MODEL,
+        AI_EMBED_MODEL: process.env.AI_EMBED_MODEL,
         AI_RISK_DAILY_QUOTA: process.env.AI_RISK_DAILY_QUOTA,
         AI_RISK_USER_RPM: process.env.AI_RISK_USER_RPM,
         AI_RISK_ENABLED: process.env.AI_RISK_ENABLED,

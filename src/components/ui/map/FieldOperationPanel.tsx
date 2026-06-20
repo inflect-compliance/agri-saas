@@ -18,6 +18,8 @@ import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPatch } from '@/lib/api-client';
 import { haptic } from '@/lib/haptics';
+import { playSound } from '@/lib/sound';
+import { SprayJobCompletionCard } from '@/components/ui/map/SprayJobCompletionCard';
 import type { MapParcel } from '@/components/ui/map/MapCanvas';
 
 // Browser-only (MapLibre touches window) — load client-side only.
@@ -70,7 +72,10 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
         setBusyId(lineId);
         try {
             await apiPatch(buildUrl(`/field-operations/${taskId}/parcels/${lineId}`), { status });
-            haptic(status === 'DONE' ? 'success' : 'tap');
+            // Sensory confirmation — a DONE feels weightier than a skip/reopen.
+            const kind = status === 'DONE' ? 'success' : 'tap';
+            haptic(kind);
+            playSound(kind);
             await mutate();
         } catch (err) {
             haptic('error');
@@ -83,8 +88,24 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
     if (isLoading && !data) return <div className="text-sm text-content-secondary">Loading field operation…</div>;
     if (!data) return <div className="text-sm text-content-secondary">Field operation not found.</div>;
 
+    // Spray-job complete → offer a shareable card. Area covered = the done
+    // parcels' hectarage; the job's product is shared across its lines.
+    const allComplete = data.progress.total > 0 && data.progress.done === data.progress.total;
+    const areaCovered = data.lines
+        .filter((l) => l.status === 'DONE')
+        .reduce((sum, l) => sum + (l.parcel?.areaHa ?? 0), 0);
+    const jobProduct = data.lines.find((l) => l.product?.name)?.product?.name ?? null;
+
     return (
         <div className="space-y-section">
+            {allComplete && (
+                <SprayJobCompletionCard
+                    title={data.task.title}
+                    parcelsDone={data.progress.done}
+                    areaCoveredHa={areaCovered}
+                    productName={jobProduct}
+                />
+            )}
             <div className="flex items-center justify-between">
                 <div className="text-sm text-content-secondary">
                     {data.progress.done} / {data.progress.total} parcels complete

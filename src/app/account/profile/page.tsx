@@ -5,6 +5,7 @@ import { Heading } from '@/components/ui/typography';
 
 import { AvatarUploadField } from './AvatarUploadField';
 import { NameEditField } from './NameEditField';
+import { FeedbackPrefsCard } from './FeedbackPrefsCard';
 
 /**
  * Account → Profile. Avatar roadmap P3 — the first home for the
@@ -35,6 +36,8 @@ export default async function AccountProfilePage() {
                 />
 
                 <NameEditField initialName={session.user.name ?? null} />
+
+                <FeedbackPrefsCard />
             </div>
         </div>
     );

@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Sheet } from '@/components/ui/sheet';
+import { QrCode } from '@/components/ui/qr-code';
 
 export interface ParcelSheetData {
     id: string;
@@ -44,6 +45,8 @@ export interface ParcelDetailSheetProps {
     parcel: ParcelSheetData | null;
     /** Launch a spray job seeded with this parcel. Omit to hide the action. */
     onStartOperation?: (parcelId: string) => void;
+    /** Absolute deep-link to this parcel — rendered as a scannable QR. */
+    deepLinkUrl?: string;
 }
 
 function formatNumber(n: number): string {
@@ -51,7 +54,7 @@ function formatNumber(n: number): string {
     return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
 }
 
-export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation }: ParcelDetailSheetProps) {
+export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation, deepLinkUrl }: ParcelDetailSheetProps) {
     const [rate, setRate] = useState('');
 
     // Reset the calculator whenever a different parcel takes the sheet.
@@ -121,6 +124,23 @@ export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation
                                 : 'Enter a rate to compute the total for this parcel.'}
                     </p>
                 </div>
+
+                {deepLinkUrl && (
+                    <div className="flex items-center gap-default rounded-lg border border-border-subtle p-4">
+                        <QrCode
+                            value={deepLinkUrl}
+                            size={96}
+                            title={`QR code linking to ${parcel?.name ?? 'this field'}`}
+                            className="shrink-0 rounded-md bg-white p-1"
+                        />
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium text-content-emphasis">Field QR</p>
+                            <p className="text-xs text-content-secondary">
+                                Scan to open this field on a phone — pin it by the gate or in the cab.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </Sheet.Body>
             {onStartOperation && parcel && (
                 <Sheet.Actions align="between">

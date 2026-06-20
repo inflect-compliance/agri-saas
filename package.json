@@ -156,10 +156,12 @@
     "next-auth": "4.24.14",
     "next-intl": "^4.13.0",
     "nodemailer": "^9.0.1",
+    "openai": "^6.44.0",
     "pdfkit": "^0.19.1",
     "pino": "^10.3.1",
     "pptxgenjs": "^4.0.1",
     "prisma": "^7.8.0",
+    "qrcode-generator": "^1.5.2",
     "react": "^19.2.7",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.7",
@@ -179,7 +181,8 @@
     "vaul": "^1.1.2",
     "web-push": "^3.6.7",
     "web-vitals": "^4.2.4",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
@@ -207,6 +210,7 @@
     "@types/node": "^25.9.1",
     "@types/nodemailer": "^8.0.1",
     "@types/pdfkit": "^0.17.6",
+    "@types/qrcode-generator": "^0.0.16",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/react-window": "^2.0.0",
