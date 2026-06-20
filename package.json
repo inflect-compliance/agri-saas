@@ -73,6 +73,7 @@
     "prod:down": "docker compose -f docker-compose.prod.yml down"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
     "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@aws-sdk/client-s3": "^3.1068.0",
     "@aws-sdk/s3-request-presigner": "^3.1068.0",

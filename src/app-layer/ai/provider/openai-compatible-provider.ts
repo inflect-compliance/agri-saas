@@ -83,6 +83,14 @@ export const CAPABILITIES: Record<AiBackend, AiCapabilities> = {
     groq: { jsonSchema: true, tools: true, streaming: true, embeddings: false },
     together: { jsonSchema: true, tools: true, streaming: true, embeddings: false },
     'openai-compatible': { jsonSchema: false, tools: true, streaming: true, embeddings: false },
+    // claude — served by ClaudeProvider (native Anthropic Messages API),
+    // NOT this OpenAI-compat class. The entry exists only to satisfy the
+    // exhaustive `Record<AiBackend, …>` type; ClaudeProvider does not
+    // consult this map (structured output is via forced tool-use, not
+    // an OpenAI `response_format`). jsonSchema is therefore false here:
+    // the OpenAI json_schema path is N/A. tools + streaming are native.
+    // embeddings false — Anthropic has no embeddings endpoint.
+    claude: { jsonSchema: false, tools: true, streaming: true, embeddings: false },
 };
 
 /** Typed error for unrecoverable provider failures. */
@@ -156,6 +164,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
             stream: opts.stream === true && this.capabilities.streaming,
             temperature: opts.temperature,
             maxTokens: opts.maxTokens,
+            signal: opts.signal,
         });
 
         const result: AiCompletion<T> = { text };
@@ -189,6 +198,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
                     stream: false,
                     temperature: opts.temperature,
                     maxTokens: opts.maxTokens,
+                    signal: opts.signal,
                 });
                 const parsed = this.tryParse(schema, text);
                 if (parsed.ok) return { text, parsed: parsed.value };
@@ -237,6 +247,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
             stream: false,
             temperature: opts.temperature,
             maxTokens: opts.maxTokens,
+            signal: opts.signal,
         });
         const firstParse = this.tryParse(schema, first.text);
         if (firstParse.ok) return { text: first.text, parsed: firstParse.value };
@@ -260,6 +271,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
             stream: false,
             temperature: opts.temperature,
             maxTokens: opts.maxTokens,
+            signal: opts.signal,
         });
         const repairedParse = this.tryParse(schema, repaired.text);
         if (repairedParse.ok) return { text: repaired.text, parsed: repairedParse.value };
@@ -394,7 +406,9 @@ export class OpenAiCompatibleProvider implements AiProvider {
         stream: boolean;
         temperature?: number;
         maxTokens?: number;
+        signal?: AbortSignal;
     }): Promise<{ text: string; toolCalls: AiToolCall[] }> {
+        const reqOpts = args.signal ? { signal: args.signal } : undefined;
         const base = {
             model: args.model,
             messages: args.messages,
@@ -405,7 +419,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
         };
 
         if (args.stream) {
-            const stream = await this.client.chat.completions.create({ ...base, stream: true });
+            const stream = await this.client.chat.completions.create({ ...base, stream: true }, reqOpts);
             let text = '';
             const toolAcc = new Map<number, { id: string; name: string; arguments: string }>();
             for await (const chunk of stream) {
@@ -425,7 +439,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
             return { text, toolCalls };
         }
 
-        const completion = await this.client.chat.completions.create({ ...base, stream: false });
+        const completion = await this.client.chat.completions.create({ ...base, stream: false }, reqOpts);
         const message = completion.choices[0]?.message;
         const text = message?.content ?? '';
         const toolCalls: AiToolCall[] = (message?.tool_calls ?? [])

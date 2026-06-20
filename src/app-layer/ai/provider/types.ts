@@ -13,10 +13,14 @@ import type { ZodType } from 'zod';
 // ─── Backends ───
 
 /**
- * The OpenAI-compatible backends this provider serves. `openai-compatible`
- * is a generic catch-all for any other host speaking the same shape.
+ * The backends an `AiProvider` instance can be configured for.
+ *
+ * The first five are OpenAI-compatible (served by `OpenAiCompatibleProvider`);
+ * `openai-compatible` is a generic catch-all for any other host speaking
+ * the same shape. `claude` is the native Anthropic Messages-API backend,
+ * served by `ClaudeProvider` (NOT the OpenAI-compat shim).
  */
-export type AiBackend = 'ollama' | 'openrouter' | 'groq' | 'together' | 'openai-compatible';
+export type AiBackend = 'ollama' | 'openrouter' | 'groq' | 'together' | 'openai-compatible' | 'claude';
 
 /** What a given backend can do. Drives the structured-output path. */
 export interface AiCapabilities {
@@ -82,6 +86,13 @@ export interface AiCompleteOptions<T = unknown> {
     maxTokens?: number;
     /** Per-call model override (defaults to the configured model). */
     model?: string;
+    /**
+     * Optional abort signal. When provided, the provider threads it to
+     * the underlying SDK request so an upstream completion / stream is
+     * cancelled when the signal fires (client disconnect, routing
+     * timeout). Provider-agnostic — honoured by both backends.
+     */
+    signal?: AbortSignal;
 }
 
 export interface AiCompletion<T = unknown> {

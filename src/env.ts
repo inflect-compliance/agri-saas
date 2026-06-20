@@ -225,13 +225,24 @@ export const env = createEnv({
         //   AI_EMBED_MODEL — embedding model for RAG (feat/ai-rag). 768-dim
         //                  nomic-embed-text by default (matches the
         //                  KnowledgeChunk.embedding vector(768) column).
+        //   AI_BACKEND='claude' — native Anthropic Messages-API backend
+        //                  (ClaudeProvider). When selected, the provider
+        //                  uses ANTHROPIC_API_KEY (+ optional
+        //                  ANTHROPIC_BASE_URL) and AI_MODEL as the model
+        //                  id, rather than AI_BASE_URL / AI_API_KEY.
         AI_BACKEND: z
-            .enum(['ollama', 'openrouter', 'groq', 'together', 'openai-compatible'])
+            .enum(['ollama', 'openrouter', 'groq', 'together', 'openai-compatible', 'claude'])
             .default('ollama'),
         AI_BASE_URL: z.string().url().default('http://localhost:11434/v1'),
         AI_API_KEY: z.string().min(1).default('ollama'),
         AI_MODEL: z.string().min(1).default('qwen3:1.7b'),
         AI_EMBED_MODEL: z.string().min(1).default('nomic-embed-text'),
+        // ── Native Claude backend (feat/ai-prod-routing) ──
+        // Used only when AI_BACKEND='claude'. ANTHROPIC_API_KEY is the
+        // bearer key; ANTHROPIC_BASE_URL optionally points at a proxy /
+        // gateway (Anthropic's default host when unset).
+        ANTHROPIC_API_KEY: z.string().optional(),
+        ANTHROPIC_BASE_URL: z.string().url().optional(),
         AI_RISK_DAILY_QUOTA: z.string().optional(),
         AI_RISK_USER_RPM: z.string().optional(),
         AI_RISK_ENABLED: z.string().default('true'),
@@ -391,6 +402,8 @@ export const env = createEnv({
         AI_API_KEY: process.env.AI_API_KEY,
         AI_MODEL: process.env.AI_MODEL,
         AI_EMBED_MODEL: process.env.AI_EMBED_MODEL,
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+        ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
         AI_RISK_DAILY_QUOTA: process.env.AI_RISK_DAILY_QUOTA,
         AI_RISK_USER_RPM: process.env.AI_RISK_USER_RPM,
         AI_RISK_ENABLED: process.env.AI_RISK_ENABLED,

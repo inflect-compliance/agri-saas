@@ -147,6 +147,58 @@ export async function getEffectivePlan(ctx: RequestContext): Promise<Plan> {
     });
 }
 
+// ─── AI model-tier gating ────────────────────────────────────────
+
+/**
+ * Ordered AI capability tiers, cheapest → most capable. The routing
+ * policy (`src/app-layer/ai/routing.ts`) maps a TASK to one of these,
+ * and `assertAiTierAllowed` gates the tier against the tenant's plan
+ * so a FREE tenant cannot route a task to an Opus-class model.
+ *
+ * The order is load-bearing: `AI_TIER_ORDER.indexOf(tier)` is the
+ * comparison key for the plan ceiling below.
+ */
+export type AiTier = 'cheap' | 'standard' | 'premium';
+
+export const AI_TIER_ORDER: readonly AiTier[] = ['cheap', 'standard', 'premium'];
+
+/**
+ * The most capable AI tier each plan may use. FREE is capped at the
+ * cheap/fast tier (Haiku / Groq); paid tiers unlock the premium
+ * reasoning tier (Sonnet / Opus). TRIAL inherits PRO, mirroring the
+ * resource-limit table.
+ */
+const PLAN_AI_TIER_CEILING: Record<Plan, AiTier> = {
+    FREE: 'cheap',
+    TRIAL: 'premium',
+    PRO: 'premium',
+    ENTERPRISE: 'premium',
+};
+
+export function getAiTierCeiling(plan: Plan): AiTier {
+    return PLAN_AI_TIER_CEILING[plan];
+}
+
+/**
+ * Throws `forbidden(...)` if the tenant's plan does not permit the
+ * requested AI `tier`. Higher tiers require higher plans. The thrown
+ * error embeds `ai_tier_not_allowed` + plan + tier so the surface can
+ * render an upgrade CTA, consistent with `assertWithinLimit`.
+ */
+export async function assertAiTierAllowed(
+    ctx: RequestContext,
+    tier: AiTier,
+): Promise<void> {
+    const plan = await getEffectivePlan(ctx);
+    const ceiling = PLAN_AI_TIER_CEILING[plan];
+    if (AI_TIER_ORDER.indexOf(tier) > AI_TIER_ORDER.indexOf(ceiling)) {
+        throw forbidden(
+            `ai_tier_not_allowed: ${plan} plan allows the "${ceiling}" AI tier at most; ` +
+                `the "${tier}" tier requires a higher plan. Upgrade to use it.`,
+        );
+    }
+}
+
 // ─── Limit lookup ────────────────────────────────────────────────
 
 export function getLimit(plan: Plan, resource: GatedResource): number | null {

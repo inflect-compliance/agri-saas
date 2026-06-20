@@ -13,7 +13,8 @@
  * inferred from the host so the capability map matches the real backend.
  */
 import { env } from '@/env';
-import { OpenAiCompatibleProvider } from './openai-compatible-provider';
+import { OpenAiCompatibleProvider, AiProviderError } from './openai-compatible-provider';
+import { ClaudeProvider } from './claude-provider';
 import type { AiBackend, AiProvider } from './types';
 
 /** Infer the backend from a base-URL host when not set explicitly. */
@@ -54,8 +55,28 @@ function resolveBackend(): AiBackend {
     return inferred;
 }
 
-/** Build the configured OpenAI-compatible provider from env. */
+/**
+ * Build the configured provider from env. When `AI_BACKEND='claude'`
+ * the native `ClaudeProvider` (Anthropic Messages API) is returned,
+ * authenticated with `ANTHROPIC_API_KEY`; every other backend resolves
+ * to the single `OpenAiCompatibleProvider`.
+ */
 export function getAiProvider(): AiProvider {
+    if (env.AI_BACKEND === 'claude') {
+        const apiKey = env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            throw new AiProviderError(
+                'claude',
+                'AI_BACKEND=claude requires ANTHROPIC_API_KEY to be set.',
+            );
+        }
+        return new ClaudeProvider({
+            apiKey,
+            model: env.AI_MODEL,
+            baseURL: env.ANTHROPIC_BASE_URL,
+        });
+    }
+
     return new OpenAiCompatibleProvider({
         backend: resolveBackend(),
         baseURL: env.AI_BASE_URL,
@@ -66,6 +87,7 @@ export function getAiProvider(): AiProvider {
 }
 
 export { OpenAiCompatibleProvider, CAPABILITIES, AiProviderError } from './openai-compatible-provider';
+export { ClaudeProvider, DEFAULT_CLAUDE_MODEL } from './claude-provider';
 export type {
     AiBackend,
     AiCapabilities,
