@@ -21,12 +21,12 @@ export interface SpatialImportModalProps {
     locationId: string;
     open: boolean;
     setOpen: Dispatch<SetStateAction<boolean>>;
-    onImported?: (result: { parcelCount: number; format: string }) => void;
+    onImported?: (result: { parcelCount: number; format: string; skipped: number }) => void;
 }
 
 interface JobStatus {
     state: 'completed' | 'failed' | 'active' | 'waiting' | 'delayed' | 'unknown' | string;
-    result?: { details?: { parcelCount?: number; format?: string } } | null;
+    result?: { details?: { parcelCount?: number; format?: string; skipped?: number } } | null;
     failedReason?: string | null;
 }
 
@@ -82,6 +82,7 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
             onImported?.({
                 parcelCount: details.parcelCount ?? 0,
                 format: details.format ?? '',
+                skipped: details.skipped ?? 0,
             });
             setOpen(false);
             setFile(null);

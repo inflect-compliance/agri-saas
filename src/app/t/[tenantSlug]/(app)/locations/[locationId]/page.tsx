@@ -513,7 +513,17 @@ export default function LocationDetailPage() {
                 locationId={locationId}
                 open={showImport}
                 setOpen={setShowImport}
-                onImported={() => { locQ.mutate(); parcelsQ.mutate(); }}
+                onImported={({ parcelCount, skipped }) => {
+                    toast.success(
+                        `Imported ${parcelCount} parcel${parcelCount === 1 ? '' : 's'}` +
+                            (skipped > 0
+                                ? ` — ${skipped} non-polygon feature${skipped === 1 ? '' : 's'} skipped`
+                                : '') +
+                            '.',
+                    );
+                    locQ.mutate();
+                    parcelsQ.mutate();
+                }}
             />
 
             <SprayJobWizard
