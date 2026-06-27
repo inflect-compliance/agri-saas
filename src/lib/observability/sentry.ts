@@ -179,6 +179,11 @@ export function captureError(
         errorCode?: string;
     },
 ): void {
+    // Noop when Sentry was never initialized (e.g. SENTRY_DSN unset).
+    // Without this guard, Sentry.withScope below throws "is not a
+    // function" on an unbound SDK and masks the real error being reported.
+    if (!_initialized) return;
+
     // Skip 4xx — these are expected/handled
     if (extra?.status && extra.status < 500) return;
 

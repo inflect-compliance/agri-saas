@@ -33,7 +33,7 @@ export interface ParsedParcel {
     name: string;
     /** Always a MultiPolygon in WGS84 (Polygon inputs are wrapped). */
     geometry: MultiPolygon;
-    /** Original source-feature properties, preserved verbatim. */
+    /** Source-feature properties, JSON-sanitised (Dates→ISO, NaN→null). */
     properties: Record<string, unknown>;
 }
 
@@ -51,6 +51,38 @@ export class SpatialParseError extends Error {
         super(message);
         this.name = 'SpatialParseError';
     }
+}
+
+/**
+ * Coerce a parsed source value into something that survives JSON
+ * serialization into `Parcel.propertiesJson`. DBF parsers (shpjs) emit
+ * native `Date` objects for date columns — blank cells become
+ * `new Date('Invalid Date')` — and numeric columns can yield `NaN`.
+ * Prisma rejects BOTH inside a JSON value, which previously failed the
+ * whole import. We normalize: valid Date → ISO string, invalid Date →
+ * null, non-finite number → null, recursing through arrays/objects.
+ */
+function toJsonSafe(value: unknown): unknown {
+    if (value === null || value === undefined) return null;
+    if (value instanceof Date) {
+        const t = value.getTime();
+        return Number.isNaN(t) ? null : value.toISOString();
+    }
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value === 'bigint') return value.toString();
+    if (typeof value === 'string' || typeof value === 'boolean') return value;
+    if (Array.isArray(value)) return value.map(toJsonSafe);
+    if (typeof value === 'object') {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+            out[k] = toJsonSafe(v);
+        }
+        return out;
+    }
+    // functions / symbols → drop
+    return null;
 }
 
 const NAME_KEYS = ['name', 'Name', 'NAME', 'title', 'label', 'parcel', 'PARCEL', 'field', 'FIELD', 'id', 'ID'];
@@ -114,7 +146,9 @@ export function normalizeToParcels(input: unknown): { parcels: ParsedParcel[]; s
             skipped++;
             continue;
         }
-        const properties = (feature.properties ?? {}) as Record<string, unknown>;
+        const properties = toJsonSafe(
+            (feature.properties ?? {}) as Record<string, unknown>,
+        ) as Record<string, unknown>;
         parcels.push({ name: pickName(properties, parcels.length), geometry: mp, properties });
     }
     return { parcels, skipped };
