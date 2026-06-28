@@ -22,7 +22,9 @@
 import { test, expect } from '@playwright/test';
 import { safeGoto, loginAndGetTenant } from '../e2e-utils';
 
-const FIELD_TABS = ['dashboard', 'farm-tasks', 'locations', 'journal', 'tasks'];
+// The legacy compliance Tasks tab was dropped from the bottom bar; the
+// farm surfaces are dashboard / farm-tasks / locations / journal.
+const FIELD_TABS = ['dashboard', 'farm-tasks', 'locations', 'journal'];
 
 test.describe('mobile bottom-tab navigation @mobile', () => {
     let tenantSlug: string;
@@ -47,7 +49,7 @@ test.describe('mobile bottom-tab navigation @mobile', () => {
             'bar bottom edge sits at the viewport bottom',
         ).toBeLessThanOrEqual(2);
 
-        // (2) The five field tabs are present.
+        // (2) The four field tabs are present.
         for (const slug of FIELD_TABS) {
             await expect(bar.getByTestId(`bottom-tab-${slug}`)).toBeVisible();
         }
