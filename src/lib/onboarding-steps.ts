@@ -135,17 +135,7 @@ export const DEFAULT_TOUR_STEPS: ReadonlyArray<OnboardingStep> = [
     //    drops them for a simple-mode (startup farmer) tenant — the
     //    tour adapts to the persona automatically, no branching. ──
 
-    // Step 7 — Certification (enterprise only).
-    {
-        id: 'sidebar.controls',
-        selector: '[data-testid="nav-controls"]',
-        title: 'Certification',
-        description:
-            'Audit-ready controls, evidence, and frameworks (GlobalG.A.P. / organic / Red Tractor) — for certified producers.',
-        side: 'right',
-    },
-
-    // Step 8 — Suppliers & buyers (enterprise only).
+    // Step 7 — Suppliers & buyers (enterprise only).
     {
         id: 'sidebar.vendors',
         selector: '[data-testid="nav-vendors"]',

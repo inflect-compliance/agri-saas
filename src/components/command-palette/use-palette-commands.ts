@@ -30,17 +30,13 @@
  */
 
 import {
-    Activity,
     Calendar as CalendarIcon,
-    ClipboardList,
-    FileText,
     Layers,
     LayoutDashboard,
     LogOut,
     Moon,
     Paperclip,
     Settings,
-    ShieldCheck,
     Triangle,
     Truck,
     type LucideIcon,
@@ -86,13 +82,6 @@ export function usePaletteCommands(tenantSlug: string | null): PaletteCommand[] 
                 href: href('/dashboard'),
             },
             {
-                id: 'nav:controls',
-                group: 'Navigation',
-                label: 'Go to Controls',
-                icon: ShieldCheck,
-                href: href('/controls'),
-            },
-            {
                 id: 'nav:risks',
                 group: 'Navigation',
                 label: 'Go to Risks',
@@ -100,25 +89,11 @@ export function usePaletteCommands(tenantSlug: string | null): PaletteCommand[] 
                 href: href('/risks'),
             },
             {
-                id: 'nav:policies',
-                group: 'Navigation',
-                label: 'Go to Policies',
-                icon: FileText,
-                href: href('/policies'),
-            },
-            {
                 id: 'nav:evidence',
                 group: 'Navigation',
                 label: 'Go to Evidence',
                 icon: Paperclip,
                 href: href('/evidence'),
-            },
-            {
-                id: 'nav:tasks',
-                group: 'Navigation',
-                label: 'Go to Tasks',
-                icon: ClipboardList,
-                href: href('/tasks'),
             },
             {
                 id: 'nav:calendar',
@@ -140,13 +115,6 @@ export function usePaletteCommands(tenantSlug: string | null): PaletteCommand[] 
                 label: 'Go to Vendors',
                 icon: Truck,
                 href: href('/vendors'),
-            },
-            {
-                id: 'nav:reports',
-                group: 'Navigation',
-                label: 'Go to Reports',
-                icon: Activity,
-                href: href('/reports'),
             },
             {
                 id: 'nav:admin',

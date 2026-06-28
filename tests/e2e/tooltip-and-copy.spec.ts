@@ -45,7 +45,11 @@ test.describe('Epic 56 — tooltip + copy primitives', () => {
         await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     });
 
-    test('selection-toolbar Clear tooltip exposes its hint on hover', async ({ page }) => {
+    // Tooltips are globally switched off for now (mobile popup breakage —
+    // see the TOOLTIPS_ENABLED kill-switch in src/components/ui/tooltip.tsx).
+    // The hover-reveal hint no longer renders, so this case is skipped until
+    // tooltips are re-enabled. The copy primitives below are unaffected.
+    test.skip('selection-toolbar Clear tooltip exposes its hint on hover', async ({ page }) => {
         const tenantSlug = await loginAndGetTenant(page, ADMIN_USER);
         await safeGoto(page, `/t/${tenantSlug}/controls`, {
             waitUntil: 'domcontentloaded',

@@ -67,10 +67,10 @@ test.describe('Mobile viewport (375×812)', () => {
         await expect(drawer.locator('[data-testid="nav-dashboard"]')).toBeVisible();
 
         // Click a nav item — drawer should close
-        await drawer.locator('[data-testid="nav-controls"]').click();
-        // Controls page may need cold JIT compilation under heavy
-        // suite load; allow a generous window for the nav transition.
-        await page.waitForURL(/\/controls/, { timeout: 60_000 });
+        await drawer.locator('[data-testid="nav-locations"]').click();
+        // The page may need cold JIT compilation under heavy suite
+        // load; allow a generous window for the nav transition.
+        await page.waitForURL(/\/locations/, { timeout: 60_000 });
 
         // Drawer should be closed — check data-open attribute
         await expect(drawer).toHaveAttribute('data-open', 'false', { timeout: 10_000 });

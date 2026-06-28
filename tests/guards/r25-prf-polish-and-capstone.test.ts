@@ -128,9 +128,13 @@ describe("R25-PR-F — Polish + capstone", () => {
             expect(src).not.toMatch(/<ListPageShell\b/);
         });
 
-        it("Manage nav entry exists at /processes", () => {
+        it("no longer exposes a /processes Manage nav entry (intentionally removed)", () => {
+            // The compliance surfaces were dropped from the farm-app
+            // sidebar. The /processes route + canvas still exist (asserted
+            // above) and stay reachable by direct URL; only the nav
+            // affordance was removed.
             const src = read("src/components/layout/SidebarNav.tsx");
-            expect(src).toMatch(/href:\s*tenantHref\(['"]\/processes['"]\)/);
+            expect(src).not.toMatch(/href:\s*tenantHref\(['"]\/processes['"]\)/);
         });
     });
 });

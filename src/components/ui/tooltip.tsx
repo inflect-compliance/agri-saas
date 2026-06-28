@@ -37,6 +37,19 @@ export type TooltipSide = "top" | "right" | "bottom" | "left";
 export type TooltipAlign = "start" | "center" | "end";
 
 /**
+ * Global kill-switch (temporary). Hover/focus tooltips misbehave on
+ * touch devices — the Radix popup opens on the synthesised focus of a
+ * tap and then sits over the UI, intercepting the next touch. Until a
+ * touch-aware fix lands we disable tooltips app-wide: `<Tooltip>` (and
+ * therefore `<InfoTooltip>` / `<DynamicTooltipWrapper>`, which delegate
+ * to it) renders its trigger child with no popup wiring. Flip this back
+ * to `true` to restore tooltips everywhere — no call-site changes needed.
+ * Exported so the behavioural tooltip tests skip themselves while the
+ * popup is switched off (they auto-restore when this flips back).
+ */
+export const TOOLTIPS_ENABLED = false;
+
+/**
  * Global provider. Mount once at the app root so Radix can share the
  * delay timer across tooltips — once one is open, subsequent tooltips
  * open instantly until the user pauses.
@@ -112,7 +125,7 @@ export const Tooltip = forwardRef<HTMLButtonElement, TooltipProps>(function Tool
     },
     ref,
 ) {
-    if (disabled || (content == null && title == null)) {
+    if (!TOOLTIPS_ENABLED || disabled || (content == null && title == null)) {
         return <>{children}</>;
     }
 

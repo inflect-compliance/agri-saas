@@ -113,28 +113,16 @@ describe("R25-PR-A — Processes route + shell + nav", () => {
         const NAV_PATH = "src/components/layout/SidebarNav.tsx";
         const src = read(NAV_PATH);
 
-        it("registers a `/processes` nav entry", () => {
-            expect(src).toMatch(
+        // The Processes sidebar entry was intentionally removed (the
+        // compliance surfaces were dropped from the farm-app nav). The
+        // /processes ROUTE + shell still exist (covered above) and stay
+        // reachable by direct URL; only the nav affordance is gone. This
+        // assertion locks the removal in so the entry can't silently
+        // return without a deliberate edit here.
+        it("no longer registers a `/processes` sidebar entry", () => {
+            expect(src).not.toMatch(
                 /href:\s*tenantHref\(['"]\/processes['"]\)/,
             );
-        });
-
-        it("labels the entry `Process` to match the Manage sibling style", () => {
-            // Manage section convention: `Policy`, `Vendor`,
-            // `Report` (singular, no plural — distinct from the
-            // /policies URL plural). New entry follows the same
-            // pattern.
-            expect(src).toMatch(/label:\s*['"]Process['"]/);
-        });
-
-        it("uses the Workflow lucide icon", () => {
-            // Workflow icon (process-diagram glyph) reads as
-            // "process mapping" at a glance. Imported from
-            // lucide-react alongside the other nav icons.
-            expect(src).toMatch(
-                /import\s*\{[\s\S]*?\bWorkflow\b[\s\S]*?\}\s*from\s+['"]lucide-react['"]/,
-            );
-            expect(src).toMatch(/icon:\s*Workflow/);
         });
     });
 });

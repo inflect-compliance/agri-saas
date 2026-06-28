@@ -119,14 +119,10 @@ describe('Command Palette — navigation commands', () => {
         render(<Shell />);
         const expected = [
             'nav:dashboard',
-            'nav:controls',
             'nav:risks',
-            'nav:policies',
             'nav:evidence',
-            'nav:tasks',
             'nav:frameworks',
             'nav:vendors',
-            'nav:reports',
             'nav:admin',
         ];
         for (const id of expected) {
@@ -151,12 +147,12 @@ describe('Command Palette — navigation commands', () => {
     it('selecting a navigation command calls router.push and closes the palette', async () => {
         const { queryByTestId } = render(<Shell />);
         const row = document.querySelector(
-            '[data-testid="command-palette-nav-nav:controls"]',
+            '[data-testid="command-palette-nav-nav:risks"]',
         )!;
-        expect(row.getAttribute('data-href')).toBe('/t/acme-corp/controls');
+        expect(row.getAttribute('data-href')).toBe('/t/acme-corp/risks');
 
         fireEvent.click(row);
-        expect(navigationMock.push).toHaveBeenCalledWith('/t/acme-corp/controls');
+        expect(navigationMock.push).toHaveBeenCalledWith('/t/acme-corp/risks');
         await waitFor(() => {
             expect(queryByTestId('command-palette-input')).toBeNull();
         });
@@ -180,7 +176,7 @@ describe('Command Palette — navigation commands', () => {
         fireEvent.change(input, { target: { value: 'risk' } });
 
         // Commands filter immediately (no debounce). Nav:risks stays,
-        // nav:controls disappears.
+        // non-matching commands (e.g. nav:evidence) disappear.
         await waitFor(() => {
             expect(
                 document.querySelector(
@@ -190,7 +186,7 @@ describe('Command Palette — navigation commands', () => {
         });
         expect(
             document.querySelector(
-                '[data-testid="command-palette-nav-nav:controls"]',
+                '[data-testid="command-palette-nav-nav:evidence"]',
             ),
         ).toBeNull();
     });

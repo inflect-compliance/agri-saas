@@ -14,18 +14,14 @@ import {
     LayoutDashboard,
     Building2,
     AlertTriangle,
-    ShieldCheck,
     Paperclip,
     FileText,
     ClipboardList,
     ClipboardCheck,
-    FlaskConical,
     Truck,
-    BarChart3,
     Settings,
     LogOut,
     Calendar as CalendarIcon,
-    Workflow,
     PanelLeftClose,
     PanelLeftOpen,
     MapPin,
@@ -146,10 +142,9 @@ export function useNavSections(): NavSectionDef[] {
                 // Govern. Reuses the already-imported ClipboardList glyph
                 // (the task affordance) — no new lucide import.
                 { href: tenantHref('/farm-tasks'), label: 'Farm Tasks', icon: ClipboardList },
-                // Risk + Control are GRC surfaces gated behind the
-                // CERTIFICATION module — hidden for simple-mode farm tenants.
+                // Risk is a GRC surface gated behind the CERTIFICATION
+                // module — hidden for simple-mode farm tenants.
                 { href: tenantHref('/risks'), label: 'Risk', icon: AlertTriangle, visible: certAvailable },
-                { href: tenantHref('/controls'), label: 'Practice', icon: ShieldCheck, visible: certAvailable },
             ]),
         },
         {
@@ -175,14 +170,12 @@ export function useNavSections(): NavSectionDef[] {
                 // ongoing governance configuration.
                 // GRC surface — gated behind the CERTIFICATION module.
                 { href: tenantHref('/audits'), label: 'Inspection', icon: ClipboardCheck, visible: certAvailable },
-                { href: tenantHref('/tasks'), label: 'Plan', icon: ClipboardList },
                 {
                     href: tenantHref('/calendar'),
                     label: 'Schedule',
                     icon: CalendarIcon,
                     badge: calendarBadge,
                 },
-                { href: tenantHref('/tests'), label: 'Review', icon: FlaskConical },
                 { href: tenantHref('/evidence'), label: 'Docs', icon: Paperclip },
             ]),
         },
@@ -194,8 +187,6 @@ export function useNavSections(): NavSectionDef[] {
                 // the Audits page header (R13-PR9) and via the command
                 // palette (⌘K → "Frameworks").
                 // R13-PR16 — Audit moved up to Comply (see above).
-                // Policy is a GRC surface — gated behind CERTIFICATION.
-                { href: tenantHref('/policies'), label: 'Policy', icon: FileText, visible: certAvailable },
                 // Certification Schemes — the catalog of AG_SCHEME frameworks
                 // (Organic, GLOBALG.A.P., etc.) the tenant maps practices to.
                 // GRC surface — gated behind CERTIFICATION. Reuses the
@@ -213,13 +204,6 @@ export function useNavSections(): NavSectionDef[] {
                 { href: tenantHref('/knowledge'), label: 'Knowledge', icon: FileText },
                 // Vendor is a GRC surface — gated behind CERTIFICATION.
                 { href: tenantHref('/vendors'), label: 'Vendor', icon: Truck, visible: certAvailable },
-                // R25-PR-A — Processes canvas. Visual mapping of
-                // business + IT processes with controls placed on
-                // the connections between steps. Sits under Manage
-                // alongside Policy + Vendor — same governance-tool
-                // tier. GRC surface — gated behind CERTIFICATION.
-                { href: tenantHref('/processes'), label: 'Process', icon: Workflow, visible: certAvailable },
-                { href: tenantHref('/reports'), label: 'Report', icon: BarChart3, visible: perms.reports.view },
             ]),
         },
     ];

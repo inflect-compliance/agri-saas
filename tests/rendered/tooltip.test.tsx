@@ -26,7 +26,15 @@ import {
     TooltipProvider,
     InfoTooltip,
     DynamicTooltipWrapper,
+    TOOLTIPS_ENABLED,
 } from '@/components/ui/tooltip';
+
+// Tooltips are globally switched off (mobile popup breakage — see
+// tooltip.tsx). The behavioural "it opens / shows content" cases only
+// make sense while the popup is live, so they skip themselves until
+// TOOLTIPS_ENABLED flips back to true. The short-circuit / no-op cases
+// below still run and lock in the disabled behaviour.
+const itWhenEnabled = TOOLTIPS_ENABLED ? it : it.skip;
 
 function Harness({ children }: { children: React.ReactNode }) {
     // Use delayDuration={0} so the tooltip opens immediately in tests —
@@ -49,7 +57,7 @@ describe('Tooltip primitive', () => {
         expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
 
-    it('opens on keyboard focus and exposes aria-describedby linkage', async () => {
+    itWhenEnabled('opens on keyboard focus and exposes aria-describedby linkage', async () => {
         const user = userEvent.setup();
         render(
             <Harness>
@@ -75,7 +83,7 @@ describe('Tooltip primitive', () => {
         });
     });
 
-    it('closes on Escape', async () => {
+    itWhenEnabled('closes on Escape', async () => {
         const user = userEvent.setup();
         render(
             <Harness>
@@ -94,7 +102,7 @@ describe('Tooltip primitive', () => {
         });
     });
 
-    it('renders ReactNode content (rich body)', async () => {
+    itWhenEnabled('renders ReactNode content (rich body)', async () => {
         render(
             <Harness>
                 <Tooltip
@@ -122,7 +130,7 @@ describe('Tooltip primitive', () => {
         }
     });
 
-    it('renders the `title` + `shortcut` header above the content', async () => {
+    itWhenEnabled('renders the `title` + `shortcut` header above the content', async () => {
         render(
             <Harness>
                 <Tooltip
@@ -202,7 +210,7 @@ describe('Tooltip primitive', () => {
             ).toBeInTheDocument();
         });
 
-        it('opens the tooltip on keyboard focus', async () => {
+        itWhenEnabled('opens the tooltip on keyboard focus', async () => {
             const user = userEvent.setup();
             render(
                 <Harness>
@@ -217,7 +225,7 @@ describe('Tooltip primitive', () => {
     });
 
     describe('a11y', () => {
-        it('open tooltip has no axe violations', async () => {
+        itWhenEnabled('open tooltip has no axe violations', async () => {
             const { container } = render(
                 <Harness>
                     <Tooltip
