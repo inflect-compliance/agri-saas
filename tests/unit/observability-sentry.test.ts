@@ -89,6 +89,16 @@ describe('initSentry', () => {
 });
 
 describe('captureError', () => {
+    // captureError noops unless Sentry is initialized (the
+    // `if (!_initialized) return` guard added in #75 to stop
+    // Sentry.withScope throwing on an unbound SDK). The top-level
+    // beforeEach calls `_resetForTesting()`, so initialize here — with
+    // no SENTRY_DSN this just marks the module initialized and does NOT
+    // call Sentry.init, leaving the capture mocks untouched.
+    beforeEach(() => {
+        initSentry();
+    });
+
     it('skips 4xx errors (status < 500)', () => {
         captureError(new Error('Not found'), { status: 404 });
         expect(mockWithScope).not.toHaveBeenCalled();
