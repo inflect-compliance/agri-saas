@@ -13,7 +13,18 @@
  *     imports + restrict deep table imports.
  */
 import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
+// Source the plugin from the `typescript-eslint` meta-package — the
+// SAME object `eslint-config-next` registers (its `next/typescript`
+// block does `'@typescript-eslint': typescript-eslint.plugin`). A
+// direct `@typescript-eslint/eslint-plugin` import is a separate copy:
+// when its version skews from the one the meta-package pins (e.g. the
+// plugin on ^8.61.1 while the meta stays ^8.61.0), the two registrations
+// become different objects under one name and ESLint flat config throws
+// "Cannot redefine plugin @typescript-eslint". Reusing the meta's
+// `.plugin` keeps a single shared reference regardless of patch skew.
+import tseslint from 'typescript-eslint';
+
+const tsPlugin = tseslint.plugin;
 
 const config = [
     ...nextCoreWebVitals,
