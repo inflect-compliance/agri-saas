@@ -113,20 +113,19 @@ describe('R17-PR7 — clickable KPI tile wiring', () => {
         });
     });
 
-    describe('Dashboard wiring (all 6 KpiCards covered)', () => {
+    describe('Dashboard wiring (KpiCards covered)', () => {
         it('uses useDashboardChartFilter inside InteractiveKpiGrid', () => {
             expect(DASHBOARD_CLIENT).toMatch(
                 /function\s+InteractiveKpiGrid\b[\s\S]*?useDashboardChartFilter\(\)/,
             );
         });
 
+        // The compliance KPIs (coverage / tasks / policies / findings)
+        // were removed when those pages left the farm app — only the
+        // risk + evidence tiles remain.
         for (const kpi of [
-            'coverage',
             'risks',
             'evidence',
-            'tasks',
-            'policies',
-            'findings',
         ]) {
             it(`wires the "${kpi}" tile with onClick + selected`, () => {
                 // Each KpiCard must call click('<key>') AND

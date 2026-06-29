@@ -54,20 +54,20 @@ describe('DashboardChartContext', () => {
         });
 
         // Click an unselected tile → sets focus.
-        act(() => result.current.toggleSelectedKpi('coverage'));
-        expect(result.current.selectedKpi).toBe('coverage');
-
-        // Click the same tile again → clears focus.
-        act(() => result.current.toggleSelectedKpi('coverage'));
-        expect(result.current.selectedKpi).toBeNull();
-
-        // Click another tile → sets focus to that key.
         act(() => result.current.toggleSelectedKpi('risks'));
         expect(result.current.selectedKpi).toBe('risks');
 
-        // Click yet another tile → swaps focus (does NOT clear).
+        // Click the same tile again → clears focus.
+        act(() => result.current.toggleSelectedKpi('risks'));
+        expect(result.current.selectedKpi).toBeNull();
+
+        // Click another tile → sets focus to that key.
         act(() => result.current.toggleSelectedKpi('evidence'));
         expect(result.current.selectedKpi).toBe('evidence');
+
+        // Click yet another tile → swaps focus (does NOT clear).
+        act(() => result.current.toggleSelectedKpi('risks'));
+        expect(result.current.selectedKpi).toBe('risks');
     });
 
     it('throws if the hook is used outside the provider', () => {

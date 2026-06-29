@@ -128,23 +128,19 @@ describe('R17 capstone — Dashboard Reimagined rollout', () => {
 
     describe('Chart-filter coordination (PR-6, PR-7, PR-8, PR-9)', () => {
         it('PR-6: context exports the canonical surface', () => {
+            // Reduced to the farm-app KPI set (risks + evidence) after the
+            // compliance KPIs left the dashboard.
             expect(DASHBOARD_CONTEXT).toMatch(
-                /export\s+type\s+DashboardKpiKey\s*=[\s\S]*coverage[\s\S]*risks[\s\S]*evidence[\s\S]*tasks[\s\S]*policies[\s\S]*findings/,
+                /export\s+type\s+DashboardKpiKey\s*=[\s\S]*risks[\s\S]*evidence/,
             );
             expect(DASHBOARD_CONTEXT).toMatch(/export\s+function\s+DashboardChartProvider/);
             expect(DASHBOARD_CONTEXT).toMatch(/export\s+function\s+useDashboardChartFilter/);
         });
 
-        it('PR-7: dashboard wraps in provider + wires all 6 KPI tiles', () => {
+        it('PR-7: dashboard wraps in provider + wires the KPI tiles', () => {
             expect(DASHBOARD_CLIENT).toMatch(/<DashboardChartProvider>/);
-            for (const kpi of [
-                'coverage',
-                'risks',
-                'evidence',
-                'tasks',
-                'policies',
-                'findings',
-            ]) {
+            // Only the risk + evidence tiles remain.
+            for (const kpi of ['risks', 'evidence']) {
                 expect(DASHBOARD_CLIENT).toMatch(
                     new RegExp(`onClick=\\{click\\('${kpi}'\\)\\}`),
                 );
@@ -160,11 +156,9 @@ describe('R17 capstone — Dashboard Reimagined rollout', () => {
             );
         });
 
-        it('PR-9: ChartFocusWrapper wraps Coverage + Evidence sections', () => {
+        it('PR-9: ChartFocusWrapper wraps the Evidence section', () => {
+            // The Coverage section was removed; Evidence keeps its wrapper.
             expect(DASHBOARD_CLIENT).toMatch(/function\s+ChartFocusWrapper/);
-            expect(DASHBOARD_CLIENT).toMatch(
-                /<ChartFocusWrapper\s+kpiKey="coverage"/,
-            );
             expect(DASHBOARD_CLIENT).toMatch(
                 /<ChartFocusWrapper\s+kpiKey="evidence"/,
             );

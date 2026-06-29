@@ -129,43 +129,35 @@ describe('B1 — bug-fix bundle', () => {
             'src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx',
         );
 
-        it('the four core entities are chart-bound via their kpiKey binding', () => {
-            // The old `CHART_BOUND_KPIS` set was a vestigial classifier —
-            // once tasks/policies got their own donuts it listed EVERY
-            // KPI, making it a no-op (see the sibling assertion: every
-            // tile is chart-bound, none navigates). It was removed as
-            // dead code (CodeQL js/unused-local-variable). The real
-            // chart-focus mechanism is the per-tile `kpiKey` binding,
-            // asserted here directly.
-            expect(src).toMatch(/kpiKey="coverage"/);
+        it('the remaining entities are chart-bound via their kpiKey binding', () => {
+            // The compliance KPIs (coverage / tasks / policies / findings)
+            // were removed when those pages left the farm app; only the
+            // risk + evidence tiles remain, each bound to its chart via the
+            // per-tile `kpiKey` binding asserted here.
             expect(src).toMatch(/kpiKey="risks"/);
             expect(src).toMatch(/kpiKey="evidence"/);
-            expect(src).toMatch(/kpiKey="findings"/);
+            // The compliance keys are gone from the dashboard.
+            expect(src).not.toMatch(/kpiKey="coverage"/);
+            expect(src).not.toMatch(/kpiKey="tasks"/);
         });
 
-        it('tasks + policies are now chart-bound (own a donut) — no navigation', () => {
-            // Superseded the original B1 workaround: tasks/policies used
-            // to navigate to their list page because they had no chart to
-            // focus. They now own the Task-status / Policy-status donuts,
-            // so EVERY KPI tile focuses a chart and none navigates.
-            expect(src).toMatch(/['"]tasks['"]/);
-            expect(src).toMatch(/['"]policies['"]/);
-            // The nav map is gone; a click only toggles chart focus.
+        it('a click only toggles chart focus — no navigation map', () => {
+            // The KPI tiles never navigated to a list page; a click only
+            // toggles chart focus. The task/policy status donuts were
+            // removed with their pages, so StatusDonutSection is gone too.
             expect(src).not.toMatch(/KPI_NAV_HREF/);
-            // Each KPI's donut box is bound to its key.
-            expect(src).toMatch(/<StatusDonutSection[\s\S]*?kpiKey="tasks"/);
-            expect(src).toMatch(/<StatusDonutSection[\s\S]*?kpiKey="policies"/);
+            expect(src).not.toMatch(/StatusDonutSection/);
         });
 
-        it('all four chart-bound trend cards are wrapped in ChartFocusWrapper', () => {
-            // The TrendSection block spans ~30 lines and contains four
-            // <TrendCard> instances, each now under a wrapper.
+        it('the chart-bound trend cards are wrapped in ChartFocusWrapper', () => {
+            // The TrendSection now hosts two <TrendCard> instances (risks +
+            // evidence), each under a wrapper.
             const block = src.slice(
                 src.indexOf('function TrendSection'),
                 src.indexOf('function TrendEmptyState'),
             );
             const wrapperCount = (block.match(/<ChartFocusWrapper kpiKey="/g) ?? []).length;
-            expect(wrapperCount).toBe(4);
+            expect(wrapperCount).toBe(2);
         });
 
         it('risk heatmap + expiry calendar subscribe to KPI focus', () => {

@@ -196,16 +196,12 @@ describe("v2-PR-11 executive dashboard adoption", () => {
     });
 
     it("supplies the priority-chain inputs from `exec` payload", () => {
-        // Each field on NextBestActionInput needs to come from the
-        // existing executive payload — no new server changes
-        // required.
-        expect(src).toMatch(
-            /coveragePercent:\s*exec\.controlCoverage\.coveragePercent/,
-        );
+        // The farm dashboard hides the controls + tasks pages, so it no
+        // longer feeds coveragePercent / overdueTasks (both optional on
+        // NextBestActionInput) — only the evidence + risk inputs remain.
         expect(src).toMatch(
             /overdueEvidence:\s*exec\.evidenceExpiry\.overdue/,
         );
-        expect(src).toMatch(/overdueTasks:\s*exec\.taskSummary\.overdue/);
         expect(src).toMatch(/highRisks:\s*exec\.stats\.highRisks/);
     });
 });

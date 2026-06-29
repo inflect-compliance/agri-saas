@@ -94,13 +94,9 @@ describe('R17-PR9 — charts subscribe via ChartFocusWrapper', () => {
         expect(SRC).toMatch(/isDimmed\s*&&\s*['"]opacity-60['"]/);
     });
 
-    it('ProgressCard (control coverage) is wrapped with kpiKey="coverage"', () => {
-        // Look for the wrapper wrapping ProgressCard whose
-        // id is `control-coverage`.
-        expect(SRC).toMatch(
-            /<ChartFocusWrapper\s+kpiKey="coverage"[\s\S]*?<ProgressCard[\s\S]*?id="control-coverage"/,
-        );
-    });
+    // The Control Coverage ProgressCard (kpiKey="coverage") was removed
+    // when the controls page left the farm app — only the evidence
+    // section keeps its ChartFocusWrapper now.
 
     it('EvidenceStatusSection is wrapped with kpiKey="evidence"', () => {
         expect(SRC).toMatch(

@@ -125,12 +125,13 @@ describe("v2-PR-10 executive dashboard adoption", () => {
         expect(heroIdx).toBeLessThan(kpiGridIdx);
     });
 
-    it("surfaces the control-coverage percent as the hero value", () => {
-        // Anchors the hero metric on the most universally meaningful
-        // single number for a compliance dashboard. If a future PR
-        // wants to swap to "Readiness Score" or similar, that's a
-        // deliberate UX call that should land a same-PR ratchet update.
-        expect(src).toMatch(/value=\{exec\.controlCoverage\.coveragePercent\}/);
-        expect(src).toMatch(/format="percent"/);
+    it("surfaces open field tasks as the farm hero value", () => {
+        // The compliance surfaces (controls/tasks/policies) were hidden
+        // from this farm app, so the hero now leads with the farmer's
+        // open field-task count instead of control coverage. Swapping the
+        // hero metric again is a deliberate UX call that should land a
+        // same-PR ratchet update here.
+        expect(src).toMatch(/value=\{openFarmTasks\}/);
+        expect(src).toMatch(/eyebrow="Farm tasks"/);
     });
 });

@@ -41,13 +41,7 @@ import * as React from 'react';
  * adding a key here; the type-narrowing in PR-8's chart consumers
  * forces the new key to be handled at every subscription site.
  */
-export type DashboardKpiKey =
-    | 'coverage'
-    | 'risks'
-    | 'evidence'
-    | 'tasks'
-    | 'policies'
-    | 'findings';
+export type DashboardKpiKey = 'risks' | 'evidence';
 
 /** Public shape of the context for consumers. */
 export interface DashboardChartFilter {
