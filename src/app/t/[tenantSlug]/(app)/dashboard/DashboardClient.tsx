@@ -55,19 +55,14 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import {
-    ShieldCheck,
     AlertTriangle,
     Paperclip,
-    CheckCircle2,
-    Bug,
-    FileText,
     TrendingUp,
 } from 'lucide-react';
 
 import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
 import { Skeleton } from '@/components/ui/skeleton';
 import KpiCard from '@/components/ui/KpiCard';
-import ProgressCard from '@/components/ui/ProgressCard';
 import DonutChart from '@/components/ui/DonutChart';
 import { TrendCard } from '@/components/ui/TrendCard';
 // PR-A — switched from the auto-wrapping default StatusBreakdown
@@ -99,13 +94,22 @@ import { Heading } from '@/components/ui/typography';
 import { Card, cardVariants } from '@/components/ui/card';
 import AgDashboardStrip from './AgDashboardStrip';
 
+// Terminal work-item statuses — everything else is an open/active field
+// task (mirrors the Farm Tasks list page's status set). Used by the
+// masthead hero's open-field-tasks count.
+const FARM_TASK_DONE_STATUSES = new Set(['RESOLVED', 'CLOSED', 'CANCELED']);
+
+/** Minimal `/farm-tasks` row — the hero only needs the status to count. */
+interface FarmHeroTaskRow {
+    id: string;
+    status: string;
+}
+
 // ─── KPI trend bundle ─────────────────────────────────────────────────
 
 type KpiTrendBundle = {
-    coverage?: ReadonlyArray<{ date: Date; value: number }>;
     risks?: ReadonlyArray<{ date: Date; value: number }>;
     evidence?: ReadonlyArray<{ date: Date; value: number }>;
-    findings?: ReadonlyArray<{ date: Date; value: number }>;
 };
 
 function deriveTrendBundle(
@@ -119,10 +123,6 @@ function deriveTrendBundle(
         return undefined;
     }
     return {
-        coverage: trends.dataPoints.map((d) => ({
-            date: new Date(d.date),
-            value: d.controlCoveragePercent,
-        })),
         risks: trends.dataPoints.map((d) => ({
             date: new Date(d.date),
             value: d.risksOpen,
@@ -130,10 +130,6 @@ function deriveTrendBundle(
         evidence: trends.dataPoints.map((d) => ({
             date: new Date(d.date),
             value: d.evidenceOverdue,
-        })),
-        findings: trends.dataPoints.map((d) => ({
-            date: new Date(d.date),
-            value: d.findingsOpen,
         })),
     };
 }
@@ -197,19 +193,15 @@ export default function DashboardClient({
     // affordance. Header carries no extra action here.
     const headerActions = undefined;
 
-    // v2-PR-10 — masthead hero metric. Single 72px control-coverage
-    // figure as the user's first verdict on the page. Trend delta
-    // resolved from the 30-day coverage trend bundle (last point
-    // minus the previous point — same calculation the per-KPI trend
-    // chip uses, just expressed as a 7-day window).
-    const coverageTrend = trendBundle?.coverage;
-    const coverageDelta = (() => {
-        if (!coverageTrend || coverageTrend.length < 2) return null;
-        const last = coverageTrend[coverageTrend.length - 1];
-        const prev = coverageTrend[coverageTrend.length - 2];
-        if (!last || !prev) return null;
-        return last.value - prev.value;
-    })();
+    // Masthead hero — open field tasks. The legacy control-coverage hero
+    // was retired when the compliance surfaces left the farm app. Reads
+    // the same `/farm-tasks` list the Farm Tasks page uses (SWR-cached,
+    // shared) and counts rows whose status is not terminal. 0 while the
+    // list is still loading / empty — no skeleton flash.
+    const { data: farmTasks } = useTenantSWR<FarmHeroTaskRow[]>('/farm-tasks');
+    const openFarmTasks = (Array.isArray(farmTasks) ? farmTasks : []).filter(
+        (task) => !FARM_TASK_DONE_STATUSES.has(task.status),
+    ).length;
 
     return (
         // R17-PR6 — dashboard chart-filter coordination. The provider
@@ -234,114 +226,32 @@ export default function DashboardClient({
                 JOURNAL nor INVENTORY module enabled). */}
             <AgDashboardStrip />
 
-            {/* ─── Masthead — Hero readiness metric (v2-PR-10) ─── */}
+            {/* ─── Masthead — Hero metric (farm: open field tasks) ─── */}
             <HeroMetric
-                eyebrow={t('controls')}
-                value={exec.controlCoverage.coveragePercent}
-                format="percent"
-                description={`${exec.controlCoverage.implemented} of ${exec.controlCoverage.applicable} controls implemented`}
-                delta={coverageDelta}
-                deltaPolarity="up-good"
-                deltaLabel="vs prev"
+                eyebrow="Farm tasks"
+                value={openFarmTasks}
+                description="open field tasks"
                 data-testid="dashboard-hero"
             />
 
-            {/* ─── KPI Grid (6 cards) — R17-PR7: each tile is now a
-                 keyboard-accessible button wired into the dashboard
-                 chart-filter context. Clicking a tile toggles the
-                 dashboard's selectedKpi; PR-8+ will subscribe the
-                 charts to that focus and re-render their data. ─── */}
+            {/* ─── KPI Grid — R17-PR7: each tile is a keyboard-accessible
+                 button wired into the dashboard chart-filter context.
+                 Clicking a tile focuses its chart. ─── */}
             <InteractiveKpiGrid exec={exec} trendBundle={trendBundle} t={t} />
 
-            {/* ─── Control Coverage + Risk Distribution ─── */}
+            {/* ─── Risk Distribution + Evidence Status ─── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-default">
-                <ChartFocusWrapper kpiKey="coverage">
-                    <ProgressCard
-                        id="control-coverage"
-                        label="Control Coverage"
-                        value={exec.controlCoverage.implemented}
-                        max={exec.controlCoverage.applicable || 1}
-                        segments={[
-                            {
-                                label: 'Implemented',
-                                value: exec.controlCoverage.implemented,
-                                color: 'bg-bg-success-emphasis',
-                            },
-                            {
-                                label: 'In Progress',
-                                value: exec.controlCoverage.inProgress,
-                                color: 'bg-bg-warning-emphasis',
-                            },
-                            {
-                                label: 'Not Started',
-                                value: exec.controlCoverage.notStarted,
-                                color: 'bg-border-emphasis',
-                            },
-                        ]}
-                        // PR-A — coverage-over-time mini chart. Picks the
-                        // single most useful KPI for this card (the
-                        // metric the card already headlines) and shows
-                        // its trajectory inside the same surface.
-                        trend={
-                            trendBundle?.coverage &&
-                            trendBundle.coverage.length > 1
-                                ? {
-                                      label: 'Coverage (trend)',
-                                      points: trendBundle.coverage,
-                                      colorClassName: 'text-content-success',
-                                      format: '%',
-                                  }
-                                : undefined
-                        }
-                    />
-                </ChartFocusWrapper>
                 <RiskDistributionSection exec={exec} />
-            </div>
-
-            {/* ─── Evidence Status + Compliance Alerts ─── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-default">
                 <ChartFocusWrapper kpiKey="evidence">
                     <EvidenceStatusSection
                         exec={exec}
                         trendBundle={trendBundle}
                     />
                 </ChartFocusWrapper>
-                <ComplianceAlerts exec={exec} t={t} />
             </div>
 
-            {/* ─── Task Status + Policy Status ─── */}
-            {/* The Tasks + Policies KPI tiles focus these donuts (they
-                no longer navigate away). Same donut chassis as Risk
-                Distribution so the chart row reads as one unified set. */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-default">
-                <StatusDonutSection
-                    id="task-status"
-                    donutId="task-status-donut"
-                    kpiKey="tasks"
-                    title="Task Status"
-                    centerSub="Tasks"
-                    segments={[
-                        { label: 'Open', value: exec.taskSummary.open, color: '#3b82f6' },
-                        { label: 'In Progress', value: exec.taskSummary.inProgress, color: '#f59e0b' },
-                        { label: 'Blocked', value: exec.taskSummary.blocked, color: '#dc2626' },
-                        { label: 'Resolved', value: exec.taskSummary.resolved, color: '#22c55e' },
-                    ]}
-                />
-                <StatusDonutSection
-                    id="policy-status"
-                    donutId="policy-status-donut"
-                    kpiKey="policies"
-                    title="Policy Status"
-                    centerSub="Policies"
-                    segments={[
-                        { label: 'Draft', value: exec.policySummary.draft, color: '#94a3b8' },
-                        { label: 'In Review', value: exec.policySummary.inReview, color: '#f59e0b' },
-                        { label: 'Approved', value: exec.policySummary.approved, color: '#3b82f6' },
-                        { label: 'Published', value: exec.policySummary.published, color: '#22c55e' },
-                        { label: 'Archived', value: exec.policySummary.archived, color: '#64748b' },
-                    ]}
-                />
-            </div>
+            {/* ─── Compliance Alerts ─── */}
+            <ComplianceAlerts exec={exec} t={t} />
 
             {/* ─── Risk Heatmap + Evidence Expiry ─── */}
             {/* B1 — heatmap subscribes to risks KPI; expiry calendar
@@ -385,16 +295,13 @@ export default function DashboardClient({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-default">
                 <NextBestActionCard
                     input={{
-                        coveragePercent: exec.controlCoverage.coveragePercent,
                         overdueEvidence: exec.evidenceExpiry.overdue,
-                        overdueTasks: exec.taskSummary.overdue,
                         highRisks: exec.stats.highRisks,
                     }}
                     tenantHref={href}
                     quickAdds={[
                         { label: t('addRisk'), href: href('/risks') },
                         { label: t('addEvidence'), href: href('/evidence') },
-                        { label: t('newPolicy'), href: href('/policies') },
                     ]}
                 />
 
@@ -482,16 +389,9 @@ function ChartFocusWrapper({
 // grid behaves consistently (click = focus, no surprise navigation).
 
 // Each KPI's owning chart, by DOM id, for the click-to-scroll below.
-// These are the topmost chart that the KPI lights up; `findings` has
-// no standalone chart so it anchors to its trend card (rendered only
-// when the trend section is present — the scroll is a no-op otherwise).
 const CHART_SCROLL_TARGETS: Record<DashboardKpiKey, string> = {
-    coverage: 'control-coverage',
     risks: 'risk-distribution',
     evidence: 'evidence-status',
-    tasks: 'task-status',
-    policies: 'policy-status',
-    findings: 'findings-trend',
 };
 
 // Bring a KPI's owning chart into view when the tile is focused, but
@@ -533,22 +433,9 @@ function InteractiveKpiGrid({
 
     return (
         <div
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-default"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-default"
             id="kpi-grid"
         >
-            <KpiCard
-                id="kpi-coverage"
-                label={t('controls')}
-                value={exec.controlCoverage.coveragePercent}
-                format="percent"
-                icon={ShieldCheck}
-                gradient="from-emerald-500 to-teal-500"
-                subtitle={`${exec.controlCoverage.implemented} of ${exec.controlCoverage.applicable} implemented`}
-                trend={trendBundle?.coverage}
-                trendVariant="success"
-                onClick={click('coverage')}
-                selected={isSelected('coverage')}
-            />
             <KpiCard
                 id="kpi-risks"
                 label={t('risks')}
@@ -572,37 +459,6 @@ function InteractiveKpiGrid({
                 trendVariant="error"
                 onClick={click('evidence')}
                 selected={isSelected('evidence')}
-            />
-            <KpiCard
-                id="kpi-tasks"
-                label={t('openTasks')}
-                value={exec.stats.openTasks}
-                icon={CheckCircle2}
-                gradient="from-indigo-500 to-blue-500"
-                subtitle={`${exec.taskSummary.overdue} overdue`}
-                onClick={click('tasks')}
-                selected={isSelected('tasks')}
-            />
-            <KpiCard
-                id="kpi-policies"
-                label="Policies"
-                value={exec.policySummary.total}
-                icon={FileText}
-                gradient="from-sky-500 to-cyan-500"
-                subtitle={`${exec.policySummary.published} published`}
-                onClick={click('policies')}
-                selected={isSelected('policies')}
-            />
-            <KpiCard
-                id="kpi-findings"
-                label={t('openFindings')}
-                value={exec.stats.openFindings}
-                icon={Bug}
-                gradient="from-red-500 to-rose-500"
-                trend={trendBundle?.findings}
-                trendVariant="error"
-                onClick={click('findings')}
-                selected={isSelected('findings')}
             />
         </div>
     );
@@ -698,89 +554,6 @@ function RiskDistributionSection({
     );
 }
 
-// ─── Generic status-breakdown donut box ──────────────────────────────
-//
-// The Tasks + Policies KPI tiles used to navigate to their list page
-// because they had no chart to focus. They now own a status-breakdown
-// donut built on this section, identical in chassis to the Risk
-// Distribution box (focus ring + dim + donut + a
-// per-status legend with counts) so the chart row reads as one unified
-// set of boxes. `kpiKey` ties the box to its KPI tile's focus state.
-
-interface DonutStatusSegment {
-    label: string;
-    value: number;
-    /** Hex used for BOTH the donut arc and the legend dot. */
-    color: string;
-}
-
-function StatusDonutSection({
-    id,
-    donutId,
-    kpiKey,
-    title,
-    centerSub,
-    segments,
-}: {
-    id: string;
-    donutId: string;
-    kpiKey: DashboardKpiKey;
-    title: string;
-    centerSub: string;
-    segments: DonutStatusSegment[];
-}) {
-    const { selectedKpi } = useDashboardChartFilter();
-    const isFocused = selectedKpi === kpiKey;
-    const isDimmed = selectedKpi !== null && !isFocused;
-    const total = segments.reduce((sum, s) => sum + s.value, 0);
-    return (
-        <Card
-            id={id}
-            data-chart-focus={isFocused ? 'true' : undefined}
-            data-chart-dimmed={isDimmed ? 'true' : undefined}
-            data-chart-focus-key={kpiKey}
-            className={cn(
-                'h-full flex flex-col transition-opacity duration-200 ease-out',
-                isFocused && 'ring-2 ring-brand-default ring-offset-2 ring-offset-bg-page',
-                isDimmed && 'opacity-60',
-            )}
-        >
-            <Heading level={3} className="mb-3">
-                {title}
-            </Heading>
-            <div className="grid grid-cols-2 gap-default items-center">
-                <DonutChart
-                    id={donutId}
-                    segments={segments}
-                    size={130}
-                    centerLabel={String(total)}
-                    centerSub={centerSub}
-                    showLegend={false}
-                />
-                <div className="space-y-tight">
-                    {segments.map((item) => (
-                        <div
-                            key={item.label}
-                            className="flex items-center justify-between text-xs"
-                        >
-                            <div className="flex items-center gap-1.5">
-                                <span
-                                    className="w-2 h-2 rounded-full shrink-0"
-                                    style={{ backgroundColor: item.color }}
-                                />
-                                <span className="text-content-muted">{item.label}</span>
-                            </div>
-                            <span className="text-content-default font-medium tabular-nums">
-                                {item.value}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </Card>
-    );
-}
-
 // ─── Evidence Status ─────────────────────────────────────────────────
 
 function EvidenceStatusSection({
@@ -856,7 +629,7 @@ function EvidenceStatusSection({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ComplianceAlerts({ exec, t }: { exec: ExecutiveDashboardPayload; t: (key: string, opts?: any) => string }) {
-    const { stats, evidenceExpiry, taskSummary, vendorSummary, policySummary } = exec;
+    const { stats, evidenceExpiry, vendorSummary } = exec;
     const alerts: { color: string; text: string }[] = [];
 
     if (evidenceExpiry.overdue > 0)
@@ -865,14 +638,8 @@ function ComplianceAlerts({ exec, t }: { exec: ExecutiveDashboardPayload; t: (ke
         alerts.push({ color: 'bg-bg-warning-emphasis', text: t('evidenceAwaitingReview', { count: stats.pendingEvidence }) });
     if (stats.highRisks > 0)
         alerts.push({ color: 'bg-orange-500', text: t('highCriticalRisks', { count: stats.highRisks }) });
-    if (taskSummary.overdue > 0)
-        alerts.push({ color: 'bg-bg-error-emphasis', text: `${taskSummary.overdue} overdue tasks` });
-    if (policySummary.overdueReview > 0)
-        alerts.push({ color: 'bg-bg-warning-emphasis', text: `${policySummary.overdueReview} policies need review` });
     if (vendorSummary.overdueReview > 0)
         alerts.push({ color: 'bg-purple-500', text: `${vendorSummary.overdueReview} vendors need review` });
-    if (stats.openFindings > 0)
-        alerts.push({ color: 'bg-purple-500', text: t('openAuditFindings', { count: stats.openFindings }) });
 
     return (
         <Card id="compliance-alerts">
@@ -900,10 +667,6 @@ function ComplianceAlerts({ exec, t }: { exec: ExecutiveDashboardPayload; t: (ke
 // ─── Trend Section ─────────────────────────────────────────────────
 
 function TrendSection({ trends }: { trends: TrendPayload }) {
-    const coveragePoints = trends.dataPoints.map((d) => ({
-        date: new Date(d.date),
-        value: d.controlCoveragePercent,
-    }));
     const risksOpenPoints = trends.dataPoints.map((d) => ({
         date: new Date(d.date),
         value: d.risksOpen,
@@ -912,35 +675,20 @@ function TrendSection({ trends }: { trends: TrendPayload }) {
         date: new Date(d.date),
         value: d.evidenceOverdue,
     }));
-    const findingsPoints = trends.dataPoints.map((d) => ({
-        date: new Date(d.date),
-        value: d.findingsOpen,
-    }));
     return (
         <Card id="trend-section">
             <div className="flex items-center justify-between mb-4">
                 <Heading level={3}>
-                    Compliance Trends
+                    Trends
                 </Heading>
                 <span className="text-xs text-content-subtle">
                     {trends.daysAvailable} day{trends.daysAvailable !== 1 ? 's' : ''} of data
                 </span>
             </div>
-            {/* B1 — each TrendCard subscribes to its corresponding KPI
-                via `<ChartFocusWrapper>`. Pre-B1 only the coverage +
-                evidence cards above the trend section had this binding;
-                clicking the findings or risks KPI cards only dimmed
-                things without lighting any chart up. */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-default">
-                <ChartFocusWrapper kpiKey="coverage">
-                    <TrendCard
-                        label="Coverage"
-                        value={coveragePoints[coveragePoints.length - 1].value}
-                        format="%"
-                        points={coveragePoints}
-                        colorClassName="text-content-success"
-                    />
-                </ChartFocusWrapper>
+            {/* Each TrendCard subscribes to its corresponding KPI via
+                `<ChartFocusWrapper>` so clicking a KPI tile lights up its
+                trend. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-default">
                 <ChartFocusWrapper kpiKey="risks">
                     <TrendCard
                         label="Open Risks"
@@ -955,14 +703,6 @@ function TrendSection({ trends }: { trends: TrendPayload }) {
                         value={evidenceOverduePoints[evidenceOverduePoints.length - 1].value}
                         points={evidenceOverduePoints}
                         colorClassName="text-content-error"
-                    />
-                </ChartFocusWrapper>
-                <ChartFocusWrapper kpiKey="findings" id="findings-trend">
-                    <TrendCard
-                        label="Open Findings"
-                        value={findingsPoints[findingsPoints.length - 1].value}
-                        points={findingsPoints}
-                        colorClassName="text-content-info"
                     />
                 </ChartFocusWrapper>
             </div>

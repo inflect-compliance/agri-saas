@@ -64,14 +64,10 @@ describe('PR-A — dashboard balance + reports card', () => {
             'src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx',
         );
 
-        it('passes the coverage trend to the Control Coverage card', () => {
-            // Anchor on the `<ProgressCard id="control-coverage"` so
-            // a future refactor that swaps the card identity has to
-            // touch this assertion too.
-            expect(src).toMatch(
-                /ProgressCard[\s\S]{0,2000}id="control-coverage"[\s\S]{0,3000}trend=\{[\s\S]{0,400}trendBundle\?\.coverage/,
-            );
-        });
+        // The Control Coverage ProgressCard was removed when the controls
+        // page left the farm app, so the dashboard no longer threads a
+        // coverage trend. The ProgressCard primitive's own trend-slot
+        // contract is still covered above.
 
         it('Evidence Status renders one Card containing the breakdown', () => {
             // The card identity is preserved (canonical

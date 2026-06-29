@@ -78,17 +78,13 @@ describe('Executive Dashboard Page', () => {
 // ─── Widget Composition ────────────────────────────────────────────
 
 describe('Dashboard Widget Composition', () => {
-    test('uses KpiCard component (≥4 instances)', () => {
+    test('uses KpiCard component (≥2 instances)', () => {
         const content = readAll();
         expect(content).toContain("from '@/components/ui/KpiCard'");
         const kpiCount = (content.match(/<KpiCard/g) || []).length;
-        expect(kpiCount).toBeGreaterThanOrEqual(4);
-    });
-
-    test('uses ProgressCard component', () => {
-        const content = readAll();
-        expect(content).toContain("from '@/components/ui/ProgressCard'");
-        expect(content).toContain('<ProgressCard');
+        // Reduced to the farm KPI set (risks + evidence) after the
+        // compliance KPIs left the dashboard.
+        expect(kpiCount).toBeGreaterThanOrEqual(2);
     });
 
     test('uses DonutChart component', () => {
@@ -118,10 +114,10 @@ describe('Dashboard Widget Composition', () => {
         expect(content).toContain('<StatusBreakdown');
     });
 
-    test('has exactly 6 KPI cards for executive grid', () => {
+    test('has exactly 2 KPI cards (risks + evidence) for the farm grid', () => {
         const content = readAll();
         const kpiCount = (content.match(/<KpiCard/g) || []).length;
-        expect(kpiCount).toBe(6);
+        expect(kpiCount).toBe(2);
     });
 });
 
@@ -130,7 +126,6 @@ describe('Dashboard Widget Composition', () => {
 describe('Dashboard Layout Sections', () => {
     const ids = [
         'kpi-grid',
-        'control-coverage',
         'risk-distribution',
         'evidence-status',
         'compliance-alerts',
@@ -143,10 +138,6 @@ describe('Dashboard Layout Sections', () => {
 
     test('uses responsive grid layout (lg:grid-cols-2)', () => {
         expect(readAll()).toContain('lg:grid-cols-2');
-    });
-
-    test('uses 6-col KPI grid on large screens', () => {
-        expect(readAll()).toContain('lg:grid-cols-6');
     });
 });
 
@@ -194,10 +185,6 @@ describe('Dashboard Data Contracts', () => {
         expect(readAll()).toContain('ExecutiveDashboardPayload');
     });
 
-    test('accesses controlCoverage.coveragePercent', () => {
-        expect(readAll()).toContain('controlCoverage.coveragePercent');
-    });
-
     test('accesses riskBySeverity fields', () => {
         const content = readAll();
         expect(content).toContain('riskBySeverity.critical');
@@ -213,22 +200,12 @@ describe('Dashboard Data Contracts', () => {
         expect(content).toContain('evidenceExpiry.current');
     });
 
-    test('accesses taskSummary.overdue', () => {
-        expect(readAll()).toContain('taskSummary.overdue');
-    });
-
-    test('accesses policySummary fields', () => {
-        const content = readAll();
-        expect(content).toContain('policySummary.total');
-        expect(content).toContain('policySummary.published');
-    });
-
     test('accesses trend data points for sparklines', () => {
         const content = readAll();
-        expect(content).toContain('controlCoveragePercent');
+        // The farm dashboard keeps only the risk + evidence trends;
+        // the coverage + findings series left with their KPIs.
         expect(content).toContain('risksOpen');
         expect(content).toContain('evidenceOverdue');
-        expect(content).toContain('findingsOpen');
     });
 });
 

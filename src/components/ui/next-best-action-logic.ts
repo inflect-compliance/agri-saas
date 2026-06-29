@@ -10,12 +10,20 @@
  */
 
 export interface NextBestActionInput {
-    /** % of applicable controls implemented (0–100). */
-    coveragePercent: number;
+    /**
+     * % of applicable controls implemented (0–100). Optional — callers
+     * that don't surface compliance (e.g. the farm dashboard, which
+     * hides the controls page) omit it; absent is treated as fully
+     * covered so the low-coverage nudge never fires for them.
+     */
+    coveragePercent?: number;
     /** Number of evidence rows past their next-review date. */
     overdueEvidence: number;
-    /** Number of tasks past dueAt with non-terminal status. */
-    overdueTasks: number;
+    /**
+     * Number of tasks past dueAt with non-terminal status. Optional —
+     * callers that hide the tasks page omit it; absent is treated as 0.
+     */
+    overdueTasks?: number;
     /** Number of risks with inherent score ≥ 15 (high severity). */
     highRisks: number;
 }
@@ -45,11 +53,12 @@ export function resolveNextBestAction(
             href: tenantHref("/evidence?filter=expiring"),
         };
     }
-    if (input.overdueTasks > 0) {
+    if ((input.overdueTasks ?? 0) > 0) {
+        const overdueTasks = input.overdueTasks ?? 0;
         return {
             id: "overdue-tasks",
             label: "Resolve overdue tasks",
-            description: `${input.overdueTasks} task${input.overdueTasks === 1 ? "" : "s"} past due. Address them before the next audit.`,
+            description: `${overdueTasks} task${overdueTasks === 1 ? "" : "s"} past due. Address them before the next audit.`,
             href: tenantHref("/tasks?filter=overdue"),
         };
     }
@@ -61,11 +70,12 @@ export function resolveNextBestAction(
             href: tenantHref("/risks?filter=high"),
         };
     }
-    if (input.coveragePercent < 80) {
+    if ((input.coveragePercent ?? 100) < 80) {
+        const coveragePercent = input.coveragePercent ?? 100;
         return {
             id: "low-coverage",
             label: "Improve control coverage",
-            description: `Coverage is ${Math.round(input.coveragePercent)}%. Reach 80% to meet the readiness baseline.`,
+            description: `Coverage is ${Math.round(coveragePercent)}%. Reach 80% to meet the readiness baseline.`,
             href: tenantHref("/clauses"),
         };
     }
