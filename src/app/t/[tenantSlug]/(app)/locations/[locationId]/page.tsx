@@ -350,29 +350,29 @@ export default function LocationDetailPage() {
                                 Merge
                             </Button>
                         )}
-                        {/* NDVI overlay (GEE) — toggle + inspection date. */}
-                        <div className="ml-auto flex items-center gap-compact">
-                            {ndviOn && (
-                                <DatePicker
-                                    id="ndvi-date-input"
-                                    value={ndviDate}
-                                    onChange={(d) => setNdviDate(d)}
-                                    placeholder="Date"
-                                    // NDVI needs a past satellite pass — future dates
-                                    // have no imagery.
-                                    disabledDays={{ after: new Date() }}
-                                />
-                            )}
-                            <Button
-                                variant={ndviOn ? 'primary' : 'secondary'}
-                                size="sm"
-                                className="min-h-[44px] min-w-[44px]"
-                                onClick={() => setNdviOn((v) => !v)}
-                                aria-pressed={ndviOn}
-                            >
-                                NDVI
-                            </Button>
-                        </div>
+                        {/* NDVI overlay (GEE) — toggle + inspection date,
+                            inline beside the mode toggles (not a detached
+                            right-aligned row). */}
+                        <Button
+                            variant={ndviOn ? 'primary' : 'secondary'}
+                            size="sm"
+                            className="min-h-[44px] min-w-[44px]"
+                            onClick={() => setNdviOn((v) => !v)}
+                            aria-pressed={ndviOn}
+                        >
+                            NDVI
+                        </Button>
+                        {ndviOn && (
+                            <DatePicker
+                                id="ndvi-date-input"
+                                value={ndviDate}
+                                onChange={(d) => setNdviDate(d)}
+                                placeholder="Date"
+                                // NDVI needs a past satellite pass — future dates
+                                // have no imagery.
+                                disabledDays={{ after: new Date() }}
+                            />
+                        )}
                     </div>
                     {/* NDVI status line: loading / not-configured / legend. */}
                     {ndviOn && (
