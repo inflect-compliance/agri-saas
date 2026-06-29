@@ -50,11 +50,11 @@ export interface OnboardingStep {
     description: string;
     /**
      * Side of the target the popover should appear on.
-     * Driver.js: 'top' | 'bottom' | 'left' | 'right' | 'over'.
-     * 'over' centres the popover on top of the highlight when
-     * proximity-based positioning would clip the viewport.
+     * Driver.js `Side`: 'top' | 'bottom' | 'left' | 'right'.
+     * (driver.js 1.6.0 dropped the legacy 'over' value; no step used
+     * it, so the union mirrors the library's current `Side` type.)
      */
-    side?: 'top' | 'bottom' | 'left' | 'right' | 'over';
+    side?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 // ─── Default tour ──────────────────────────────────────────────────────
