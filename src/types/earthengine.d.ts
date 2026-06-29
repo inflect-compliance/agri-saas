@@ -2,15 +2,40 @@
  * Minimal ambient declaration for `@google/earthengine` (the official
  * Earth Engine JS/Node client), which ships no type definitions.
  *
- * The EE client is a fluent, deeply-dynamic server SDK — typing it
- * precisely buys little. We expose the handful of entry points the NDVI
- * tile service in `src/lib/agro/earth-engine.ts` actually calls, as
- * loosely-typed members on a default-exported `ee` object.
+ * The EE API is a fluent, deeply-dynamic server SDK — every computation
+ * method returns another EE node. We model that with a recursive
+ * `EeNode` and pin only the handful of entry points the NDVI tile
+ * service (`src/lib/agro/earth-engine.ts`) actually calls. No `any` —
+ * `EeNode` keeps the chain typed without widening the codebase's
+ * explicit-any budget.
  */
 declare module '@google/earthengine' {
-    // The EE API surface is built at runtime; `any` is the pragmatic
-    // contract for a server-only integration we fully control + test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ee: any;
+    /** A fluent Earth Engine value — each method returns another node. */
+    interface EeNode {
+        [method: string]: (...args: unknown[]) => EeNode;
+    }
+
+    interface EarthEngine {
+        data: {
+            authenticateViaPrivateKey(
+                key: Record<string, unknown>,
+                onSuccess: () => void,
+                onError: (err: unknown) => void,
+            ): void;
+        };
+        initialize(
+            baseUrl: string | null,
+            tileUrl: string | null,
+            onSuccess: () => void,
+            onError: (err: unknown) => void,
+            xsrfToken: string | null,
+            project?: string,
+        ): void;
+        Geometry: { Rectangle(coords: number[]): EeNode };
+        Filter: { lt(property: string, value: number): EeNode };
+        ImageCollection(id: string): EeNode;
+    }
+
+    const ee: EarthEngine;
     export default ee;
 }
