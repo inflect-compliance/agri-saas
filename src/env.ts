@@ -315,6 +315,15 @@ export const env = createEnv({
         // CC0 / openly-licensed sources only.
         AGRO_NDVI_TILE_URL: z.string().default(''),
 
+        // Google Earth Engine (NDVI overlay). Both OPTIONAL — when either
+        // is unset the NDVI service reports "not configured" and the map
+        // overlay stays off, so CI + contributor builds need no GEE creds.
+        // GEE_PROJECT_ID is the Earth-Engine-registered Cloud project;
+        // GEE_SERVICE_ACCOUNT_KEY is the FULL service-account JSON key as a
+        // single string (parsed at runtime, server-only — never NEXT_PUBLIC).
+        GEE_PROJECT_ID: z.string().optional(),
+        GEE_SERVICE_ACCOUNT_KEY: z.string().optional(),
+
         // Audit stream delivery retry (Epic E.2)
         // '0' disables retry (single POST); anything else (or unset) keeps retry on.
         // Kill-switch for debugging a misbehaving SIEM without redeploy.
@@ -486,6 +495,8 @@ export const env = createEnv({
         AI_RISK_PLAN_REQUIRED: process.env.AI_RISK_PLAN_REQUIRED,
         AGRO_DATASTREAMS_ENABLED: process.env.AGRO_DATASTREAMS_ENABLED,
         AGRO_NDVI_TILE_URL: process.env.AGRO_NDVI_TILE_URL,
+        GEE_PROJECT_ID: process.env.GEE_PROJECT_ID,
+        GEE_SERVICE_ACCOUNT_KEY: process.env.GEE_SERVICE_ACCOUNT_KEY,
 
         AUDIT_STREAM_RETRY_ENABLED: process.env.AUDIT_STREAM_RETRY_ENABLED,
         PLATFORM_ADMIN_API_KEY: process.env.PLATFORM_ADMIN_API_KEY,

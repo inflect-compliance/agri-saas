@@ -40,6 +40,10 @@ const defaultOptions = {
         // AWS SDK — native HTTP client, credential resolution
         '@aws-sdk/client-s3',
         '@aws-sdk/s3-request-presigner',
+        // Google Earth Engine — server-only NDVI tile generation; the
+        // client bundles a large XMLHttpRequest/auth runtime that must
+        // never reach the browser bundle.
+        '@google/earthengine',
     ],
     experimental: {
         // optimizePackageImports remains experimental in Next 15.

@@ -14,6 +14,8 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { DatePicker, type DateValue } from '@/components/ui/date-picker';
+import { toYMD } from '@/components/ui/date-picker/date-utils';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost, apiPatch, ApiClientError } from '@/lib/api-client';
 import { SpatialImportModal } from '@/components/ui/map/SpatialImportModal';
@@ -87,6 +89,14 @@ export default function LocationDetailPage() {
     const [pendingGeometry, setPendingGeometry] = useState<Polygon | null>(null);
     const [newParcelName, setNewParcelName] = useState('');
     const [saving, setSaving] = useState(false);
+    // NDVI overlay (Google Earth Engine). Off by default; the date drives
+    // the 30-day composite window (UTC-midnight DateValue per the picker
+    // contract). Defaults to today.
+    const [ndviOn, setNdviOn] = useState(false);
+    const [ndviDate, setNdviDate] = useState<DateValue>(() => {
+        const n = new Date();
+        return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
+    });
     // Merge: name-the-union modal (mirrors the draw → name-parcel flow).
     const [mergeOpen, setMergeOpen] = useState(false);
     const [mergeName, setMergeName] = useState('');
@@ -102,6 +112,17 @@ export default function LocationDetailPage() {
     // Recall + weather + crop-plan suggestions for this field (editable;
     // powers the spray-window/next-task banner + the wizard prefills).
     const smartQ = useTenantSWR<LocationSmartDefaults>(`/locations/${locationId}/smart-defaults`);
+    // NDVI tiles (GEE) — fetched only when the Map tab is open AND the
+    // overlay is toggled on, re-fetched when the inspection date changes.
+    const ndviYmd = toYMD(ndviDate);
+    const ndviQ = useTenantSWR<{ configured: boolean; tileUrl: string; date?: string; error?: string }>(
+        tab === 'map' && ndviOn
+            ? `/agro/ndvi-tiles?locationId=${locationId}${ndviYmd ? `&date=${ndviYmd}` : ''}`
+            : null,
+    );
+    const ndviConfigured = ndviQ.data?.configured ?? true;
+    const ndviTileUrl = ndviQ.data?.tileUrl ?? '';
+    const ndviLoading = ndviOn && !ndviQ.data && !ndviQ.error;
 
     const loc = locQ.data;
     const parcels = useMemo(() => parcelsQ.data?.parcels ?? [], [parcelsQ.data]);
@@ -329,7 +350,54 @@ export default function LocationDetailPage() {
                                 Merge
                             </Button>
                         )}
+                        {/* NDVI overlay (GEE) — toggle + inspection date. */}
+                        <div className="ml-auto flex items-center gap-compact">
+                            {ndviOn && (
+                                <DatePicker
+                                    id="ndvi-date-input"
+                                    value={ndviDate}
+                                    onChange={(d) => setNdviDate(d)}
+                                    placeholder="Date"
+                                    // NDVI needs a past satellite pass — future dates
+                                    // have no imagery.
+                                    disabledDays={{ after: new Date() }}
+                                />
+                            )}
+                            <Button
+                                variant={ndviOn ? 'primary' : 'secondary'}
+                                size="sm"
+                                className="min-h-[44px] min-w-[44px]"
+                                onClick={() => setNdviOn((v) => !v)}
+                                aria-pressed={ndviOn}
+                            >
+                                NDVI
+                            </Button>
+                        </div>
                     </div>
+                    {/* NDVI status line: loading / not-configured / legend. */}
+                    {ndviOn && (
+                        <div className="flex items-center gap-compact text-xs text-content-subtle">
+                            {ndviLoading ? (
+                                <span>Loading NDVI imagery…</span>
+                            ) : ndviConfigured === false ? (
+                                <span>NDVI imagery isn&apos;t configured for this deployment.</span>
+                            ) : ndviTileUrl ? (
+                                <>
+                                    <span className="font-medium text-content-secondary">NDVI</span>
+                                    <span>Low</span>
+                                    <span
+                                        aria-hidden="true"
+                                        className="h-2 w-24 rounded-full bg-[linear-gradient(to_right,#a50026,#f46d43,#fee08b,#a6d96a,#006837)]"
+                                    />
+                                    <span>High</span>
+                                </>
+                            ) : ndviQ.data?.error ? (
+                                <span>Couldn&apos;t load NDVI imagery for this date — try another.</span>
+                            ) : (
+                                <span>No cloud-free NDVI imagery for this field around that date.</span>
+                            )}
+                        </div>
+                    )}
                     <div className={cn('gap-section', !isMobile && 'grid grid-cols-1 md:grid-cols-[1fr_320px]')}>
                         <MapCanvas
                             parcels={mapParcels}
@@ -352,6 +420,8 @@ export default function LocationDetailPage() {
                             onCreateGeometry={(g) => setPendingGeometry(g)}
                             onUpdateGeometry={reshapeParcel}
                             onCreateSplitLine={(line) => { void splitParcel(line); }}
+                            showNdvi={ndviOn && !!ndviTileUrl}
+                            ndviTileUrl={ndviTileUrl}
                             // Read-only vector-tile source (perf at scale). The
                             // {z}/{x}/{y} placeholders are kept literal for
                             // MapLibre to substitute (buildUrl doesn't encode
