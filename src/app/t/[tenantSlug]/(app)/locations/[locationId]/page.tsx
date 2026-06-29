@@ -26,7 +26,6 @@ import { FieldReportCard } from './FieldReportCard';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { useMediaQuery, useToast } from '@/components/ui/hooks';
-import { nearestParcel } from '@/lib/spatial/nearest';
 import { cn } from '@/lib/cn';
 import type { MapParcel, MapMode } from '@/components/ui/map/MapCanvas';
 
@@ -371,19 +370,8 @@ export default function LocationDetailPage() {
                             bounds={bounds}
                             selectedIds={selected}
                             onSelectionChange={handleMapSelection}
-                            // GPS-aware: a Locate-me tap auto-selects the
-                            // nearest field (a suggestion — tap another to
-                            // override). Reuses the same locate-me fix.
-                            onLocationChange={(loc) => {
-                                const hit = nearestParcel(mapParcels, loc);
-                                if (!hit) return;
-                                setSelected([hit.parcel.id]);
-                                toast.success(`Nearest field: ${hit.parcel.name}`, {
-                                    description: 'Auto-selected from your location — tap another to change.',
-                                });
-                            }}
                             mode={mapMode}
-                            // Phone-native: thumb-reachable zoom + locate-me
+                            // Phone-native: thumb-reachable zoom + find-my-field
                             // (with live-tracking), lifted clear of the fixed
                             // bottom-tab bar.
                             showControls

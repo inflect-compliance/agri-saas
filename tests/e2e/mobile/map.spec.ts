@@ -67,15 +67,15 @@ test.describe('mobile map — phone-native operator map @mobile', () => {
         // ── Map tab: on-map thumb controls ───────────────────────────
         await main.getByRole('tab', { name: 'Map' }).click();
 
-        const locate = page.getByTestId('map-locate');
+        const findField = page.getByTestId('map-find-field');
         const zoomIn = page.getByTestId('map-zoom-in');
         const zoomOut = page.getByTestId('map-zoom-out');
-        await expect(locate).toBeVisible({ timeout: 30_000 });
+        await expect(findField).toBeVisible({ timeout: 30_000 });
         await expect(zoomIn).toBeVisible();
         await expect(zoomOut).toBeVisible();
 
         // Each is a ≥44px (WCAG 2.5.5) touch target.
-        for (const [label, ctrl] of [['locate', locate], ['zoom-in', zoomIn], ['zoom-out', zoomOut]] as const) {
+        for (const [label, ctrl] of [['find-field', findField], ['zoom-in', zoomIn], ['zoom-out', zoomOut]] as const) {
             const box = await ctrl.boundingBox();
             expect(box, `${label} control has a box`).not.toBeNull();
             expect(box!.height, `${label} control ≥44px tall`).toBeGreaterThanOrEqual(44);
@@ -92,9 +92,10 @@ test.describe('mobile map — phone-native operator map @mobile', () => {
             `full-bleed map should not overflow (${overflow.scrollWidth} vs ${overflow.clientWidth})`,
         ).toBeLessThanOrEqual(overflow.clientWidth + 1);
 
-        // ── Locate-me recenters: the blue user-location dot appears ──
-        await locate.click();
-        await expect(page.getByTestId('map-user-dot')).toBeVisible({ timeout: 15_000 });
+        // ── Find-my-field frames a field (no GPS) — the control stays
+        //    usable so the operator can tap again to cycle to the next. ──
+        await findField.click();
+        await expect(findField).toBeVisible();
 
         // ── Parcel bottom-sheet (via the Parcels card) ───────────────
         await main.getByRole('tab', { name: 'Parcels' }).click();

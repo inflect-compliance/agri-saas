@@ -29,7 +29,6 @@ import { validatePolygonGeometry, type PolygonValidity } from '@/lib/geo/polygon
 import bbox from '@turf/bbox';
 import { Crosshairs3, MapPosition, Minus, Plus } from '@/components/ui/icons/nucleo';
 import { useReducedMotion } from '@/components/ui/hooks';
-import { CoachMark } from '@/components/ui/coach-mark';
 import { cn } from '@/lib/cn';
 import { env } from '@/env';
 
@@ -81,13 +80,13 @@ export interface MapCanvasProps {
     showNdvi?: boolean;
     ndviTileUrl?: string;
     /**
-     * On-map thumb controls (zoom ±, locate-me). Opt-in so the read-only
+     * On-map thumb controls (zoom ±, find-my-field). Opt-in so the read-only
      * operator/prescription paths are unchanged unless they ask for it.
      * Each button is a ≥44px (WCAG 2.5.5) touch target, sat in the
-     * bottom-right thumb zone. "Locate me" calls
-     * `navigator.geolocation.getCurrentPosition()`, flies to the device
-     * and drops a blue accuracy dot — permission-graceful (a denial shows
-     * a non-blocking hint, never throws).
+     * bottom-right thumb zone. "Find my field" frames the next field
+     * (parcel) and cycles to the next on each tap — NO GPS (the operator
+     * wants to jump to their fields, not their own position). Only renders
+     * when there is at least one parcel with geometry.
      */
     showControls?: boolean;
     /**
@@ -102,14 +101,6 @@ export interface MapCanvasProps {
      * stop/unmount). Requires `showControls`.
      */
     liveTracking?: boolean;
-    /**
-     * Fired with the device's `{ lon, lat }` when the locate-me button gets
-     * a fresh GPS fix (NOT on every live-tracking update — a deliberate tap,
-     * so GPS-aware behaviour doesn't fight the user). Lets the host page run
-     * logic like auto-selecting the nearest field without MapCanvas owning
-     * it. Requires `showControls` for the locate button to exist.
-     */
-    onLocationChange?: (loc: { lon: number; lat: number }) => void;
     /**
      * Ease the camera to frame a parcel when it becomes the sole selection
      * (operator focus). Opt-in so multi-select authoring (merge) on the
@@ -169,7 +160,6 @@ export function MapCanvas({
     showControls = false,
     controlsBottomInset = 12,
     liveTracking = false,
-    onLocationChange,
     flyToOnSelect = false,
     vectorTileUrl,
     className,
@@ -231,7 +221,8 @@ export function MapCanvas({
     // breadcrumb trail. All client-side: no ST_* / geo.ts round-trip.
     const geoAvailable = typeof navigator !== 'undefined' && 'geolocation' in navigator;
     const [userLoc, setUserLoc] = useState<{ lon: number; lat: number } | null>(null);
-    const [locating, setLocating] = useState(false);
+    // "Find my field" cursor — which field the next tap frames (cycles).
+    const fieldCycleRef = useRef(-1);
     const [tracking, setTracking] = useState(false);
     const [trail, setTrail] = useState<Array<[number, number]>>([]);
     const [geoError, setGeoError] = useState<string | null>(null);
@@ -243,22 +234,32 @@ export function MapCanvas({
             : 'Could not get your location. Try again with a clearer sky view.',
     []);
 
-    const handleLocate = useCallback(() => {
-        if (!geoAvailable) { setGeoError('Location is not available on this device.'); return; }
-        setGeoError(null);
-        setLocating(true);
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                const { longitude, latitude } = pos.coords;
-                setUserLoc({ lon: longitude, lat: latitude });
-                onLocationChange?.({ lon: longitude, lat: latitude });
-                mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 16, duration: reducedMotion ? 0 : 1200 });
-                setLocating(false);
-            },
-            (err) => { setGeoError(geoErrMessage(err)); setLocating(false); },
-            { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 },
+    // "Find my field" — frame the next field (parcel) on the map and cycle
+    // to the next one on each subsequent tap. NO GPS: the operator wants to
+    // jump to where their FIELDS are, not to their own position (which is
+    // often nowhere near the fields when planning). Wraps back to the first
+    // field after the last.
+    const handleFindField = useCallback(() => {
+        const fields = parcels.filter(
+            (p): p is MapParcel & { geometry: Geometry } => !!p.geometry,
         );
-    }, [geoAvailable, geoErrMessage, reducedMotion, onLocationChange]);
+        if (fields.length === 0) {
+            setGeoError('No field boundaries to jump to yet.');
+            return;
+        }
+        setGeoError(null);
+        const next = (fieldCycleRef.current + 1) % fields.length;
+        fieldCycleRef.current = next;
+        try {
+            const [minX, minY, maxX, maxY] = bbox(fields[next].geometry);
+            mapRef.current?.fitBounds(
+                [[minX, minY], [maxX, maxY]],
+                { padding: 64, duration: reducedMotion ? 0 : 800, maxZoom: 16 },
+            );
+        } catch {
+            /* a malformed geometry shouldn't break the cycle */
+        }
+    }, [parcels, reducedMotion]);
 
     // Ease the camera to frame the sole selected parcel (operator focus).
     // Only fires for a single selection so multi-select authoring isn't
@@ -605,28 +606,16 @@ export function MapCanvas({
                         className="pointer-events-auto absolute right-3 flex flex-col items-end gap-tight"
                         style={{ bottom: controlsBottomInset }}
                     >
-                        {geoAvailable && (
-                            <CoachMark
-                                id="map-locate"
-                                title="Find your fields"
-                                body="Tap to centre the map on where you are — handy when you're standing in the paddock."
-                                placement="left"
+                        {parcels.some((p) => p.geometry) && (
+                            <button
+                                type="button"
+                                onClick={handleFindField}
+                                aria-label="Find my field"
+                                data-testid="map-find-field"
+                                className={cn(controlBtn, 'rounded-lg border border-border-subtle shadow-md')}
                             >
-                                <button
-                                    type="button"
-                                    onClick={handleLocate}
-                                    aria-label="Locate me"
-                                    aria-busy={locating}
-                                    data-testid="map-locate"
-                                    className={cn(controlBtn, 'rounded-lg border border-border-subtle shadow-md')}
-                                >
-                                    {locating ? (
-                                        <span className="size-5 animate-spin rounded-full border-2 border-border-emphasis border-t-transparent" />
-                                    ) : (
-                                        <Crosshairs3 className="size-5" aria-hidden="true" />
-                                    )}
-                                </button>
-                            </CoachMark>
+                                <Crosshairs3 className="size-5" aria-hidden="true" />
+                            </button>
                         )}
                         {liveTracking && geoAvailable && (
                             <button

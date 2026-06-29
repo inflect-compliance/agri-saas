@@ -138,15 +138,15 @@ test.describe('mobile responsive — agriculture @mobile', () => {
             'full-bleed map should span (near) the full viewport width on mobile',
         ).toBeGreaterThanOrEqual(viewport!.width - 4);
 
-        // On-map thumb controls (locate-me + zoom) render and are ≥44px
+        // On-map thumb controls (find-my-field + zoom) render and are ≥44px
         // (WCAG 2.5.5) touch targets.
-        const locate = main.getByTestId('map-locate');
-        await expect(locate).toBeVisible({ timeout: 30_000 });
-        const locateBox = await locate.boundingBox();
-        expect(locateBox, 'locate control has a box').not.toBeNull();
+        const findField = main.getByTestId('map-find-field');
+        await expect(findField).toBeVisible({ timeout: 30_000 });
+        const findFieldBox = await findField.boundingBox();
+        expect(findFieldBox, 'find-field control has a box').not.toBeNull();
         expect(
-            locateBox!.height,
-            'locate-me should be a ≥44px touch target',
+            findFieldBox!.height,
+            'find-my-field should be a ≥44px touch target',
         ).toBeGreaterThanOrEqual(44);
 
         await expectNoHorizontalOverflow(page, 'location detail — Map tab');

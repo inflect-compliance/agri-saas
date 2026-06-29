@@ -40,6 +40,13 @@ interface CoachMarkProps {
 // is withheld — so the controls under it stay clickable.
 const SUPPRESS_IN_TEST = process.env.NEXT_PUBLIC_TEST_MODE === '1';
 
+// Global kill-switch (temporary). The coach-mark bubble is an absolutely-
+// positioned hint that overflows the viewport on mobile (e.g. the on-map
+// "find your fields" hint runs off-screen). Until a mobile-safe positioning
+// pass lands we suppress every coach-mark app-wide: the wrapped children
+// still render — only the hint is withheld. Flip back to true to restore.
+const COACH_MARKS_ENABLED = false;
+
 const PLACEMENT_POS: Record<CoachMarkPlacement, string> = {
     top: 'bottom-full left-0 mb-2',
     bottom: 'top-full left-0 mt-2',
@@ -58,7 +65,7 @@ export function CoachMark({
     const [show, setShow] = useState(false);
 
     useEffect(() => {
-        if (SUPPRESS_IN_TEST) return;
+        if (!COACH_MARKS_ENABLED || SUPPRESS_IN_TEST) return;
         if (!hasSeenCoachMark(id)) setShow(true);
     }, [id]);
 
