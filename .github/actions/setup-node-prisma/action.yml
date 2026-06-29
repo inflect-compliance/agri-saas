@@ -25,7 +25,25 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: npm ci
+      # CI hardening — `npm ci` runs package postinstall scripts, and a
+      # few (notably onnxruntime-node) download prebuilt binaries from
+      # external CDNs / GitHub releases that intermittently time out
+      # (ETIMEDOUT), failing an otherwise-green job. Raise npm's own
+      # registry-fetch retry budget, then retry the whole install up to
+      # 3× with backoff. `npm ci` wipes node_modules at the start of
+      # every run, so a retry can never leave a half-installed tree.
+      run: |
+        npm config set fetch-retries 5
+        npm config set fetch-retry-factor 2
+        npm config set fetch-retry-mintimeout 10000
+        npm config set fetch-retry-maxtimeout 120000
+        npm config set fetch-timeout 300000
+        for attempt in 1 2 3; do
+          if npm ci; then exit 0; fi
+          echo "::warning::npm ci failed (attempt ${attempt}/3) — retrying"
+          sleep 15
+        done
+        exit 1
 
     - name: Generate Prisma client
       shell: bash

@@ -71,21 +71,16 @@ test.describe('Controls Enhanced', () => {
         await createControl(authedPage, isolatedTenant.tenantSlug);
 
         await authedPage.click('#tab-activity');
-        await authedPage.waitForLoadState('networkidle').catch(() => {});
 
-        await Promise.race([
-            authedPage
-                .waitForSelector('#activity-feed', { timeout: 15000 })
-                .catch(() => null),
-            authedPage
-                .waitForSelector('text=No activity recorded', { timeout: 15000 })
-                .catch(() => null),
-        ]);
-
-        const hasActivity = await authedPage.locator('#activity-feed').isVisible();
-        const hasNoActivity = await authedPage
-            .locator('text=No activity recorded')
-            .isVisible();
-        expect(hasActivity || hasNoActivity).toBe(true);
+        // The activity tab renders EITHER the feed or an empty-state.
+        // A single web-first assertion on the union locator auto-retries
+        // until one of them appears — robust against a slow render under
+        // heavy CI load (the old `Promise.race` + instantaneous
+        // `isVisible()` pattern flaked when neither had painted within a
+        // fixed 15s window).
+        const activityOrEmpty = authedPage
+            .locator('#activity-feed')
+            .or(authedPage.getByText('No activity recorded'));
+        await expect(activityOrEmpty.first()).toBeVisible({ timeout: 30000 });
     });
 });

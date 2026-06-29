@@ -62,7 +62,19 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # CI hardening — retry npm ci so a flaky postinstall binary
+        # download (e.g. onnxruntime-node ETIMEDOUT from an external
+        # CDN) doesn't fail the job.
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-maxtimeout 120000
+          npm config set fetch-timeout 300000
+          for attempt in 1 2 3; do
+            if npm ci; then exit 0; fi
+            echo "::warning::npm ci failed (attempt ${attempt}/3) — retrying"
+            sleep 15
+          done
+          exit 1
 
       # Capture the newest release tag BEFORE semantic-release runs so
       # the SBOM step below can tell whether THIS run actually
