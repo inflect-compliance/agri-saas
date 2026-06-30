@@ -264,6 +264,43 @@ export async function deleteTask(ctx: RequestContext, taskId: string) {
     return result;
 }
 
+/**
+ * Bulk soft-delete tasks — the tasks table selection action-row. Mirrors
+ * {@link deleteTask}: write-gated, soft-delete (Task ∈ SOFT_DELETE_MODELS),
+ * tenant-scoped, one TASK_DELETED audit row per task. Idempotent.
+ */
+export async function bulkDeleteTask(
+    ctx: RequestContext,
+    taskIds: string[],
+): Promise<{ deleted: number }> {
+    assertCanWriteTasks(ctx);
+    const result = await runInTenantContext(ctx, async (db) => {
+        const rows = await db.task.findMany({
+            where: { id: { in: taskIds }, tenantId: ctx.tenantId },
+            select: { id: true, title: true, type: true },
+        });
+        if (rows.length === 0) return { deleted: 0 };
+
+        await db.task.deleteMany({
+            where: { id: { in: rows.map((r) => r.id) }, tenantId: ctx.tenantId },
+        });
+
+        for (const t of rows) {
+            await logEvent(db, ctx, {
+                action: 'TASK_DELETED',
+                entityType: 'Task',
+                entityId: t.id,
+                details: `Deleted task: ${t.title} (bulk)`,
+                detailsJson: { category: 'entity_lifecycle', entityName: 'Task', operation: 'deleted', summary: 'TASK_DELETED' },
+                metadata: { title: t.title, type: t.type },
+            });
+        }
+        return { deleted: rows.length };
+    });
+    await bumpEntityCacheVersion(ctx, 'task');
+    return result;
+}
+
 // ─── Status ───
 
 export async function setTaskStatus(ctx: RequestContext, taskId: string, status: string, resolution?: string | null) {

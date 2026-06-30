@@ -49,8 +49,12 @@ const ADMIN_ONLY_ROUTES = [
     'admin/integrations/sharepoint/test/route.ts',
     'admin/roles/route.ts',
     'admin/roles/[roleId]/route.ts',
+    // Bulk-delete custom roles (selection action-row)
+    'admin/roles/bulk/delete/route.ts',
     'admin/api-keys/route.ts',
     'admin/api-keys/[keyId]/route.ts',
+    // Bulk-revoke API keys (selection action-row)
+    'admin/api-keys/bulk/delete/route.ts',
     'admin/key-rotation/route.ts',
     'admin/tenant-dek-rotation/route.ts',
     'admin/rotate-dek/route.ts',

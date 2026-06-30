@@ -338,6 +338,44 @@ export async function deleteControl(ctx: RequestContext, id: string) {
     return result;
 }
 
+/**
+ * Bulk soft-delete controls — the controls table selection action-row.
+ * Mirrors {@link deleteControl}: ADMIN-gated, soft-delete (Control ∈
+ * SOFT_DELETE_MODELS). The `tenantId: ctx.tenantId` filter both scopes to the
+ * tenant AND excludes global library controls (null tenantId) — so they can
+ * never be bulk-deleted, matching the single-delete's guard. Idempotent.
+ */
+export async function bulkDeleteControl(
+    ctx: RequestContext,
+    controlIds: string[],
+): Promise<{ deleted: number }> {
+    assertCanAdmin(ctx);
+    const result = await runInTenantContext(ctx, async (db) => {
+        const rows = await db.control.findMany({
+            where: { id: { in: controlIds }, tenantId: ctx.tenantId },
+            select: { id: true, code: true, name: true },
+        });
+        if (rows.length === 0) return { deleted: 0 };
+
+        await db.control.deleteMany({
+            where: { id: { in: rows.map((r) => r.id) }, tenantId: ctx.tenantId },
+        });
+
+        for (const c of rows) {
+            await logEvent(db, ctx, {
+                action: 'SOFT_DELETE',
+                entityType: 'Control',
+                entityId: c.id,
+                details: `Control soft-deleted (bulk): ${c.code || c.name}`,
+                detailsJson: { category: 'entity_lifecycle', entityName: 'Control', operation: 'deleted', summary: `Control soft-deleted: ${c.code || c.name}` },
+            });
+        }
+        return { deleted: rows.length };
+    });
+    await bumpEntityCacheVersion(ctx, 'control');
+    return result;
+}
+
 export async function restoreControl(ctx: RequestContext, id: string) {
     const result = await restoreEntity(ctx, 'Control', id);
     await bumpEntityCacheVersion(ctx, 'control');

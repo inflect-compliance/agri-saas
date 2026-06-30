@@ -38,7 +38,7 @@ import type { Role } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Tooltip } from '@/components/ui/tooltip';
-import { DataTable, createColumns } from '@/components/ui/table';
+import { DataTable, createColumns, useBulkDelete } from '@/components/ui/table';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -427,6 +427,24 @@ export default function CustomRolesPage() {
         }
     }
 
+    // ─── Bulk delete (selection action-row) ───
+    // Mirrors the single delete: same `admin.manage`-gated endpoint, same
+    // soft-delete + member-fallback semantics; the usecase is idempotent.
+    const { batchAction: roleBulkAction, dialog: roleDeleteDialog } =
+        useBulkDelete<CustomRole>({
+            entitySingular: 'role',
+            entityPlural: 'roles',
+            onDelete: async (roleIds) => {
+                const res = await fetch(apiUrl('/admin/roles/bulk/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roleIds }),
+                });
+                if (!res.ok) throw new Error('Failed to delete roles');
+                await fetchRoles();
+            },
+        });
+
     // ─── Permission summary for table display ───
     function countGranted(perms: PermissionSet): string {
         let granted = 0;
@@ -661,12 +679,14 @@ export default function CustomRolesPage() {
                         data={visibleRoles}
                         columns={roleColumns}
                         getRowId={(r) => r.id}
+                        batchActions={[roleBulkAction]}
                         emptyState='No custom roles defined yet. Click "Create Custom Role" to get started.'
                         resourceName={(p) => (p ? 'custom roles' : 'custom role')}
                         data-testid="roles-table"
                     />
                 </div>
             </ListPageShell.Body>
+            {roleDeleteDialog}
         </ListPageShell>
     );
 }

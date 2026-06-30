@@ -26,6 +26,7 @@ import { Paperclip, CheckCircle2, AlertTriangle, X, ChevronDown, ChevronLeft } f
 import {
     createColumns,
     useColumnsDropdown,
+    useBulkDelete,
 } from '@/components/ui/table';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -166,6 +167,7 @@ function ControlsPageInner({
     initialFilters,
     tenantSlug,
     appPermissions,
+    permissions,
 }: ControlsClientProps) {
     // Stable across renders — selection-toggle re-renders (Phase 2)
     // must NOT hand the DataTable fresh `columns` / `onRowClick` /
@@ -527,6 +529,22 @@ function ControlsPageInner({
         [router, tenantHref],
     );
     const getControlRowId = useCallback((c: ControlListItem) => c.id, []);
+
+    // Bulk-delete via the selection action-row (ADMIN-gated, like single delete).
+    const { batchAction: controlBulkDelete, dialog: controlDeleteDialog } =
+        useBulkDelete<ControlListItem>({
+            entitySingular: 'control',
+            entityPlural: 'controls',
+            onDelete: async (controlIds) => {
+                const res = await fetch(apiUrl('/controls/bulk/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ controlIds }),
+                });
+                if (!res.ok) throw new Error('Failed to delete controls');
+                await controlsQuery.refetch();
+            },
+        });
     const handleRowSelectionChange = useCallback(
         (rows: Row<ControlListItem>[]) =>
             setRowSelection(
@@ -757,26 +775,33 @@ function ControlsPageInner({
     // header-row selection toolbar (`batchActions`) — the row-select action
     // bar that pops over the column-names row — NOT a right-rail. The
     // selection-summary AsidePanel was removed.
-    const controlBatchActions = canEditControls
-        ? [
-              {
-                  label: 'Mark Implemented',
-                  icon: <CheckCircle2 className="size-3.5" />,
-                  onClick: () => bulkSetStatus('IMPLEMENTED'),
-              },
-              {
-                  label: 'Mark Needs Review',
-                  icon: <AlertTriangle className="size-3.5" />,
-                  onClick: () => bulkSetStatus('NEEDS_REVIEW'),
-              },
-              {
-                  label: 'Mark Not Applicable',
-                  icon: <X className="size-3.5" />,
-                  tone: 'danger' as const,
-                  onClick: () => bulkSetStatus('NOT_APPLICABLE'),
-              },
-          ]
-        : undefined;
+    const controlBatchActionsArr = [
+        ...(canEditControls
+            ? [
+                  {
+                      label: 'Mark Implemented',
+                      icon: <CheckCircle2 className="size-3.5" />,
+                      onClick: () => bulkSetStatus('IMPLEMENTED'),
+                  },
+                  {
+                      label: 'Mark Needs Review',
+                      icon: <AlertTriangle className="size-3.5" />,
+                      onClick: () => bulkSetStatus('NEEDS_REVIEW'),
+                  },
+                  {
+                      label: 'Mark Not Applicable',
+                      icon: <X className="size-3.5" />,
+                      tone: 'danger' as const,
+                      onClick: () => bulkSetStatus('NOT_APPLICABLE'),
+                  },
+              ]
+            : []),
+        // Delete is ADMIN-gated (the usecase asserts canAdmin), unlike the
+        // edit-gated status verbs above.
+        ...(permissions.canAdmin ? [controlBulkDelete] : []),
+    ];
+    const controlBatchActions =
+        controlBatchActionsArr.length > 0 ? controlBatchActionsArr : undefined;
 
     // Browse rail — category accordion. The loaded controls are
     // grouped by their framework-native category, derived via
@@ -1222,8 +1247,10 @@ function ControlsPageInner({
                 // `batchActions`. For viewers without edit permission,
                 // selection is left off entirely (no checkboxes, no bar).
                 batchActions: controlBatchActions,
-                selectedRows: canEditControls ? rowSelection : undefined,
-                onRowSelectionChange: canEditControls
+                // Selection (checkboxes) is on whenever there's a batch action —
+                // edit-gated status verbs OR the admin-gated bulk delete.
+                selectedRows: controlBatchActions ? rowSelection : undefined,
+                onRowSelectionChange: controlBatchActions
                     ? handleRowSelectionChange
                     : undefined,
             }}
@@ -1234,6 +1261,7 @@ function ControlsPageInner({
                 setOpen={setIsCreateOpen}
                 tenantSlug={tenantSlug}
             />
+            {controlDeleteDialog}
 
             {/* Control Detail / Edit Sheet (Epic 54) */}
             <ControlDetailSheet

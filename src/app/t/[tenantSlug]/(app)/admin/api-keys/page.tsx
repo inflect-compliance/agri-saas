@@ -18,7 +18,7 @@ import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { InfoTooltip, Tooltip } from '@/components/ui/tooltip';
 import { useCopyToClipboard } from '@/components/ui/hooks';
-import { DataTable, createColumns } from '@/components/ui/table';
+import { DataTable, createColumns, useBulkDelete } from '@/components/ui/table';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { formatDateTime } from '@/lib/format-date';
 import { useToast } from '@/components/ui/hooks/use-toast';
@@ -333,6 +333,32 @@ export default function ApiKeysPage() {
     const activeKeys = keys.filter(k => !k.revokedAt && !isExpired(k.expiresAt));
     const inactiveKeys = keys.filter(k => k.revokedAt || isExpired(k.expiresAt));
 
+    // ─── Bulk revoke (selection action-row) ───
+    const { batchAction: bulkRevokeAction, dialog: bulkRevokeDialog } =
+        useBulkDelete<ApiKeyRecord>({
+            entitySingular: 'API key',
+            entityPlural: 'API keys',
+            verb: 'Revoke',
+            onDelete: async (ids) => {
+                setError(null);
+                setSuccess(null);
+                const res = await fetch(apiUrl('/admin/api-keys/bulk/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKeyIds: ids }),
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ error: 'Revoke failed' }));
+                    const msg = err.error?.message || err.error || 'Revoke failed';
+                    setError(msg);
+                    throw new Error(msg);
+                }
+                const { revoked } = await res.json();
+                setSuccess(`Revoked ${revoked} API ${revoked === 1 ? 'key' : 'keys'}.`);
+                await fetchKeys();
+            },
+        });
+
     // ─── Epic 52 — DataTable columns ───
     const activeKeyColumns = useMemo(
         () =>
@@ -611,6 +637,7 @@ export default function ApiKeysPage() {
                     data={activeKeys}
                     columns={activeKeyColumns}
                     getRowId={(k) => k.id}
+                    batchActions={[bulkRevokeAction]}
                     emptyState="No active API keys."
                     resourceName={(p) => (p ? 'API keys' : 'API key')}
                     data-testid="active-keys-table"
@@ -658,6 +685,8 @@ export default function ApiKeysPage() {
                     if (keyToRevoke) await performRevoke(keyToRevoke);
                 }}
             />
+
+            {bulkRevokeDialog}
         </div>
     );
 }

@@ -24,7 +24,7 @@ import { useThresholdLoadMore } from '@/components/ui/hooks';
 import { TimestampTooltip } from '@/components/ui/timestamp-tooltip';
 import { Tooltip } from '@/components/ui/tooltip';
 import { TERMINAL_WORK_ITEM_STATUSES } from '@/app-layer/domain/work-item-status';
-import { DataTable, createColumns, useColumnsDropdown } from '@/components/ui/table';
+import { DataTable, createColumns, useColumnsDropdown, useBulkDelete } from '@/components/ui/table';
 import {
     FilterProvider,
     useFilterContext,
@@ -228,6 +228,24 @@ function TasksPageInner({
     const tasks = tasksQuery.data?.rows ?? [];
     const truncated = tasksQuery.data?.truncated ?? false;
     const loading = tasksQuery.isLoading && !tasksQuery.data;
+
+    // Bulk-delete via the selection bar (custom selectionControls, so this
+    // uses the hook's triggerByIds rather than the batchActions API).
+    const { triggerByIds: triggerTaskDelete, dialog: taskDeleteDialog } =
+        useBulkDelete<TaskListItem>({
+            entitySingular: 'task',
+            entityPlural: 'tasks',
+            onDelete: async (taskIds) => {
+                const res = await fetch(apiUrl('/tasks/bulk/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ taskIds }),
+                });
+                if (!res.ok) throw new Error('Failed to delete tasks');
+                await tasksQuery.mutate();
+                setSelected(new Set());
+            },
+        });
 
     // ─── Sortable headers (parity with the Controls table) ───
     // Clicking a sortable header re-orders the in-memory rows; `sortBy`
@@ -765,6 +783,15 @@ function TasksPageInner({
                                 icon={<AppIcon name="checkCircle" size={16} />}
                                 label="Apply"
                             />
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                id="bulk-delete-btn"
+                                disabled={selected.size === 0}
+                                onClick={() => triggerTaskDelete(Array.from(selected))}
+                            >
+                                Delete
+                            </Button>
                         </div>
                     )}
                     onRowClick={(row) => router.push(tenantHref(`/tasks/${row.original.id}`))}
@@ -816,6 +843,7 @@ function TasksPageInner({
                     />
                 </>
             )}
+            {taskDeleteDialog}
             {appPermissions.tasks.edit && (
                 <TaskDetailSheet
                     taskId={editTaskId}

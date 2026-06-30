@@ -164,3 +164,61 @@ export async function revokeApiKey(ctx: RequestContext, apiKeyId: string) {
         return revoked;
     });
 }
+
+// ─── Bulk Revoke API Keys ───
+
+/**
+ * Revoke a set of API keys in one tenant-scoped, idempotent pass.
+ *
+ * Mirrors {@link revokeApiKey} over a collection of ids: ids that don't
+ * resolve (wrong tenant, unknown id) or are already revoked are silently
+ * skipped — a single bad id never throws and never aborts the batch.
+ *
+ * Avoids an N+1 read (no per-id `findFirst` loop): one `findMany` resolves
+ * the still-active keys, one `updateMany` sets `revokedAt`, then a
+ * writes-only loop emits one audit entry per actually-revoked key.
+ */
+export async function bulkRevokeApiKey(
+    ctx: RequestContext,
+    apiKeyIds: string[],
+): Promise<{ revoked: number }> {
+    assertCanManageMembers(ctx);
+
+    return runInTenantContext(ctx, async (db) => {
+        const keys = await db.tenantApiKey.findMany({
+            where: {
+                id: { in: apiKeyIds },
+                tenantId: ctx.tenantId,
+                revokedAt: null,
+            },
+            select: { id: true, name: true },
+        });
+        if (keys.length === 0) return { revoked: 0 };
+
+        await db.tenantApiKey.updateMany({
+            where: {
+                id: { in: keys.map((k) => k.id) },
+                tenantId: ctx.tenantId,
+                revokedAt: null,
+            },
+            data: { revokedAt: new Date() },
+        });
+
+        for (const key of keys) {
+            await logEvent(db, ctx, {
+                action: 'API_KEY_REVOKED',
+                entityType: 'TenantApiKey',
+                entityId: key.id,
+                details: `Revoked API key: ${key.name}`,
+                detailsJson: {
+                    category: 'entity_lifecycle',
+                    entityName: 'TenantApiKey',
+                    operation: 'deleted',
+                    summary: `Revoked API key: ${key.name}`,
+                },
+            });
+        }
+
+        return { revoked: keys.length };
+    });
+}

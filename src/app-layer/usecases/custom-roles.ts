@@ -238,6 +238,74 @@ export async function deleteCustomRole(ctx: RequestContext, roleId: string) {
     });
 }
 
+// ─── Bulk Delete (Soft-Delete) Custom Roles ───
+
+/**
+ * Bulk soft-delete custom roles. Idempotent + permission-gated identically
+ * to {@link deleteCustomRole}: same `assertCanManageMembers` gate, same
+ * soft-delete mechanism (deactivate + clear `customRoleId` on affected
+ * memberships so they fall back to their enum role).
+ *
+ * Idempotent over the id set — ids that don't resolve to an ACTIVE role in
+ * the calling tenant are silently skipped (never throws for a single bad
+ * id). Resolves the whole set with ONE `findMany` (no per-id READ in the
+ * loop — the query-shape guard bans N+1), then runs writes-only per role.
+ * Emits one audit event per actually-deleted role.
+ */
+export async function bulkDeleteCustomRole(
+    ctx: RequestContext,
+    input: { roleIds: string[] },
+): Promise<{ deleted: number }> {
+    assertCanManageMembers(ctx);
+
+    return runInTenantContext(ctx, async (db) => {
+        // One READ to resolve + filter: only ACTIVE roles in this tenant.
+        // Already-deleted (inactive) or foreign ids are skipped.
+        const roles = await db.tenantCustomRole.findMany({
+            where: {
+                id: { in: input.roleIds },
+                tenantId: ctx.tenantId,
+                isActive: true,
+            },
+            select: { id: true, name: true },
+        });
+        if (roles.length === 0) return { deleted: 0 };
+
+        const roleIds = roles.map((r) => r.id);
+
+        // Soft-delete all resolved roles in one write.
+        await db.tenantCustomRole.updateMany({
+            where: { id: { in: roleIds }, tenantId: ctx.tenantId },
+            data: { isActive: false },
+        });
+
+        // Writes-only loop (no reads): per-role membership clear + audit so
+        // each event carries that role's own reassigned-member count.
+        for (const role of roles) {
+            const cleared = await db.tenantMembership.updateMany({
+                where: { tenantId: ctx.tenantId, customRoleId: role.id },
+                data: { customRoleId: null },
+            });
+
+            await logEvent(db, ctx, {
+                action: 'CUSTOM_ROLE_DELETED',
+                entityType: 'TenantCustomRole',
+                entityId: role.id,
+                details: `Deleted custom role: ${role.name} (${cleared.count} members reassigned to fallback)`,
+                detailsJson: {
+                    category: 'entity_lifecycle',
+                    entityName: 'TenantCustomRole',
+                    operation: 'deleted',
+                    summary: `Deleted custom role: ${role.name}`,
+                    metadata: { membersCleared: cleared.count },
+                },
+            });
+        }
+
+        return { deleted: roles.length };
+    });
+}
+
 // ─── Assign Custom Role to Member ───
 
 export async function assignCustomRole(

@@ -64,6 +64,12 @@ export interface UseBulkDeleteOptions<T> {
 export interface UseBulkDeleteResult<T> {
     /** Spread into the DataTable `batchActions` array. */
     batchAction: BatchAction<T>;
+    /**
+     * Open the confirm dialog for an explicit id set. For tables that drive
+     * selection through a custom `selectionControls` bar (not `batchActions`)
+     * and already hold the selected ids themselves.
+     */
+    triggerByIds: (ids: string[]) => void;
     /** Render once near the table — the confirm dialog. */
     dialog: ReactNode;
     /** Number of rows queued for deletion (while the dialog is open). */
@@ -84,14 +90,16 @@ export function useBulkDelete<T>({
     const extractId =
         getId ?? ((row: Row<T>) => (row.original as { id: string }).id);
 
+    const triggerByIds = (ids: string[]) => {
+        setPending(ids);
+        setOpen(true);
+    };
+
     const batchAction: BatchAction<T> = {
         label: verb,
         variant: "danger",
         icon: <Trash className="size-3.5" aria-hidden="true" />,
-        onClick: (rows) => {
-            setPending(rows.map(extractId));
-            setOpen(true);
-        },
+        onClick: (rows) => triggerByIds(rows.map(extractId)),
     };
 
     const count = pending.length;
@@ -114,5 +122,5 @@ export function useBulkDelete<T>({
         />
     );
 
-    return { batchAction, dialog, pendingCount: count };
+    return { batchAction, triggerByIds, dialog, pendingCount: count };
 }

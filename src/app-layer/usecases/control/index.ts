@@ -23,6 +23,7 @@ export {
     setControlOwner,
     markControlTestCompleted,
     deleteControl,
+    bulkDeleteControl,
     restoreControl,
     purgeControl,
 } from './mutations';
