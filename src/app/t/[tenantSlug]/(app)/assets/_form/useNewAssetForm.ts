@@ -45,15 +45,17 @@ export interface UseNewAssetFormOptions {
 
 const INITIAL: NewAssetFormFields = {
     name: '',
-    type: 'SYSTEM',
+    type: 'TRACTOR',
     status: 'ACTIVE',
-    classification: '',
+    criticality: undefined,
     ownerUserId: '',
     location: '',
-    dataResidency: '',
-    confidentiality: 3,
-    integrity: 3,
-    availability: 3,
+    manufacturer: '',
+    model: '',
+    serialNumber: '',
+    year: undefined,
+    purchaseDate: '',
+    purchaseCost: undefined,
 };
 
 export function useNewAssetForm({
@@ -69,14 +71,16 @@ export function useNewAssetForm({
                 name: payload.name,
                 type: payload.type,
                 status: payload.status,
-                confidentiality: payload.confidentiality,
-                integrity: payload.integrity,
-                availability: payload.availability,
             };
-            if (payload.classification) body.classification = payload.classification;
+            if (payload.criticality) body.criticality = payload.criticality;
             if (payload.ownerUserId) body.ownerUserId = payload.ownerUserId;
             if (payload.location) body.location = payload.location;
-            if (payload.dataResidency) body.dataResidency = payload.dataResidency;
+            if (payload.manufacturer) body.manufacturer = payload.manufacturer;
+            if (payload.model) body.model = payload.model;
+            if (payload.serialNumber) body.serialNumber = payload.serialNumber;
+            if (payload.year != null) body.year = payload.year;
+            if (payload.purchaseDate) body.purchaseDate = payload.purchaseDate;
+            if (payload.purchaseCost != null) body.purchaseCost = payload.purchaseCost;
 
             const res = await fetch(apiUrl('/assets'), {
                 method: 'POST',

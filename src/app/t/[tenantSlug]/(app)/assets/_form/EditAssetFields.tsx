@@ -1,42 +1,23 @@
 'use client';
 
 /**
- * Controlled field markup for the asset-edit form.
+ * Controlled field markup for the asset-edit form (agricultural assets
+ * — machines, buildings, equipment).
  *
- * Composes the same six fields the legacy inline-edit panel exposed.
- * The detail page renders this inline (existing behaviour); the P2
- * `<EditAssetModal>` renders it inside Modal.Body. State + submit
- * live in `useEditAssetForm`.
+ * The detail page renders this inline; the P2 `<EditAssetModal>` renders
+ * it inside Modal.Body. State + submit live in `useEditAssetForm`.
  */
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { UserCombobox } from '@/components/ui/user-combobox';
-import { AssetCriticalityFields } from './AssetCriticalityFields';
-import {
-    ASSET_CLASSIFICATION_OPTIONS,
-    ASSET_DATA_RESIDENCY_OPTIONS,
-} from './asset-options';
+import { DatePicker } from '@/components/ui/date-picker/date-picker';
+import { parseYMD, toYMD } from '@/components/ui/date-picker/date-utils';
+import { ASSET_CRITICALITY_OPTIONS, ASSET_STATUS_OPTIONS } from './asset-options';
+import { ASSET_TYPE_LABELS } from '../filter-defs';
 import type { EditAssetFormReturn } from './useEditAssetForm';
 
-const TYPES = [
-    'INFORMATION',
-    'APPLICATION',
-    'SYSTEM',
-    'SERVICE',
-    'DATA_STORE',
-    'INFRASTRUCTURE',
-    'VENDOR',
-    'PROCESS',
-    'PEOPLE_PROCESS',
-    'OTHER',
-];
-const TYPE_OPTIONS: ComboboxOption[] = TYPES.map((t) => ({
-    value: t,
-    label: t.replace(/_/g, ' '),
-}));
-const STATUS_OPTIONS: ComboboxOption[] = [
-    { value: 'ACTIVE', label: 'Active' },
-    { value: 'RETIRED', label: 'Retired' },
-];
+const TYPE_OPTIONS: ComboboxOption[] = Object.entries(ASSET_TYPE_LABELS).map(
+    ([value, label]) => ({ value, label }),
+);
 
 export function EditAssetFields({
     form,
@@ -65,7 +46,7 @@ export function EditAssetFields({
                         null
                     }
                     setSelected={(opt) =>
-                        form.setField('type', opt?.value ?? 'SYSTEM')
+                        form.setField('type', opt?.value ?? 'TRACTOR')
                     }
                     options={TYPE_OPTIONS}
                     matchTriggerWidth
@@ -78,17 +59,69 @@ export function EditAssetFields({
                 <Combobox
                     hideSearch
                     selected={
-                        STATUS_OPTIONS.find(
+                        ASSET_STATUS_OPTIONS.find(
                             (o) => o.value === form.fields.status,
                         ) ?? null
                     }
                     setSelected={(opt) =>
                         form.setField('status', opt?.value ?? 'ACTIVE')
                     }
-                    options={STATUS_OPTIONS}
+                    options={ASSET_STATUS_OPTIONS}
                     matchTriggerWidth
                     buttonProps={{ className: 'w-full' }}
                     caret
+                />
+            </div>
+            <div>
+                <label className="input-label">Criticality</label>
+                <Combobox
+                    hideSearch
+                    selected={
+                        ASSET_CRITICALITY_OPTIONS.find(
+                            (o) => o.value === form.fields.criticality,
+                        ) ?? null
+                    }
+                    setSelected={(opt) =>
+                        form.setField('criticality', opt?.value ?? '')
+                    }
+                    options={ASSET_CRITICALITY_OPTIONS}
+                    placeholder="Select criticality…"
+                    matchTriggerWidth
+                    buttonProps={{ className: 'w-full' }}
+                    caret
+                />
+            </div>
+            <div>
+                <label className="input-label">Manufacturer</label>
+                <input
+                    className="input"
+                    value={form.fields.manufacturer}
+                    onChange={(e) => form.setField('manufacturer', e.target.value)}
+                />
+            </div>
+            <div>
+                <label className="input-label">Model</label>
+                <input
+                    className="input"
+                    value={form.fields.model}
+                    onChange={(e) => form.setField('model', e.target.value)}
+                />
+            </div>
+            <div>
+                <label className="input-label">Serial number</label>
+                <input
+                    className="input"
+                    value={form.fields.serialNumber}
+                    onChange={(e) => form.setField('serialNumber', e.target.value)}
+                />
+            </div>
+            <div>
+                <label className="input-label">Year</label>
+                <input
+                    className="input"
+                    inputMode="numeric"
+                    value={form.fields.year}
+                    onChange={(e) => form.setField('year', e.target.value)}
                 />
             </div>
             <div>
@@ -106,25 +139,6 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Classification</label>
-                <Combobox
-                    hideSearch
-                    selected={
-                        ASSET_CLASSIFICATION_OPTIONS.find(
-                            (o) => o.value === form.fields.classification,
-                        ) ?? null
-                    }
-                    setSelected={(opt) =>
-                        form.setField('classification', opt?.value ?? '')
-                    }
-                    options={ASSET_CLASSIFICATION_OPTIONS}
-                    placeholder="Select classification…"
-                    matchTriggerWidth
-                    buttonProps={{ className: 'w-full' }}
-                    caret
-                />
-            </div>
-            <div>
                 <label className="input-label">Location</label>
                 <input
                     className="input"
@@ -133,32 +147,28 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Data Residency</label>
-                <Combobox
-                    hideSearch
-                    selected={
-                        ASSET_DATA_RESIDENCY_OPTIONS.find(
-                            (o) => o.value === form.fields.dataResidency,
-                        ) ?? null
+                <label className="input-label">Purchase date</label>
+                <DatePicker
+                    id="asset-edit-purchase-date"
+                    placeholder="Select date"
+                    clearable
+                    align="start"
+                    value={parseYMD(form.fields.purchaseDate)}
+                    onChange={(next) =>
+                        form.setField('purchaseDate', toYMD(next) ?? '')
                     }
-                    setSelected={(opt) =>
-                        form.setField('dataResidency', opt?.value ?? '')
-                    }
-                    options={ASSET_DATA_RESIDENCY_OPTIONS}
-                    placeholder="Select residency…"
-                    matchTriggerWidth
-                    buttonProps={{ className: 'w-full' }}
-                    caret
+                />
+            </div>
+            <div>
+                <label className="input-label">Purchase cost</label>
+                <input
+                    className="input"
+                    inputMode="decimal"
+                    value={form.fields.purchaseCost}
+                    onChange={(e) => form.setField('purchaseCost', e.target.value)}
                 />
             </div>
         </div>
-        <AssetCriticalityFields
-            idPrefix="asset-edit"
-            confidentiality={form.fields.confidentiality}
-            integrity={form.fields.integrity}
-            availability={form.fields.availability}
-            onChange={(key, value) => form.setField(key, value)}
-        />
         </>
     );
 }

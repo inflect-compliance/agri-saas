@@ -244,9 +244,9 @@ async function main() {
     // ─── Seed assets ───
     const assetCount = await prisma.asset.count({ where: { tenantId: tenant.id } });
     if (assetCount === 0) {
-        await prisma.asset.create({ data: { tenantId: tenant.id, name: 'Customer Database', type: 'DATA_STORE', classification: 'Confidential', owner: 'IT', confidentiality: 5, integrity: 5, availability: 4 } });
-        await prisma.asset.create({ data: { tenantId: tenant.id, name: 'Production Servers', type: 'SYSTEM', classification: 'Internal', owner: 'DevOps', confidentiality: 4, integrity: 5, availability: 5 } });
-        await prisma.asset.create({ data: { tenantId: tenant.id, name: 'Email Service', type: 'SERVICE', classification: 'Internal', owner: 'IT', confidentiality: 3, integrity: 4, availability: 4 } });
+        await prisma.asset.create({ data: { tenantId: tenant.id, name: 'John Deere 6155R', type: 'TRACTOR', manufacturer: 'John Deere', model: '6155R', serialNumber: 'JD6155R-2021-0042', year: 2021, owner: 'Farm manager', location: 'North machine shed', criticality: 'HIGH', purchaseCost: 145000 } });
+        await prisma.asset.create({ data: { tenantId: tenant.id, name: 'Case IH Axial-Flow 250', type: 'HARVESTER', manufacturer: 'Case IH', model: 'Axial-Flow 250', serialNumber: 'CIH-AF250-2019-0117', year: 2019, owner: 'Farm manager', location: 'Main barn', criticality: 'HIGH', purchaseCost: 380000 } });
+        await prisma.asset.create({ data: { tenantId: tenant.id, name: 'Grain Storage Barn', type: 'BUILDING', owner: 'Operations', location: 'East yard', criticality: 'MEDIUM' } });
     }
     console.log('✅ Assets seeded');
 

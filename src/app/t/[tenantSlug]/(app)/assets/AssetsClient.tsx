@@ -46,16 +46,9 @@ interface AssetsClientProps {
         createAsset: string;
         name: string;
         type: string;
-        classification: string;
-        classificationPlaceholder: string;
+        manufacturer: string;
         owner: string;
         location: string;
-        dataResidency: string;
-        residencyPlaceholder: string;
-        confidentiality: string;
-        integrity: string;
-        availability: string;
-        cia: string;
         controlsCol: string;
         noAssets: string;
         cancel: string;
@@ -275,7 +268,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             { id: 'code', label: 'Code', defaultVisible: false },
             { id: 'name', label: 'Name' },
             { id: 'type', label: 'Type' },
-            { id: 'classification', label: 'Classification' },
+            { id: 'manufacturer', label: 'Manufacturer' },
             { id: 'owner', label: 'Owner' },
             { id: 'controls', label: 'Controls' },
             { id: 'tasks', label: 'Tasks' },
@@ -333,9 +326,9 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             cell: ({ getValue }: any) => <StatusBadge variant="info" size="sm">{String(getValue()).replace(/_/g, ' ')}</StatusBadge>,
         },
         {
-            id: 'classification',
-            header: t.classification,
-            accessorFn: (a: any) => a.classification || '—',
+            id: 'manufacturer',
+            header: t.manufacturer,
+            accessorFn: (a: any) => a.manufacturer || '—',
         },
         {
             id: 'owner',
@@ -486,7 +479,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                                 size="sm"
                                 variant="no-records"
                                 title={t.noAssets}
-                                description="Register the systems, applications, and data stores in scope before mapping risks and controls."
+                                description="Add the machines, vehicles, buildings, and equipment on the farm to track maintenance and link them to risks."
                                 primaryAction={
                                     permissions.canWrite
                                         ? {
@@ -511,15 +504,8 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                 labels={{
                     name: t.name,
                     type: t.type,
-                    classification: t.classification,
-                    classificationPlaceholder: t.classificationPlaceholder,
                     owner: t.owner,
                     location: t.location,
-                    dataResidency: t.dataResidency,
-                    residencyPlaceholder: t.residencyPlaceholder,
-                    confidentiality: t.confidentiality,
-                    integrity: t.integrity,
-                    availability: t.availability,
                     cancel: t.cancel,
                     createAsset: t.createAsset,
                     addAsset: t.addAsset,

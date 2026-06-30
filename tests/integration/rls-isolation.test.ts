@@ -184,7 +184,7 @@ describeFn('Postgres RLS Tenant Isolation', () => {
         });
 
         const assetA = await globalPrisma.asset.create({
-            data: { tenantId: tenantAId, name: `Asset A - ${testRunId}`, type: 'SYSTEM' },
+            data: { tenantId: tenantAId, name: `Asset A - ${testRunId}`, type: 'TRACTOR' },
         });
 
         // Create mapping rows for Tenant A
@@ -259,7 +259,7 @@ describeFn('Postgres RLS Tenant Isolation', () => {
         });
 
         const assetB = await globalPrisma.asset.create({
-            data: { tenantId: tenantBId, name: `Asset B - ${testRunId}`, type: 'DATA_STORE' },
+            data: { tenantId: tenantBId, name: `Asset B - ${testRunId}`, type: 'HARVESTER' },
         });
 
         // Create mapping rows for Tenant B

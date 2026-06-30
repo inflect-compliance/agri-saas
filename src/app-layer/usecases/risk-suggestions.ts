@@ -55,10 +55,6 @@ export async function generateRiskSuggestions(
             name: a.name,
             type: a.type,
             criticality: a.criticality,
-            classification: a.classification,
-            confidentiality: a.confidentiality,
-            integrity: a.integrity,
-            availability: a.availability,
         }));
 
         // 6. Fetch existing controls (to avoid suggesting already-mitigated risks)

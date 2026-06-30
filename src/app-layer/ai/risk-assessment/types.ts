@@ -28,10 +28,6 @@ export interface RiskAssessmentAsset {
     name: string;
     type: string;
     criticality?: string | null;
-    classification?: string | null;
-    confidentiality?: number | null;
-    integrity?: number | null;
-    availability?: number | null;
 }
 
 export interface RiskAssessmentInput {

@@ -60,7 +60,9 @@ export class AssetRepository {
         if (filters?.q) {
             where.OR = [
                 { name: { contains: filters.q, mode: 'insensitive' } },
-                { classification: { contains: filters.q, mode: 'insensitive' } },
+                { manufacturer: { contains: filters.q, mode: 'insensitive' } },
+                { model: { contains: filters.q, mode: 'insensitive' } },
+                { serialNumber: { contains: filters.q, mode: 'insensitive' } },
                 { owner: { contains: filters.q, mode: 'insensitive' } },
             ];
         }

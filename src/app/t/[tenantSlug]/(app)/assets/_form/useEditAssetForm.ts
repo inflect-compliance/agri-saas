@@ -20,18 +20,20 @@ import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 export interface EditAssetFormFields {
     name: string;
     type: string;
-    classification: string;
     owner: string;
     /** "Assigned to" — real user reference (User.id), '' = unassigned. */
     ownerUserId: string;
     location: string;
     criticality: string;
     status: string;
-    dataResidency: string;
     externalRef: string;
-    confidentiality: number;
-    integrity: number;
-    availability: number;
+    manufacturer: string;
+    model: string;
+    serialNumber: string;
+    /** Free-text numeric inputs — coerced server-side; '' = clear. */
+    year: string;
+    purchaseDate: string;
+    purchaseCost: string;
 }
 
 export interface EditAssetFormReturn {
@@ -56,18 +58,19 @@ export interface UseEditAssetFormOptions {
 
 const DEFAULTS: EditAssetFormFields = {
     name: '',
-    type: 'SYSTEM',
-    classification: '',
+    type: 'TRACTOR',
     owner: '',
     ownerUserId: '',
     location: '',
     criticality: '',
     status: 'ACTIVE',
-    dataResidency: '',
     externalRef: '',
-    confidentiality: 3,
-    integrity: 3,
-    availability: 3,
+    manufacturer: '',
+    model: '',
+    serialNumber: '',
+    year: '',
+    purchaseDate: '',
+    purchaseCost: '',
 };
 
 export function useEditAssetForm({
@@ -99,10 +102,30 @@ export function useEditAssetForm({
         setSubmitting(true);
         setError(null);
         try {
+            // Clean the body: empty enum / numeric text inputs must
+            // serialise as null (an empty string would fail the enum or
+            // coerce to 0), and the numeric fields pass as strings the
+            // server-side `z.coerce.number` handles.
+            const body = {
+                name: fields.name,
+                type: fields.type,
+                status: fields.status,
+                criticality: fields.criticality || null,
+                owner: fields.owner,
+                ownerUserId: fields.ownerUserId,
+                location: fields.location,
+                manufacturer: fields.manufacturer,
+                model: fields.model,
+                serialNumber: fields.serialNumber,
+                year: fields.year.trim() === '' ? null : fields.year,
+                purchaseDate: fields.purchaseDate,
+                purchaseCost:
+                    fields.purchaseCost.trim() === '' ? null : fields.purchaseCost,
+            };
             const res = await fetch(apiUrl(`/assets/${assetId}`), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(fields),
+                body: JSON.stringify(body),
             });
             if (!res.ok) throw new Error(`Failed to save (${res.status})`);
             const payload = await res.json();

@@ -83,7 +83,7 @@ beforeAll(async () => {
     });
     RISK_ID = risk.id;
     const asset = await globalPrisma.asset.create({
-        data: { tenantId: TENANT_ID, name: 'Asset with evidence', type: 'SYSTEM' },
+        data: { tenantId: TENANT_ID, name: 'Asset with evidence', type: 'TRACTOR' },
     });
     ASSET_ID = asset.id;
     const control = await globalPrisma.control.create({

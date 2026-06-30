@@ -11,6 +11,17 @@ import { bumpEntityCacheVersion } from '@/lib/cache/list-cache';
 import { createAssignmentNotification } from '../notifications/assignment';
 import { logger } from '@/lib/observability';
 
+/**
+ * Coerce a form `purchaseDate` into the shape Prisma's DateTime column
+ * expects. `undefined` ⇒ leave untouched (partial update); `''`/null ⇒
+ * clear; an ISO date string ⇒ a Date.
+ */
+function normalizePurchaseDate(value: unknown): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (!value) return null;
+    return new Date(value as string);
+}
+
 export async function listAssets(ctx: RequestContext, filters?: AssetFilters) {
     assertCanRead(ctx);
     return runInTenantContext(ctx, async (db) => {
@@ -56,17 +67,16 @@ export async function createAsset(ctx: RequestContext, data: any) {
             name: data.name,
             type: data.type,
             ...(data.status ? { status: data.status } : {}),
-            classification: data.classification,
+            criticality: data.criticality ?? null,
             owner: data.owner,
             ownerUserId: data.ownerUserId || null,
             location: data.location,
-            confidentiality: data.confidentiality,
-            integrity: data.integrity,
-            availability: data.availability,
-            dependencies: data.dependencies,
-            businessProcesses: data.businessProcesses,
-            dataResidency: data.dataResidency,
-            retention: data.retention,
+            manufacturer: data.manufacturer,
+            model: data.model,
+            serialNumber: data.serialNumber,
+            year: data.year ?? null,
+            purchaseDate: normalizePurchaseDate(data.purchaseDate) ?? null,
+            purchaseCost: data.purchaseCost ?? null,
         });
 
         await logEvent(db, ctx, {
@@ -78,7 +88,7 @@ export async function createAsset(ctx: RequestContext, data: any) {
                 category: 'entity_lifecycle',
                 entityName: 'Asset',
                 operation: 'created',
-                after: { name: asset.name, type: data.type, classification: data.classification },
+                after: { name: asset.name, type: data.type },
                 summary: `Created asset: ${asset.name}`,
             },
         });
@@ -100,7 +110,7 @@ export async function updateAsset(ctx: RequestContext, id: string, data: any) {
         const asset = await AssetRepository.update(db, ctx, id, {
             name: data.name,
             type: data.type,
-            classification: data.classification,
+            criticality: data.criticality,
             owner: data.owner,
             // "Assigned to" — undefined leaves it untouched; '' or null
             // clears (an empty string would be an invalid FK).
@@ -109,13 +119,12 @@ export async function updateAsset(ctx: RequestContext, id: string, data: any) {
                     ? undefined
                     : data.ownerUserId || null,
             location: data.location,
-            confidentiality: data.confidentiality,
-            integrity: data.integrity,
-            availability: data.availability,
-            dependencies: data.dependencies,
-            businessProcesses: data.businessProcesses,
-            dataResidency: data.dataResidency,
-            retention: data.retention,
+            manufacturer: data.manufacturer,
+            model: data.model,
+            serialNumber: data.serialNumber,
+            year: data.year,
+            purchaseDate: normalizePurchaseDate(data.purchaseDate),
+            purchaseCost: data.purchaseCost,
         });
 
         if (!asset) throw notFound('Asset not found');
@@ -130,7 +139,7 @@ export async function updateAsset(ctx: RequestContext, id: string, data: any) {
                 entityName: 'Asset',
                 operation: 'updated',
                 changedFields: Object.keys(data).filter(k => data[k] !== undefined),
-                after: { name: data.name, type: data.type, classification: data.classification },
+                after: { name: data.name, type: data.type },
                 summary: `Asset updated`,
             },
         });

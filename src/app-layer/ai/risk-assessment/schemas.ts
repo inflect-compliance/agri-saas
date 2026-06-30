@@ -13,10 +13,6 @@ export const RiskAssessmentAssetSchema = z.object({
     name: z.string().min(1),
     type: z.string(),
     criticality: z.string().nullish(),
-    classification: z.string().nullish(),
-    confidentiality: z.number().int().min(1).max(5).nullish(),
-    integrity: z.number().int().min(1).max(5).nullish(),
-    availability: z.number().int().min(1).max(5).nullish(),
 });
 
 export const RiskAssessmentInputSchema = z.object({

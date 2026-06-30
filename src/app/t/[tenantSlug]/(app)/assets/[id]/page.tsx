@@ -20,7 +20,6 @@ import { Pen2 } from '@/components/ui/icons/nucleo';
 import { Tooltip } from '@/components/ui/tooltip';
 import { type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Eyebrow } from '@/components/ui/typography';
-import { AssetCriticalityBadge } from '../_form/AssetCriticalityFields';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { EntityPrevNextNav } from '@/components/ui/entity-prev-next-nav';
@@ -90,18 +89,21 @@ export default function AssetDetailPage() {
     const editInitial = asset
         ? {
               name: asset.name || '',
-              type: asset.type || 'SYSTEM',
-              classification: asset.classification || '',
+              type: asset.type || 'TRACTOR',
               owner: asset.owner || '',
               ownerUserId: asset.ownerUserId || '',
               location: asset.location || '',
               criticality: asset.criticality || '',
               status: asset.status || 'ACTIVE',
-              dataResidency: asset.dataResidency || '',
               externalRef: asset.externalRef || '',
-              confidentiality: asset.confidentiality ?? 3,
-              integrity: asset.integrity ?? 3,
-              availability: asset.availability ?? 3,
+              manufacturer: asset.manufacturer || '',
+              model: asset.model || '',
+              serialNumber: asset.serialNumber || '',
+              year: asset.year != null ? String(asset.year) : '',
+              purchaseDate: asset.purchaseDate
+                  ? String(asset.purchaseDate).slice(0, 10)
+                  : '',
+              purchaseCost: asset.purchaseCost != null ? String(asset.purchaseCost) : '',
           }
         : {};
 
@@ -330,10 +332,29 @@ export default function AssetDetailPage() {
                     </div>
                 )}
                 <>
-                        {asset.classification && <div><Eyebrow>Classification</Eyebrow><p className="text-sm">{asset.classification}</p></div>}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
+                            <div><Eyebrow>Manufacturer</Eyebrow><p className="text-sm">{asset.manufacturer || '—'}</p></div>
+                            <div><Eyebrow>Model</Eyebrow><p className="text-sm">{asset.model || '—'}</p></div>
+                            <div>
+                                <Eyebrow>Serial number</Eyebrow>
+                                {asset.serialNumber ? (
+                                    <CopyText
+                                        value={asset.serialNumber}
+                                        label={`Copy serial number ${asset.serialNumber}`}
+                                        successMessage="Serial number copied"
+                                        className="text-sm text-content-default"
+                                    >
+                                        {asset.serialNumber}
+                                    </CopyText>
+                                ) : (
+                                    <p className="text-sm">—</p>
+                                )}
+                            </div>
+                            <div><Eyebrow>Year</Eyebrow><p className="text-sm">{asset.year ?? '—'}</p></div>
+                        </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
                             <div><Eyebrow>Assigned to</Eyebrow><p className="text-sm">{assigneeName || '—'}</p></div>
-                            <div><Eyebrow>Owner</Eyebrow><p className="text-sm">{asset.owner || '—'}</p></div>
+                            <div><Eyebrow>Keeper</Eyebrow><p className="text-sm">{asset.owner || '—'}</p></div>
                             <div><Eyebrow>Location</Eyebrow><p className="text-sm">{asset.location || '—'}</p></div>
                             <div>
                                 <Eyebrow>External Ref</Eyebrow>
@@ -350,14 +371,11 @@ export default function AssetDetailPage() {
                                     <p className="text-sm">—</p>
                                 )}
                             </div>
-                            <div><Eyebrow>Data Residency</Eyebrow><p className="text-sm">{asset.dataResidency || '—'}</p></div>
                         </div>
-                        <Heading level={3}>Asset Criticality</Heading>
-                        <AssetCriticalityBadge
-                            confidentiality={asset.confidentiality ?? 3}
-                            integrity={asset.integrity ?? 3}
-                            availability={asset.availability ?? 3}
-                        />
+                        <div className="grid grid-cols-2 gap-default border-t border-border-default/50 pt-4">
+                            <div><Eyebrow>Purchase date</Eyebrow><p className="text-sm">{asset.purchaseDate ? formatDate(asset.purchaseDate) : '—'}</p></div>
+                            <div><Eyebrow>Purchase cost</Eyebrow><p className="text-sm">{asset.purchaseCost != null ? Number(asset.purchaseCost).toLocaleString() : '—'}</p></div>
+                        </div>
                         <div className="grid grid-cols-2 gap-default border-t border-border-default/50 pt-4">
                             <div><Eyebrow>Created</Eyebrow><p className="text-sm text-content-muted">{formatDate(asset.createdAt)}</p></div>
                             <div><Eyebrow>Updated</Eyebrow><p className="text-sm text-content-muted">{formatDate(asset.updatedAt)}</p></div>

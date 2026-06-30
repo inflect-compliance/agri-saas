@@ -179,16 +179,20 @@ model Asset {
   key                 String?
   name                String
   type                AssetType
-  classification      String?
+  /// Free-text operator/keeper name (legacy owner column). The
+  /// structured assignee is `ownerUserId`.
   owner               String?
   location            String?
-  confidentiality     Int?                 @default(3)
-  integrity           Int?                 @default(3)
-  availability        Int?                 @default(3)
-  dependencies        String?
-  businessProcesses   String?
-  dataResidency       String?
-  retention           String?
+  /// Agricultural asset attributes (machines, buildings, equipment).
+  manufacturer        String?
+  model               String?
+  serialNumber        String?
+  /// Year of manufacture / construction.
+  year                Int?
+  purchaseDate        DateTime?
+  /// Purchase price in the tenant's currency (2dp). Mapped to a
+  /// plain `number` at the DTO boundary.
+  purchaseCost        Decimal?             @db.Decimal(12, 2)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   ownerUserId         String?
@@ -198,7 +202,6 @@ model Asset {
   tags                String?
   deletedAt           DateTime?
   deletedByUserId     String?
-  retentionUntil      DateTime?
   ownerUser           User?                @relation("AssetOwner", fields: [ownerUserId], references: [id])
   tenant              Tenant               @relation(fields: [tenantId], references: [id])
   risks               AssetRiskLink[]

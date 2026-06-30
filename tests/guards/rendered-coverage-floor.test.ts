@@ -69,8 +69,11 @@ const ROOT = path.resolve(__dirname, '../..');
 // Lowered 190 → 184 when the risk-matrix UI was removed: the deleted
 // RiskMatrix component + admin editor took 6 rendered tests with them
 // (risk-matrix-{cell,legend,engine,movement,ale-overlay} + admin editor).
-// Documented downward exception; the floor resumes its upward ratchet here.
-const RENDERED_TEST_FLOOR = 184;
+// Lowered 184 → 183 in the agricultural-assets rework: the asset CIA
+// triad was removed, so `asset-criticality.test.tsx` (the CIA criticality
+// component test) was deleted with it.
+// Documented downward exceptions; the floor resumes its upward ratchet here.
+const RENDERED_TEST_FLOOR = 183;
 const E2E_SPEC_FLOOR = 50;
 const REGISTRY_FLOOR = 5;
 

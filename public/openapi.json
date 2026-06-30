@@ -39,11 +39,21 @@
             "type": "string",
             "enum": [
               "ACTIVE",
+              "IN_MAINTENANCE",
               "RETIRED"
             ]
           },
-          "classification": {
-            "type": "string"
+          "criticality": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              null
+            ]
           },
           "owner": {
             "type": "string"
@@ -57,54 +67,51 @@
           "location": {
             "type": "string"
           },
-          "confidentiality": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5,
-            "default": 3
-          },
-          "integrity": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5,
-            "default": 3
-          },
-          "availability": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5,
-            "default": 3
-          },
-          "dependencies": {
+          "manufacturer": {
             "type": [
               "string",
               "null"
             ]
           },
-          "businessProcesses": {
+          "model": {
             "type": [
               "string",
               "null"
             ]
           },
-          "dataResidency": {
+          "serialNumber": {
             "type": [
               "string",
               "null"
             ]
           },
-          "retention": {
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1900,
+            "maximum": 2100
+          },
+          "purchaseDate": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "purchaseCost": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
           }
         },
         "required": [
           "name",
           "type"
         ],
-        "description": "Payload for creating a tenant asset. CIA scores default to 3 when omitted; classification + owner + location are free-text."
+        "description": "Payload for creating a tenant agricultural asset (machine, building, equipment). Manufacturer / model / serial / location are free-text; criticality is LOW/MEDIUM/HIGH."
       },
       "AssetDetail": {
         "allOf": [
@@ -228,12 +235,6 @@
           "type": {
             "type": "string"
           },
-          "classification": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "owner": {
             "type": [
               "string",
@@ -252,19 +253,37 @@
               "null"
             ]
           },
-          "confidentiality": {
+          "manufacturer": {
             "type": [
-              "number",
+              "string",
               "null"
             ]
           },
-          "integrity": {
+          "model": {
             "type": [
-              "number",
+              "string",
               "null"
             ]
           },
-          "availability": {
+          "serialNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "purchaseDate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "purchaseCost": {
             "type": [
               "number",
               "null"
@@ -286,30 +305,6 @@
             ]
           },
           "tags": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dependencies": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "businessProcesses": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "dataResidency": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "retention": {
             "type": [
               "string",
               "null"
@@ -353,7 +348,7 @@
           "type"
         ],
         "additionalProperties": {},
-        "description": "Asset as it appears in list views. CIA scores are 1-5 ints; criticality is derived from the CIA tuple via the asset-tiering policy."
+        "description": "Agricultural asset (machine, building, equipment) as it appears in list views. Criticality is an explicit LOW/MEDIUM/HIGH field."
       },
       "AssetUpdateRequest": {
         "type": "object",
@@ -366,8 +361,25 @@
             "type": "string",
             "minLength": 1
           },
-          "classification": {
-            "type": "string"
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "IN_MAINTENANCE",
+              "RETIRED"
+            ]
+          },
+          "criticality": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              null
+            ]
           },
           "owner": {
             "type": "string"
@@ -381,47 +393,47 @@
           "location": {
             "type": "string"
           },
-          "confidentiality": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5
-          },
-          "integrity": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5
-          },
-          "availability": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 5
-          },
-          "dependencies": {
+          "manufacturer": {
             "type": [
               "string",
               "null"
             ]
           },
-          "businessProcesses": {
+          "model": {
             "type": [
               "string",
               "null"
             ]
           },
-          "dataResidency": {
+          "serialNumber": {
             "type": [
               "string",
               "null"
             ]
           },
-          "retention": {
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1900,
+            "maximum": 2100
+          },
+          "purchaseDate": {
             "type": [
               "string",
               "null"
             ]
+          },
+          "purchaseCost": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
           }
         },
-        "description": "Partial update for an asset. Every field is optional; only provided fields are persisted."
+        "description": "Partial update for an agricultural asset. Every field is optional; only provided fields are persisted."
       },
       "Audit": {
         "type": "object",

@@ -16,20 +16,21 @@ import { CircleDot, Flag, Layers } from 'lucide-react';
 // any label key not present in the DB enum produces
 // PrismaClientValidationError on query and a 500 in the list page.
 export const ASSET_TYPE_LABELS = {
-    INFORMATION: 'Information',
-    SYSTEM: 'System',
-    SERVICE: 'Service',
-    DATA_STORE: 'Data Store',
-    VENDOR: 'Vendor',
-    PEOPLE_PROCESS: 'People / Process',
-    APPLICATION: 'Application',
-    INFRASTRUCTURE: 'Infrastructure',
-    PROCESS: 'Process',
+    TRACTOR: 'Tractor',
+    HARVESTER: 'Harvester',
+    IMPLEMENT: 'Implement',
+    VEHICLE: 'Vehicle',
+    IRRIGATION: 'Irrigation',
+    BUILDING: 'Building',
+    STORAGE: 'Storage',
+    LIVESTOCK_EQUIPMENT: 'Livestock Equipment',
+    TOOL: 'Tool',
     OTHER: 'Other',
 } as const;
 
 export const ASSET_STATUS_LABELS = {
     ACTIVE: 'Active',
+    IN_MAINTENANCE: 'In maintenance',
     RETIRED: 'Retired',
 } as const;
 
@@ -42,7 +43,7 @@ export const ASSET_CRITICALITY_LABELS = {
 const STATIC_DEFS = {
     type: {
         label: 'Type',
-        description: 'Asset category.',
+        description: 'Equipment category.',
         group: 'Attributes',
         icon: Layers,
         options: optionsFromEnum(ASSET_TYPE_LABELS),
@@ -60,7 +61,7 @@ const STATIC_DEFS = {
     },
     criticality: {
         label: 'Criticality',
-        description: 'Business impact if the asset is compromised.',
+        description: 'Operational importance to the farm.',
         group: 'Quantitative',
         icon: Flag,
         options: optionsFromEnum(ASSET_CRITICALITY_LABELS),

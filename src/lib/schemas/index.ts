@@ -23,38 +23,37 @@ export const EmptyBodySchema = z.object({}).strip().openapi('EmptyBody', {
 export const CreateAssetSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     type: z.string().min(1, 'Type is required'),
-    status: z.enum(['ACTIVE', 'RETIRED']).optional(),
-    classification: z.string().optional(),
+    status: z.enum(['ACTIVE', 'IN_MAINTENANCE', 'RETIRED']).optional(),
+    criticality: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional().nullable(),
     owner: z.string().optional(),
-    ownerUserId: z.string().optional().nullable(),    // Real user reference — the asset owner (people picker)
+    ownerUserId: z.string().optional().nullable(),    // Real user reference — the asset keeper (people picker)
     location: z.string().optional(),
-    confidentiality: z.coerce.number().int().min(1).max(5).optional().default(3),
-    integrity: z.coerce.number().int().min(1).max(5).optional().default(3),
-    availability: z.coerce.number().int().min(1).max(5).optional().default(3),
-    dependencies: z.string().optional().nullable(),
-    businessProcesses: z.string().optional().nullable(),
-    dataResidency: z.string().optional().nullable(),
-    retention: z.string().optional().nullable(),
+    manufacturer: z.string().optional().nullable(),
+    model: z.string().optional().nullable(),
+    serialNumber: z.string().optional().nullable(),
+    year: z.coerce.number().int().min(1900).max(2100).optional().nullable(),
+    purchaseDate: z.string().optional().nullable(),
+    purchaseCost: z.coerce.number().min(0).optional().nullable(),
 }).strip().openapi('AssetCreateRequest', {
-    description: 'Payload for creating a tenant asset. CIA scores default to 3 when omitted; classification + owner + location are free-text.',
+    description: 'Payload for creating a tenant agricultural asset (machine, building, equipment). Manufacturer / model / serial / location are free-text; criticality is LOW/MEDIUM/HIGH.',
 });
 
 export const UpdateAssetSchema = z.object({
     name: z.string().min(1).optional(),
     type: z.string().min(1).optional(),
-    classification: z.string().optional(),
+    status: z.enum(['ACTIVE', 'IN_MAINTENANCE', 'RETIRED']).optional(),
+    criticality: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional().nullable(),
     owner: z.string().optional(),
     ownerUserId: z.string().optional().nullable(),    // Real user reference — "Assigned to"
     location: z.string().optional(),
-    confidentiality: z.coerce.number().int().min(1).max(5).optional(),
-    integrity: z.coerce.number().int().min(1).max(5).optional(),
-    availability: z.coerce.number().int().min(1).max(5).optional(),
-    dependencies: z.string().optional().nullable(),
-    businessProcesses: z.string().optional().nullable(),
-    dataResidency: z.string().optional().nullable(),
-    retention: z.string().optional().nullable(),
+    manufacturer: z.string().optional().nullable(),
+    model: z.string().optional().nullable(),
+    serialNumber: z.string().optional().nullable(),
+    year: z.coerce.number().int().min(1900).max(2100).optional().nullable(),
+    purchaseDate: z.string().optional().nullable(),
+    purchaseCost: z.coerce.number().min(0).optional().nullable(),
 }).strip().openapi('AssetUpdateRequest', {
-    description: 'Partial update for an asset. Every field is optional; only provided fields are persisted.',
+    description: 'Partial update for an agricultural asset. Every field is optional; only provided fields are persisted.',
 });
 
 // ─── Risks ───

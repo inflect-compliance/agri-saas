@@ -136,7 +136,7 @@ describe('createAsset', () => {
     it('delegates to AssetRepository.create and emits CREATE audit', async () => {
         (AssetRepository.create as jest.Mock).mockResolvedValue({ id: 'a-1', name: 'Server' });
 
-        const res = await createAsset(editorCtx, { name: 'Server', type: 'SYSTEM' });
+        const res = await createAsset(editorCtx, { name: 'Tractor', type: 'TRACTOR' });
 
         expect(res).toEqual({ id: 'a-1', name: 'Server' });
         const payload = (logEvent as jest.Mock).mock.calls[0][2];
@@ -151,14 +151,14 @@ describe('createAsset', () => {
 
     it('passes ownerUserId to the repository (people-picker owner)', async () => {
         (AssetRepository.create as jest.Mock).mockResolvedValue({ id: 'a-2', name: 'DB' });
-        await createAsset(editorCtx, { name: 'DB', type: 'DATA_STORE', ownerUserId: 'u-7' });
+        await createAsset(editorCtx, { name: 'Combine', type: 'HARVESTER', ownerUserId: 'u-7' });
         const createArgs = (AssetRepository.create as jest.Mock).mock.calls[0][2];
         expect(createArgs.ownerUserId).toBe('u-7');
     });
 
     it('coerces an empty ownerUserId to null', async () => {
         (AssetRepository.create as jest.Mock).mockResolvedValue({ id: 'a-3' });
-        await createAsset(editorCtx, { name: 'X', type: 'SYSTEM', ownerUserId: '' });
+        await createAsset(editorCtx, { name: 'X', type: 'TRACTOR', ownerUserId: '' });
         const createArgs = (AssetRepository.create as jest.Mock).mock.calls[0][2];
         expect(createArgs.ownerUserId).toBeNull();
     });

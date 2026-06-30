@@ -46,12 +46,8 @@ describe('Privacy Sanitizer', () => {
     const fullAsset: RiskAssessmentAsset = {
         id: 'uuid-secret-12345',
         name: 'Customer Database',
-        type: 'DATA_STORE',
+        type: 'TRACTOR',
         criticality: 'HIGH',
-        classification: 'CONFIDENTIAL',
-        confidentiality: 5,
-        integrity: 4,
-        availability: 3,
     };
 
     describe('sanitizeAsset', () => {
@@ -63,24 +59,12 @@ describe('Privacy Sanitizer', () => {
         it('preserves name and type', () => {
             const sanitized = sanitizeAsset(fullAsset);
             expect(sanitized.name).toBe('Customer Database');
-            expect(sanitized.type).toBe('DATA_STORE');
+            expect(sanitized.type).toBe('TRACTOR');
         });
 
         it('preserves criticality', () => {
             const sanitized = sanitizeAsset(fullAsset);
             expect(sanitized.criticality).toBe('HIGH');
-        });
-
-        it('strips classification (may reveal data categories)', () => {
-            const sanitized = sanitizeAsset(fullAsset);
-            expect(sanitized.classification).toBeNull();
-        });
-
-        it('strips CIA scores', () => {
-            const sanitized = sanitizeAsset(fullAsset);
-            expect(sanitized.confidentiality).toBeNull();
-            expect(sanitized.integrity).toBeNull();
-            expect(sanitized.availability).toBeNull();
         });
 
         it('truncates long names', () => {
@@ -112,8 +96,6 @@ describe('Privacy Sanitizer', () => {
             // All asset IDs should be stripped
             for (const a of sanitized.assets) {
                 expect(a.id).toBe('');
-                expect(a.classification).toBeNull();
-                expect(a.confidentiality).toBeNull();
             }
 
             // Other fields preserved

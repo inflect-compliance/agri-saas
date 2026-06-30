@@ -51,11 +51,6 @@ export function sanitizeAsset(asset: RiskAssessmentAsset): RiskAssessmentAsset {
         name: sanitizeString(asset.name, 200),
         type: asset.type,
         criticality: asset.criticality ?? null,
-        // Explicitly exclude fields that could reveal sensitive data categories
-        classification: null,
-        confidentiality: null,
-        integrity: null,
-        availability: null,
     };
 }
 

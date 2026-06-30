@@ -243,7 +243,7 @@ describeFn('Soft-Delete Guards', () => {
 
     it('withDeleted() reveals soft-deleted records', async () => {
         const asset = await prisma.asset.create({
-            data: { tenantId: testTenantId, name: `WithDeleted Guard ${Date.now()}`, type: 'APPLICATION' },
+            data: { tenantId: testTenantId, name: `WithDeleted Guard ${Date.now()}`, type: 'TRACTOR' },
         });
 
         await prisma.asset.delete({ where: { id: asset.id } });

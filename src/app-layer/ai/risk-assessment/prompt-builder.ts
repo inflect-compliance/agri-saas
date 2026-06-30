@@ -78,7 +78,6 @@ export function buildRiskAssessmentPrompt(input: RiskAssessmentInput): PromptPai
             const profile = getAssetTypeProfile(asset.type);
             const attrs = [asset.type];
             if (asset.criticality) attrs.push(`criticality: ${asset.criticality}`);
-            if (asset.classification) attrs.push(`classification: ${asset.classification}`);
 
             assetLines.push(`  - ${asset.name} (${attrs.join(', ')})`);
             // Add 2-3 type-specific risk categories as context
