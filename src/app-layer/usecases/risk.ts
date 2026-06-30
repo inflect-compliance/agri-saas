@@ -675,6 +675,46 @@ export async function deleteRisk(ctx: RequestContext, id: string) {
     return result;
 }
 
+/**
+ * Bulk soft-delete risks — the table selection action-row's "Delete
+ * selected". Mirrors {@link deleteRisk}: ADMIN-gated, tenant-scoped, one
+ * audit row per deleted risk. `Risk` is a soft-delete model, so `deleteMany`
+ * sets `deletedAt`; the `findMany` auto-filters already-deleted rows, so a
+ * re-submit is idempotent. Returns the count actually deleted.
+ */
+export async function bulkDeleteRisk(
+    ctx: RequestContext,
+    riskIds: string[],
+): Promise<{ deleted: number }> {
+    assertCanAdmin(ctx);
+
+    const result = await runInTenantContext(ctx, async (db) => {
+        const rows = await db.risk.findMany({
+            where: { id: { in: riskIds }, tenantId: ctx.tenantId },
+            select: { id: true },
+        });
+        if (rows.length === 0) return { deleted: 0 };
+
+        await db.risk.deleteMany({
+            where: { id: { in: rows.map((r) => r.id) }, tenantId: ctx.tenantId },
+        });
+
+        for (const r of rows) {
+            await logEvent(db, ctx, {
+                action: 'SOFT_DELETE',
+                entityType: 'Risk',
+                entityId: r.id,
+                details: 'Risk soft-deleted (bulk)',
+                detailsJson: { category: 'entity_lifecycle', entityName: 'Risk', operation: 'deleted', summary: 'SOFT_DELETE' },
+            });
+        }
+
+        return { deleted: rows.length };
+    });
+    await bumpEntityCacheVersion(ctx, 'risk');
+    return result;
+}
+
 // ─── Restore / Purge / Include Deleted ───
 
 import { restoreEntity, purgeEntity } from './soft-delete-operations';

@@ -30,6 +30,7 @@ import {
     DataTable,
     createColumns,
     useColumnsDropdown,
+    useBulkDelete,
 } from '@/components/ui/table';
 import {
     FilterProvider,
@@ -314,6 +315,22 @@ function RisksPageInner({
     const rawRisks = risksQuery.data?.rows ?? [];
     const truncated = risksQuery.data?.truncated ?? false;
     const loading = risksQuery.isLoading && !risksQuery.data;
+
+    // Bulk-delete via the table selection action-row.
+    const { batchAction: riskBulkDelete, dialog: riskDeleteDialog } =
+        useBulkDelete<RiskListItem>({
+            entitySingular: 'risk',
+            entityPlural: 'risks',
+            onDelete: async (riskIds) => {
+                const res = await fetch(`/api/t/${tenantSlug}/risks/bulk/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ riskIds }),
+                });
+                if (!res.ok) throw new Error('Failed to delete risks');
+                await risksQuery.mutate();
+            },
+        });
 
     // ─── PR-1: org-parity sortable headers ───
     const [sortBy, setSortBy] = useState<string | undefined>(undefined);
@@ -1058,6 +1075,7 @@ function RisksPageInner({
                         columns={orderColumns(riskTableColumns)}
                         loading={loading}
                         getRowId={(r) => r.id}
+                        batchActions={permissions.canAdmin ? [riskBulkDelete] : undefined}
                         sortableColumns={sortableRiskColumns}
                         sortBy={sortBy}
                         sortOrder={sortOrder}
@@ -1120,6 +1138,7 @@ function RisksPageInner({
                     apiUrl={apiUrl}
                 />
             )}
+            {riskDeleteDialog}
         </ListPageShell>
     );
 }

@@ -58,6 +58,8 @@ const ADMIN_ONLY_ROUTES = [
     // Epic 1, PR 3 — token-redemption invite flow (admin invite management)
     'admin/invites/route.ts',
     'admin/invites/[inviteId]/route.ts',
+    // Bulk-revoke pending invites (selection action-row)
+    'admin/invites/bulk/delete/route.ts',
 
     // Epic 44 — risk matrix configuration
     'admin/risk-matrix-config/route.ts',
