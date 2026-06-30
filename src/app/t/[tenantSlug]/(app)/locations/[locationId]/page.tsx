@@ -27,6 +27,7 @@ import { SmartDefaultsBanner } from './SmartDefaultsBanner';
 import { FieldReportCard } from './FieldReportCard';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
 import { Plus } from '@/components/ui/icons/nucleo';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { useMediaQuery, useToast } from '@/components/ui/hooks';
 import { cn } from '@/lib/cn';
 import type { MapParcel, MapMode } from '@/components/ui/map/MapCanvas';
@@ -115,6 +116,13 @@ export default function LocationDetailPage() {
     // NDVI tiles (GEE) — fetched only when the Map tab is open AND the
     // overlay is toggled on, re-fetched when the inspection date changes.
     const ndviYmd = toYMD(ndviDate);
+    // Compact trigger label ("30 Jun", no year) so the NDVI button + date
+    // control stay narrow enough to sit on the SAME row as the Select/Draw/
+    // Edit/Split toggles instead of wrapping to a row beneath them. UTC
+    // parts mirror the date-utils UTC-midnight contract (no tz drift).
+    const ndviShort = ndviDate
+        ? `${ndviDate.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][ndviDate.getUTCMonth()]}`
+        : 'Date';
     const ndviQ = useTenantSWR<{ configured: boolean; tileUrl: string; date?: string; error?: string }>(
         tab === 'map' && ndviOn
             ? `/agro/ndvi-tiles?locationId=${locationId}${ndviYmd ? `&date=${ndviYmd}` : ''}`
@@ -375,6 +383,22 @@ export default function LocationDetailPage() {
                                     // NDVI needs a past satellite pass — future
                                     // dates have no imagery.
                                     disabledDays={{ after: new Date() }}
+                                    // Compact trigger (icon + "30 Jun") keeps the
+                                    // control narrow so it fits beside the toggles.
+                                    trigger={({ open }) => (
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            className="min-h-[44px] shrink-0"
+                                            icon={<CalendarIcon className="size-4" aria-hidden="true" />}
+                                            aria-haspopup="dialog"
+                                            aria-expanded={open}
+                                            aria-label={`NDVI inspection date: ${ndviShort}`}
+                                        >
+                                            {ndviShort}
+                                        </Button>
+                                    )}
                                 />
                             )}
                         </div>
