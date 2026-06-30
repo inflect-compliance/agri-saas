@@ -321,9 +321,11 @@ export default function LocationDetailPage() {
                     <div className="flex flex-wrap items-center gap-compact">
                         <ToggleGroup
                             ariaLabel="Map mode"
-                            // Field operators tap these on a phone — bump each
-                            // segment to a ≥44px (WCAG 2.5.5) touch target.
-                            optionClassName="min-h-[44px] min-w-[44px] justify-center"
+                            // Field operators tap these on a phone — keep each
+                            // segment ≥44px TALL (WCAG 2.5.5). Width is
+                            // content-based (no min-w) so the NDVI button +
+                            // date picker fit on the same row to its right.
+                            optionClassName="min-h-[44px] justify-center"
                             options={[
                                 { value: 'select', label: 'Select' },
                                 { value: 'draw', label: 'Draw' },
@@ -350,29 +352,32 @@ export default function LocationDetailPage() {
                                 Merge
                             </Button>
                         )}
-                        {/* NDVI overlay (GEE) — toggle + inspection date,
-                            inline beside the mode toggles (not a detached
-                            right-aligned row). */}
-                        <Button
-                            variant={ndviOn ? 'primary' : 'secondary'}
-                            size="sm"
-                            className="min-h-[44px] min-w-[44px]"
-                            onClick={() => setNdviOn((v) => !v)}
-                            aria-pressed={ndviOn}
-                        >
-                            NDVI
-                        </Button>
-                        {ndviOn && (
-                            <DatePicker
-                                id="ndvi-date-input"
-                                value={ndviDate}
-                                onChange={(d) => setNdviDate(d)}
-                                placeholder="Date"
-                                // NDVI needs a past satellite pass — future dates
-                                // have no imagery.
-                                disabledDays={{ after: new Date() }}
-                            />
-                        )}
+                        {/* NDVI overlay (GEE) — the button and its inspection
+                            date stay together as one right-aligned unit (date
+                            to the RIGHT of the button), so the calendar never
+                            drops onto its own row beneath the toggles. */}
+                        <div className="ml-auto flex shrink-0 items-center gap-compact">
+                            <Button
+                                variant={ndviOn ? 'primary' : 'secondary'}
+                                size="sm"
+                                className="min-h-[44px] min-w-[44px]"
+                                onClick={() => setNdviOn((v) => !v)}
+                                aria-pressed={ndviOn}
+                            >
+                                NDVI
+                            </Button>
+                            {ndviOn && (
+                                <DatePicker
+                                    id="ndvi-date-input"
+                                    value={ndviDate}
+                                    onChange={(d) => setNdviDate(d)}
+                                    placeholder="Date"
+                                    // NDVI needs a past satellite pass — future
+                                    // dates have no imagery.
+                                    disabledDays={{ after: new Date() }}
+                                />
+                            )}
+                        </div>
                     </div>
                     {/* NDVI status line: loading / not-configured / legend. */}
                     {ndviOn && (
