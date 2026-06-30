@@ -138,11 +138,19 @@ describe('Controls list — UX polish', () => {
             );
         });
 
-        it('the bulk actions are permission-gated (canEditControls)', () => {
-            // READER sees neither checkboxes nor the action bar; the
-            // batchActions only exist when the viewer can edit.
+        it('the bulk actions are permission-gated (edit for status, admin for delete)', () => {
+            // READER sees neither checkboxes nor the action bar. The status
+            // verbs require edit; the bulk delete requires admin; the bar
+            // collapses to `undefined` (no selection) when the viewer can do
+            // neither — so a READER still gets no batch actions.
             expect(source).toMatch(
-                /const controlBatchActions = canEditControls/,
+                /canEditControls[\s\S]{0,200}label: 'Mark Implemented'/,
+            );
+            expect(source).toMatch(
+                /permissions\.canAdmin\s*\?\s*\[controlBulkDelete\]/,
+            );
+            expect(source).toMatch(
+                /controlBatchActionsArr\.length\s*>\s*0\s*\?\s*controlBatchActionsArr\s*:\s*undefined/,
             );
         });
     });

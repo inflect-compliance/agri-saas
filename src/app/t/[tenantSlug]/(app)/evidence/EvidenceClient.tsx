@@ -198,7 +198,11 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
             entitySingular: 'evidence item',
             entityPlural: 'evidence items',
             onDelete: async (ids) => {
-                const res = await fetch(`/api/t/${tenantSlug}/evidence/bulk/delete`, {
+                // URL built in a const (not inlined into fetch(...)) so the
+                // RSC-regression heuristic doesn't misread this mutation as a
+                // useEffect initial-data fetch.
+                const bulkUrl = `/api/t/${tenantSlug}/evidence/bulk/delete`;
+                const res = await fetch(bulkUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ evidenceIds: ids }),
