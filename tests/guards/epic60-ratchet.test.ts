@@ -71,11 +71,7 @@ describe('Epic 60 — legacy pattern ratchet', () => {
         //     (assessment-score field, variable range by question type)
         //   - src/app/t/[tenantSlug]/(app)/admin/security/page.tsx
         //     (sessionMaxAgeMinutes — unbounded max, large range)
-        //   - src/app/t/[tenantSlug]/(app)/admin/risk-matrix/RiskMatrixAdminClient.tsx (×2)
-        //     (matrix-axis level counts — bounded but the existing
-        //     edit form predates NumberStepper; migration is its own
-        //     focused PR, not on the greenify path).
-        const CAP = 4;
+        const CAP = 2;
         if (total > CAP) {
             throw new Error(
                 `Raw \`<input type="number">\` count in src/app/** rose to ${total} (cap ${CAP}). ` +

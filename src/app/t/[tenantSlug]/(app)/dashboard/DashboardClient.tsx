@@ -71,7 +71,6 @@ import { TrendCard } from '@/components/ui/TrendCard';
 // nested-cards (the legacy default-export wraps itself in
 // cardVariants()).
 import { StatusBreakdown } from '@/components/ui/status-breakdown';
-import { RiskMatrix } from '@/components/ui/RiskMatrix';
 import ExpiryCalendar from '@/components/ui/ExpiryCalendar';
 import { cn } from '@/lib/cn';
 
@@ -89,7 +88,6 @@ import {
 
 import type { ExecutiveDashboardPayload } from '@/app-layer/repositories/DashboardRepository';
 import type { TrendPayload } from '@/app-layer/usecases/compliance-trends';
-import type { RiskMatrixConfigShape } from '@/lib/risk-matrix/types';
 import { Heading } from '@/components/ui/typography';
 import { Card, cardVariants } from '@/components/ui/card';
 import AgDashboardStrip from './AgDashboardStrip';
@@ -139,7 +137,6 @@ function deriveTrendBundle(
 interface DashboardClientProps {
     initialExec: ExecutiveDashboardPayload;
     initialTrends: TrendPayload | null;
-    matrixConfig: RiskMatrixConfigShape;
     /**
      * RecentActivityCard remains a Server Component (no API route
      * yet) and is rendered into the dashboard tree by the parent
@@ -152,7 +149,6 @@ interface DashboardClientProps {
 export default function DashboardClient({
     initialExec,
     initialTrends,
-    matrixConfig,
     children,
 }: DashboardClientProps) {
     const t = useTranslations('dashboard');
@@ -253,30 +249,16 @@ export default function DashboardClient({
             {/* ─── Compliance Alerts ─── */}
             <ComplianceAlerts exec={exec} t={t} />
 
-            {/* ─── Risk Heatmap + Evidence Expiry ─── */}
-            {/* B1 — heatmap subscribes to risks KPI; expiry calendar
-                subscribes to evidence KPI. Pre-B1 these were not in
-                the focus graph at all, so clicking the risks card
-                only lit RiskDistribution (not the heatmap), and
-                clicking the evidence card only lit EvidenceStatus
-                (not the expiry calendar). Both compose with
-                <ChartFocusWrapper> the same way the trend cards do. */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-default">
-                <ChartFocusWrapper kpiKey="risks">
-                    <RiskMatrix
-                        id="risk-heatmap"
-                        config={matrixConfig}
-                        cells={exec.riskHeatmap}
-                        showSwapToggle={false}
-                    />
-                </ChartFocusWrapper>
-                <ChartFocusWrapper kpiKey="evidence">
-                    <ExpiryCalendar
-                        id="expiry-calendar"
-                        items={exec.upcomingExpirations}
-                    />
-                </ChartFocusWrapper>
-            </div>
+            {/* ─── Evidence Expiry ─── */}
+            {/* Subscribes to the evidence KPI focus graph (composes with
+                <ChartFocusWrapper> like the trend cards). The risk heatmap
+                that previously shared this row was removed. */}
+            <ChartFocusWrapper kpiKey="evidence">
+                <ExpiryCalendar
+                    id="expiry-calendar"
+                    items={exec.upcomingExpirations}
+                />
+            </ChartFocusWrapper>
 
             {/* ─── Trend Section ─── */}
             {trends &&

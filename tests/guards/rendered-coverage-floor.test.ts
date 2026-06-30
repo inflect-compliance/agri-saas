@@ -65,9 +65,12 @@ const ROOT = path.resolve(__dirname, '../..');
 // (tests/rendered/pest-suggestion-card.test.tsx) locks the advisory
 // invariants — confidence %, the "not a diagnosis" disclaimer, the
 // lab-vs-field caveat, low-confidence flagging, and the absence of an
-// "apply" mutation — plus accumulated rendered gains. Locked to the live
-// count of 190.
-const RENDERED_TEST_FLOOR = 190;
+// "apply" mutation — plus accumulated rendered gains.
+// Lowered 190 → 184 when the risk-matrix UI was removed: the deleted
+// RiskMatrix component + admin editor took 6 rendered tests with them
+// (risk-matrix-{cell,legend,engine,movement,ale-overlay} + admin editor).
+// Documented downward exception; the floor resumes its upward ratchet here.
+const RENDERED_TEST_FLOOR = 184;
 const E2E_SPEC_FLOOR = 50;
 const REGISTRY_FLOOR = 5;
 

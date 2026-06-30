@@ -75,7 +75,6 @@ interface Hit {
 const BASELINE_PLUS_LITERAL_SITES = new Set<string>([
     'src/app/t/[tenantSlug]/(app)/admin/api-keys/page.tsx:509',
     'src/app/t/[tenantSlug]/(app)/admin/integrations/page.tsx:234',
-    'src/app/t/[tenantSlug]/(app)/admin/risk-matrix/RiskMatrixAdminClient.tsx:487',
     'src/app/t/[tenantSlug]/(app)/admin/roles/page.tsx:593',
     'src/app/t/[tenantSlug]/(app)/admin/scim/page.tsx:216',
     'src/app/t/[tenantSlug]/(app)/admin/vendor-templates/[templateId]/VendorTemplateBuilderClient.tsx:584',

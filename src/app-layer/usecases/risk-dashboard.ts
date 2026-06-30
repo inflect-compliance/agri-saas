@@ -1,9 +1,9 @@
 /**
  * RQ3-9 — Risk-dashboard orchestrator.
  *
- * Collapses the six independent fetches the dashboard used to fire
+ * Collapses the independent fetches the dashboard used to fire
  * on mount (risks list, analytics, coherence, staleness, appetite,
- * latest simulation, + matrix config) into a single batched read
+ * latest simulation) into a single batched read
  * fan-out via `Promise.all`. The page-side `useEffect` waterfall
  * (every widget owning its own fetch + setState + failure-soft
  * branch) reduces to one `useTenantSWR` call with one cache key
@@ -15,9 +15,6 @@
  *   - The page can keep its existing per-widget failure-soft
  *     semantics — every slot is independently nullable, so a slow
  *     simulation row never blocks staleness from rendering.
- *   - The matrix config rides along so the heatmap renders the
- *     CANONICAL band colours per tenant, killing the hand-rolled
- *     `getStatusTone(s, 'score-0-25')` ladder the dashboard used.
  *
  * Failure-soft contract: a thrown branch becomes `null` in the
  * payload. The page treats null as "data not available yet" rather
@@ -35,8 +32,6 @@ import {
 import { getRiskStaleness, type StalenessReport } from './risk-staleness';
 import { getAppetiteConfig, getAppetiteStatus } from './risk-appetite';
 import { getLatestSimulation } from './monte-carlo';
-import { getRiskMatrixConfig } from './risk-matrix-config';
-import type { RiskMatrixConfigShape } from '@/lib/risk-matrix/types';
 import type { CoherenceReport } from '@/lib/risk-coherence';
 
 export interface DashboardRisk {
@@ -76,8 +71,6 @@ export interface DashboardPayload {
     appetite: DashboardAppetitePayload | null;
     /** Latest simulation run, null when nothing has been simulated. */
     simulation: LatestSimulationPayload | null;
-    /** Canonical matrix config so the heatmap renders the tenant's bands. */
-    matrix: RiskMatrixConfigShape;
 }
 
 /**
@@ -100,7 +93,6 @@ export async function getRiskDashboard(ctx: RequestContext): Promise<DashboardPa
         appetiteConfigRes,
         appetiteStatusRes,
         simulationRes,
-        matrixRes,
     ] = await Promise.allSettled([
         listRisks(ctx),
         getRiskQuantitativeAnalytics(ctx),
@@ -109,7 +101,6 @@ export async function getRiskDashboard(ctx: RequestContext): Promise<DashboardPa
         getAppetiteConfig(ctx),
         getAppetiteStatus(ctx),
         getLatestSimulation(ctx),
-        getRiskMatrixConfig(ctx),
     ]);
 
     // The appetite slot is a `{ config, status }` envelope; if EITHER
@@ -128,15 +119,5 @@ export async function getRiskDashboard(ctx: RequestContext): Promise<DashboardPa
         staleness: stalenessRes.status === 'fulfilled' ? stalenessRes.value : null,
         appetite,
         simulation: simulationRes.status === 'fulfilled' ? simulationRes.value : null,
-        // Matrix MUST resolve — `getRiskMatrixConfig` itself returns
-        // a cloned default on a missing row, so a rejected promise
-        // here is genuinely exceptional. We still treat it as fatal
-        // because the heatmap can't render without bands.
-        matrix:
-            matrixRes.status === 'fulfilled'
-                ? matrixRes.value
-                : (() => {
-                      throw matrixRes.reason;
-                  })(),
     };
 }

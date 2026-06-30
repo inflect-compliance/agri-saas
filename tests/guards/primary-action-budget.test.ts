@@ -154,7 +154,6 @@ const PRIMARY_BUDGET: Record<string, number> = {
     "src/app/t/[tenantSlug]/(app)/tasks/TasksClient.tsx": 2,
     "src/app/t/[tenantSlug]/(app)/admin/scim/page.tsx": 2,
     "src/app/t/[tenantSlug]/(app)/admin/roles/page.tsx": 2,
-    "src/app/t/[tenantSlug]/(app)/admin/risk-matrix/RiskMatrixAdminClient.tsx": 2,
     "src/app/t/[tenantSlug]/(app)/admin/integrations/page.tsx": 2,
 
     // R9-PR6 migrated the `+ Control` button-shape buttonVariants()

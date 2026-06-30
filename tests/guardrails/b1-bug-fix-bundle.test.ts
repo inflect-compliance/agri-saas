@@ -160,16 +160,13 @@ describe('B1 — bug-fix bundle', () => {
             expect(wrapperCount).toBe(2);
         });
 
-        it('risk heatmap + expiry calendar subscribe to KPI focus', () => {
-            // The section just before TrendSection composes both with
-            // chart-focus wrappers — pre-B1 they had no binding.
-            const heatmapIdx = src.indexOf('id="risk-heatmap"');
+        it('expiry calendar subscribes to KPI focus', () => {
+            // The risk heatmap that previously shared this section was
+            // removed with the risk-matrix UI; the evidence ExpiryCalendar
+            // remains, still wrapped in its chart-focus binding.
+            expect(src).not.toContain('id="risk-heatmap"');
             const expiryIdx = src.indexOf('id="expiry-calendar"');
-            const heatmapBlock = src.slice(heatmapIdx - 400, heatmapIdx);
             const expiryBlock = src.slice(expiryIdx - 400, expiryIdx);
-            expect(heatmapBlock).toMatch(
-                /<ChartFocusWrapper kpiKey="risks"/,
-            );
             expect(expiryBlock).toMatch(
                 /<ChartFocusWrapper kpiKey="evidence"/,
             );

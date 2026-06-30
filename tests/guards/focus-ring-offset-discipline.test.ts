@@ -56,11 +56,6 @@ const ALLOWLIST: AllowlistEntry[] = [
         reason:
             'TextLink uses `ring-offset-1` because the link is inline within a text run; a 2px offset would visually break the line height.',
     },
-    {
-        file: 'src/components/ui/RiskMatrixCell.tsx',
-        reason:
-            'RiskMatrix cells are ~28px tall. A 2px offset would engulf the cell border. 1px offset preserves the cell shape under focus + selected states.',
-    },
 ];
 
 const ALLOWED = new Set(ALLOWLIST.map((e) => e.file));

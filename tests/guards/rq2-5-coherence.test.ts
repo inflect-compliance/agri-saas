@@ -27,8 +27,6 @@ const risksClient = read('src/app/t/[tenantSlug]/(app)/risks/RisksClient.tsx');
 const riskDetail = read('src/app/t/[tenantSlug]/(app)/risks/[riskId]/page.tsx');
 const dashboard = read('src/app/t/[tenantSlug]/(app)/risks/dashboard/page.tsx');
 const dashboardOrchestrator = read('src/app-layer/usecases/risk-dashboard.ts');
-const matrix = read('src/components/ui/RiskMatrix.tsx');
-const matrixCell = read('src/components/ui/RiskMatrixCell.tsx');
 const repo = read('src/app-layer/repositories/RiskRepository.ts');
 
 describe('RQ2-5 — both languages on every surface', () => {
@@ -81,22 +79,5 @@ describe('RQ2-5 — detector contract', () => {
         for (const verb of ['POST', 'PUT', 'PATCH', 'DELETE']) {
             expect(route).not.toMatch(new RegExp(`export const ${verb}`));
         }
-    });
-});
-
-describe('RQ2-5 — matrix overlay zero-cost guarantee', () => {
-    test('the toggle renders only when a cell carries ALE data', () => {
-        expect(matrix).toMatch(/hasAleData && \(/);
-        expect(matrix).toMatch(/maxCellAle > 0/);
-    });
-
-    test('the overlay is opt-in state, never the default paint', () => {
-        expect(matrix).toMatch(/useState\(false\)[\s\S]{0,400}aleOverlay && hasAleData/);
-        // Count-mode paint stays the classic 0.92 when the overlay is off.
-        expect(matrixCell).toMatch(/aleOverlay\s*\?[\s\S]{0,120}:\s*0\.92/);
-    });
-
-    test('the cell announces ALE to assistive tech when the overlay is on', () => {
-        expect(matrixCell).toMatch(/annualised loss expectancy/);
     });
 });

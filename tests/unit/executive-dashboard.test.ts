@@ -374,12 +374,10 @@ describe('Dashboard — Executive Payload', () => {
         expect(result.policySummary).toBeDefined();
         expect(result.taskSummary).toBeDefined();
         expect(result.vendorSummary).toBeDefined();
-        expect(result.riskHeatmap).toBeDefined();
         expect(result.upcomingExpirations).toBeDefined();
         expect(result.computedAt).toBeDefined();
 
         // Verify new fields
-        expect(Array.isArray(result.riskHeatmap)).toBe(true);
         expect(Array.isArray(result.upcomingExpirations)).toBe(true);
 
         // computedAt is a valid ISO string

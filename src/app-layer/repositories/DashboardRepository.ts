@@ -152,15 +152,6 @@ export interface AssetSummary {
 }
 
 /**
- * Risk heatmap cell — one cell in the likelihood × impact matrix.
- */
-export interface RiskHeatmapCell {
-    likelihood: number;
-    impact: number;
-    count: number;
-}
-
-/**
  * Upcoming evidence expiry item — for the expiry calendar widget.
  */
 export interface EvidenceExpiryItem {
@@ -226,7 +217,6 @@ export interface ExecutiveDashboardPayload {
     policySummary: PolicySummary;
     taskSummary: TaskSummary;
     vendorSummary: VendorSummary;
-    riskHeatmap: RiskHeatmapCell[];
     upcomingExpirations: EvidenceExpiryItem[];
     /** Epic G-5 — control exception health card. */
     exceptions: ExceptionSummary;
@@ -602,26 +592,6 @@ export class DashboardRepository {
             take: 10,
             include: { user: { select: { name: true } } },
         });
-    }
-
-    /**
-     * Risk heatmap — likelihood × impact cell counts.
-     *
-     * Query: 1 groupBy on [likelihood, impact]
-     * Returns sparse array: only cells with count > 0.
-     */
-    static async getRiskHeatmap(db: PrismaTx, ctx: RequestContext): Promise<RiskHeatmapCell[]> {
-        const groups = await db.risk.groupBy({
-            by: ['likelihood', 'impact'],
-            where: { tenantId: ctx.tenantId, deletedAt: null },
-            _count: true,
-        });
-
-        return groups.map(g => ({
-            likelihood: g.likelihood,
-            impact: g.impact,
-            count: g._count,
-        }));
     }
 
     /**

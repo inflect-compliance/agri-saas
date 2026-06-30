@@ -4,7 +4,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { auth } from '@/auth';
 import { getTenantCtx } from '@/app-layer/context';
 import { getExecutiveDashboard } from '@/app-layer/usecases/dashboard';
-import { getRiskMatrixConfig } from '@/app-layer/usecases/risk-matrix-config';
 import { getHomeGreeting } from '@/app-layer/usecases/home-greeting';
 import {
     getComplianceTrends,
@@ -59,9 +58,8 @@ export default async function DashboardPage({
     const { tenantSlug } = await params;
     const ctx = await getTenantCtx({ tenantSlug });
 
-    const [exec, matrixConfig, greeting, session] = await Promise.all([
+    const [exec, greeting, session] = await Promise.all([
         getExecutiveDashboard(ctx),
-        getRiskMatrixConfig(ctx),
         getHomeGreeting(ctx),
         auth(),
     ]);
@@ -88,7 +86,6 @@ export default async function DashboardPage({
             <DashboardClient
                 initialExec={exec}
                 initialTrends={trends}
-                matrixConfig={matrixConfig}
             >
             <Suspense
                 fallback={

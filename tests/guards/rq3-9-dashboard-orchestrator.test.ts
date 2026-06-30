@@ -50,7 +50,7 @@ describe('RQ3-9 — the orchestrator stays a pure read fan-out', () => {
         }
     });
 
-    test('all eight slots fan out in parallel via Promise.allSettled', () => {
+    test('all seven slots fan out in parallel via Promise.allSettled', () => {
         expect(usecase).toMatch(/Promise\.allSettled/);
         for (const fn of [
             'listRisks',
@@ -60,17 +60,15 @@ describe('RQ3-9 — the orchestrator stays a pure read fan-out', () => {
             'getAppetiteConfig',
             'getAppetiteStatus',
             'getLatestSimulation',
-            'getRiskMatrixConfig',
         ]) {
             expect(usecase).toMatch(new RegExp(fn + '\\('));
         }
     });
 
-    test('failure-soft per slot: each non-matrix slot maps to null on rejection', () => {
+    test('failure-soft per slot: each slot maps to null on rejection', () => {
         // The shape is `*Res.status === 'fulfilled' ? *Res.value : null`
-        // for every slot EXCEPT matrix (which throws — the heatmap
-        // cannot render bandless) and the appetite envelope (which
-        // collapses on EITHER side failing).
+        // for every slot EXCEPT the appetite envelope (which collapses
+        // on EITHER side failing).
         expect(usecase).toMatch(/risksRes\.status === 'fulfilled' \? .*risksRes\.value.* : \[\]/);
         expect(usecase).toMatch(/analyticsRes\.status === 'fulfilled' \? analyticsRes\.value : null/);
         expect(usecase).toMatch(/coherenceRes\.status === 'fulfilled' \? coherenceRes\.value : null/);
@@ -78,8 +76,6 @@ describe('RQ3-9 — the orchestrator stays a pure read fan-out', () => {
         expect(usecase).toMatch(/simulationRes\.status === 'fulfilled' \? simulationRes\.value : null/);
         // Appetite envelope: both legs must succeed.
         expect(usecase).toMatch(/appetiteConfigRes\.status === 'fulfilled' && appetiteStatusRes\.status === 'fulfilled'/);
-        // Matrix throws on rejection.
-        expect(usecase).toMatch(/throw matrixRes\.reason/);
     });
 });
 
@@ -93,8 +89,11 @@ describe('RQ3-9 — the score-0-25 ladder is dead', () => {
         expect(match![0]).not.toMatch(/'score-0-25'/);
     });
 
-    test('the heatmap reads the canonical band resolver, not getStatusTone', () => {
-        expect(page).toMatch(/resolveBandForScore/);
+    test('the score-0-25 ladder does not colour the page (heatmap removed)', () => {
+        // The hand-built L×I heatmap was removed from the dashboard;
+        // neither the canonical band resolver nor the dead score-0-25
+        // ladder should be reachable from the page any more.
+        expect(page).not.toMatch(/resolveBandForScore/);
         expect(page).not.toMatch(/getStatusTone\(s, ['"]score-0-25['"]\)/);
     });
 });

@@ -6,12 +6,16 @@
  *   - the histogram view quietly dropping from the risks page (the
  *     three-view ToggleGroup, the persisted choice, the band-stacked
  *     chart, the appetite line);
- *   - the cell-collision flags vanishing from EITHER view (the
- *     heatmap's marker pass-through, or the histogram's callout
- *     list);
+ *   - the histogram's cell-collision callout list vanishing from the
+ *     risks page;
  *   - the chart losing its a11y contract (generated aria summary,
  *     keyboard-focusable buckets);
- *   - the heatmap being deleted instead of demoted-to-peer.
+ *   - the RiskMatrix/RiskMatrixCell components losing their
+ *     collision-marker support (still used by the admin matrix config).
+ *
+ * NOTE: the risks-page 'heatmap' view (the inline <RiskMatrix> grid) was
+ * removed — the page is now a two-view register/histogram toggle. The
+ * RiskMatrix *component* lives on for the admin matrix-config surface.
  */
 
 import * as fs from 'fs';
@@ -24,18 +28,18 @@ const client = read('src/app/t/[tenantSlug]/(app)/risks/RisksClient.tsx');
 const chart = read('src/components/ui/charts/ale-histogram.tsx');
 const barrel = read('src/components/ui/charts/index.ts');
 const lib = read('src/lib/risk-collisions.ts');
-const matrix = read('src/components/ui/RiskMatrix.tsx');
-const cell = read('src/components/ui/RiskMatrixCell.tsx');
 
 describe('RQ3-5 — the histogram is a peer view', () => {
-    test('three views, persisted per tenant (polish #13 pattern)', () => {
-        expect(client).toMatch(/useLocalStorage<'register' \| 'heatmap' \| 'histogram'>/);
+    test('two views, persisted per tenant (polish #13 pattern)', () => {
+        expect(client).toMatch(/useLocalStorage<'register' \| 'histogram'>/);
         expect(client).toMatch(/inflect:risks-view:\$\{tenantSlug\}/);
         expect(client).toMatch(/<ToggleGroup/);
         expect(client).toMatch(/value: 'histogram'/);
-        // The heatmap stays for the ritual.
-        expect(client).toMatch(/view === 'heatmap' \? \(/);
-        expect(client).toMatch(/<RiskMatrix/);
+        // The 'heatmap' view (inline RiskMatrix grid) was removed — the
+        // page must NOT re-introduce it.
+        expect(client).not.toMatch(/value: 'heatmap'/);
+        expect(client).not.toMatch(/view === 'heatmap'/);
+        expect(client).not.toMatch(/<RiskMatrix/);
     });
 
     test('the chart is the shared primitive, band-stacked, with the appetite line', () => {
@@ -63,14 +67,8 @@ describe('RQ3-5 — cell collisions flag on BOTH views', () => {
         expect(lib).not.toMatch(/prisma|RequestContext|@\/lib\/db/);
     });
 
-    test('the heatmap path: client computes → matrix threads → cell marks', () => {
+    test('the risks page computes cell collisions for the histogram callouts', () => {
         expect(client).toMatch(/detectCellCollisions\(/);
-        expect(client).toMatch(/collisionRatio = c\.ratio/);
-        expect(matrix).toMatch(/collisionRatio=\{cell\.collisionRatio\}/);
-        expect(cell).toMatch(/risk-matrix-cell-collision/);
-        // The marker is decorative; the words live in aria + tooltip.
-        expect(cell).toMatch(/same-cell loss estimates differ/);
-        expect(cell).toMatch(/check the histogram view/);
     });
 
     test('the histogram path: the callout list with the drill-down', () => {
@@ -80,7 +78,9 @@ describe('RQ3-5 — cell collisions flag on BOTH views', () => {
         // the heatmap's onCellClick contract.
         const callout = client.slice(
             client.indexOf('risk-collision-callouts'),
-            client.indexOf('view === \'heatmap\''),
+            // The histogram branch ends at the register-view <DataTable>
+            // (the old 'view === heatmap' boundary was removed).
+            client.indexOf('<DataTable'),
         );
         expect(callout).toMatch(/filterCtx\.set\('score'/);
     });

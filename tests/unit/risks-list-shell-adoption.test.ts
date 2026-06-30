@@ -83,22 +83,16 @@ describe('Risks list — Epic 44.4 column + matrix wiring', () => {
         expect(clientSrc).toMatch(/data-band=\{band\.name\}/);
     });
 
-    it('replaces the inline 5×5 heatmap with the <RiskMatrix> engine', () => {
-        expect(clientSrc).toMatch(
-            /import\s*\{\s*RiskMatrix\s*\}\s*from\s*['"]@\/components\/ui\/RiskMatrix['"]/,
-        );
-        expect(clientSrc).toMatch(/<RiskMatrix\b/);
-        // Ensures the bespoke gradient classes from the legacy heatmap
-        // are gone — they paint colours independent of config and
-        // would silently override a tenant's customisation.
+    it('no longer renders a risk-matrix heatmap (removed)', () => {
+        // The heatmap view was removed: the page must not import or render
+        // the RiskMatrix engine nor feed it cells, and must not reintroduce
+        // the legacy gradient heatmap. (The band-aware Score chip above
+        // still uses the matrix CONFIG — that stays.)
+        expect(clientSrc).not.toMatch(/from\s*['"]@\/components\/ui\/RiskMatrix['"]/);
+        expect(clientSrc).not.toMatch(/<RiskMatrix\b/);
+        expect(clientSrc).not.toContain('matrixCells');
         expect(clientSrc).not.toMatch(/bg-emerald-900\/50/);
         expect(clientSrc).not.toMatch(/bg-orange-900\/50/);
-    });
-
-    it('feeds the matrix engine sparse cells with risk titles for bubble overlay', () => {
-        expect(clientSrc).toContain('matrixCells');
-        expect(clientSrc).toMatch(/<RiskMatrix[\s\S]{0,400}cells=\{matrixCells\}/);
-        expect(clientSrc).toMatch(/<RiskMatrix[\s\S]{0,400}config=\{matrixConfig\}/);
     });
 
     it('preserves row navigation to the detail page', () => {

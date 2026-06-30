@@ -54,7 +54,6 @@ import {
     RISK_FILTER_KEYS,
 } from './filter-defs';
 import { useHydratedNow } from '@/lib/hooks/use-hydrated-now';
-import { RiskMatrix } from '@/components/ui/RiskMatrix';
 import { resolveBandForScore } from '@/lib/risk-matrix/scoring';
 import type { RiskMatrixConfigShape } from '@/lib/risk-matrix/types';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -118,9 +117,8 @@ interface RisksClientProps {
     initialFilters?: Record<string, string>;
     /**
      * Effective `RiskMatrixConfigShape` for this tenant (Epic 44.1).
-     * Drives the heatmap view's `<RiskMatrix>` engine + the score-
-     * column chip colour. Resolved server-side; the client never
-     * has to handle "no config".
+     * Drives the score-column chip colour + the histogram band stacking.
+     * Resolved server-side; the client never has to handle "no config".
      */
     matrixConfig: RiskMatrixConfigShape;
     tenantSlug: string;
@@ -231,10 +229,14 @@ function RisksPageInner({
     // RQ3-5 — three register views, persisted per tenant (polish #13
     // localStorage pattern) so the histogram preference survives
     // navigation without leaking across tenants.
-    const [view, setView] = useLocalStorage<'register' | 'heatmap' | 'histogram'>(
+    const [rawView, setView] = useLocalStorage<'register' | 'histogram'>(
         `inflect:risks-view:${tenantSlug}`,
         'register',
     );
+    // Normalise any legacy 'heatmap' value (the risk-matrix view was
+    // removed) so the toggle + render always land on a valid view.
+    const view: 'register' | 'histogram' =
+        rawView === 'histogram' ? 'histogram' : 'register';
 
     // Epic 54 — create-risk modal. Also auto-opens on `?create=1`, which
     // the `/risks/new` redirect shim lands on; keeps legacy deep-links
@@ -517,62 +519,6 @@ function RisksPageInner({
         }
         return out;
     }, [risks, matrixConfig]);
-
-    // Epic 44.3 — collapse the loaded page into the sparse `(L, I)`
-    // shape the new `<RiskMatrix>` engine consumes. Each cell carries
-    // count + risk titles for the bubble overlay; the engine handles
-    // truncation + tooltip so the page stays presentation-free.
-    const matrixCells = useMemo(() => {
-        const lookup = new Map<
-            string,
-            { likelihood: number; impact: number; count: number; totalAle: number; risks: { id: string; title: string }[] }
-        >();
-        for (const r of risks) {
-            const key = `${r.likelihood}-${r.impact}`;
-            // guardrail-ignore: bucketing the loaded page into the matrix cells.
-            const cell = lookup.get(key) ?? {
-                likelihood: r.likelihood,
-                impact: r.impact,
-                count: 0,
-                // RQ2-5 — summed ALE powers the heat overlay toggle.
-                totalAle: 0,
-                risks: [],
-            };
-            cell.count += 1;
-            cell.totalAle += riskAle(r) ?? 0;
-            cell.risks.push({ id: r.id, title: r.title });
-            lookup.set(key, cell);
-        }
-        // RQ3-5 — flag range-compression: same-cell ALEs differing
-        // >10× get the collision marker on the heatmap.
-        const cells = Array.from(lookup.values());
-        for (const c of collisions) {
-            const hit = cells.find((x) => x.likelihood === c.likelihood && x.impact === c.impact);
-            if (hit) (hit as { collisionRatio?: number }).collisionRatio = c.ratio;
-        }
-        return cells;
-         
-    }, [risks, collisions]);
-
-    // RQ2-9 — inherent → residual movements for the matrix overlay.
-    // Only decomposed residuals (RQ2-1 dims) qualify: a legacy
-    // undecomposed score has no destination cell, and inventing one
-    // would draw a lie.
-    const matrixMovements = useMemo(
-        () =>
-            risks
-                .filter(
-                    (r) =>
-                        r.residualLikelihood != null && r.residualImpact != null,
-                )
-                .map((r) => ({
-                    riskId: r.id,
-                    title: r.title,
-                    from: { likelihood: r.likelihood, impact: r.impact },
-                    to: { likelihood: r.residualLikelihood as number, impact: r.residualImpact as number },
-                })),
-        [risks],
-    );
 
     // RQ2-10 — the Level column reads the TENANT'S OWN bands (the
     // same resolveBandForScore the score chip, matrix, and explainer
@@ -896,11 +842,10 @@ function RisksPageInner({
                             ariaLabel="Risks view"
                             options={[
                                 { value: 'register', label: t.register, id: 'risks-view-register' },
-                                { value: 'heatmap', label: t.heatmap, id: 'risks-view-heatmap' },
                                 { value: 'histogram', label: t.histogram, id: 'risks-view-histogram' },
                             ]}
                             selected={view}
-                            selectAction={(v) => setView(v as 'register' | 'heatmap' | 'histogram')}
+                            selectAction={(v) => setView(v as 'register' | 'histogram')}
                         />
                         {permissions.canWrite && (
                             <>
@@ -1046,28 +991,6 @@ function RisksPageInner({
                             </div>
                         )}
                     </div>
-                ) : view === 'heatmap' ? (
-                    <RiskMatrix
-                        config={matrixConfig}
-                        cells={matrixCells}
-                        movements={matrixMovements}
-                        // polish #13 — per-tenant storage so a
-                        // multi-tenant operator's mode preference
-                        // doesn't leak across tenants.
-                        storageKey={`inflect:risk-matrix:${tenantSlug}`}
-                        title={t.heatmapTitle}
-                        mode="bubble"
-                        onCellClick={(cell) => {
-                            // Drill into the risks that share this
-                            // (likelihood, impact) cell by setting the
-                            // score range filter on the cell's score —
-                            // single-score range collapses to the
-                            // matching cell.
-                            const score = cell.likelihood * cell.impact;
-                            filterCtx.set('score', `${score}|${score}`);
-                            setView('register');
-                        }}
-                    />
                 ) : (
                     <DataTable<RiskListItem>
                         fillBody
