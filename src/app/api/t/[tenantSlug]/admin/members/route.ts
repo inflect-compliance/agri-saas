@@ -5,11 +5,21 @@ import { createInviteToken, listPendingInvites } from '@/app-layer/usecases/tena
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { z } from 'zod';
 import { jsonResponse } from '@/lib/api-response';
+import { resolvePublicOrigin } from '@/lib/http/request-origin';
+import { sendInviteEmail } from '@/lib/email/invite-email';
 
 const InviteMemberSchema = z.object({
     email: z.string().email('Valid email required'),
     role: z.enum(['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER'] as const),
 });
+
+const TENANT_ROLE_LABEL: Record<string, string> = {
+    OWNER: 'Owner',
+    ADMIN: 'Admin',
+    EDITOR: 'Editor',
+    AUDITOR: 'Auditor',
+    READER: 'Reader',
+};
 
 export const GET = withApiErrorHandling(
     requirePermission('admin.members', async (req: NextRequest, _routeArgs, ctx) => {
@@ -31,7 +41,25 @@ export const POST = withApiErrorHandling(
         const body = await req.json();
         const input = InviteMemberSchema.parse(body);
         const result = await createInviteToken(ctx, input);
-        // Response always returns the invite (no more 'added'/'reactivated' branch).
-        return jsonResponse({ invite: result.invite, url: result.url }, { status: 201 });
+
+        // Email the acceptance link to the recipient. This is the route the
+        // "Invite member" admin UI actually calls, so the send MUST live here
+        // (the sibling /admin/invites route emails too — keep them in sync).
+        // Best-effort + fail-open: the invite row is already committed, so a
+        // mailer failure never fails creation — `url` is the copy-paste
+        // fallback and `emailSent` tells the admin whether it went out.
+        const { sent } = await sendInviteEmail({
+            to: result.invite.email,
+            acceptUrl: resolvePublicOrigin(req) + result.url,
+            kind: 'workspace',
+            spaceName: ctx.tenantSlug ?? 'your workspace',
+            roleLabel: TENANT_ROLE_LABEL[input.role] ?? input.role,
+            expiresAt: result.invite.expiresAt,
+        });
+
+        return jsonResponse(
+            { invite: result.invite, url: result.url, emailSent: sent },
+            { status: 201 },
+        );
     }),
 );
