@@ -195,6 +195,12 @@ export const env = createEnv({
         SMTP_PASS: z.string().optional(),
         SMTP_FROM: z.string().default("noreply@inflect.app"),
 
+        // Resend (https://resend.com) — preferred over SMTP when set. Uses
+        // Resend's HTTPS API (no SMTP egress needed). RESEND_FROM must be a
+        // Resend-verified sender; it falls back to SMTP_FROM when omitted.
+        RESEND_API_KEY: z.string().optional(),
+        RESEND_FROM: z.string().optional(),
+
         // Stripe Billing
         STRIPE_SECRET_KEY: z.string().optional(),
         STRIPE_WEBHOOK_SECRET: z.string().optional(),
@@ -464,6 +470,8 @@ export const env = createEnv({
         SMTP_USER: process.env.SMTP_USER,
         SMTP_PASS: process.env.SMTP_PASS,
         SMTP_FROM: process.env.SMTP_FROM,
+        RESEND_API_KEY: process.env.RESEND_API_KEY,
+        RESEND_FROM: process.env.RESEND_FROM,
 
         STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
         STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,

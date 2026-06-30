@@ -36,6 +36,7 @@ import {
     setEmailProvider,
     sendEmail,
     initMailerFromEnv,
+    ResendProvider,
     type EmailMessage,
 } from '@/lib/mailer';
 
@@ -181,6 +182,66 @@ describe('NodemailerProvider', () => {
     });
 });
 
+describe('ResendProvider', () => {
+    const realFetch = global.fetch;
+    const fetchMock = jest.fn();
+
+    beforeEach(() => {
+        fetchMock.mockReset();
+        global.fetch = fetchMock as unknown as typeof fetch;
+    });
+    afterEach(() => {
+        global.fetch = realFetch;
+    });
+
+    it('POSTs to the Resend API with the bearer key + message fields', async () => {
+        fetchMock.mockResolvedValue({ ok: true });
+        await new ResendProvider('re_key', 'default@verified.test').send({
+            ...BASE_MSG,
+            html: '<p>rich</p>',
+            bcc: 'compliance@test',
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        const [url, opts] = fetchMock.mock.calls[0] as [
+            string,
+            { method: string; headers: Record<string, string>; body: string },
+        ];
+        expect(url).toBe('https://api.resend.com/emails');
+        expect(opts.method).toBe('POST');
+        expect(opts.headers.Authorization).toBe('Bearer re_key');
+        expect(JSON.parse(opts.body)).toMatchObject({
+            from: 'default@verified.test',
+            to: BASE_MSG.to,
+            subject: BASE_MSG.subject,
+            text: BASE_MSG.text,
+            html: '<p>rich</p>',
+            bcc: 'compliance@test',
+        });
+    });
+
+    it('honours a per-message from override', async () => {
+        fetchMock.mockResolvedValue({ ok: true });
+        await new ResendProvider('re_key', 'default@verified.test').send({
+            ...BASE_MSG,
+            from: 'override@verified.test',
+        });
+        const body = JSON.parse((fetchMock.mock.calls[0][1] as { body: string }).body);
+        expect(body.from).toBe('override@verified.test');
+    });
+
+    it('throws with status + detail when Resend returns an error', async () => {
+        fetchMock.mockResolvedValue({
+            ok: false,
+            status: 422,
+            text: async () => 'The domain is not verified',
+        });
+        await expect(
+            new ResendProvider('re_key', 'unverified@test').send(BASE_MSG),
+        ).rejects.toThrow(/Resend API error 422.*not verified/);
+    });
+});
+
 describe('initMailerFromEnv', () => {
     const ORIGINAL = { ...process.env };
 
@@ -227,5 +288,16 @@ describe('initMailerFromEnv', () => {
         expect(cfg.host).toBe('smtp.bare');
         expect(cfg.port).toBe(587); // documented default
         expect(cfg.auth).toBeUndefined(); // no creds → no auth block
+    });
+
+    it('prefers Resend over SMTP when RESEND_API_KEY is set', () => {
+        process.env.RESEND_API_KEY = 're_env_key';
+        process.env.RESEND_FROM = 'invites@verified.test';
+        process.env.SMTP_HOST = 'smtp.configured'; // present, but Resend wins
+
+        initMailerFromEnv();
+
+        expect(getEmailProvider()).toBeInstanceOf(ResendProvider);
+        expect(createTransportMock).not.toHaveBeenCalled();
     });
 });

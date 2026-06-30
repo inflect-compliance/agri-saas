@@ -79,6 +79,45 @@ export class NodemailerProvider implements EmailProvider {
     }
 }
 
+// ─── Resend (HTTPS API) ───
+
+export class ResendProvider implements EmailProvider {
+    constructor(
+        private apiKey: string,
+        private from: string,
+    ) {}
+
+    async send(msg: EmailMessage): Promise<void> {
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${this.apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                from: msg.from || this.from,
+                to: msg.to,
+                subject: msg.subject,
+                text: msg.text,
+                ...(msg.html ? { html: msg.html } : {}),
+                ...(msg.bcc ? { bcc: msg.bcc } : {}),
+                ...(msg.attachments
+                    ? {
+                          attachments: msg.attachments.map((a) => ({
+                              filename: a.filename,
+                              content: a.content.toString('base64'),
+                          })),
+                      }
+                    : {}),
+            }),
+        });
+        if (!res.ok) {
+            const detail = await res.text().catch(() => '');
+            throw new Error(`Resend API error ${res.status}: ${detail.slice(0, 300)}`);
+        }
+    }
+}
+
 // ─── Stub (tests) ───
 
 export class StubEmailProvider implements EmailProvider {
@@ -133,6 +172,18 @@ export function initMailerFromEnv(): void {
     // Dynamic import to avoid circular deps at module parse time
 
     const { env } = require('@/env');
+
+    // Resend (HTTPS API) takes precedence — most deployments use it and it
+    // needs no SMTP egress. RESEND_FROM must be a Resend-verified sender;
+    // falls back to SMTP_FROM (which carries a default).
+    const resendKey = env.RESEND_API_KEY;
+    if (resendKey) {
+        setEmailProvider(
+            new ResendProvider(resendKey, env.RESEND_FROM ?? env.SMTP_FROM ?? 'noreply@inflect.app'),
+        );
+        return;
+    }
+
     const host = env.SMTP_HOST;
     if (host) {
         const port = env.SMTP_PORT ?? 587;
