@@ -23,9 +23,6 @@ describe('Admin risk-matrix-config API — wiring', () => {
         'src/app/api/t/[tenantSlug]/admin/risk-matrix-config/route.ts',
     );
     const permsSrc = read('src/lib/security/route-permissions.ts');
-    const pageSrc = read(
-        'src/app/t/[tenantSlug]/(app)/admin/risk-matrix/page.tsx',
-    );
 
     it('PUT route enforces admin.manage permission', () => {
         expect(routeSrc).toMatch(/requirePermission\(['"]admin\.manage['"]/);
@@ -44,11 +41,6 @@ describe('Admin risk-matrix-config API — wiring', () => {
         expect(idx).toBeGreaterThan(0);
         const window = permsSrc.slice(idx, idx + 600);
         expect(window).toContain("'admin.manage'");
-    });
-
-    it('admin page server-fetches the effective config (no client round-trip on first paint)', () => {
-        expect(pageSrc).toContain('getRiskMatrixConfig');
-        expect(pageSrc).toContain('initialConfig={initialConfig}');
     });
 
     it('admin route also exposes a GET twin for the editor convenience read', () => {

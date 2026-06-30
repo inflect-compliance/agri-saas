@@ -11,8 +11,6 @@ import { Card } from '@/components/ui/card';
 import { KPIStat } from '@/components/ui/metric';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SkeletonDashboard } from '@/components/ui/skeleton';
-import { resolveBandForScore } from '@/lib/risk-matrix/scoring';
-import type { RiskMatrixBand } from '@/lib/risk-matrix/types';
 import { InfoTooltip } from '@/components/ui/tooltip';
 import { formatTailAwareAle } from '@/lib/tail-language';
 import { MonteCarloPanel, type SimulationRun } from './MonteCarloPanel';
@@ -56,28 +54,6 @@ type Risk = {
     nextReviewAt: string | null;
 };
 
-// RQ3-9 — the heatmap reads the tenant's CANONICAL risk-matrix
-// bands (passed down from the orchestrator payload) rather than the
-// hard-coded ladder it used pre-RQ3-9. The band resolver is the
-// same one the risk panel / PDF exporter / score explainer use, so
-// a tone shift here can't disagree with them.
-const heatmapClassForBand = (band: RiskMatrixBand): string => {
-    // Map the band's canonical name to a semantic-token bundle. The
-    // matrix config's `color` field is a CSS hex — threading it
-    // through inline styles would bypass dark-mode + the WCAG-AA
-    // contrast guarantees in our semantic tokens. The band-NAME →
-    // token mapping consults the tenant's CANONICAL band (not a
-    // hard-coded score ladder), so a tenant who customises
-    // thresholds gets the right tone without code changes.
-    switch (band.name) {
-        case 'Low': return 'bg-bg-success text-content-success';
-        case 'Medium': return 'bg-bg-warning text-content-warning';
-        case 'High': return 'bg-bg-warning/60 text-content-warning';
-        case 'Critical': return 'bg-bg-error text-content-error';
-        default: return 'bg-bg-muted/40 text-content-muted';
-    }
-};
-
 export default function RiskDashboardPage() {
     const href = useTenantHref();
     const tenant = useTenantContext();
@@ -100,7 +76,6 @@ export default function RiskDashboardPage() {
     const staleness = data?.staleness ?? null;
     const appetite = data?.appetite ?? null;
     const simRun = (data?.simulation ?? null) as SimulationRun | null;
-    const matrix = data?.matrix ?? null;
 
     // RQ3-4 — per-risk P90s from the lifted run (RQ3-1 cache); the
     // top-10 and coherence rows speak the tail register through it.
@@ -134,13 +109,6 @@ export default function RiskDashboardPage() {
         acc[r.status] = (acc[r.status] || 0) + 1;
         return acc;
     }, {});
-
-    // Heatmap
-    const heatmapCounts: Record<string, number> = {};
-    risks.forEach(r => {
-        const key = `${r.likelihood}-${r.impact}`;
-        heatmapCounts[key] = (heatmapCounts[key] || 0) + 1;
-    });
 
     if (loading) {
         return <SkeletonDashboard />;
@@ -201,41 +169,6 @@ export default function RiskDashboardPage() {
                                 variant: 'brand' as const,
                             }))}
                     />
-                </Card>
-
-                {/* Heatmap */}
-                <Card>
-                    <Heading level={3} className="mb-4">{t('heatmapTitle')}</Heading>
-                    <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-1 text-xs">
-                        <div></div>
-                        {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="text-center text-content-subtle font-medium pb-1">{i}</div>
-                        ))}
-                        {[5, 4, 3, 2, 1].map(l => (
-                            <>
-                                <div key={`l-${l}`} className="flex items-center text-content-subtle font-medium pr-2">{l}</div>
-                                {[1, 2, 3, 4, 5].map(i => {
-                                    const count = heatmapCounts[`${l}-${i}`] || 0;
-                                    const s = l * i;
-                                    const band = matrix
-                                        ? resolveBandForScore(s, matrix.bands)
-                                        : { name: '', minScore: 0, maxScore: 0, color: '' };
-                                    return (
-                                        <div
-                                            key={`${l}-${i}`}
-                                            className={`h-10 rounded flex items-center justify-center font-medium transition-colors duration-150 ease-out cursor-default ${heatmapClassForBand(band)}`}
-                                            title={`L${l}×I${i} = ${s} (${count}) — ${band.name}`}
-                                            data-band={band.name}
-                                        >
-                                            {count > 0 ? count : ''}
-                                        </div>
-                                    );
-                                })}
-                            </>
-                        ))}
-                        <div className="text-content-subtle text-[10px] mt-1">L↑</div>
-                        <div className="col-span-5 text-center text-content-subtle text-[10px] mt-1">Impact →</div>
-                    </div>
                 </Card>
             </div>
 

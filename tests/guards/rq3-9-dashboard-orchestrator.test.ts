@@ -93,8 +93,11 @@ describe('RQ3-9 — the score-0-25 ladder is dead', () => {
         expect(match![0]).not.toMatch(/'score-0-25'/);
     });
 
-    test('the heatmap reads the canonical band resolver, not getStatusTone', () => {
-        expect(page).toMatch(/resolveBandForScore/);
+    test('the score-0-25 ladder does not colour the page (heatmap removed)', () => {
+        // The hand-built L×I heatmap was removed from the dashboard;
+        // neither the canonical band resolver nor the dead score-0-25
+        // ladder should be reachable from the page any more.
+        expect(page).not.toMatch(/resolveBandForScore/);
         expect(page).not.toMatch(/getStatusTone\(s, ['"]score-0-25['"]\)/);
     });
 });

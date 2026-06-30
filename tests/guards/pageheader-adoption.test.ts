@@ -127,11 +127,6 @@ const PAGES: PageEntry[] = [
         note: "Admin SCIM page. Pending migration.",
     },
     {
-        file: "src/app/t/[tenantSlug]/(app)/admin/risk-matrix/RiskMatrixAdminClient.tsx",
-        adopted: false,
-        note: "Risk-matrix admin page. Pending migration.",
-    },
-    {
         file: "src/app/t/[tenantSlug]/(app)/admin/vendor-templates/[templateId]/VendorTemplateBuilderClient.tsx",
         adopted: false,
         note: "Vendor template builder. Pending migration — wizard-shaped page.",
