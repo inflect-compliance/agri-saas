@@ -80,7 +80,7 @@ const mockVerify = verifyTotpCode as jest.MockedFunction<typeof verifyTotpCode>;
 beforeEach(() => {
     jest.clearAllMocks();
     mockGenSecret.mockReturnValue('JBSWY3DPEHPK3PXP');
-    mockGenUri.mockReturnValue('otpauth://totp/Inflect:user@example.com?secret=...');
+    mockGenUri.mockReturnValue('otpauth://totp/Agrent:user@example.com?secret=...');
     mockEncrypt.mockReturnValue('encrypted-blob');
     mockUserFind.mockResolvedValue({ email: 'user@example.com' } as never);
     mockEnrollUpsert.mockResolvedValue({ id: 'enr-1' } as never);

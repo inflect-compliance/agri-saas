@@ -65,7 +65,7 @@ describe('B9 — policy template upgrade', () => {
         });
 
         it('cover page renders a classification chip + brand wordmark', () => {
-            expect(src).toMatch(/Inflect/);
+            expect(src).toMatch(/Agrent/);
             expect(src).toMatch(/roundedRect/);
             expect(src).toMatch(/CLASSIFICATION_COLOUR/);
         });
