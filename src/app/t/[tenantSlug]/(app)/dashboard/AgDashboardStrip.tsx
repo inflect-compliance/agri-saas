@@ -10,8 +10,6 @@ import SeasonRecapCard from './SeasonRecapCard';
 import RecentJournalCard from './RecentJournalCard';
 import LowStockCard from './LowStockCard';
 import MyFarmTasksCard from './MyFarmTasksCard';
-import CertificationSchemeCard from './CertificationSchemeCard';
-import AchievementsCard from './AchievementsCard';
 
 /**
  * Agriculture dashboard strip — a small "your farm today" row of cards
@@ -43,14 +41,11 @@ export default function AgDashboardStrip() {
     // safe default as the no-data branch above.
     const journalOn = data.enabledModules?.includes('JOURNAL') ?? false;
     const inventoryOn = data.enabledModules?.includes('INVENTORY') ?? false;
-    // Certification card shows when the module is on AND the payload carries
-    // a top-scheme readiness reading (a tenant with no AG_SCHEME yields null).
-    const certificationOn = (data.enabledModules?.includes('CERTIFICATION') ?? false) && !!data.certification;
 
     // The strip exists only for ag tenants. With no core ag module enabled
-    // (journal / inventory) AND no certification reading, render nothing —
-    // the farm row is invisible for pure-GRC.
-    if (!journalOn && !inventoryOn && !certificationOn && !data.achievements) return null;
+    // (journal / inventory), render nothing — the farm row is invisible for
+    // pure-GRC.
+    if (!journalOn && !inventoryOn) return null;
 
     return (
         <div className="space-y-default">
@@ -70,11 +65,7 @@ export default function AgDashboardStrip() {
             {inventoryOn && (
                 <LowStockCard href={href('/inventory')} items={data.lowStock} />
             )}
-            {certificationOn && data.certification && (
-                <CertificationSchemeCard href={href('/schemes')} certification={data.certification} />
-            )}
             <MyFarmTasksCard href={href('/farm-tasks')} items={data.myTasks} />
-            {data.achievements && <AchievementsCard achievements={data.achievements} />}
             </div>
         </div>
     );

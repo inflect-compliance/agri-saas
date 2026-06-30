@@ -87,10 +87,12 @@ describe('Dashboard Widget Composition', () => {
         expect(kpiCount).toBeGreaterThanOrEqual(2);
     });
 
-    test('uses DonutChart component', () => {
+    // The Risk Distribution donut was removed from the dashboard; the
+    // DonutChart component still exists for other surfaces but the
+    // dashboard no longer mounts it.
+    test('dashboard no longer renders the Risk Distribution DonutChart', () => {
         const content = readAll();
-        expect(content).toContain("from '@/components/ui/DonutChart'");
-        expect(content).toContain('<DonutChart');
+        expect(content).not.toContain('<DonutChart');
     });
 
     test('uses TrendCard component (Epic 59 — TimeSeriesChart-backed)', () => {
@@ -99,19 +101,11 @@ describe('Dashboard Widget Composition', () => {
         expect(content).toContain('<TrendCard');
     });
 
-    test('uses StatusBreakdown component', () => {
+    // The Evidence Status card (the only StatusBreakdown consumer on the
+    // dashboard) was removed; the dashboard no longer mounts a breakdown.
+    test('dashboard no longer renders the Evidence Status StatusBreakdown', () => {
         const content = readAll();
-        // PR-A — Evidence Status now hosts the breakdown + a
-        // trend mini-chart inside one Card, so the dashboard
-        // switched from the default-export auto-wrapping
-        // `@/components/ui/StatusBreakdown` to the non-wrapping
-        // primitive at `@/components/ui/status-breakdown` (case-
-        // sensitive on Linux CI). Accept either path.
-        expect(
-            content.includes("from '@/components/ui/StatusBreakdown'") ||
-                content.includes("from '@/components/ui/status-breakdown'"),
-        ).toBe(true);
-        expect(content).toContain('<StatusBreakdown');
+        expect(content).not.toContain('<StatusBreakdown');
     });
 
     test('has exactly 2 KPI cards (risks + evidence) for the farm grid', () => {
@@ -126,14 +120,25 @@ describe('Dashboard Widget Composition', () => {
 describe('Dashboard Layout Sections', () => {
     const ids = [
         'kpi-grid',
-        'risk-distribution',
-        'evidence-status',
-        'compliance-alerts',
         'trend-section',
     ];
 
     test.each(ids)('section id="%s" present', (id) => {
         expect(readAll()).toContain(`id="${id}"`);
+    });
+
+    // Risk Distribution, Evidence Status, Compliance Alerts and the
+    // Evidence Expiry calendar were removed from the dashboard. Forward-
+    // guard their section ids so a re-add is a conscious change.
+    const removedIds = [
+        'risk-distribution',
+        'evidence-status',
+        'compliance-alerts',
+        'expiry-calendar',
+    ];
+
+    test.each(removedIds)('section id="%s" removed', (id) => {
+        expect(readAll()).not.toContain(`id="${id}"`);
     });
 
     test('uses responsive grid layout (lg:grid-cols-2)', () => {
@@ -185,19 +190,20 @@ describe('Dashboard Data Contracts', () => {
         expect(readAll()).toContain('ExecutiveDashboardPayload');
     });
 
-    test('accesses riskBySeverity fields', () => {
+    // riskBySeverity backed the Risk Distribution donut, now removed —
+    // the dashboard no longer reads those fields (the payload still
+    // carries them for other consumers).
+    test('no longer reads riskBySeverity fields (Risk Distribution removed)', () => {
         const content = readAll();
-        expect(content).toContain('riskBySeverity.critical');
-        expect(content).toContain('riskBySeverity.high');
-        expect(content).toContain('riskBySeverity.medium');
-        expect(content).toContain('riskBySeverity.low');
+        expect(content).not.toContain('riskBySeverity.');
     });
 
     test('accesses evidenceExpiry fields', () => {
         const content = readAll();
+        // Only `.overdue` survives — it feeds the Evidence KPI subtitle
+        // and the Next-Best-Action input. The dueSoon7d / current fields
+        // left with the removed Evidence Status card.
         expect(content).toContain('evidenceExpiry.overdue');
-        expect(content).toContain('evidenceExpiry.dueSoon7d');
-        expect(content).toContain('evidenceExpiry.current');
     });
 
     test('accesses trend data points for sparklines', () => {
@@ -218,10 +224,11 @@ describe('Dashboard Empty State Handling', () => {
         expect(content).toContain('Trend charts will appear here');
     });
 
-    test('compliance alerts handles no-alerts state', () => {
+    // Compliance Alerts was removed from the dashboard — no alerts list
+    // and no no-alerts empty state remain.
+    test('dashboard no longer renders the Compliance Alerts list', () => {
         const content = readAll();
-        expect(content).toContain('noAlerts');
-        expect(content).toContain('alerts.length === 0');
+        expect(content).not.toContain('alerts.length === 0');
     });
 
     test('UI-15: dashboard no longer renders a notifications bell button', () => {

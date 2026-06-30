@@ -94,13 +94,20 @@ describe('R17-PR9 — charts subscribe via ChartFocusWrapper', () => {
         expect(SRC).toMatch(/isDimmed\s*&&\s*['"]opacity-60['"]/);
     });
 
-    // The Control Coverage ProgressCard (kpiKey="coverage") was removed
-    // when the controls page left the farm app — only the evidence
-    // section keeps its ChartFocusWrapper now.
+    // The Control Coverage ProgressCard (kpiKey="coverage") and the
+    // Evidence Status section (kpiKey="evidence") were both removed from
+    // the dashboard. The Open-Risks trend card is the surviving consumer
+    // of the generic ChartFocusWrapper.
 
-    it('EvidenceStatusSection is wrapped with kpiKey="evidence"', () => {
+    it('the Open-Risks trend card is wrapped with kpiKey="risks"', () => {
         expect(SRC).toMatch(
-            /<ChartFocusWrapper\s+kpiKey="evidence"[\s\S]*?<EvidenceStatusSection/,
+            /<ChartFocusWrapper\s+kpiKey="risks"[\s\S]*?<TrendCard/,
         );
+    });
+
+    it('no removed section is still wrapped (evidence / coverage gone)', () => {
+        expect(SRC).not.toMatch(/<ChartFocusWrapper\s+kpiKey="evidence"/);
+        expect(SRC).not.toMatch(/<ChartFocusWrapper\s+kpiKey="coverage"/);
+        expect(SRC).not.toContain('EvidenceStatusSection');
     });
 });

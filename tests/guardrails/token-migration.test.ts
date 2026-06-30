@@ -54,7 +54,10 @@ describe('Dashboard page token migration', () => {
     it('uses semantic text tokens', () => {
         expect(src).toContain('text-content-emphasis');
         expect(src).toContain('text-content-muted');
-        expect(src).toContain('text-content-default');
+        // `text-content-default` left with the Risk Distribution card when
+        // that widget was removed; the surviving dashboard text still uses
+        // semantic tokens (emphasis / muted / subtle), never raw slate.
+        expect(src).toContain('text-content-subtle');
     });
 
     it('UI-15: the dashboard notifications-bell ghost link was removed', () => {

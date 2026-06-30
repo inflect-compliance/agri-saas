@@ -213,8 +213,7 @@ describe('Dashboard Page Integration', () => {
 
     // The risk-matrix heatmap card was removed from the dashboard UI, and
     // the server `riskHeatmap` payload it consumed was dropped too (the DTO +
-    // usecase no longer compute it). The Evidence ExpiryCalendar remains
-    // (now full-width).
+    // usecase no longer compute it).
     test('the dashboard no longer renders the RiskMatrix heatmap', () => {
         expect(content).not.toContain("from '@/components/ui/RiskMatrix'");
         expect(content).not.toContain('<RiskMatrix');
@@ -223,17 +222,14 @@ describe('Dashboard Page Integration', () => {
         expect(content).not.toContain('getRiskMatrixConfig');
     });
 
-    test('imports ExpiryCalendar', () => {
-        expect(content).toContain("from '@/components/ui/ExpiryCalendar'");
-    });
-
-    test('renders ExpiryCalendar with id', () => {
-        expect(content).toContain('<ExpiryCalendar');
-        expect(content).toContain('id="expiry-calendar"');
-    });
-
-    test('passes exec.upcomingExpirations to ExpiryCalendar', () => {
-        expect(content).toContain('items={exec.upcomingExpirations}');
+    // The Evidence Expiry calendar was later removed from the dashboard too.
+    // The ExpiryCalendar component + its backing DTO (see the "Dashboard DTO
+    // Extensions" suite above) still exist, but the dashboard no longer
+    // mounts the card. Forward-guard the removal.
+    test('the dashboard no longer renders the ExpiryCalendar', () => {
+        expect(content).not.toContain("from '@/components/ui/ExpiryCalendar'");
+        expect(content).not.toContain('<ExpiryCalendar');
+        expect(content).not.toContain('id="expiry-calendar"');
     });
 });
 

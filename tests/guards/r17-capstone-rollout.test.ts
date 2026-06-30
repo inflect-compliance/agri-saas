@@ -147,19 +147,21 @@ describe('R17 capstone — Dashboard Reimagined rollout', () => {
             }
         });
 
-        it('PR-8: Risk Distribution donut subscribes to selectedKpi', () => {
-            expect(DASHBOARD_CLIENT).toMatch(
-                /function\s+RiskDistributionSection[\s\S]*?useDashboardChartFilter\(\)/,
-            );
-            expect(DASHBOARD_CLIENT).toMatch(
-                /const\s+isFocused\s*=\s*selectedKpi\s*===\s*'risks'/,
-            );
+        it('PR-8: Risk Distribution donut was removed from the dashboard', () => {
+            // PR-8 made the Risk Distribution donut subscribe to selectedKpi.
+            // The donut has since been removed from the dashboard entirely.
+            expect(DASHBOARD_CLIENT).not.toMatch(/function\s+RiskDistributionSection/);
+            expect(DASHBOARD_CLIENT).not.toContain('id="risk-distribution"');
         });
 
-        it('PR-9: ChartFocusWrapper wraps the Evidence section', () => {
-            // The Coverage section was removed; Evidence keeps its wrapper.
+        it('PR-9: ChartFocusWrapper still wraps a chart-bound section', () => {
+            // The generic wrapper survives; after the Evidence widgets were
+            // removed it now wraps the Open-Risks trend card.
             expect(DASHBOARD_CLIENT).toMatch(/function\s+ChartFocusWrapper/);
             expect(DASHBOARD_CLIENT).toMatch(
+                /<ChartFocusWrapper\s+kpiKey="risks"/,
+            );
+            expect(DASHBOARD_CLIENT).not.toMatch(
                 /<ChartFocusWrapper\s+kpiKey="evidence"/,
             );
         });

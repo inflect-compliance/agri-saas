@@ -49,7 +49,7 @@ describe('B3 — button + card unify', () => {
         });
     });
 
-    describe('Move 2 — Control Coverage + Risk Distribution card parity', () => {
+    describe('Move 2 — Control Coverage card height contract', () => {
         const progress = read('src/components/ui/ProgressCard.tsx');
         const dashboard = read(
             'src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx',
@@ -61,13 +61,11 @@ describe('B3 — button + card unify', () => {
             );
         });
 
-        it('RiskDistribution card uses h-full flex flex-col', () => {
-            // Anchor on the id="risk-distribution" attribute so an
-            // unrelated card change can't mask the regression.
-            const idx = dashboard.indexOf('id="risk-distribution"');
-            expect(idx).toBeGreaterThan(0);
-            const block = dashboard.slice(idx, idx + 800);
-            expect(block).toMatch(/h-full flex flex-col/);
+        it('the Risk Distribution card was removed from the dashboard', () => {
+            // Move 2 originally matched ProgressCard's height to the Risk
+            // Distribution card so the two read as a balanced row. That card
+            // has since been removed from the dashboard entirely.
+            expect(dashboard).not.toContain('id="risk-distribution"');
         });
     });
 

@@ -129,13 +129,14 @@ describe('B1 — bug-fix bundle', () => {
             'src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx',
         );
 
-        it('the remaining entities are chart-bound via their kpiKey binding', () => {
-            // The compliance KPIs (coverage / tasks / policies / findings)
-            // were removed when those pages left the farm app; only the
-            // risk + evidence tiles remain, each bound to its chart via the
-            // per-tile `kpiKey` binding asserted here.
+        it('the remaining entity is chart-bound via its kpiKey binding', () => {
+            // The Risk Distribution, Evidence Status, Compliance Alerts and
+            // Evidence Expiry widgets were removed; only the Risks KPI tile
+            // still owns a chart (the Open-Risks trend), bound via `kpiKey`.
             expect(src).toMatch(/kpiKey="risks"/);
-            expect(src).toMatch(/kpiKey="evidence"/);
+            // The evidence charts are gone — nothing binds to the evidence
+            // key any more.
+            expect(src).not.toMatch(/kpiKey="evidence"/);
             // The compliance keys are gone from the dashboard.
             expect(src).not.toMatch(/kpiKey="coverage"/);
             expect(src).not.toMatch(/kpiKey="tasks"/);
@@ -149,27 +150,23 @@ describe('B1 — bug-fix bundle', () => {
             expect(src).not.toMatch(/StatusDonutSection/);
         });
 
-        it('the chart-bound trend cards are wrapped in ChartFocusWrapper', () => {
-            // The TrendSection now hosts two <TrendCard> instances (risks +
-            // evidence), each under a wrapper.
+        it('the chart-bound trend card is wrapped in ChartFocusWrapper', () => {
+            // The TrendSection now hosts a single <TrendCard> (Open Risks)
+            // under one wrapper; the Overdue-Evidence trend was removed.
             const block = src.slice(
                 src.indexOf('function TrendSection'),
                 src.indexOf('function TrendEmptyState'),
             );
             const wrapperCount = (block.match(/<ChartFocusWrapper kpiKey="/g) ?? []).length;
-            expect(wrapperCount).toBe(2);
+            expect(wrapperCount).toBe(1);
         });
 
-        it('expiry calendar subscribes to KPI focus', () => {
-            // The risk heatmap that previously shared this section was
-            // removed with the risk-matrix UI; the evidence ExpiryCalendar
-            // remains, still wrapped in its chart-focus binding.
+        it('the removed evidence widgets no longer mount on the dashboard', () => {
+            // Risk heatmap (risk-matrix UI) and the Evidence Expiry calendar
+            // were both removed from the dashboard.
             expect(src).not.toContain('id="risk-heatmap"');
-            const expiryIdx = src.indexOf('id="expiry-calendar"');
-            const expiryBlock = src.slice(expiryIdx - 400, expiryIdx);
-            expect(expiryBlock).toMatch(
-                /<ChartFocusWrapper kpiKey="evidence"/,
-            );
+            expect(src).not.toContain('id="expiry-calendar"');
+            expect(src).not.toContain('<ExpiryCalendar');
         });
     });
 });

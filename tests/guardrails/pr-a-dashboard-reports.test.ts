@@ -59,45 +59,29 @@ describe('PR-A — dashboard balance + reports card', () => {
         });
     });
 
-    describe('Dashboard adoption', () => {
+    describe('Dashboard adoption (Evidence Status card removed)', () => {
         const src = read(
             'src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx',
         );
 
-        // The Control Coverage ProgressCard was removed when the controls
-        // page left the farm app, so the dashboard no longer threads a
-        // coverage trend. The ProgressCard primitive's own trend-slot
-        // contract is still covered above.
+        // PR-A gave the dashboard an Evidence Status card (Heading +
+        // non-wrapping StatusBreakdown + an evidence-overdue trend
+        // mini-chart). That card has since been removed from the dashboard
+        // entirely. The ProgressCard primitive's own trend-slot contract is
+        // still covered above; these forward-guards lock in the removal.
 
-        it('Evidence Status renders one Card containing the breakdown', () => {
-            // The card identity is preserved (canonical
-            // `id="evidence-status"` matches the unit-test
-            // `Dashboard Layout Sections` probe).
-            expect(src).toMatch(/<Card id="evidence-status"/);
-            // Heading + non-wrapping StatusBreakdown live inside it.
-            expect(src).toMatch(
-                /<Card id="evidence-status"[\s\S]{0,2000}<Heading[\s\S]{0,400}Evidence Status[\s\S]{0,2000}<StatusBreakdown/,
-            );
+        it('the Evidence Status card no longer renders on the dashboard', () => {
+            expect(src).not.toMatch(/<Card id="evidence-status"/);
+            expect(src).not.toContain('id="evidence-status"');
         });
 
-        it('Evidence Status surfaces a percent-current readout', () => {
-            expect(src).toMatch(/data-testid="evidence-status-current-percent"/);
+        it('the percent-current + trend mini-chart markers are gone', () => {
+            expect(src).not.toContain('data-testid="evidence-status-current-percent"');
+            expect(src).not.toContain('data-testid="evidence-status-trend"');
         });
 
-        it('Evidence Status mounts the evidence-overdue trend mini-chart', () => {
-            expect(src).toMatch(/data-testid="evidence-status-trend"/);
-            // The trend pulls from the same trendBundle as the
-            // existing Trend section below — no parallel hand-
-            // fetched series.
-            expect(src).toMatch(/trendBundle\?\.evidence/);
-        });
-
-        it('uses the non-wrapping status-breakdown primitive', () => {
-            // The default-export `@/components/ui/StatusBreakdown`
-            // wraps itself in `cardVariants()`. The non-wrapping
-            // lowercase `status-breakdown` is the right primitive
-            // when we host the breakdown inside our own Card.
-            expect(src).toMatch(
+        it('the dashboard no longer imports the status-breakdown primitive', () => {
+            expect(src).not.toMatch(
                 /from\s*['"]@\/components\/ui\/status-breakdown['"]/,
             );
         });
