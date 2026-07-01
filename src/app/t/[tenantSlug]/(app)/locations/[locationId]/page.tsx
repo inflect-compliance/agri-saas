@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import type { Geometry, LineString, Polygon } from 'geojson';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup } from '@/components/ui/toggle-group';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { DatePicker, type DateValue } from '@/components/ui/date-picker';
@@ -56,6 +57,61 @@ interface OperationItem {
     status: string;
     assignee?: { id: string; name?: string | null } | null;
     _count?: { operationParcels?: number };
+}
+
+// Crop options for the parcel Crop dropdown, grouped by season. Each crop
+// carries its season as `meta`, surfaced as a right-aligned tag; a separator
+// after the last autumn crop divides the two groups visually.
+const CROP_OPTIONS: ComboboxOption<{ season: string }>[] = [
+    { value: 'Wheat', label: 'Wheat', meta: { season: 'Autumn crop' } },
+    { value: 'Barley', label: 'Barley', meta: { season: 'Autumn crop' } },
+    { value: 'Canola', label: 'Canola', meta: { season: 'Autumn crop' }, separatorAfter: true },
+    { value: 'Maize', label: 'Maize', meta: { season: 'Spring crop' } },
+    { value: 'Sunflower', label: 'Sunflower', meta: { season: 'Spring crop' } },
+    { value: 'Peas', label: 'Peas', meta: { season: 'Spring crop' } },
+];
+
+/**
+ * Inline crop picker for a parcel row in the Parcels dropdown. Choosing a
+ * crop PATCHes `cropType` and refreshes the list. An existing crop that
+ * isn't one of the six options is still shown (as its own synthetic value)
+ * so an imported cropType is never hidden.
+ */
+function ParcelCropSelect({
+    value,
+    onChange,
+}: {
+    value: string | null;
+    onChange: (cropType: string) => Promise<void> | void;
+}) {
+    const [saving, setSaving] = useState(false);
+    const selected =
+        CROP_OPTIONS.find((o) => o.value === value) ??
+        (value ? { value, label: value, meta: { season: '' } } : null);
+    return (
+        // Stop the row-click (which opens the parcel sheet) from firing when
+        // the operator interacts with the crop dropdown.
+        <div onClick={(e) => e.stopPropagation()}>
+            <Combobox
+                options={CROP_OPTIONS}
+                selected={selected}
+                setSelected={(o) => {
+                    setSaving(true);
+                    Promise.resolve(onChange(o?.value ?? '')).finally(() => setSaving(false));
+                }}
+                optionRight={(o) =>
+                    o.meta?.season ? (
+                        <span className="text-xs text-content-subtle">{o.meta.season}</span>
+                    ) : null
+                }
+                placeholder="Set crop…"
+                hideSearch
+                matchTriggerWidth
+                caret
+                buttonProps={{ className: 'w-full', disabled: saving }}
+            />
+        </div>
+    );
 }
 
 export default function LocationDetailPage() {
@@ -166,6 +222,18 @@ export default function LocationDetailPage() {
     };
 
     type ParcelRow = ParcelsResp['parcels'][number];
+
+    // Set a parcel's crop from the Crop dropdown. Empty ⇒ clear (null).
+    const setParcelCrop = useCallback(
+        async (parcelId: string, cropType: string) => {
+            await apiPatch(buildUrl(`/locations/${locationId}/parcels/${parcelId}`), {
+                cropType: cropType || null,
+            });
+            await parcelsQ.mutate();
+        },
+        [buildUrl, locationId, parcelsQ],
+    );
+
     const parcelColumns = useMemo(
         () =>
             createColumns<ParcelRow>([
@@ -179,7 +247,12 @@ export default function LocationDetailPage() {
                 {
                     id: 'crop',
                     header: 'Crop',
-                    cell: ({ row }) => row.original.cropType ?? '—',
+                    cell: ({ row }) => (
+                        <ParcelCropSelect
+                            value={row.original.cropType ?? null}
+                            onChange={(crop) => setParcelCrop(row.original.id, crop)}
+                        />
+                    ),
                     // Mobile card key/value row — the parcel's crop.
                     meta: { mobileCard: { slot: 'meta', label: 'Crop' } },
                 },
@@ -191,7 +264,7 @@ export default function LocationDetailPage() {
                     meta: { mobileCard: { slot: 'meta', label: 'Area (ha)' } },
                 },
             ]),
-        [],
+        [setParcelCrop],
     );
 
     const saveDrawnParcel = async () => {
