@@ -58,9 +58,10 @@ const EXEMPT_FILE_PATTERNS: RegExp[] = [
 // breadcrumbs. Each entry needs a written reason.
 const EXEMPT_FILES = new Set<string>([
     // The root dashboard is the top of the navigation hierarchy —
-    // breadcrumbs would point to itself. The DashboardLayout
-    // intentionally omits the slot.
-    "src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx",
+    // breadcrumbs would point to itself. After the farm-UI trim the
+    // dashboard's <h1> lives in the greeting header (the masthead
+    // PageHeader was removed), so the exemption tracks that file.
+    "src/app/t/[tenantSlug]/(app)/dashboard/GreetingHeader.tsx",
 
     // Error / loading / fallback boundaries — they render outside
     // the normal page flow.

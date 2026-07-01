@@ -67,21 +67,12 @@ describe("v2-PR-6 executive dashboard adoption", () => {
         "utf8",
     );
 
-    it("imports + renders <DashboardLayout>", () => {
-        expect(src).toMatch(
-            /import\s+\{\s*DashboardLayout\s*\}\s+from\s+["']@\/components\/layout\/DashboardLayout["']/,
-        );
-        expect(src).toMatch(/<DashboardLayout\b/);
-    });
-
-    it("no longer hand-rolls the dashboard outer wrapper", () => {
-        // Before: <div className="space-y-section animate-fadeIn"> followed
-        // immediately by an inline header block. After: those concerns live
-        // inside <DashboardLayout>. The flag asserts the inline wrapper
-        // pattern is gone.
-        expect(src).not.toMatch(
-            /<div\s+className="space-y-section animate-fadeIn">\s*\n\s*<OnboardingBanner/,
-        );
+    // The farm-UI trim removed the dashboard masthead header (the
+    // "Compliance Dashboard" PageHeader), so DashboardClient no longer
+    // mounts <DashboardLayout> — the page's greeting header (server
+    // page.tsx) is the sole masthead. Forward-guard the removal.
+    it("no longer mounts <DashboardLayout> (masthead header removed)", () => {
+        expect(src).not.toContain("DashboardLayout");
     });
 
     it("no longer hand-rolls a level-1 page heading", () => {

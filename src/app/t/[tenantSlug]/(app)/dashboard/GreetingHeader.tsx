@@ -88,7 +88,11 @@ export function GreetingHeader({
                 {seasonLabel && (
                     <p className="text-xs uppercase tracking-wide text-content-muted">{seasonLabel}</p>
                 )}
-                <Heading level={2} className="text-xl">
+                {/* The greeting is the dashboard's page title (the
+                    "Compliance Dashboard" masthead header was removed in the
+                    farm-UI trim), so it carries the page's sole level-1
+                    heading. Visual size stays text-xl. */}
+                <Heading level={1} className="text-xl">
                     {greetingLine}
                 </Heading>
                 <p className="text-sm text-content-secondary">{statusLine}</p>

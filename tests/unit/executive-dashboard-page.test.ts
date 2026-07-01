@@ -80,10 +80,8 @@ describe('Farm Dashboard Page', () => {
 // ─── Widget Composition ────────────────────────────────────────────
 
 describe('Dashboard Widget Composition', () => {
-    test('renders the open-field-tasks HeroMetric', () => {
-        const content = readClient();
-        expect(content).toContain("from '@/components/ui/HeroMetric'");
-        expect(content).toContain('<HeroMetric');
+    test('dashboard no longer mounts a HeroMetric (masthead hero removed)', () => {
+        expect(readClient()).not.toContain('HeroMetric');
     });
 
     test('renders the "your farm today" ag strip', () => {
@@ -148,10 +146,20 @@ describe('Dashboard Server/Client Split (Epic 69)', () => {
         expect(content).toMatch(/^['"]use client['"]/m);
     });
 
-    test('client component reads cache via useTenantSWR', () => {
+    test('client is a thin composition — no direct data fetching (delegated to child cards)', () => {
+        // After the trim the client owns no SWR reads of its own; the ag
+        // strip + recent-activity children fetch their own data.
         const content = readClient();
-        expect(content).toContain("from '@/lib/hooks/use-tenant-swr'");
-        expect(content).toContain('useTenantSWR');
+        expect(content).not.toContain('useTenantSWR');
+    });
+
+    test('the "Compliance Dashboard" masthead header was removed', () => {
+        // The DashboardLayout/PageHeader masthead (title "Compliance
+        // Dashboard" + ISO subtitle) is gone; the server greeting header is
+        // the sole masthead now.
+        const content = readClient();
+        expect(content).not.toContain('DashboardLayout');
+        expect(content).not.toContain('PageHeader');
     });
 
     test('page.tsx forwards RecentActivityCard via children (server boundary preserved)', () => {
@@ -222,9 +230,9 @@ describe('Dashboard Backward Compatibility', () => {
         expect(readClient()).toContain('OnboardingBanner');
     });
 
-    test('i18n translations still used in the client tree', () => {
-        // Server shell no longer needs translations directly; the
-        // client owns all i18n strings now.
-        expect(readClient()).toContain('useTranslations');
+    test('client no longer pulls i18n directly (header strings removed)', () => {
+        // The only client-side i18n was the masthead title/subtitle, which
+        // were removed with the header. Child components own their own copy.
+        expect(readClient()).not.toContain('useTranslations');
     });
 });

@@ -228,7 +228,9 @@ test.describe('a11y — authenticated tenant pages', () => {
 
     test('dashboard has no critical/serious WCAG violations', async ({ page }) => {
         await safeGoto(page, `/t/${tenantSlug}/dashboard`);
-        await page.waitForSelector('#kpi-grid, [aria-label="Dashboard"], h1', { timeout: 30_000 });
+        // The farm-UI trim removed the KPI grid + masthead header; the
+        // greeting card now carries the page's <h1>. Wait on that.
+        await page.waitForSelector('h1', { timeout: 30_000 });
         await runA11yScan(page, 'dashboard');
     });
 

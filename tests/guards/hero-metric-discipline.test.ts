@@ -101,7 +101,11 @@ describe("v2-PR-10 HeroMetric primitive contract", () => {
     });
 });
 
-describe("v2-PR-10 executive dashboard adoption", () => {
+// The HeroMetric masthead (open-field-tasks lead) was REMOVED from the
+// farm dashboard in the farm-UI trim. The primitive (tested above) is
+// retained for reuse; the dashboard just no longer mounts it. This block
+// is now a forward-guard on the removal so a re-add is a conscious change.
+describe("v2-PR-10 dashboard adoption removed", () => {
     const src = fs.readFileSync(
         path.join(
             ROOT,
@@ -110,32 +114,12 @@ describe("v2-PR-10 executive dashboard adoption", () => {
         "utf8",
     );
 
-    it("imports + renders <HeroMetric>", () => {
-        expect(src).toMatch(
-            /import\s+\{\s*HeroMetric\s*\}\s+from\s+["']@\/components\/ui\/HeroMetric["']/,
-        );
-        expect(src).toMatch(/<HeroMetric\b/);
+    it("no longer imports or renders <HeroMetric>", () => {
+        expect(src).not.toContain("HeroMetric");
     });
 
-    it("places the hero below the ag strip and above the recent-activity feed", () => {
-        // The KPI grid was removed in the farm-UI trim; the hero now sits
-        // between the "your farm today" ag strip and the recent-activity
-        // feed (the `children` slot).
-        const agStripIdx = src.search(/<AgDashboardStrip/);
-        const heroIdx = src.search(/<HeroMetric/);
-        const childrenIdx = src.search(/\{children/);
-        expect(agStripIdx).toBeGreaterThan(0);
-        expect(heroIdx).toBeGreaterThan(agStripIdx);
-        expect(childrenIdx).toBeGreaterThan(heroIdx);
-    });
-
-    it("surfaces open field tasks as the farm hero value", () => {
-        // The compliance surfaces (controls/tasks/policies) were hidden
-        // from this farm app, so the hero now leads with the farmer's
-        // open field-task count instead of control coverage. Swapping the
-        // hero metric again is a deliberate UX call that should land a
-        // same-PR ratchet update here.
-        expect(src).toMatch(/value=\{openFarmTasks\}/);
-        expect(src).toMatch(/eyebrow="Farm tasks"/);
+    it("no longer computes the open-field-tasks hero value", () => {
+        expect(src).not.toContain("openFarmTasks");
+        expect(src).not.toContain('eyebrow="Farm tasks"');
     });
 });

@@ -41,9 +41,11 @@ const SCAN_DIR = "src/app";
 
 const PRIMITIVE = "src/components/ui/HeroMetric.tsx";
 
-const CANONICAL_HOMES: string[] = [
-    "src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx",
-];
+// The farm-UI trim removed the HeroMetric masthead from the main tenant
+// dashboard (its only consumer). The primitive is retained for reuse but
+// currently has NO home — so the canonical-home list is empty and the
+// "no other file mounts it" ban below now applies everywhere.
+const CANONICAL_HOMES: string[] = [];
 
 /**
  * Future R10+ extensions of the masthead pattern get added here
@@ -100,11 +102,14 @@ describe("HeroMetric canonical home", () => {
         expect(src).toMatch(/text-\[72px\]|text-7xl/);
     });
 
-    it("the canonical home mounts <HeroMetric>", () => {
-        for (const rel of CANONICAL_HOMES) {
-            const src = fs.readFileSync(path.join(ROOT, rel), "utf8");
-            expect(src).toMatch(/<HeroMetric\b/);
-        }
+    it("the farm dashboard no longer mounts <HeroMetric> (masthead removed)", () => {
+        // Forward-guard the removal: the main tenant dashboard was the
+        // canonical home and dropped the hero in the farm-UI trim.
+        const src = fs.readFileSync(
+            path.join(ROOT, "src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx"),
+            "utf8",
+        );
+        expect(src).not.toMatch(/<HeroMetric\b/);
     });
 
     it("no OTHER file in src/app mounts <HeroMetric> (allowlist via ADDITIONAL_HOMES)", () => {

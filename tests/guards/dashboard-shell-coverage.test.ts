@@ -48,8 +48,8 @@ const DASHBOARDS: DashboardEntry[] = [
     // ── Adopted ──
     {
         file: "src/app/t/[tenantSlug]/(app)/dashboard/DashboardClient.tsx",
-        adopted: true,
-        note: "Main tenant dashboard — Epic 69 SWR-first composition. <DashboardLayout> wraps the executive metric stack + recent activity rail.",
+        adopted: false,
+        note: "Farm-UI trim removed the dashboard masthead header (the 'Compliance Dashboard' PageHeader) along with the KPI/trend/hero surfaces. The page's greeting header (server page.tsx) is the sole masthead now, so DashboardClient no longer mounts <DashboardLayout> — it's just onboarding banner + ag strip + recent-activity feed.",
     },
     {
         file: "src/app/t/[tenantSlug]/(app)/risks/dashboard/page.tsx",
