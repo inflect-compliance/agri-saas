@@ -628,7 +628,7 @@ export function MapCanvas({
                             aria-hidden="true"
                             className="pointer-events-none select-none rounded-md bg-bg-default/90 px-1.5 py-0.5 text-center shadow-sm ring-1 ring-border-subtle"
                         >
-                            <div className="max-w-[8rem] truncate text-[11px] font-semibold leading-tight text-content-default">
+                            <div className="max-w-trunc-tight truncate text-[11px] font-semibold leading-tight text-content-default">
                                 {lbl.name}
                             </div>
                             {lbl.areaHa != null && (
