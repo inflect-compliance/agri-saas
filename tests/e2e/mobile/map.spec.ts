@@ -97,8 +97,11 @@ test.describe('mobile map — phone-native operator map @mobile', () => {
         await findField.click();
         await expect(findField).toBeVisible();
 
-        // ── Parcel bottom-sheet (via the Parcels card) ───────────────
-        await main.getByRole('tab', { name: 'Parcels' }).click();
+        // ── Parcel bottom-sheet (via the Parcels list in Overview) ───
+        // The standalone Parcels tab was folded into a collapsible dropdown
+        // under the Overview tab's field-report row.
+        await main.getByRole('tab', { name: 'Overview' }).click();
+        await main.getByRole('button', { name: /Parcels/ }).click();
         // The mobile card fallback renders a tappable parcel card.
         await main.getByText('North 40').first().click();
 

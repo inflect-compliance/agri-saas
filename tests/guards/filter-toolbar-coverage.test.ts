@@ -98,9 +98,9 @@ const EXEMPTIONS: Record<string, string> = {
         "Detail-page roster sub-table — fixed scope (decisions in this campaign) with inline per-row decision controls; not a faceted-filter surface.",
     "src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx":
         "Detail-page documents sub-table (R11-PR7) — fixed scope (documents attached to this one vendor); not a faceted-filter surface.",
-    // A11y pass — location detail Parcels tab migrated off a raw <table>
-    // to DataTable. Detail-page sub-table (parcels of this one location);
-    // not a faceted-filter list surface.
+    // A11y pass — location detail parcels list (a DataTable, now inside the
+    // Overview tab's collapsible Parcels dropdown). Detail-page sub-table
+    // (parcels of this one location); not a faceted-filter list surface.
     "src/app/t/[tenantSlug]/(app)/locations/[locationId]/page.tsx":
         "Detail-page parcels sub-table — fixed scope (parcels of this one location); not a faceted-filter surface.",
     // B4 (2026-06-07): the controls DETAIL page no longer has a DataTable —

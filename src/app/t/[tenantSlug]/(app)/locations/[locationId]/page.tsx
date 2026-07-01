@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup } from '@/components/ui/toggle-group';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { DatePicker, type DateValue } from '@/components/ui/date-picker';
 import { toYMD } from '@/components/ui/date-picker/date-utils';
@@ -33,7 +34,7 @@ import type { MapParcel, MapMode } from '@/components/ui/map/MapCanvas';
 
 const MapCanvas = dynamic(() => import('@/components/ui/map/MapCanvas').then((m) => m.MapCanvas), { ssr: false });
 
-type Tab = 'overview' | 'map' | 'parcels' | 'operations';
+type Tab = 'overview' | 'map' | 'operations';
 
 interface LocationDetail {
     id: string;
@@ -73,7 +74,7 @@ export default function LocationDetailPage() {
     const searchParams = useSearchParams();
     useEffect(() => {
         const t = searchParams.get('tab');
-        if (t === 'overview' || t === 'map' || t === 'parcels' || t === 'operations') setTab(t);
+        if (t === 'overview' || t === 'map' || t === 'operations') setTab(t);
         const pid = searchParams.get('parcelId');
         if (pid) {
             setSheetParcelId(pid);
@@ -260,7 +261,6 @@ export default function LocationDetailPage() {
     const tabs = [
         { key: 'overview' as const, label: 'Overview' },
         { key: 'map' as const, label: 'Map' },
-        { key: 'parcels' as const, label: 'Parcels', count: loc?._count?.parcels ?? parcels.length },
         { key: 'operations' as const, label: 'Operations' },
     ];
 
@@ -318,6 +318,41 @@ export default function LocationDetailPage() {
                     )}
                     {loc && parcels.length > 0 && (
                         <FieldReportCard locationName={loc.name} parcels={parcels} />
+                    )}
+                    {/* Parcels list — collapsible dropdown under the field
+                        report's "Parcels / Total area" row (replaces the old
+                        standalone Parcels tab). */}
+                    {parcels.length > 0 && (
+                        <Accordion
+                            type="single"
+                            collapsible
+                            className="rounded-lg border border-border-subtle"
+                        >
+                            <AccordionItem value="parcels" density="compact">
+                                <AccordionTrigger size="sm" className="px-4">
+                                    <span className="flex items-center gap-tight">
+                                        <span className="font-medium">Parcels</span>
+                                        <span className="text-xs text-content-secondary">
+                                            {loc?._count?.parcels ?? parcels.length}
+                                        </span>
+                                    </span>
+                                </AccordionTrigger>
+                                <AccordionContent size="sm">
+                                    <DataTable<ParcelRow>
+                                        data={parcels}
+                                        columns={parcelColumns}
+                                        getRowId={(p) => p.id}
+                                        // <sm: render each parcel as a card. Tapping a
+                                        // card opens the parcel bottom-sheet (area /
+                                        // crop / apply-rate calc / "Start operation
+                                        // here") — the same sheet a map tap opens.
+                                        mobileFallback="card"
+                                        onRowClick={(row) => setSheetParcelId(row.original.id)}
+                                        loading={parcelsQ.isLoading && parcels.length === 0}
+                                    />
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     )}
                 </div>
             )}
@@ -508,25 +543,6 @@ export default function LocationDetailPage() {
                         )}
                     </div>
                 </div>
-            )}
-
-            {tab === 'parcels' && (
-                <DataTable<ParcelRow>
-                    data={parcels}
-                    columns={parcelColumns}
-                    getRowId={(p) => p.id}
-                    // <sm: render each parcel as a card. Tapping a card opens
-                    // the parcel bottom-sheet (area / crop / apply-rate calc /
-                    // "Start operation here") — the same sheet a map tap opens.
-                    mobileFallback="card"
-                    onRowClick={(row) => setSheetParcelId(row.original.id)}
-                    loading={parcelsQ.isLoading && parcels.length === 0}
-                    emptyState={(
-                        <div className="p-6 text-sm text-content-secondary">
-                            No parcels yet — use “Import parcels” to upload a shapefile, KML, or GeoJSON.
-                        </div>
-                    )}
-                />
             )}
 
             {tab === 'operations' && (

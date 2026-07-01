@@ -57,9 +57,14 @@ describe('getLocationSmartDefaults', () => {
             tempMeanC: dec(18),
         });
 
+        // Dates are RELATIVE to now so the "soonest FUTURE milestone"
+        // assertion never rots as the calendar advances (pl-soon must stay
+        // in the future ahead of pl-far).
+        const soonPlanting = new Date(Date.now() + 30 * 86_400_000);
+        const farPlanting = new Date(Date.now() + 200 * 86_400_000);
         db.planting.findMany.mockResolvedValue([
-            { id: 'pl-far', sowDate: d('2027-01-01T00:00:00Z'), transplantDate: null, harvestStartDate: null, variety: { name: 'Late Kale' } },
-            { id: 'pl-soon', sowDate: null, transplantDate: d('2026-07-01T00:00:00Z'), harvestStartDate: null, variety: { name: 'Early Tomato' } },
+            { id: 'pl-far', sowDate: farPlanting, transplantDate: null, harvestStartDate: null, variety: { name: 'Late Kale' } },
+            { id: 'pl-soon', sowDate: null, transplantDate: soonPlanting, harvestStartDate: null, variety: { name: 'Early Tomato' } },
         ]);
 
         const res = await getLocationSmartDefaults(ctx, 'loc1');
@@ -87,12 +92,13 @@ describe('getLocationSmartDefaults', () => {
         expect(res.sprayWindow?.obsDate).toBe('2026-06-18T00:00:00.000Z');
         expect(res.sprayWindow?.reasons.some((r) => r.includes('Wind'))).toBe(true);
 
-        // nextPlanting — soonest FUTURE milestone (transplant 2026-07-01, not the 2027 sow).
+        // nextPlanting — soonest FUTURE milestone (pl-soon's transplant, not
+        // pl-far's much later sow).
         expect(res.nextPlanting).toEqual({
             id: 'pl-soon',
             label: 'Early Tomato',
             stage: 'transplant',
-            date: '2026-07-01T00:00:00.000Z',
+            date: soonPlanting.toISOString(),
         });
 
         // N+1 guard — exactly two operationParcel queries (cross-parcel + the job),

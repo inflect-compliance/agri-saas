@@ -77,7 +77,7 @@ test.describe('mobile lists — card fallback @mobile', () => {
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
     });
 
-    // NOTE: the parcels sub-table (locations/[id] → Parcels tab) ALSO uses
+    // NOTE: the parcels sub-table (locations/[id] → Overview Parcels dropdown) ALSO uses
     // mobileFallback="card", but a detail-page-tab E2E for it proved flaky
     // (the sub-table's card list intermittently didn't mount within the
     // detail-tab lifecycle in CI). That card mode is covered by the rendered
