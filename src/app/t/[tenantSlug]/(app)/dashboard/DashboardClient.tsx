@@ -2,43 +2,27 @@
  * Farm dashboard — client shell.
  *
  * The dashboard was trimmed to the farm essentials: the guided
- * onboarding banner, the "your farm today" ag strip, the open-field-
- * tasks hero, and the recent-activity feed. The compliance-era
- * surfaces (risk / evidence KPI tiles, the compliance-trend charts,
- * and the next-best-action "readiness" card) were removed.
+ * onboarding banner, the "your farm today" ag strip, and the
+ * recent-activity feed. The compliance-era surfaces (risk / evidence
+ * KPI tiles, the compliance-trend charts, the next-best-action
+ * "readiness" card, and the open-field-tasks hero) were removed, as
+ * was the "Compliance Dashboard" masthead header — the page's
+ * greeting header (rendered by the server `page.tsx`) is the sole
+ * masthead now.
  *
- * Data-fetching pattern (Epic 69 SWR-first): the hero reads the same
- * `/farm-tasks` list the Farm Tasks page uses (SWR-cached, shared),
- * and `RecentActivityCard` stays a Server Component passed in as
+ * `RecentActivityCard` stays a Server Component passed in as
  * `children` from `page.tsx` so its server boundary survives the
  * client-component edge.
  */
 'use client';
 
 import * as React from 'react';
-import { useTranslations } from 'next-intl';
 
 import OnboardingBanner from '@/components/onboarding/OnboardingBanner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 
-import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { HeroMetric } from '@/components/ui/HeroMetric';
 import AgDashboardStrip from './AgDashboardStrip';
-
-// Terminal work-item statuses — everything else is an open/active field
-// task (mirrors the Farm Tasks list page's status set). Used by the
-// masthead hero's open-field-tasks count.
-const FARM_TASK_DONE_STATUSES = new Set(['RESOLVED', 'CLOSED', 'CANCELED']);
-
-/** Minimal `/farm-tasks` row — the hero only needs the status to count. */
-interface FarmHeroTaskRow {
-    id: string;
-    status: string;
-}
-
-// ─── Component ────────────────────────────────────────────────────────
 
 interface DashboardClientProps {
     /**
@@ -51,45 +35,14 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ children }: DashboardClientProps) {
-    const t = useTranslations('dashboard');
-
-    // UI-15: the dashboard no longer surfaces a notifications button on a new
-    // notification — the top-bar notifications bell is the single canonical
-    // affordance. Header carries no extra action here.
-    const headerActions = undefined;
-
-    // Masthead hero — open field tasks. The legacy control-coverage hero
-    // was retired when the compliance surfaces left the farm app. Reads
-    // the same `/farm-tasks` list the Farm Tasks page uses (SWR-cached,
-    // shared) and counts rows whose status is not terminal. 0 while the
-    // list is still loading / empty — no skeleton flash.
-    const { data: farmTasks } = useTenantSWR<FarmHeroTaskRow[]>('/farm-tasks');
-    const openFarmTasks = (Array.isArray(farmTasks) ? farmTasks : []).filter(
-        (task) => !FARM_TASK_DONE_STATUSES.has(task.status),
-    ).length;
-
     return (
-        <DashboardLayout
-            header={{
-                title: t('title'),
-                description: t('subtitle'),
-                actions: headerActions,
-            }}
-        >
+        <div className="space-y-section">
             <OnboardingBanner />
 
             {/* ─── Agriculture strip (module-gated) ───
                 A small "your farm today" row. Renders nothing for a tenant
                 with neither the JOURNAL nor INVENTORY module enabled. */}
             <AgDashboardStrip />
-
-            {/* ─── Masthead — Hero metric (farm: open field tasks) ─── */}
-            <HeroMetric
-                eyebrow="Farm tasks"
-                value={openFarmTasks}
-                description="open field tasks"
-                data-testid="dashboard-hero"
-            />
 
             {/* ─── Recent Activity ───
                 RecentActivityCard remains a server component; rendered by
@@ -109,6 +62,6 @@ export default function DashboardClient({ children }: DashboardClientProps) {
                     </div>
                 </Card>
             )}
-        </DashboardLayout>
+        </div>
     );
 }

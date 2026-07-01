@@ -77,12 +77,13 @@ describe('Dashboard masthead discipline (Roadmap-3 PR-10)', () => {
         expect(offenders).toEqual([]);
     });
 
-    it('the main /dashboard mounts <HeroMetric> (executive lead)', () => {
+    it('the main /dashboard no longer mounts <HeroMetric> (masthead hero removed)', () => {
         const src = read(MAIN_DASHBOARD);
-        // The main dashboard adds a HeroMetric above the KPI row —
-        // that's the canonical "executive lead number" pattern,
-        // distinct from per-resource dashboards which are row-only.
-        expect(src).toMatch(/<HeroMetric\b/);
+        // The open-field-tasks HeroMetric was removed in the farm-UI trim;
+        // the farm dashboard leads with the greeting header + ag strip
+        // instead of a 72px executive lead number. Forward-guard the
+        // removal so a re-add is a conscious change.
+        expect(src).not.toMatch(/<HeroMetric\b/);
     });
 
     it('no per-resource dashboard hand-rolls a raw stat card', () => {

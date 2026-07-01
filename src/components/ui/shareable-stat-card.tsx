@@ -32,6 +32,8 @@ interface ShareableStatCardProps {
     footer?: ReactNode;
     /** Filename stem + share title. */
     fileName: string;
+    /** Hide the "Save / share" action (display-only card). */
+    hideShare?: boolean;
     className?: string;
 }
 
@@ -42,6 +44,7 @@ export function ShareableStatCard({
     stats,
     footer,
     fileName,
+    hideShare = false,
     className,
 }: ShareableStatCardProps) {
     const captureRef = useRef<HTMLDivElement>(null);
@@ -85,11 +88,13 @@ export function ShareableStatCard({
                 </dl>
                 {footer}
             </div>
-            <div className="mt-default flex justify-end">
-                <Button variant="secondary" size="sm" loading={busy} onClick={onShare}>
-                    Save / share
-                </Button>
-            </div>
+            {!hideShare && (
+                <div className="mt-default flex justify-end">
+                    <Button variant="secondary" size="sm" loading={busy} onClick={onShare}>
+                        Save / share
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }
