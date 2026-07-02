@@ -437,6 +437,19 @@ jobs:
       # runtime is. See docs/ci-cd-pipeline-integrity.md § Build /
       # env-validation discipline. The posture is locked by
       # tests/guards/ci-pipeline-integrity.test.ts.
+      # Incremental-build cache: restore Next's webpack module cache so
+      # `next build` reuses unchanged compilation across runs. SAFE —
+      # the build still runs and produces correct output; only the
+      # intermediate cache is reused. Per-commit key + lockfile
+      # restore-key = the Next.js-recommended CI pattern.
+      - name: Cache Next.js build cache
+        uses: actions/cache@v5
+        with:
+          path: .next/cache
+          key: nextcache-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            nextcache-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
       - name: Build Next.js (production)
         # --webpack: nonce strict-CSP chunks (see Dockerfile + impl note).
         run: npx next build --webpack
@@ -554,6 +567,18 @@ jobs:
 
       - name: Create upload directory
         run: mkdir -p /tmp/ci-uploads
+
+      # Incremental-build cache (E2E test-mode build → `.next-test/`,
+      # see next.config.js distDir). SAFE: build still runs; only the
+      # webpack module cache is reused. Separate key from the plain
+      # build job because NEXT_PUBLIC_TEST_MODE is inlined here.
+      - name: Cache Next.js build cache (test-mode)
+        uses: actions/cache@v5
+        with:
+          path: .next-test/cache
+          key: nextcache-e2e-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            nextcache-e2e-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
 
       - name: Build Next.js app
         # --webpack: match the deployed bundler (nonce strict-CSP chunks).
@@ -739,6 +764,16 @@ jobs:
         run: |
           mkdir -p tmp/test-uploads
           mkdir -p tests/load/results
+
+      # Incremental-build cache (plain `.next/` build — no test mode).
+      # SAFE: build still runs; only the webpack module cache is reused.
+      - name: Cache Next.js build cache
+        uses: actions/cache@v5
+        with:
+          path: .next/cache
+          key: nextcache-loadsmoke-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            nextcache-loadsmoke-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
 
       - name: Build Next.js app
         # Do NOT set NEXT_TEST_MODE=1 here. next.config.js routes the
