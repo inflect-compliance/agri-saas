@@ -443,7 +443,7 @@ jobs:
       # intermediate cache is reused. Per-commit key + lockfile
       # restore-key = the Next.js-recommended CI pattern.
       - name: Cache Next.js build cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .next/cache
           key: nextcache-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
@@ -573,7 +573,7 @@ jobs:
       # webpack module cache is reused. Separate key from the plain
       # build job because NEXT_PUBLIC_TEST_MODE is inlined here.
       - name: Cache Next.js build cache (test-mode)
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .next-test/cache
           key: nextcache-e2e-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
@@ -602,7 +602,7 @@ jobs:
         run: echo "version=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: pw-cache
         with:
           path: ~/.cache/ms-playwright
@@ -768,7 +768,7 @@ jobs:
       # Incremental-build cache (plain `.next/` build — no test mode).
       # SAFE: build still runs; only the webpack module cache is reused.
       - name: Cache Next.js build cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .next/cache
           key: nextcache-loadsmoke-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
