@@ -102,6 +102,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/entrypoint.sh ./scripts/e
 # The compiled BullMQ worker + scheduler bundles — run by the
 # `worker` compose service, a separate process from `next start`.
 COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
+# DejaVu Sans TTFs for Cyrillic PDF generation (БАБХ ДНЕВНИК). This is a
+# non-standalone build (ships .next/public/node_modules only), so the font
+# assets read at runtime via process.cwd() must be copied explicitly.
+COPY --from=builder --chown=nextjs:nodejs /app/src/lib/pdf/fonts ./src/lib/pdf/fonts
 
 # Ensure entrypoint is executable and upload dir exists. `/app` is
 # already owned by nextjs:nodejs via the per-COPY --chown above, so we
