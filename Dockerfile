@@ -56,6 +56,13 @@ RUN npm run build:worker
 # those modules.
 RUN npm prune --omit=dev
 
+# Drop the Next.js webpack build cache before the runner stage copies
+# `.next`. `.next/cache` holds incremental-compilation artefacts used
+# only by a subsequent `next build` — `next start` never reads it. On
+# this app it is ~1 GB of dead weight in the runtime image. Removing
+# it here keeps it out of the `COPY --from=builder /app/.next` layer.
+RUN rm -rf .next/cache
+
 # ─── Stage 3: Runner ──────────────────────────────────────
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -70,27 +77,39 @@ RUN apk add --no-cache openssl
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy build output
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
+# Copy build output.
+#
+# Every COPY carries `--chown=nextjs:nodejs` so the files land already
+# owned by the runtime user. The previous `RUN chown -R nextjs:nodejs
+# /app` at the end of this stage rewrote every one of these files in a
+# SEPARATE image layer — because the COPYs create root-owned files and
+# a recursive chown changes the metadata of all of them, Docker's
+# overlay filesystem duplicated the ENTIRE /app tree (~4.4 GB) into the
+# chown layer. Chowning at COPY time writes the files once, with the
+# right owner, in the copy layer itself — no duplicate.
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Prisma 7 — connection URL config moved out of `datasource db {}`
 # in `prisma/schema/base.prisma` into `prisma.config.ts`. The CLI
 # (`prisma migrate deploy` from the entrypoint) reads URLs from
 # this file. Without it, deploy fails with
 # "datasource.url property is required in your Prisma config file".
-COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder /app/scripts/entrypoint.sh ./scripts/entrypoint.sh
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/entrypoint.sh ./scripts/entrypoint.sh
 # The compiled BullMQ worker + scheduler bundles — run by the
 # `worker` compose service, a separate process from `next start`.
-COPY --from=builder /app/dist ./dist
+COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
 
-# Ensure entrypoint is executable and upload dir exists
+# Ensure entrypoint is executable and upload dir exists. `/app` is
+# already owned by nextjs:nodejs via the per-COPY --chown above, so we
+# only chown the freshly-created upload dir here — NOT a recursive
+# `chown -R /app`, which duplicated the whole tree into its own layer.
 RUN chmod +x ./scripts/entrypoint.sh && \
     mkdir -p /data/uploads && \
-    chown -R nextjs:nodejs /app /data/uploads
+    chown nextjs:nodejs /data/uploads
 
 USER nextjs
 
