@@ -19,9 +19,11 @@
  */
 import type { RequestContext } from '@/app-layer/types';
 import { assertCanRead } from '@/app-layer/policies/common';
+import { notFound } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
 import { resolveOperationType } from '@/app-layer/usecases/field-operation';
 import { createPdfDocument } from '@/lib/pdf/pdfKitFactory';
+import { getStorageProvider, buildTenantObjectKey } from '@/lib/storage';
 import type { ReportMeta } from '@/lib/pdf/types';
 
 // ─────────────────────────────────────────────────────────────────────
@@ -430,6 +432,9 @@ export function renderFarmRecordDiary(
     doc: PDFKit.PDFDocument,
     data: FarmRecordData,
     L: DiaryLabels,
+    // When composing several locations into ONE document (season diary),
+    // pass false and call stampPageNumbers once at the end instead.
+    stampPages = true,
 ): void {
     const p = data.profile;
 
@@ -573,11 +578,11 @@ export function renderFarmRecordDiary(
         8,
     );
 
-    stampPageNumbers(doc, L);
+    if (stampPages) stampPageNumbers(doc, L);
 }
 
 /** Stamp "стр. X от Y" in the bottom margin of every buffered page. */
-function stampPageNumbers(doc: PDFKit.PDFDocument, L: DiaryLabels): void {
+export function stampPageNumbers(doc: PDFKit.PDFDocument, L: DiaryLabels): void {
     const range = doc.bufferedPageRange();
     for (let i = range.start; i < range.start + range.count; i++) {
         doc.switchToPage(i);
@@ -822,4 +827,171 @@ export async function generateFarmRecordDiaryPdf(
 
     // NOTE: do NOT call doc.end() — the route's collectPdfBuffer finalises.
     return doc;
+}
+
+/**
+ * Combined SEASON diary — one section-set per Location that had a completed
+ * operation in the season window, page-break between, rendered into a SINGLE
+ * document (the same generator). Backs the seasons-page row action. Page
+ * numbers are stamped ONCE across the whole document at the end.
+ */
+export async function generateSeasonDiaryPdf(
+    ctx: RequestContext,
+    opts: { seasonId: string },
+): Promise<PDFKit.PDFDocument> {
+    assertCanRead(ctx);
+
+    const { from, to, seasonName, locationIds } = await runInTenantContext(ctx, async (db) => {
+        const season = await db.season.findFirst({
+            where: { id: opts.seasonId, tenantId: ctx.tenantId },
+            select: { name: true, startDate: true, endDate: true },
+        });
+        if (!season) throw notFound('Season not found');
+        const f = season.startDate.toISOString().slice(0, 10);
+        const t = season.endDate.toISOString().slice(0, 10);
+
+        // Locations with ≥1 DONE operation line in the season window.
+        const doneLines = await db.operationParcel.findMany({
+            where: {
+                tenantId: ctx.tenantId,
+                status: 'DONE',
+                completedAt: { gte: season.startDate, lte: season.endDate },
+            },
+            select: { taskId: true },
+        });
+        const taskIds = [...new Set(doneLines.map((l) => l.taskId))];
+        const links = taskIds.length
+            ? await db.taskLink.findMany({
+                  where: { tenantId: ctx.tenantId, entityType: 'LOCATION', taskId: { in: taskIds } },
+                  select: { entityId: true },
+              })
+            : [];
+        let ids = [...new Set(links.map((l) => l.entityId))];
+        // Fallback: no completed ops → still produce a per-location register
+        // over the tenant's fields (empty ruled tables), so the file is a
+        // usable blank ДНЕВНИК rather than a single empty page.
+        if (ids.length === 0) {
+            const locs = await db.location.findMany({
+                where: { tenantId: ctx.tenantId, deletedAt: null },
+                select: { id: true },
+                orderBy: { name: 'asc' },
+                take: 25,
+            });
+            ids = locs.map((l) => l.id);
+        }
+        return { from: f, to: t, seasonName: season.name, locationIds: ids };
+    });
+
+    const meta: ReportMeta = {
+        tenantName: seasonName,
+        reportTitle: 'Дневник за проведените растителнозащитни мероприятия и торене',
+        reportSubtitle: seasonName,
+        generatedAt: new Date().toISOString(),
+        watermark: 'NONE',
+        fontFamily: 'unicode',
+    };
+    const doc = createPdfDocument(meta);
+
+    let first = true;
+    for (const locationId of locationIds) {
+        const data = await gatherFarmRecordData(ctx, locationId, from, to);
+        if (!first) doc.addPage({ size: 'A4', layout: 'portrait' });
+        renderFarmRecordDiary(doc, data, BG_LABELS, false);
+        first = false;
+    }
+    stampPageNumbers(doc, BG_LABELS);
+
+    // NOTE: do NOT call doc.end() — the route's collectPdfBuffer finalises.
+    return doc;
+}
+
+/** Collect a PDFKit document into a Buffer (listeners first, then end()). */
+function collectPdfBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        doc.on('data', (c: Buffer) => chunks.push(c));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+        doc.end();
+    });
+}
+
+/**
+ * Generate the ДНЕВНИК and PERSIST it as a FileRecord (domain 'reports') —
+ * the single save seam shared by the manual route (`save:true`) and the
+ * auto-generation BullMQ job. The filename encodes the location + range +
+ * an `-auto` suffix so the register can list, filter, and label rows without
+ * a side table: `dnevnik-<locationId>-<from>_<to>[-auto].pdf`.
+ *
+ * `uploadedByUserId` is a REQUIRED User FK — the job passes a real user
+ * (the task assignee/creator), never a synthetic 'system' id.
+ */
+export async function saveFarmRecordDiary(
+    ctx: RequestContext,
+    opts: { locationId: string; from: string; to: string; auto?: boolean; uploadedByUserId?: string },
+): Promise<{ fileRecordId: string; fileName: string }> {
+    const doc = await generateFarmRecordDiaryPdf(ctx, {
+        locationId: opts.locationId,
+        from: opts.from,
+        to: opts.to,
+    });
+    const pdfBuffer = await collectPdfBuffer(doc);
+    const fileName = `dnevnik-${opts.locationId}-${opts.from}_${opts.to}${opts.auto ? '-auto' : ''}.pdf`;
+
+    const storage = getStorageProvider();
+    const pathKey = buildTenantObjectKey(ctx.tenantId, 'reports', fileName);
+    // storage.write accepts a Buffer directly — pass the PDF bytes as-is.
+    // (A dynamic `await import('stream')` for Readable resolved to undefined
+    // in the Next server bundle, throwing on Readable.from.)
+    const writeResult = await storage.write(pathKey, pdfBuffer, {
+        mimeType: 'application/pdf',
+    });
+    const fileRecord = (await runInTenantContext(ctx, (db) =>
+        db.fileRecord.create({
+            data: {
+                tenantId: ctx.tenantId,
+                pathKey,
+                originalName: fileName,
+                mimeType: 'application/pdf',
+                sizeBytes: writeResult.sizeBytes,
+                sha256: writeResult.sha256,
+                status: 'STORED',
+                uploadedByUserId: opts.uploadedByUserId ?? ctx.userId,
+                storedAt: new Date(),
+                storageProvider: storage.name,
+                domain: 'reports',
+                scanStatus: 'SKIPPED',
+            },
+        }),
+    )) as { id: string };
+
+    return { fileRecordId: fileRecord.id, fileName };
+}
+
+/** The farm-record filename prefix for a location (register list filter). */
+export function farmRecordNamePrefix(locationId: string): string {
+    return `dnevnik-${locationId}-`;
+}
+
+/**
+ * Parse a farm-record `originalName` back into its period + auto flag.
+ * Returns null when the name isn't a farm-record diary for this location.
+ * Shape: `dnevnik-<locationId>-<from>_<to>[-auto].pdf` (locationId is a cuid,
+ * no hyphens, so the split is unambiguous).
+ */
+export function parseFarmRecordFileName(
+    originalName: string,
+    locationId: string,
+): { from: string; to: string; auto: boolean } | null {
+    const prefix = farmRecordNamePrefix(locationId);
+    if (!originalName.startsWith(prefix) || !originalName.endsWith('.pdf')) return null;
+    let rest = originalName.slice(prefix.length, -'.pdf'.length);
+    let auto = false;
+    if (rest.endsWith('-auto')) {
+        auto = true;
+        rest = rest.slice(0, -'-auto'.length);
+    }
+    const sep = rest.indexOf('_');
+    if (sep < 0) return null;
+    return { from: rest.slice(0, sep), to: rest.slice(sep + 1), auto };
 }

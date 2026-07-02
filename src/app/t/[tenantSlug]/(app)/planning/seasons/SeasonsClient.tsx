@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
-import { Plus } from '@/components/ui/icons/nucleo';
+import { Plus, CalendarIcon } from '@/components/ui/icons/nucleo';
+import { Tooltip } from '@/components/ui/tooltip';
+import { useToast } from '@/components/ui/hooks';
 import { createColumns } from '@/components/ui/table';
 import { EntityListPage } from '@/components/layout/EntityListPage';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -40,7 +42,35 @@ const STATUS_OPTIONS: ComboboxOption[] = [
 
 export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: SeasonsClientProps) {
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
+    const buildUrl = useTenantApiUrl();
+    const toast = useToast();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+    // Season-wide БАБХ ДНЕВНИК — one combined diary across every location with
+    // completed ops in the season (one section-set per location, page-break
+    // between). Backend: POST /reports/season-diary?seasonId=… streams the PDF.
+    const downloadSeasonDiary = useCallback(
+        async (season: SeasonRow) => {
+            try {
+                const res = await fetch(buildUrl(`/reports/season-diary?seasonId=${season.id}`), {
+                    method: 'POST',
+                });
+                if (!res.ok) throw new Error('season diary failed');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dnevnik-season-${season.name.replace(/\s+/g, '_')}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch {
+                toast.error('Неуспешно генериране на дневника за сезона.');
+            }
+        },
+        [buildUrl, toast],
+    );
 
     const seasonsSWR = useTenantSWR<SeasonRow[]>('/planning/seasons', {
         fallbackData: initialSeasons,
@@ -84,8 +114,31 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                         <AgStatusBadge entity="season" status={row.original.status} />
                     ),
                 },
+                {
+                    id: 'actions',
+                    header: '',
+                    enableHiding: false,
+                    cell: ({ row }) => (
+                        <div className="flex items-center justify-end gap-tight">
+                            <Tooltip content="Дневник (PDF) за сезона">
+                                <button
+                                    type="button"
+                                    aria-label="Дневник (PDF)"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted hover:bg-bg-muted hover:text-content-emphasis"
+                                    data-testid={`season-diary-${row.original.id}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        void downloadSeasonDiary(row.original);
+                                    }}
+                                >
+                                    <CalendarIcon className="h-3.5 w-3.5" aria-hidden />
+                                </button>
+                            </Tooltip>
+                        </div>
+                    ),
+                },
             ]),
-        [],
+        [downloadSeasonDiary],
     );
 
     return (

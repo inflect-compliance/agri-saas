@@ -30,6 +30,7 @@ jest.mock('next/navigation', () => ({
 // ─── tenant API url helper (mirrors the real `/api/t/{slug}` prefix) ─
 jest.mock('@/lib/tenant-context-provider', () => ({
     useTenantApiUrl: () => (p: string) => `/api/t/acme${p.startsWith('/') ? p : `/${p}`}`,
+    useTenantHref: () => (p: string) => `/t/acme${p.startsWith('/') ? p : `/${p}`}`,
 }));
 
 // ─── typed API client — capture POST bodies ────────────────────────

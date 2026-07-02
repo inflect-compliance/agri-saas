@@ -12,11 +12,12 @@
  */
 import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
-import { generateFarmRecordDiaryPdf } from '@/app-layer/reports/pdf/farm-record-diary';
+import {
+    generateFarmRecordDiaryPdf,
+    saveFarmRecordDiary,
+} from '@/app-layer/reports/pdf/farm-record-diary';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { jsonResponse } from '@/lib/api-response';
-import { getStorageProvider, buildTenantObjectKey } from '@/lib/storage';
-import { runInTenantContext } from '@/lib/db-context';
 import { z } from 'zod';
 
 const BodySchema = z
@@ -51,6 +52,17 @@ export const POST = withApiErrorHandling(
         const ctx = await getTenantCtx(params, req);
         const body = BodySchema.parse(await req.json());
 
+        // save:true → persist to the location's Farm-records register (the
+        // shared seam the auto-generation job also uses).
+        if (body.save) {
+            const saved = await saveFarmRecordDiary(ctx, {
+                locationId: params.id,
+                from: body.from,
+                to: body.to,
+            });
+            return jsonResponse(saved);
+        }
+
         const pdfDoc = await generateFarmRecordDiaryPdf(ctx, {
             locationId: params.id,
             from: body.from,
@@ -58,35 +70,6 @@ export const POST = withApiErrorHandling(
         });
         const pdfBuffer = await collectPdfBuffer(pdfDoc);
         const fileName = `dnevnik-${params.id}.pdf`;
-
-        if (body.save) {
-            const storage = getStorageProvider();
-            const pathKey = buildTenantObjectKey(ctx.tenantId, 'reports', fileName);
-            const { Readable } = await import('stream');
-            const writeResult = await storage.write(pathKey, Readable.from(pdfBuffer), {
-                mimeType: 'application/pdf',
-            });
-            const fileRecord = (await runInTenantContext(ctx, (db) =>
-                db.fileRecord.create({
-                    data: {
-                        tenantId: ctx.tenantId,
-                        pathKey,
-                        originalName: fileName,
-                        mimeType: 'application/pdf',
-                        sizeBytes: writeResult.sizeBytes,
-                        sha256: writeResult.sha256,
-                        status: 'STORED',
-                        uploadedByUserId: ctx.userId,
-                        storedAt: new Date(),
-                        storageProvider: storage.name,
-                        domain: 'reports',
-                        scanStatus: 'SKIPPED',
-                    },
-                }),
-            )) as { id: string };
-
-            return jsonResponse({ fileRecordId: fileRecord.id, fileName });
-        }
 
         return new Response(new Uint8Array(pdfBuffer), {
             status: 200,

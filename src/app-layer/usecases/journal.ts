@@ -149,7 +149,27 @@ export async function getLogEntry(ctx: RequestContext, id: string) {
     return runInTenantContext(ctx, async (db) => {
         const entry = await JournalRepository.getById(db, ctx, id);
         if (!entry) throw notFound('Journal entry not found');
-        return entry;
+
+        // Resolve the field-operation linkage for the БАБХ "Дневник (PDF)"
+        // action on the journal detail: an INPUT_APPLICATION line carries
+        // operationParcelId → OperationParcel.taskId → Location (via TaskLink).
+        // Null when the entry isn't a field-operation line.
+        let fieldOperation: { taskId: string; locationId: string } | null = null;
+        if (entry.operationParcelId) {
+            const line = await db.operationParcel.findFirst({
+                where: { id: entry.operationParcelId, tenantId: ctx.tenantId },
+                select: { taskId: true },
+            });
+            if (line) {
+                const link = await db.taskLink.findFirst({
+                    where: { taskId: line.taskId, tenantId: ctx.tenantId, entityType: 'LOCATION' },
+                    select: { entityId: true },
+                });
+                if (link) fieldOperation = { taskId: line.taskId, locationId: link.entityId };
+            }
+        }
+
+        return { ...entry, fieldOperation };
     });
 }
 

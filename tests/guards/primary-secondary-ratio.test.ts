@@ -215,8 +215,11 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // the single earned primary create-CTA for starting a field operation on that
 // location, matching the sibling entity-create header triggers. The wizard's
 // own Next / Finish / Back buttons live in src/components/ui/step-wizard.tsx,
-// which this src/app-scoped ratchet does not scan. Measured = 157.
-const MAX_PRIMARY_COUNT = 157;
+// which this src/app-scoped ratchet does not scan. Measured = 158.
+// 158: +1 for the journal-entry "Дневник (PDF)" generate-modal confirm
+// (PR3) — a genuine modal-confirm primary, matching the identical primary
+// confirm on the Location-detail ДНЕВНИК modal.
+const MAX_PRIMARY_COUNT = 158;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

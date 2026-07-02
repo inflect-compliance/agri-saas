@@ -17,7 +17,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { DatePicker, type DateValue } from '@/components/ui/date-picker';
 import { toYMD } from '@/components/ui/date-picker/date-utils';
-import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { InlineNotice } from '@/components/ui/inline-notice';
+import { formatDateTime } from '@/lib/format-date';
 import { apiPost, apiPatch, ApiClientError } from '@/lib/api-client';
 import { SpatialImportModal } from '@/components/ui/map/SpatialImportModal';
 import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
@@ -33,7 +36,22 @@ import type { MapParcel } from '@/components/ui/map/MapCanvas';
 
 const MapCanvas = dynamic(() => import('@/components/ui/map/MapCanvas').then((m) => m.MapCanvas), { ssr: false });
 
-type Tab = 'overview' | 'map' | 'operations';
+type Tab = 'overview' | 'map' | 'operations' | 'records';
+
+interface FarmRecordRow {
+    fileRecordId: string;
+    fileName: string;
+    from: string;
+    to: string;
+    generatedAt: string;
+    auto: boolean;
+    generatedByName: string | null;
+    sizeBytes: number;
+}
+interface FarmRecordsResp {
+    records: FarmRecordRow[];
+    completeness: { missingLabels: string[] };
+}
 
 interface LocationDetail {
     id: string;
@@ -115,6 +133,7 @@ function ParcelCropSelect({
 export default function LocationDetailPage() {
     const { tenantSlug, locationId } = useParams<{ tenantSlug: string; locationId: string }>();
     const buildUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
     const { isMobile } = useMediaQuery();
     const toast = useToast();
     const [tab, setTab] = useState<Tab>('overview');
@@ -128,7 +147,7 @@ export default function LocationDetailPage() {
     const searchParams = useSearchParams();
     useEffect(() => {
         const t = searchParams.get('tab');
-        if (t === 'overview' || t === 'map' || t === 'operations') setTab(t);
+        if (t === 'overview' || t === 'map' || t === 'operations' || t === 'records') setTab(t);
         const pid = searchParams.get('parcelId');
         if (pid) {
             setSheetParcelId(pid);
@@ -201,6 +220,11 @@ export default function LocationDetailPage() {
     const locQ = useTenantSWR<LocationDetail>(`/locations/${locationId}`);
     const parcelsQ = useTenantSWR<ParcelsResp>(`/locations/${locationId}/parcels`);
     const opsQ = useTenantSWR<OperationItem[]>(tab === 'operations' ? `/locations/${locationId}/operations` : null);
+    // Generated ДНЕВНИК register — fetched on the Farm-records tab AND when the
+    // generate modal is open (the modal shows the completeness affordance).
+    const recordsQ = useTenantSWR<FarmRecordsResp>(
+        tab === 'records' || showDnevnik ? `/locations/${locationId}/farm-records` : null,
+    );
     // Recall + weather + crop-plan suggestions for this field (editable;
     // powers the spray-window/next-task banner + the wizard prefills).
     const smartQ = useTenantSWR<LocationSmartDefaults>(`/locations/${locationId}/smart-defaults`);
@@ -315,6 +339,77 @@ export default function LocationDetailPage() {
         [setParcelCrop],
     );
 
+    const downloadRecord = useCallback(
+        async (fileRecordId: string, fileName: string) => {
+            try {
+                const res = await fetch(buildUrl(`/files/${fileRecordId}/download`));
+                if (!res.ok) throw new Error('download failed');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch {
+                toast.error('Неуспешно изтегляне на дневника.');
+            }
+        },
+        [buildUrl, toast],
+    );
+
+    const recordColumns = useMemo(
+        () =>
+            createColumns<FarmRecordRow>([
+                {
+                    accessorKey: 'generatedAt',
+                    header: 'Генериран на',
+                    cell: ({ row }) => (
+                        <span className="flex items-center gap-tight">
+                            {formatDateTime(row.original.generatedAt)}
+                            {row.index === 0 && <StatusBadge variant="success">текущ</StatusBadge>}
+                        </span>
+                    ),
+                    meta: { mobileCard: { slot: 'title' } },
+                },
+                {
+                    id: 'period',
+                    header: 'Период',
+                    cell: ({ row }) => `${row.original.from} – ${row.original.to}`,
+                    meta: { mobileCard: { slot: 'meta', label: 'Период' } },
+                },
+                {
+                    id: 'by',
+                    header: 'От',
+                    cell: ({ row }) =>
+                        row.original.auto ? 'автоматично' : (row.original.generatedByName ?? '—'),
+                    meta: { mobileCard: { slot: 'meta', label: 'От' } },
+                },
+                {
+                    accessorKey: 'sizeBytes',
+                    header: 'Размер',
+                    cell: ({ row }) => `${(row.original.sizeBytes / 1024).toFixed(1)} KB`,
+                    meta: { mobileCard: { slot: 'meta', label: 'Размер' } },
+                },
+                {
+                    id: 'download',
+                    header: '',
+                    cell: ({ row }) => (
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => void downloadRecord(row.original.fileRecordId, row.original.fileName)}
+                        >
+                            Изтегли
+                        </Button>
+                    ),
+                },
+            ]),
+        [downloadRecord],
+    );
+
     const mergeParcels = async () => {
         if (selected.length < 2 || !mergeName.trim()) return;
         setMerging(true);
@@ -340,6 +435,7 @@ export default function LocationDetailPage() {
         { key: 'overview' as const, label: 'Overview' },
         { key: 'map' as const, label: 'Map' },
         { key: 'operations' as const, label: 'Operations' },
+        { key: 'records' as const, label: 'Farm records' },
     ];
 
     const breadcrumbs: { label: string; href?: string }[] = [
@@ -649,6 +745,25 @@ export default function LocationDetailPage() {
                 </div>
             )}
 
+            {tab === 'records' && (
+                <div className="space-y-section">
+                    {(recordsQ.data?.records ?? []).length === 0 ? (
+                        <div className="rounded-lg border border-border-subtle p-6 text-sm text-content-secondary">
+                            Все още няма генерирани дневници. Използвайте „Дневник (PDF)“, за да
+                            генерирате дневник за период.
+                        </div>
+                    ) : (
+                        <DataTable<FarmRecordRow>
+                            data={recordsQ.data?.records ?? []}
+                            columns={recordColumns}
+                            getRowId={(r) => r.fileRecordId}
+                            mobileFallback="card"
+                            loading={recordsQ.isLoading && !recordsQ.data}
+                        />
+                    )}
+                </div>
+            )}
+
             <SpatialImportModal
                 locationId={locationId}
                 open={showImport}
@@ -729,13 +844,25 @@ export default function LocationDetailPage() {
                     description="Изтегли попълнения дневник за избрания период."
                 />
                 <Modal.Body>
-                    <div className="flex flex-col gap-default sm:flex-row">
-                        <FormField label="От">
-                            <DatePicker value={dnevnikFrom} onChange={(d) => d && setDnevnikFrom(d)} />
-                        </FormField>
-                        <FormField label="До">
-                            <DatePicker value={dnevnikTo} onChange={(d) => d && setDnevnikTo(d)} />
-                        </FormField>
+                    <div className="space-y-default">
+                        {(recordsQ.data?.completeness.missingLabels.length ?? 0) > 0 && (
+                            <InlineNotice variant="warning">
+                                Липсват данни: {recordsQ.data!.completeness.missingLabels.join(', ')} — полетата
+                                ще останат празни.{' '}
+                                <a className="underline" href={tenantHref('/admin/farm-profile')}>
+                                    Попълни фермерския профил
+                                </a>
+                                .
+                            </InlineNotice>
+                        )}
+                        <div className="flex flex-col gap-default sm:flex-row">
+                            <FormField label="От">
+                                <DatePicker value={dnevnikFrom} onChange={(d) => d && setDnevnikFrom(d)} />
+                            </FormField>
+                            <FormField label="До">
+                                <DatePicker value={dnevnikTo} onChange={(d) => d && setDnevnikTo(d)} />
+                            </FormField>
+                        </div>
                     </div>
                 </Modal.Body>
                 <Modal.Actions>
