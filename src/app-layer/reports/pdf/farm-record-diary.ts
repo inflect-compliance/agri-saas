@@ -9,9 +9,11 @@
  * The document language is Bulgarian regardless of UI locale, so every
  * label is an inline literal in the `L` map below.
  *
- * Cyrillic: the doc is created with `fontFamily: 'unicode'`, which makes
- * `createPdfDocument` register DejaVu Sans over the 'Helvetica' names — so
- * every `.font('Helvetica'…)` call renders Cyrillic instead of tofu.
+ * Cyrillic: the doc is created with `fontFamily: 'unicode'`, so
+ * `createPdfDocument` registers DejaVu Sans under UNICODE_FONT /
+ * UNICODE_FONT_BOLD; every `.font(...)` here uses those names (registering
+ * over the built-in 'Helvetica' name is unreliable in pdfkit 0.19.x and
+ * silently tofus Cyrillic).
  *
  * Layout: the shared table/section/layout helpers are A4-portrait-locked,
  * so the wide (landscape) tables are drawn by the small orientation-aware
@@ -22,7 +24,7 @@ import { assertCanRead } from '@/app-layer/policies/common';
 import { notFound } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
 import { resolveOperationType } from '@/app-layer/usecases/field-operation';
-import { createPdfDocument } from '@/lib/pdf/pdfKitFactory';
+import { createPdfDocument, UNICODE_FONT, UNICODE_FONT_BOLD } from '@/lib/pdf/pdfKitFactory';
 import { getStorageProvider, buildTenantObjectKey } from '@/lib/storage';
 import type { ReportMeta } from '@/lib/pdf/types';
 
@@ -315,7 +317,7 @@ function drawRuledTable(
     const widths = columns.map((c) => (c.weight / totalWeight) * availW);
 
     const drawHeaderRow = (y: number): number => {
-        doc.font('Helvetica-Bold').fontSize(fontSize);
+        doc.font(UNICODE_FONT_BOLD).fontSize(fontSize);
         let hh = 0;
         headers.forEach((h, i) => {
             const measured = doc.heightOfString(h, { width: widths[i] - 2 * pad });
@@ -340,7 +342,7 @@ function drawRuledTable(
     let y = drawHeaderRow(startY);
 
     const drawCells = (cells: string[], minHeight: number): void => {
-        doc.font('Helvetica').fontSize(fontSize);
+        doc.font(UNICODE_FONT).fontSize(fontSize);
         let rh = 0;
         cells.forEach((txt, i) => {
             const measured = doc.heightOfString(String(txt ?? ''), {
@@ -386,7 +388,7 @@ function drawBoxedCells(
     const cw = 14;
     const ch = 16;
     const digits = (value ?? '').replace(/\s/g, '').slice(0, count).split('');
-    doc.font('Helvetica').fontSize(9).fillColor(INK);
+    doc.font(UNICODE_FONT).fontSize(9).fillColor(INK);
     for (let i = 0; i < count; i++) {
         const cx = x + i * cw;
         doc.rect(cx, y, cw, ch).stroke(GRID);
@@ -405,7 +407,7 @@ function drawLabeledLine(
     label: string,
     value: string | null,
 ): number {
-    doc.font('Helvetica').fontSize(10).fillColor(INK);
+    doc.font(UNICODE_FONT).fontSize(10).fillColor(INK);
     const labelText = `${label}: `;
     const labelW = doc.widthOfString(labelText);
     doc.text(labelText, x, y, { lineBreak: false });
@@ -443,11 +445,11 @@ export function renderFarmRecordDiary(
     const contentW = doc.page.width - m.left - m.right;
     let y = m.top;
 
-    doc.font('Helvetica').fontSize(9).fillColor(MUTED);
+    doc.font(UNICODE_FONT).fontSize(9).fillColor(MUTED);
     doc.text(L.appendixLine, m.left, y, { width: contentW, align: 'center' });
     y = doc.y + 14;
 
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(INK);
+    doc.font(UNICODE_FONT_BOLD).fontSize(20).fillColor(INK);
     doc.text(L.title1, m.left, y, { width: contentW, align: 'center' });
     y = doc.y + 2;
     doc.fontSize(12).text(L.title2, m.left, y, { width: contentW, align: 'center' });
@@ -456,14 +458,14 @@ export function renderFarmRecordDiary(
     y = drawLabeledLine(doc, m.left, y, contentW, L.municipality, p.municipality);
     y = drawLabeledLine(doc, m.left, y, contentW, L.settlement, p.settlement);
     y = drawLabeledLine(doc, m.left, y, contentW, L.producer, p.producerName);
-    doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(L.producerHint, m.left, y - 4, {
+    doc.font(UNICODE_FONT).fontSize(8).fillColor(MUTED).text(L.producerHint, m.left, y - 4, {
         width: contentW,
     });
     y += 8;
     y = drawLabeledLine(doc, m.left, y, contentW, L.address, p.address);
 
     // Boxed ЕГН (10) + ЕИК (13)
-    doc.font('Helvetica').fontSize(10).fillColor(INK).text(`${L.egn}:`, m.left, y, { lineBreak: false });
+    doc.font(UNICODE_FONT).fontSize(10).fillColor(INK).text(`${L.egn}:`, m.left, y, { lineBreak: false });
     drawBoxedCells(doc, m.left + 40, y - 3, 10, p.egn);
     y += 24;
     doc.text(`${L.eik}:`, m.left, y, { lineBreak: false });
@@ -472,13 +474,13 @@ export function renderFarmRecordDiary(
 
     y = drawLabeledLine(doc, m.left, y, contentW, L.agriDirectorate, p.agricultureDirectorateCity);
     y = drawLabeledLine(doc, m.left, y, contentW, L.registrationPlace, p.registrationPlace);
-    doc.font('Helvetica').fontSize(10).fillColor(INK).text(`${L.ekatte}:`, m.left, y, { lineBreak: false });
+    doc.font(UNICODE_FONT).fontSize(10).fillColor(INK).text(`${L.ekatte}:`, m.left, y, { lineBreak: false });
     drawBoxedCells(doc, m.left + 130, y - 3, 5, p.registrationEkatte);
     y += 26;
     y = drawLabeledLine(doc, m.left, y, contentW, L.odbh, p.odbhCity);
     y += 8;
 
-    doc.font('Helvetica').fontSize(8).fillColor(MUTED);
+    doc.font(UNICODE_FONT).fontSize(8).fillColor(MUTED);
     doc.text(L.legalLine, m.left, y, { width: contentW });
     y = doc.y + 8;
     doc.fontSize(9).fillColor(INK).text(
@@ -490,7 +492,7 @@ export function renderFarmRecordDiary(
 
     // ── LANDSCAPE: observation section ──────────────────────────────
     doc.addPage({ size: 'A4', layout: 'landscape' });
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(INK);
+    doc.font(UNICODE_FONT_BOLD).fontSize(11).fillColor(INK);
     doc.text(L.observationSection, doc.page.margins.left, doc.page.margins.top, {
         width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
         align: 'center',
@@ -508,7 +510,7 @@ export function renderFarmRecordDiary(
 
     // ── LANDSCAPE: chemical treatments (the core) ───────────────────
     doc.addPage({ size: 'A4', layout: 'landscape' });
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(INK);
+    doc.font(UNICODE_FONT_BOLD).fontSize(11).fillColor(INK);
     doc.text(L.chemicalSection, doc.page.margins.left, doc.page.margins.top, {
         width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
         align: 'center',
@@ -531,7 +533,7 @@ export function renderFarmRecordDiary(
 
     // ── PORTRAIT: fertilizers ───────────────────────────────────────
     doc.addPage({ size: 'A4', layout: 'portrait' });
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(INK);
+    doc.font(UNICODE_FONT_BOLD).fontSize(11).fillColor(INK);
     doc.text(L.fertilizerSection, doc.page.margins.left, doc.page.margins.top, {
         width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
         align: 'center',
@@ -555,7 +557,7 @@ export function renderFarmRecordDiary(
 
     // ── LANDSCAPE: sampling (empty ruled) ───────────────────────────
     doc.addPage({ size: 'A4', layout: 'landscape' });
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(INK);
+    doc.font(UNICODE_FONT_BOLD).fontSize(11).fillColor(INK);
     doc.text(L.samplingSection, doc.page.margins.left, doc.page.margins.top, {
         width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
         align: 'center',
@@ -564,7 +566,7 @@ export function renderFarmRecordDiary(
 
     // ── PORTRAIT: ОДБХ inspector result (empty ruled) ───────────────
     doc.addPage({ size: 'A4', layout: 'portrait' });
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(INK);
+    doc.font(UNICODE_FONT_BOLD).fontSize(11).fillColor(INK);
     doc.text(L.inspectorSection, doc.page.margins.left, doc.page.margins.top, {
         width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
         align: 'center',
@@ -589,7 +591,7 @@ export function stampPageNumbers(doc: PDFKit.PDFDocument, L: DiaryLabels): void 
         const w = doc.page.width;
         const h = doc.page.height;
         const mp = doc.page.margins;
-        doc.font('Helvetica').fontSize(8).fillColor(MUTED).text(
+        doc.font(UNICODE_FONT).fontSize(8).fillColor(MUTED).text(
             `${L.page} ${i - range.start + 1} ${L.of} ${range.count}`,
             mp.left,
             h - mp.bottom + 12,
