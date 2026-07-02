@@ -131,6 +131,16 @@ export const ROUTE_PERMISSIONS: readonly RoutePermissionRule[] = [
         note: 'Per-tenant module gating (enable/disable modules; "simple mode").',
     },
 
+    // ── БАБХ farm-record — farm profile ─────────────────────────────
+    {
+        path: new RegExp(`^${T}\\/admin\\/farm-profile(\\/.*)?$`),
+        permission: 'admin.manage',
+        note:
+            'Tenant farm identity block (producer name, ЕГН/ЕИК, community, ' +
+            'ОДБХ/ОД Земеделие offices) printed on the БАБХ ДНЕВНИК — ' +
+            'organisation-level configuration.',
+    },
+
     // ── Outbound integrations ───────────────────────────────────────
     {
         path: new RegExp(`^${T}\\/admin\\/integrations(\\/.*)?$`),

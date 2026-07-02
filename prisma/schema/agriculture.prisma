@@ -70,6 +70,13 @@ model Item {
   /// lots list surfaces "low stock" when SUM(lot.quantityOnHand) drops
   /// below it; null disables the check.
   reorderLevel    Decimal?     @db.Decimal(14, 3)
+  /// БАБХ farm-record regulatory fields (structured, not attributesJson —
+  /// the ДНЕВНИК generator reads these directly). quarantinePeriodDays is
+  /// the карантинен срок на ПРЗ; "най-ранна дата за прибиране" is computed
+  /// as completedAt + quarantinePeriodDays at generation time.
+  quarantinePeriodDays Int?
+  activeIngredient     String?
+  pppRegistrationNo    String?
   attributesJson  Json?
   createdByUserId String?
   createdAt       DateTime     @default(now())
@@ -234,6 +241,45 @@ model TenantModuleSettings {
   enabledModules ModuleKey[]
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+/// One-per-tenant farm identity block for the Bulgarian БАБХ
+/// "ДНЕВНИК за проведените растителнозащитни мероприятия и торене"
+/// (Прил. 1 към заповед РД 11-3194/31.12.2021). Every field is optional
+/// — the paper form tolerates blanks (rendered as dotted lines). 1:1 with
+/// Tenant (`tenantId @unique`, singleton config like TenantModuleSettings)
+/// → RLS trio in the migration, no soft-delete.
+///
+/// egn (ЕГН — personal ID) and eik (ЕИК — company ID) are SENSITIVE and
+/// registered in the Epic B encrypted-fields manifest
+/// (src/lib/security/encrypted-fields.ts) — stored as ciphertext, never
+/// searched (the row is fetched by tenantId only).
+model FarmProfile {
+  id                         String   @id @default(cuid())
+  tenantId                   String   @unique
+  /// Име/фирма на земеделския производител.
+  producerName               String?
+  /// ЕГН — encrypted at rest (Epic B manifest).
+  egn                        String?
+  /// ЕИК — encrypted at rest (Epic B manifest).
+  eik                        String?
+  address                    String?
+  /// Община.
+  municipality               String?
+  /// Населено място.
+  settlement                 String?
+  /// ОД "Земеделие" гр.
+  agricultureDirectorateCity String?
+  /// Място на регистриране.
+  registrationPlace          String?
+  /// ЕКАТТЕ код (5 знака) — kept as free String; the form tolerates blanks.
+  registrationEkatte         String?
+  /// ОДБХ гр.
+  odbhCity                   String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 }

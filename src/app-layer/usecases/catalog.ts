@@ -39,6 +39,10 @@ export interface CreateItemInput {
     defaultUnitId: string;
     sku?: string | null;
     reorderLevel?: number | null;
+    /** БАБХ farm-record regulatory fields (structured). */
+    quarantinePeriodDays?: number | null;
+    activeIngredient?: string | null;
+    pppRegistrationNo?: string | null;
 }
 
 /**
@@ -62,6 +66,13 @@ export async function createItem(ctx: RequestContext, input: CreateItemInput) {
                 defaultUnitId: input.defaultUnitId,
                 sku: input.sku ? sanitizePlainText(input.sku.trim()) : null,
                 reorderLevel: input.reorderLevel ?? null,
+                quarantinePeriodDays: input.quarantinePeriodDays ?? null,
+                activeIngredient: input.activeIngredient
+                    ? sanitizePlainText(input.activeIngredient.trim())
+                    : null,
+                pppRegistrationNo: input.pppRegistrationNo
+                    ? sanitizePlainText(input.pppRegistrationNo.trim())
+                    : null,
                 createdByUserId: ctx.userId ?? null,
             },
             select: { id: true, name: true, category: true },

@@ -66,6 +66,13 @@ model Task {
   reviewerUserId   String?
   controlId        String?
   metadataJson     Json?
+  // Agriculture (БАБХ farm-record) — persisted so the ДНЕВНИК generator can
+  // split SPRAY rows (химични обработки) from FERTILIZE rows (торове)
+  // without re-deriving from the title. Nullable: legacy FIELD_OPERATION
+  // rows fall back to a derive-from-title reader. applicationTechnique is
+  // the "Техника за приложение" (one rig per job is the field reality).
+  operationType        FieldOperationType?
+  applicationTechnique String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   deletedAt        DateTime?

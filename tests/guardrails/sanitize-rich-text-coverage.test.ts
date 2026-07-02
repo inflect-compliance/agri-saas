@@ -91,6 +91,11 @@ const RICH_TEXT_COVERAGE: Readonly<
     // safe content.
     Contract: { usecases: ['src/app-layer/usecases/contract.ts'], sanitizer: 'sanitizePlainText' },
     YieldRecord: { usecases: ['src/app-layer/usecases/yield-record.ts'], sanitizer: 'sanitizePlainText' },
+    // БАБХ farm-record — FarmProfile.egn/eik are encrypted at rest (Epic B
+    // manifest) AND sanitised at the upsertFarmProfile write seam before the
+    // middleware persists them, so every renderer that decrypts them (the
+    // ДНЕВНИК PDF) sees safe content.
+    FarmProfile: { usecases: ['src/app-layer/usecases/farm-profile.ts'], sanitizer: 'sanitizePlainText' },
 };
 
 /**

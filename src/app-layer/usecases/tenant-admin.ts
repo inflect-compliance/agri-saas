@@ -23,7 +23,8 @@ import { assertCanRead } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { runInTenantContext } from '@/lib/db-context';
 import { notFound, badRequest, forbidden } from '@/lib/errors/types';
-import type { Role } from '@prisma/client';
+import { sanitizePlainText } from '@/lib/security/sanitize';
+import { Prisma, type Role } from '@prisma/client';
 
 // ─── Valid roles for assignment ───
 const VALID_ROLES: Role[] = ['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER'];
@@ -232,6 +233,75 @@ export async function updateTenantMemberRole(
                 entityName: 'TenantMembership',
                 fromStatus: oldRole,
                 toStatus: input.role,
+            },
+        });
+
+        return updated;
+    });
+}
+
+/**
+ * БАБХ farm-record — set the plant-protection certificates carried by a
+ * membership: applicatorCertNo (the person applying, чл. 83 ЗЗР via
+ * чл. 84 ал. 2), agronomistCertNo + agronomistName (the supervising
+ * specialist, чл. 84 ал. 1, may name a non-user). Edited from the
+ * Members & Roles admin "Certificates" modal. Three-state per field:
+ * omitted = leave unchanged, null/empty = clear, string = set.
+ */
+export async function updateMemberCertificates(
+    ctx: RequestContext,
+    input: {
+        membershipId: string;
+        applicatorCertNo?: string | null;
+        agronomistCertNo?: string | null;
+        agronomistName?: string | null;
+    },
+) {
+    assertCanManageMembers(ctx);
+
+    // Three-state normalizer: undefined → leave, null/blank → clear, else set.
+    const clean = (v: string | null | undefined): string | null | undefined => {
+        if (v === undefined) return undefined;
+        if (v === null) return null;
+        return sanitizePlainText(v.trim()) || null;
+    };
+
+    return runInTenantContext(ctx, async (db) => {
+        const membership = await db.tenantMembership.findFirst({
+            where: { id: input.membershipId, tenantId: ctx.tenantId },
+            include: { user: { select: { id: true, email: true } } },
+        });
+        if (!membership) throw notFound('Membership not found.');
+
+        const data: Prisma.TenantMembershipUpdateInput = {};
+        const applicator = clean(input.applicatorCertNo);
+        const agronomistCert = clean(input.agronomistCertNo);
+        const agronomistName = clean(input.agronomistName);
+        if (applicator !== undefined) data.applicatorCertNo = applicator;
+        if (agronomistCert !== undefined) data.agronomistCertNo = agronomistCert;
+        if (agronomistName !== undefined) data.agronomistName = agronomistName;
+
+        const updated = await db.tenantMembership.update({
+            where: { id: input.membershipId },
+            data,
+            select: {
+                id: true,
+                applicatorCertNo: true,
+                agronomistCertNo: true,
+                agronomistName: true,
+            },
+        });
+
+        await logEvent(db, ctx, {
+            action: 'MEMBER_CERTIFICATES_UPDATED',
+            entityType: 'TenantMembership',
+            entityId: updated.id,
+            details: `Updated plant-protection certificates for ${membership.user.email}`,
+            detailsJson: {
+                category: 'entity_lifecycle',
+                entityName: 'TenantMembership',
+                operation: 'updated',
+                summary: 'Member certificates updated',
             },
         });
 

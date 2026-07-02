@@ -20,6 +20,10 @@ const CreateItemSchema = z
         defaultUnitId: z.string().min(1),
         sku: z.string().max(120).nullable().optional(),
         reorderLevel: z.number().nonnegative().nullable().optional(),
+        // БАБХ farm-record regulatory fields (structured).
+        quarantinePeriodDays: z.number().int().nonnegative().nullable().optional(),
+        activeIngredient: z.string().max(200).nullable().optional(),
+        pppRegistrationNo: z.string().max(120).nullable().optional(),
     })
     .strip();
 

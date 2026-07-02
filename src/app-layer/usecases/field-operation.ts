@@ -35,10 +35,31 @@ export interface CreateFieldOperationInput {
     waterRateUnitId?: string | null;
     targetNote?: string | null;
     dueAt?: string | null;
+    /** "Техника за приложение / Equipment" — one rig per job (БАБХ record). */
+    applicationTechnique?: string | null;
 }
 
 function titleCase(s: string): string {
     return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+/**
+ * Resolve a FIELD_OPERATION's operation type for the БАБХ ДНЕВНИК generator,
+ * which must split SPRAY (химични обработки) rows from FERTILIZE (торове)
+ * rows. Prefers the persisted `Task.operationType`; for legacy rows written
+ * before that column existed (always null) it derives from the title prefix
+ * `createFieldOperation` minted (`"Spray — …"` / `"Fertilize — …"`).
+ */
+export function resolveOperationType(task: {
+    operationType?: string | null;
+    title?: string | null;
+}): OperationType {
+    if (task.operationType) return task.operationType as OperationType;
+    const t = (task.title ?? '').trim().toLowerCase();
+    if (t.startsWith('fertilize')) return 'FERTILIZE';
+    if (t.startsWith('seed')) return 'SEED';
+    if (t.startsWith('spray')) return 'SPRAY';
+    return 'OTHER';
 }
 
 /** True when a complete (item + dose + unit) fertilizer was supplied. */
@@ -136,6 +157,21 @@ export async function createFieldOperation(
     // 3 — link Task→Location and write the per-parcel prescription lines
     const parcelCount = await runInTenantContext(ctx, async (db) => {
         await TaskLinkRepository.link(db, ctx, task.id, 'LOCATION', locationId);
+
+        // Persist the operation type + application technique on the Task so
+        // the БАБХ ДНЕВНИК generator can split SPRAY (химични обработки) from
+        // FERTILIZE (торове) rows without re-deriving from the title, and
+        // fill the "Техника за приложение" column.
+        await db.task.update({
+            where: { id: task.id },
+            data: {
+                operationType: opType,
+                ...(input.applicationTechnique !== undefined
+                    ? { applicationTechnique: input.applicationTechnique }
+                    : {}),
+            },
+        });
+
         // One treatment line per parcel, plus a second fertilizer line per
         // parcel when a soil-nurturing fertilizer was chosen.
         const withFertilizer = hasFertilizer(input);
@@ -292,7 +328,17 @@ async function markOperationParcelImpl(
     return runInTenantContext(ctx, async (db) => {
         const line = await db.operationParcel.findFirst({
             where: { id: lineId, taskId, tenantId: ctx.tenantId },
-            include: { task: { select: { id: true, assigneeUserId: true, status: true, key: true } } },
+            include: {
+                task: {
+                    select: {
+                        id: true,
+                        assigneeUserId: true,
+                        status: true,
+                        key: true,
+                        applicationTechnique: true,
+                    },
+                },
+            },
         });
         if (!line) throw notFound('Operation parcel not found');
 
@@ -359,6 +405,44 @@ async function markOperationParcelImpl(
             // controls) or when JOURNAL is off (no journalEntryId).
             if (application?.journalEntryId) {
                 await attachAutoEvidenceFromLogEntry(db, ctx, application.journalEntryId);
+
+                // БАБХ farm-record completion snapshot: freeze the applicator's
+                // certificates + the application technique into the
+                // INPUT_APPLICATION LogEntry.conditionsJson AT THIS MOMENT.
+                // Auditability — a later cert renewal (edit on the membership)
+                // must not rewrite the historical record. The generator falls
+                // back to live membership values for legacy rows that predate
+                // this snapshot. The applicator is the assigned operator (who
+                // may also be the one marking the line), else the actor.
+                const applicatorUserId = line.task.assigneeUserId ?? ctx.userId;
+                const membership = await db.tenantMembership.findUnique({
+                    where: { tenantId_userId: { tenantId: ctx.tenantId, userId: applicatorUserId } },
+                    select: {
+                        applicatorCertNo: true,
+                        agronomistCertNo: true,
+                        agronomistName: true,
+                    },
+                });
+                const existing = await db.logEntry.findUnique({
+                    where: { id: application.journalEntryId },
+                    select: { conditionsJson: true },
+                });
+                const priorConditions =
+                    existing?.conditionsJson && typeof existing.conditionsJson === 'object'
+                        ? (existing.conditionsJson as Record<string, unknown>)
+                        : {};
+                await db.logEntry.update({
+                    where: { id: application.journalEntryId },
+                    data: {
+                        conditionsJson: {
+                            ...priorConditions,
+                            operatorCertNo: membership?.applicatorCertNo ?? null,
+                            agronomistName: membership?.agronomistName ?? null,
+                            agronomistCertNo: membership?.agronomistCertNo ?? null,
+                            applicationTechnique: line.task.applicationTechnique ?? null,
+                        },
+                    },
+                });
             }
         }
 
