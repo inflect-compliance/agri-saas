@@ -79,7 +79,12 @@ describe('BullMQ worker is deployed', () => {
     it('the Dockerfile builds the worker bundle and ships it', () => {
         const dockerfile = read('Dockerfile');
         expect(dockerfile).toMatch(/npm run build:worker/);
-        expect(dockerfile).toMatch(/COPY --from=builder \/app\/dist \.\/dist/);
+        // The COPY may carry a `--chown=<user>:<group>` flag (the
+        // runtime image chowns at copy time to avoid a duplicate
+        // recursive-chown layer) — accept it optionally.
+        expect(dockerfile).toMatch(
+            /COPY --from=builder (?:--chown=\S+ )?\/app\/dist \.\/dist/,
+        );
         // build:worker must run before the dev-dependency prune —
         // esbuild is a devDependency.
         const buildIdx = dockerfile.indexOf('build:worker');
