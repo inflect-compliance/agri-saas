@@ -103,7 +103,10 @@ test.describe('mobile responsive — agriculture @mobile', () => {
         // The Select/Draw/Edit/Split map-mode toggle was removed — the
         // NDVI overlay button now holds that toolbar slot. Touch-target
         // check: it's a ≥44px tap target (WCAG 2.5.5).
-        const ndviButton = main.getByRole('button', { name: 'NDVI' });
+        // `exact: true` — the toolbar now also has a GNDVI button, and the
+        // default substring match would make `name: 'NDVI'` resolve to both
+        // NDVI and G-NDVI (strict-mode violation).
+        const ndviButton = main.getByRole('button', { name: 'NDVI', exact: true });
         await expect(ndviButton).toBeVisible({ timeout: 30_000 });
         const ndviBox = await ndviButton.boundingBox();
         expect(ndviBox, 'NDVI control has a measurable box').not.toBeNull();
