@@ -35,19 +35,15 @@ export default defineConfig({
     // races, but production-mode server eliminates the systematic
     // degradation flakes that were the dominant failure mode.
     retries: 2,
-    // Intra-job parallelism. `fullyParallel: false` keeps this at the
-    // FILE level — whole spec files run concurrently across workers, but
-    // tests WITHIN a file stay in declaration order (so the specs that
-    // opt into `describe.configure({ mode: 'serial' })` keep their
-    // ordering). This is safe because mutating specs each provision their
-    // own isolated tenant (see tests/e2e/fixtures.ts) and read-only specs
-    // only read the shared seed — so distinct files don't collide. The
-    // old `workers: 1` was a conservative holdover from the `next dev`
-    // era (see the retries note above); `next start` + per-test tenant
-    // isolation make file-level parallelism sound. `retries: 2` remains
-    // the backstop for any transient localhost race. CI uses 3 workers
-    // (large runner); local stays at 1 for a calm dev signal.
-    workers: isCI ? 3 : 1,
+    // Serial (single worker). An intra-job `workers: 3` was tried (for a
+    // faster E2E job) and REVERTED: despite per-test tenant isolation, the
+    // heavier timing-sensitive flows — org/tenant creation, audit-pack
+    // freeze/share-link, offline-queue flush, a11y scans — flaked
+    // intermittently under parallel load (different specs failed each run).
+    // The measured wall-clock gain was only ~1 min, not worth the
+    // instability, so E2E runs serially. `retries: 2` covers transient
+    // localhost races.
+    workers: 1,
     reporter: isCI ? [['list'], ['html', { open: 'never' }]] : 'list',
     use: {
         baseURL: process.env.URL || 'http://localhost:3006',
