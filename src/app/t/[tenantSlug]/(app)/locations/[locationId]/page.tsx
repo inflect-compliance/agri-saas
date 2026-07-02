@@ -140,6 +140,46 @@ export default function LocationDetailPage() {
     const [showImport, setShowImport] = useState(false);
     const [showSprayWizard, setShowSprayWizard] = useState(false);
     const [activeJob, setActiveJob] = useState<string | null>(null);
+    // БАБХ ДНЕВНИК (PDF) — minimal trigger: a date range (defaults to the
+    // current season, Jan 1 → today) → POST → stream the filled PDF download.
+    const [showDnevnik, setShowDnevnik] = useState(false);
+    const [dnevnikBusy, setDnevnikBusy] = useState(false);
+    const [dnevnikFrom, setDnevnikFrom] = useState<DateValue>(() => {
+        const n = new Date();
+        return new Date(Date.UTC(n.getFullYear(), 0, 1));
+    });
+    const [dnevnikTo, setDnevnikTo] = useState<DateValue>(() => {
+        const n = new Date();
+        return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
+    });
+    const generateDnevnik = useCallback(async () => {
+        setDnevnikBusy(true);
+        try {
+            const res = await fetch(buildUrl(`/locations/${locationId}/farm-record`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from: toYMD(dnevnikFrom), to: toYMD(dnevnikTo) }),
+            });
+            if (!res.ok) throw new Error((await res.text()) || 'PDF generation failed');
+            const blob = await res.blob();
+            const disposition = res.headers.get('Content-Disposition');
+            const m = disposition?.match(/filename="?([^"]+)"?/);
+            const fileName = m?.[1] || `dnevnik-${toYMD(dnevnikFrom)}_${toYMD(dnevnikTo)}.pdf`;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            setShowDnevnik(false);
+        } catch {
+            toast.error('Неуспешно генериране на дневника.');
+        } finally {
+            setDnevnikBusy(false);
+        }
+    }, [buildUrl, locationId, dnevnikFrom, dnevnikTo, toast]);
     // NDVI overlay (Google Earth Engine). Off by default; the date drives
     // the 30-day composite window (UTC-midnight DateValue per the picker
     // contract). Defaults to today.
@@ -317,6 +357,15 @@ export default function LocationDetailPage() {
             actions={
                 <div className="flex items-center gap-compact">
                     <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>Import parcels</Button>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<CalendarIcon className="size-4" />}
+                        onClick={() => setShowDnevnik(true)}
+                        id="dnevnik-pdf-btn"
+                    >
+                        Дневник (PDF)
+                    </Button>
                     <CoachMark
                         id="field-op-wizard"
                         title="Plan a field job"
@@ -665,6 +714,34 @@ export default function LocationDetailPage() {
                         <Button variant="primary" size="sm" type="submit" loading={merging} disabled={selected.length < 2 || !mergeName.trim() || merging}>Merge parcels</Button>
                     </Modal.Actions>
                 </Modal.Form>
+            </Modal>
+
+            {/* БАБХ ДНЕВНИК (PDF) — pick a date range, download the filled diary. */}
+            <Modal
+                showModal={showDnevnik}
+                setShowModal={(v) => { if (!v) setShowDnevnik(false); }}
+                size="sm"
+                title="Дневник (PDF)"
+                description="Изтегли попълнения дневник за растителнозащитните мероприятия и торене за избрания период."
+            >
+                <Modal.Header
+                    title="Дневник (PDF)"
+                    description="Изтегли попълнения дневник за избрания период."
+                />
+                <Modal.Body>
+                    <div className="flex flex-col gap-default sm:flex-row">
+                        <FormField label="От">
+                            <DatePicker value={dnevnikFrom} onChange={(d) => d && setDnevnikFrom(d)} />
+                        </FormField>
+                        <FormField label="До">
+                            <DatePicker value={dnevnikTo} onChange={(d) => d && setDnevnikTo(d)} />
+                        </FormField>
+                    </div>
+                </Modal.Body>
+                <Modal.Actions>
+                    <Button variant="secondary" size="sm" type="button" onClick={() => setShowDnevnik(false)}>Отказ</Button>
+                    <Button variant="primary" size="sm" type="button" loading={dnevnikBusy} disabled={dnevnikBusy} onClick={() => void generateDnevnik()}>Изтегли</Button>
+                </Modal.Actions>
             </Modal>
         </EntityDetailLayout>
     );

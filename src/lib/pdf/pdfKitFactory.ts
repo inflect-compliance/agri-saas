@@ -5,7 +5,27 @@
  * metadata, and brand colors.
  */
 import PDFDocument from 'pdfkit';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { ReportMeta } from './types';
+
+// ─── Unicode (Cyrillic) fonts ───
+//
+// PDFKit's built-in Standard-14 'Helvetica' is AFM/latin-only and renders
+// tofu for Cyrillic. DejaVu Sans (bundled under ./fonts, Bitstream Vera
+// license) has full Cyrillic coverage. Loaded once + cached as Buffers.
+const FONT_DIR = path.join(process.cwd(), 'src', 'lib', 'pdf', 'fonts');
+let _unicodeFonts: { regular: Buffer; bold: Buffer } | null = null;
+
+function loadUnicodeFonts(): { regular: Buffer; bold: Buffer } {
+    if (!_unicodeFonts) {
+        _unicodeFonts = {
+            regular: fs.readFileSync(path.join(FONT_DIR, 'DejaVuSans.ttf')),
+            bold: fs.readFileSync(path.join(FONT_DIR, 'DejaVuSans-Bold.ttf')),
+        };
+    }
+    return _unicodeFonts;
+}
 
 // ─── Brand Tokens ───
 
@@ -52,6 +72,18 @@ export function createPdfDocument(meta: ReportMeta): PDFKit.PDFDocument {
             CreationDate: new Date(meta.generatedAt),
         },
     });
+
+    // Unicode documents (e.g. the Bulgarian БАБХ ДНЕВНИК) re-register the
+    // built-in 'Helvetica' / 'Helvetica-Bold' names with DejaVu Sans, so
+    // every layout/table/section helper that calls `.font('Helvetica…')`
+    // renders Cyrillic transparently — no helper changes, and 'latin'
+    // reports keep the untouched built-in AFM face.
+    if (meta.fontFamily === 'unicode') {
+        const fonts = loadUnicodeFonts();
+        doc.registerFont('Helvetica', fonts.regular);
+        doc.registerFont('Helvetica-Bold', fonts.bold);
+        doc.font('Helvetica');
+    }
 
     return doc;
 }
