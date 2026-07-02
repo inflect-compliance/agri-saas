@@ -17,6 +17,7 @@ import { AgStatusBadge } from '@/components/ag/ag-status';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPatch } from '@/lib/api-client';
+import { totalLabel } from '@/lib/agro/rate-calc';
 import { haptic } from '@/lib/haptics';
 import { playSound } from '@/lib/sound';
 import { SprayJobCompletionCard } from '@/components/ui/map/SprayJobCompletionCard';
@@ -29,9 +30,11 @@ interface Line {
     id: string;
     status: 'PENDING' | 'DONE' | 'SKIPPED';
     doseValue: string | number;
+    waterRateValue?: string | number | null;
     parcel?: { id: string; name: string; areaHa?: number | null } | null;
     product?: { id: string; name: string } | null;
     doseUnit?: { id: string; symbol: string } | null;
+    waterRateUnit?: { id: string; symbol: string } | null;
 }
 interface FieldOpView {
     task: { id: string; key?: string | null; title: string; status: string };
@@ -121,6 +124,16 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
                             <div className="text-xs text-content-secondary">
                                 {l.product?.name} · {String(l.doseValue)} {l.doseUnit?.symbol} · {l.parcel?.areaHa ?? '–'} ha
                             </div>
+                            {/* Amounts needed for THIS parcel — rate × its area
+                                (per the unit's /ha or /dca basis). */}
+                            {l.parcel?.areaHa != null && l.doseUnit?.symbol && (
+                                <div className="text-xs font-medium text-content-emphasis tabular-nums">
+                                    Needs {totalLabel(Number(l.doseValue), l.doseUnit.symbol, l.parcel.areaHa)}
+                                    {l.waterRateValue != null && l.waterRateUnit?.symbol && (
+                                        <> · {totalLabel(Number(l.waterRateValue), l.waterRateUnit.symbol, l.parcel.areaHa)} water</>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="flex items-center gap-tight">
                             <AgStatusBadge entity="operationParcel" status={l.status} />

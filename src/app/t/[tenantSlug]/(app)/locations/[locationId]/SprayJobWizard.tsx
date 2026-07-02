@@ -17,7 +17,7 @@
  * so a manager can dispatch the job to the operator who'll run it.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useParams } from 'next/navigation';
 import useSWR from 'swr';
 import { StepWizard, type StepWizardStep } from '@/components/ui/step-wizard';
@@ -30,6 +30,7 @@ import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
 import { apiGet } from '@/lib/api-client';
+import { haToDca, totalLabel, trimNumber } from '@/lib/agro/rate-calc';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
 
 // Mirror the DTOs PrescriptionPanel uses for /items + /units?measure=RATE.
@@ -116,6 +117,10 @@ export function SprayJobWizard({
     const [productItemId, setProductItemId] = useState('');
     const [dose, setDose] = useState('');
     const [doseUnitId, setDoseUnitId] = useState('');
+    // Water-carrier rate (per-decare) for the spray tank — feeds the total-
+    // water calculation and is persisted on the treatment line.
+    const [waterRate, setWaterRate] = useState('');
+    const [waterRateUnitId, setWaterRateUnitId] = useState('');
 
     // Fertilizers feed the Soil Nurturing step; everything else feeds the
     // Treatment step, so the two pickers never overlap.
@@ -141,6 +146,24 @@ export function SprayJobWizard({
     const selectedUnit = unitOptions.find((o) => o.value === doseUnitId) ?? null;
     const doseNumber = Number(dose);
     const doseValid = dose.trim() !== '' && Number.isFinite(doseNumber) && doseNumber > 0;
+
+    const selectedWaterUnit = unitOptions.find((o) => o.value === waterRateUnitId) ?? null;
+    const waterRateNumber = Number(waterRate);
+    const waterRateValid =
+        waterRate.trim() !== '' && Number.isFinite(waterRateNumber) && waterRateNumber > 0;
+
+    // Combined area of the selected parcels — the calculator basis.
+    const selectedAreaHa = useMemo(
+        () =>
+            selectedParcelIds.reduce(
+                (sum, id) => sum + (parcels.find((p) => p.id === id)?.areaHa ?? 0),
+                0,
+            ),
+        [selectedParcelIds, parcels],
+    );
+    const selectedDca = haToDca(selectedAreaHa);
+    const areaSummary =
+        selectedAreaHa > 0 ? `${trimNumber(selectedAreaHa)} ha · ${trimNumber(selectedDca)} dca` : null;
 
     // Seed the parcel selection from `initialParcelIds` each time the
     // wizard opens (the "Start operation here" path). Keyed on the joined
@@ -172,6 +195,15 @@ export function SprayJobWizard({
         if (!doseUnitId && smartDefaults?.defaultUnitId) setDoseUnitId(smartDefaults.defaultUnitId);
         // eslint-disable-next-line react-hooks/exhaustive-deps -- prefill on open only
     }, [open, smartDefaults?.defaultUnitId]);
+
+    // Default the water-carrier unit to litres-per-decare when available —
+    // the standard tank rate, and the basis the calculator expects.
+    useEffect(() => {
+        if (!open || waterRateUnitId) return;
+        const lPerDca = (units ?? []).find((u) => u.symbol === 'L/dca');
+        if (lPerDca) setWaterRateUnitId(lPerDca.id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- default on open / units-resolve only
+    }, [open, units]);
 
     // The dose last used for the chosen product on this location (recency).
     const recalledForProduct = useMemo(() => {
@@ -232,12 +264,41 @@ export function SprayJobWizard({
         setProductItemId('');
         setDose('');
         setDoseUnitId('');
+        setWaterRate('');
+        setWaterRateUnitId('');
         setAssigneeUserId(null);
     };
 
     const handleOpenChange = (next: boolean) => {
         if (!next) reset();
         onOpenChange(next);
+    };
+
+    // One "X needed" row — rate × selected-parcel area, honouring the
+    // unit's /ha or /dca basis. Renders nothing until the inputs are usable.
+    const totalRow = (label: string, rateStr: string, unitSymbol?: string) => {
+        const rate = Number(rateStr);
+        if (!unitSymbol || !Number.isFinite(rate) || rate <= 0 || selectedAreaHa <= 0) return null;
+        return (
+            <div className="flex items-baseline justify-between gap-default">
+                <dt className="text-content-secondary">{label}</dt>
+                <dd className="font-medium tabular-nums">{totalLabel(rate, unitSymbol, selectedAreaHa)}</dd>
+            </div>
+        );
+    };
+
+    // The calculator panel — combined area + the "needed for these parcels"
+    // totals. Hidden until parcels with a known area are selected.
+    const totalsPanel = (rows: ReactNode) => {
+        if (selectedAreaHa <= 0) return null;
+        return (
+            <div className="rounded-lg border border-border-subtle bg-bg-muted/40 p-3 text-sm">
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-content-muted">
+                    Needed for {areaSummary}
+                </p>
+                <dl className="space-y-tight">{rows}</dl>
+            </div>
+        );
     };
 
     const steps: StepWizardStep[] = [
@@ -327,29 +388,32 @@ export function SprayJobWizard({
             description: 'Set the fertilizer dose and unit.',
             canAdvance: fertDoseValid && Boolean(fertDoseUnitId),
             content: (
-                <div className="grid grid-cols-2 gap-default">
-                    <FormField label="Dose" required>
-                        <Input
-                            inputMode="decimal"
-                            value={fertDose}
-                            onChange={(e) => setFertDose(e.target.value)}
-                            placeholder="e.g. 150"
-                        />
-                    </FormField>
-                    <FormField label="Unit" required>
-                        <Combobox<false, UnitDTO>
-                            options={unitOptions}
-                            selected={selectedFertUnit}
-                            setSelected={(opt) => setFertDoseUnitId(opt?.value ?? '')}
-                            placeholder="Unit…"
-                            searchPlaceholder="Search units…"
-                            emptyState="No units match"
-                            forceDropdown
-                            matchTriggerWidth
-                            buttonProps={{ className: 'w-full' }}
-                            caret
-                        />
-                    </FormField>
+                <div className="space-y-default">
+                    <div className="grid grid-cols-2 gap-default">
+                        <FormField label="Dose" required>
+                            <Input
+                                inputMode="decimal"
+                                value={fertDose}
+                                onChange={(e) => setFertDose(e.target.value)}
+                                placeholder="e.g. 150"
+                            />
+                        </FormField>
+                        <FormField label="Unit" required>
+                            <Combobox<false, UnitDTO>
+                                options={unitOptions}
+                                selected={selectedFertUnit}
+                                setSelected={(opt) => setFertDoseUnitId(opt?.value ?? '')}
+                                placeholder="Unit…"
+                                searchPlaceholder="Search units…"
+                                emptyState="No units match"
+                                forceDropdown
+                                matchTriggerWidth
+                                buttonProps={{ className: 'w-full' }}
+                                caret
+                            />
+                        </FormField>
+                    </div>
+                    {totalsPanel(totalRow('Fertilizer', fertDose, selectedFertUnit?.meta?.symbol))}
                 </div>
             ),
         },
@@ -414,6 +478,38 @@ export function SprayJobWizard({
                         Last time: {recalledForProduct.doseValue} {recalledUnitSymbol} — edit if it&rsquo;s changed.
                     </p>
                 )}
+                {/* Water carrier — the tank-mix volume rate. Optional; drives
+                    the total-water figure in the calculator below. */}
+                <div className="grid grid-cols-2 gap-default">
+                    <FormField label="Water (carrier)">
+                        <Input
+                            inputMode="decimal"
+                            value={waterRate}
+                            onChange={(e) => setWaterRate(e.target.value)}
+                            placeholder="e.g. 14"
+                        />
+                    </FormField>
+                    <FormField label="Unit">
+                        <Combobox<false, UnitDTO>
+                            options={unitOptions}
+                            selected={selectedWaterUnit}
+                            setSelected={(opt) => setWaterRateUnitId(opt?.value ?? '')}
+                            placeholder="Unit…"
+                            searchPlaceholder="Search units…"
+                            emptyState="No units match"
+                            forceDropdown
+                            matchTriggerWidth
+                            buttonProps={{ className: 'w-full' }}
+                            caret
+                        />
+                    </FormField>
+                </div>
+                {totalsPanel(
+                    <>
+                        {totalRow('Water', waterRate, selectedWaterUnit?.meta?.symbol)}
+                        {totalRow('Product', dose, selectedUnit?.meta?.symbol)}
+                    </>,
+                )}
                 </div>
             ),
         },
@@ -455,7 +551,22 @@ export function SprayJobWizard({
                                 {doseValid ? doseNumber : '—'} {selectedUnit?.meta?.symbol ?? ''}
                             </dd>
                         </div>
+                        {waterRateValid && (
+                            <div>
+                                <dt className="text-content-secondary">Water (carrier)</dt>
+                                <dd className="font-medium">
+                                    {waterRateNumber} {selectedWaterUnit?.meta?.symbol ?? ''}
+                                </dd>
+                            </div>
+                        )}
                     </dl>
+                    {totalsPanel(
+                        <>
+                            {totalRow('Water', waterRate, selectedWaterUnit?.meta?.symbol)}
+                            {totalRow('Product', dose, selectedUnit?.meta?.symbol)}
+                            {totalRow('Fertilizer', fertDose, selectedFertUnit?.meta?.symbol)}
+                        </>,
+                    )}
                     {/* Assignee — the LAST field before creating. Defaults to
                         the current operator; reassignable to any active member
                         so a manager can dispatch the job. Required (the create
@@ -483,7 +594,8 @@ export function SprayJobWizard({
         Boolean(fertDoseUnitId) ||
         Boolean(productItemId) ||
         dose.trim() !== '' ||
-        Boolean(doseUnitId);
+        Boolean(doseUnitId) ||
+        waterRate.trim() !== '';
 
     const onFinish = async (): Promise<{ queued: boolean }> => {
         // assigneeUserId is gated by the confirm step's canAdvance.
@@ -502,6 +614,9 @@ export function SprayJobWizard({
                 productItemId,
                 doseValue: Number(dose),
                 doseUnitId,
+                // Water carrier (optional) — persisted on the treatment line.
+                waterRateValue: waterRateValid ? waterRateNumber : null,
+                waterRateUnitId: waterRateValid ? waterRateUnitId : null,
             },
             label: 'Create spray job',
         });

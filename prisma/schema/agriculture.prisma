@@ -49,6 +49,7 @@ model Unit {
 
   itemsDefault      Item[]             @relation("ItemDefaultUnit")
   doseLines         OperationParcel[]  @relation("OperationParcelDoseUnit")
+  waterLines        OperationParcel[]  @relation("OperationParcelWaterUnit")
   invLots           InventoryLot[]     @relation("InventoryLotUnit")
   stockTransactions StockTransaction[] @relation("StockTransactionUnit")
   logQuantities     LogQuantity[]      @relation("LogQuantityUnit")
@@ -193,6 +194,10 @@ model OperationParcel {
   productItemId     String
   doseValue         Decimal               @db.Decimal(14, 4)
   doseUnitId        String
+  // Water-carrier rate for the spray tank (per-decare), set only on the
+  // treatment line. Per-parcel total water = waterRateValue × parcel dca.
+  waterRateValue    Decimal?              @db.Decimal(14, 4)
+  waterRateUnitId   String?
   targetNote        String?
   status            ParcelOperationStatus @default(PENDING)
   completedAt       DateTime?
@@ -203,10 +208,11 @@ model OperationParcel {
   tenant      Tenant     @relation(fields: [tenantId], references: [id])
   task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
   parcel      Parcel     @relation(fields: [parcelId, tenantId], references: [id, tenantId])
-  product     Item       @relation(fields: [productItemId, tenantId], references: [id, tenantId])
-  doseUnit    Unit       @relation("OperationParcelDoseUnit", fields: [doseUnitId], references: [id])
-  completedBy User?      @relation("OperationParcelCompleter", fields: [completedByUserId], references: [id])
-  logEntries  LogEntry[]
+  product       Item       @relation(fields: [productItemId, tenantId], references: [id, tenantId])
+  doseUnit      Unit       @relation("OperationParcelDoseUnit", fields: [doseUnitId], references: [id])
+  waterRateUnit Unit?      @relation("OperationParcelWaterUnit", fields: [waterRateUnitId], references: [id])
+  completedBy   User?      @relation("OperationParcelCompleter", fields: [completedByUserId], references: [id])
+  logEntries    LogEntry[]
 
   // A field operation may apply MORE THAN ONE product to a parcel — a
   // spray job records a soil-nurturing fertilizer line AND a treatment
@@ -216,6 +222,7 @@ model OperationParcel {
   @@index([tenantId, taskId])
   @@index([tenantId, parcelId])
   @@index([tenantId, status])
+  @@index([tenantId, waterRateUnitId])
 }
 
 /// WP-2 — per-tenant module gating (one row per tenant). enabledModules

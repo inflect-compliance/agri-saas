@@ -884,6 +884,11 @@ export const CreateFieldOperationSchema = z.object({
     fertilizerItemId: z.string().min(1).optional(),
     fertilizerDoseValue: z.coerce.number().positive('Fertilizer dose must be greater than zero').optional(),
     fertilizerDoseUnitId: z.string().min(1).optional(),
+    // Optional water-carrier rate (per-decare) for the spray tank. Persisted
+    // on the treatment line so the per-parcel water total (rate × parcel dca)
+    // can be recomputed anywhere the job is shown.
+    waterRateValue: z.coerce.number().positive('Water rate must be greater than zero').nullable().optional(),
+    waterRateUnitId: z.string().min(1).nullable().optional(),
     targetNote: z.string().max(2000).nullable().optional(),
     dueAt: z.string().nullable().optional(),
 }).strip().openapi('FieldOperationCreateRequest', {

@@ -55,6 +55,12 @@ export const UNIT_SEEDS: UnitSeed[] = [
     { key: 'ml-per-ha', name: 'Millilitres per hectare', symbol: 'mL/ha', measure: 'RATE' },
     { key: 'kg-per-ha', name: 'Kilograms per hectare', symbol: 'kg/ha', measure: 'RATE' },
     { key: 'g-per-ha', name: 'Grams per hectare', symbol: 'g/ha', measure: 'RATE' },
+    // Per-decare rates (1 ha = 10 dca) — the Bulgarian field standard, and
+    // the basis the per-parcel spray calculator multiplies against.
+    { key: 'l-per-dca', name: 'Litres per decare', symbol: 'L/dca', measure: 'RATE' },
+    { key: 'ml-per-dca', name: 'Millilitres per decare', symbol: 'mL/dca', measure: 'RATE' },
+    { key: 'kg-per-dca', name: 'Kilograms per decare', symbol: 'kg/dca', measure: 'RATE' },
+    { key: 'g-per-dca', name: 'Grams per decare', symbol: 'g/dca', measure: 'RATE' },
     // ── Other (concentration) ──
     { key: 'pct', name: 'Percent', symbol: '%', measure: 'OTHER' },
 ];

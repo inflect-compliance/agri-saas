@@ -2461,6 +2461,20 @@ exports[`API contract — per-schema snapshots schema: FieldOperationCreateReque
       "type": "string",
       "minLength": 1
     },
+    "waterRateValue": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "exclusiveMinimum": 0
+    },
+    "waterRateUnitId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
     "targetNote": {
       "type": [
         "string",

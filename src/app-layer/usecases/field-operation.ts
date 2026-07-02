@@ -30,6 +30,9 @@ export interface CreateFieldOperationInput {
     fertilizerItemId?: string | null;
     fertilizerDoseValue?: number | null;
     fertilizerDoseUnitId?: string | null;
+    /** Optional per-decare water-carrier rate for the spray tank. */
+    waterRateValue?: number | null;
+    waterRateUnitId?: string | null;
     targetNote?: string | null;
     dueAt?: string | null;
 }
@@ -107,6 +110,14 @@ export async function createFieldOperation(
             if (!fertUnit) throw badRequest('Fertilizer dose unit not found.');
         }
 
+        // Optional water-carrier rate: a rate value requires a unit, and the
+        // unit must exist in the global catalog (like the dose unit above).
+        if (input.waterRateValue != null) {
+            if (!input.waterRateUnitId) throw badRequest('A water-rate unit is required when a water rate is set.');
+            const waterUnit = await db.unit.findUnique({ where: { id: input.waterRateUnitId }, select: { id: true } });
+            if (!waterUnit) throw badRequest('Water-rate unit not found.');
+        }
+
         return loc;
     });
 
@@ -138,6 +149,9 @@ export async function createFieldOperation(
                         productItemId: input.productItemId,
                         doseValue: input.doseValue,
                         doseUnitId: input.doseUnitId,
+                        // Water carrier lives on the treatment line only.
+                        waterRateValue: input.waterRateValue ?? null,
+                        waterRateUnitId: input.waterRateUnitId ?? null,
                         targetNote: input.targetNote ?? null,
                     },
                 ];
@@ -149,6 +163,8 @@ export async function createFieldOperation(
                         productItemId: input.fertilizerItemId,
                         doseValue: input.fertilizerDoseValue,
                         doseUnitId: input.fertilizerDoseUnitId,
+                        waterRateValue: null,
+                        waterRateUnitId: null,
                         targetNote: input.targetNote ?? null,
                     });
                 }
@@ -220,6 +236,7 @@ export async function getFieldOperation(ctx: RequestContext, taskId: string) {
             include: {
                 product: { select: { id: true, name: true } },
                 doseUnit: { select: { id: true, symbol: true, name: true } },
+                waterRateUnit: { select: { id: true, symbol: true } },
                 parcel: { select: { id: true, name: true, areaHa: true } },
                 completedBy: { select: { id: true, name: true } },
             },
