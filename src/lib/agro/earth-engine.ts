@@ -27,6 +27,7 @@
 import ee from '@google/earthengine';
 import { env } from '@/env';
 import type { VegetationIndex } from '@/lib/agro/vegetation-indices';
+import { INDEX_RECIPES } from '@/lib/agro/index-recipes';
 
 /**
  * Loosely-typed Earth Engine value. The EE client is a fluent, deeply
@@ -96,101 +97,31 @@ function initEarthEngine(): Promise<void> {
     return initPromise;
 }
 
-/** getMap visualisation params (colour ramp over a fixed value range). */
-interface VisParams {
-    min: number;
-    max: number;
-    palette: string[];
-}
-
 /**
- * Per-index spec: the band math (applied per-image before the median
- * composite) and the colour ramp. Everything else in the pipeline is
- * shared — see `getIndexTileUrl`.
+ * Build the per-image band-math function for `index` from its recipe.
+ * `normalizedDifference` covers the four ratio indices (scale-invariant, so
+ * raw S2 DN is fine); EVI is the enhanced-VI expression whose additive
+ * constant needs TRUE reflectance, so each band is divided by the S2 10000
+ * DN scale. `EeImage` keeps the fluent EE chain typed without leaking `any`.
  *
- * Sentinel-2 SR bands used: B2 blue, B3 green, B4 red, B5 red-edge-1,
- * B8 NIR. `normalizedDifference` is scale-invariant (a band ratio), so
- * raw DN values are fine; EVI's additive constant needs true reflectance,
- * so its expression divides the S2 reflectance DN by the 10000 scale.
+ * Sentinel-2 SR bands: B2 blue, B3 green, B4 red, B5 red-edge-1, B8 NIR.
  */
-const INDEX_SPECS: Record<
-    VegetationIndex,
-    { band: (img: EeImage) => EeImage; visParams: VisParams }
-> = {
-    // NDVI = (NIR − Red)/(NIR + Red) — canopy vigour. RdYlGn.
-    ndvi: {
-        band: (img) => img.normalizedDifference(['B8', 'B4']).rename('NDVI'),
-        visParams: {
-            min: 0,
-            max: 0.8,
-            palette: [
-                '#a50026', '#d73027', '#f46d43', '#fdae61', '#fee08b',
-                '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850', '#006837',
-            ],
-        },
-    },
-    // NDWI (McFeeters) = (Green − NIR)/(Green + NIR) — open-water / moisture,
-    // NOT the Gao SWIR vegetation-moisture form. BrBG (dry→wet).
-    ndwi: {
-        band: (img) => img.normalizedDifference(['B3', 'B8']).rename('NDWI'),
-        visParams: {
-            min: 0,
-            max: 0.8,
-            palette: [
-                '#8c510a', '#bf812d', '#dfc27d', '#f6e8c3', '#f5f5f5',
-                '#c7eae5', '#80cdc1', '#35978f', '#01665e', '#003c30',
-            ],
-        },
-    },
-    // NDRE = (NIR − RedEdge)/(NIR + RedEdge) — red-edge chlorophyll, more
-    // sensitive than NDVI in dense/mature canopy. Saturates lower, so the
-    // ramp tops out at 0.5. PRGn.
-    ndre: {
-        band: (img) => img.normalizedDifference(['B8', 'B5']).rename('NDRE'),
-        visParams: {
-            min: 0,
-            max: 0.5,
-            palette: [
-                '#762a83', '#9970ab', '#c2a5cf', '#e7d4e8', '#f7f7f7',
-                '#d9f0d3', '#a6dba0', '#5aae61', '#1b7837', '#00441b',
-            ],
-        },
-    },
-    // GNDVI = (NIR − Green)/(NIR + Green) — green-band chlorophyll index.
-    // YlGn.
-    gndvi: {
-        band: (img) => img.normalizedDifference(['B8', 'B3']).rename('GNDVI'),
-        visParams: {
-            min: 0,
-            max: 0.8,
-            palette: [
-                '#ffffe5', '#f7fcb9', '#d9f0a3', '#addd8e', '#78c679',
-                '#41ab5d', '#238443', '#006837', '#004529', '#00341f',
-            ],
-        },
-    },
-    // EVI = 2.5·((NIR − Red)/(NIR + 6·Red − 7.5·Blue + 1)) — enhanced VI,
-    // corrects for atmosphere + soil background. Needs true reflectance, so
-    // each band is divided by the S2 10000 scale. Viridis.
-    evi: {
-        band: (img) =>
-            img
-                .expression('2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
-                    NIR: img.select('B8').divide(10000),
-                    RED: img.select('B4').divide(10000),
-                    BLUE: img.select('B2').divide(10000),
-                })
-                .rename('EVI'),
-        visParams: {
-            min: 0,
-            max: 0.8,
-            palette: [
-                '#440154', '#472d7b', '#3b528b', '#2c728e', '#21918c',
-                '#28ae80', '#5ec962', '#addc30', '#fde725', '#fde725',
-            ],
-        },
-    },
-};
+function bandFn(index: VegetationIndex): (img: EeImage) => EeImage {
+    const math = INDEX_RECIPES[index].math;
+    if (math.kind === 'normalizedDifference') {
+        const bands = math.bands;
+        return (img) => img.normalizedDifference(bands).rename(index.toUpperCase());
+    }
+    // EVI
+    return (img) =>
+        img
+            .expression('2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+                NIR: img.select('B8').divide(10000),
+                RED: img.select('B4').divide(10000),
+                BLUE: img.select('B2').divide(10000),
+            })
+            .rename('EVI');
+}
 
 /**
  * Build a recent cloud-masked Sentinel-2 composite of `index` for `aoi` over
@@ -209,7 +140,8 @@ export async function getIndexTileUrl(
 ): Promise<string> {
     await initEarthEngine();
 
-    const spec = INDEX_SPECS[index];
+    const recipe = INDEX_RECIPES[index];
+    const band = bandFn(index);
     const region = ee.Geometry.Rectangle([aoi.west, aoi.south, aoi.east, aoi.north]);
 
     const collection = ee
@@ -228,11 +160,13 @@ export async function getIndexTileUrl(
         return img.updateMask(keep);
     });
 
-    const composite: EeImage = masked.map((img: EeImage) => spec.band(img)).median().clip(region);
+    const composite: EeImage = masked.map((img: EeImage) => band(img)).median().clip(region);
+
+    const visParams = { min: recipe.min, max: recipe.max, palette: recipe.palette };
 
     const urlFormat = await new Promise<string>((resolve, reject) => {
         composite.getMap(
-            spec.visParams,
+            visParams,
             (map: { urlFormat?: string } | null, err?: unknown) => {
                 if (err || !map?.urlFormat) {
                     reject(new Error(`EE getMap failed: ${String(err ?? 'no urlFormat')}`));

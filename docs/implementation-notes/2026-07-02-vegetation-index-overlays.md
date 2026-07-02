@@ -81,3 +81,17 @@ clip → `getMap`.
 - **Individual toggle buttons, not a segmented control.** The mobile e2e
   pins `role=button name="NDVI"` at ≥44px; a config-driven `.map()` of
   `<Button>`s keeps that contract while staying DRY.
+- **Display window per index is a `getMap` correctness concern, not
+  cosmetics** (fixed while adding the new indices). McFeeters NDWI is
+  NEGATIVE over vegetated/soil fields (NIR ≫ Green), so the original
+  `min: 0, max: 0.8` window clamped every land pixel to one colour — the
+  overlay rendered a uniform brown block for every date while still
+  "working" (a tile URL came back). Fixed to a symmetric `[−0.5, 0.5]`.
+  The `min`/`max`/`palette`/band pair moved into a pure `index-recipes.ts`
+  so two tests can guard rendering WITHOUT a live EE call:
+  `tests/guards/vegetation-index-recipes.test.ts` ratchets that each
+  display window contains its index's physical crop-value range (the
+  buggy NDWI window failed the midpoint check), and
+  `tests/unit/earth-engine-index.test.ts` mocks EE to assert
+  `getIndexTileUrl` actually feeds each recipe's bands + window into
+  `getMap` (NDWI's `min < 0`).
