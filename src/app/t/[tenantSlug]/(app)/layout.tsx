@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { getTranslations } from 'next-intl/server';
 import { AppShell } from '@/components/layout/AppShell';
 import { ClientProviders } from '@/components/layout/ClientProviders';
+import { NavigationTracker } from '@/components/nav/NavigationTracker';
 
 /**
  * Tenant app layout — Server Component.
@@ -54,6 +55,10 @@ export default async function AppLayout({
             appName={tc('appName')}
         >
             <ClientProviders userId={session.user.id ?? null}>
+                {/* Smart-nav: records the in-tenant referrer on every
+                    route change so <BackAffordance> can resolve
+                    "where you came from". Side-effect only (renders null). */}
+                <NavigationTracker />
                 {children}
             </ClientProviders>
         </AppShell>

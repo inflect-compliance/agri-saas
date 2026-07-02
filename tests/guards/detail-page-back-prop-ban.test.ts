@@ -1,21 +1,24 @@
 /**
- * Roadmap-10 PR-9 — detail-page `back={...}` prop ban.
+ * Detail-page STATIC back-prop ban (R10-PR9, revised for smart-nav).
  *
- * R9 north-star decision (locked 2026-05-11): detail-page top-left
- * navigation is **breadcrumbs only**. The `back={...}` prop on
- * `<EntityDetailLayout>` / `<PageHeader>` parallels the breadcrumb
- * trail with an extra back button — two ways to go up, neither
- * obvious to choose between, both consuming chrome.
+ * Original R9 north-star (2026-05-11): detail-page up-navigation was
+ * breadcrumbs-only — the STATIC `back={{ href, label }}` prop paralleled
+ * the breadcrumb trail with a redundant second "up" affordance.
  *
- * Both primitives still EXPOSE the `back` prop (interfaces are
- * load-bearing through other consumers); but no app page should
- * pass it. Pass `breadcrumbs={...}` instead — every detail-page
- * primitive renders them.
+ * Revised (smart-nav port): the SMART back form `back={{ smart: true }}`
+ * is now sanctioned. It is NOT redundant with breadcrumbs — breadcrumbs
+ * show IA ancestry (Dashboard › Locations › North 40) while the smart
+ * back is referrer-aware ("back to where you actually came from", falling
+ * back to the canonical parent on a cold load). See
+ * `src/components/nav/BackAffordance.tsx`.
  *
- * Scan: any `<EntityDetailLayout` or `<PageHeader` JSX in
- * `src/app/**` that passes a `back={...}` prop is a violation.
- * The scanner strips JS/TS comments first so doc-block references
- * to the prop don't false-positive.
+ * So the ban is narrowed: the STATIC form (`back={{ href: … }}`) stays
+ * banned on app pages (still redundant with breadcrumbs); the smart form
+ * (`back={{ smart: true }}`) is allowed.
+ *
+ * Scan: any `<EntityDetailLayout` / `<PageHeader` JSX in `src/app/**`
+ * that passes a static `back={{ href … }}` is a violation. Comments are
+ * stripped first so doc-block references don't false-positive.
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -42,22 +45,23 @@ function stripComments(src: string): string {
         .replace(/\/\/[^\n]*/g, '');
 }
 
-// Capture EntityDetailLayout / PageHeader JSX blocks, then check for
-// `back={` inside the opening tag block. `[\s\S]` matches any char
-// INCLUDING newline (used in place of the `s` / dotAll flag because
-// tsconfig targets pre-ES2018).
+// Capture EntityDetailLayout / PageHeader JSX blocks, then check for a
+// STATIC `back={{ … href … }}` inside the opening tag block. `[\s\S]`
+// matches any char including newline (tsconfig targets pre-ES2018).
 const PRIMITIVE_BLOCK_RE =
     /<(?:EntityDetailLayout|PageHeader)\b[\s\S]*?(?:>|\/>)/g;
 
-describe('detail-page back prop ban (R10-PR9)', () => {
-    test('no <EntityDetailLayout> or <PageHeader> in src/app passes back={...}', () => {
+describe('detail-page STATIC back prop ban (R10-PR9, smart-nav revision)', () => {
+    test('no <EntityDetailLayout>/<PageHeader> in src/app passes a STATIC back={{ href … }}', () => {
         const offenders: { file: string; snippet: string }[] = [];
         for (const file of walk(APP_ROOT)) {
             const content = stripComments(fs.readFileSync(file, 'utf-8'));
             const blocks = content.match(PRIMITIVE_BLOCK_RE);
             if (!blocks) continue;
             for (const block of blocks) {
-                if (/\sback=\{/.test(block)) {
+                // A back prop carrying `href` is the static form.
+                // `back={{ smart: true }}` has no href → allowed.
+                if (/\sback=\{[\s\S]*href/.test(block)) {
                     offenders.push({
                         file: path.relative(ROOT, file),
                         snippet: block.slice(0, 120),
@@ -71,20 +75,18 @@ describe('detail-page back prop ban (R10-PR9)', () => {
                 .map((o) => `  ${o.file}\n    ${o.snippet}`)
                 .join('\n');
             throw new Error(
-                `${offenders.length} site(s) pass back={...} to <EntityDetailLayout> or <PageHeader>:\n${sample}\n\nFix: remove the back prop. Both primitives render breadcrumbs, which are the canonical up-navigation. If breadcrumbs aren't already passed, pass \`breadcrumbs={[{ label, href }, …]}\` instead.`,
+                `${offenders.length} site(s) pass a STATIC back={{ href … }} to <EntityDetailLayout>/<PageHeader>:\n${sample}\n\nFix: use breadcrumbs for IA ancestry, and/or the smart form \`back={{ smart: true }}\` (referrer-aware). The static back is redundant with breadcrumbs.`,
             );
         }
     });
 
-    test('EntityDetailLayout primitive still exposes back?: prop (interface, not call sites)', () => {
-        // Lock the primitive's interface intentionally — only call
-        // sites are banned. The prop remains in the type so external
-        // consumers / library callers can pass it. The ratchet's job
-        // is to ban its use in OUR app pages.
+    test('EntityDetailLayout primitive still exposes the back?: prop (interface, not call sites)', () => {
+        // The prop remains load-bearing; it now accepts the union
+        // (static link OR smart form) via `PageHeaderBack`.
         const src = fs.readFileSync(
             path.resolve(ROOT, 'src/components/layout/EntityDetailLayout.tsx'),
             'utf-8',
         );
-        expect(src).toMatch(/back\?:\s*\{[^}]*href:\s*string/);
+        expect(src).toMatch(/back\?:\s*PageHeaderBack/);
     });
 });

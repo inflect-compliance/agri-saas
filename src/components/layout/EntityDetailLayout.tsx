@@ -39,7 +39,7 @@ import { cardVariants } from '@/components/ui/card';
 
 import { cn } from '@/lib/cn';
 import { type BreadcrumbItem } from '@/components/ui/breadcrumbs';
-import { PageHeader } from '@/components/layout/PageHeader';
+import { PageHeader, type PageHeaderBack } from '@/components/layout/PageHeader';
 
 // ─── Tab descriptor ───────────────────────────────────────────────
 
@@ -65,11 +65,12 @@ export interface EntityDetailLayoutProps<TKey extends string = string> {
      * canonical pattern is to use one or the other.
      */
     breadcrumbs?: ReadonlyArray<BreadcrumbItem>;
-    /** Back-navigation link rendered above the title. Optional. */
-    back?: {
-        href: string;
-        label: string;
-    };
+    /**
+     * Back-navigation affordance rendered above the title. Optional.
+     *   - `{ href, label }` — static `← Label` link.
+     *   - `{ smart: true }` — smart back (in-tab referrer → canonical parent).
+     */
+    back?: PageHeaderBack;
     /** Title of the detail page. Plain string OR rich element. */
     title: ReactNode;
     /**

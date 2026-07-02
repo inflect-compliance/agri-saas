@@ -297,7 +297,7 @@ export default function LocationDetailPage() {
     return (
         <EntityDetailLayout<Tab>
             breadcrumbs={breadcrumbs}
-            back={{ href: `/t/${tenantSlug}/locations`, label: 'Locations' }}
+            back={{ smart: true }}
             title={loc?.name ?? 'Location'}
             loading={locQ.isLoading && !loc}
             error={locQ.error ? 'Failed to load location.' : null}
