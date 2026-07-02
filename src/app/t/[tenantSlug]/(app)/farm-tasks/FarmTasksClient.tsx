@@ -21,6 +21,7 @@
  */
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
@@ -144,6 +145,7 @@ function resolveTaskTypeName(row: FarmTaskRow): string {
 export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
     const buildUrl = useTenantApiUrl();
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
+    const router = useRouter();
 
     const { data: tasks, mutate, isLoading } = useTenantSWR<FarmTaskRow[]>('/farm-tasks');
 
@@ -159,9 +161,19 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Picker catalogs — fetched only while the modal is open.
-    const { data: locations } = useTenantSWR<LocationRow[]>(isCreateOpen ? '/locations' : null);
+    // Locations are fetched up-front (small list) — the create-modal picker
+    // AND the FAB (which jumps to the first field's parcel map) both need them.
+    const { data: locations } = useTenantSWR<LocationRow[]>('/locations');
+    // Equipment is only needed inside the modal, so stays lazy.
     const { data: equipment } = useTenantSWR<EquipmentRow[]>(isCreateOpen ? '/equipment' : null);
+
+    // The FAB ("Start Field Operation") jumps straight to a field's parcel
+    // map — where a spray/field operation begins by selecting parcels. Uses
+    // the first field; falls back to the fields list when none exist yet.
+    const goToFieldMap = () => {
+        const first = locations?.[0];
+        router.push(first ? tenantHref(`/locations/${first.id}?tab=map`) : tenantHref('/locations'));
+    };
 
     const locationOptions: ComboboxOption[] = useMemo(
         () => (locations ?? []).map((l) => ({ value: l.id, label: l.name })),
@@ -327,7 +339,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
             }}
         >
             <Fab
-                onClick={openCreate}
+                onClick={goToFieldMap}
                 label="Start Field Operation"
                 icon={<Plus aria-hidden className="h-6 w-6" />}
             />
