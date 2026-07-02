@@ -82,3 +82,21 @@ CVE-2026-33750
 #   Upgrade plan:   Cleared by the next base-image bump that ships
 #                   an npm CLI with the patched `ip-address` version.
 CVE-2026-42338
+
+# CVE-2026-48815 — sigstore certificateOIDs verification-constraint bypass
+#   Affected path:  usr/local/lib/node_modules/npm/node_modules/sigstore (v3.1.0)
+#   Why exempt:     The flagged sigstore@3.1.0 is bundled INSIDE the npm
+#                   CLI that ships with the node:22-alpine base image
+#                   (npm's libnpmpublish/pacote use it to VERIFY package
+#                   provenance attestations during `npm publish` / install
+#                   with provenance). Our own app tree resolves sigstore
+#                   to the fixed 4.1.1 (via the @semantic-release/npm
+#                   devDependency), and devDeps are pruned from the runtime
+#                   image anyway. The vulnerable code path is provenance
+#                   verification during a publish/install — the runtime
+#                   container never execs `npm`, so app-level reachability
+#                   is zero (same argument as the four npm-CLI entries
+#                   above). Newly published to the Trivy DB 2026-07-02.
+#   Upgrade plan:   Cleared by the next Node base-image bump that ships an
+#                   npm CLI bundling sigstore >= 4.1.1.
+CVE-2026-48815

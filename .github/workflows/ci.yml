@@ -473,17 +473,14 @@ jobs:
     name: E2E
     needs: [build]
     runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
-    # The Playwright suite runs with intra-job parallelism — CI uses
-    # `workers: 3` with `fullyParallel: false` (file-level: whole spec
-    # files run concurrently, tests within a file stay ordered). This is
-    # sound because mutating specs each provision their own isolated
-    # tenant and read-only specs only read the shared seed; `retries: 2`
-    # backstops transient localhost races. See playwright.config.ts.
-    #
-    # An earlier multi-JOB shard matrix was tried and reverted (per-shard
-    # setup duplication + a cross-shard coupling). Intra-job workers avoid
-    # both: one setup/build, parallel workers on the same runner. The
-    # 40-min budget stays as headroom.
+    # The Playwright suite runs SERIALLY (workers: 1, fullyParallel:
+    # false — see playwright.config.ts). Both a multi-JOB shard matrix and
+    # an intra-job `workers: 3` were tried and reverted: the shard matrix
+    # duplicated the ~10-15min setup per shard, and workers>1 flaked the
+    # heavier timing-sensitive specs (tenant creation, audit-pack share,
+    # offline queue, a11y) under parallel load for only ~1min of gain.
+    # `retries: 2` covers transient localhost races. The 40-min budget
+    # gives headroom for the serial suite + retries.
     timeout-minutes: 40
 
     env:
