@@ -70,25 +70,17 @@ export interface MapCanvasProps {
      */
     onGeometryValidity?: (validity: PolygonValidity) => void;
     /**
-     * NDVI raster overlay (Agro-intel). When `showNdvi` is true AND an
-     * XYZ `{z}/{x}/{y}` template `ndviTileUrl` is supplied, a raster
-     * `<Source>`/`<Layer>` is drawn over the AOI (the map is already fit
-     * to the location's parcel bbox via `bounds`). When the URL is empty
-     * the layer is simply not rendered — the page surfaces a "configure a
-     * tile source" empty state.
+     * Satellite vegetation-index raster overlay (Agro-intel) — NDVI / NDWI /
+     * NDRE / GNDVI / EVI. The indices are mutually exclusive, so the host
+     * passes at most ONE: an `{ id, tileUrl }` pair where `tileUrl` is an XYZ
+     * `{z}/{x}/{y}` template from Google Earth Engine. A raster
+     * `<Source>`/`<Layer>` is drawn over the AOI (the map is already fit to
+     * the location's parcel bbox via `bounds`). `null`/absent or an empty
+     * `tileUrl` renders nothing — the host page surfaces the loading /
+     * not-configured / no-imagery state itself. `id` keys the source so
+     * switching indices swaps the raster cleanly.
      */
-    showNdvi?: boolean;
-    ndviTileUrl?: string;
-    /**
-     * NDWI raster overlay (Agro-intel) — the water-index sibling of the NDVI
-     * overlay above. When `showNdwi` is true AND an XYZ `{z}/{x}/{y}` template
-     * `ndwiTileUrl` is supplied, a raster `<Source>`/`<Layer>` is drawn over
-     * the AOI exactly like NDVI. Only one index overlay is expected on at a
-     * time (the host page enforces mutual exclusivity), but both render
-     * independently here if both are supplied.
-     */
-    showNdwi?: boolean;
-    ndwiTileUrl?: string;
+    indexOverlay?: { id: string; tileUrl: string } | null;
     /**
      * On-map thumb controls (zoom ±, find-my-field). Opt-in so the read-only
      * operator/prescription paths are unchanged unless they ask for it.
@@ -165,10 +157,7 @@ export function MapCanvas({
     onUpdateGeometry,
     onCreateSplitLine,
     onGeometryValidity,
-    showNdvi = false,
-    ndviTileUrl,
-    showNdwi = false,
-    ndwiTileUrl,
+    indexOverlay = null,
     showControls = false,
     controlsBottomInset = 12,
     liveTracking = false,
@@ -177,8 +166,7 @@ export function MapCanvas({
     className,
 }: MapCanvasProps) {
     const reducedMotion = useReducedMotion();
-    const ndviActive = showNdvi && !!ndviTileUrl && ndviTileUrl.length > 0;
-    const ndwiActive = showNdwi && !!ndwiTileUrl && ndwiTileUrl.length > 0;
+    const indexActive = !!indexOverlay && indexOverlay.tileUrl.length > 0;
     const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
     const done = useMemo(() => new Set(doneIds), [doneIds]);
     const mapRef = useRef<MapRef | null>(null);
@@ -546,24 +534,21 @@ export function MapCanvas({
                 style={{ width: '100%', height: '100%' }}
                 cursor={interactive && !drawing ? 'pointer' : 'grab'}
             >
-                {/* NDVI raster overlay (Agro-intel). Drawn first so the
-                    parcel fill/line layers stay legible on top. The map is
-                    already fit to the AOI bbox via `bounds`. */}
-                {ndviActive && (
-                    <Source id="ndvi" type="raster" tiles={[ndviTileUrl!]} tileSize={256}>
-                        <Layer id="ndvi-raster" type="raster" paint={{ 'raster-opacity': 0.7 }} />
+                {/* Satellite vegetation-index raster overlay (Agro-intel) —
+                    NDVI / NDWI / NDRE / GNDVI / EVI (mutually exclusive).
+                    Drawn first so the parcel vector layers sit on top. The
+                    source id is keyed by index so switching swaps cleanly. */}
+                {indexActive && (
+                    <Source
+                        id={`idx-${indexOverlay!.id}`}
+                        key={`idx-${indexOverlay!.id}`}
+                        type="raster"
+                        tiles={[indexOverlay!.tileUrl]}
+                        tileSize={256}
+                    >
+                        <Layer id={`idx-${indexOverlay!.id}-raster`} type="raster" paint={{ 'raster-opacity': 0.7 }} />
                     </Source>
                 )}
-
-                {/* NDWI raster overlay (Agro-intel) — the water-index sibling,
-                    drawn alongside NDVI and before the parcel layers so the
-                    parcel fill/line stay legible on top. */}
-                {ndwiActive && (
-                    <Source id="ndwi" type="raster" tiles={[ndwiTileUrl!]} tileSize={256}>
-                        <Layer id="ndwi-raster" type="raster" paint={{ 'raster-opacity': 0.7 }} />
-                    </Source>
-                )}
-
                 {/* Hide the static layer while editing so terra-draw owns
                     the on-map render of the editable polygons. */}
                 {mode !== 'edit' && (
