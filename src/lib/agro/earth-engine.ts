@@ -146,3 +146,69 @@ export async function getNdviTileUrl(aoi: NdviAoi, win: NdviWindow): Promise<str
 
     return urlFormat;
 }
+
+/**
+ * Build a recent cloud-masked Sentinel-2 NDWI composite for `aoi` over the
+ * `[start, end)` window and return its ephemeral XYZ tile-URL template.
+ *
+ * NDWI (McFeeters water-index form) = (B3 − B8) / (B3 + B8), where B3 is the
+ * green band and B8 the NIR band — this is the WATER index (positive over
+ * open water / high moisture), distinct from the Gao vegetation-moisture NDWI
+ * that uses SWIR. Clouds/shadow/snow are dropped via the Sentinel-2 SCL
+ * scene-classification band (identical to the NDVI path), then the per-pixel
+ * median over the window is taken so a single cloudy pass never blanks the
+ * field.
+ */
+export async function getNdwiTileUrl(aoi: NdviAoi, win: NdviWindow): Promise<string> {
+    await initEarthEngine();
+
+    const region = ee.Geometry.Rectangle([aoi.west, aoi.south, aoi.east, aoi.north]);
+
+    const collection = ee
+        .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+        .filterBounds(region)
+        .filterDate(win.start, win.end)
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60));
+
+    // SCL classes to mask: 3 cloud-shadow, 8 cloud-medium, 9 cloud-high,
+    // 10 thin-cirrus, 11 snow/ice — same mask as the NDVI composite.
+    const masked = collection.map((img: EeImage) => {
+        const scl = img.select('SCL');
+        const keep = scl.neq(3).and(scl.neq(8)).and(scl.neq(9)).and(scl.neq(10)).and(scl.neq(11));
+        return img.updateMask(keep);
+    });
+
+    // McFeeters NDWI = (Green − NIR)/(Green + NIR). B3 = green, B8 = NIR.
+    const ndwi = masked.map((img: EeImage) =>
+        img.normalizedDifference(['B3', 'B8']).rename('NDWI'),
+    );
+
+    const composite: EeImage = ndwi.median().clip(region);
+
+    // Water-appropriate ramp: dry/low (browns) → neutral (white) → wet/high
+    // (blues). Distinct from NDVI's red→green so the two overlays never read
+    // the same. Same [min,max] range handling as NDVI.
+    const visParams = {
+        min: 0,
+        max: 0.8,
+        palette: [
+            '#8c510a', '#bf812d', '#dfc27d', '#f6e8c3', '#f5f5f5',
+            '#c7eae5', '#80cdc1', '#35978f', '#01665e', '#003c30',
+        ],
+    };
+
+    const urlFormat = await new Promise<string>((resolve, reject) => {
+        composite.getMap(
+            visParams,
+            (map: { urlFormat?: string } | null, err?: unknown) => {
+                if (err || !map?.urlFormat) {
+                    reject(new Error(`EE getMap failed: ${String(err ?? 'no urlFormat')}`));
+                    return;
+                }
+                resolve(map.urlFormat);
+            },
+        );
+    });
+
+    return urlFormat;
+}

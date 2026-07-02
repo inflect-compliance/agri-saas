@@ -144,6 +144,10 @@ export default function LocationDetailPage() {
     // the 30-day composite window (UTC-midnight DateValue per the picker
     // contract). Defaults to today.
     const [ndviOn, setNdviOn] = useState(false);
+    // NDWI (McFeeters water index) overlay — the sibling of NDVI. Mutually
+    // exclusive with NDVI (only one index overlay at a time); both share the
+    // single inspection date picker below.
+    const [ndwiOn, setNdwiOn] = useState(false);
     const [ndviDate, setNdviDate] = useState<DateValue>(() => {
         const n = new Date();
         return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
@@ -178,6 +182,15 @@ export default function LocationDetailPage() {
     const ndviConfigured = ndviQ.data?.configured ?? true;
     const ndviTileUrl = ndviQ.data?.tileUrl ?? '';
     const ndviLoading = ndviOn && !ndviQ.data && !ndviQ.error;
+    // NDWI tiles (GEE) — same fetch shape as NDVI, driven by the shared date.
+    const ndwiQ = useTenantSWR<{ configured: boolean; tileUrl: string; date?: string; error?: string }>(
+        tab === 'map' && ndwiOn
+            ? `/agro/ndwi-tiles?locationId=${locationId}${ndviYmd ? `&date=${ndviYmd}` : ''}`
+            : null,
+    );
+    const ndwiConfigured = ndwiQ.data?.configured ?? true;
+    const ndwiTileUrl = ndwiQ.data?.tileUrl ?? '';
+    const ndwiLoading = ndwiOn && !ndwiQ.data && !ndwiQ.error;
 
     const loc = locQ.data;
     const parcels = useMemo(() => parcelsQ.data?.parcels ?? [], [parcelsQ.data]);
@@ -383,28 +396,48 @@ export default function LocationDetailPage() {
                 <div className="space-y-default">
                     <SmartDefaultsBanner data={smartQ.data} />
                     <div className="flex flex-wrap items-center gap-compact">
-                        {/* NDVI overlay (GEE) — the button and its inspection
-                            date sit together as one left-aligned unit (date to
-                            the RIGHT of the button), in the row position the
-                            Select/Draw/Edit/Split toggle used to hold. */}
+                        {/* NDVI / NDWI overlays (GEE) — the two index toggles
+                            and the shared inspection date sit together as one
+                            left-aligned unit (date to the RIGHT of the
+                            buttons), in the row position the Select/Draw/Edit/
+                            Split toggle used to hold. Only one index overlay is
+                            on at a time (mutually exclusive); the single date
+                            picker drives whichever is active. */}
                         <div className="flex shrink-0 items-center gap-compact">
                             <Button
                                 variant={ndviOn ? 'primary' : 'secondary'}
                                 size="sm"
                                 className="min-h-[44px] min-w-[44px]"
-                                onClick={() => setNdviOn((v) => !v)}
+                                onClick={() => setNdviOn((v) => {
+                                    const next = !v;
+                                    if (next) setNdwiOn(false);
+                                    return next;
+                                })}
                                 aria-pressed={ndviOn}
                             >
                                 NDVI
                             </Button>
-                            {ndviOn && (
+                            <Button
+                                variant={ndwiOn ? 'primary' : 'secondary'}
+                                size="sm"
+                                className="min-h-[44px] min-w-[44px]"
+                                onClick={() => setNdwiOn((v) => {
+                                    const next = !v;
+                                    if (next) setNdviOn(false);
+                                    return next;
+                                })}
+                                aria-pressed={ndwiOn}
+                            >
+                                NDWI
+                            </Button>
+                            {(ndviOn || ndwiOn) && (
                                 <DatePicker
                                     id="ndvi-date-input"
                                     value={ndviDate}
                                     onChange={(d) => setNdviDate(d)}
                                     placeholder="Date"
-                                    // NDVI needs a past satellite pass — future
-                                    // dates have no imagery.
+                                    // NDVI/NDWI need a past satellite pass —
+                                    // future dates have no imagery.
                                     disabledDays={{ after: new Date() }}
                                     // Compact trigger (icon + "30 Jun") keeps the
                                     // control narrow so it fits beside the toggles.
@@ -417,7 +450,7 @@ export default function LocationDetailPage() {
                                             icon={<CalendarIcon className="size-4" aria-hidden="true" />}
                                             aria-haspopup="dialog"
                                             aria-expanded={open}
-                                            aria-label={`NDVI inspection date: ${ndviShort}`}
+                                            aria-label={`Imagery inspection date: ${ndviShort}`}
                                         >
                                             {ndviShort}
                                         </Button>
@@ -459,6 +492,30 @@ export default function LocationDetailPage() {
                             )}
                         </div>
                     )}
+                    {/* NDWI status line: loading / not-configured / legend. */}
+                    {ndwiOn && (
+                        <div className="flex items-center gap-compact text-xs text-content-subtle">
+                            {ndwiLoading ? (
+                                <span>Loading NDWI imagery…</span>
+                            ) : ndwiConfigured === false ? (
+                                <span>NDWI imagery isn&apos;t configured for this deployment.</span>
+                            ) : ndwiTileUrl ? (
+                                <>
+                                    <span className="font-medium text-content-secondary">NDWI</span>
+                                    <span>Dry</span>
+                                    <span
+                                        aria-hidden="true"
+                                        className="h-2 w-24 rounded-full bg-[linear-gradient(to_right,#8c510a,#dfc27d,#f5f5f5,#80cdc1,#01665e)]"
+                                    />
+                                    <span>Wet</span>
+                                </>
+                            ) : ndwiQ.data?.error ? (
+                                <span>Couldn&apos;t load NDWI imagery for this date — try another.</span>
+                            ) : (
+                                <span>No cloud-free NDWI imagery for this field around that date.</span>
+                            )}
+                        </div>
+                    )}
                     <div className={cn('gap-section', !isMobile && 'grid grid-cols-1 md:grid-cols-[1fr_320px]')}>
                         <MapCanvas
                             parcels={mapParcels}
@@ -479,6 +536,8 @@ export default function LocationDetailPage() {
                                 : undefined}
                             showNdvi={ndviOn && !!ndviTileUrl}
                             ndviTileUrl={ndviTileUrl}
+                            showNdwi={ndwiOn && !!ndwiTileUrl}
+                            ndwiTileUrl={ndwiTileUrl}
                             // Read-only vector-tile source (perf at scale). The
                             // {z}/{x}/{y} placeholders are kept literal for
                             // MapLibre to substitute (buildUrl doesn't encode
