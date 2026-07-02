@@ -92,7 +92,7 @@ beforeEach(() => {
     mockRec.getMapVis = [];
 });
 
-describe.each<VegetationIndex>(['ndvi', 'ndwi', 'ndre', 'gndvi'])(
+describe.each<VegetationIndex>(['ndvi', 'ndwi', 'ndmi', 'ndre', 'gndvi'])(
     'ratio index %s',
     (id) => {
         it('feeds its band pair + recipe display window into getMap', async () => {

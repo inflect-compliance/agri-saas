@@ -187,6 +187,8 @@ export const getNdviTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =
     getIndexTileUrl('ndvi', aoi, win);
 export const getNdwiTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
     getIndexTileUrl('ndwi', aoi, win);
+export const getNdmiTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
+    getIndexTileUrl('ndmi', aoi, win);
 export const getNdreTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
     getIndexTileUrl('ndre', aoi, win);
 export const getGndviTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>

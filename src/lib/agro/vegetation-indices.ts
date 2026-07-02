@@ -15,7 +15,7 @@
  */
 
 /** Stable id for a satellite index overlay. Drives the tile-route slug. */
-export type VegetationIndex = 'ndvi' | 'ndwi' | 'ndre' | 'gndvi' | 'evi';
+export type VegetationIndex = 'ndvi' | 'ndwi' | 'ndmi' | 'ndre' | 'gndvi' | 'evi';
 
 export interface VegetationIndexUi {
     /** Stable id — also the `/agro/<id>-tiles` route slug prefix. */
@@ -62,6 +62,18 @@ export const VEGETATION_INDICES: readonly VegetationIndexUi[] = [
         // BrBG — McFeeters water index.
         legendGradientClass:
             'bg-[linear-gradient(to_right,#8c510a,#dfc27d,#f5f5f5,#80cdc1,#01665e)]',
+    },
+    {
+        id: 'ndmi',
+        label: 'NDMI',
+        route: 'ndmi-tiles',
+        lowLabel: 'Dry',
+        highLabel: 'Wet',
+        // RdYlBu — canopy/soil moisture (water stress red → wet blue).
+        // Distinct from NDWI's BrBG so the two moisture layers never read
+        // the same.
+        legendGradientClass:
+            'bg-[linear-gradient(to_right,#a50026,#f46d43,#fee090,#abd9e9,#313695)]',
     },
     {
         id: 'ndre',

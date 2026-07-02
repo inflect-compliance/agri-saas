@@ -37,6 +37,8 @@ const CROP_VALUE_RANGE: Record<VegetationIndex, [number, number]> = {
     ndvi: [0.1, 0.85],
     // NEGATIVE over land — the invariant the 2026-07-02 bug violated.
     ndwi: [-0.6, 0.3],
+    // NDMI varies over crops and dips negative under water stress.
+    ndmi: [-0.2, 0.4],
     ndre: [0.05, 0.45],
     gndvi: [0.2, 0.7],
     evi: [0.1, 0.6],
@@ -46,6 +48,7 @@ const CROP_VALUE_RANGE: Record<VegetationIndex, [number, number]> = {
 const EXPECTED_ND_BANDS: Partial<Record<VegetationIndex, [string, string]>> = {
     ndvi: ['B8', 'B4'],
     ndwi: ['B3', 'B8'],
+    ndmi: ['B8', 'B11'],
     ndre: ['B8', 'B5'],
     gndvi: ['B8', 'B3'],
 };

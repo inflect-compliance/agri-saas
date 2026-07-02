@@ -61,6 +61,20 @@ export const INDEX_RECIPES: Record<VegetationIndex, IndexRecipe> = {
             '#c7eae5', '#80cdc1', '#35978f', '#01665e', '#003c30',
         ],
     },
+    // NDMI = (NIR − SWIR1)/(NIR + SWIR1) — canopy/soil moisture (Gao). The
+    // agriculture moisture index: unlike McFeeters NDWI it VARIES across a
+    // crop field (~ −0.2 dry/bare → ~ +0.4 well-watered canopy). Can be
+    // negative under water stress, so the window includes negatives. B8 NIR,
+    // B11 SWIR-1 (EE resamples the 20 m SWIR band at getMap time). RdYlBu.
+    ndmi: {
+        math: { kind: 'normalizedDifference', bands: ['B8', 'B11'] },
+        min: -0.3,
+        max: 0.5,
+        palette: [
+            '#a50026', '#d73027', '#f46d43', '#fdae61', '#fee090',
+            '#e0f3f8', '#abd9e9', '#74add1', '#4575b4', '#313695',
+        ],
+    },
     // NDRE = (NIR − RedEdge)/(NIR + RedEdge) — red-edge chlorophyll. Positive
     // over crops (~0.05 sparse → ~0.45 dense), saturates lower than NDVI.
     // PRGn.
