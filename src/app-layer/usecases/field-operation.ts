@@ -10,8 +10,10 @@ import { TERMINAL_WORK_ITEM_STATUSES } from '../domain/work-item-status';
 import { recordInputApplication, type InputApplicationResult } from './inventory';
 import { attachAutoEvidenceFromLogEntry } from './auto-evidence';
 import { traceAgUsecase } from '@/lib/observability';
+import { logger } from '@/lib/observability/logger';
 import { trace } from '@opentelemetry/api';
 import { emitAutomationEvent } from '../automation';
+import { enqueue } from '@/app-layer/jobs/queue';
 
 type OperationType = 'SPRAY' | 'FERTILIZE' | 'SEED' | 'OTHER';
 type ParcelStatus = 'PENDING' | 'DONE' | 'SKIPPED';
@@ -325,7 +327,7 @@ async function markOperationParcelImpl(
     status: ParcelStatus,
     note?: string | null,
 ) {
-    return runInTenantContext(ctx, async (db) => {
+    const result = await runInTenantContext(ctx, async (db) => {
         const line = await db.operationParcel.findFirst({
             where: { id: lineId, taskId, tenantId: ctx.tenantId },
             include: {
@@ -493,6 +495,30 @@ async function markOperationParcelImpl(
 
         return { success: true, resolved, application };
     });
+
+    // БАБХ farm-record — when the job auto-resolves, regenerate the location's
+    // current-season ДНЕВНИК into its Farm-records register. Enqueued AFTER
+    // the tenant tx commits, fire-and-forget + fail-open: a Redis outage must
+    // never roll back the completion the operator just recorded. jobId keyed
+    // on the task dedups repeated resolve transitions.
+    if (result.resolved) {
+        try {
+            await enqueue(
+                'farm-record-pdf',
+                { tenantId: ctx.tenantId, taskId },
+                { jobId: `farm-record:${taskId}` },
+            );
+        } catch (err) {
+            logger.warn('farm-record-pdf enqueue failed (task completion unaffected)', {
+                component: 'usecase',
+                tenantId: ctx.tenantId,
+                taskId,
+                error: err instanceof Error ? err.message : String(err),
+            });
+        }
+    }
+
+    return result;
 }
 
 /**

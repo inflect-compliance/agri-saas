@@ -604,6 +604,19 @@ export interface EmbedChunksPayload {
     batchSize?: number;
 }
 
+/**
+ * БАБХ farm-record — regenerate a location's current-season ДНЕВНИК into its
+ * Farm-records register when a field task auto-resolves. Enqueued
+ * fire-and-forget (jobId `farm-record:<taskId>` for dedup); the worker
+ * resolves the task's location, generates the diary (season start → now),
+ * and persists it as a FileRecord (domain 'reports'). Fail-open — a failed
+ * generation never affects task completion.
+ */
+export interface FarmRecordPdfPayload {
+    tenantId: string;
+    taskId: string;
+}
+
 export interface JobPayloadMap {
     'health-check': HealthCheckPayload;
     'embed-chunks': EmbedChunksPayload;
@@ -647,6 +660,7 @@ export interface JobPayloadMap {
     'classify-photo': ClassifyPhotoPayload;
     'weather-pull': WeatherPullPayload;
     'spatial-import': SpatialImportJobPayload;
+    'farm-record-pdf': FarmRecordPdfPayload;
 }
 
 /** Union of all valid job names */
@@ -971,6 +985,15 @@ export const JOB_DEFAULTS: Record<JobName, {
         backoff: { type: 'fixed', delay: 0 },
         removeOnComplete: 200,
         removeOnFail: 1000,
+    },
+    'farm-record-pdf': {
+        // Regenerating the register diary is idempotent (a fresh FileRecord),
+        // so retry a transient storage/render flake a couple of times. The
+        // job never throws into the completion path regardless.
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: 100,
+        removeOnFail: 500,
     },
 };
 

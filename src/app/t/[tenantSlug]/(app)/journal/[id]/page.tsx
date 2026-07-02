@@ -8,8 +8,13 @@ import { CACHE_KEYS } from '@/lib/swr-keys';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import { Button } from '@/components/ui/button';
-import { Pen2 } from '@/components/ui/icons/nucleo';
+import { Pen2, CalendarIcon } from '@/components/ui/icons/nucleo';
 import { Tooltip } from '@/components/ui/tooltip';
+import { Modal } from '@/components/ui/modal';
+import { FormField } from '@/components/ui/form-field';
+import { DatePicker, type DateValue } from '@/components/ui/date-picker';
+import { toYMD } from '@/components/ui/date-picker/date-utils';
+import { useToast } from '@/components/ui/hooks';
 import { Eyebrow, Heading } from '@/components/ui/typography';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
@@ -65,6 +70,10 @@ interface LogEntryDetail {
     locations?: LocationLink[];
     equipment?: EquipmentLink[];
     attributesJson?: { pestId?: PestSuggestionData } | null;
+    /** БАБХ — set when this entry is the INPUT_APPLICATION record of a field
+     * operation, so the journal offers manual ДНЕВНИК generation. */
+    operationParcelId?: string | null;
+    fieldOperation?: { taskId: string; locationId: string } | null;
 }
 
 export default function JournalDetailPage() {
@@ -79,6 +88,49 @@ export default function JournalDetailPage() {
 
     const [activeTab, setActiveTab] = useState<Tab>('details');
     const [editing, setEditing] = useState(false);
+    const toast = useToast();
+
+    // БАБХ ДНЕВНИК (PDF) — offered on entries that record a field operation.
+    const [showDnevnik, setShowDnevnik] = useState(false);
+    const [dnevnikBusy, setDnevnikBusy] = useState(false);
+    const [dnevnikFrom, setDnevnikFrom] = useState<DateValue>(() => {
+        const n = new Date();
+        return new Date(Date.UTC(n.getFullYear(), 0, 1));
+    });
+    const [dnevnikTo, setDnevnikTo] = useState<DateValue>(() => {
+        const n = new Date();
+        return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
+    });
+    const generateDnevnik = async () => {
+        const locationId = entry?.fieldOperation?.locationId;
+        if (!locationId) return;
+        setDnevnikBusy(true);
+        try {
+            const res = await fetch(apiUrl(`/locations/${locationId}/farm-record`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from: toYMD(dnevnikFrom), to: toYMD(dnevnikTo) }),
+            });
+            if (!res.ok) throw new Error('generation failed');
+            const blob = await res.blob();
+            const disposition = res.headers.get('Content-Disposition');
+            const m = disposition?.match(/filename="?([^"]+)"?/);
+            const fileName = m?.[1] || `dnevnik-${toYMD(dnevnikFrom)}_${toYMD(dnevnikTo)}.pdf`;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            setShowDnevnik(false);
+        } catch {
+            toast.error('Неуспешно генериране на дневника.');
+        } finally {
+            setDnevnikBusy(false);
+        }
+    };
 
     const breadcrumbs = [
         { label: 'Dashboard', href: tenantHref('/dashboard') },
@@ -143,19 +195,32 @@ export default function JournalDetailPage() {
                 />
             }
             actions={
-                permissions.canWrite ? (
-                    <Tooltip content="Edit entry">
+                <div className="flex items-center gap-compact">
+                    {entry.fieldOperation && (
                         <Button
                             variant="secondary"
-                            size="icon"
-                            onClick={() => setEditing(true)}
-                            id="edit-journal-btn"
-                            aria-label="Edit entry"
+                            size="sm"
+                            icon={<CalendarIcon className="size-4" />}
+                            onClick={() => setShowDnevnik(true)}
+                            id="journal-dnevnik-btn"
                         >
-                            <Pen2 className="size-4" />
+                            Дневник (PDF)
                         </Button>
-                    </Tooltip>
-                ) : null
+                    )}
+                    {permissions.canWrite && (
+                        <Tooltip content="Edit entry">
+                            <Button
+                                variant="secondary"
+                                size="icon"
+                                onClick={() => setEditing(true)}
+                                id="edit-journal-btn"
+                                aria-label="Edit entry"
+                            >
+                                <Pen2 className="size-4" />
+                            </Button>
+                        </Tooltip>
+                    )}
+                </div>
             }
             tabs={tabs}
             activeTab={activeTab}
@@ -285,6 +350,31 @@ export default function JournalDetailPage() {
                     />
                 </div>
             )}
+
+            {/* БАБХ ДНЕВНИК (PDF) — manual generation for this operation's location. */}
+            <Modal
+                showModal={showDnevnik}
+                setShowModal={(v) => { if (!v) setShowDnevnik(false); }}
+                size="sm"
+                title="Дневник (PDF)"
+                description="Изтегли попълнения дневник за периода."
+            >
+                <Modal.Header title="Дневник (PDF)" description="Изтегли попълнения дневник за периода." />
+                <Modal.Body>
+                    <div className="flex flex-col gap-default sm:flex-row">
+                        <FormField label="От">
+                            <DatePicker value={dnevnikFrom} onChange={(d) => d && setDnevnikFrom(d)} />
+                        </FormField>
+                        <FormField label="До">
+                            <DatePicker value={dnevnikTo} onChange={(d) => d && setDnevnikTo(d)} />
+                        </FormField>
+                    </div>
+                </Modal.Body>
+                <Modal.Actions>
+                    <Button variant="secondary" size="sm" type="button" onClick={() => setShowDnevnik(false)}>Отказ</Button>
+                    <Button variant="primary" size="sm" type="button" loading={dnevnikBusy} disabled={dnevnikBusy} onClick={() => void generateDnevnik()}>Изтегли</Button>
+                </Modal.Actions>
+            </Modal>
         </EntityDetailLayout>
     );
 }

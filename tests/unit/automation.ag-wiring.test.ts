@@ -39,8 +39,10 @@ jest.mock('@/app-layer/repositories/WorkItemRepository', () => ({
     WorkItemRepository: { setStatus: jest.fn() },
     TaskLinkRepository: { link: jest.fn() },
 }));
+jest.mock('@/app-layer/jobs/queue', () => ({ enqueue: jest.fn() }));
 
 import { createYieldRecord } from '@/app-layer/usecases/yield-record';
+import { enqueue } from '@/app-layer/jobs/queue';
 import {
     createFieldOperation,
     markOperationParcel,
@@ -310,5 +312,51 @@ describe('farm-record completion snapshot + operation-type reader', () => {
         expect(resolveOperationType({ operationType: null, title: 'Seed — North' })).toBe('SEED');
         expect(resolveOperationType({ operationType: null, title: 'Mystery job' })).toBe('OTHER');
         expect(resolveOperationType({ operationType: undefined, title: undefined })).toBe('OTHER');
+    });
+
+    test('enqueues farm-record-pdf (deduped by taskId) when the job auto-resolves', async () => {
+        (recordInputApplication as jest.Mock).mockResolvedValue(null);
+        mockDb.operationParcel = {
+            findFirst: jest.fn().mockResolvedValue({
+                id: 'op-1',
+                parcelId: 'p-1',
+                productItemId: 'item-1',
+                doseValue: 2,
+                doseUnitId: 'u-1',
+                status: 'PENDING',
+                task: { id: 'task-1', assigneeUserId: 'user-2', status: 'OPEN', key: 'FOP-1', applicationTechnique: null },
+            }),
+            update: jest.fn().mockResolvedValue({}),
+            count: jest.fn().mockResolvedValue(0), // no PENDING lines left → auto-resolve
+        };
+
+        await markOperationParcel(makeCtx(), 'task-1', 'op-1', 'DONE');
+
+        expect(enqueue).toHaveBeenCalledWith(
+            'farm-record-pdf',
+            { tenantId: 'tenant-A', taskId: 'task-1' },
+            { jobId: 'farm-record:task-1' },
+        );
+    });
+
+    test('does NOT enqueue farm-record-pdf while the job is still open', async () => {
+        (recordInputApplication as jest.Mock).mockResolvedValue(null);
+        mockDb.operationParcel = {
+            findFirst: jest.fn().mockResolvedValue({
+                id: 'op-1',
+                parcelId: 'p-1',
+                productItemId: 'item-1',
+                doseValue: 2,
+                doseUnitId: 'u-1',
+                status: 'PENDING',
+                task: { id: 'task-1', assigneeUserId: 'user-2', status: 'OPEN', key: 'FOP-1', applicationTechnique: null },
+            }),
+            update: jest.fn().mockResolvedValue({}),
+            count: jest.fn().mockResolvedValue(2), // PENDING lines remain → no resolve
+        };
+
+        await markOperationParcel(makeCtx(), 'task-1', 'op-1', 'DONE');
+
+        expect(enqueue).not.toHaveBeenCalled();
     });
 });

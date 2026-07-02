@@ -1011,3 +1011,15 @@ executorRegistry.register('risk-snapshot', async (payload) => {
     });
 });
 
+
+// БАБХ farm-record — regenerate a location's current-season ДНЕВНИК into its
+// Farm-records register when a field task auto-resolves. Fail-open: the job
+// never throws (task completion is unaffected). See ./farm-record-pdf.
+executorRegistry.register('farm-record-pdf', async (payload) => {
+    const { runFarmRecordPdf } = await import('./farm-record-pdf');
+    const { result } = await runFarmRecordPdf({
+        tenantId: payload.tenantId,
+        taskId: payload.taskId,
+    });
+    return result;
+});

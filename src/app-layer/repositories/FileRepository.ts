@@ -67,12 +67,19 @@ export class FileRepository {
         });
     }
 
-    static async listByTenant(db: PrismaTx, ctx: RequestContext, options?: { status?: string }) {
+    static async listByTenant(
+        db: PrismaTx,
+        ctx: RequestContext,
+        options?: { status?: string; domain?: string; originalNamePrefix?: string; take?: number },
+    ) {
         const where: Record<string, unknown> = { tenantId: ctx.tenantId };
         if (options?.status) where.status = options.status;
+        if (options?.domain) where.domain = options.domain;
+        if (options?.originalNamePrefix) where.originalName = { startsWith: options.originalNamePrefix };
         return db.fileRecord.findMany({
             where,
             orderBy: { createdAt: 'desc' },
+            take: options?.take ?? 200,
         });
     }
 
