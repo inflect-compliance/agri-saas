@@ -240,6 +240,8 @@ model Tenant {
   agroSignals              AgroSignal[]
   // WP-2 — per-tenant module gating.
   moduleSettings           TenantModuleSettings?
+  // БАБХ farm-record — one-per-tenant farm identity block.
+  farmProfile              FarmProfile?
   // Enterprise-grain domain.
   contracts                Contract[]
   yieldRecords             YieldRecord[]
@@ -481,6 +483,16 @@ model TenantMembership {
   invitedAt             DateTime?
   invitedByUserId       String?
   status                MembershipStatus       @default(ACTIVE)
+  /// БАБХ farm-record — plant-protection certificates carried by this
+  /// member. applicatorCertNo: the person applying (чл. 83 ЗЗР, via
+  /// чл. 84 ал. 2). agronomistCertNo + agronomistName: the supervising
+  /// specialist (чл. 84 ал. 1) — may name a non-user, hence the free
+  /// agronomistName string. All optional; edited in the Members & Roles
+  /// admin. The completion snapshot copies these into the INPUT_APPLICATION
+  /// LogEntry.conditionsJson so later cert renewals don't rewrite history.
+  applicatorCertNo      String?
+  agronomistCertNo      String?
+  agronomistName        String?
   /// Hub-and-spoke (Epic O-1). When non-NULL, this membership was
   /// auto-created by the org auto-provisioning service in response to
   /// the user gaining ORG_ADMIN on the named Organization. The

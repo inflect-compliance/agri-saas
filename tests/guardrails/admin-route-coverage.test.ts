@@ -36,9 +36,13 @@ const ADMIN_ONLY_ROUTES = [
     'admin/members/[membershipId]/deactivate/route.ts',
     // Bulk-deactivate (remove) members — selection action-row
     'admin/members/bulk/delete/route.ts',
+    // БАБХ farm-record — plant-protection certificates per member
+    'admin/members/[membershipId]/certificates/route.ts',
     'admin/settings/route.ts',
     // WP-2 — per-tenant module gating ("simple mode")
     'admin/modules/route.ts',
+    // БАБХ farm-record — one-per-tenant farm identity block
+    'admin/farm-profile/route.ts',
     'admin/scim/route.ts',
     'admin/integrations/route.ts',
     'admin/integrations/diagnostics/route.ts',

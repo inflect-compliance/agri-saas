@@ -95,6 +95,10 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
     const [pName, setPName] = useState('');
     const [pCategory, setPCategory] = useState<string>('PESTICIDE');
     const [pUnitId, setPUnitId] = useState<string>('');
+    // БАБХ farm-record — product regulatory fields.
+    const [pQuarantineDays, setPQuarantineDays] = useState('');
+    const [pActiveIngredient, setPActiveIngredient] = useState('');
+    const [pPppRegNo, setPPppRegNo] = useState('');
 
     // New lot modal
     const [showLot, setShowLot] = useState(false);
@@ -149,10 +153,16 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                 name: pName,
                 category: pCategory,
                 defaultUnitId: pUnitId,
+                quarantinePeriodDays: pQuarantineDays.trim() ? Number(pQuarantineDays) : null,
+                activeIngredient: pActiveIngredient.trim() || null,
+                pppRegistrationNo: pPppRegNo.trim() || null,
             });
             setShowProduct(false);
             setPName('');
             setPUnitId('');
+            setPQuarantineDays('');
+            setPActiveIngredient('');
+            setPPppRegNo('');
             await mutateItems();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to create product');
@@ -324,6 +334,31 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                                     selected={unitOptions.find((o) => o.value === pUnitId) ?? null}
                                     setSelected={(o) => setPUnitId(o?.value ?? '')}
                                     placeholder="Select unit"
+                                />
+                            </FormField>
+                            {/* БАБХ farm-record — regulatory fields (optional). */}
+                            <FormField label="Карантинен срок (дни)" description="Карантинен срок на ПРЗ.">
+                                <Input
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={pQuarantineDays}
+                                    onChange={(e) =>
+                                        setPQuarantineDays(e.target.value.replace(/[^0-9]/g, ''))
+                                    }
+                                    placeholder="напр. 30"
+                                />
+                            </FormField>
+                            <FormField label="Активно вещество">
+                                <Input
+                                    value={pActiveIngredient}
+                                    onChange={(e) => setPActiveIngredient(e.target.value)}
+                                    placeholder="напр. глифозат 480 g/l"
+                                />
+                            </FormField>
+                            <FormField label="№ на регистрация на ПРЗ">
+                                <Input
+                                    value={pPppRegNo}
+                                    onChange={(e) => setPPppRegNo(e.target.value)}
                                 />
                             </FormField>
                         </div>

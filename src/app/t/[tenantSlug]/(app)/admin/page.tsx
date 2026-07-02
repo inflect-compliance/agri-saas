@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { Shield, CreditCard, KeyRound, ShieldCheck, ShieldPlus, Users, UserCog, CloudCog, Plug, Palette, Gauge, Bell, ScrollText, ToggleLeft } from 'lucide-react';
+import { Shield, CreditCard, KeyRound, ShieldCheck, ShieldPlus, Users, UserCog, CloudCog, Plug, Palette, Gauge, Bell, ScrollText, ToggleLeft, Tractor } from 'lucide-react';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -128,6 +128,14 @@ export default async function AdminPage({
                 >
                     <ToggleLeft className="w-3.5 h-3.5" />
                     Modules
+                </Link>
+                <Link
+                    href={tenantHref('/admin/farm-profile')}
+                    className={buttonVariants({ variant: 'secondary' })}
+                    id="farm-profile-pill-btn"
+                >
+                    <Tractor className="w-3.5 h-3.5" />
+                    Farm profile
                 </Link>
                 <Link
                     href={tenantHref('/admin/security')}

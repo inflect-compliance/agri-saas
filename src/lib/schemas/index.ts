@@ -891,6 +891,8 @@ export const CreateFieldOperationSchema = z.object({
     waterRateUnitId: z.string().min(1).nullable().optional(),
     targetNote: z.string().max(2000).nullable().optional(),
     dueAt: z.string().nullable().optional(),
+    // БАБХ farm-record — "Техника за приложение" (one rig per job).
+    applicationTechnique: z.string().max(255).nullable().optional(),
 }).strip().openapi('FieldOperationCreateRequest', {
     description: 'Create a spray/field-operation job over selected parcels of a location, assigned to an operator. Creates one FIELD_OPERATION Task plus one OperationParcel line per parcel (and, when a fertilizer is supplied, a second per-parcel line for it).',
 });

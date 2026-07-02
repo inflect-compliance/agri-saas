@@ -85,6 +85,29 @@ describe('ENCRYPTED_FIELDS manifest', () => {
         expect(getEncryptedFields('DoesNotExist')).toBeUndefined();
         expect(getEncryptedFields(undefined)).toBeUndefined();
     });
+
+    it('registers the БАБХ FarmProfile identifiers (egn/eik)', () => {
+        expect(isEncryptedModel('FarmProfile')).toBe(true);
+        expect(getEncryptedFields('FarmProfile')).toEqual(['egn', 'eik']);
+    });
+
+    it('round-trips FarmProfile egn/eik plaintext → ciphertext → plaintext', () => {
+        const data: Record<string, unknown> = {
+            producerName: 'ЕТ Иван Петров',
+            egn: '7501011234',
+            eik: '203456789',
+            tenantId: 'tenant-1',
+        };
+        encryptDataNode(data, 'FarmProfile', null);
+        // Sensitive identifiers encrypted; producerName left plaintext.
+        expect(isEncryptedValue(data.egn as string)).toBe(true);
+        expect(isEncryptedValue(data.eik as string)).toBe(true);
+        expect(data.producerName).toBe('ЕТ Иван Петров');
+
+        decryptResultNode(data, 'FarmProfile', NO_DEKS);
+        expect(data.egn).toBe('7501011234');
+        expect(data.eik).toBe('203456789');
+    });
 });
 
 describe('encryptDataNode', () => {

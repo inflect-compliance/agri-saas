@@ -2487,6 +2487,13 @@ exports[`API contract — per-schema snapshots schema: FieldOperationCreateReque
         "string",
         "null"
       ]
+    },
+    "applicationTechnique": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 255
     }
   },
   "required": [

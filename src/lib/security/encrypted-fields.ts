@@ -150,6 +150,13 @@ export const ENCRYPTED_FIELDS: Readonly<Record<string, readonly string[]>> = {
     Task: ['description', 'resolution'],
     TaskComment: ['body'],
 
+    // ─── Agriculture — БАБХ farm-record ────────────────
+    //  ЕГН (personal ID) + ЕИК (company ID) on the one-per-tenant farm
+    //  profile. Sensitive identifiers printed on the ДНЕВНИК; encrypted at
+    //  rest. The row is fetched by tenantId only (never searched by these
+    //  columns), so in-place encryption is safe — no `contains`/`orderBy`.
+    FarmProfile: ['egn', 'eik'],
+
     // ─── Compliance audits (model: Audit, not AuditLog) ────
     Audit: [
         'auditScope',

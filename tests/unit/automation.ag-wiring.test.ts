@@ -41,8 +41,13 @@ jest.mock('@/app-layer/repositories/WorkItemRepository', () => ({
 }));
 
 import { createYieldRecord } from '@/app-layer/usecases/yield-record';
-import { createFieldOperation, markOperationParcel } from '@/app-layer/usecases/field-operation';
+import {
+    createFieldOperation,
+    markOperationParcel,
+    resolveOperationType,
+} from '@/app-layer/usecases/field-operation';
 import { createTask } from '@/app-layer/usecases/task';
+import { recordInputApplication } from '@/app-layer/usecases/inventory';
 import { ParcelRepository } from '@/app-layer/repositories/ParcelRepository';
 import { TaskLinkRepository } from '@/app-layer/repositories/WorkItemRepository';
 import {
@@ -165,6 +170,9 @@ describe('ag field-workflow usecase emission', () => {
         mockDb.item = { findFirst: jest.fn().mockResolvedValue({ id: 'item-1' }) };
         mockDb.unit = { findUnique: jest.fn().mockResolvedValue({ id: 'u-1' }) };
         mockDb.operationParcel = { createMany: jest.fn().mockResolvedValue({}) };
+        // createFieldOperation now persists operationType + applicationTechnique
+        // on the Task via db.task.update inside the same tenant tx.
+        mockDb.task = { update: jest.fn().mockResolvedValue({}) };
 
         const captured = capture('SPRAY_JOB_STARTED');
         await createFieldOperation(makeCtx(), 'loc-1', {
@@ -174,6 +182,7 @@ describe('ag field-workflow usecase emission', () => {
             doseValue: 2,
             doseUnitId: 'u-1',
             operationType: 'SPRAY',
+            applicationTechnique: 'Гръбна пръскачка',
         });
 
         expect(captured).toHaveLength(1);
@@ -190,5 +199,116 @@ describe('ag field-workflow usecase emission', () => {
                 assigneeUserId: 'user-2',
             });
         }
+        // operationType + technique persisted on the Task.
+        expect((mockDb.task as { update: jest.Mock }).update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: 'task-1' },
+                data: expect.objectContaining({
+                    operationType: 'SPRAY',
+                    applicationTechnique: 'Гръбна пръскачка',
+                }),
+            }),
+        );
+    });
+});
+
+/**
+ * БАБХ farm-record (PR1) — proves the completion snapshot on markOperationParcel
+ * and the derive-from-title reader fallback.
+ */
+describe('farm-record completion snapshot + operation-type reader', () => {
+    beforeEach(() => {
+        resetAutomationBus();
+        jest.clearAllMocks();
+        for (const k of Object.keys(mockDb)) delete mockDb[k];
+    });
+
+    test('markOperationParcel freezes certs + technique into INPUT_APPLICATION conditionsJson on DONE', async () => {
+        (recordInputApplication as jest.Mock).mockResolvedValue({ journalEntryId: 'le-1' });
+        const logUpdate = jest.fn().mockResolvedValue({});
+        mockDb.operationParcel = {
+            findFirst: jest.fn().mockResolvedValue({
+                id: 'op-1',
+                parcelId: 'p-1',
+                productItemId: 'item-1',
+                doseValue: 2,
+                doseUnitId: 'u-1',
+                status: 'PENDING',
+                task: {
+                    id: 'task-1',
+                    assigneeUserId: 'user-2',
+                    status: 'OPEN',
+                    key: 'FOP-1',
+                    applicationTechnique: 'Гръбна пръскачка',
+                },
+            }),
+            update: jest.fn().mockResolvedValue({}),
+            count: jest.fn().mockResolvedValue(1), // a PENDING line remains → no auto-resolve noise
+        };
+        mockDb.tenantMembership = {
+            findUnique: jest.fn().mockResolvedValue({
+                applicatorCertNo: 'APP-123',
+                agronomistCertNo: 'AGR-456',
+                agronomistName: 'Иван Петров',
+            }),
+        };
+        mockDb.logEntry = {
+            findUnique: jest.fn().mockResolvedValue({ conditionsJson: { windSpeed: 5 } }),
+            update: logUpdate,
+        };
+
+        await markOperationParcel(makeCtx(), 'task-1', 'op-1', 'DONE');
+
+        // Read the applicator's (assignee's) membership certs.
+        expect((mockDb.tenantMembership as { findUnique: jest.Mock }).findUnique).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { tenantId_userId: { tenantId: 'tenant-A', userId: 'user-2' } },
+            }),
+        );
+        // Merge (preserve prior conditions) + freeze the snapshot.
+        expect(logUpdate).toHaveBeenCalledWith({
+            where: { id: 'le-1' },
+            data: {
+                conditionsJson: {
+                    windSpeed: 5,
+                    operatorCertNo: 'APP-123',
+                    agronomistName: 'Иван Петров',
+                    agronomistCertNo: 'AGR-456',
+                    applicationTechnique: 'Гръбна пръскачка',
+                },
+            },
+        });
+    });
+
+    test('no snapshot when the line is not newly DONE (no INPUT_APPLICATION)', async () => {
+        (recordInputApplication as jest.Mock).mockResolvedValue(null);
+        const logUpdate = jest.fn();
+        mockDb.operationParcel = {
+            findFirst: jest.fn().mockResolvedValue({
+                id: 'op-1',
+                parcelId: 'p-1',
+                productItemId: 'item-1',
+                doseValue: 2,
+                doseUnitId: 'u-1',
+                status: 'PENDING',
+                task: { id: 'task-1', assigneeUserId: 'user-2', status: 'OPEN', key: 'FOP-1', applicationTechnique: null },
+            }),
+            update: jest.fn().mockResolvedValue({}),
+            count: jest.fn().mockResolvedValue(1),
+        };
+        mockDb.logEntry = { findUnique: jest.fn(), update: logUpdate };
+        mockDb.tenantMembership = { findUnique: jest.fn() };
+
+        await markOperationParcel(makeCtx(), 'task-1', 'op-1', 'SKIPPED');
+        expect(logUpdate).not.toHaveBeenCalled();
+    });
+
+    test('resolveOperationType prefers persisted type, falls back to the title prefix', () => {
+        expect(resolveOperationType({ operationType: 'FERTILIZE', title: 'Spray — X' })).toBe('FERTILIZE');
+        expect(resolveOperationType({ operationType: null, title: 'Fertilize — North' })).toBe('FERTILIZE');
+        expect(resolveOperationType({ operationType: null, title: 'Spray — North' })).toBe('SPRAY');
+        expect(resolveOperationType({ operationType: null, title: 'Seed — North' })).toBe('SEED');
+        expect(resolveOperationType({ operationType: null, title: 'Mystery job' })).toBe('OTHER');
+        expect(resolveOperationType({ operationType: undefined, title: undefined })).toBe('OTHER');
     });
 });

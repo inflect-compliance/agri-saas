@@ -24,13 +24,15 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import {
     Users, UserPlus, ChevronDown, Shield, XCircle,
-    MoreVertical, UserMinus, Mail, Monitor,
+    MoreVertical, UserMinus, Mail, Monitor, Award,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, statusBadgeVariants } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton, SkeletonButton } from '@/components/ui/skeleton';
 import { Modal } from '@/components/ui/modal';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Tooltip } from '@/components/ui/tooltip';
 import { DataTable, createColumns, useBulkDelete } from '@/components/ui/table';
@@ -68,6 +70,10 @@ interface Member {
     invitedBy: { id: string; name: string | null } | null;
     /** Epic C.3 — count of live (non-revoked, non-expired) sessions. */
     activeSessionCount?: number;
+    /** БАБХ farm-record — plant-protection certificates. */
+    applicatorCertNo?: string | null;
+    agronomistCertNo?: string | null;
+    agronomistName?: string | null;
 }
 
 interface MemberSession {
@@ -142,6 +148,13 @@ export default function MembersAdminPage() {
     const [memberSessions, setMemberSessions] = useState<MemberSession[]>([]);
     const [sessionsLoading, setSessionsLoading] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+
+    // БАБХ farm-record — plant-protection certificates modal
+    const [certsModalMember, setCertsModalMember] = useState<Member | null>(null);
+    const [certApplicator, setCertApplicator] = useState('');
+    const [certAgronomistName, setCertAgronomistName] = useState('');
+    const [certAgronomistNo, setCertAgronomistNo] = useState('');
+    const [savingCerts, setSavingCerts] = useState(false);
 
     // ─── Data fetching ───
     const fetchMembers = useCallback(async () => {
@@ -336,6 +349,51 @@ export default function MembersAdminPage() {
         setSessionsModalUser(null);
         setMemberSessions([]);
     }, []);
+
+    // ── БАБХ farm-record — certificates modal ──
+    const openCertsModal = useCallback((member: Member) => {
+        setCertsModalMember(member);
+        setCertApplicator(member.applicatorCertNo ?? '');
+        setCertAgronomistName(member.agronomistName ?? '');
+        setCertAgronomistNo(member.agronomistCertNo ?? '');
+    }, []);
+
+    const closeCertsModal = useCallback(() => {
+        setCertsModalMember(null);
+    }, []);
+
+    const handleSaveCerts = useCallback(async () => {
+        if (!certsModalMember) return;
+        setSavingCerts(true);
+        setError(null);
+        setSuccess(null);
+        try {
+            const res = await fetch(
+                apiUrl(`/admin/members/${certsModalMember.id}/certificates`),
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        applicatorCertNo: certApplicator.trim() || null,
+                        agronomistName: certAgronomistName.trim() || null,
+                        agronomistCertNo: certAgronomistNo.trim() || null,
+                    }),
+                },
+            );
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                setError(err?.error?.message || err?.error || 'Failed to save certificates');
+                return;
+            }
+            setSuccess('Certificates updated');
+            setCertsModalMember(null);
+            await fetchMembers();
+        } catch (err) {
+            setError((err as Error).message);
+        } finally {
+            setSavingCerts(false);
+        }
+    }, [apiUrl, certsModalMember, certApplicator, certAgronomistName, certAgronomistNo, fetchMembers]);
 
     const handleRevokeSession = useCallback(async (sessionId: string) => {
         if (!sessionsModalUser) return;
@@ -571,6 +629,17 @@ export default function MembersAdminPage() {
                                     >
                                         <Monitor className="w-3.5 h-3.5" />
                                         View Sessions
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setOpenMenuId(null);
+                                            openCertsModal(m);
+                                        }}
+                                        className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
+                                        id={`action-certificates-${m.id}`}
+                                    >
+                                        <Award className="w-3.5 h-3.5" />
+                                        Certificates
                                     </button>
                                     <button
                                         onClick={() => handleDeactivate(m.id, m.user.email)}
@@ -889,6 +958,69 @@ export default function MembersAdminPage() {
                             ))}
                         </ul>
                     )}
+                </Modal.Body>
+            </Modal>
+
+            {/* БАБХ farm-record — plant-protection certificates modal */}
+            <Modal
+                showModal={certsModalMember !== null}
+                setShowModal={(open) => { if (!open) closeCertsModal(); }}
+                size="md"
+                title="Certificates"
+                description="Plant-protection certificates carried by this member — printed on the БАБХ ДНЕВНИК."
+            >
+                <Modal.Header
+                    title={certsModalMember
+                        ? `Certificates — ${certsModalMember.user.name || certsModalMember.user.email}`
+                        : 'Certificates'}
+                    description="Editable per member. Blank clears a field."
+                />
+                <Modal.Body>
+                    <div className="space-y-default">
+                        <FormField
+                            label="Сертификат на приложителя (чл. 84 ал. 2)"
+                            description="№ на сертификат на лицето, което извършва третирането (чл. 83 ЗЗР)."
+                        >
+                            <Input
+                                value={certApplicator}
+                                onChange={(e) => setCertApplicator(e.target.value)}
+                                id="cert-applicator-input"
+                            />
+                        </FormField>
+                        <FormField label="Агроном — име (чл. 84 ал. 1)">
+                            <Input
+                                value={certAgronomistName}
+                                onChange={(e) => setCertAgronomistName(e.target.value)}
+                                id="cert-agronomist-name-input"
+                            />
+                        </FormField>
+                        <FormField label="Агроном — № сертификат">
+                            <Input
+                                value={certAgronomistNo}
+                                onChange={(e) => setCertAgronomistNo(e.target.value)}
+                                id="cert-agronomist-no-input"
+                            />
+                        </FormField>
+                        <div className="flex justify-end gap-tight">
+                            <Button
+                                variant="secondary"
+                                onClick={closeCertsModal}
+                                disabled={savingCerts}
+                                id="cert-cancel-btn"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={handleSaveCerts}
+                                disabled={savingCerts}
+                                loading={savingCerts}
+                                id="cert-save-btn"
+                            >
+                                Save certificates
+                            </Button>
+                        </div>
+                    </div>
                 </Modal.Body>
             </Modal>
         </div>

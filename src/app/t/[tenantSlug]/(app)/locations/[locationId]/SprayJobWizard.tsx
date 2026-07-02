@@ -121,6 +121,8 @@ export function SprayJobWizard({
     // water calculation and is persisted on the treatment line.
     const [waterRate, setWaterRate] = useState('');
     const [waterRateUnitId, setWaterRateUnitId] = useState('');
+    // БАБХ farm-record — "Техника за приложение" (optional, one rig per job).
+    const [applicationTechnique, setApplicationTechnique] = useState('');
 
     // Fertilizers feed the Soil Nurturing step; everything else feeds the
     // Treatment step, so the two pickers never overlap.
@@ -266,6 +268,7 @@ export function SprayJobWizard({
         setDoseUnitId('');
         setWaterRate('');
         setWaterRateUnitId('');
+        setApplicationTechnique('');
         setAssigneeUserId(null);
     };
 
@@ -567,6 +570,19 @@ export function SprayJobWizard({
                             {totalRow('Fertilizer', fertDose, selectedFertUnit?.meta?.symbol)}
                         </>,
                     )}
+                    {/* БАБХ farm-record — optional application technique / rig,
+                        printed in the "Техника за приложение" column of the ДНЕВНИК. */}
+                    <FormField
+                        label="Техника за приложение / Equipment"
+                        description="Незадължително — техниката, с която е извършено третирането."
+                    >
+                        <Input
+                            id="spray-technique-input"
+                            value={applicationTechnique}
+                            onChange={(e) => setApplicationTechnique(e.target.value)}
+                            placeholder="напр. пръскачка, дрон…"
+                        />
+                    </FormField>
                     {/* Assignee — the LAST field before creating. Defaults to
                         the current operator; reassignable to any active member
                         so a manager can dispatch the job. Required (the create
@@ -617,6 +633,8 @@ export function SprayJobWizard({
                 // Water carrier (optional) — persisted on the treatment line.
                 waterRateValue: waterRateValid ? waterRateNumber : null,
                 waterRateUnitId: waterRateValid ? waterRateUnitId : null,
+                // БАБХ farm-record — optional application technique.
+                applicationTechnique: applicationTechnique.trim() || null,
             },
             label: 'Create spray job',
         });
