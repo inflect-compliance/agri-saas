@@ -33,6 +33,11 @@ import { Plus, CalendarIcon } from '@/components/ui/icons/nucleo';
 import { useMediaQuery, useToast } from '@/components/ui/hooks';
 import { cn } from '@/lib/cn';
 import type { MapParcel } from '@/components/ui/map/MapCanvas';
+import {
+    VEGETATION_INDICES,
+    vegetationIndexById,
+    type VegetationIndex,
+} from '@/lib/agro/vegetation-indices';
 
 const MapCanvas = dynamic(() => import('@/components/ui/map/MapCanvas').then((m) => m.MapCanvas), { ssr: false });
 
@@ -199,15 +204,13 @@ export default function LocationDetailPage() {
             setDnevnikBusy(false);
         }
     }, [buildUrl, locationId, dnevnikFrom, dnevnikTo, toast]);
-    // NDVI overlay (Google Earth Engine). Off by default; the date drives
-    // the 30-day composite window (UTC-midnight DateValue per the picker
-    // contract). Defaults to today.
-    const [ndviOn, setNdviOn] = useState(false);
-    // NDWI (McFeeters water index) overlay — the sibling of NDVI. Mutually
-    // exclusive with NDVI (only one index overlay at a time); both share the
-    // single inspection date picker below.
-    const [ndwiOn, setNdwiOn] = useState(false);
-    const [ndviDate, setNdviDate] = useState<DateValue>(() => {
+    // Satellite vegetation-index overlay (Google Earth Engine). At most one
+    // index (NDVI / NDWI / NDRE / GNDVI / EVI) is active at a time — they are
+    // mutually exclusive. `null` = off (the default). The single inspection
+    // date below drives whichever is active; it sets the 30-day composite
+    // window (UTC-midnight DateValue per the picker contract, default today).
+    const [activeIndex, setActiveIndex] = useState<VegetationIndex | null>(null);
+    const [imageryDate, setImageryDate] = useState<DateValue>(() => {
         const n = new Date();
         return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
     });
@@ -228,33 +231,26 @@ export default function LocationDetailPage() {
     // Recall + weather + crop-plan suggestions for this field (editable;
     // powers the spray-window/next-task banner + the wizard prefills).
     const smartQ = useTenantSWR<LocationSmartDefaults>(`/locations/${locationId}/smart-defaults`);
-    // NDVI tiles (GEE) — fetched only when the Map tab is open AND the
-    // overlay is toggled on, re-fetched when the inspection date changes.
-    const ndviYmd = toYMD(ndviDate);
-    // Compact trigger label ("30 Jun", no year) so the NDVI button + date
-    // control stay narrow enough to sit on the SAME row as the Select/Draw/
-    // Edit/Split toggles instead of wrapping to a row beneath them. UTC
-    // parts mirror the date-utils UTC-midnight contract (no tz drift).
-    const ndviShort = ndviDate
-        ? `${ndviDate.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][ndviDate.getUTCMonth()]}`
+    // Active-index tiles (GEE) — fetched only when the Map tab is open AND an
+    // index is selected, re-fetched when the index OR the inspection date
+    // changes (the SWR key carries both). One query serves whichever of the
+    // five indices is active; the route slug comes from the index config.
+    const activeSpec = vegetationIndexById(activeIndex);
+    const imageryYmd = toYMD(imageryDate);
+    // Compact trigger label ("30 Jun", no year) so the index buttons + date
+    // control stay narrow enough to sit on one row. UTC parts mirror the
+    // date-utils UTC-midnight contract (no tz drift).
+    const imageryShort = imageryDate
+        ? `${imageryDate.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][imageryDate.getUTCMonth()]}`
         : 'Date';
-    const ndviQ = useTenantSWR<{ configured: boolean; tileUrl: string; date?: string; error?: string }>(
-        tab === 'map' && ndviOn
-            ? `/agro/ndvi-tiles?locationId=${locationId}${ndviYmd ? `&date=${ndviYmd}` : ''}`
+    const indexQ = useTenantSWR<{ configured: boolean; tileUrl: string; date?: string; error?: string }>(
+        tab === 'map' && activeSpec
+            ? `/agro/${activeSpec.route}?locationId=${locationId}${imageryYmd ? `&date=${imageryYmd}` : ''}`
             : null,
     );
-    const ndviConfigured = ndviQ.data?.configured ?? true;
-    const ndviTileUrl = ndviQ.data?.tileUrl ?? '';
-    const ndviLoading = ndviOn && !ndviQ.data && !ndviQ.error;
-    // NDWI tiles (GEE) — same fetch shape as NDVI, driven by the shared date.
-    const ndwiQ = useTenantSWR<{ configured: boolean; tileUrl: string; date?: string; error?: string }>(
-        tab === 'map' && ndwiOn
-            ? `/agro/ndwi-tiles?locationId=${locationId}${ndviYmd ? `&date=${ndviYmd}` : ''}`
-            : null,
-    );
-    const ndwiConfigured = ndwiQ.data?.configured ?? true;
-    const ndwiTileUrl = ndwiQ.data?.tileUrl ?? '';
-    const ndwiLoading = ndwiOn && !ndwiQ.data && !ndwiQ.error;
+    const indexConfigured = indexQ.data?.configured ?? true;
+    const indexTileUrl = indexQ.data?.tileUrl ?? '';
+    const indexLoading = !!activeSpec && !indexQ.data && !indexQ.error;
 
     const loc = locQ.data;
     const parcels = useMemo(() => parcelsQ.data?.parcels ?? [], [parcelsQ.data]);
@@ -541,47 +537,40 @@ export default function LocationDetailPage() {
                 <div className="space-y-default">
                     <SmartDefaultsBanner data={smartQ.data} />
                     <div className="flex flex-wrap items-center gap-compact">
-                        {/* NDVI / NDWI overlays (GEE) — the two index toggles
-                            and the shared inspection date sit together as one
+                        {/* Satellite index overlays (GEE) — the toggle row +
+                            the shared inspection date sit together as one
                             left-aligned unit (date to the RIGHT of the
                             buttons), in the row position the Select/Draw/Edit/
-                            Split toggle used to hold. Only one index overlay is
-                            on at a time (mutually exclusive); the single date
-                            picker drives whichever is active. */}
-                        <div className="flex shrink-0 items-center gap-compact">
-                            <Button
-                                variant={ndviOn ? 'primary' : 'secondary'}
-                                size="sm"
-                                className="min-h-[44px] min-w-[44px]"
-                                onClick={() => setNdviOn((v) => {
-                                    const next = !v;
-                                    if (next) setNdwiOn(false);
-                                    return next;
-                                })}
-                                aria-pressed={ndviOn}
-                            >
-                                NDVI
-                            </Button>
-                            <Button
-                                variant={ndwiOn ? 'primary' : 'secondary'}
-                                size="sm"
-                                className="min-h-[44px] min-w-[44px]"
-                                onClick={() => setNdwiOn((v) => {
-                                    const next = !v;
-                                    if (next) setNdviOn(false);
-                                    return next;
-                                })}
-                                aria-pressed={ndwiOn}
-                            >
-                                NDWI
-                            </Button>
-                            {(ndviOn || ndwiOn) && (
+                            Split toggle used to hold. Only one index is on at a
+                            time (mutually exclusive); the single date picker
+                            drives whichever is active. The buttons are
+                            config-driven from VEGETATION_INDICES so adding an
+                            index is one catalogue entry. */}
+                        <div className="flex shrink-0 flex-wrap items-center gap-compact">
+                            {VEGETATION_INDICES.map((idx) => {
+                                const on = activeIndex === idx.id;
+                                return (
+                                    <Button
+                                        key={idx.id}
+                                        variant={on ? 'primary' : 'secondary'}
+                                        size="sm"
+                                        className="min-h-[44px] min-w-[44px]"
+                                        onClick={() =>
+                                            setActiveIndex((cur) => (cur === idx.id ? null : idx.id))
+                                        }
+                                        aria-pressed={on}
+                                    >
+                                        {idx.label}
+                                    </Button>
+                                );
+                            })}
+                            {activeSpec && (
                                 <DatePicker
-                                    id="ndvi-date-input"
-                                    value={ndviDate}
-                                    onChange={(d) => setNdviDate(d)}
+                                    id="imagery-date-input"
+                                    value={imageryDate}
+                                    onChange={(d) => setImageryDate(d)}
                                     placeholder="Date"
-                                    // NDVI/NDWI need a past satellite pass —
+                                    // The indices need a past satellite pass —
                                     // future dates have no imagery.
                                     disabledDays={{ after: new Date() }}
                                     // Compact trigger (icon + "30 Jun") keeps the
@@ -595,9 +584,9 @@ export default function LocationDetailPage() {
                                             icon={<CalendarIcon className="size-4" aria-hidden="true" />}
                                             aria-haspopup="dialog"
                                             aria-expanded={open}
-                                            aria-label={`Imagery inspection date: ${ndviShort}`}
+                                            aria-label={`Imagery inspection date: ${imageryShort}`}
                                         >
-                                            {ndviShort}
+                                            {imageryShort}
                                         </Button>
                                     )}
                                 />
@@ -613,51 +602,29 @@ export default function LocationDetailPage() {
                             </Button>
                         )}
                     </div>
-                    {/* NDVI status line: loading / not-configured / legend. */}
-                    {ndviOn && (
+                    {/* Active-index status line: loading / not-configured /
+                        legend / error / no-imagery. Driven by the active
+                        index's config (label, ramp, low/high captions). */}
+                    {activeSpec && (
                         <div className="flex items-center gap-compact text-xs text-content-subtle">
-                            {ndviLoading ? (
-                                <span>Loading NDVI imagery…</span>
-                            ) : ndviConfigured === false ? (
-                                <span>NDVI imagery isn&apos;t configured for this deployment.</span>
-                            ) : ndviTileUrl ? (
+                            {indexLoading ? (
+                                <span>Loading {activeSpec.label} imagery…</span>
+                            ) : indexConfigured === false ? (
+                                <span>{activeSpec.label} imagery isn&apos;t configured for this deployment.</span>
+                            ) : indexTileUrl ? (
                                 <>
-                                    <span className="font-medium text-content-secondary">NDVI</span>
-                                    <span>Low</span>
+                                    <span className="font-medium text-content-secondary">{activeSpec.label}</span>
+                                    <span>{activeSpec.lowLabel}</span>
                                     <span
                                         aria-hidden="true"
-                                        className="h-2 w-24 rounded-full bg-[linear-gradient(to_right,#a50026,#f46d43,#fee08b,#a6d96a,#006837)]"
+                                        className={cn('h-2 w-24 rounded-full', activeSpec.legendGradientClass)}
                                     />
-                                    <span>High</span>
+                                    <span>{activeSpec.highLabel}</span>
                                 </>
-                            ) : ndviQ.data?.error ? (
-                                <span>Couldn&apos;t load NDVI imagery for this date — try another.</span>
+                            ) : indexQ.data?.error ? (
+                                <span>Couldn&apos;t load {activeSpec.label} imagery for this date — try another.</span>
                             ) : (
-                                <span>No cloud-free NDVI imagery for this field around that date.</span>
-                            )}
-                        </div>
-                    )}
-                    {/* NDWI status line: loading / not-configured / legend. */}
-                    {ndwiOn && (
-                        <div className="flex items-center gap-compact text-xs text-content-subtle">
-                            {ndwiLoading ? (
-                                <span>Loading NDWI imagery…</span>
-                            ) : ndwiConfigured === false ? (
-                                <span>NDWI imagery isn&apos;t configured for this deployment.</span>
-                            ) : ndwiTileUrl ? (
-                                <>
-                                    <span className="font-medium text-content-secondary">NDWI</span>
-                                    <span>Dry</span>
-                                    <span
-                                        aria-hidden="true"
-                                        className="h-2 w-24 rounded-full bg-[linear-gradient(to_right,#8c510a,#dfc27d,#f5f5f5,#80cdc1,#01665e)]"
-                                    />
-                                    <span>Wet</span>
-                                </>
-                            ) : ndwiQ.data?.error ? (
-                                <span>Couldn&apos;t load NDWI imagery for this date — try another.</span>
-                            ) : (
-                                <span>No cloud-free NDWI imagery for this field around that date.</span>
+                                <span>No cloud-free {activeSpec.label} imagery for this field around that date.</span>
                             )}
                         </div>
                     )}
@@ -679,10 +646,11 @@ export default function LocationDetailPage() {
                             className={isMobile
                                 ? '-mx-4 h-[calc(100dvh-15rem)] min-h-[22rem] overflow-hidden border-y border-border-subtle'
                                 : undefined}
-                            showNdvi={ndviOn && !!ndviTileUrl}
-                            ndviTileUrl={ndviTileUrl}
-                            showNdwi={ndwiOn && !!ndwiTileUrl}
-                            ndwiTileUrl={ndwiTileUrl}
+                            indexOverlay={
+                                activeSpec && indexTileUrl
+                                    ? { id: activeSpec.id, tileUrl: indexTileUrl }
+                                    : null
+                            }
                             // Read-only vector-tile source (perf at scale). The
                             // {z}/{x}/{y} placeholders are kept literal for
                             // MapLibre to substitute (buildUrl doesn't encode
