@@ -80,6 +80,16 @@ export interface MapCanvasProps {
     showNdvi?: boolean;
     ndviTileUrl?: string;
     /**
+     * NDWI raster overlay (Agro-intel) — the water-index sibling of the NDVI
+     * overlay above. When `showNdwi` is true AND an XYZ `{z}/{x}/{y}` template
+     * `ndwiTileUrl` is supplied, a raster `<Source>`/`<Layer>` is drawn over
+     * the AOI exactly like NDVI. Only one index overlay is expected on at a
+     * time (the host page enforces mutual exclusivity), but both render
+     * independently here if both are supplied.
+     */
+    showNdwi?: boolean;
+    ndwiTileUrl?: string;
+    /**
      * On-map thumb controls (zoom ±, find-my-field). Opt-in so the read-only
      * operator/prescription paths are unchanged unless they ask for it.
      * Each button is a ≥44px (WCAG 2.5.5) touch target, sat in the
@@ -157,6 +167,8 @@ export function MapCanvas({
     onGeometryValidity,
     showNdvi = false,
     ndviTileUrl,
+    showNdwi = false,
+    ndwiTileUrl,
     showControls = false,
     controlsBottomInset = 12,
     liveTracking = false,
@@ -166,6 +178,7 @@ export function MapCanvas({
 }: MapCanvasProps) {
     const reducedMotion = useReducedMotion();
     const ndviActive = showNdvi && !!ndviTileUrl && ndviTileUrl.length > 0;
+    const ndwiActive = showNdwi && !!ndwiTileUrl && ndwiTileUrl.length > 0;
     const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
     const done = useMemo(() => new Set(doneIds), [doneIds]);
     const mapRef = useRef<MapRef | null>(null);
@@ -539,6 +552,15 @@ export function MapCanvas({
                 {ndviActive && (
                     <Source id="ndvi" type="raster" tiles={[ndviTileUrl!]} tileSize={256}>
                         <Layer id="ndvi-raster" type="raster" paint={{ 'raster-opacity': 0.7 }} />
+                    </Source>
+                )}
+
+                {/* NDWI raster overlay (Agro-intel) — the water-index sibling,
+                    drawn alongside NDVI and before the parcel layers so the
+                    parcel fill/line stay legible on top. */}
+                {ndwiActive && (
+                    <Source id="ndwi" type="raster" tiles={[ndwiTileUrl!]} tileSize={256}>
+                        <Layer id="ndwi-raster" type="raster" paint={{ 'raster-opacity': 0.7 }} />
                     </Source>
                 )}
 
