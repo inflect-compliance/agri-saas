@@ -65,16 +65,29 @@ import {
 } from "@/components/ui/breadcrumbs";
 import { useBreadcrumbs } from "@/components/layout/breadcrumbs-store";
 import { PageActions } from "@/components/layout/PageActions";
+import { BackAffordance } from "@/components/nav/BackAffordance";
 import {
     Caption,
     Eyebrow,
     Heading,
 } from "@/components/ui/typography";
 
+/** Static back link — an explicit `← Label` to a fixed href. */
 export interface PageHeaderBackLink {
     href: string;
     label: string;
 }
+
+/**
+ * Smart-back form. Mounts the `<BackAffordance>` primitive, which resolves
+ * the destination in two tiers: (1) the in-tab referrer (where the user
+ * navigated FROM), (2) the IA-canonical parent (cold load / deep link).
+ */
+export interface PageHeaderSmartBack {
+    smart: true;
+}
+
+export type PageHeaderBack = PageHeaderBackLink | PageHeaderSmartBack;
 
 export interface PageHeaderProps {
     /**
@@ -84,8 +97,13 @@ export interface PageHeaderProps {
      * affordance.
      */
     breadcrumbs?: ReadonlyArray<BreadcrumbItem>;
-    /** `← Label` back-navigation link rendered above the title. */
-    back?: PageHeaderBackLink;
+    /**
+     * Back-navigation affordance rendered above the title. Two forms:
+     *   - `{ href, label }` — a static `← Label` link to a fixed href.
+     *   - `{ smart: true }` — the smart back affordance: resolves the
+     *     in-tab referrer first, IA-canonical parent second.
+     */
+    back?: PageHeaderBack;
     /** Small uppercase eyebrow rendered above the title. */
     eyebrow?: React.ReactNode;
     /** Required `<Heading level={1}>` content. */
@@ -154,7 +172,9 @@ export function PageHeader({
                         />
                     </div>
                 )}
-                {back && (
+                {back && 'smart' in back ? (
+                    <BackAffordance />
+                ) : back ? (
                     <Link
                         href={back.href}
                         className="text-content-muted text-xs hover:text-content-emphasis transition-colors duration-150 ease-out"
@@ -162,7 +182,7 @@ export function PageHeader({
                     >
                         ← {back.label}
                     </Link>
-                )}
+                ) : null}
                 {eyebrow && (
                     <Eyebrow data-testid="page-header-eyebrow">
                         {eyebrow}

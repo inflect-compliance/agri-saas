@@ -22,6 +22,9 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: jest.fn(), refresh: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
     // The page reads `?parcelId` / `?tab` deep-links (feat/delight-shareables).
     useSearchParams: () => new URLSearchParams(),
+    // The detail page's smart back-affordance (feat/smart-nav) reads the
+    // pathname to resolve its destination.
+    usePathname: () => '/t/acme/locations/loc1',
 }));
 
 // ─── tenant API url helper (mirrors the real `/api/t/{slug}` prefix) ─

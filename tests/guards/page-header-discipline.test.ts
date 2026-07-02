@@ -111,8 +111,10 @@ describe("v2-PR-5 layout shells consume PageHeader", () => {
             path.join(ROOT, "src/components/layout/EntityDetailLayout.tsx"),
             "utf8",
         );
+        // Allows additional named imports from the module (e.g. the
+        // `PageHeaderBack` type used by the smart-back form).
         expect(src).toMatch(
-            /import\s+\{\s*PageHeader\s*\}\s+from\s+["']@\/components\/layout\/PageHeader["']/,
+            /import\s+\{[^}]*\bPageHeader\b[^}]*\}\s+from\s+["']@\/components\/layout\/PageHeader["']/,
         );
         expect(src).toMatch(/<PageHeader\b/);
         expect(src).not.toMatch(/<Heading\s+level=\{1\}/);
