@@ -335,7 +335,8 @@ describe('farm-record completion snapshot + operation-type reader', () => {
         expect(enqueue).toHaveBeenCalledWith(
             'farm-record-pdf',
             { tenantId: 'tenant-A', taskId: 'task-1' },
-            { jobId: 'farm-record:task-1' },
+            // jobId uses '-' not ':' — BullMQ rejects ':' in custom ids.
+            { jobId: 'farm-record-task-1' },
         );
     });
 

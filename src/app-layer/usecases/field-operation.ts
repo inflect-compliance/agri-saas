@@ -506,7 +506,7 @@ async function markOperationParcelImpl(
             await enqueue(
                 'farm-record-pdf',
                 { tenantId: ctx.tenantId, taskId },
-                { jobId: `farm-record:${taskId}` },
+                { jobId: `farm-record-${taskId}` },
             );
         } catch (err) {
             logger.warn('farm-record-pdf enqueue failed (task completion unaffected)', {

@@ -14,6 +14,15 @@ import type { ReportMeta } from './types';
 // PDFKit's built-in Standard-14 'Helvetica' is AFM/latin-only and renders
 // tofu for Cyrillic. DejaVu Sans (bundled under ./fonts, Bitstream Vera
 // license) has full Cyrillic coverage. Loaded once + cached as Buffers.
+//
+// IMPORTANT: DejaVu is registered under its OWN names (below), NOT over the
+// 'Helvetica' names. In pdfkit 0.19.x, `registerFont('Helvetica', ttf)` is
+// unreliable — a standard font name resolves to the built-in AFM face
+// depending on call order (so Cyrillic silently tofus). A distinct name
+// always embeds. Unicode generators MUST use these font names.
+export const UNICODE_FONT = 'DejaVuSans';
+export const UNICODE_FONT_BOLD = 'DejaVuSans-Bold';
+
 const FONT_DIR = path.join(process.cwd(), 'src', 'lib', 'pdf', 'fonts');
 let _unicodeFonts: { regular: Buffer; bold: Buffer } | null = null;
 
@@ -73,16 +82,15 @@ export function createPdfDocument(meta: ReportMeta): PDFKit.PDFDocument {
         },
     });
 
-    // Unicode documents (e.g. the Bulgarian БАБХ ДНЕВНИК) re-register the
-    // built-in 'Helvetica' / 'Helvetica-Bold' names with DejaVu Sans, so
-    // every layout/table/section helper that calls `.font('Helvetica…')`
-    // renders Cyrillic transparently — no helper changes, and 'latin'
-    // reports keep the untouched built-in AFM face.
+    // Unicode documents (e.g. the Bulgarian БАБХ ДНЕВНИК) register DejaVu
+    // Sans under its own names (UNICODE_FONT / UNICODE_FONT_BOLD) and make it
+    // the default face. The generator MUST call `.font(UNICODE_FONT[_BOLD])`.
+    // 'latin' reports register nothing and keep the built-in AFM Helvetica.
     if (meta.fontFamily === 'unicode') {
         const fonts = loadUnicodeFonts();
-        doc.registerFont('Helvetica', fonts.regular);
-        doc.registerFont('Helvetica-Bold', fonts.bold);
-        doc.font('Helvetica');
+        doc.registerFont(UNICODE_FONT, fonts.regular);
+        doc.registerFont(UNICODE_FONT_BOLD, fonts.bold);
+        doc.font(UNICODE_FONT);
     }
 
     return doc;
