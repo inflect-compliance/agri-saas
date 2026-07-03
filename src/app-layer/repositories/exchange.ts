@@ -3,6 +3,7 @@ import {
     Prisma,
     ExchangeSide,
     ExchangeListingStatus,
+    ExchangeInquiryStatus,
 } from '@prisma/client';
 
 /**
@@ -120,5 +121,38 @@ export class ExchangeRepository {
             take: LIST_TAKE,
             include: { listing: true },
         });
+    }
+
+    /**
+     * All listings OWNED by `sellerTenantId` (any status), newest first, each
+     * with its inquiries. The seller's "my listings" management view.
+     * Bounded.
+     */
+    static async listListingsBySeller(db: PrismaTx, sellerTenantId: string) {
+        return db.exchangeListing.findMany({
+            where: { sellerTenantId },
+            orderBy: { createdAt: 'desc' },
+            take: LIST_TAKE,
+            include: {
+                inquiries: { orderBy: { createdAt: 'desc' }, take: LIST_TAKE },
+            },
+        });
+    }
+
+    /** Single inquiry by id, with its listing (for the seller ownership guard). */
+    static async getInquiry(db: PrismaTx, id: string) {
+        return db.exchangeInquiry.findUnique({
+            where: { id },
+            include: { listing: true },
+        });
+    }
+
+    /** Flip an inquiry's status (ACCEPTED / DECLINED). */
+    static async updateInquiryStatus(
+        db: PrismaTx,
+        id: string,
+        status: ExchangeInquiryStatus,
+    ) {
+        return db.exchangeInquiry.update({ where: { id }, data: { status } });
     }
 }

@@ -2,13 +2,16 @@ import { RequestContext } from '../types';
 import { ExchangeRepository, ListingFilters } from '../repositories/exchange';
 import { assertCanRead, assertCanWrite } from '../policies/common';
 import { logEvent } from '../events/audit';
-import { runInTenantContext, PrismaTx } from '@/lib/db-context';
+import { runInTenantContext, withTenantDb, PrismaTx } from '@/lib/db-context';
 import { forbidden, notFound, badRequest } from '@/lib/errors/types';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { regionByCode } from '@/lib/geo/bulgaria-regions';
+import { logger } from '@/lib/observability/logger';
+import { sendInquiryEmail } from '@/lib/email/inquiry-email';
 import {
     ExchangeSide,
     ExchangeListingStatus,
+    ExchangeInquiryStatus,
 } from '@prisma/client';
 
 /**
@@ -199,10 +202,22 @@ export async function fulfillListing(ctx: RequestContext, id: string) {
     });
 }
 
-/** Send an inquiry against another tenant's ACTIVE listing. */
+/**
+ * Send an inquiry against another tenant's ACTIVE listing, then notify +
+ * email the seller's admins.
+ *
+ * The inquiry commits FIRST (inside the inquirer's tenant context). The
+ * seller fanout runs AFTER, fail-open: the Notification is written in the
+ * SELLER's tenant context (`withTenantDb(sellerTenantId, …)` — Notification
+ * is RLS-forced, so it can't be written from the inquirer's context) and the
+ * email is best-effort. Email is the ONE channel allowed to cross the tenant
+ * boundary. A notification/email failure must NEVER roll back the inquiry.
+ */
 export async function createInquiry(ctx: RequestContext, input: CreateInquiryInput) {
     assertCanWrite(ctx);
-    return runInTenantContext(ctx, async (db) => {
+    const sanitizedMessage = sanitizePlainText(input.message);
+
+    const { inquiry, listing } = await runInTenantContext(ctx, async (db) => {
         const listing = await ExchangeRepository.getListing(db, input.listingId);
         if (!listing) throw notFound('Listing not found');
         if (listing.status !== ExchangeListingStatus.ACTIVE) {
@@ -217,8 +232,7 @@ export async function createInquiry(ctx: RequestContext, input: CreateInquiryInp
             listingId: listing.id,
             inquirerTenantId: ctx.tenantId,
             inquirerUserId: ctx.userId,
-            // Public free text shown to the seller → sanitize.
-            message: sanitizePlainText(input.message),
+            message: sanitizedMessage,
             quantityTonnes: input.quantityTonnes ?? null,
         });
 
@@ -236,6 +250,137 @@ export async function createInquiry(ctx: RequestContext, input: CreateInquiryInp
             },
         });
 
-        return inquiry;
+        return { inquiry, listing };
     });
+
+    // Best-effort, fail-open — the inquiry is already committed.
+    await notifySellerOfInquiry(listing, sanitizedMessage, inquiry.quantityTonnes?.toString() ?? null);
+
+    return inquiry;
+}
+
+/**
+ * Notify a listing's seller-tenant admins/owners that a new inquiry landed:
+ * an in-app Notification (in the SELLER's tenant context) + a best-effort
+ * email. Swallows every error (logs) so it can never roll back the inquiry.
+ */
+async function notifySellerOfInquiry(
+    listing: { id: string; sellerTenantId: string; commodity: string; side: string },
+    message: string,
+    quantityTonnes: string | null,
+) {
+    try {
+        // Everything the seller-side needs — reading the seller's memberships
+        // AND writing the Notifications — runs in the SELLER's tenant context
+        // (`withTenantDb`). Both `TenantMembership` and `Notification` are
+        // RLS-forced, so a context-less read would return zero rows; binding
+        // the seller's context is both correct and the only way to write the
+        // cross-tenant Notification. Email auto-decrypts via the PII middleware.
+        const { admins, inquiriesUrl } = await withTenantDb(
+            listing.sellerTenantId,
+            async (sellerDb) => {
+                const admins = await sellerDb.tenantMembership.findMany({
+                    where: {
+                        tenantId: listing.sellerTenantId,
+                        status: 'ACTIVE',
+                        role: { in: ['OWNER', 'ADMIN'] },
+                    },
+                    select: {
+                        userId: true,
+                        user: { select: { email: true } },
+                        tenant: { select: { slug: true } },
+                    },
+                    take: 5000,
+                });
+                if (admins.length === 0) return { admins, inquiriesUrl: '' };
+
+                const inquiriesUrl = `/t/${admins[0].tenant.slug}/exchange/my-listings`;
+
+                // In-app Notification for each seller admin/owner.
+                await sellerDb.notification.createMany({
+                    data: admins.map((a) => ({
+                        tenantId: listing.sellerTenantId,
+                        userId: a.userId,
+                        type: 'GENERAL' as const,
+                        title: `New interest in your ${listing.commodity} listing`,
+                        message,
+                        linkUrl: inquiriesUrl,
+                    })),
+                    skipDuplicates: true,
+                });
+                return { admins, inquiriesUrl };
+            },
+        );
+        if (admins.length === 0) return;
+
+        // Email each admin — the one cross-tenant channel. Done AFTER the
+        // seller-context block so no DB transaction is held open over network.
+        for (const a of admins) {
+            if (a.user.email) {
+                await sendInquiryEmail({
+                    to: a.user.email,
+                    commodity: listing.commodity,
+                    side: listing.side,
+                    message,
+                    quantityTonnes,
+                    inquiriesUrl,
+                });
+            }
+        }
+    } catch (err) {
+        logger.warn('exchange.inquiry_notify_failed', {
+            component: 'exchange',
+            listingId: listing.id,
+            error: err instanceof Error ? err.message : String(err),
+        });
+    }
+}
+
+/**
+ * Seller responds to an inquiry on one of THEIR listings (ACCEPT / DECLINE).
+ * Only the listing's seller tenant may respond; the inquiry must be PENDING.
+ */
+export async function respondToInquiry(
+    ctx: RequestContext,
+    inquiryId: string,
+    action: 'ACCEPTED' | 'DECLINED',
+) {
+    assertCanWrite(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const inquiry = await ExchangeRepository.getInquiry(db, inquiryId);
+        if (!inquiry) throw notFound('Inquiry not found');
+        // Only the SELLER (owner of the inquiry's listing) may respond.
+        if (inquiry.listing.sellerTenantId !== ctx.tenantId) {
+            throw forbidden('You can only respond to inquiries on your own listings');
+        }
+        if (inquiry.status !== ExchangeInquiryStatus.PENDING) {
+            throw badRequest('inquiry_not_pending', 'This inquiry has already been answered');
+        }
+
+        const updated = await ExchangeRepository.updateInquiryStatus(
+            db, inquiryId, action as ExchangeInquiryStatus,
+        );
+        await logEvent(db, ctx, {
+            action: 'UPDATE',
+            entityType: 'ExchangeInquiry',
+            entityId: inquiryId,
+            details: `Inquiry ${action.toLowerCase()}`,
+            detailsJson: {
+                category: 'status_change',
+                entityName: 'ExchangeInquiry',
+                fromStatus: inquiry.status,
+                toStatus: action,
+                summary: `Inquiry ${action.toLowerCase()} on ${inquiry.listing.commodity}`,
+            },
+        });
+        return updated;
+    });
+}
+
+/** The caller-tenant's own listings (any status) + their inquiries. */
+export async function listMyListings(ctx: RequestContext) {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, (db) =>
+        ExchangeRepository.listListingsBySeller(db, ctx.tenantId),
+    );
 }

@@ -29,10 +29,14 @@ import { Heading } from '@/components/ui/typography';
 import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/cn';
 import { useTenantHref } from '@/lib/tenant-context-provider';
+import { formatDate } from '@/lib/format-date';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import type { ExchangePublicListing } from '@/lib/exchange/public-listing';
 import { EXCHANGE_SIDE_COLORS } from '@/components/exchange/ExchangeMap';
 import { buildExchangeFilters, EXCHANGE_FILTER_KEYS } from './filter-defs';
+import { CreateOfferModal } from './CreateOfferModal';
+import { InquiryModal } from './InquiryModal';
+import { ExchangeNav } from './ExchangeNav';
 
 // The map uses browser-only APIs (maplibre-gl) — keep it off the SSR graph.
 const ExchangeMap = dynamic(
@@ -61,7 +65,7 @@ function SideDot({ side }: { side: 'SELL' | 'BUY' }) {
 
 function ExchangeInner() {
     const tenantHref = useTenantHref();
-    const { data, isLoading } = useTenantSWR<ExchangePublicListing[]>('/exchange/listings');
+    const { data, isLoading, mutate } = useTenantSWR<ExchangePublicListing[]>('/exchange/listings');
     const { state, search, toggle } = useFilters();
 
     const offers = useMemo(() => data ?? [], [data]);
@@ -96,6 +100,14 @@ function ExchangeInner() {
 
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [inquiryOpen, setInquiryOpen] = useState(false);
+
+    // Optimistically add a freshly-created listing to the shared SWR cache so
+    // it lands on the map + list instantly, then revalidate to reconcile.
+    function handleCreated(created: ExchangePublicListing) {
+        void mutate([created, ...offers], { revalidate: true });
+    }
     const selectedOffer = useMemo(
         () => filtered.find((o) => o.id === selectedId) ?? offers.find((o) => o.id === selectedId) ?? null,
         [filtered, offers, selectedId],
@@ -127,13 +139,13 @@ function ExchangeInner() {
                     <Button
                         variant="primary"
                         icon={<Plus />}
-                        onClick={() => {
-                            /* Prompt 3 wires the create-offer modal here. */
-                        }}
+                        id="new-offer-btn"
+                        onClick={() => setCreateOpen(true)}
                     >
                         Offer
                     </Button>
                 </div>
+                <ExchangeNav />
             </ListPageShell.Header>
 
             <ListPageShell.Filters>
@@ -220,31 +232,62 @@ function ExchangeInner() {
                 description="Offer detail"
             >
                 <Sheet.Header title={selectedOffer?.commodity ?? 'Offer'} />
-                <Sheet.Body className="space-y-default">
+                <Sheet.Body className="space-y-section">
                     {selectedOffer && (
-                        <div className="space-y-tight text-sm">
+                        <div className="space-y-default text-sm">
                             <div className="flex items-center gap-compact">
                                 <SideDot side={selectedOffer.side} />
-                                <span className="text-content-secondary">
-                                    {selectedOffer.side === 'SELL' ? 'Selling' : 'Buying'} · {selectedOffer.regionName}
+                                <span className="font-medium text-content-emphasis">
+                                    {selectedOffer.side === 'SELL' ? 'Selling' : 'Buying'}
                                 </span>
+                                {selectedOffer.isOwn && (
+                                    <span className="rounded bg-bg-subtle px-1.5 py-0.5 text-[10px] font-medium text-content-secondary">
+                                        Your offer
+                                    </span>
+                                )}
                             </div>
-                            <div className="text-content-secondary">
-                                {selectedOffer.quantityTonnes} t
-                                {selectedOffer.pricePerTonne
-                                    ? ` · ${selectedOffer.pricePerTonne} ${selectedOffer.priceCurrency}/t`
-                                    : ''}
-                            </div>
+                            <dl className="grid grid-cols-[auto_1fr] gap-x-section gap-y-tight text-content-secondary">
+                                <dt className="text-content-muted">Quantity</dt>
+                                <dd>{selectedOffer.quantityTonnes} t</dd>
+                                <dt className="text-content-muted">Price</dt>
+                                <dd>
+                                    {selectedOffer.pricePerTonne
+                                        ? `${selectedOffer.pricePerTonne} ${selectedOffer.priceCurrency}/t`
+                                        : 'Market / negotiable'}
+                                </dd>
+                                <dt className="text-content-muted">Region</dt>
+                                <dd>{selectedOffer.regionName}</dd>
+                                {selectedOffer.expiresAt && (
+                                    <>
+                                        <dt className="text-content-muted">Expires</dt>
+                                        <dd>{formatDate(selectedOffer.expiresAt)}</dd>
+                                    </>
+                                )}
+                                <dt className="text-content-muted">Seller</dt>
+                                <dd>{selectedOffer.sellerDisplayName || 'Anonymous farm'}</dd>
+                            </dl>
                             {selectedOffer.description && (
-                                <p className="text-content-muted">{selectedOffer.description}</p>
+                                <p className="whitespace-pre-wrap text-content-muted">{selectedOffer.description}</p>
+                            )}
+                            {/* Contact happens only through a mediated inquiry — and never
+                                on your own listing. */}
+                            {!selectedOffer.isOwn && (
+                                <Button variant="primary" size="sm" className="w-full" onClick={() => setInquiryOpen(true)}>
+                                    Express interest
+                                </Button>
                             )}
                         </div>
                     )}
-                    <p className="text-xs text-content-muted">
-                        Full detail and the inquiry flow arrive in the next step.
-                    </p>
                 </Sheet.Body>
             </Sheet>
+
+            <CreateOfferModal open={createOpen} setOpen={setCreateOpen} onCreated={handleCreated} />
+            <InquiryModal
+                open={inquiryOpen}
+                setOpen={setInquiryOpen}
+                listing={selectedOffer}
+                onSent={() => setSelectedId(null)}
+            />
         </ListPageShell>
     );
 }

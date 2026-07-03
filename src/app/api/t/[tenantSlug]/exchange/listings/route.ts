@@ -1,17 +1,22 @@
 import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { assertModuleEnabled } from '@/app-layer/usecases/modules';
-import { listActiveListings } from '@/app-layer/usecases/exchange';
+import { listActiveListings, createListing } from '@/app-layer/usecases/exchange';
+import { CreateListingSchema } from '@/app-layer/schemas/exchange.schemas';
 import { toPublicListing } from '@/lib/exchange/public-listing';
 import { withApiErrorHandling } from '@/lib/errors/api';
+import { withValidatedBody } from '@/lib/validation/route';
 import { jsonResponse } from '@/lib/api-response';
 
 /**
- * Exchange listings — the cross-tenant browse feed (EXCHANGE module).
+ * Exchange listings — the cross-tenant browse feed + create (EXCHANGE module).
  *
- *   GET → ACTIVE listings across ALL tenants, PUBLIC projection only
- *         (no sellerUserId, no raw owning-tenant id → an opaque `isOwn`
- *         flag instead; no encrypted/private fields — there are none).
+ *   GET  → ACTIVE listings across ALL tenants, PUBLIC projection only
+ *          (no sellerUserId, no raw owning-tenant id → an opaque `isOwn`
+ *          flag instead; no encrypted/private fields — there are none).
+ *   POST → publish a new listing owned by the caller's tenant. The usecase
+ *          stamps sellerTenantId = ctx.tenantId (a tenant can only ever
+ *          create its OWN listing) and derives region geo from regionCode.
  *
  * Read-tier rate limiting (GAP-17) applies automatically at the Edge for
  * `/api/t/<slug>/...` GETs. Browse is FREE (no plan gate) — the network
@@ -26,4 +31,27 @@ export const GET = withApiErrorHandling(
         const listings = await listActiveListings(ctx);
         return jsonResponse(listings.map((l) => toPublicListing(l, ctx.tenantId)));
     },
+);
+
+export const POST = withApiErrorHandling(
+    withValidatedBody(
+        CreateListingSchema,
+        async (req, { params: paramsPromise }: { params: Promise<{ tenantSlug: string }> }, body) => {
+            const params = await paramsPromise;
+            const ctx = await getTenantCtx(params, req);
+            await assertModuleEnabled(ctx, 'EXCHANGE');
+            const listing = await createListing(ctx, {
+                side: body.side,
+                commodity: body.commodity,
+                quantityTonnes: body.quantityTonnes,
+                pricePerTonne: body.pricePerTonne ?? null,
+                priceCurrency: body.priceCurrency,
+                regionCode: body.regionCode,
+                description: body.description ?? null,
+                sellerDisplayName: body.sellerDisplayName ?? null,
+                expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+            });
+            return jsonResponse(toPublicListing(listing, ctx.tenantId), { status: 201 });
+        },
+    ),
 );

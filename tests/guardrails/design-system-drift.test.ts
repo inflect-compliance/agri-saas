@@ -318,7 +318,14 @@ describe('New page token discipline', () => {
         //     content-*/bg-*/border-* + ListPageShell/PageBreadcrumbs/
         //     FilterToolbar/Button/Heading/Sheet); new surface, not yet
         //     promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(136);
+        //   - 140 (+4, 2026-07-04): Exchange write flows — the create-offer
+        //     + express-interest modals (CreateOfferModal / InquiryModal) and
+        //     the My-listings / My-interests management views
+        //     (MyListingsClient / MyInterestsClient). Token-clean (semantic
+        //     tokens only + Modal/FormField/Combobox/RadioGroup/DatePicker/
+        //     Textarea/StatusBadge/Button/Heading/ListPageShell); new
+        //     surfaces, not yet promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(140);
     });
 
     it('migrated page count is at least 4', () => {
