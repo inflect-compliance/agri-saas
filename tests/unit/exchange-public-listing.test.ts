@@ -53,6 +53,25 @@ describe('toPublicListing', () => {
         expect(dto.createdAt).toBe('2026-07-01T00:00:00.000Z');
         expect(dto.expiresAt).toBeNull();
     });
+
+    it('privacy invariant — exposes ONLY coarse public fields (no geometry / terms / owner ids)', () => {
+        const dto = toPublicListing(row(), 'tenant-9');
+        // The complete, exact public surface. lat/lon are the REGION centroid
+        // (a coarse map pin), never exact parcel geometry.
+        expect(Object.keys(dto).sort()).toEqual([
+            'commodity', 'createdAt', 'description', 'expiresAt', 'id', 'isOwn',
+            'lat', 'lon', 'priceCurrency', 'pricePerTonne', 'quantityTonnes',
+            'regionCode', 'regionName', 'sellerDisplayName', 'side', 'status',
+        ]);
+        // None of the private / geometry / contract-term fields ever leak.
+        for (const banned of [
+            'geometry', 'coordinates', 'boundary', 'parcelId', 'terms',
+            'contractTerms', 'pricingNotes', 'treatmentNotes', 'sellerTenantId',
+            'sellerUserId', 'emailEncrypted',
+        ]) {
+            expect(Object.keys(dto)).not.toContain(banned);
+        }
+    });
 });
 
 describe('buildExchangeFilters', () => {

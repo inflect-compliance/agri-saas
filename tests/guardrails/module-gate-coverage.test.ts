@@ -178,6 +178,22 @@ const MODULE_GATED_ROUTES: ReadonlyArray<{
         file: 'src/app/api/t/[tenantSlug]/exchange/listings/route.ts',
         module: 'EXCHANGE',
     },
+    {
+        file: 'src/app/api/t/[tenantSlug]/exchange/listings/[listingId]/route.ts',
+        module: 'EXCHANGE',
+    },
+    {
+        file: 'src/app/api/t/[tenantSlug]/exchange/inquiries/route.ts',
+        module: 'EXCHANGE',
+    },
+    {
+        file: 'src/app/api/t/[tenantSlug]/exchange/inquiries/[inquiryId]/route.ts',
+        module: 'EXCHANGE',
+    },
+    {
+        file: 'src/app/api/t/[tenantSlug]/exchange/my-listings/route.ts',
+        module: 'EXCHANGE',
+    },
     // Future module-gated routes add themselves here.
 ];
 

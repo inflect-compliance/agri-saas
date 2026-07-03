@@ -14,10 +14,20 @@
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockDb = {} as any;
+// The seller-tenant db handle handed to withTenantDb — captures notification writes.
+const notificationCreateMany = jest.fn();
+const mockSellerDb = { notification: { createMany: notificationCreateMany } };
+// Captures the tenantId withTenantDb was bound to (must be the SELLER's).
+const withTenantDbCalls: string[] = [];
 
 jest.mock('@/lib/db-context', () => ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     runInTenantContext: jest.fn(async (_ctx: any, fn: (db: any) => any) => fn(mockDb)),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    withTenantDb: jest.fn(async (tenantId: string, fn: (db: any) => any) => {
+        withTenantDbCalls.push(tenantId);
+        return fn(mockSellerDb);
+    }),
 }));
 
 jest.mock('@/app-layer/repositories/exchange', () => ({
@@ -29,6 +39,9 @@ jest.mock('@/app-layer/repositories/exchange', () => ({
         createInquiry: jest.fn(),
         listInquiriesForSeller: jest.fn(),
         listInquiriesByInquirer: jest.fn(),
+        getInquiry: jest.fn(),
+        updateInquiryStatus: jest.fn(),
+        listListingsBySeller: jest.fn(),
     },
 }));
 
@@ -40,6 +53,20 @@ jest.mock('@/lib/security/sanitize', () => ({
     sanitizePlainText: (s: string | null | undefined) => (s == null ? '' : s),
 }));
 
+const membershipFindMany = jest.fn();
+jest.mock('@/lib/prisma', () => ({
+    prisma: { tenantMembership: { findMany: (...a: unknown[]) => membershipFindMany(...a) } },
+}));
+
+const sendInquiryEmail = jest.fn();
+jest.mock('@/lib/email/inquiry-email', () => ({
+    sendInquiryEmail: (...a: unknown[]) => sendInquiryEmail(...a),
+}));
+
+jest.mock('@/lib/observability/logger', () => ({
+    logger: { warn: jest.fn(), info: jest.fn(), error: jest.fn() },
+}));
+
 import { ExchangeRepository } from '@/app-layer/repositories/exchange';
 import {
     listActiveListings,
@@ -47,6 +74,7 @@ import {
     withdrawListing,
     fulfillListing,
     createInquiry,
+    respondToInquiry,
 } from '@/app-layer/usecases/exchange';
 import { makeRequestContext } from '../helpers/make-context';
 
@@ -70,7 +98,13 @@ function listing(overrides: Partial<Record<string, unknown>> = {}) {
     } as any;
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+    jest.clearAllMocks();
+    withTenantDbCalls.length = 0;
+    membershipFindMany.mockResolvedValue([]);
+    sendInquiryEmail.mockResolvedValue({ sent: true });
+    notificationCreateMany.mockResolvedValue({ count: 0 });
+});
 
 describe('cross-tenant write guard', () => {
     it('withdrawListing on ANOTHER tenant’s listing throws forbidden', async () => {
@@ -161,6 +195,71 @@ describe('createListing', () => {
                 priceCurrency: 'BGN',
             }),
         );
+    });
+});
+
+describe('createInquiry seller fanout (notify + email, fail-open)', () => {
+    const activeListing = { sellerTenantId: 'tenant-2', status: 'ACTIVE', commodity: 'Wheat', side: 'SELL' };
+
+    it('writes the Notification in the SELLER tenant (withTenantDb) + emails its admins', async () => {
+        repo.getListing.mockResolvedValue(listing({ ...activeListing }));
+        repo.createInquiry.mockResolvedValue({ id: 'inq-1', quantityTonnes: null } as never);
+        membershipFindMany.mockResolvedValue([
+            { userId: 'seller-admin-1', user: { email: 'a1@seller.test' }, tenant: { slug: 'seller' } },
+            { userId: 'seller-admin-2', user: { email: 'a2@seller.test' }, tenant: { slug: 'seller' } },
+        ]);
+
+        await createInquiry(meCtx, { listingId: 'lst-1', message: 'want 100t' });
+
+        // Notification is bound to the SELLER's tenant (tenant-2), NOT the
+        // inquirer's (tenant-1) — RLS would reject it otherwise.
+        expect(withTenantDbCalls).toEqual(['tenant-2']);
+        expect(notificationCreateMany).toHaveBeenCalledTimes(1);
+        const notifArg = notificationCreateMany.mock.calls[0][0] as { data: Array<Record<string, unknown>> };
+        expect(notifArg.data).toHaveLength(2);
+        expect(notifArg.data[0]).toMatchObject({ tenantId: 'tenant-2', userId: 'seller-admin-1' });
+        // Both seller admins emailed.
+        expect(sendInquiryEmail).toHaveBeenCalledTimes(2);
+        expect(sendInquiryEmail).toHaveBeenCalledWith(
+            expect.objectContaining({ to: 'a1@seller.test', commodity: 'Wheat' }),
+        );
+    });
+
+    it('is fail-open — an email failure does NOT reject the committed inquiry', async () => {
+        repo.getListing.mockResolvedValue(listing({ ...activeListing }));
+        repo.createInquiry.mockResolvedValue({ id: 'inq-1', quantityTonnes: null } as never);
+        membershipFindMany.mockResolvedValue([{ userId: 's1', user: { email: 'a@s.test' }, tenant: { slug: 'seller' } }]);
+        sendInquiryEmail.mockRejectedValue(new Error('smtp down'));
+
+        const inquiry = await createInquiry(meCtx, { listingId: 'lst-1', message: 'hi' });
+        expect(inquiry).toEqual({ id: 'inq-1', quantityTonnes: null });
+    });
+});
+
+describe('respondToInquiry (seller-only)', () => {
+    const inq = (over: Record<string, unknown> = {}) => ({
+        id: 'inq-1',
+        status: 'PENDING',
+        listing: { sellerTenantId: 'tenant-1', commodity: 'Wheat' },
+        ...over,
+    });
+
+    it('the SELLER can accept a PENDING inquiry', async () => {
+        repo.getInquiry.mockResolvedValue(inq() as never);
+        repo.updateInquiryStatus.mockResolvedValue({ id: 'inq-1', status: 'ACCEPTED' } as never);
+        await respondToInquiry(meCtx, 'inq-1', 'ACCEPTED');
+        expect(repo.updateInquiryStatus).toHaveBeenCalledWith(mockDb, 'inq-1', 'ACCEPTED');
+    });
+
+    it('a NON-seller cannot respond → forbidden', async () => {
+        repo.getInquiry.mockResolvedValue(inq({ listing: { sellerTenantId: 'tenant-9', commodity: 'Wheat' } }) as never);
+        await expect(respondToInquiry(meCtx, 'inq-1', 'DECLINED')).rejects.toThrow(/your own listings/i);
+        expect(repo.updateInquiryStatus).not.toHaveBeenCalled();
+    });
+
+    it('an already-answered inquiry → badRequest', async () => {
+        repo.getInquiry.mockResolvedValue(inq({ status: 'ACCEPTED' }) as never);
+        await expect(respondToInquiry(meCtx, 'inq-1', 'DECLINED')).rejects.toThrow(/not_pending/i);
     });
 });
 

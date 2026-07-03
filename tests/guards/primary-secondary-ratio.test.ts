@@ -223,7 +223,12 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // the Exchange main page (the single earned entity-create primary of that
 // surface, per the canonical icon+noun action-button vocabulary). Measured
 // = 159; ceiling at 159 (no headroom slot).
-const MAX_PRIMARY_COUNT = 159;
+// Exchange write flows (2026-07-04): +3 primaries — the create-offer modal
+// confirm ("Create offer"), the express-interest modal confirm ("Express
+// interest"), and the "Express interest" CTA on the offer detail Sheet. Each
+// is the single earned primary of its surface (modal confirm + the one
+// contact affordance). Measured = 162; ceiling at 162 (no headroom slot).
+const MAX_PRIMARY_COUNT = 162;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

@@ -55,6 +55,48 @@ function iso(d: Date | string): string {
     return typeof d === 'string' ? d : d.toISOString();
 }
 
+/** Inquiry projection — coarse, no inquirer ids leaked to the wire. */
+export interface ExchangeInquiryRow {
+    id: string;
+    message: string;
+    quantityTonnes: { toString(): string } | null;
+    status: string;
+    createdAt: Date | string;
+    listing?: ExchangeListingRow;
+}
+
+export interface ExchangePublicInquiry {
+    id: string;
+    message: string;
+    quantityTonnes: string | null;
+    status: string;
+    createdAt: string;
+    /** Present in the buyer's outbox; omitted in the seller's per-listing nest. */
+    listing?: ExchangePublicListing;
+}
+
+/**
+ * Inquiry projection. In the buyer's OUTBOX we attach the listing's public
+ * projection; the seller's inbox nests inquiries under their own listing, so
+ * pass `includeListing: false` there. Never exposes inquirerTenantId/userId.
+ */
+export function toPublicInquiry(
+    row: ExchangeInquiryRow,
+    viewerTenantId: string,
+    includeListing = true,
+): ExchangePublicInquiry {
+    return {
+        id: row.id,
+        message: row.message,
+        quantityTonnes: row.quantityTonnes != null ? row.quantityTonnes.toString() : null,
+        status: row.status,
+        createdAt: iso(row.createdAt),
+        ...(includeListing && row.listing
+            ? { listing: toPublicListing(row.listing, viewerTenantId) }
+            : {}),
+    };
+}
+
 /** Map a listing row to its public projection for `viewerTenantId`. */
 export function toPublicListing(
     row: ExchangeListingRow,

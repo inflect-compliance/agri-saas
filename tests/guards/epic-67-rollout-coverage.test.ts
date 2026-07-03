@@ -57,6 +57,11 @@ const SITE_CONTRACTS: ReadonlyArray<SiteContract> = [
         name: 'Vendor document removal (vendor detail)',
         handlers: ['removeDoc'],
     },
+    {
+        file: 'src/app/t/[tenantSlug]/(app)/exchange/my-listings/MyListingsClient.tsx',
+        name: 'Exchange listing withdraw (my listings)',
+        handlers: ['withdrawListing'],
+    },
 ];
 
 function loadFile(file: string): string {
