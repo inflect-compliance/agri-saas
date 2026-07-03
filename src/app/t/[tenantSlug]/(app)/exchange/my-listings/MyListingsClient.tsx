@@ -97,7 +97,7 @@ export function MyListingsClient() {
             </ListPageShell.Header>
             <ListPageShell.Body>
                 <div className="min-h-0 flex-1 space-y-default overflow-y-auto pr-1">
-                    {isLoading && <p className="text-sm text-content-muted">Loading…</p>}
+                    {isLoading && <p className="text-sm text-content-muted">Loading listings…</p>}
                     {!isLoading && listings.length === 0 && (
                         <div className="rounded-lg border border-border-subtle p-4 text-sm text-content-muted">
                             You haven&apos;t posted any offers yet.

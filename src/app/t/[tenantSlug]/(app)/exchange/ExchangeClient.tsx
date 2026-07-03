@@ -29,6 +29,7 @@ import { Heading } from '@/components/ui/typography';
 import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/cn';
 import { useTenantHref } from '@/lib/tenant-context-provider';
+import { formatDate } from '@/lib/format-date';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import type { ExchangePublicListing } from '@/lib/exchange/public-listing';
 import { EXCHANGE_SIDE_COLORS } from '@/components/exchange/ExchangeMap';
@@ -259,7 +260,7 @@ function ExchangeInner() {
                                 {selectedOffer.expiresAt && (
                                     <>
                                         <dt className="text-content-muted">Expires</dt>
-                                        <dd>{new Date(selectedOffer.expiresAt).toLocaleDateString()}</dd>
+                                        <dd>{formatDate(selectedOffer.expiresAt)}</dd>
                                     </>
                                 )}
                                 <dt className="text-content-muted">Seller</dt>

@@ -234,6 +234,15 @@ describe('CI Guard: No direct prisma in tenant-scoped code', () => {
         // the org-scoped `getPortfolioData` helper. Single-tenant
         // `runInTenantContext` can't express the many-tenant fan-out.
         'portfolio-grain.ts',
+        // Exchange — cross-tenant P2P marketplace. `createInquiry` commits the
+        // inquiry in the INQUIRER's context, then notifies the SELLER's
+        // admins/owners. That fanout reads the seller's `TenantMembership`
+        // rows and writes `Notification` rows — both RLS-forced tables under a
+        // DIFFERENT tenant than `ctx.tenantId`, so it must bind the seller's
+        // context via `withTenantDb(listing.sellerTenantId, …)`. Single-tenant
+        // `runInTenantContext` can't switch to the seller's tenant. Best-effort
+        // + fail-open — the inquiry never rolls back on notify failure.
+        'exchange.ts',
     ];
 
     for (const file of usecases) {

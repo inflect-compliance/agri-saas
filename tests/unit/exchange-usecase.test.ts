@@ -14,9 +14,15 @@
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockDb = {} as any;
-// The seller-tenant db handle handed to withTenantDb — captures notification writes.
+// The seller-tenant db handle handed to withTenantDb — the seller-context
+// membership READ and the notification WRITE both flow through it (both are
+// RLS-forced tables under the seller's tenant, not the inquirer's).
 const notificationCreateMany = jest.fn();
-const mockSellerDb = { notification: { createMany: notificationCreateMany } };
+const membershipFindMany = jest.fn();
+const mockSellerDb = {
+    tenantMembership: { findMany: (...a: unknown[]) => membershipFindMany(...a) },
+    notification: { createMany: notificationCreateMany },
+};
 // Captures the tenantId withTenantDb was bound to (must be the SELLER's).
 const withTenantDbCalls: string[] = [];
 
@@ -51,11 +57,6 @@ jest.mock('@/app-layer/events/audit', () => ({ logEvent: jest.fn() }));
 // only care that free text flows through it (identity is enough).
 jest.mock('@/lib/security/sanitize', () => ({
     sanitizePlainText: (s: string | null | undefined) => (s == null ? '' : s),
-}));
-
-const membershipFindMany = jest.fn();
-jest.mock('@/lib/prisma', () => ({
-    prisma: { tenantMembership: { findMany: (...a: unknown[]) => membershipFindMany(...a) } },
 }));
 
 const sendInquiryEmail = jest.fn();

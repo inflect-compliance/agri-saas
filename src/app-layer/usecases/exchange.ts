@@ -6,7 +6,6 @@ import { runInTenantContext, withTenantDb, PrismaTx } from '@/lib/db-context';
 import { forbidden, notFound, badRequest } from '@/lib/errors/types';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { regionByCode } from '@/lib/geo/bulgaria-regions';
-import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/observability/logger';
 import { sendInquiryEmail } from '@/lib/email/inquiry-email';
 import {
@@ -271,38 +270,51 @@ async function notifySellerOfInquiry(
     quantityTonnes: string | null,
 ) {
     try {
-        // Seller admins/owners — membership + email read on the global client
-        // (no tenant context; email auto-decrypts via the PII middleware).
-        const admins = await prisma.tenantMembership.findMany({
-            where: {
-                tenantId: listing.sellerTenantId,
-                status: 'ACTIVE',
-                role: { in: ['OWNER', 'ADMIN'] },
+        // Everything the seller-side needs — reading the seller's memberships
+        // AND writing the Notifications — runs in the SELLER's tenant context
+        // (`withTenantDb`). Both `TenantMembership` and `Notification` are
+        // RLS-forced, so a context-less read would return zero rows; binding
+        // the seller's context is both correct and the only way to write the
+        // cross-tenant Notification. Email auto-decrypts via the PII middleware.
+        const { admins, inquiriesUrl } = await withTenantDb(
+            listing.sellerTenantId,
+            async (sellerDb) => {
+                const admins = await sellerDb.tenantMembership.findMany({
+                    where: {
+                        tenantId: listing.sellerTenantId,
+                        status: 'ACTIVE',
+                        role: { in: ['OWNER', 'ADMIN'] },
+                    },
+                    select: {
+                        userId: true,
+                        user: { select: { email: true } },
+                        tenant: { select: { slug: true } },
+                    },
+                    take: 5000,
+                });
+                if (admins.length === 0) return { admins, inquiriesUrl: '' };
+
+                const inquiriesUrl = `/t/${admins[0].tenant.slug}/exchange/my-listings`;
+
+                // In-app Notification for each seller admin/owner.
+                await sellerDb.notification.createMany({
+                    data: admins.map((a) => ({
+                        tenantId: listing.sellerTenantId,
+                        userId: a.userId,
+                        type: 'GENERAL' as const,
+                        title: `New interest in your ${listing.commodity} listing`,
+                        message,
+                        linkUrl: inquiriesUrl,
+                    })),
+                    skipDuplicates: true,
+                });
+                return { admins, inquiriesUrl };
             },
-            select: { userId: true, user: { select: { email: true } }, tenant: { select: { slug: true } } },
-            take: 5000,
-        });
+        );
         if (admins.length === 0) return;
 
-        const slug = admins[0].tenant.slug;
-        const inquiriesUrl = `/t/${slug}/exchange/my-listings`;
-
-        // (a) In-app Notification, written in the SELLER's tenant context.
-        await withTenantDb(listing.sellerTenantId, (sellerDb) =>
-            sellerDb.notification.createMany({
-                data: admins.map((a) => ({
-                    tenantId: listing.sellerTenantId,
-                    userId: a.userId,
-                    type: 'GENERAL' as const,
-                    title: `New interest in your ${listing.commodity} listing`,
-                    message,
-                    linkUrl: inquiriesUrl,
-                })),
-                skipDuplicates: true,
-            }),
-        );
-
-        // (b) Email each admin — the one cross-tenant channel.
+        // Email each admin — the one cross-tenant channel. Done AFTER the
+        // seller-context block so no DB transaction is held open over network.
         for (const a of admins) {
             if (a.user.email) {
                 await sendInquiryEmail({

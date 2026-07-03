@@ -110,6 +110,13 @@ const PRIMARY_BUDGET: Record<string, number> = {
     // Farm-tasks list — two separate primary regions: the page "Task"
     // header CTA + the create-modal "Create task" confirm.
     "src/app/t/[tenantSlug]/(app)/farm-tasks/FarmTasksClient.tsx": 2,
+    // Exchange (cross-tenant marketplace) — two separate primary regions:
+    // the page-header "Offer" CTA (opens the create modal) and the detail
+    // Sheet's "Express interest" CTA. The Sheet only mounts when a listing
+    // is selected and overlays the list; the two are never competing for the
+    // same visual zone. (The create/inquiry modal confirms live in their own
+    // files, each at the default 1.)
+    "src/app/t/[tenantSlug]/(app)/exchange/ExchangeClient.tsx": 2,
     // Seasons list (Crop Planning, 2026-06-15) — two separate primary
     // regions in one file: the page "Season" header CTA + the inline
     // new-season modal's "Create season" confirm. (The crop-plans list
