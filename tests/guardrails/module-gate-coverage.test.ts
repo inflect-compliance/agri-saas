@@ -174,6 +174,10 @@ const MODULE_GATED_ROUTES: ReadonlyArray<{
         file: 'src/app/api/t/[tenantSlug]/grain/costs/route.ts',
         module: 'GRAIN',
     },
+    {
+        file: 'src/app/api/t/[tenantSlug]/exchange/listings/route.ts',
+        module: 'EXCHANGE',
+    },
     // Future module-gated routes add themselves here.
 ];
 

@@ -50,6 +50,7 @@ const BOTTOM_TAB_SUFFIXES = [
     '/farm-tasks',
     '/locations',
     '/journal',
+    '/exchange',
 ] as const;
 
 export function BottomTabBar() {

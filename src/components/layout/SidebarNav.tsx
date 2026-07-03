@@ -31,6 +31,7 @@ import {
     Warehouse,
     LineChart,
     Coins,
+    ArrowLeftRight,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -99,6 +100,13 @@ export function useNavSections(): NavSectionDef[] {
         tenant.availableModules === undefined ||
         tenant.availableModules.includes('GRAIN');
 
+    // Exchange — the cross-tenant P2P marketplace. Gated behind the
+    // EXCHANGE module (FREE tier, but per-tenant toggleable). Same
+    // graceful-degrade convention as the gates above.
+    const exchangeAvailable =
+        tenant.availableModules === undefined ||
+        tenant.availableModules.includes('EXCHANGE');
+
     // R13-PR7 — tenant sidebar restructure.
     //
     //   Board (standalone, no eyebrow)   home/dashboard
@@ -159,6 +167,15 @@ export function useNavSections(): NavSectionDef[] {
                 { href: tenantHref('/grain/bins'), label: 'Bins', icon: Warehouse, visible: grainAvailable },
                 { href: tenantHref('/grain/yield'), label: 'Yield', icon: LineChart, visible: grainAvailable },
                 { href: tenantHref('/grain/costs'), label: 'Costs', icon: Coins, visible: grainAvailable },
+            ]),
+        },
+        {
+            // Exchange — cross-tenant P2P marketplace. Single-item section
+            // gated behind EXCHANGE; dropped for non-Exchange tenants by the
+            // `sections.filter(...)` tail below.
+            title: 'Exchange',
+            items: filterVisible([
+                { href: tenantHref('/exchange'), label: 'Marketplace', icon: ArrowLeftRight, visible: exchangeAvailable },
             ]),
         },
         {

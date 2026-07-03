@@ -312,7 +312,13 @@ describe('New page token discipline', () => {
         //     table). Token-clean (semantic tokens only: content-*/bg-*/
         //     border-* + Card/Button/DataTable/StatusBadge/InlineNotice/
         //     Heading); new surfaces, not yet promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(135);
+        //   - 136 (+1, 2026-07-03): Exchange marketplace —
+        //     exchange/ExchangeClient.tsx, the cross-tenant P2P map +
+        //     synced offer list. Token-clean (semantic tokens only:
+        //     content-*/bg-*/border-* + ListPageShell/PageBreadcrumbs/
+        //     FilterToolbar/Button/Heading/Sheet); new surface, not yet
+        //     promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(136);
     });
 
     it('migrated page count is at least 4', () => {
