@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
@@ -63,6 +63,7 @@ export function JournalClient(props: JournalClientProps) {
 function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissions }: JournalClientProps) {
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
+    const prefetchData = usePrefetchTenant();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     const filterCtx = useFilters();
@@ -209,6 +210,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                 // the journal detail via onRowClick below.
                 mobileFallback: 'card',
                 onRowClick: (row) => router.push(tenantHref(`/journal/${row.original.id}`)),
+                onRowPrefetch: (row) => { router.prefetch(tenantHref(`/journal/${row.original.id}`)); prefetchData(CACHE_KEYS.journal.detail(row.original.id)); },
                 emptyState: hasActive ? (
                     <EmptyState
                         size="sm"

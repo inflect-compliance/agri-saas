@@ -14,7 +14,7 @@ import { NewTaskModal } from './NewTaskModal';
 import { TaskDetailSheet } from './TaskDetailSheet';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { useSWRConfig } from 'swr';
-import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
 import { useTenantMutation } from '@/lib/hooks/use-tenant-mutation';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import type { CappedList } from '@/lib/list-backfill-cap';
@@ -133,6 +133,7 @@ function TasksPageInner({
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const { mutate: swrMutate } = useSWRConfig();
     const router = useRouter();
+    const prefetchData = usePrefetchTenant();
 
     // Hydration marker — signals to E2E tests that React event handlers are attached
     const [hydrated, setHydrated] = useState(false);
@@ -795,6 +796,7 @@ function TasksPageInner({
                         </div>
                     )}
                     onRowClick={(row) => router.push(tenantHref(`/tasks/${row.original.id}`))}
+                    onRowPrefetch={(row) => { router.prefetch(tenantHref(`/tasks/${row.original.id}`)); prefetchData(`/tasks/${row.original.id}`); }}
                     emptyState={
                         hasActive ? (
                             <EmptyState
