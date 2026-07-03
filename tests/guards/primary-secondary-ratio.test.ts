@@ -219,7 +219,11 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // 158: +1 for the journal-entry "Дневник (PDF)" generate-modal confirm
 // (PR3) — a genuine modal-confirm primary, matching the identical primary
 // confirm on the Location-detail ДНЕВНИК modal.
-const MAX_PRIMARY_COUNT = 158;
+// Exchange marketplace (2026-07-03): +1 primary — the "Offer" header CTA on
+// the Exchange main page (the single earned entity-create primary of that
+// surface, per the canonical icon+noun action-button vocabulary). Measured
+// = 159; ceiling at 159 (no headroom slot).
+const MAX_PRIMARY_COUNT = 159;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {
