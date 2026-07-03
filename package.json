@@ -214,7 +214,7 @@
     "@types/jest-axe": "^3.5.9",
     "@types/js-yaml": "^4.0.9",
     "@types/jsonwebtoken": "^9.0.7",
-    "@types/node": "^25.9.1",
+    "@types/node": "^26.1.0",
     "@types/nodemailer": "^8.0.1",
     "@types/pdfkit": "^0.17.6",
     "@types/qrcode-generator": "^1.0.6",
