@@ -2,7 +2,7 @@
  * Google Earth Engine (GEE) — satellite vegetation-index tile generation
  * (server-only).
  *
- * Computes a recent cloud-masked Sentinel-2 index composite (NDVI / NDWI /
+ * Computes a recent cloud-masked Sentinel-2 index composite (NDVI / NDMI /
  * NDRE / GNDVI / EVI) for a field's area-of-interest and returns an
  * EPHEMERAL XYZ tile-URL template
  * (`https://earthengine.googleapis.com/.../{z}/{x}/{y}`) via `getMap`,
@@ -185,8 +185,6 @@ export async function getIndexTileUrl(
 // import + mock a single stable function.
 export const getNdviTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
     getIndexTileUrl('ndvi', aoi, win);
-export const getNdwiTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
-    getIndexTileUrl('ndwi', aoi, win);
 export const getNdmiTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
     getIndexTileUrl('ndmi', aoi, win);
 export const getNdreTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>

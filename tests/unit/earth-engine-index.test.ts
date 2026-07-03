@@ -7,9 +7,10 @@
  * the right band pair / expression reaches `normalizedDifference` /
  * `expression`, and the recipe's `{min,max,palette}` reaches `getMap`. That
  * is the closest we can get to "the overlay renders as intended" without a
- * live Earth Engine call. In particular it locks the 2026-07-02 NDWI fix:
- * the `getMap` window handed to EE for NDWI has `min < 0`, so land pixels
- * are no longer clamped to one colour.
+ * live Earth Engine call. In particular it locks the 2026-07-02 clamp fix
+ * (originally hit on the since-removed NDWI overlay): the `getMap` window
+ * handed to EE for a negative-over-land index like NDMI has `min < 0`, so
+ * land pixels are no longer clamped to one colour.
  *
  * `@google/earthengine` is replaced with a recording fake — no network.
  */
@@ -92,7 +93,7 @@ beforeEach(() => {
     mockRec.getMapVis = [];
 });
 
-describe.each<VegetationIndex>(['ndvi', 'ndwi', 'ndmi', 'ndre', 'gndvi'])(
+describe.each<VegetationIndex>(['ndvi', 'ndmi', 'ndre', 'gndvi'])(
     'ratio index %s',
     (id) => {
         it('feeds its band pair + recipe display window into getMap', async () => {
@@ -128,9 +129,10 @@ it('EVI feeds the enhanced-VI expression (3 bands) + display window into getMap'
     });
 });
 
-it('NDWI display window includes negatives so land pixels are not clamped', async () => {
-    // The 2026-07-02 regression: a min ≥ 0 clamps every (negative) land
-    // pixel to the single low-end colour → uniform brown.
-    await getIndexTileUrl('ndwi', AOI, WIN);
+it('NDMI display window includes negatives so land pixels are not clamped', async () => {
+    // The 2026-07-02 regression class (first hit on the since-removed NDWI
+    // overlay): a min ≥ 0 clamps every negative land pixel to the single
+    // low-end colour → one flat block.
+    await getIndexTileUrl('ndmi', AOI, WIN);
     expect(mockRec.getMapVis[0].min).toBeLessThan(0);
 });

@@ -35,9 +35,9 @@ import {
 /** Physical value range each index produces over agricultural land. */
 const CROP_VALUE_RANGE: Record<VegetationIndex, [number, number]> = {
     ndvi: [0.1, 0.85],
-    // NEGATIVE over land — the invariant the 2026-07-02 bug violated.
-    ndwi: [-0.6, 0.3],
-    // NDMI varies over crops and dips negative under water stress.
+    // NDMI varies over crops and dips NEGATIVE under water stress — the
+    // invariant the 2026-07-02 clamp bug violated (then on the since-removed
+    // NDWI overlay).
     ndmi: [-0.2, 0.4],
     ndre: [0.05, 0.45],
     gndvi: [0.2, 0.7],
@@ -47,7 +47,6 @@ const CROP_VALUE_RANGE: Record<VegetationIndex, [number, number]> = {
 /** Band pairs the ratio indices MUST use (documented formulae). */
 const EXPECTED_ND_BANDS: Partial<Record<VegetationIndex, [string, string]>> = {
     ndvi: ['B8', 'B4'],
-    ndwi: ['B3', 'B8'],
     ndmi: ['B8', 'B11'],
     ndre: ['B8', 'B5'],
     gndvi: ['B8', 'B3'],
@@ -101,9 +100,10 @@ describe('vegetation-index recipes', () => {
         expect(INDEX_RECIPES.evi.math.kind).toBe('evi');
     });
 
-    it('NDWI window includes negatives (McFeeters is negative over land)', () => {
-        // Direct restatement of the regression: a non-negative min here
-        // re-introduces the uniform-brown bug.
-        expect(INDEX_RECIPES.ndwi.min).toBeLessThan(0);
+    it('NDMI window includes negatives (moisture dips negative under stress)', () => {
+        // Direct restatement of the 2026-07-02 regression class (originally
+        // hit on the since-removed NDWI overlay): a non-negative min on an
+        // index that goes negative over land re-introduces the flat-block bug.
+        expect(INDEX_RECIPES.ndmi.min).toBeLessThan(0);
     });
 });

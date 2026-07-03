@@ -1,7 +1,7 @@
 /**
  * Unit test — GET /api/t/[tenantSlug]/agro/ndmi-tiles.
  *
- * Mirrors the NDVI/NDWI route tests: proves the wiring around the Google
+ * Mirrors the NDVI route test: proves the wiring around the Google
  * Earth Engine NDMI (Gao canopy/soil moisture) service via the shared
  * `handleIndexTiles` handler:
  *   - reports `configured:false` when GEE has no creds (no EE call);
