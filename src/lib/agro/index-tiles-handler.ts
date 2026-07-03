@@ -2,7 +2,7 @@
  * Shared handler for the satellite-index tile routes
  * (`/api/t/[tenantSlug]/agro/<index>-tiles`).
  *
- * NDVI / NDWI / NDRE / GNDVI / EVI all have the SAME request shape and
+ * NDVI / NDMI / NDRE / GNDVI / EVI all have the SAME request shape and
  * caching behaviour — only the Earth-Engine tile function + the cache-key
  * prefix differ. Each route file stays a thin `GET` that calls
  * `handleIndexTiles(index, getTileUrl, req, params)`; the route imports its

@@ -70,7 +70,7 @@ export interface MapCanvasProps {
      */
     onGeometryValidity?: (validity: PolygonValidity) => void;
     /**
-     * Satellite vegetation-index raster overlay (Agro-intel) — NDVI / NDWI /
+     * Satellite vegetation-index raster overlay (Agro-intel) — NDVI / NDMI /
      * NDRE / GNDVI / EVI. The indices are mutually exclusive, so the host
      * passes at most ONE: an `{ id, tileUrl }` pair where `tileUrl` is an XYZ
      * `{z}/{x}/{y}` template from Google Earth Engine. A raster
@@ -535,7 +535,7 @@ export function MapCanvas({
                 cursor={interactive && !drawing ? 'pointer' : 'grab'}
             >
                 {/* Satellite vegetation-index raster overlay (Agro-intel) —
-                    NDVI / NDWI / NDRE / GNDVI / EVI (mutually exclusive).
+                    NDVI / NDMI / NDRE / GNDVI / EVI (mutually exclusive).
                     Drawn first so the parcel vector layers sit on top. The
                     source id is keyed by index so switching swaps cleanly. */}
                 {indexActive && (

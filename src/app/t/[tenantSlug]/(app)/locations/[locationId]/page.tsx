@@ -205,7 +205,7 @@ export default function LocationDetailPage() {
         }
     }, [buildUrl, locationId, dnevnikFrom, dnevnikTo, toast]);
     // Satellite vegetation-index overlay (Google Earth Engine). At most one
-    // index (NDVI / NDWI / NDRE / GNDVI / EVI) is active at a time — they are
+    // index (NDVI / NDMI / NDRE / GNDVI / EVI) is active at a time — they are
     // mutually exclusive. `null` = off (the default). The single inspection
     // date below drives whichever is active; it sets the 30-day composite
     // window (UTC-midnight DateValue per the picker contract, default today).

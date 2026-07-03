@@ -6,13 +6,15 @@
  * actually spans each index's physical value range.
  *
  * WHY this is split out from `earth-engine.ts`: the display `min`/`max` is
- * the difference between a legible overlay and a flat one. McFeeters NDWI is
- * NEGATIVE over vegetated/soil fields (NIR ≫ Green), so a `min: 0` window
- * clamps every land pixel to the single low-end colour — the field renders
- * uniformly brown for every date (the bug reported 2026-07-02). Keeping the
- * ranges here as plain data lets `tests/guards/vegetation-index-recipes.test.ts`
- * ratchet that each window contains the index's real crop-value range, so a
- * clamped range can never ship again.
+ * the difference between a legible overlay and a flat one. Moisture indices
+ * (e.g. NDMI) go NEGATIVE over dry/bare or stressed fields, so a `min: 0`
+ * window clamps every such pixel to the single low-end colour — the field
+ * renders as one flat block for every date. (This exact bug shipped for the
+ * now-removed McFeeters NDWI overlay on 2026-07-02: negative over all land,
+ * `min: 0`, uniform brown.) Keeping the ranges here as plain data lets
+ * `tests/guards/vegetation-index-recipes.test.ts` ratchet that each window
+ * contains the index's real crop-value range, so a clamped range can never
+ * ship again.
  */
 import type { VegetationIndex } from '@/lib/agro/vegetation-indices';
 
@@ -47,25 +49,12 @@ export const INDEX_RECIPES: Record<VegetationIndex, IndexRecipe> = {
             '#d9ef8b', '#a6d96a', '#66bd63', '#1a9850', '#006837',
         ],
     },
-    // NDWI (McFeeters) = (Green − NIR)/(Green + NIR) — open-water / moisture.
-    // NEGATIVE over land (vegetation ~ −0.6, bare soil ~ −0.2), positive only
-    // over water. The window MUST include negatives or the field clamps to
-    // one colour: symmetric [−0.5, 0.5] centres the land↔water boundary at 0.
-    // BrBG (dry/low → wet/high).
-    ndwi: {
-        math: { kind: 'normalizedDifference', bands: ['B3', 'B8'] },
-        min: -0.5,
-        max: 0.5,
-        palette: [
-            '#8c510a', '#bf812d', '#dfc27d', '#f6e8c3', '#f5f5f5',
-            '#c7eae5', '#80cdc1', '#35978f', '#01665e', '#003c30',
-        ],
-    },
     // NDMI = (NIR − SWIR1)/(NIR + SWIR1) — canopy/soil moisture (Gao). The
-    // agriculture moisture index: unlike McFeeters NDWI it VARIES across a
-    // crop field (~ −0.2 dry/bare → ~ +0.4 well-watered canopy). Can be
-    // negative under water stress, so the window includes negatives. B8 NIR,
-    // B11 SWIR-1 (EE resamples the 20 m SWIR band at getMap time). RdYlBu.
+    // agriculture moisture index: it VARIES across a crop field (~ −0.2
+    // dry/bare → ~ +0.4 well-watered canopy) and can be negative under water
+    // stress, so the window MUST include negatives or the field clamps to one
+    // colour. B8 NIR, B11 SWIR-1 (EE resamples the 20 m SWIR band at getMap
+    // time). RdYlBu.
     ndmi: {
         math: { kind: 'normalizedDifference', bands: ['B8', 'B11'] },
         min: -0.3,
