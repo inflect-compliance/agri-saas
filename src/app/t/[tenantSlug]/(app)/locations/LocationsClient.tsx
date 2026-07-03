@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { ListPageShell } from '@/components/layout/ListPageShell';
@@ -25,6 +25,7 @@ interface LocationItem {
 
 export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: string; canAdmin?: boolean }) {
     const buildUrl = useTenantApiUrl();
+    const prefetchData = usePrefetchTenant();
     const { data, mutate, isLoading } = useTenantSWR<LocationItem[]>('/locations');
 
     const { batchAction: locationBulkDelete, dialog: locationDeleteDialog } =
@@ -114,6 +115,9 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
                     columns={columns}
                     loading={isLoading && !data}
                     getRowId={(l) => l.id}
+                    // Hover-warm the detail SWR cache (the row's title Link
+                    // already prefetches the route) so list→detail is instant.
+                    onRowPrefetch={(row) => prefetchData(`/locations/${row.original.id}`)}
                     batchActions={canAdmin ? [locationBulkDelete] : undefined}
                     emptyState={(
                         <EmptyState

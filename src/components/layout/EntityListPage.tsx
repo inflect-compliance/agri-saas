@@ -154,6 +154,7 @@ export type EntityListPageTable<TRow> = Pick<
     | 'sortOrder'
     | 'onSortChange'
     | 'onRowClick'
+    | 'onRowPrefetch'
     | 'getRowId'
     | 'onRowSelectionChange'
     | 'selectedRows'

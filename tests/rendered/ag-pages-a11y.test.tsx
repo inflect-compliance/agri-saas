@@ -178,6 +178,8 @@ jest.mock('@/lib/hooks/use-tenant-swr', () => ({
         const data = SWR_FIXTURES[path];
         return { data, error: undefined, isLoading: false, mutate };
     },
+    // Hover-prefetch companion — a no-op returning a no-op callback in tests.
+    usePrefetchTenant: () => () => {},
 }));
 
 // Offline outbox primitive — the field client reads online/pending +

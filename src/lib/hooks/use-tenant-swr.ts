@@ -55,7 +55,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import useSWR, { type SWRConfiguration, type SWRResponse } from 'swr';
+import useSWR, { preload, type SWRConfiguration, type SWRResponse } from 'swr';
 import type { ZodSchema } from 'zod';
 
 import { apiGet, ApiClientError } from '@/lib/api-client';
@@ -162,4 +162,24 @@ export function useTenantSWR<T>(
     const config = useMemo<SWRConfiguration<T, ApiClientError | Error>>(() => ({ ...DEFAULT_SWR_CONFIG, ...swrOverrides }), [swrOverridesKey]);
 
     return useSWR<T, ApiClientError | Error>(key, fetcher, config);
+}
+
+/**
+ * Imperatively warm the SWR cache for a tenant-relative path — the prefetch
+ * companion to `useTenantSWR`. Returns a stable callback you fire from a
+ * hover/intent handler (e.g. `<DataTable onRowPrefetch>`); a detail page that
+ * reads the same `useTenantSWR(path)` then renders INSTANTLY from cache on
+ * click instead of spinning while it fetches. The cache key is the resolved
+ * absolute URL — identical to what `useTenantSWR` computes — so the warmed
+ * entry is the exact one the detail page reads. No-op for empty paths.
+ */
+export function usePrefetchTenant() {
+    const buildApiUrl = useTenantApiUrl();
+    return useCallback(
+        (path: string | null | undefined) => {
+            if (!path) return;
+            void preload(buildApiUrl(path), (url: string) => apiGet(url));
+        },
+        [buildApiUrl],
+    );
 }
