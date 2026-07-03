@@ -22,6 +22,7 @@ export const ALL_MODULES: readonly ModuleKey[] = [
     'PROCESSES',
     'AI',
     'GRAIN',
+    'EXCHANGE',
 ] as const;
 
 /**
@@ -59,6 +60,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
     PROCESSES: 'Process Maps',
     AI: 'AI Assist',
     GRAIN: 'Grain & Trading',
+    EXCHANGE: 'Exchange',
 };
 
 /** One-line "what this module does" copy for the settings page. */
@@ -73,6 +75,7 @@ export const MODULE_DESCRIPTIONS: Record<ModuleKey, string> = {
     PROCESSES: 'Process maps and standard operating procedures.',
     AI: 'AI-assisted drafting and suggestions across the product.',
     GRAIN: 'Grain storage bins, marketing contracts, yield, and activity costing.',
+    EXCHANGE: 'Cross-tenant marketplace to buy and sell commodities with other farms.',
 };
 
 /**
