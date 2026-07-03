@@ -46,6 +46,7 @@ const FULL_NAV = [
             { href: '/t/acme/journal', label: 'Journal', icon: NotebookPen },
             { href: '/t/acme/farm-tasks', label: 'Farm Tasks', icon: ClipboardList },
             { href: '/t/acme/risks', label: 'Risk', icon: AlertTriangle },
+            { href: '/t/acme/exchange', label: 'Marketplace', icon: LayoutDashboard },
         ],
     },
     {
@@ -62,11 +63,11 @@ beforeEach(() => {
 });
 
 describe('BottomTabBar', () => {
-    it('resolves the four field tabs from useNavSections in display order', () => {
+    it('resolves the field tabs from useNavSections in display order', () => {
         render(<BottomTabBar />);
         const nav = screen.getByRole('navigation', { name: 'Primary' });
 
-        for (const slug of ['dashboard', 'farm-tasks', 'locations', 'journal']) {
+        for (const slug of ['dashboard', 'farm-tasks', 'locations', 'journal', 'exchange']) {
             expect(screen.getByTestId(`bottom-tab-${slug}`)).toBeInTheDocument();
         }
 
@@ -79,10 +80,11 @@ describe('BottomTabBar', () => {
         // Order: dashboard first, journal last (BOTTOM_TAB_SUFFIXES order, not
         // nav order).
         const links = Array.from(nav.querySelectorAll('a'));
-        expect(links).toHaveLength(4);
+        expect(links).toHaveLength(5);
         expect(links[0]).toHaveAttribute('data-testid', 'bottom-tab-dashboard');
         expect(links[1]).toHaveAttribute('data-testid', 'bottom-tab-farm-tasks');
         expect(links[3]).toHaveAttribute('data-testid', 'bottom-tab-journal');
+        expect(links[4]).toHaveAttribute('data-testid', 'bottom-tab-exchange');
     });
 
     it('marks the active tab with aria-current + data-active (non-colour cue)', () => {

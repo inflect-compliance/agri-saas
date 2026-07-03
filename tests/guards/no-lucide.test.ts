@@ -60,6 +60,11 @@ const LEGACY_LUCIDE_USERS = new Set<string>([
     'src/app/t/[tenantSlug]/(app)/admin/security/page.tsx',
     'src/app/t/[tenantSlug]/(app)/admin/sso/page.tsx',
     'src/app/t/[tenantSlug]/(app)/assets/filter-defs.ts',
+    // Exchange marketplace filter defs. `FilterDefInput.icon` is typed
+    // `LucideIcon` (the whole filter system is lucide-based), so a new
+    // filter-defs file has no Nucleo option until the filter platform
+    // migrates. Same precedent as every other *filter-defs.ts entry here.
+    'src/app/t/[tenantSlug]/(app)/exchange/filter-defs.ts',
     // Field-journal filter defs. `FilterDefInput.icon` is typed
     // `LucideIcon` (the whole filter system is lucide-based), so a new
     // filter-defs file has no Nucleo option until the filter platform
