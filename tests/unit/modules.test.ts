@@ -78,7 +78,7 @@ const readerCtx = makeRequestContext('READER');
 // ─── src/lib/modules.ts — pure helpers ─────────────────────────────
 
 describe('pure helpers', () => {
-    it('ALL_MODULES enumerates the ten canonical module keys', () => {
+    it('ALL_MODULES enumerates the eleven canonical module keys', () => {
         expect(ALL_MODULES).toEqual([
             'JOURNAL',
             'INVENTORY',
@@ -90,6 +90,7 @@ describe('pure helpers', () => {
             'PROCESSES',
             'AI',
             'GRAIN',
+            'EXCHANGE',
         ]);
     });
 
@@ -244,11 +245,13 @@ describe('isModuleAvailable', () => {
 // ─── getAvailableModules — the intersection list ───────────────────
 
 describe('getAvailableModules', () => {
-    it('FREE plan + all-enabled tenant → just the simple-mode core', async () => {
+    it('FREE plan + all-enabled tenant → the core ag modules + Exchange', async () => {
         mockGetTenantPlan.mockResolvedValue('FREE');
         (ModuleSettingsRepository.get as jest.Mock).mockResolvedValue(null);
+        // Exchange is FREE (network-effect product), so it joins the three
+        // simple-mode modules in the FREE-plan availability set.
         expect((await getAvailableModules(readerCtx)).sort()).toEqual(
-            ['INVENTORY', 'JOURNAL', 'PLANNING'],
+            ['EXCHANGE', 'INVENTORY', 'JOURNAL', 'PLANNING'],
         );
     });
 

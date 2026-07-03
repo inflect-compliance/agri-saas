@@ -135,8 +135,10 @@ describe('getAvailableModulesForTenant', () => {
     it('intersects the plan ceiling with the tenant toggle (FREE + all-enabled)', async () => {
         findUniqueMock.mockResolvedValueOnce({ plan: 'FREE' });
         settingsFindUniqueMock.mockResolvedValueOnce(null); // no row → all tenant-enabled
+        // Exchange is FREE (network-effect product), so it joins the three
+        // simple-mode modules in the FREE-plan availability set.
         expect((await getAvailableModulesForTenant('t1')).sort()).toEqual(
-            ['INVENTORY', 'JOURNAL', 'PLANNING'],
+            ['EXCHANGE', 'INVENTORY', 'JOURNAL', 'PLANNING'],
         );
     });
 

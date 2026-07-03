@@ -141,9 +141,11 @@ describe('Entitlements', () => {
     });
 
     describe('planModules', () => {
-        test('FREE → exactly the three simple-mode modules', () => {
+        test('FREE → the core ag modules + the network-effect Exchange', () => {
+            // Exchange is FREE by design (network-effect product) — so the
+            // FREE tier is the three simple-mode modules PLUS Exchange.
             expect(planModules('FREE').sort()).toEqual(
-                ['INVENTORY', 'JOURNAL', 'PLANNING'],
+                ['EXCHANGE', 'INVENTORY', 'JOURNAL', 'PLANNING'],
             );
         });
 
@@ -158,13 +160,13 @@ describe('Entitlements', () => {
         });
 
         test('null plan returns the full module set', () => {
-            expect(planModules(null)).toHaveLength(10);
+            expect(planModules(null)).toHaveLength(11);
             expect(planModules(null)).toContain('AI');
             expect(planModules(null)).toContain('GRAIN');
         });
 
         test('ENTERPRISE returns the full module set', () => {
-            expect(planModules('ENTERPRISE')).toHaveLength(10);
+            expect(planModules('ENTERPRISE')).toHaveLength(11);
             expect(planModules('ENTERPRISE')).toContain('GRAIN');
         });
     });

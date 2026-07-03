@@ -110,6 +110,12 @@ const MODULE_MIN_PLAN: Record<ModuleKey, BillingPlan> = {
     // marketing contracts, yield records, per-activity cost accounting,
     // lot blending). ENTERPRISE-tier value for the portfolio persona.
     GRAIN: 'ENTERPRISE',
+    // Exchange is a NETWORK-EFFECT product: its value grows with the number
+    // of tenants browsing + posting, so it is deliberately FREE for every
+    // tier. Gating browse behind a paid plan would strangle the liquidity
+    // the marketplace depends on. (Per-tenant enable/disable still applies
+    // via the module toggle — FREE means "not blocked by billing plan".)
+    EXCHANGE: 'FREE',
 };
 
 /** True when `plan` is high enough to unlock `key`. `null` plan ⇒ all. */
