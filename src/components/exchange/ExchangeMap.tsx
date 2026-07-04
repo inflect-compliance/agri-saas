@@ -355,7 +355,7 @@ export function ExchangeMap({
                 beside the map still works. */}
             {status === 'error' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-bg-default/80 p-default">
-                    <div className="flex max-w-xs flex-col items-center gap-compact rounded-lg border border-border-default bg-bg-elevated p-default text-center">
+                    <div className="flex max-w-xs flex-col items-center gap-compact rounded-lg border border-border-subtle bg-bg-elevated p-default text-center">
                         <MapPinOff className="size-6 text-content-muted" aria-hidden="true" />
                         <p className="text-sm font-medium text-content-emphasis">Map couldn’t load</p>
                         <p className="text-xs text-content-muted">
@@ -367,7 +367,7 @@ export function ExchangeMap({
 
             {/* Empty hint — map is fine, but nothing matches the filters. */}
             {status === 'ready' && listings.length === 0 && (
-                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border-default bg-bg-elevated/90 px-3 py-1 text-xs text-content-muted shadow-sm">
+                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border-subtle bg-bg-elevated/90 px-3 py-1 text-xs text-content-muted shadow-sm">
                     No offers to show on the map
                 </div>
             )}
