@@ -29,7 +29,6 @@ import Map, {
 } from 'react-map-gl/maplibre';
 import type { FeatureCollection } from 'geojson';
 import type { GeoJSONSource } from 'maplibre-gl';
-import { MapPinOff } from 'lucide-react';
 import { env } from '@/env';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/button';
@@ -125,12 +124,12 @@ export function ExchangeMap({
         mapRef.current?.fitBounds(BULGARIA_BOUNDS, { padding: 24, duration: 0 });
     }, []);
 
-    const handleError = useCallback((e: { error?: Error }) => {
-        // Log for observability; a bad/missing MapTiler key or blocked style
-        // fetch lands here. Only escalate to a fatal overlay if the map never
-        // reached `ready` (i.e. the basemap style itself failed to load).
-        // eslint-disable-next-line no-console -- client component; no logger on the edge/browser boundary here
-        console.warn('[ExchangeMap] map error', e?.error?.message ?? e);
+    const handleError = useCallback(() => {
+        // A bad/missing MapTiler key or a blocked style fetch lands here.
+        // MapLibre GL already logs the underlying error to the console, so we
+        // only translate it into UI state: escalate to the fatal overlay when
+        // the map never reached `ready` (the basemap style itself failed) — a
+        // transient tile error after load must NOT tear down a working map.
         setStatus((s) => (s === 'ready' ? s : 'error'));
     }, []);
 
@@ -356,7 +355,6 @@ export function ExchangeMap({
             {status === 'error' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-bg-default/80 p-default">
                     <div className="flex max-w-xs flex-col items-center gap-compact rounded-lg border border-border-subtle bg-bg-elevated p-default text-center">
-                        <MapPinOff className="size-6 text-content-muted" aria-hidden="true" />
                         <p className="text-sm font-medium text-content-emphasis">Map couldn’t load</p>
                         <p className="text-xs text-content-muted">
                             The basemap failed to load. The offer list still works — try reloading the page.
@@ -367,7 +365,7 @@ export function ExchangeMap({
 
             {/* Empty hint — map is fine, but nothing matches the filters. */}
             {status === 'ready' && listings.length === 0 && (
-                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border-subtle bg-bg-elevated/90 px-3 py-1 text-xs text-content-muted shadow-sm">
+                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border-subtle bg-bg-elevated/90 px-3 py-1 text-xs text-content-muted">
                     No offers to show on the map
                 </div>
             )}
