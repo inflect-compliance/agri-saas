@@ -28,6 +28,8 @@ import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { Heading } from '@/components/ui/typography';
 import { Sheet } from '@/components/ui/sheet';
+import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 import { useTenantHref, useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiGet } from '@/lib/api-client';
@@ -70,7 +72,7 @@ function ExchangeInner() {
     const buildApiUrl = useTenantApiUrl();
     const searchParams = useSearchParams();
     const deepLinkId = searchParams.get('listing');
-    const { data, isLoading, mutate } = useTenantSWR<ExchangePublicListing[]>('/exchange/listings');
+    const { data, isLoading, error, mutate } = useTenantSWR<ExchangePublicListing[]>('/exchange/listings');
     const { state, search, toggle } = useFilters();
 
     const offers = useMemo(() => data ?? [], [data]);
@@ -194,15 +196,30 @@ function ExchangeInner() {
                     {/* Synced offer list — scrolls. */}
                     <div className="flex min-h-0 w-full flex-col md:w-[380px]">
                         <p className="mb-default flex-shrink-0 text-xs text-content-muted">
-                            {isLoading ? 'Loading offers…' : `${filtered.length} offer${filtered.length === 1 ? '' : 's'}`}
+                            {error
+                                ? "Couldn't load offers"
+                                : isLoading
+                                  ? 'Loading offers…'
+                                  : `${filtered.length} offer${filtered.length === 1 ? '' : 's'}`}
                         </p>
                         <div className="min-h-0 flex-1 space-y-default overflow-y-auto pr-1">
-                            {!isLoading && filtered.length === 0 && (
+                            {error ? (
+                                <ErrorState
+                                    description="We couldn't load the marketplace offers."
+                                    onRetry={() => { void mutate(); }}
+                                />
+                            ) : isLoading ? (
+                                <div className="space-y-default" aria-busy="true">
+                                    {[0, 1, 2, 3].map((i) => (
+                                        <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                                    ))}
+                                </div>
+                            ) : filtered.length === 0 ? (
                                 <div className="rounded-lg border border-border-subtle p-4 text-sm text-content-muted">
                                     No offers match your filters.
                                 </div>
-                            )}
-                            {filtered.map((o) => (
+                            ) : (
+                            filtered.map((o) => (
                                 <button
                                     key={o.id}
                                     type="button"
@@ -237,7 +254,7 @@ function ExchangeInner() {
                                         {o.sellerDisplayName ? ` · ${o.sellerDisplayName}` : ''}
                                     </div>
                                 </button>
-                            ))}
+                            )))}
                         </div>
                     </div>
                 </div>
