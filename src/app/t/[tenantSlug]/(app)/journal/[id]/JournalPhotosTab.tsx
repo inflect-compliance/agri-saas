@@ -181,7 +181,11 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
                 </div>
             )}
 
-            {previewSrc && (
+            {/* Only ever preview a browser-minted local `blob:` object URL
+                (from URL.createObjectURL of the just-captured File) — never a
+                caller-supplied string. Defence-in-depth + clears the
+                js/xss-through-dom flow into the <img> sink. */}
+            {previewSrc?.startsWith('blob:') && (
                 <div className="flex items-center gap-default rounded-lg border border-border-subtle p-2">
                     {/* eslint-disable-next-line @next/next/no-img-element -- local object-URL preview of a just-captured photo; next/image needs known dimensions + a remote allowlist that a transient blob URL can't satisfy. */}
                     <img

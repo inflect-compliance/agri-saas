@@ -312,6 +312,12 @@
       "nodemailer": "$nodemailer",
       "next": "$next"
     },
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "3.15.0"
+    },
+    "npm": {
+      "undici": "^6.27.0"
+    }
   }
 }

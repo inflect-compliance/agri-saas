@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { Button } from '@/components/ui/button';
@@ -45,7 +44,6 @@ export function SchemesClient(props: SchemesClientProps) {
 
 function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesClientProps) {
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
-    const router = useRouter();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     const { search, hasActive, clearAll } = useFilters();
