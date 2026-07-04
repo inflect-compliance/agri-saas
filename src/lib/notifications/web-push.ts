@@ -1,6 +1,7 @@
 /**
  * Web Push delivery — the browser-push channel for the notification system.
- * Server-only by construction (imports prisma + the `web-push` Node lib);
+ * Server-only by construction (imports the `web-push` Node lib + the
+ * tenant-scoped DB context helper);
  * never import it from a client component.
  *
  * Opt-in + permission-graceful at every layer:
@@ -16,7 +17,6 @@
  * the caller so the push fires within the originating request/job.
  */
 import webpush from 'web-push';
-import prisma from '@/lib/prisma';
 import { runInTenantContext } from '@/lib/db-context';
 import { logger } from '@/lib/observability/logger';
 import { env } from '@/env';

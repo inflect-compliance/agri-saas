@@ -75,7 +75,6 @@ function filterVisible(items: NavItemDef[]): NavItemDef[] {
 
 export function useNavSections(): NavSectionDef[] {
     const tenantHref = useTenantHref();
-    const perms = usePermissions();
     const tenant = useTenantContext();
     // Live badge — fetched lazily; undefined when count is 0 or load fails.
     const calendarBadge = useCalendarBadge(tenant.tenantSlug);
