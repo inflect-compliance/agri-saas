@@ -8,6 +8,8 @@ import { ListPageShell } from '@/components/layout/ListPageShell';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { Heading } from '@/components/ui/typography';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { ErrorState } from '@/components/ui/error-state';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantHref } from '@/lib/tenant-context-provider';
 import type { ExchangePublicInquiry } from '@/lib/exchange/public-listing';
@@ -21,7 +23,7 @@ function statusVariant(status: string): 'success' | 'neutral' | 'warning' {
 
 export function MyInterestsClient() {
     const tenantHref = useTenantHref();
-    const { data, isLoading } = useTenantSWR<ExchangePublicInquiry[]>('/exchange/inquiries');
+    const { data, isLoading, error, mutate } = useTenantSWR<ExchangePublicInquiry[]>('/exchange/inquiries');
     const inquiries = data ?? [];
 
     return (
@@ -40,13 +42,23 @@ export function MyInterestsClient() {
             </ListPageShell.Header>
             <ListPageShell.Body>
                 <div className="min-h-0 flex-1 space-y-default overflow-y-auto pr-1">
-                    {isLoading && <p className="text-sm text-content-muted">Loading interests…</p>}
-                    {!isLoading && inquiries.length === 0 && (
+                    {error ? (
+                        <ErrorState
+                            description="We couldn't load your interests."
+                            onRetry={() => { void mutate(); }}
+                        />
+                    ) : isLoading ? (
+                        <div className="space-y-default" aria-busy="true">
+                            {[0, 1, 2].map((i) => (
+                                <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                            ))}
+                        </div>
+                    ) : inquiries.length === 0 ? (
                         <div className="rounded-lg border border-border-subtle p-4 text-sm text-content-muted">
                             You haven&apos;t expressed interest in any offers yet.
                         </div>
-                    )}
-                    {inquiries.map((iq) => (
+                    ) : (
+                    inquiries.map((iq) => (
                         <div key={iq.id} className="space-y-tight rounded-lg border border-border-subtle p-4">
                             <div className="flex flex-wrap items-center gap-compact">
                                 {iq.listing && (
@@ -64,7 +76,7 @@ export function MyInterestsClient() {
                                 <p className="text-xs text-content-muted">Quantity of interest: {iq.quantityTonnes} t</p>
                             )}
                         </div>
-                    ))}
+                    )))}
                 </div>
             </ListPageShell.Body>
         </ListPageShell>

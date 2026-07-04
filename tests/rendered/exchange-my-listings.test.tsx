@@ -7,7 +7,7 @@
  *   - Accept / Reject an inquiry PATCH { action: 'ACCEPTED' | 'DECLINED' }.
  */
 import * as React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -25,8 +25,9 @@ jest.mock('@/lib/tenant-context-provider', () => ({
 const mutate = jest.fn(async () => undefined);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let swrData: any[] = [];
+let swrError: unknown = undefined;
 jest.mock('@/lib/hooks/use-tenant-swr', () => ({
-    useTenantSWR: () => ({ data: swrData, isLoading: false, mutate }),
+    useTenantSWR: () => ({ data: swrData, isLoading: false, error: swrError, mutate }),
     usePrefetchTenant: () => () => {},
 }));
 
@@ -75,6 +76,7 @@ beforeEach(() => {
     apiPatch.mockClear();
     lastToast = null;
     swrData = [listing()];
+    swrError = undefined;
 });
 
 it('Withdraw fires the undo toast + optimistically flips to WITHDRAWN, then PATCHes on commit', async () => {
@@ -95,15 +97,19 @@ it('Withdraw fires the undo toast + optimistically flips to WITHDRAWN, then PATC
     expect(apiPatch).toHaveBeenCalledWith('/api/t/acme/exchange/listings/lst-1', { action: 'WITHDRAWN' });
 });
 
-it('Mark fulfilled PATCHes { action: FULFILLED }', async () => {
+it('Mark fulfilled opens a confirm, then PATCHes { action: FULFILLED }', async () => {
     renderClient();
-    fireEvent.click(screen.getByRole('button', { name: /mark fulfilled/i }));
+    fireEvent.click(screen.getByRole('button', { name: /mark fulfilled/i })); // opens confirm
+    const dialog = await screen.findByRole('dialog');
+    // No PATCH until the user confirms in the dialog.
+    expect(apiPatch).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: /mark fulfilled/i }));
     await waitFor(() =>
         expect(apiPatch).toHaveBeenCalledWith('/api/t/acme/exchange/listings/lst-1', { action: 'FULFILLED' }),
     );
 });
 
-it('Accept PATCHes the inquiry { action: ACCEPTED }', async () => {
+it('Accept PATCHes the inquiry directly { action: ACCEPTED }', async () => {
     renderClient();
     fireEvent.click(screen.getByRole('button', { name: /^Accept$/i }));
     await waitFor(() =>
@@ -111,10 +117,22 @@ it('Accept PATCHes the inquiry { action: ACCEPTED }', async () => {
     );
 });
 
-it('Reject PATCHes the inquiry { action: DECLINED }', async () => {
+it('Reject opens a "Reject" confirm, then PATCHes { action: DECLINED }', async () => {
     renderClient();
-    fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Reject$/i })); // opens confirm
+    const dialog = await screen.findByRole('dialog');
+    expect(apiPatch).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Reject$/i }));
     await waitFor(() =>
         expect(apiPatch).toHaveBeenCalledWith('/api/t/acme/exchange/inquiries/inq-1', { action: 'DECLINED' }),
     );
+});
+
+it('surfaces an ErrorState when the fetch fails', async () => {
+    swrError = new Error('boom');
+    renderClient();
+    expect(await screen.findByText(/something went wrong/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    // The list rows are not rendered under an error.
+    expect(screen.queryByText('Wheat')).not.toBeInTheDocument();
 });

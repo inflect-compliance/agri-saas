@@ -28,9 +28,11 @@ import Map, {
     type MapRef,
 } from 'react-map-gl/maplibre';
 import type { FeatureCollection } from 'geojson';
+import type { GeoJSONSource } from 'maplibre-gl';
 import { env } from '@/env';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/button';
+import { featureToMapListing, type ExchangeMapListing } from './exchange-map-utils';
 
 /** Side colours — shared by the marker paint AND the page's legend so they
  *  always match. Green = selling, blue = buying (mirrors MapCanvas's
@@ -51,18 +53,7 @@ function styleUrl(styleId: string): string {
     return `https://api.maptiler.com/maps/${styleId}/style.json?key=${key}`;
 }
 
-export interface ExchangeMapListing {
-    id: string;
-    side: 'SELL' | 'BUY';
-    commodity: string;
-    quantityTonnes: string;
-    pricePerTonne: string | null;
-    priceCurrency: string;
-    regionCode: string;
-    regionName: string;
-    lat: number;
-    lon: number;
-}
+export type { ExchangeMapListing };
 
 interface ExchangeMapProps {
     listings: ExchangeMapListing[];
@@ -113,6 +104,7 @@ export function ExchangeMap({
                     quantityTonnes: l.quantityTonnes,
                     pricePerTonne: l.pricePerTonne ?? '',
                     priceCurrency: l.priceCurrency,
+                    regionCode: l.regionCode,
                     regionName: l.regionName,
                     lon: l.lon,
                     lat: l.lat,
@@ -142,36 +134,30 @@ export function ExchangeMap({
                 return;
             }
 
-            // Cluster → zoom in on it.
+            // Cluster → drill in to the exact zoom that breaks it apart
+            // (getClusterExpansionZoom), not a guessed fixed +2.
             if (layerId === 'clusters') {
                 const geom = feature.geometry;
-                if (geom.type === 'Point') {
-                    const [lng, lat] = geom.coordinates as [number, number];
-                    const zoom = mapRef.current?.getZoom() ?? 6;
-                    mapRef.current?.easeTo({ center: [lng, lat], zoom: zoom + 2, duration: 400 });
+                const clusterId = feature.properties?.cluster_id as number | undefined;
+                if (geom.type !== 'Point') return;
+                const [lng, lat] = geom.coordinates as [number, number];
+                const src = mapRef.current?.getMap().getSource('offers') as GeoJSONSource | undefined;
+                if (src && clusterId != null) {
+                    void src.getClusterExpansionZoom(clusterId)
+                        .then((zoom) => mapRef.current?.easeTo({ center: [lng, lat], zoom, duration: 400 }))
+                        .catch(() => {
+                            // Fallback: a bounded step-in if the source can't resolve it.
+                            const cur = mapRef.current?.getZoom() ?? 6;
+                            mapRef.current?.easeTo({ center: [lng, lat], zoom: cur + 2, duration: 400 });
+                        });
                 }
                 return;
             }
 
-            // Unclustered offer point → open a popup.
+            // Unclustered offer point → open a popup (regionCode carried through).
             if (layerId === 'unclustered-point') {
                 const p = feature.properties as Record<string, unknown>;
-                setPopup({
-                    lng: Number(p.lon),
-                    lat: Number(p.lat),
-                    listing: {
-                        id: String(p.id),
-                        side: p.side as 'SELL' | 'BUY',
-                        commodity: String(p.commodity),
-                        quantityTonnes: String(p.quantityTonnes),
-                        pricePerTonne: p.pricePerTonne ? String(p.pricePerTonne) : null,
-                        priceCurrency: String(p.priceCurrency),
-                        regionCode: '',
-                        regionName: String(p.regionName),
-                        lat: Number(p.lat),
-                        lon: Number(p.lon),
-                    },
-                });
+                setPopup({ lng: Number(p.lon), lat: Number(p.lat), listing: featureToMapListing(p) });
             }
         },
         [onRegionClick],
@@ -238,13 +224,24 @@ export function ExchangeMap({
                     cluster
                     clusterRadius={50}
                     clusterMaxZoom={9}
+                    // Aggregate the SELL/BUY split per cluster so a cluster can
+                    // communicate buy-vs-sell at a glance (coloured by dominant side).
+                    clusterProperties={{
+                        sellCount: ['+', ['case', ['==', ['get', 'side'], 'SELL'], 1, 0]],
+                        buyCount: ['+', ['case', ['==', ['get', 'side'], 'BUY'], 1, 0]],
+                    }}
                 >
                     <Layer
                         id="clusters"
                         type="circle"
                         filter={['has', 'point_count']}
                         paint={{
-                            'circle-color': '#0ea5e9',
+                            'circle-color': [
+                                'case',
+                                ['>=', ['get', 'sellCount'], ['get', 'buyCount']],
+                                EXCHANGE_SIDE_COLORS.SELL,
+                                EXCHANGE_SIDE_COLORS.BUY,
+                            ],
                             'circle-opacity': 0.85,
                             'circle-radius': ['step', ['get', 'point_count'], 16, 10, 22, 50, 30],
                             'circle-stroke-width': 2,
