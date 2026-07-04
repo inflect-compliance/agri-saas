@@ -7,6 +7,7 @@ import { toPublicListing } from '@/lib/exchange/public-listing';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { withValidatedBody } from '@/lib/validation/route';
 import { jsonResponse } from '@/lib/api-response';
+import { EXCHANGE_LISTING_CREATE_LIMIT } from '@/lib/security/rate-limit-middleware';
 
 /**
  * Exchange listings — the cross-tenant browse feed + create (EXCHANGE module).
@@ -54,4 +55,7 @@ export const POST = withApiErrorHandling(
             return jsonResponse(toPublicListing(listing, ctx.tenantId), { status: 201 });
         },
     ),
+    // Tighter than the default 60/min: a listing is a public, cross-tenant
+    // artefact — blunt bulk spam bursts (the per-tenant quota is the durable cap).
+    { rateLimit: { config: EXCHANGE_LISTING_CREATE_LIMIT, scope: 'exchange-listing-create' } },
 );

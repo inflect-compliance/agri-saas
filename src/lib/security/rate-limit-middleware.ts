@@ -330,5 +330,7 @@ export {
     MFA_ENROLL_VERIFY_LIMIT,
     TENANT_INVITE_CREATE_LIMIT,
     INVITE_REDEEM_LIMIT,
+    EXCHANGE_LISTING_CREATE_LIMIT,
+    EXCHANGE_INQUIRY_LIMIT,
 } from './rate-limit';
 export type { RateLimitConfig, RateLimitResult } from './rate-limit';

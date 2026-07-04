@@ -9,6 +9,7 @@ import { toPublicInquiry } from '@/lib/exchange/public-listing';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { withValidatedBody } from '@/lib/validation/route';
 import { jsonResponse } from '@/lib/api-response';
+import { EXCHANGE_INQUIRY_LIMIT } from '@/lib/security/rate-limit-middleware';
 import type { NextRequest } from 'next/server';
 
 /**
@@ -45,4 +46,7 @@ export const POST = withApiErrorHandling(
             return jsonResponse({ id: inquiry.id, status: inquiry.status }, { status: 201 });
         },
     ),
+    // Tighter than listing-create: each inquiry triggers a cross-tenant EMAIL
+    // fanout to the seller's admins, so cap the outbound-email blast.
+    { rateLimit: { config: EXCHANGE_INQUIRY_LIMIT, scope: 'exchange-inquiry' } },
 );

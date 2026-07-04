@@ -74,6 +74,10 @@ model ExchangeInquiry {
 
   listing ExchangeListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
+  // A tenant may express interest in a given listing at most once — the
+  // dedup guard against repeat-inquiry spam. The usecase catches the
+  // violation (P2002) and surfaces a friendly conflict.
+  @@unique([listingId, inquirerTenantId])
   @@index([listingId])
   @@index([inquirerTenantId])
 }

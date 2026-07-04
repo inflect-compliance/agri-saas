@@ -285,6 +285,35 @@ export const INVITE_REDEEM_LIMIT: RateLimitConfig = {
     windowMs: 60 * 1000,
 };
 
+/**
+ * Exchange listing creation: 20 per minute per (IP, userId).
+ *
+ * Threat model: a compromised credential or script flooding the GLOBAL
+ * cross-tenant marketplace feed. Tighter than the 60/min default mutation
+ * budget because a listing is a public, cross-tenant artefact — 20/min is
+ * far above any human posting cadence while blunting bulk spam. The
+ * per-tenant ACTIVE-listing QUOTA (entitlements) is the durable cap; this
+ * rate limit throttles the burst.
+ */
+export const EXCHANGE_LISTING_CREATE_LIMIT: RateLimitConfig = {
+    maxAttempts: 20,
+    windowMs: 60 * 1000,
+};
+
+/**
+ * Exchange inquiry creation: 10 per minute per (IP, userId).
+ *
+ * Threat model: repeat-inquiry spam AND amplification — each inquiry triggers
+ * a cross-tenant EMAIL fanout to the seller's admins, so an abusive client
+ * could turn one endpoint into an email cannon. Tighter than the listing
+ * limit for that reason. The @@unique([listingId, inquirerTenantId]) dedup is
+ * the correctness guard; this rate limit caps the outbound-email blast.
+ */
+export const EXCHANGE_INQUIRY_LIMIT: RateLimitConfig = {
+    maxAttempts: 10,
+    windowMs: 60 * 1000,
+};
+
 // ═══════════════════════════════════════════════════════════════════
 // Progressive rate limit — Epic A.3 auth brute-force protection
 // ═══════════════════════════════════════════════════════════════════
