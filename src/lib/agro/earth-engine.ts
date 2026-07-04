@@ -180,6 +180,93 @@ export async function getIndexTileUrl(
     return urlFormat;
 }
 
+/** Field-area mean vegetation-index readings (the AI-briefing input). */
+export interface FieldIndexMeans {
+    /**
+     * Mean NDVI over the AOI for the window, rounded to 3 dp. Range −1..1;
+     * healthy dense canopy ≈ 0.6–0.9, bare/senescent ≈ 0.1–0.3. `null` when
+     * the composite yielded no clear pixels over the AOI.
+     */
+    ndvi: number | null;
+    /**
+     * Mean NDMI (moisture) over the AOI, rounded to 3 dp. Range −1..1; lower
+     * values indicate drier canopy / water stress. `null` when unavailable.
+     */
+    ndmi: number | null;
+}
+
+/**
+ * Compute the field-area MEAN NDVI + NDMI for `aoi` over the `[start, end)`
+ * window — the numeric counterpart to `getIndexTileUrl` (which renders tiles).
+ *
+ * Same cloud-masked Sentinel-2 median composite the tile path uses, but
+ * instead of `getMap` it runs a single `reduceRegion(mean)` over the AOI
+ * rectangle (both index bands in one reduce → one EE round-trip). Returns a
+ * plain `{ ndvi, ndmi }` value so the AI field-briefing usecase can reason
+ * over concrete numbers. Throws on an EE failure (the caller treats a throw
+ * as "no satellite reading for this field" and degrades gracefully).
+ */
+export async function getIndexMeansForBounds(
+    aoi: NdviAoi,
+    win: NdviWindow,
+): Promise<FieldIndexMeans> {
+    await initEarthEngine();
+
+    const region = ee.Geometry.Rectangle([aoi.west, aoi.south, aoi.east, aoi.north]);
+
+    const collection = ee
+        .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+        .filterBounds(region)
+        .filterDate(win.start, win.end)
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60));
+
+    // Same SCL cloud/shadow/snow mask as the tile pipeline.
+    const masked = collection.map((img: EeImage) => {
+        const scl = img.select('SCL');
+        const keep = scl.neq(3).and(scl.neq(8)).and(scl.neq(9)).and(scl.neq(10)).and(scl.neq(11));
+        return img.updateMask(keep);
+    });
+
+    const ndviBand = bandFn('ndvi');
+    const ndmiBand = bandFn('ndmi');
+    const ndvi = masked.map((img: EeImage) => ndviBand(img)).median();
+    const ndmi = masked.map((img: EeImage) => ndmiBand(img)).median();
+    // One multi-band image → a single reduceRegion returns both means.
+    const combined = (ndvi as EeImage).addBands(ndmi).clip(region);
+
+    const reduced = (
+        combined as unknown as {
+            reduceRegion: (args: Record<string, unknown>) => {
+                evaluate: (cb: (value: unknown, err?: unknown) => void) => void;
+            };
+        }
+    ).reduceRegion({
+        reducer: ee.Reducer.mean(),
+        geometry: region,
+        // 20 m keeps the reduce cheap over a whole-field box; NDVI/NDMI are
+        // slowly-varying so 20 m vs the native 10 m is immaterial for a mean.
+        scale: 20,
+        maxPixels: 1e9,
+        bestEffort: true,
+    });
+
+    const info = await new Promise<Record<string, unknown>>((resolve, reject) => {
+        reduced.evaluate((value: unknown, err?: unknown) => {
+            if (err) {
+                reject(new Error(`EE reduceRegion failed: ${String(err)}`));
+                return;
+            }
+            resolve((value ?? {}) as Record<string, unknown>);
+        });
+    });
+
+    const round3 = (v: unknown): number | null =>
+        typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 1000) / 1000 : null;
+
+    // Band names are the uppercased index names from `bandFn`'s `.rename(...)`.
+    return { ndvi: round3(info.NDVI), ndmi: round3(info.NDMI) };
+}
+
 // Per-index named exports — one per `/agro/<index>-tiles` route. Each is a
 // thin wrapper over `getIndexTileUrl` so a route (and its unit test) can
 // import + mock a single stable function.

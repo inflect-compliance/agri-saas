@@ -6,9 +6,8 @@ import { CACHE_KEYS } from '@/lib/swr-keys';
 import type { AgDashboardPayload } from '@/app-layer/usecases/ag-dashboard';
 
 import FirstRunCard from './FirstRunCard';
-import SeasonRecapCard from './SeasonRecapCard';
+import FieldBriefingCard from './FieldBriefingCard';
 import RecentJournalCard from './RecentJournalCard';
-import LowStockCard from './LowStockCard';
 import MyFarmTasksCard from './MyFarmTasksCard';
 
 /**
@@ -52,18 +51,16 @@ export default function AgDashboardStrip() {
             {/* Guided first-run ring — self-hides once the farm is set up
                 or the operator dismisses it (see FirstRunCard). */}
             <FirstRunCard payload={data} onChanged={() => { void mutate(); }} />
-            {/* Shareable season recap + "Year on the farm" PDF — self-hides
-                until there's something to recap. */}
-            <SeasonRecapCard />
+            {/* AI field briefing — today's satellite (NDVI/NDMI) + farm-record
+                context summarised by Claude Haiku into "what to do today".
+                Self-hides until there's a briefing to show. */}
+            <FieldBriefingCard />
             <div
                 id="ag-dashboard-strip"
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-default"
             >
             {journalOn && (
                 <RecentJournalCard href={href('/journal')} items={data.recentJournal} />
-            )}
-            {inventoryOn && (
-                <LowStockCard href={href('/inventory')} items={data.lowStock} />
             )}
             <MyFarmTasksCard href={href('/farm-tasks')} items={data.myTasks} />
             </div>

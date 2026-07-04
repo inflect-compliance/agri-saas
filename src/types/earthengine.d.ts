@@ -34,6 +34,8 @@ declare module '@google/earthengine' {
         Geometry: { Rectangle(coords: number[]): EeNode };
         Filter: { lt(property: string, value: number): EeNode };
         ImageCollection(id: string): EeNode;
+        /** Reducers for aggregation (e.g. `reduceRegion`). */
+        Reducer: { mean(): EeNode };
     }
 
     const ee: EarthEngine;

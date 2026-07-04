@@ -162,10 +162,11 @@ describe('Dashboard Server/Client Split (Epic 69)', () => {
         expect(content).not.toContain('PageHeader');
     });
 
-    test('page.tsx forwards RecentActivityCard via children (server boundary preserved)', () => {
+    test('page.tsx mounts DashboardClient and no longer forwards a RecentActivityCard', () => {
         const content = readPage();
         expect(content).toContain('<DashboardClient');
-        expect(content).toContain('<RecentActivityCard');
+        // The recent-activity feed was removed from the dashboard.
+        expect(content).not.toContain('RecentActivityCard');
     });
 });
 
@@ -219,11 +220,13 @@ describe('Dashboard Backward Compatibility', () => {
         expect(fs.existsSync(path.join(DASHBOARD_DIR, 'loading.tsx'))).toBe(true);
     });
 
-    test('RecentActivityCard still exists and is used by page.tsx', () => {
-        expect(
-            fs.existsSync(path.join(DASHBOARD_DIR, 'RecentActivityCard.tsx')),
-        ).toBe(true);
-        expect(readPage()).toContain('RecentActivityCard');
+    test('recent-activity + low-stock cards were removed from the dashboard', () => {
+        // The recent-activity feed and the low-stock card were removed; the
+        // ag strip now leads with the AI FieldBriefingCard.
+        expect(fs.existsSync(path.join(DASHBOARD_DIR, 'RecentActivityCard.tsx'))).toBe(false);
+        expect(fs.existsSync(path.join(DASHBOARD_DIR, 'LowStockCard.tsx'))).toBe(false);
+        expect(readPage()).not.toContain('RecentActivityCard');
+        expect(fs.existsSync(path.join(DASHBOARD_DIR, 'FieldBriefingCard.tsx'))).toBe(true);
     });
 
     test('OnboardingBanner is still rendered (in client tree)', () => {
