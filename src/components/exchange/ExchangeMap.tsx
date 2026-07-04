@@ -64,9 +64,12 @@ const MASK_WORLD_RING: Position[] = [
     [10, 34],
 ];
 
-/** Dark scrim that dims everything outside Bulgaria (navy to match the UI). */
+/** Dark scrim that dims everything outside Bulgaria (navy to match the UI).
+ *  Opacity tuned from the interactive mockup — 0.66 keeps neighbours dim
+ *  without flattening them to a solid block. Kept cool (no warm land tint:
+ *  the mockup's warmth dialled to ~0), for a minimal night-terminal read. */
 const MASK_FILL = '#060a14';
-const MASK_OPACITY = 0.72;
+const MASK_OPACITY = 0.66;
 
 /** Selected-region brand accent (emerald), matching the SELL marker family. */
 const REGION_ACCENT = '#22c55e';
@@ -367,7 +370,7 @@ export function ExchangeMap({
                                 14,
                             ],
                             'circle-blur': 1,
-                            'circle-opacity': 0.45,
+                            'circle-opacity': 0.15,
                         }}
                     />
                     <Layer
