@@ -17,7 +17,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { Languages } from 'lucide-react';
+import { Globe } from '@/components/ui/icons/nucleo';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { LOCALES, LOCALE_LABELS, isLocale } from '@/lib/i18n/locales';
 
@@ -66,7 +66,7 @@ export function LanguageSetting() {
             className="flex items-center gap-compact rounded-lg border border-border-subtle bg-bg-default px-3 py-1.5"
             id="admin-language-section"
         >
-            <Languages className="w-4 h-4 text-content-muted" aria-hidden="true" />
+            <Globe className="w-4 h-4 text-content-muted" aria-hidden="true" />
             <span className="text-sm text-content-muted">{t('language')}</span>
             <ToggleGroup
                 size="sm"
