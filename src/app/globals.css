@@ -61,6 +61,30 @@ body {
   }
 }
 
+/* Mobile horizontal-pan lock (2026-07-04).
+   Below md the document scrolls VERTICALLY as normal, but the whole page
+   can no longer be dragged LEFT/RIGHT — anything that would overflow the
+   viewport sideways is clipped, not pannable. This kills the "the page
+   drifts sideways" feel on phones.
+   - Pinch-zoom is untouched: it's a visual-viewport operation, independent
+     of layout overflow, so users can still zoom in/out (and pan the
+     MAGNIFIED page) — they just can't drift the un-zoomed layout sideways.
+   - `clip` (not `hidden`) does NOT turn <body> into a scroll container, so
+     `position: sticky` descendants keep working and there's no phantom
+     x-scrollbar.
+   - Inner horizontal scrollers KEEP working: `clip` only bites content
+     that overflows the DOCUMENT box, so a wide `<DataTable>` / code block
+     with its own `overflow-x: auto` still scrolls within its own card.
+   - `overscroll-behavior-x: none` stops an inner scroller's edge from
+     chaining into a browser back-swipe. */
+@media (max-width: 767px) {
+  html, body {
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+    max-width: 100%;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-page); }
