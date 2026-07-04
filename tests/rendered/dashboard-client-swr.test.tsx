@@ -1,16 +1,14 @@
 /**
  * DashboardClient — composition test.
  *
- * After the farm-UI trim the dashboard client is a thin composition:
- * onboarding banner + the "your farm today" ag strip + the recent-
- * activity feed (passed as `children`). It does NO SWR reads of its
- * own anymore (the KPI/trend/hero surfaces were removed) and it no
- * longer mounts the "Compliance Dashboard" masthead header. This test
- * pins the surviving contract:
+ * After the recent-activity feed was removed, the dashboard client is a
+ * thin composition: the onboarding banner + the "your farm today" ag strip.
+ * It does NO SWR reads of its own (the KPI/trend/hero surfaces were removed)
+ * and never reaches for `useRouter().refresh()`. This test pins the
+ * surviving contract:
  *
- *   1. `children` (the server-rendered RecentActivityCard) pass
- *      through unchanged — the server boundary is preserved.
- *   2. The client never reaches for `useRouter().refresh()`.
+ *   1. The onboarding banner renders.
+ *   2. The client never invokes `router.refresh()`.
  */
 
 import * as React from 'react';
@@ -72,25 +70,13 @@ function makeWrapper() {
 }
 
 describe('DashboardClient — composition', () => {
-    it('passes RecentActivityCard children through unchanged (server-boundary preservation)', () => {
-        render(
-            <DashboardClient>
-                <div data-testid="recent-activity-card">recent activity</div>
-            </DashboardClient>,
-            { wrapper: makeWrapper() },
-        );
-
-        expect(screen.getByTestId('recent-activity-card')).toBeInTheDocument();
+    it('renders the onboarding banner (thin composition, no children slot)', () => {
+        render(<DashboardClient />, { wrapper: makeWrapper() });
         expect(screen.getByTestId('onboarding-banner-stub')).toBeInTheDocument();
     });
 
     it('never invokes router.refresh()', () => {
-        render(
-            <DashboardClient>
-                <div data-testid="recent-activity-card">recent activity</div>
-            </DashboardClient>,
-            { wrapper: makeWrapper() },
-        );
+        render(<DashboardClient />, { wrapper: makeWrapper() });
         expect(refreshSpy).not.toHaveBeenCalled();
     });
 });

@@ -1,35 +1,24 @@
-import { Suspense } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-
 import { auth } from '@/auth';
 import { getTenantCtx } from '@/app-layer/context';
 import { getHomeGreeting } from '@/app-layer/usecases/home-greeting';
 
 import DashboardClient from './DashboardClient';
 import GreetingHeader from './GreetingHeader';
-import RecentActivityCard from './RecentActivityCard';
-import { Card } from '@/components/ui/card';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * Executive Dashboard — server shell.
  *
- * The dashboard is a thin server shell:
+ * The dashboard is a thin server shell: this server component fetches the
+ * greeting + session once on every navigation, so the first paint contains
+ * real data — no loading flash — then hands off to the `DashboardClient`
+ * which owns the card composition.
  *
- *   1. This server component fetches the greeting + session once on
- *      every navigation, so the first paint contains real data — no
- *      loading flash.
- *
- *   2. `RecentActivityCard` stays a server component (no API route
- *      yet). It's rendered HERE and passed as `children` to
- *      `<DashboardClient>` so its server boundary survives the
- *      client-component edge.
- *
- * The farm dashboard was trimmed to onboarding + the "your farm
- * today" ag strip + the open-field-tasks hero + recent activity; the
- * compliance-era KPI / trend / readiness payloads are no longer
- * fetched here.
+ * The farm dashboard is onboarding + the "your farm today" ag strip (which
+ * now leads with the AI field briefing). The compliance-era KPI / trend /
+ * readiness payloads, the low-stock card, and the recent-activity feed have
+ * all been removed.
  */
 export default async function DashboardPage({
     params,
@@ -51,21 +40,7 @@ export default async function DashboardPage({
                 avatarUrl={session?.user?.image ?? null}
                 data={greeting}
             />
-            <DashboardClient>
-            <Suspense
-                fallback={
-                    <Card className="space-y-compact">
-                        <Skeleton className="h-4 w-full sm:w-32" />
-                    </Card>
-                }
-            >
-                <RecentActivityCard
-                    tenantSlug={tenantSlug}
-                    label="Recent Activity"
-                    noActivityLabel="No recent activity"
-                />
-            </Suspense>
-            </DashboardClient>
+            <DashboardClient />
         </div>
     );
 }
