@@ -87,6 +87,11 @@ export function ExchangeMap({
 }: ExchangeMapProps) {
     const mapRef = useRef<MapRef | null>(null);
     const [popup, setPopup] = useState<PopupState | null>(null);
+    // Surface the map's own lifecycle so a failed style/GL init is visible
+    // instead of a silently-blank bordered box. `error` is only fatal BEFORE
+    // the first successful load — a transient tile error after `ready` must
+    // not tear down a working map.
+    const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
     const mapStyle = useMemo(() => styleUrl(basemapStyle), [basemapStyle]);
 
@@ -114,8 +119,18 @@ export function ExchangeMap({
         [listings],
     );
 
-    const fitBulgaria = useCallback(() => {
+    const handleLoad = useCallback(() => {
+        setStatus('ready');
         mapRef.current?.fitBounds(BULGARIA_BOUNDS, { padding: 24, duration: 0 });
+    }, []);
+
+    const handleError = useCallback(() => {
+        // A bad/missing MapTiler key or a blocked style fetch lands here.
+        // MapLibre GL already logs the underlying error to the console, so we
+        // only translate it into UI state: escalate to the fatal overlay when
+        // the map never reached `ready` (the basemap style itself failed) — a
+        // transient tile error after load must NOT tear down a working map.
+        setStatus((s) => (s === 'ready' ? s : 'error'));
     }, []);
 
     const handleClick = useCallback(
@@ -169,7 +184,8 @@ export function ExchangeMap({
                 ref={mapRef}
                 initialViewState={{ longitude: 25.5, latitude: 42.7, zoom: 6 }}
                 mapStyle={mapStyle}
-                onLoad={fitBulgaria}
+                onLoad={handleLoad}
+                onError={handleError}
                 onClick={handleClick}
                 interactiveLayerIds={['oblast-fill', 'clusters', 'unclustered-point']}
                 style={{ width: '100%', height: '100%' }}
@@ -324,6 +340,35 @@ export function ExchangeMap({
                     </Popup>
                 )}
             </Map>
+
+            {/* Loading scrim — until the basemap style + first tiles are in. */}
+            {status === 'loading' && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-default/60">
+                    <span className="animate-pulse text-sm text-content-muted">Loading map…</span>
+                </div>
+            )}
+
+            {/* Fatal error — the basemap style never loaded (bad/missing
+                MapTiler key, blocked style host, or no WebGL). Explains the
+                blank pane instead of leaving a silent void; the offer list
+                beside the map still works. */}
+            {status === 'error' && (
+                <div className="absolute inset-0 flex items-center justify-center bg-bg-default/80 p-default">
+                    <div className="flex max-w-xs flex-col items-center gap-compact rounded-lg border border-border-subtle bg-bg-elevated p-default text-center">
+                        <p className="text-sm font-medium text-content-emphasis">Map couldn’t load</p>
+                        <p className="text-xs text-content-muted">
+                            The basemap failed to load. The offer list still works — try reloading the page.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* Empty hint — map is fine, but nothing matches the filters. */}
+            {status === 'ready' && listings.length === 0 && (
+                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border-subtle bg-bg-elevated/90 px-3 py-1 text-xs text-content-muted">
+                    No offers to show on the map
+                </div>
+            )}
         </div>
     );
 }

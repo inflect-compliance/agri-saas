@@ -36,7 +36,13 @@ const PUBLIC_PATH_EXACT = new Set([
     '/sitemap.xml',
 ]);
 
-const STATIC_EXTENSIONS = /\.(ico|png|jpg|jpeg|gif|svg|webp|css|js|woff|woff2|ttf|eot|map|json)$/;
+// `webmanifest` — the PWA manifest is fetched by the browser WITHOUT
+// credentials (`<link rel="manifest">` default), so without this it hits the
+// auth gate, 307-redirects to /login, and the browser parses the HTML login
+// page as JSON → "Manifest: Line 1, column 1, Syntax error".
+// `geojson` — bundled static map overlays under /public/geo (e.g. the Exchange
+// map's oblast boundaries); same static-public-asset class as the rest.
+const STATIC_EXTENSIONS = /\.(ico|png|jpg|jpeg|gif|svg|webp|css|js|woff|woff2|ttf|eot|map|json|webmanifest|geojson)$/;
 
 /**
  * Check if a pathname is public (should bypass auth).

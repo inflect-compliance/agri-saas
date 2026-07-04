@@ -182,8 +182,13 @@ function ExchangeInner() {
 
             <ListPageShell.Body>
                 <div className="flex min-h-0 flex-1 gap-default overflow-hidden max-md:flex-col">
-                    {/* Map — fills the pane. */}
-                    <div className="min-h-0 flex-1 overflow-hidden max-md:h-[46vh] max-md:min-h-[18rem]">
+                    {/* Map — fills the pane. On desktop it flexes to fill the row
+                        (definite height from the ListPageShell chain). Below md the
+                        page scrolls naturally and `flex-1` (flex-basis:0%) would
+                        override the explicit height, leaving the <Map>'s height:100%
+                        to resolve against a non-definite box → a 0-height canvas.
+                        Gate flex to md+ so mobile uses the definite h-[46vh]. */}
+                    <div className="min-h-0 overflow-hidden md:flex-1 max-md:h-[46vh] max-md:min-h-[18rem]">
                         <ExchangeMap
                             listings={filtered}
                             selectedRegionCodes={selectedRegionCodes}
