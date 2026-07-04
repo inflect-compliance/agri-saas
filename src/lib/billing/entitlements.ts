@@ -75,7 +75,12 @@ export type BillingMode = 'SAAS' | 'SELFHOSTED';
  * `assertWithinLimit(ctx, '<resource>')` at the resource's create
  * site.
  */
-export type GatedResource = 'control' | 'user' | 'location' | 'ai_tokens';
+export type GatedResource =
+    | 'control'
+    | 'user'
+    | 'location'
+    | 'ai_tokens'
+    | 'exchange_listing';
 
 /**
  * Numeric cap by (plan, resource). `null` means unlimited.
@@ -99,11 +104,16 @@ export type GatedResource = 'control' | 'user' | 'location' | 'ai_tokens';
 // (~50k tokens ≈ a few dozen copilot turns), TRIAL/PRO get a generous
 // working budget, ENTERPRISE is unlimited. Per-request size is separately
 // capped by the route's `maxTokens`; this is the cumulative monthly cap.
+// `exchange_listing` caps the number of ACTIVE marketplace listings a tenant
+// may hold open at once. It is the real spam control for the Exchange, since
+// the EXCHANGE module itself is available on the FREE plan (MODULE_MIN_PLAN):
+// a small FREE budget keeps a single tenant from flooding the shared feed,
+// while working tiers lift it and ENTERPRISE is unlimited.
 const PLAN_LIMITS: Record<Plan, Record<GatedResource, number | null>> = {
-    FREE: { control: 10, user: 3, location: 5, ai_tokens: 50_000 },
-    TRIAL: { control: 100, user: 25, location: 50, ai_tokens: 1_000_000 },
-    PRO: { control: 100, user: 25, location: 50, ai_tokens: 5_000_000 },
-    ENTERPRISE: { control: null, user: null, location: null, ai_tokens: null },
+    FREE: { control: 10, user: 3, location: 5, ai_tokens: 50_000, exchange_listing: 5 },
+    TRIAL: { control: 100, user: 25, location: 50, ai_tokens: 1_000_000, exchange_listing: 50 },
+    PRO: { control: 100, user: 25, location: 50, ai_tokens: 5_000_000, exchange_listing: 50 },
+    ENTERPRISE: { control: null, user: null, location: null, ai_tokens: null, exchange_listing: null },
 };
 
 // ─── Mode decision ───────────────────────────────────────────────
@@ -247,6 +257,15 @@ async function getCurrentCount(
                 // Farms / fields (non-deleted).
                 return db.location.count({
                     where: { tenantId: ctx.tenantId, deletedAt: null },
+                });
+            case 'exchange_listing':
+                // ACTIVE marketplace listings owned by this tenant.
+                // ExchangeListing is a GLOBAL table (no tenantId / no RLS —
+                // see prisma/schema/exchange.prisma), so scope explicitly by
+                // sellerTenantId; only ACTIVE rows count against the quota
+                // (WITHDRAWN / FULFILLED / EXPIRED free up the budget).
+                return db.exchangeListing.count({
+                    where: { sellerTenantId: ctx.tenantId, status: 'ACTIVE' },
                 });
             case 'ai_tokens': {
                 // SUM of total tokens consumed this calendar month (UTC).

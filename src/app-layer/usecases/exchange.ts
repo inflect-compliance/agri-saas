@@ -3,12 +3,14 @@ import { ExchangeRepository, ListingFilters } from '../repositories/exchange';
 import { assertCanRead, assertCanWrite } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { runInTenantContext, withTenantDb, PrismaTx } from '@/lib/db-context';
-import { forbidden, notFound, badRequest } from '@/lib/errors/types';
+import { forbidden, notFound, badRequest, conflict } from '@/lib/errors/types';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { regionByCode } from '@/lib/geo/bulgaria-regions';
 import { logger } from '@/lib/observability/logger';
 import { sendInquiryEmail } from '@/lib/email/inquiry-email';
+import { assertWithinLimit } from '@/lib/billing/entitlements';
 import {
+    Prisma,
     ExchangeSide,
     ExchangeListingStatus,
     ExchangeInquiryStatus,
@@ -94,6 +96,11 @@ export async function listInquiriesByInquirer(ctx: RequestContext) {
 /** Publish a new listing owned by the caller's tenant. */
 export async function createListing(ctx: RequestContext, input: CreateListingInput) {
     assertCanWrite(ctx);
+
+    // Per-tenant ACTIVE-listing quota — the real spam control, since the
+    // EXCHANGE module is available on the FREE plan. Self-hosted mode resolves
+    // to ENTERPRISE (unlimited) and short-circuits without a DB count.
+    await assertWithinLimit(ctx, 'exchange_listing');
 
     const region = regionByCode(input.regionCode);
     if (!region) throw badRequest('invalid_region', `Unknown region code: ${input.regionCode}`);
@@ -228,13 +235,27 @@ export async function createInquiry(ctx: RequestContext, input: CreateInquiryInp
             throw forbidden('You cannot inquire on your own listing');
         }
 
-        const inquiry = await ExchangeRepository.createInquiry(db, {
-            listingId: listing.id,
-            inquirerTenantId: ctx.tenantId,
-            inquirerUserId: ctx.userId,
-            message: sanitizedMessage,
-            quantityTonnes: input.quantityTonnes ?? null,
-        });
+        let inquiry;
+        try {
+            inquiry = await ExchangeRepository.createInquiry(db, {
+                listingId: listing.id,
+                inquirerTenantId: ctx.tenantId,
+                inquirerUserId: ctx.userId,
+                message: sanitizedMessage,
+                quantityTonnes: input.quantityTonnes ?? null,
+            });
+        } catch (err) {
+            // @@unique([listingId, inquirerTenantId]) — a tenant may inquire on
+            // a listing at most once. Turn the raw unique violation into a
+            // friendly conflict instead of a 500.
+            if (
+                err instanceof Prisma.PrismaClientKnownRequestError &&
+                err.code === 'P2002'
+            ) {
+                throw conflict('You have already expressed interest in this listing');
+            }
+            throw err;
+        }
 
         await logEvent(db, ctx, {
             action: 'CREATE',
@@ -290,7 +311,10 @@ async function notifySellerOfInquiry(
                         user: { select: { email: true } },
                         tenant: { select: { slug: true } },
                     },
-                    take: 5000,
+                    // Bounded fanout — a listing's seller has a handful of
+                    // admins/owners, not thousands. 25 is a generous ceiling
+                    // that caps both the notification write and the email blast.
+                    take: 25,
                 });
                 if (admins.length === 0) return { admins, inquiriesUrl: '' };
 
@@ -315,18 +339,24 @@ async function notifySellerOfInquiry(
 
         // Email each admin — the one cross-tenant channel. Done AFTER the
         // seller-context block so no DB transaction is held open over network.
-        for (const a of admins) {
-            if (a.user.email) {
-                await sendInquiryEmail({
-                    to: a.user.email,
+        // Dedupe by email (a user can hold multiple admin memberships) and send
+        // with Promise.allSettled so one slow/failing SMTP call neither
+        // serializes nor aborts the rest. Still fail-open.
+        const recipients = [
+            ...new Set(admins.map((a) => a.user.email).filter((e): e is string => !!e)),
+        ];
+        await Promise.allSettled(
+            recipients.map((to) =>
+                sendInquiryEmail({
+                    to,
                     commodity: listing.commodity,
                     side: listing.side,
                     message,
                     quantityTonnes,
                     inquiriesUrl,
-                });
-            }
-        }
+                }),
+            ),
+        );
     } catch (err) {
         logger.warn('exchange.inquiry_notify_failed', {
             component: 'exchange',

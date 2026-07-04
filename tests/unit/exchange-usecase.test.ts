@@ -68,6 +68,12 @@ jest.mock('@/lib/observability/logger', () => ({
     logger: { warn: jest.fn(), info: jest.fn(), error: jest.fn() },
 }));
 
+// Entitlements: assertWithinLimit is a no-op by default so createListing's
+// quota gate doesn't need a billing DB stub; the quota test overrides it.
+jest.mock('@/lib/billing/entitlements', () => ({
+    assertWithinLimit: jest.fn().mockResolvedValue(undefined),
+}));
+
 import { ExchangeRepository } from '@/app-layer/repositories/exchange';
 import {
     listActiveListings,
@@ -77,7 +83,12 @@ import {
     createInquiry,
     respondToInquiry,
 } from '@/app-layer/usecases/exchange';
+import { assertWithinLimit } from '@/lib/billing/entitlements';
+import { forbidden } from '@/lib/errors/types';
+import { Prisma } from '@prisma/client';
 import { makeRequestContext } from '../helpers/make-context';
+
+const assertWithinLimitMock = assertWithinLimit as jest.MockedFunction<typeof assertWithinLimit>;
 
 const repo = ExchangeRepository as jest.Mocked<typeof ExchangeRepository>;
 
@@ -163,6 +174,19 @@ describe('createInquiry guards', () => {
             }),
         );
     });
+
+    it('a duplicate inquiry (P2002 unique violation) surfaces a friendly conflict', async () => {
+        repo.getListing.mockResolvedValue(listing({ sellerTenantId: otherTenantId, status: 'ACTIVE' }));
+        repo.createInquiry.mockRejectedValue(
+            new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+                code: 'P2002',
+                clientVersion: '7.8.0',
+            }),
+        );
+        await expect(
+            createInquiry(meCtx, { listingId: 'lst-1', message: 'again' }),
+        ).rejects.toThrow(/already expressed interest/i);
+    });
 });
 
 describe('createListing', () => {
@@ -196,6 +220,17 @@ describe('createListing', () => {
                 priceCurrency: 'BGN',
             }),
         );
+    });
+
+    it('enforces the per-tenant ACTIVE-listing quota (plan_limit_exceeded)', async () => {
+        assertWithinLimitMock.mockRejectedValueOnce(
+            forbidden('plan_limit_exceeded: FREE plan allows 5 exchange_listing(s); tenant currently has 5.'),
+        );
+        await expect(
+            createListing(meCtx, { side: 'SELL', commodity: 'Wheat', quantityTonnes: 10, regionCode: 'BG-16' }),
+        ).rejects.toThrow(/plan_limit_exceeded/);
+        expect(assertWithinLimitMock).toHaveBeenCalledWith(meCtx, 'exchange_listing');
+        expect(repo.createListing).not.toHaveBeenCalled();
     });
 });
 
@@ -234,6 +269,27 @@ describe('createInquiry seller fanout (notify + email, fail-open)', () => {
 
         const inquiry = await createInquiry(meCtx, { listingId: 'lst-1', message: 'hi' });
         expect(inquiry).toEqual({ id: 'inq-1', quantityTonnes: null });
+    });
+
+    it('bounds the admin query to 25 and dedupes recipients by email', async () => {
+        repo.getListing.mockResolvedValue(listing({ ...activeListing }));
+        repo.createInquiry.mockResolvedValue({ id: 'inq-1', quantityTonnes: null } as never);
+        // One email held by two admin memberships → emailed ONCE; plus a second
+        // distinct admin → 2 distinct sends from 3 memberships.
+        membershipFindMany.mockResolvedValue([
+            { userId: 'a', user: { email: 'dup@seller.test' }, tenant: { slug: 'seller' } },
+            { userId: 'b', user: { email: 'dup@seller.test' }, tenant: { slug: 'seller' } },
+            { userId: 'c', user: { email: 'other@seller.test' }, tenant: { slug: 'seller' } },
+        ]);
+
+        await createInquiry(meCtx, { listingId: 'lst-1', message: 'want 100t' });
+
+        // Bounded fanout — the membership read caps at 25 (was 5000).
+        expect(membershipFindMany).toHaveBeenCalledWith(expect.objectContaining({ take: 25 }));
+        // Deduped — 3 memberships, 2 distinct emails → 2 sends.
+        expect(sendInquiryEmail).toHaveBeenCalledTimes(2);
+        const sentTo = sendInquiryEmail.mock.calls.map((c) => (c[0] as { to: string }).to).sort();
+        expect(sentTo).toEqual(['dup@seller.test', 'other@seller.test']);
     });
 });
 

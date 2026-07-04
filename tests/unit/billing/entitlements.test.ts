@@ -82,6 +82,56 @@ describe('getLimit', () => {
         expect(mod.getLimit('ENTERPRISE', 'user')).toBeNull();
         expect(mod.getLimit('ENTERPRISE', 'location')).toBeNull();
     });
+    it('caps exchange listings: FREE 5, PRO/TRIAL 50, ENTERPRISE unlimited', async () => {
+        const mod = await loadEntitlements(undefined);
+        expect(mod.getLimit('FREE', 'exchange_listing')).toBe(5);
+        expect(mod.getLimit('PRO', 'exchange_listing')).toBe(50);
+        expect(mod.getLimit('TRIAL', 'exchange_listing')).toBe(50);
+        expect(mod.getLimit('ENTERPRISE', 'exchange_listing')).toBeNull();
+    });
+});
+
+describe('assertWithinLimit — exchange_listing', () => {
+    it('SELFHOSTED: unlimited — never queries the ACTIVE-listing count', async () => {
+        const mod = await loadEntitlements(undefined);
+        const dbCtx = (await import('@/lib/db-context')) as unknown as {
+            __stub: { exchangeListing: { count: jest.MockedFunction<(args: unknown) => Promise<number>> } };
+        };
+        await expect(
+            mod.assertWithinLimit(makeRequestContext('ADMIN'), 'exchange_listing'),
+        ).resolves.toBeUndefined();
+        expect(dbCtx.__stub.exchangeListing.count).not.toHaveBeenCalled();
+    });
+
+    it('SAAS FREE: passes below the 5-listing cap', async () => {
+        const mod = await loadEntitlements('sk_test_dummy');
+        const dbCtx = (await import('@/lib/db-context')) as unknown as {
+            __stub: {
+                billingAccount: { findUnique: jest.MockedFunction<(args: unknown) => Promise<unknown>> };
+                exchangeListing: { count: jest.MockedFunction<(args: unknown) => Promise<number>> };
+            };
+        };
+        dbCtx.__stub.billingAccount.findUnique.mockResolvedValue({ plan: 'FREE' });
+        dbCtx.__stub.exchangeListing.count.mockResolvedValue(4);
+        await expect(
+            mod.assertWithinLimit(makeRequestContext('ADMIN'), 'exchange_listing'),
+        ).resolves.toBeUndefined();
+    });
+
+    it('SAAS FREE: throws plan_limit_exceeded at exactly 5 ACTIVE listings', async () => {
+        const mod = await loadEntitlements('sk_test_dummy');
+        const dbCtx = (await import('@/lib/db-context')) as unknown as {
+            __stub: {
+                billingAccount: { findUnique: jest.MockedFunction<(args: unknown) => Promise<unknown>> };
+                exchangeListing: { count: jest.MockedFunction<(args: unknown) => Promise<number>> };
+            };
+        };
+        dbCtx.__stub.billingAccount.findUnique.mockResolvedValue({ plan: 'FREE' });
+        dbCtx.__stub.exchangeListing.count.mockResolvedValue(5);
+        await expect(
+            mod.assertWithinLimit(makeRequestContext('ADMIN'), 'exchange_listing'),
+        ).rejects.toThrow(/plan_limit_exceeded: FREE plan allows 5 exchange_listing/);
+    });
 });
 
 // ─── Mocks for plan resolution + count ──────────────────────────
@@ -97,6 +147,9 @@ jest.mock('@/lib/db-context', () => {
             findUnique: jest.fn(),
         },
         control: {
+            count: jest.fn(),
+        },
+        exchangeListing: {
             count: jest.fn(),
         },
     };
