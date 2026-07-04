@@ -3,23 +3,24 @@
 /**
  * ExchangeMap — the cross-tenant marketplace map of Bulgaria.
  *
- * Reuses the existing MapLibre / react-map-gl stack (the same one MapCanvas
- * uses) — NO new map library. Two layers:
- *   A. Bulgaria oblast polygons (from the bundled /geo/bg-oblasti.geojson).
- *      Click an oblast → toggle a region filter (highlighted + list/markers
- *      filter to that regionCode).
- *   B. Clustered offer markers built from the (already client-filtered)
- *      listings. Cluster circles show the count; unclustered points are
- *      coloured by side (SELL green / BUY blue). Click a cluster → zoom in;
- *      click a point → a Popup with a "View details" affordance.
+ * A deliberately Bulgaria-ONLY, dark, commercial map:
+ *   • Dark minimal basemap (MapTiler `dataviz-dark`) so the app's dark UI and
+ *     the SELL/BUY markers read as one system.
+ *   • A spotlight MASK — everything outside Bulgaria is dimmed by a dark scrim
+ *     (a world polygon with the oblast footprints punched out as holes), so the
+ *     country is the only lit geography. Neighbours never compete for attention.
+ *   • The view is LOCKED to Bulgaria (`maxBounds` + `minZoom`, rotation off) so
+ *     a user can't pan off into Romania/Greece/Türkiye or zoom out to Europe.
+ *   • Oblast (ADM1) polygons: a quiet wash by default, brand-green when the
+ *     region is filter-selected; click toggles the region filter.
+ *   • Clustered offer markers with a soft glow; SELL green / BUY blue.
  *
- * Deliberately a NON-terrain basemap (streets/basic — cities + villages
- * labels), unlike the parcel map's satellite `hybrid`. The basemap style id
- * is overridable via the `basemapStyle` prop; the MapTiler key is read from
- * env exactly as MapCanvas's resolveBasemapStyle does.
+ * The oblast geometry (bundled `/geo/bg-oblasti.geojson`, geoBoundaries
+ * CC-BY-4.0) is fetched once and drives BOTH the region layer and the mask.
+ * The MapTiler key is read from env exactly as MapCanvas's resolver does.
  */
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, {
     Layer,
     Popup,
@@ -27,8 +28,8 @@ import Map, {
     type MapLayerMouseEvent,
     type MapRef,
 } from 'react-map-gl/maplibre';
-import type { FeatureCollection } from 'geojson';
-import type { GeoJSONSource } from 'maplibre-gl';
+import type { FeatureCollection, Position } from 'geojson';
+import type { GeoJSONSource, LngLatBoundsLike } from 'maplibre-gl';
 import { env } from '@/env';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/button';
@@ -45,12 +46,64 @@ const BULGARIA_BOUNDS: [[number, number], [number, number]] = [
     [28.61, 44.22],
 ];
 
+/** Hard pan/zoom cage — a little breathing room around the country, but not
+ *  enough to bring a neighbour's interior into frame (and the mask dims the
+ *  slivers that do). Keeps the map unmistakably "Bulgaria". */
+const MAX_BOUNDS: LngLatBoundsLike = [
+    [20.8, 40.4],
+    [30.2, 45.0],
+];
+
+/** Outer ring for the spotlight mask — generous enough to cover the whole
+ *  visible frame at min zoom; the oblast footprints are punched out as holes. */
+const MASK_WORLD_RING: Position[] = [
+    [10, 34],
+    [36, 34],
+    [36, 49],
+    [10, 49],
+    [10, 34],
+];
+
+/** Dark scrim that dims everything outside Bulgaria (navy to match the UI). */
+const MASK_FILL = '#060a14';
+const MASK_OPACITY = 0.72;
+
+/** Selected-region brand accent (emerald), matching the SELL marker family. */
+const REGION_ACCENT = '#22c55e';
+
+const EMPTY_FC: FeatureCollection = { type: 'FeatureCollection', features: [] };
+
 const DEMO_STYLE = 'https://demotiles.maplibre.org/style.json';
 
 function styleUrl(styleId: string): string {
     const key = env.NEXT_PUBLIC_MAPTILER_KEY;
     if (!key) return DEMO_STYLE;
     return `https://api.maptiler.com/maps/${styleId}/style.json?key=${key}`;
+}
+
+/** Build the spotlight mask: one polygon = world ring + every oblast outer
+ *  ring as a hole, so the fill covers everything EXCEPT Bulgaria. Oblast
+ *  borders are drawn on top, hiding any hairline seams between adjacent holes. */
+function buildMask(oblasti: FeatureCollection): FeatureCollection {
+    const holes: Position[][] = [];
+    for (const f of oblasti.features) {
+        const g = f.geometry;
+        if (g.type === 'Polygon') {
+            holes.push(g.coordinates[0]);
+        } else if (g.type === 'MultiPolygon') {
+            for (const poly of g.coordinates) holes.push(poly[0]);
+        }
+    }
+    return {
+        type: 'FeatureCollection',
+        features: [
+            {
+                type: 'Feature',
+                properties: {},
+                geometry: { type: 'Polygon', coordinates: [MASK_WORLD_RING, ...holes] },
+            },
+        ],
+    };
 }
 
 export type { ExchangeMapListing };
@@ -65,8 +118,8 @@ interface ExchangeMapProps {
     onListingSelect: (id: string) => void;
     /** Highlight a listing's marker (row hover in the list). */
     highlightedId?: string | null;
-    /** Basemap style id — default a non-terrain streets style. */
-    basemapStyle?: 'streets-v2' | 'basic-v2' | 'outdoor-v2';
+    /** Basemap style id — default a dark, minimal, label-light canvas. */
+    basemapStyle?: 'dataviz-dark' | 'streets-v2-dark' | 'basic-v2-dark' | 'streets-v2';
     className?: string;
 }
 
@@ -82,7 +135,7 @@ export function ExchangeMap({
     onRegionClick,
     onListingSelect,
     highlightedId,
-    basemapStyle = 'streets-v2',
+    basemapStyle = 'dataviz-dark',
     className,
 }: ExchangeMapProps) {
     const mapRef = useRef<MapRef | null>(null);
@@ -92,6 +145,29 @@ export function ExchangeMap({
     // the first successful load — a transient tile error after `ready` must
     // not tear down a working map.
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+
+    // Oblast geometry, fetched once and reused for the region layer + the mask.
+    // On failure the basemap still renders (just without the spotlight).
+    const [oblasti, setOblasti] = useState<FeatureCollection | null>(null);
+    useEffect(() => {
+        let alive = true;
+        fetch('/geo/bg-oblasti.geojson')
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+            .then((data: FeatureCollection) => {
+                if (alive) setOblasti(data);
+            })
+            .catch(() => {
+                /* no spotlight/regions — the basemap + markers still work */
+            });
+        return () => {
+            alive = false;
+        };
+    }, []);
+
+    const maskGeojson = useMemo<FeatureCollection>(
+        () => (oblasti ? buildMask(oblasti) : EMPTY_FC),
+        [oblasti],
+    );
 
     const mapStyle = useMemo(() => styleUrl(basemapStyle), [basemapStyle]);
 
@@ -121,7 +197,7 @@ export function ExchangeMap({
 
     const handleLoad = useCallback(() => {
         setStatus('ready');
-        mapRef.current?.fitBounds(BULGARIA_BOUNDS, { padding: 24, duration: 0 });
+        mapRef.current?.fitBounds(BULGARIA_BOUNDS, { padding: 28, duration: 0 });
     }, []);
 
     const handleError = useCallback(() => {
@@ -182,7 +258,7 @@ export function ExchangeMap({
         <div className={cn('relative h-full w-full overflow-hidden rounded-lg border border-border-default', className)}>
             <Map
                 ref={mapRef}
-                initialViewState={{ longitude: 25.5, latitude: 42.7, zoom: 6 }}
+                initialViewState={{ longitude: 25.48, latitude: 42.73, zoom: 6.4 }}
                 mapStyle={mapStyle}
                 onLoad={handleLoad}
                 onError={handleError}
@@ -190,10 +266,28 @@ export function ExchangeMap({
                 interactiveLayerIds={['oblast-fill', 'clusters', 'unclustered-point']}
                 style={{ width: '100%', height: '100%' }}
                 cursor="pointer"
+                // Lock the frame to Bulgaria — no rotation, no wandering off to
+                // neighbouring countries, no zooming out to all of Europe.
+                maxBounds={MAX_BOUNDS}
+                minZoom={5.6}
+                maxZoom={12}
+                dragRotate={false}
             >
-                {/* Layer A — Bulgaria oblast polygons. The clicked/filtered
-                    oblasti are highlighted; the rest are a quiet wash. */}
-                <Source id="oblasti" type="geojson" data="/geo/bg-oblasti.geojson">
+                {/* Spotlight mask — dark scrim over everything OUTSIDE Bulgaria.
+                    Drawn first so the region + markers sit on top of it. */}
+                <Source id="bg-mask" type="geojson" data={maskGeojson}>
+                    <Layer
+                        id="bg-mask-fill"
+                        type="fill"
+                        paint={{ 'fill-color': MASK_FILL, 'fill-opacity': MASK_OPACITY }}
+                    />
+                </Source>
+
+                {/* Region layer — Bulgaria oblasti. A quiet lift by default so the
+                    country reads as one lit body; brand-green when filter-selected.
+                    Borders are drawn on top of the mask, hiding any hole seams.
+                    (geoBoundaries CC-BY-4.0.) */}
+                <Source id="oblasti" type="geojson" data={oblasti ?? EMPTY_FC}>
                     <Layer
                         id="oblast-fill"
                         type="fill"
@@ -201,14 +295,14 @@ export function ExchangeMap({
                             'fill-color': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                '#22c55e',
-                                '#94a3b8',
+                                REGION_ACCENT,
+                                '#7c8aa5',
                             ],
                             'fill-opacity': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                0.22,
-                                0.05,
+                                0.3,
+                                0.08,
                             ],
                         }}
                     />
@@ -219,20 +313,26 @@ export function ExchangeMap({
                             'line-color': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                '#15803d',
-                                '#64748b',
+                                REGION_ACCENT,
+                                '#8aa0c0',
                             ],
                             'line-width': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                2,
+                                2.2,
                                 0.6,
+                            ],
+                            'line-opacity': [
+                                'case',
+                                ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
+                                0.9,
+                                0.35,
                             ],
                         }}
                     />
                 </Source>
 
-                {/* Layer B — clustered offer markers. */}
+                {/* Offer markers — clustered, with a soft glow halo underneath. */}
                 <Source
                     id="offers"
                     type="geojson"
@@ -247,6 +347,29 @@ export function ExchangeMap({
                         buyCount: ['+', ['case', ['==', ['get', 'side'], 'BUY'], 1, 0]],
                     }}
                 >
+                    {/* Glow halo for single offers — soft, side-coloured. */}
+                    <Layer
+                        id="unclustered-glow"
+                        type="circle"
+                        filter={['!', ['has', 'point_count']]}
+                        paint={{
+                            'circle-color': [
+                                'match',
+                                ['get', 'side'],
+                                'SELL', EXCHANGE_SIDE_COLORS.SELL,
+                                'BUY', EXCHANGE_SIDE_COLORS.BUY,
+                                '#6b7280',
+                            ],
+                            'circle-radius': [
+                                'case',
+                                ['==', ['get', 'id'], highlightedId ?? '__none__'],
+                                20,
+                                14,
+                            ],
+                            'circle-blur': 1,
+                            'circle-opacity': 0.45,
+                        }}
+                    />
                     <Layer
                         id="clusters"
                         type="circle"
@@ -258,7 +381,7 @@ export function ExchangeMap({
                                 EXCHANGE_SIDE_COLORS.SELL,
                                 EXCHANGE_SIDE_COLORS.BUY,
                             ],
-                            'circle-opacity': 0.85,
+                            'circle-opacity': 0.9,
                             'circle-radius': ['step', ['get', 'point_count'], 16, 10, 22, 50, 30],
                             'circle-stroke-width': 2,
                             'circle-stroke-color': '#ffffff',
