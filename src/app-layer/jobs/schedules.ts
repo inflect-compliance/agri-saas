@@ -205,6 +205,13 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
         defaultPayload: {},
     },
     {
+        name: 'exchange-expiry-sweep',
+        pattern: '0 5 * * *',     // daily at 05:00 UTC
+        description:
+            'Flip ACTIVE Exchange listings past their `expiresAt` to EXPIRED (+ one audit row per transition).',
+        defaultPayload: {},
+    },
+    {
         name: 'compliance-snapshot',
         pattern: '0 5 * * *',     // daily at 05:00 UTC (before dashboard traffic)
         description: 'Generate daily ComplianceSnapshot for trend reporting. Idempotent — safe to re-run.',

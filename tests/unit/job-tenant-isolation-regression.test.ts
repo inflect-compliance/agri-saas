@@ -290,7 +290,11 @@ describe('Executor Registry — structural tenant-scope guards', () => {
     // Jobs that are explicitly not tenant-scoped
     // sharepoint-delta-sync-dispatch (SP-3) is a global cross-tenant fan-out —
     // it enqueues per-connection, tenant-scoped sharepoint-delta-sync jobs.
-    const EXEMPT_JOBS = ['health-check', 'sync-pull', 'schedule-trigger-sweep', 'sharepoint-delta-sync-dispatch', 'sharepoint-subscription-renew', 'risk-appetite-monitor', 'risk-snapshot', 'report-delivery'];
+    // exchange-expiry-sweep is a GLOBAL sweep — the Exchange tables carry no
+    // tenantId (cross-tenant marketplace), so its executor/payload have no
+    // tenant axis; each transition's audit row is scoped by the row's own
+    // sellerTenantId internally.
+    const EXEMPT_JOBS = ['health-check', 'sync-pull', 'schedule-trigger-sweep', 'sharepoint-delta-sync-dispatch', 'sharepoint-subscription-renew', 'risk-appetite-monitor', 'risk-snapshot', 'report-delivery', 'exchange-expiry-sweep'];
 
     test('no executor uses _payload (unused parameter = ignored tenantId)', () => {
         const pattern = /executorRegistry\.register\('[^']+',\s*async\s*\(_payload\)/g;
@@ -360,7 +364,7 @@ describe('Payload Type Contract — tenantId field audit', () => {
     // Jobs that legitimately don't need tenantId
     // SharePointDeltaSyncDispatchPayload (SP-3) is the global fan-out cron — no
     // single tenantId; it enqueues per-tenant SharePointDeltaSyncPayload jobs.
-    const EXEMPT_PAYLOADS = ['HealthCheckPayload', 'SyncPullPayload', 'ScheduleTriggerSweepPayload', 'SharePointDeltaSyncDispatchPayload', 'SharePointSubscriptionRenewPayload', 'RiskAppetiteMonitorPayload', 'RiskSnapshotPayload', 'ReportDeliveryPayload'];
+    const EXEMPT_PAYLOADS = ['HealthCheckPayload', 'SyncPullPayload', 'ScheduleTriggerSweepPayload', 'SharePointDeltaSyncDispatchPayload', 'SharePointSubscriptionRenewPayload', 'RiskAppetiteMonitorPayload', 'RiskSnapshotPayload', 'ReportDeliveryPayload', 'ExchangeExpirySweepPayload'];
 
     test('every non-exempt payload interface has tenantId field', () => {
         // Extract all payload interfaces

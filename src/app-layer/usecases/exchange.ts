@@ -318,7 +318,10 @@ async function notifySellerOfInquiry(
                 });
                 if (admins.length === 0) return { admins, inquiriesUrl: '' };
 
-                const inquiriesUrl = `/t/${admins[0].tenant.slug}/exchange/my-listings`;
+                // Deep link straight to THIS listing's card on the seller's
+                // management page (native #anchor scroll) so the seller lands on
+                // the row they can Accept/Decline — not the top of the list.
+                const inquiriesUrl = `/t/${admins[0].tenant.slug}/exchange/my-listings#listing-${listing.id}`;
 
                 // In-app Notification for each seller admin/owner.
                 await sellerDb.notification.createMany({

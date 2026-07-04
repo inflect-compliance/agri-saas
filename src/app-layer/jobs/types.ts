@@ -617,6 +617,15 @@ export interface FarmRecordPdfPayload {
     taskId: string;
 }
 
+/**
+ * Exchange EXPIRED sweep — flip ACTIVE listings past their `expiresAt` to
+ * EXPIRED. System-wide (Exchange tables are global, no tenant axis).
+ */
+export interface ExchangeExpirySweepPayload {
+    /** Optional cap on rows flipped per run. */
+    batchSize?: number;
+}
+
 export interface JobPayloadMap {
     'health-check': HealthCheckPayload;
     'embed-chunks': EmbedChunksPayload;
@@ -661,6 +670,7 @@ export interface JobPayloadMap {
     'weather-pull': WeatherPullPayload;
     'spatial-import': SpatialImportJobPayload;
     'farm-record-pdf': FarmRecordPdfPayload;
+    'exchange-expiry-sweep': ExchangeExpirySweepPayload;
 }
 
 /** Union of all valid job names */
@@ -994,6 +1004,15 @@ export const JOB_DEFAULTS: Record<JobName, {
         backoff: { type: 'exponential', delay: 2000 },
         removeOnComplete: 100,
         removeOnFail: 500,
+    },
+    'exchange-expiry-sweep': {
+        // Idempotent — the atomic prior-state predicate means a re-run only
+        // flips rows still ACTIVE-past-expiry. One retry on a transient DB blip;
+        // the daily cadence catches any remainder.
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 5000 },
+        removeOnComplete: 100,
+        removeOnFail: 200,
     },
 };
 

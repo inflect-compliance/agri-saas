@@ -481,6 +481,24 @@ executorRegistry.register('exception-expiry-monitor', async (payload) => {
     );
 });
 
+// ── exchange-expiry-sweep ───────────────────────────────────────────
+
+executorRegistry.register('exchange-expiry-sweep', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runExchangeExpirySweep } = await import('./exchange-expiry-sweep');
+    const { prisma } = await import('@/lib/prisma');
+    const r = await runExchangeExpirySweep(prisma, { batchSize: payload.batchSize });
+    return makeResult(
+        'exchange-expiry-sweep',
+        startedAt,
+        startMs,
+        r.scanned,
+        r.transitionedToExpired,
+        0,
+    );
+});
+
 // ── task-due-notification ───────────────────────────────────────────
 
 executorRegistry.register('task-due-notification', async (payload) => {
