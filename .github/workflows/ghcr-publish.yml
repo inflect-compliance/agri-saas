@@ -70,3 +70,15 @@ jobs:
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
                   platforms: linux/amd64
+                  # NEXT_PUBLIC_* are inlined into the client bundle at BUILD
+                  # time (see Dockerfile). The map's basemap key must be baked
+                  # here or the GHCR image Watchtower auto-deploys falls back to
+                  # the bare demo basemap — the local VM build passes it via
+                  # compose build.args, so a registry image WITHOUT it is a
+                  # silent regression. The key is public-by-design
+                  # (referrer-restricted in the MapTiler dashboard) → a repo
+                  # Variable, not a Secret. Absent var → empty string → graceful
+                  # demo-basemap fallback (no build failure).
+                  build-args: |
+                      NEXT_PUBLIC_MAPTILER_KEY=${{ vars.NEXT_PUBLIC_MAPTILER_KEY }}
+                      NEXT_PUBLIC_MAP_BASEMAP_STYLE=${{ vars.NEXT_PUBLIC_MAP_BASEMAP_STYLE || 'hybrid' }}
