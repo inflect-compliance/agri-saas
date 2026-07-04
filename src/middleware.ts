@@ -24,6 +24,36 @@ import { generateNonce, buildCspHeader, CSP_NONCE_HEADER, CSP_REPORT_PATH, CSP_R
 import { applySecurityHeaders } from '@/lib/security/headers';
 import { resolveCorsConfig, isOriginAllowed, applyCorsHeaders, CORS_PREFLIGHT_HEADERS } from '@/lib/security/cors';
 import { shouldBlockAdminRequest } from '@/lib/security/admin-session-guard';
+import { LOCALE_COOKIE, DEFAULT_LOCALE, isLocale } from '@/lib/i18n/locales';
+
+/** One year, in seconds — the locale-cookie lifetime. */
+const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+/**
+ * T00 — seed the `NEXT_LOCALE` cookie from the authenticated user's
+ * persisted `uiLanguage` claim so a returning user's device renders in
+ * their chosen locale on the very first request, with no DB hit.
+ *
+ * Non-destructive: if the cookie is already present (the user switched
+ * languages this session, or a prior request already seeded it) we
+ * leave it untouched. Client-readable (httpOnly:false) so the switcher
+ * can reason about the active value; `sameSite: lax` matches the auth
+ * cookie posture.
+ */
+function seedLocaleCookie(
+    req: NextRequest,
+    res: NextResponse,
+    uiLanguage: unknown,
+): void {
+    if (req.cookies.get(LOCALE_COOKIE)) return;
+    const pref = isLocale(uiLanguage) ? uiLanguage : DEFAULT_LOCALE;
+    res.cookies.set(LOCALE_COOKIE, pref, {
+        path: '/',
+        maxAge: LOCALE_COOKIE_MAX_AGE,
+        sameSite: 'lax',
+        httpOnly: false,
+    });
+}
 
 /**
  * GAP-04 — Edge middleware: centralized auth guard + CSP for ALL routes.
@@ -226,7 +256,9 @@ async function authMiddleware(req: NextRequest): Promise<NextResponse> {
     }
 
     // ── 6. Authenticated and authorized → proceed ──
-    return NextResponse.next();
+    const res = NextResponse.next();
+    seedLocaleCookie(req, res, token.uiLanguage);
+    return res;
 }
 
 export default async function middleware(
@@ -334,6 +366,16 @@ export default async function middleware(
         res = NextResponse.next();
     } else {
         res = NextResponse.next({ request: { headers: requestHeaders } });
+    }
+
+    // The pass-through branch re-creates `res` from scratch, which would
+    // drop any cookies `authMiddleware` set on its own NextResponse
+    // (notably the T00 `NEXT_LOCALE` seed). Copy them across so the seed
+    // survives. Skipped when `res` IS `authRes` (nothing to copy).
+    if (authRes && authRes !== res) {
+        for (const cookie of authRes.cookies.getAll()) {
+            res.cookies.set(cookie);
+        }
     }
 
     // ── Security Headers — applied to ALL responses ──
