@@ -18,7 +18,17 @@ jest.mock('@/lib/db-context', () => {
 });
 
 jest.mock('@/lib/security/sanitize', () => ({
-    sanitizePlainText: (s: string) => s.replace(/<[^>]*>/g, ''),
+    // Strip tags REPEATEDLY until stable — a single pass leaves nested
+    // leftovers (e.g. `<<a>b>`), which CodeQL flags as incomplete
+    // multi-character sanitization. Test-only mock of sanitizePlainText.
+    sanitizePlainText: (s: string) => {
+        let prev: string;
+        do {
+            prev = s;
+            s = s.replace(/<[^>]*>/g, '');
+        } while (s !== prev);
+        return s;
+    },
     sanitizeRichTextHtml: (s: string) => s,
 }));
 

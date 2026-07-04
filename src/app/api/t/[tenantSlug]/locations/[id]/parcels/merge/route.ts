@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { mergeParcels } from '@/app-layer/usecases/parcel';
 import { MergeParcelsSchema } from '@/app-layer/schemas/geo.schemas';

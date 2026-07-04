@@ -2,9 +2,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaTx } from '@/lib/db-context';
 import { RequestContext } from '../types';
 import {
-    geometrySql,
     repairedGeometrySql,
-    areaHectaresSql,
     areaHectaresNonNullSql,
     asGeoJsonSql,
     simplifiedGeoJsonSql,
