@@ -21,7 +21,8 @@
         "reject": "Отхвърли",
         "export": "Експорт",
         "actions": "Действия",
-        "details": "Детайли"
+        "details": "Детайли",
+        "language": "Език"
     },
     "login": {
         "title": "Agrent",

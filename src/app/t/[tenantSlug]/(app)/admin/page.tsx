@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { LanguageSetting } from './LanguageSetting';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,13 +37,16 @@ export default async function AdminPage({
                 ]}
                 title={t('title')}
                 actions={
-                    <div
-                        className="flex items-center gap-compact rounded-lg border border-border-subtle bg-bg-default px-3 py-1.5"
-                        id="admin-theme-section"
-                    >
-                        <Palette className="w-4 h-4 text-content-muted" />
-                        <span className="text-sm text-content-muted">Theme</span>
-                        <ThemeToggle id="admin-theme-toggle" />
+                    <div className="flex items-center gap-tight flex-wrap">
+                        <LanguageSetting />
+                        <div
+                            className="flex items-center gap-compact rounded-lg border border-border-subtle bg-bg-default px-3 py-1.5"
+                            id="admin-theme-section"
+                        >
+                            <Palette className="w-4 h-4 text-content-muted" />
+                            <span className="text-sm text-content-muted">Theme</span>
+                            <ThemeToggle id="admin-theme-toggle" />
+                        </div>
                     </div>
                 }
             />

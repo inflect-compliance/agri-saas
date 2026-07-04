@@ -102,6 +102,8 @@ declare module 'next-auth' {
             tenantId?: string | null;
             role: Role;
             mfaPending?: boolean;
+            /** T00 — persisted UI language preference ('en' | 'bg'). */
+            uiLanguage: string;
             /** R-1: all active memberships, for the tenant picker and middleware gate. */
             memberships?: MembershipEntry[];
             /** Org-layer memberships, for the org-route middleware gate. */
@@ -118,6 +120,8 @@ declare module 'next-auth/jwt' {
         tenantId?: string | null;
         tenantSlug?: string | null;
         role?: Role;
+        /** T00 — persisted UI language preference ('en' | 'bg'). */
+        uiLanguage?: string;
         mfaPending?: boolean;
         mfaFailClosed?: boolean;
         /** Active tenant memberships, capped at MAX_JWT_MEMBERSHIPS. */
@@ -189,6 +193,9 @@ async function applyMembershipClaims(
     if (dbUser) {
         token.userId = dbUser.id;
         token.sessionVersion = dbUser.sessionVersion;
+        // T00 — persisted UI language preference. The `include` query
+        // returns every scalar column, so `uiLanguage` is present.
+        token.uiLanguage = dbUser.uiLanguage ?? 'en';
 
         // Active tenant memberships, capped at MAX_JWT_MEMBERSHIPS so the
         // cookie stays bounded; `membershipsTruncated` flags the rare
@@ -230,6 +237,7 @@ async function applyMembershipClaims(
     } else {
         token.userId = fallbackUserId ?? token.userId;
         token.role = 'READER';
+        token.uiLanguage = token.uiLanguage ?? 'en';
         token.sessionVersion = 0;
         token.memberships = [];
         token.orgMemberships = [];
@@ -751,6 +759,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.id = token.userId ?? token.sub!;
                 session.user.tenantId = token.tenantId ?? null;
                 session.user.role = token.role ?? 'READER';
+                session.user.uiLanguage = token.uiLanguage ?? 'en';
                 session.user.mfaPending = token.mfaPending ?? false;
                 session.user.memberships = token.memberships ?? [];
                 session.user.orgMemberships = token.orgMemberships ?? [];

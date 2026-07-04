@@ -21,7 +21,8 @@
         "reject": "Reject",
         "export": "Export",
         "actions": "Actions",
-        "details": "Details"
+        "details": "Details",
+        "language": "Language"
     },
     "login": {
         "title": "Agrent",
