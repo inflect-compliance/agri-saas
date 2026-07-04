@@ -12,8 +12,12 @@
  * The lock must be paired with a print escape so printers see the
  * full document, not just the viewport-visible area.
  *
- * Mobile (<md) is intentionally NOT locked — natural document scroll
- * stays so touch behaviour is predictable.
+ * Mobile (<md) is intentionally NOT VERTICALLY locked — natural
+ * vertical document scroll stays so touch behaviour is predictable.
+ * Horizontal panning IS locked on mobile (2026-07-04): a
+ * @media (max-width: 767px) block clips horizontal document overflow
+ * (overflow-x: clip) so the page can't drift left/right, while leaving
+ * vertical scroll + pinch-zoom intact.
  */
 
 import * as fs from 'fs';
@@ -58,5 +62,24 @@ describe('document scroll lock — globals.css contract', () => {
         // That would break mobile touch scrolling.
         const unconditionalLock = /^html\s*,\s*body\s*\{[^}]*overflow:\s*hidden/m;
         expect(css).not.toMatch(unconditionalLock);
+    });
+
+    test('mobile (<md) locks horizontal pan but keeps vertical scroll', () => {
+        // Below md the whole page must not drift left/right. A
+        // @media (max-width: 767px) block clips horizontal document
+        // overflow WITHOUT locking vertical scroll — so pinch-zoom and
+        // vertical touch scrolling stay intact, and inner overflow-x
+        // scrollers (wide tables) still scroll within their own box.
+        const mobileBlock = css.match(
+            /@media\s*\(\s*max-width:\s*767px\s*\)\s*\{[\s\S]*?\n\}/,
+        );
+        expect(mobileBlock).not.toBeNull();
+        const block = mobileBlock![0];
+        expect(block).toMatch(/html\s*,\s*body\s*\{/);
+        expect(block).toMatch(/overflow-x:\s*clip/);
+        // Must NOT lock the vertical axis (would kill mobile scroll):
+        // no bare `overflow: hidden` and no `overflow-y: hidden` here.
+        expect(block).not.toMatch(/overflow:\s*hidden/);
+        expect(block).not.toMatch(/overflow-y:\s*hidden/);
     });
 });
