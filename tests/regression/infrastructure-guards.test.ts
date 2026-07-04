@@ -74,8 +74,8 @@ describe('Infrastructure Regression Guards', () => {
             }
         });
 
-        test('exactly 23 scheduled jobs exist', () => {
-            expect(SCHEDULED_JOBS).toHaveLength(23);
+        test('exactly 24 scheduled jobs exist', () => {
+            expect(SCHEDULED_JOBS).toHaveLength(24);
         });
 
         test('scheduled job names match expected set', () => {
@@ -99,6 +99,9 @@ describe('Infrastructure Regression Guards', () => {
                 // Epic G-5 — daily 30/14/7-day expiry reminder for
                 // control exceptions.
                 'exception-expiry-monitor',
+                // Exchange — daily global sweep flipping ACTIVE listings past
+                // their expiresAt to EXPIRED (+ audit row per transition).
+                'exchange-expiry-sweep',
                 // Inventory Phase 1 — daily cross-tenant low-stock sweep
                 // firing LOW_STOCK alerts for items below reorderLevel.
                 'low-stock-monitor',

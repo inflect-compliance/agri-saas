@@ -12,7 +12,8 @@
  *     "View details") opens the detail Sheet (body stubbed for now).
  *   - Create: header button stubbed — the create modal lands in a follow-up.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
     FilterProvider,
@@ -28,7 +29,8 @@ import { Plus } from '@/components/ui/icons/nucleo';
 import { Heading } from '@/components/ui/typography';
 import { Sheet } from '@/components/ui/sheet';
 import { cn } from '@/lib/cn';
-import { useTenantHref } from '@/lib/tenant-context-provider';
+import { useTenantHref, useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { apiGet } from '@/lib/api-client';
 import { formatDate } from '@/lib/format-date';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import type { ExchangePublicListing } from '@/lib/exchange/public-listing';
@@ -65,6 +67,9 @@ function SideDot({ side }: { side: 'SELL' | 'BUY' }) {
 
 function ExchangeInner() {
     const tenantHref = useTenantHref();
+    const buildApiUrl = useTenantApiUrl();
+    const searchParams = useSearchParams();
+    const deepLinkId = searchParams.get('listing');
     const { data, isLoading, mutate } = useTenantSWR<ExchangePublicListing[]>('/exchange/listings');
     const { state, search, toggle } = useFilters();
 
@@ -99,9 +104,23 @@ function ExchangeInner() {
     }, [offers, search, state]);
 
     const [hoveredId, setHoveredId] = useState<string | null>(null);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    // Seed the selection from the deep link (`?listing=<id>`) at mount so a
+    // shared/emailed link opens the detail Sheet directly — no setState in the
+    // effect below, which only performs the standalone fetch.
+    const [selectedId, setSelectedId] = useState<string | null>(deepLinkId);
     const [createOpen, setCreateOpen] = useState(false);
     const [inquiryOpen, setInquiryOpen] = useState(false);
+    // If the deep-linked listing isn't on the loaded page, fetch it standalone
+    // (GET /exchange/listings/<id>) so the Sheet can render it.
+    const [fetchedListing, setFetchedListing] = useState<ExchangePublicListing | null>(null);
+    useEffect(() => {
+        if (!deepLinkId || offers.some((o) => o.id === deepLinkId)) return;
+        let cancelled = false;
+        void apiGet<ExchangePublicListing>(buildApiUrl(`/exchange/listings/${deepLinkId}`))
+            .then((l) => { if (!cancelled) setFetchedListing(l); })
+            .catch(() => { /* missing / withdrawn — leave the Sheet unopened */ });
+        return () => { cancelled = true; };
+    }, [deepLinkId, offers, buildApiUrl]);
 
     // Optimistically add a freshly-created listing to the shared SWR cache so
     // it lands on the map + list instantly, then revalidate to reconcile.
@@ -109,8 +128,11 @@ function ExchangeInner() {
         void mutate([created, ...offers], { revalidate: true });
     }
     const selectedOffer = useMemo(
-        () => filtered.find((o) => o.id === selectedId) ?? offers.find((o) => o.id === selectedId) ?? null,
-        [filtered, offers, selectedId],
+        () =>
+            filtered.find((o) => o.id === selectedId)
+            ?? offers.find((o) => o.id === selectedId)
+            ?? (fetchedListing?.id === selectedId ? fetchedListing : null),
+        [filtered, offers, selectedId, fetchedListing],
     );
 
     return (

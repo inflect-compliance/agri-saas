@@ -104,7 +104,11 @@ export function MyListingsClient() {
                         </div>
                     )}
                     {listings.map((l) => (
-                        <div key={l.id} className="space-y-default rounded-lg border border-border-subtle p-4">
+                        <div
+                            key={l.id}
+                            id={`listing-${l.id}`}
+                            className="space-y-default rounded-lg border border-border-subtle p-4 scroll-mt-4"
+                        >
                             <div className="flex flex-wrap items-center gap-compact">
                                 <span className="font-medium text-content-emphasis">{l.commodity}</span>
                                 <span className="text-xs text-content-muted">{l.side === 'SELL' ? 'Selling' : 'Buying'}</span>
