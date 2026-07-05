@@ -82,9 +82,10 @@ describe('RQ3-1 — per-risk tail-percentile cache (the RQ3 data spine)', () => 
 
 describe('RQ3-1 — the simulated curve carries its markers', () => {
     test('P50 / P80 / P95 percentile markers ride the referenceLines seam', () => {
-        expect(mcPanel).toMatch(/label: 'P50'/);
-        expect(mcPanel).toMatch(/label: 'P80'/);
-        expect(mcPanel).toMatch(/label: 'P95'/);
+        // i18n (T06): the marker labels resolve through next-intl.
+        expect(mcPanel).toMatch(/label: tmc\('p50'\)/);
+        expect(mcPanel).toMatch(/label: tmc\('p80'\)/);
+        expect(mcPanel).toMatch(/label: tmc\('p95'\)/);
         expect(mcPanel).toMatch(/portfolioP80/);
     });
 

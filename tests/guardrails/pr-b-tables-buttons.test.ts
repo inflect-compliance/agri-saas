@@ -130,9 +130,9 @@ describe('PR-B — table & button hygiene', () => {
             const titleIdx = ui.indexOf("accessorKey: 'title'");
             expect(codeIdx).toBeGreaterThan(0);
             expect(titleIdx).toBeGreaterThan(codeIdx);
-            // Header label is literally "Code".
+            // Header label is "Code" — i18n (T06): resolved via next-intl.
             expect(ui).toMatch(
-                /id:\s*['"]code['"],\s*header:\s*['"]Code['"]/,
+                /id:\s*['"]code['"],\s*header:\s*(?:['"]Code['"]|tm\('colCode'\))/,
             );
         });
     });

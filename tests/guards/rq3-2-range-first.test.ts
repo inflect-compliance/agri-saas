@@ -34,9 +34,10 @@ const calculator = read('src/app-layer/usecases/fair-calculator.ts');
 describe('RQ3-2 — ranges replace point floats in the panel', () => {
     test('every factor renders the min/likely/max triple inputs', () => {
         expect(panel).toMatch(/fair-triple-\$\{k\}-\$\{b\}/);
-        expect(panel).toMatch(/bound\(k, 'min', 'Min'\)/);
-        expect(panel).toMatch(/bound\(k, 'mode', 'Likely'\)/);
-        expect(panel).toMatch(/bound\(k, 'max', 'Max'\)/);
+        // i18n (T06): the bound labels resolve through next-intl.
+        expect(panel).toMatch(/bound\(k, 'min', tf\('min'\)\)/);
+        expect(panel).toMatch(/bound\(k, 'mode', tf\('likely'\)\)/);
+        expect(panel).toMatch(/bound\(k, 'max', tf\('max'\)\)/);
     });
 
     test('no raw point input remains for loss/frequency factors', () => {
@@ -55,7 +56,11 @@ describe('RQ3-2 — ranges replace point floats in the panel', () => {
     });
 
     test('the calibrated-interval language is the legend', () => {
-        expect(panel).toMatch(/90% sure/);
+        // i18n (T06): the legend copy moved to messages; the panel renders
+        // tf('intro') and the English message retains the "90% sure" language.
+        expect(panel).toMatch(/tf\('intro'\)/);
+        const en = JSON.parse(read('messages/en.json')) as { riskFair: { intro: string } };
+        expect(en.riskFair.intro).toMatch(/90% sure/);
     });
 
     test('the point estimate is derived (PERT mean) — shown, not asked', () => {

@@ -52,7 +52,8 @@ describe('Risks list — Epic 44.4 column + matrix wiring', () => {
 
     it('adds the Owner column as name-only (ownerDisplayName → treatmentOwner → —, no email)', () => {
         expect(clientSrc).toContain("id: 'owner'");
-        expect(clientSrc).toContain("header: 'Owner'");
+        // i18n (T06): header resolves through next-intl.
+        expect(clientSrc).toContain("header: tm('colOwner')");
         // UI-14: name (or email local-part as username) via ownerDisplayName,
         // then the legacy treatmentOwner read path. The full email is NOT
         // displayed (it stays on the row only for the owner filter).
@@ -64,7 +65,8 @@ describe('Risks list — Epic 44.4 column + matrix wiring', () => {
 
     it('adds the workflow Status column with badge classes per RiskStatus value', () => {
         expect(clientSrc).toContain("id: 'status'");
-        expect(clientSrc).toContain("header: 'Status'");
+        // i18n (T06): header resolves through next-intl.
+        expect(clientSrc).toContain("header: tm('colStatus')");
         expect(clientSrc).toContain('STATUS_CLASS');
         // Every enum member from prisma's RiskStatus must have a
         // class — drift here would render an unstyled badge.

@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { TriangleWarning } from '@/components/ui/icons/nucleo/triangle-warning';
 
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { DataTable, createColumns } from '@/components/ui/table';
@@ -33,6 +34,7 @@ function ScorePill({ score }: { score: number }) {
 }
 
 export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, orgSlug }: Props) {
+    const t = useTranslations('criticalRisks');
     const [sortBy, setSortBy] = useState<string>('inherentScore');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -70,7 +72,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
             createColumns<CriticalRiskRow>([
                 {
                     id: 'tenantName',
-                    header: 'Tenant',
+                    header: t('colTenant'),
                     cell: ({ row }) => (
                         <span
                             className="text-xs font-medium text-content-muted"
@@ -82,7 +84,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                 },
                 {
                     id: 'title',
-                    header: 'Risk',
+                    header: t('colRisk'),
                     cell: ({ row }) => (
                         <Link
                             href={row.original.drillDownUrl}
@@ -95,12 +97,12 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                 },
                 {
                     id: 'inherentScore',
-                    header: 'Score',
+                    header: t('colScore'),
                     cell: ({ row }) => <ScorePill score={row.original.inherentScore} />,
                 },
                 {
                     id: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => (
                         <StatusBadge variant={STATUS_VARIANTS[row.original.status]}>
                             {row.original.status}
@@ -109,7 +111,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                 },
                 {
                     id: 'updatedAt',
-                    header: 'Updated',
+                    header: t('colUpdated'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-subtle tabular-nums">
                             {formatDate(row.original.updatedAt)}
@@ -117,7 +119,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                     ),
                 },
             ]),
-        [],
+        [t],
     );
 
     return (
@@ -125,11 +127,11 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
             <ListPageShell.Header>
                 <div>
                     <Heading level={1}>
-                        Critical Risks
+                        {t('title')}
                     </Heading>
                     <p className="text-sm text-content-muted mt-1">
-                        {pagination.rows.length} critical risk{pagination.rows.length === 1 ? '' : 's'} (score ≥ 15, not closed) across the portfolio
-                        {pagination.hasMore ? ' (more available)' : ''}
+                        {t('summary', { count: pagination.rows.length })}
+                        {pagination.hasMore ? t('moreAvailable') : ''}
                     </p>
                 </div>
             </ListPageShell.Header>
@@ -149,9 +151,9 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                     resourceName={(plural) => (plural ? 'risks' : 'risk')}
                     emptyState={
                         <TableEmptyState
-                            title="No critical risks"
-                            description="No risk with inherent score ≥ 15 is currently open across this organization's tenants."
-                            icon={<AlertTriangle className="size-10" />}
+                            title={t('emptyTitle')}
+                            description={t('emptyDesc')}
+                            icon={<TriangleWarning className="size-10" />}
                         />
                     }
                     data-testid="org-risks-table"
@@ -168,7 +170,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                             }}
                             disabled={pagination.loading}
                         >
-                            {pagination.loading ? 'Loading…' : 'Load more risks'}
+                            {pagination.loading ? t('loading') : t('loadMore')}
                         </Button>
                         {pagination.error && (
                             <span
@@ -176,7 +178,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                                 role="alert"
                                 data-testid="org-risks-load-error"
                             >
-                                Failed to load more — please retry.
+                                {t('loadError')}
                             </span>
                         )}
                     </div>

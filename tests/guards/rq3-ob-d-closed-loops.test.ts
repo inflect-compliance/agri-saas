@@ -52,7 +52,9 @@ describe('RQ3-OB-D — the bridge knows where you have been', () => {
     });
 
     test('the bridge copy branches on fairAle', () => {
-        expect(panel).toMatch(/risk\.fairAle != null\s*\?\s*'Review the FAIR analysis'\s*:\s*'Quantify this risk'/);
+        // i18n (T06): the literal copy moved to messages/*.json; the
+        // branch now resolves the translated keys reviewFair / quantifyThis.
+        expect(panel).toMatch(/risk\.fairAle != null\s*\?\s*ta\('reviewFair'\)\s*:\s*ta\('quantifyThis'\)/);
     });
 
     test('the detail page plumbs fairAle into the panel', () => {

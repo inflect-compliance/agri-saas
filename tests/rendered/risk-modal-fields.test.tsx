@@ -112,7 +112,8 @@ describe('NewRiskModal source (R3/R4/R7/R10)', () => {
     const src = read('NewRiskModal.tsx');
     it('R3 — owner is a UserCombobox bound to ownerUserId, labelled "Owner"', () => {
         expect(src).toMatch(/<UserCombobox[\s\S]*id="risk-owner"/);
-        expect(src).toMatch(/label="Owner"/);
+        // i18n (T06): the label resolves through next-intl (newRisk.ownerLabel === 'Owner').
+        expect(src).toMatch(/label=\{tn\('ownerLabel'\)\}/);
         expect(src).not.toMatch(/label="Treatment owner"/);
     });
     it('R4 — link-controls reads the {rows} shape, and the name span is not truncated', () => {

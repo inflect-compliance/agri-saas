@@ -14,6 +14,7 @@
  *      narrative, the source chip, and an ADMIN remove affordance.
  */
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,7 @@ const SOURCE_VARIANT: Record<Source, 'info' | 'warning' | 'error'> = {
 };
 
 export default function LossEventsPage() {
+    const tle = useTranslations('riskLossEvents');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const money = useMoneyFormatter();
@@ -107,11 +109,11 @@ export default function LossEventsPage() {
                 }),
             });
             if (res.ok) {
-                setMsg('Loss recorded.');
+                setMsg(tle('lossRecorded'));
                 setAmount(''); setDescription('');
                 await load();
             } else {
-                setMsg('Save failed.');
+                setMsg(tle('saveFailed'));
             }
         } finally {
             setBusy(false);
@@ -131,37 +133,33 @@ export default function LossEventsPage() {
         <div className="space-y-section">
             <PageBreadcrumbs
                 items={[
-                    { label: 'Risks', href: tenantHref('/risks') },
-                    { label: 'Loss events' },
+                    { label: tle('risks'), href: tenantHref('/risks') },
+                    { label: tle('breadcrumb') },
                 ]}
             />
-            <Heading level={1}>Loss events</Heading>
+            <Heading level={1}>{tle('title')}</Heading>
             <p className="text-sm text-content-muted">
-                The system predicts losses everywhere — FAIR ALE, the simulated portfolio
-                P50/P90, the loss-exceedance curve. This is where the world&apos;s answer comes
-                back, so the forecasts can be scored.
+                {tle('intro')}
             </p>
 
             {/* Predicted-vs-actual overlay */}
             <Card className="space-y-default p-6" data-testid="loss-events-rollup">
-                <Heading level={2}>Predicted vs actual</Heading>
+                <Heading level={2}>{tle('predictedVsActual')}</Heading>
                 {!agg || agg.count === 0 ? (
                     <p className="text-sm text-content-muted" data-testid="loss-events-empty">
-                        No actuals recorded yet — the forecasting stack is unfalsifiable
-                        until losses come back in. Record the next one below, or enable the
-                        finding / incident close-out integration to record them automatically.
+                        {tle('noActuals')}
                     </p>
                 ) : (
                     <>
                         <div className="grid grid-cols-2 gap-default md:grid-cols-3">
                             <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="loss-events-total">
-                                <KPIStat value={money(agg.total)} label="Total recorded losses" />
+                                <KPIStat value={money(agg.total)} label={tle('totalRecorded')} />
                             </div>
                             <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="loss-events-count">
-                                <KPIStat value={agg.count} label="Loss events" />
+                                <KPIStat value={agg.count} label={tle('lossEvents')} />
                             </div>
                             <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="loss-events-years">
-                                <KPIStat value={agg.byYear.length} label="Calendar years" />
+                                <KPIStat value={agg.byYear.length} label={tle('calendarYears')} />
                             </div>
                         </div>
                         {/* Per-year mini-bars: the actuals, with the
@@ -175,7 +173,7 @@ export default function LossEventsPage() {
                                         <ProgressBar
                                             value={y.total}
                                             max={yearMax || 1}
-                                            aria-label={`Actual losses in ${y.year}: ${money(y.total)}`}
+                                            aria-label={tle('actualLossesAria', { year: y.year, total: money(y.total) })}
                                         />
                                     </div>
                                     <span className="w-24 shrink-0 text-right tabular-nums text-content-muted">{money(y.total)}</span>
@@ -185,9 +183,9 @@ export default function LossEventsPage() {
                         </div>
                         {run && (run.portfolioMean != null || run.portfolioP90 != null) && (
                             <p className="mt-tight text-xs text-content-subtle" data-testid="loss-events-prediction-line">
-                                Simulator&apos;s annual prediction
-                                {run.portfolioMean != null && <> — mean {money(run.portfolioMean)}</>}
-                                {run.portfolioP90 != null && <> · P90 {money(run.portfolioP90)}</>}
+                                {tle('predictionLine')}
+                                {run.portfolioMean != null && <>{tle('predictionMean', { value: money(run.portfolioMean) })}</>}
+                                {run.portfolioP90 != null && <>{tle('predictionP90', { value: money(run.portfolioP90) })}</>}
                             </p>
                         )}
                     </>
@@ -196,18 +194,18 @@ export default function LossEventsPage() {
 
             {/* Record loss form */}
             <Card className="space-y-default p-6" data-testid="loss-events-form">
-                <Heading level={2}>Record loss</Heading>
+                <Heading level={2}>{tle('recordLoss')}</Heading>
                 <div className="flex flex-wrap items-end gap-default">
                     <div className="block">
-                        <span className="mb-0.5 block text-xs text-content-muted">Date</span>
+                        <span className="mb-0.5 block text-xs text-content-muted">{tle('date')}</span>
                         <DatePicker
                             value={occurredAt}
                             onChange={setOccurredAt}
-                            placeholder="When did it occur"
+                            placeholder={tle('whenOccur')}
                         />
                     </div>
                     <label className="block">
-                        <span className="text-xs text-content-muted">Amount</span>
+                        <span className="text-xs text-content-muted">{tle('amount')}</span>
                         <Input
                             type="text"
                             inputMode="decimal"
@@ -217,11 +215,11 @@ export default function LossEventsPage() {
                         />
                     </label>
                     <label className="block flex-1 min-w-[12rem]">
-                        <span className="text-xs text-content-muted">What happened</span>
+                        <span className="text-xs text-content-muted">{tle('whatHappened')}</span>
                         <Input
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Customer breach response — settlement + vendor X"
+                            placeholder={tle('whatHappenedPlaceholder')}
                         />
                     </label>
                     <div className="flex gap-tight">
@@ -237,17 +235,17 @@ export default function LossEventsPage() {
                         ))}
                     </div>
                     <Button variant="primary" onClick={record} disabled={busy || !amount.trim()}>
-                        {busy ? 'Recording…' : 'Record'}
+                        {busy ? tle('recording') : tle('record')}
                     </Button>
                 </div>
-                {msg && <InlineNotice variant={msg === 'Loss recorded.' ? 'success' : 'error'}>{msg}</InlineNotice>}
+                {msg && <InlineNotice variant={msg === tle('lossRecorded') ? 'success' : 'error'}>{msg}</InlineNotice>}
             </Card>
 
             {/* Register */}
             <Card className="space-y-default p-6" data-testid="loss-events-list">
-                <Heading level={2}>Register</Heading>
+                <Heading level={2}>{tle('register')}</Heading>
                 {rows.length === 0 ? (
-                    <p className="text-sm text-content-muted">No loss events yet.</p>
+                    <p className="text-sm text-content-muted">{tle('noLossEvents')}</p>
                 ) : (
                     <ul className="divide-y divide-border-subtle">
                         {rows.map((r) => (
@@ -264,7 +262,7 @@ export default function LossEventsPage() {
                                 )}
                                 <span className="ml-auto flex gap-tight">
                                     <Button size="sm" variant="ghost" onClick={() => remove(r.id)}>
-                                        Remove
+                                        {tle('remove')}
                                     </Button>
                                 </span>
                             </li>

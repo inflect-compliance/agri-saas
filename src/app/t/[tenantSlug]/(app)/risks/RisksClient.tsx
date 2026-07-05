@@ -6,6 +6,7 @@
 
 /* eslint-disable react-hooks/exhaustive-deps -- Various useMemo dep arrays in this file deliberately omit identity-unstable callbacks (handlers/derived arrays recreated each render). The proper structural fix is wrapping parent-level callbacks in useCallback. Tracked as follow-up; existing per-line eslint-disable-next-line markers preserved. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -183,15 +184,15 @@ export function RisksClient(props: RisksClientProps) {
  * links in the risks header, to the left of the matrix toggle. Each routes to
  * its standalone page; read-only so they show for every role.
  */
-const RISK_VIEW_LINKS: ReadonlyArray<{ href: string; label: string; icon: AppIconName }> = [
-    { href: '/risks/dashboard', label: 'Risk dashboard', icon: 'activity' },
-    { href: '/risks/scenarios', label: 'Scenarios', icon: 'preview' },
-    { href: '/risks/hierarchy', label: 'Hierarchy', icon: 'share' },
-    { href: '/risks/kri', label: 'Key risk indicators', icon: 'alertCircle' },
-    { href: '/risks/correlations', label: 'Correlations', icon: 'mappings' },
+const RISK_VIEW_LINKS: ReadonlyArray<{ href: string; labelKey: string; icon: AppIconName }> = [
+    { href: '/risks/dashboard', labelKey: 'viewDashboard', icon: 'activity' },
+    { href: '/risks/scenarios', labelKey: 'viewScenarios', icon: 'preview' },
+    { href: '/risks/hierarchy', labelKey: 'viewHierarchy', icon: 'share' },
+    { href: '/risks/kri', labelKey: 'viewKri', icon: 'alertCircle' },
+    { href: '/risks/correlations', labelKey: 'viewCorrelations', icon: 'mappings' },
     // RQ3-6 — the loss-event register: forecasts meet reality.
-    { href: '/risks/loss-events', label: 'Loss events', icon: 'fileWarning' },
-    { href: '/risks/reports', label: 'Reports', icon: 'fileSpreadsheet' },
+    { href: '/risks/loss-events', labelKey: 'viewLossEvents', icon: 'fileWarning' },
+    { href: '/risks/reports', labelKey: 'viewReports', icon: 'fileSpreadsheet' },
 ];
 
 function RisksPageInner({
@@ -202,6 +203,7 @@ function RisksPageInner({
     permissions,
     translations: t,
 }: RisksClientProps) {
+    const tm = useTranslations('riskManager');
     const apiUrl = (path: string) => `/api/t/${tenantSlug}${path}`;
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
@@ -400,19 +402,19 @@ function RisksPageInner({
             // Code is off by default (toggle on via the gear). The column def
             // still leads (table-unification first-column rule); only its
             // default visibility is off.
-            { id: 'code', label: 'Code', defaultVisible: false },
-            { id: 'title', label: 'Title' },
-            { id: 'asset', label: 'Asset' },
-            { id: 'threat', label: 'Threat' },
-            { id: 'inherentScore', label: 'Score' },
-            { id: 'level', label: 'Level' },
-            { id: 'status', label: 'Status' },
-            { id: 'owner', label: 'Owner' },
-            { id: 'treatment', label: 'Treatment' },
-            { id: 'controls', label: 'Controls' },
-            { id: 'tasks', label: 'Tasks' },
+            { id: 'code', label: tm('colCode'), defaultVisible: false },
+            { id: 'title', label: tm('colTitle') },
+            { id: 'asset', label: tm('colAsset') },
+            { id: 'threat', label: tm('colThreat') },
+            { id: 'inherentScore', label: tm('colScore') },
+            { id: 'level', label: tm('colLevel') },
+            { id: 'status', label: tm('colStatus') },
+            { id: 'owner', label: tm('colOwner') },
+            { id: 'treatment', label: tm('colTreatment') },
+            { id: 'controls', label: tm('colControls') },
+            { id: 'tasks', label: tm('colTasks') },
         ],
-        [],
+        [tm],
     );
     const {
         columnVisibility,
@@ -549,7 +551,7 @@ function RisksPageInner({
             // Controls/Tasks convention. Historic rows render an
             // em-dash; new rows mint a key in the create-path.
             id: 'code',
-            header: 'Code',
+            header: tm('colCode'),
             accessorFn: (r) => r.key || '',
             cell: ({ row }) =>
                 row.original.key ? (
@@ -655,7 +657,7 @@ function RisksPageInner({
                             return label !== null ? (
                                 <span
                                     className="text-[10px] tabular-nums text-content-muted"
-                                    title="Annualised loss expectancy"
+                                    title={tm('annualisedLossExpectancy')}
                                     data-testid={`risk-ale-${row.original.id}`}
                                 >
                                     {label}
@@ -700,7 +702,7 @@ function RisksPageInner({
             // 200-row register pivots to "the ones the money points
             // at" via the column header.
             id: 'ale',
-            header: 'ALE',
+            header: tm('colAle'),
             accessorFn: (r) => riskAle(r) ?? null,
             cell: ({ getValue }) => {
                 const ale = getValue<number | null>();
@@ -715,7 +717,7 @@ function RisksPageInner({
         },
         {
             id: 'status',
-            header: 'Status',
+            header: tm('colStatus'),
             accessorFn: (r) => r.status ?? 'OPEN',
             cell: ({ row }) => {
                 const status = row.original.status ?? 'OPEN';
@@ -728,7 +730,7 @@ function RisksPageInner({
         },
         {
             id: 'owner',
-            header: 'Owner',
+            header: tm('colOwner'),
             // Owner display: name (or email local-part as a username) →
             // legacy free-text `treatmentOwner` → em-dash. The full email is
             // intentionally NOT shown; it stays on the row for the owner filter.
@@ -769,7 +771,7 @@ function RisksPageInner({
         {
             // B7 — unified linked-task count (done/total), matching Controls.
             id: 'tasks',
-            header: 'Tasks',
+            header: tm('colTasks'),
             accessorFn: (r) => `${r.taskDone ?? 0}/${r.taskTotal ?? 0}`,
             cell: ({ row }) => {
                 const total = row.original.taskTotal ?? 0;
@@ -787,7 +789,7 @@ function RisksPageInner({
                 );
             },
         },
-    ]), [t, getRiskBand, matrixConfig, tailByRisk]);
+    ]), [t, tm, getRiskBand, matrixConfig, tailByRisk]);
 
     // Right-rail Phase 3 — the AI assist co-pilot rail. A persistent,
     // co-resident entry point to the AI risk-assessment flow that
@@ -797,7 +799,7 @@ function RisksPageInner({
     // user expands it when they want to engage.
     const aiAssistRail = permissions.canWrite ? (
         <AsidePanel
-            title="AI Assist"
+            title={tm('aiAssist')}
             surfaceKey="risks-list"
             defaultCollapsed
             icon={<Sparkle3 className="h-4 w-4" />}
@@ -813,7 +815,7 @@ function RisksPageInner({
                     <div>
                         <PageBreadcrumbs
                             items={[
-                                { label: 'Dashboard', href: tenantHref('/dashboard') },
+                                { label: tm('dashboard'), href: tenantHref('/dashboard') },
                                 { label: t.title },
                             ]}
                             className="mb-1"
@@ -825,10 +827,10 @@ function RisksPageInner({
                     </div>
                     <div className="flex gap-tight">
                         {RISK_VIEW_LINKS.map((v) => (
-                            <Tooltip key={v.href} content={v.label}>
+                            <Tooltip key={v.href} content={tm(v.labelKey)}>
                                 <Link
                                     href={tenantHref(v.href)}
-                                    aria-label={v.label}
+                                    aria-label={tm(v.labelKey)}
                                     className={buttonVariants({ variant: 'secondary', size: 'icon' })}
                                 >
                                     <AppIcon name={v.icon} size={16} />
@@ -839,7 +841,7 @@ function RisksPageInner({
                             choice persists (polish #13 pattern). */}
                         <ToggleGroup
                             size="sm"
-                            ariaLabel="Risks view"
+                            ariaLabel={tm('risksView')}
                             options={[
                                 { value: 'register', label: t.register, id: 'risks-view-register' },
                                 { value: 'histogram', label: t.histogram, id: 'risks-view-histogram' },
@@ -849,8 +851,8 @@ function RisksPageInner({
                         />
                         {permissions.canWrite && (
                             <>
-                                <Tooltip content="Import risks">
-                                    <Link href={tenantHref('/risks/import')} aria-label="Import risks" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="risk-import-btn">
+                                <Tooltip content={tm('importRisks')}>
+                                    <Link href={tenantHref('/risks/import')} aria-label={tm('importRisks')} className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="risk-import-btn">
                                         <AppIcon name="upload" size={16} />
                                     </Link>
                                 </Tooltip>
@@ -934,25 +936,22 @@ function RisksPageInner({
                 {view === 'histogram' ? (
                     <div className="space-y-default" data-testid="risk-histogram-view">
                         <div>
-                            <Heading level={3} className="mb-1">ALE histogram</Heading>
+                            <Heading level={3} className="mb-1">{tm('aleHistogram')}</Heading>
                             <p className="mb-tight text-xs text-content-subtle">
-                                Each quantified risk lands in a log-scale loss bucket,
-                                stacked by its matrix band — the distribution the
-                                heatmap structurally compresses.
+                                {tm('aleHistogramDesc')}
                             </p>
                             <AleHistogram
                                 data={histogramData}
                                 referenceLine={
                                     appetiteCap != null
-                                        ? { value: appetiteCap, label: 'Per-risk appetite' }
+                                        ? { value: appetiteCap, label: tm('perRiskAppetite') }
                                         : null
                                 }
                                 testId="risk-ale-histogram"
                             />
                             {histogramData.length === 0 && (
                                 <p className="text-sm text-content-muted">
-                                    No quantified risks yet — set FAIR ranges or SLE × ARO
-                                    on a risk to populate the histogram.
+                                    {tm('noQuantifiedRisks')}
                                 </p>
                             )}
                         </div>
@@ -961,10 +960,9 @@ function RisksPageInner({
                             out. Click drills into the cell's risks. */}
                         {collisions.length > 0 && (
                             <div data-testid="risk-collision-callouts">
-                                <Heading level={3} className="mb-1">Cell collisions</Heading>
+                                <Heading level={3} className="mb-1">{tm('cellCollisions')}</Heading>
                                 <p className="mb-tight text-xs text-content-subtle">
-                                    Risks sharing a matrix cell whose loss estimates differ
-                                    more than 10× — the matrix cannot show the difference.
+                                    {tm('cellCollisionsDesc')}
                                 </p>
                                 <div className="space-y-tight">
                                     {collisions.map((c) => (
@@ -1015,10 +1013,10 @@ function RisksPageInner({
                                 <EmptyState
                                     size="sm"
                                     variant="no-results"
-                                    title="No risks match your filters"
-                                    description="Try widening your search or clearing one of the active filters."
+                                    title={tm('noRisksMatch')}
+                                    description={tm('noRisksMatchDesc')}
                                     secondaryAction={{
-                                        label: 'Clear filters',
+                                        label: tm('clearFilters'),
                                         onClick: () => filterCtx.clearAll(),
                                     }}
                                 />
@@ -1027,9 +1025,9 @@ function RisksPageInner({
                                     size="sm"
                                     variant="no-records"
                                     title={t.noRisks}
-                                    description="Identify a threat, score its likelihood × impact, and link the controls that mitigate it."
+                                    description={tm('noRisksDesc')}
                                     primaryAction={{
-                                        label: 'Create risk',
+                                        label: tm('createRiskAction'),
                                         onClick: () => setIsCreateOpen(true),
                                     }}
                                 />
@@ -1077,6 +1075,7 @@ function RisksFilterToolbar({
     columnsDropdown?: React.ReactNode;
     filtersDropdown?: React.ReactNode;
 }) {
+    const tm = useTranslations('riskManager');
     // R-filter-gear (#3): the KPI-card gear is built in the PARENT (it
     // controls the parent's KPI grid) and threaded in here; this toolbar
     // shows the FULL filter defs.
@@ -1085,7 +1084,7 @@ function RisksFilterToolbar({
         <FilterToolbar
             filters={filters}
             searchId="risks-search"
-            searchPlaceholder="Search risks…"
+            searchPlaceholder={tm('searchPlaceholder')}
             actions={<>{columnsDropdown}{filtersDropdown}</>}
         />
     );

@@ -116,7 +116,8 @@ describe('Empty-state personality adoption (R11-PR1)', () => {
             if (!usesNoResults) continue;
             // Findings has no filters — exempt by lack of `hasActive` usage.
             if (!/\bhasActive\b/.test(src)) continue;
-            if (!/['"]Clear filters['"]/.test(src)) {
+            // i18n (T06): the action label may be a literal or a next-intl call.
+            if (!/['"]Clear filters['"]|tm\('clearFilters'\)/.test(src)) {
                 offenders.push(rel);
             }
         }

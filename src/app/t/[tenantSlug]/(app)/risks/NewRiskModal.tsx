@@ -33,6 +33,7 @@
  * suite continues to match against the modal surface.
  */
 
+import { useTranslations } from 'next-intl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSWRConfig } from 'swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
@@ -118,6 +119,7 @@ export function NewRiskModal({
     tenantSlug,
     apiUrl,
 }: NewRiskModalProps) {
+    const tn = useTranslations('newRisk');
     const close = useCallback(() => setOpen(false), [setOpen]);
     const queryClient = useQueryClient();
     // Epic 69 — bridge cache invalidation. RisksClient now reads
@@ -334,7 +336,7 @@ export function NewRiskModal({
         } catch (err) {
             telemetry.trackError(err);
             setError(
-                err instanceof Error ? err.message : 'Failed to create risk',
+                err instanceof Error ? err.message : tn('failedCreate'),
             );
             setSubmitting(false);
         }
@@ -345,13 +347,13 @@ export function NewRiskModal({
             showModal={open}
             setShowModal={setOpen}
             size="lg"
-            title="New risk"
-            description="Capture a risk against your register."
+            title={tn('title')}
+            description={tn('description')}
             preventDefaultClose={submitting}
         >
             <Modal.Header
-                title="New risk"
-                description="Capture a risk and optionally pre-fill from a template."
+                title={tn('title')}
+                description={tn('headerDescription')}
             />
             <Modal.Form id="new-risk-form" onSubmit={handleSubmit}>
                 <Modal.Body>
@@ -375,19 +377,19 @@ export function NewRiskModal({
                         the disable behaviour while FormSection
                         owns the visual rhythm. */}
                     <fieldset disabled={submitting} className="m-0 p-0 border-0">
-                    <FormSection eyebrow="Risk details">
+                    <FormSection eyebrow={tn('riskDetails')}>
                         {/* Template (optional) */}
                         {templates.length > 0 && (
                             <FormField
                                 label={
                                     <>
-                                        Template{' '}
+                                        {tn('templateLabel')}{' '}
                                         <span className="text-content-muted">
-                                            (optional)
+                                            {tn('optional')}
                                         </span>
                                     </>
                                 }
-                                description="Pre-fills title, category, likelihood, and impact from the selected template."
+                                description={tn('templateDescription')}
                             >
                                 <Combobox<false, RiskTemplate>
                                     id="risk-template-select"
@@ -402,9 +404,9 @@ export function NewRiskModal({
                                         applyTemplate(option?.value ?? '');
                                     }}
                                     loading={templatesQuery.isLoading}
-                                    placeholder="— No template"
-                                    searchPlaceholder="Search templates…"
-                                    emptyState="No templates match"
+                                    placeholder={tn('noTemplate')}
+                                    searchPlaceholder={tn('searchTemplates')}
+                                    emptyState={tn('noTemplatesMatch')}
                                     matchTriggerWidth
                                     forceDropdown
                                     buttonProps={{ className: 'w-full' }}
@@ -414,12 +416,12 @@ export function NewRiskModal({
                         )}
 
                         {/* Title */}
-                        <FormField label="Title" required>
+                        <FormField label={tn('titleLabel')} required>
                             <Input
                                 id="risk-title"
                                 ref={titleRef}
                                 type="text"
-                                placeholder="e.g. Unauthorized access to PII"
+                                placeholder={tn('titlePlaceholder')}
                                 value={form.title}
                                 onChange={(e) => update('title', e.target.value)}
                                 required
@@ -427,12 +429,12 @@ export function NewRiskModal({
                             />
                         </FormField>
                         {form.title.length > 0 && !form.title.trim() && (
-                            <FormError>Title cannot be empty.</FormError>
+                            <FormError>{tn('titleEmpty')}</FormError>
                         )}
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                             {/* Category */}
-                            <FormField label="Category">
+                            <FormField label={tn('categoryLabel')}>
                                 <Combobox
                                     id="risk-category"
                                     name="category"
@@ -445,8 +447,8 @@ export function NewRiskModal({
                                     setSelected={(o) =>
                                         update('category', o?.value ?? '')
                                     }
-                                    placeholder="— Category"
-                                    searchPlaceholder="Search categories…"
+                                    placeholder={tn('categoryPlaceholder')}
+                                    searchPlaceholder={tn('searchCategories')}
                                     matchTriggerWidth
                                     forceDropdown
                                     buttonProps={{ className: 'w-full' }}
@@ -455,7 +457,7 @@ export function NewRiskModal({
                             </FormField>
 
                             {/* Owner — tenant-member people picker. */}
-                            <FormField label="Owner">
+                            <FormField label={tn('ownerLabel')}>
                                 <UserCombobox
                                     id="risk-owner"
                                     tenantSlug={tenantSlug}
@@ -465,17 +467,17 @@ export function NewRiskModal({
                                     }
                                     forceDropdown
                                     matchTriggerWidth
-                                    placeholder="Unassigned"
+                                    placeholder={tn('ownerPlaceholder')}
                                 />
                             </FormField>
                         </div>
 
                         {/* Description */}
-                        <FormField label="Description">
+                        <FormField label={tn('descriptionLabel')}>
                             <Textarea
                                 id="risk-description"
                                 rows={3}
-                                placeholder="What's the risk scenario?"
+                                placeholder={tn('descriptionPlaceholder')}
                                 value={form.description}
                                 onChange={(e) =>
                                     update('description', e.target.value)
@@ -494,7 +496,7 @@ export function NewRiskModal({
 
                         {/* Treatment decision + notes */}
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
-                            <FormField label="Treatment">
+                            <FormField label={tn('treatmentLabel')}>
                                 <Combobox
                                     id="risk-treatment"
                                     name="treatment"
@@ -507,7 +509,7 @@ export function NewRiskModal({
                                     setSelected={(o) =>
                                         update('treatment', o?.value ?? '')
                                     }
-                                    placeholder="Select treatment…"
+                                    placeholder={tn('treatmentPlaceholder')}
                                     hideSearch
                                     matchTriggerWidth
                                     buttonProps={{ className: 'w-full' }}
@@ -515,11 +517,11 @@ export function NewRiskModal({
                                 />
                             </FormField>
                         </div>
-                        <FormField label="Treatment notes">
+                        <FormField label={tn('treatmentNotesLabel')}>
                             <Textarea
                                 id="risk-treatment-notes"
                                 rows={3}
-                                placeholder="Planned mitigation, rationale, residual-risk notes…"
+                                placeholder={tn('treatmentNotesPlaceholder')}
                                 value={form.treatmentNotes}
                                 onChange={(e) =>
                                     update('treatmentNotes', e.target.value)
@@ -531,11 +533,11 @@ export function NewRiskModal({
                             `form.nextReviewAt` stays a YMD string so the
                             server payload is unchanged; the picker
                             bridges to DateValue at the prop edge. */}
-                        <FormField label="Next review">
+                        <FormField label={tn('nextReviewLabel')}>
                             <DatePicker
                                 id="risk-review-date"
                                 className="sm:max-w-xs"
-                                placeholder="Select date"
+                                placeholder={tn('selectDate')}
                                 clearable
                                 align="start"
                                 value={parseYMD(form.nextReviewAt)}
@@ -545,7 +547,7 @@ export function NewRiskModal({
                                 disabledDays={{
                                     before: startOfUtcDay(new Date()),
                                 }}
-                                aria-label="Next review date"
+                                aria-label={tn('nextReviewDate')}
                             />
                         </FormField>
 
@@ -555,19 +557,19 @@ export function NewRiskModal({
                                 className="cursor-pointer px-4 py-2 text-sm text-content-default"
                                 data-testid="risk-controls-toggle"
                             >
-                                Link controls{' '}
+                                {tn('linkControls')}{' '}
                                 <span className="text-content-muted">
-                                    ({selectedControlIds.size} selected)
+                                    {tn('selectedCount', { count: selectedControlIds.size })}
                                 </span>
                             </summary>
                             <div className="border-t border-border-subtle px-4 py-3">
                                 {controlsQuery.isLoading ? (
                                     <p className="text-sm text-content-muted">
-                                        Loading controls…
+                                        {tn('loadingControls')}
                                     </p>
                                 ) : controls.length === 0 ? (
                                     <p className="text-sm text-content-muted">
-                                        No controls available to link.
+                                        {tn('noControlsToLink')}
                                     </p>
                                 ) : (
                                     <div
@@ -616,7 +618,7 @@ export function NewRiskModal({
                         }}
                         disabled={submitting}
                     >
-                        Cancel
+                        {tn('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -625,7 +627,7 @@ export function NewRiskModal({
                         id="submit-risk"
                         disabled={!canSubmit}
                     >
-                        {submitting ? 'Creating…' : 'Create risk'}
+                        {submitting ? tn('creating') : tn('createRisk')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

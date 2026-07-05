@@ -2,6 +2,7 @@
 
 /* RQ-6 — Key Risk Indicators: RAG cards + sparkline + record reading. */
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ function sparkline(values: number[]): string {
 const ragVariant = (r: string | null | undefined) => (r === 'RED' ? 'error' : r === 'AMBER' ? 'warning' : 'success');
 
 export default function KriPage() {
+    const tk = useTranslations('riskKri');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const [kris, setKris] = useState<Kri[]>([]);
@@ -61,21 +63,21 @@ export default function KriPage() {
 
     return (
         <div className="space-y-section">
-            <PageBreadcrumbs items={[{ label: 'Risks', href: tenantHref('/risks') }, { label: 'KRIs' }]} />
-            <Heading level={1}>Key Risk Indicators</Heading>
+            <PageBreadcrumbs items={[{ label: tk('risks'), href: tenantHref('/risks') }, { label: tk('breadcrumb') }]} />
+            <Heading level={1}>{tk('title')}</Heading>
 
             <Card className="space-y-default p-6">
-                <Heading level={2}>New KRI</Heading>
+                <Heading level={2}>{tk('newKri')}</Heading>
                 <div className="flex flex-wrap items-end gap-default">
-                    <label className="block flex-1"><span className="text-xs text-content-muted">Name</span><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Phishing click rate" /></label>
-                    <label className="block w-24 sm:w-32"><span className="text-xs text-content-muted">Green ≤</span><Input type="text" inputMode="decimal" value={greenMax} onChange={(e) => setGreenMax(e.target.value)} /></label>
-                    <label className="block w-24 sm:w-32"><span className="text-xs text-content-muted">Amber ≤</span><Input type="text" inputMode="decimal" value={amberMax} onChange={(e) => setAmberMax(e.target.value)} /></label>
-                    <Button variant="primary" onClick={create} disabled={busy || !name.trim()}>Create</Button>
+                    <label className="block flex-1"><span className="text-xs text-content-muted">{tk('name')}</span><Input value={name} onChange={(e) => setName(e.target.value)} placeholder={tk('namePlaceholder')} /></label>
+                    <label className="block w-24 sm:w-32"><span className="text-xs text-content-muted">{tk('greenMax')}</span><Input type="text" inputMode="decimal" value={greenMax} onChange={(e) => setGreenMax(e.target.value)} /></label>
+                    <label className="block w-24 sm:w-32"><span className="text-xs text-content-muted">{tk('amberMax')}</span><Input type="text" inputMode="decimal" value={amberMax} onChange={(e) => setAmberMax(e.target.value)} /></label>
+                    <Button variant="primary" onClick={create} disabled={busy || !name.trim()}>{tk('create')}</Button>
                 </div>
             </Card>
 
             {kris.length === 0 ? (
-                <Card className="p-6"><p className="text-sm text-content-muted">No KRIs yet. Create one to track a leading indicator with RAG thresholds.</p></Card>
+                <Card className="p-6"><p className="text-sm text-content-muted">{tk('noKris')}</p></Card>
             ) : (
                 <div className="grid grid-cols-1 gap-default md:grid-cols-2">
                     {kris.map((k) => (
@@ -83,12 +85,12 @@ export default function KriPage() {
                             <div className="flex items-center justify-between gap-default">
                                 <Heading level={3}>{k.name}</Heading>
                                 <StatusBadge variant={ragVariant(k.latestReading?.ragStatus)}>
-                                    {k.latestReading?.ragStatus ?? 'No data'}{k.latestReading != null ? ` · ${k.latestReading.value}${k.unit ?? ''}` : ''}
+                                    {k.latestReading?.ragStatus ?? tk('noData')}{k.latestReading != null ? ` · ${k.latestReading.value}${k.unit ?? ''}` : ''}
                                 </StatusBadge>
                             </div>
-                            <div className="font-mono text-lg leading-none text-content-emphasis" aria-label="reading trend">{sparkline(k.sparkline)}</div>
+                            <div className="font-mono text-lg leading-none text-content-emphasis" aria-label={tk('readingTrend')}>{sparkline(k.sparkline)}</div>
                             <p className="text-xs text-content-muted">
-                                {k.targetValue != null ? `Target ${k.targetValue}${k.unit ?? ''} · ` : ''}{k.frequency.toLowerCase()} · green ≤ {k.greenMax ?? '—'} · amber ≤ {k.amberMax ?? '—'}
+                                {k.targetValue != null ? tk('targetLine', { target: `${k.targetValue}${k.unit ?? ''}` }) : ''}{tk('thresholdsLine', { frequency: k.frequency.toLowerCase(), green: k.greenMax ?? '—', amber: k.amberMax ?? '—' })}
                             </p>
                             {/* RQ3-7 — when a KRI is breached (RED) and
                                 linked to a risk, deep-link straight to
@@ -102,7 +104,7 @@ export default function KriPage() {
                                     className="inline-flex items-center gap-1 text-xs font-medium text-content-error underline underline-offset-2"
                                     data-testid={`kri-reassess-link-${k.id}`}
                                 >
-                                    Re-assess the linked risk →
+                                    {tk('reassessLink')}
                                 </Link>
                             )}
                             <RecordInline onRecord={(v) => record(k.id, v)} />
@@ -115,13 +117,14 @@ export default function KriPage() {
 }
 
 function RecordInline({ onRecord }: { onRecord: (v: string) => void }) {
+    const tk = useTranslations('riskKri');
     const [v, setV] = useState('');
     return (
         <div className="flex items-end gap-tight">
-            <label className="block flex-1"><span className="text-xs text-content-muted">Record reading</span>
-                <Input type="text" inputMode="decimal" value={v} onChange={(e) => setV(e.target.value)} placeholder="value" />
+            <label className="block flex-1"><span className="text-xs text-content-muted">{tk('recordReading')}</span>
+                <Input type="text" inputMode="decimal" value={v} onChange={(e) => setV(e.target.value)} placeholder={tk('valuePlaceholder')} />
             </label>
-            <Button size="sm" variant="secondary" onClick={() => { onRecord(v); setV(''); }} disabled={!v.trim()}>Add</Button>
+            <Button size="sm" variant="secondary" onClick={() => { onRecord(v); setV(''); }} disabled={!v.trim()}>{tk('add')}</Button>
         </div>
     );
 }

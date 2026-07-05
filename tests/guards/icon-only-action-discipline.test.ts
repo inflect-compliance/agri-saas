@@ -65,20 +65,40 @@ describe('icon-only action discipline', () => {
 
     // Link sites (download / navigation) — icon-only via a Tooltip-wrapped
     // `size:'icon'` anchor with an aria-label.
-    const LINK_SITES: Array<{ file: string; ariaLabel: string }> = [
-        { file: `${APP}/risks/RisksClient.tsx`, ariaLabel: 'Import risks' },
-        { file: `${APP}/audits/packs/[packId]/page.tsx`, ariaLabel: 'Export JSON' },
-        { file: `${APP}/audits/packs/[packId]/page.tsx`, ariaLabel: 'Export CSV' },
+    // i18n (T06): RisksClient's "Import risks" link now resolves both the
+    // aria-label and the Tooltip content through next-intl (tm('importRisks')).
+    const LINK_SITES: Array<{
+        file: string;
+        ariaLabel: string;
+        ariaMatch: string;
+        tooltipMatch: RegExp;
+    }> = [
+        {
+            file: `${APP}/risks/RisksClient.tsx`,
+            ariaLabel: 'Import risks',
+            ariaMatch: `aria-label=\\{tm\\('importRisks'\\)\\}[\\s\\S]*?size: 'icon'`,
+            tooltipMatch: /<Tooltip content=\{tm\('importRisks'\)\}>/,
+        },
+        {
+            file: `${APP}/audits/packs/[packId]/page.tsx`,
+            ariaLabel: 'Export JSON',
+            ariaMatch: `aria-label="Export JSON"[\\s\\S]*?size: 'icon'`,
+            tooltipMatch: /<Tooltip content="(?:Export JSON|Export CSV)">/,
+        },
+        {
+            file: `${APP}/audits/packs/[packId]/page.tsx`,
+            ariaLabel: 'Export CSV',
+            ariaMatch: `aria-label="Export CSV"[\\s\\S]*?size: 'icon'`,
+            tooltipMatch: /<Tooltip content="(?:Export JSON|Export CSV)">/,
+        },
     ];
 
-    for (const { file, ariaLabel } of LINK_SITES) {
+    for (const { file, ariaLabel, ariaMatch, tooltipMatch } of LINK_SITES) {
         it(`icon-only link stays icon-only: "${ariaLabel}"`, () => {
             const src = read(file);
-            expect(src).toMatch(
-                new RegExp(`aria-label="${ariaLabel}"[\\s\\S]*?size: 'icon'`),
-            );
+            expect(src).toMatch(new RegExp(ariaMatch));
             // wrapped in the shared Tooltip for the delayed label.
-            expect(src).toMatch(/<Tooltip content="(?:Import risks|Export JSON|Export CSV)">/);
+            expect(src).toMatch(tooltipMatch);
         });
     }
 

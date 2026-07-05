@@ -43,7 +43,6 @@ const LEGACY_LUCIDE_USERS = new Set<string>([
     'src/app/org/[orgSlug]/(app)/evidence/EvidenceTable.tsx',
     'src/app/org/[orgSlug]/(app)/members/MembersTable.tsx',
     'src/app/org/[orgSlug]/(app)/PortfolioDashboard.tsx',
-    'src/app/org/[orgSlug]/(app)/risks/RisksTable.tsx',
     'src/app/org/[orgSlug]/(app)/tenants/new/NewTenantForm.tsx',
     'src/app/org/[orgSlug]/(app)/tenants/TenantsTable.tsx',
     'src/app/org/[orgSlug]/(app)/widget-dispatcher.tsx',

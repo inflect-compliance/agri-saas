@@ -38,8 +38,10 @@ describe('B7 — Tasks column on Asset + Risk', () => {
     it('Asset + Risk list tables render a Tasks column (done/total) + gear toggle', () => {
         for (const src of [ASSETS, RISKS]) {
             expect(src).toMatch(/id: 'tasks'/);
-            expect(src).toMatch(/header: 'Tasks'/);
-            expect(src).toMatch(/\{ id: 'tasks', label: 'Tasks' \}/);
+            // i18n (T06): the risks table resolves headers through next-intl;
+            // the assets table still uses the literal. Accept either.
+            expect(src).toMatch(/header: (?:'Tasks'|tm\('colTasks'\))/);
+            expect(src).toMatch(/\{ id: 'tasks', label: (?:'Tasks'|tm\('colTasks'\)) \}/);
             expect(src).toMatch(/taskDone/);
         }
     });
