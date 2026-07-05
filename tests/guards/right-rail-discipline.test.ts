@@ -32,6 +32,11 @@ const SHELL_PATH = 'src/components/layout/EntityDetailLayout.tsx';
 
 // Phase 2 — list-page aside slot.
 const LIST_SHELL_PATH = 'src/components/layout/ListPageShell.tsx';
+// T04 i18n — the rail <aside> markup (the only translated part of the
+// shell) lives in a `'use client'` leaf so ListPageShell itself stays a
+// shared server-compatible primitive. The slot PROPS stay on the shell;
+// the rendered <aside aria-label data-testid> is asserted against the leaf.
+const LIST_SHELL_RAIL_PATH = 'src/components/layout/ListPageShellRail.tsx';
 const ENTITY_LIST_PAGE_PATH = 'src/components/layout/EntityListPage.tsx';
 const SELECTION_PANEL_PATH =
     'src/components/ui/selection-summary-panel.tsx';
@@ -119,13 +124,16 @@ describe('Right-rail list-page aside discipline (Phase 2)', () => {
     });
 
     it('ListPageShell.Body renders the aside as a real <aside> with the canonical test-id', () => {
-        const src = read(LIST_SHELL_PATH);
         // a11y: a real <aside aria-label> so the column is announced
         // as a distinct region. i18n (T04): the label routes through
-        // next-intl (listPageShell.context), so accept a `{…}` expression.
+        // next-intl (listPageShell.context) via the ListPageShellRail
+        // client leaf, so accept a `{…}` expression and read the leaf.
+        const src = read(LIST_SHELL_RAIL_PATH);
         expect(src).toMatch(
-            /<aside[\s\S]*?aria-label=(?:["'][^"']+["']|\{[^}]+\})[\s\S]*?data-testid=["']list-page-aside["']/,
+            /<aside[\s\S]*?aria-label=(?:["'][^"']+["']|\{[^}]+\})[\s\S]*?data-testid=(?:["']list-page-aside["']|\{testId\})/,
         );
+        // …and the shell still threads the aside into that leaf.
+        expect(read(LIST_SHELL_PATH)).toMatch(/<ListPageShellRail\s+kind="context"/);
     });
 
     it('the list-page aside docks at xl, never at md/lg', () => {
