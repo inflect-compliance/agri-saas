@@ -134,7 +134,9 @@ describe('ColumnsDropdown + shared primitive — source contract', () => {
     });
 
     it('the shared primitive shows a "Reset to defaults" row gated on modification', () => {
-        expect(primitive).toMatch(/Reset to defaults/);
+        // The label is i18n-routed (ui.checklistGearButton.resetToDefaults =
+        // "Reset to defaults" in messages/en.json).
+        expect(primitive).toMatch(/checklistGearButton\.resetToDefaults/);
         expect(primitive).toMatch(/someModified/);
     });
 

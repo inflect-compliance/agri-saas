@@ -29,6 +29,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 import Link from 'next/link';
 import { cardVariants } from '@/components/ui/card';
@@ -104,6 +105,7 @@ export function SankeyChart({
     width = DEFAULT_WIDTH,
     height = DEFAULT_HEIGHT,
 }: SankeyChartProps) {
+    const t = useTranslations('ui');
     const dataset = useMemo<SankeyDataset>(
         () => buildSankeyDataset(graph, { searchQuery }),
         [graph, searchQuery],
@@ -166,8 +168,10 @@ export function SankeyChart({
                 )}
             >
                 {dataset.emptyAfterFilter
-                    ? `No flows match "${(searchQuery ?? '').trim()}"`
-                    : 'No mapping flows to display.'}
+                    ? t('sankeyChart.noFlowsMatch', {
+                          query: (searchQuery ?? '').trim(),
+                      })
+                    : t('sankeyChart.emptyFlows')}
             </div>
         );
     }
@@ -183,7 +187,7 @@ export function SankeyChart({
                     className,
                 )}
             >
-                Nodes are present but no cross-tier mapping flows have been recorded yet.
+                {t('sankeyChart.emptyNodesNoLinks')}
             </div>
         );
     }
@@ -236,7 +240,9 @@ export function SankeyChart({
                     id="sankey-fit-toggle"
                     aria-pressed={fitToView}
                 >
-                    {fitToView ? 'Actual size' : 'Fit to view'}
+                    {fitToView
+                        ? t('sankeyChart.actualSize')
+                        : t('sankeyChart.fitToView')}
                 </Button>
             </div>
 
@@ -253,7 +259,7 @@ export function SankeyChart({
             >
                 <svg
                     role="img"
-                    aria-label="Cross-tier traceability flow (Sankey)"
+                    aria-label={t('sankeyChart.ariaLabel')}
                     viewBox={`0 0 ${layout.width} ${layout.height}`}
                     preserveAspectRatio="xMidYMid meet"
                     className={fitToView ? 'mx-auto block' : 'w-full'}
@@ -359,6 +365,7 @@ function SankeyNodeRect({
     onLeave: () => void;
     onClick: () => void;
 }) {
+    const t = useTranslations('ui');
     const labelOnRight = node.x > 0;
     const opacity = highlighted ? 1 : 0.85;
     const rect = (
@@ -380,7 +387,10 @@ function SankeyNodeRect({
             }}
         >
             <title>
-                {node.label} (weight {node.weight})
+                {t('sankeyChart.nodeWeight', {
+                    label: node.label,
+                    weight: node.weight,
+                })}
             </title>
         </rect>
     );

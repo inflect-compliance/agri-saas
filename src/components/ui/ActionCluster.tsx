@@ -40,6 +40,7 @@
  */
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { MoreHorizontal } from "lucide-react";
 
@@ -133,6 +134,7 @@ export function ActionCluster({
     className,
     "data-testid": dataTestId,
 }: ActionClusterProps) {
+    const t = useTranslations("ui");
     const [openMore, setOpenMore] = React.useState(false);
     const hasOverflow = overflow && overflow.length > 0;
     if (!primary && !secondary && !hasOverflow) return null;
@@ -187,7 +189,7 @@ export function ActionCluster({
                     <Button
                         variant="ghost"
                         size="md"
-                        aria-label="More actions"
+                        aria-label={t("actionCluster.moreActions")}
                         data-testid="action-cluster-more"
                     >
                         <MoreHorizontal className="h-4 w-4" />

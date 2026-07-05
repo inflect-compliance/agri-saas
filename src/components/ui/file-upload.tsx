@@ -1,6 +1,7 @@
 import { cn } from "@/lib/cn";
 import { resizeImage } from "@/lib/resize-image";
 import { VariantProps, cva } from "class-variance-authority";
+import { useTranslations } from "next-intl";
 import { DragEvent, ReactNode, useState } from "react";
 import { useToast } from "./hooks/use-toast";
 import { CloudUpload, Icon, LoadingCircle } from "./icons";
@@ -36,36 +37,26 @@ const evidenceTypes = [
   "application/zip",
 ];
 
-const acceptFileTypes: Record<
-  AcceptedFileFormats,
-  { types: string[]; errorMessage?: string }
-> = {
+const acceptFileTypes: Record<AcceptedFileFormats, { types: string[] }> = {
   any: { types: [] },
   images: {
     types: ["image/png", "image/jpeg"],
-    errorMessage: "File type not supported (.png or .jpg only)",
   },
   csv: {
     types: ["text/csv"],
-    errorMessage: "File type not supported (.csv only)",
   },
   documents: {
     types: documentTypes,
-    errorMessage: "File type not supported (document files only)",
   },
   // TODO: allow custom `accept` prop so we don't need specific options here
   programResourceImages: {
     types: ["image/svg+xml", "image/png", "image/jpeg", "image/webp"],
-    errorMessage: "File type not supported (.svg, .png, .jpg, or .webp only)",
   },
   programResourceFiles: {
     types: [...documentTypes, "application/zip"],
-    errorMessage: "File type not supported (document or zip files only)",
   },
   evidence: {
     types: evidenceTypes,
-    errorMessage:
-      "File type not supported — use PDF, Office, CSV, image, JSON, or ZIP",
   },
 };
 
@@ -189,10 +180,31 @@ export function FileUpload({
   content,
   maxFileSizeMB = 5,
   targetResolution,
-  accessibilityLabel = "File upload",
+  accessibilityLabel,
   capture,
   disabled = false,
 }: FileUploadProps) {
+  const t = useTranslations("ui");
+  const accessibilityLabelValue =
+    accessibilityLabel ?? t("fileUpload.defaultLabel");
+  const fileTypeError = (fmt: AcceptedFileFormats): string => {
+    switch (fmt) {
+      case "images":
+        return t("fileUpload.errorImages");
+      case "csv":
+        return t("fileUpload.errorCsv");
+      case "documents":
+        return t("fileUpload.errorDocuments");
+      case "programResourceImages":
+        return t("fileUpload.errorProgramResourceImages");
+      case "programResourceFiles":
+        return t("fileUpload.errorProgramResourceFiles");
+      case "evidence":
+        return t("fileUpload.errorEvidence");
+      default:
+        return t("fileUpload.fileTypeNotSupported");
+    }
+  };
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const toast = useToast();
@@ -213,16 +225,16 @@ export function FileUpload({
     setFileName(file.name);
 
     if (maxFileSizeMB > 0 && file.size / 1024 / 1024 > maxFileSizeMB) {
-      toast.error(`File size too big (max ${maxFileSizeMB} MB)`);
+      toast.error(
+        t("fileUpload.fileSizeTooBig", { maxFileSizeMB: String(maxFileSizeMB) }),
+      );
       return;
     }
 
     const acceptedTypes = acceptFileTypes[accept].types;
 
     if (acceptedTypes.length && !acceptedTypes.includes(file.type)) {
-      toast.error(
-        acceptFileTypes[accept].errorMessage ?? "File type not supported",
-      );
+      toast.error(fileTypeError(accept));
       return;
     }
 
@@ -344,19 +356,23 @@ export function FileUpload({
           >
             {content ?? (
               <>
-                <p>Drag and drop {clickToUpload && "or click"} to upload.</p>
+                <p>
+                  {t("fileUpload.dragAndDrop", {
+                    clickToUpload: clickToUpload ? t("fileUpload.orClick") : "",
+                  })}
+                </p>
               </>
             )}
           </div>
         )}
-        <span className="sr-only">{accessibilityLabel}</span>
+        <span className="sr-only">{accessibilityLabelValue}</span>
       </div>
       {imageSrc &&
         (customPreview ?? (
           // eslint-disable-next-line @next/next/no-img-element -- imageSrc is a runtime-generated blob URL or upstream-hosted preview; next/image needs known dimensions + remote-pattern allowlisting that this generic upload primitive can't pre-declare. Plain <img> is the right primitive here.
           <img
             src={imageSrc}
-            alt="Preview"
+            alt={t("fileUpload.previewAlt")}
             className={cn(
               "h-full w-full rounded-[inherit] object-cover",
               previewClassName,

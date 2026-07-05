@@ -36,6 +36,7 @@
  *   - Keyboard nav, popover positioning, mobile drawer
  */
 
+import { useTranslations } from "next-intl";
 import * as React from "react";
 import { Combobox, type ComboboxOption } from "./combobox";
 
@@ -166,6 +167,7 @@ export function useAsyncSearch<TMeta>(
 export function AsyncCombobox<TMeta = unknown>(
     props: AsyncComboboxProps<TMeta>,
 ) {
+    const t = useTranslations("ui");
     const {
         onSearch,
         debounceMs = 250,
@@ -175,9 +177,9 @@ export function AsyncCombobox<TMeta = unknown>(
         disabled,
         required,
         invalid,
-        placeholder = "Select…",
-        searchPlaceholder = "Search…",
-        emptyState = "No results",
+        placeholder = t("combobox.placeholder"),
+        searchPlaceholder = t("combobox.searchPlaceholder"),
+        emptyState = t("asyncCombobox.emptyState"),
         className,
         forceDropdown = true,
         matchTriggerWidth = true,

@@ -27,6 +27,7 @@
 import { Command } from 'cmdk';
 import { GripVertical, RotateCcw } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from './button';
 import { Popover } from './popover';
 import { ScrollContainer } from './scroll-container';
@@ -70,6 +71,7 @@ export function ChecklistGearButton({
     className,
     id,
 }: ChecklistGearButtonProps) {
+    const t = useTranslations('ui');
     const [open, setOpen] = useState(false);
     // The id being dragged (handle → drop target). A ref, not state — it
     // mutates across native drag events without needing a re-render.
@@ -215,7 +217,7 @@ export function ChecklistGearButton({
                                         data-testid="checklist-reset"
                                     >
                                         <RotateCcw className="h-3.5 w-3.5 shrink-0" />
-                                        <span>Reset to defaults</span>
+                                        <span>{t('checklistGearButton.resetToDefaults')}</span>
                                     </Command.Item>
                                 </>
                             )}

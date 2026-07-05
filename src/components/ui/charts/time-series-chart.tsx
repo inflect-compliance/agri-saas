@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps -- Various useEffect/useMemo dep arrays in this file deliberately omit identity-unstable callbacks (handlers recreated each render) or use selector functions whose change-detection happens elsewhere. Adding the deps would either trigger unnecessary re-runs OR cause infinite render loops; the proper structural fix is to wrap parent-level callbacks in useCallback. Tracked as follow-up. */
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Group } from "@visx/group";
 import { ParentSize } from "@visx/responsive";
 import { Bar, Circle, Line } from "@visx/shape";
@@ -66,20 +67,21 @@ interface TimeSeriesChartExtraProps {
 type TimeSeriesChartProps<T extends Datum> = PropsWithChildren<ChartProps<T>> &
     TimeSeriesChartExtraProps;
 
-const DEFAULT_EMPTY_STATE = (
-    <div
-        data-chart-empty
-        role="status"
-        className="flex h-full w-full items-center justify-center px-6 py-8 text-center text-sm text-content-muted"
-    >
-        No data available for this range.
-    </div>
-);
-
 export function TimeSeriesChart<T extends Datum>(
     props: TimeSeriesChartProps<T>,
 ) {
+    const t = useTranslations("ui");
     const isEmpty = props.data.length === 0 || props.series.length === 0;
+
+    const defaultEmptyState = (
+        <div
+            data-chart-empty
+            role="status"
+            className="flex h-full w-full items-center justify-center px-6 py-8 text-center text-sm text-content-muted"
+        >
+            {t("timeSeriesChart.emptyState")}
+        </div>
+    );
 
     return (
         <ParentSize className={props.className ?? "relative"}>
@@ -91,7 +93,7 @@ export function TimeSeriesChart<T extends Datum>(
                             style={{ width, height }}
                             className="flex items-center justify-center"
                         >
-                            {props.emptyState ?? DEFAULT_EMPTY_STATE}
+                            {props.emptyState ?? defaultEmptyState}
                         </div>
                     );
                 }

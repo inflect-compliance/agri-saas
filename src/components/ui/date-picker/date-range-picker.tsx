@@ -46,6 +46,7 @@
 import { cn } from '@/lib/cn';
 import { enUS } from 'date-fns/locale';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
     useCallback,
     useEffect,
@@ -120,13 +121,15 @@ export function DateRangePicker({
     disabledDays,
     showYearNavigation = false,
     locale = enUS,
-    placeholder = 'Select date range',
+    placeholder,
     hasError,
     align = 'center',
     className,
     clearable = true,
     ...props
 }: DateRangePickerProps) {
+    const t = useTranslations('ui');
+    const resolvedPlaceholder = placeholder ?? t('datePicker.selectDateRange');
     const { isDesktop } = useMediaQuery();
 
     const isControlled = value !== undefined;
@@ -346,7 +349,7 @@ export function DateRangePicker({
                                     data-testid="date-range-picker-clear"
                                 >
                                     <X className="size-3.5" aria-hidden="true" />
-                                    <span>Clear range</span>
+                                    <span>{t('datePicker.clearRange')}</span>
                                 </button>
                             </div>
                         )}
@@ -354,7 +357,7 @@ export function DateRangePicker({
                 }
             >
                 <Trigger
-                    placeholder={placeholder}
+                    placeholder={resolvedPlaceholder}
                     disabled={disabled}
                     className={className}
                     hasError={hasError}

@@ -61,6 +61,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
 import {
     computeSearchHighlight,
@@ -332,6 +333,7 @@ export function GraphExplorer({
     nodeAsLinks = true,
     searchQuery = '',
 }: GraphExplorerProps) {
+    const t = useTranslations('ui');
     const highlight = useMemo(
         () => computeSearchHighlight(graph.nodes, graph.edges, searchQuery),
         [graph.nodes, graph.edges, searchQuery],
@@ -363,7 +365,7 @@ export function GraphExplorer({
                 )}
                 data-graph-empty="true"
             >
-                No traceability links to display.
+                {t('graphExplorer.emptyState')}
             </div>
         );
     }
@@ -412,7 +414,7 @@ export function GraphExplorer({
                     className="absolute inset-x-0 top-2 mx-auto w-fit px-3 py-1.5 rounded-md bg-bg-elevated/95 border border-border-default text-xs text-content-muted shadow-md"
                     role="status"
                 >
-                    No matches for &ldquo;{searchQuery.trim()}&rdquo;
+                    {t('graphExplorer.noMatches', { query: searchQuery.trim() })}
                 </div>
             )}
         </div>

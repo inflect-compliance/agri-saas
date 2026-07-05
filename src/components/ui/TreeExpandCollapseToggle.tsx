@@ -18,6 +18,7 @@
  */
 
 import { cn } from '@/lib/cn';
+import { useTranslations } from 'next-intl';
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { getExpandToggleState } from '@/lib/framework-tree/tree-helpers';
 
@@ -41,11 +42,14 @@ export function TreeExpandCollapseToggle({
     totalExpandable,
     onExpandAll,
     onCollapseAll,
-    expandLabel = 'Expand all',
-    collapseLabel = 'Collapse all',
+    expandLabel,
+    collapseLabel,
     className,
     id = 'tree-toggle',
 }: TreeExpandCollapseToggleProps) {
+    const t = useTranslations('ui');
+    const resolvedExpandLabel = expandLabel ?? t('tree.expandAll');
+    const resolvedCollapseLabel = collapseLabel ?? t('tree.collapseAll');
     // Derive tri-state. Disabling the no-op direction makes the
     // affordance honest: when nothing's expanded, "Collapse all" is
     // pointless and clicking it would be confusing. The state
@@ -64,15 +68,15 @@ export function TreeExpandCollapseToggle({
                 className,
             )}
             role="group"
-            aria-label="Tree expansion controls"
+            aria-label={t('tree.controlsLabel')}
             data-tree-toggle-id={id}
         >
             <button
                 type="button"
                 onClick={onExpandAll}
                 disabled={noWork || allExpanded}
-                aria-label={expandLabel}
-                title={expandLabel}
+                aria-label={resolvedExpandLabel}
+                title={resolvedExpandLabel}
                 id={`${id}-expand`}
                 className={cn(
                     'flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors',
@@ -82,14 +86,14 @@ export function TreeExpandCollapseToggle({
                 )}
             >
                 <ChevronsUpDown className="w-3.5 h-3.5" aria-hidden="true" />
-                <span className="hidden sm:inline">{expandLabel}</span>
+                <span className="hidden sm:inline">{resolvedExpandLabel}</span>
             </button>
             <button
                 type="button"
                 onClick={onCollapseAll}
                 disabled={noWork || noneExpanded}
-                aria-label={collapseLabel}
-                title={collapseLabel}
+                aria-label={resolvedCollapseLabel}
+                title={resolvedCollapseLabel}
                 id={`${id}-collapse`}
                 className={cn(
                     'flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors',
@@ -99,7 +103,7 @@ export function TreeExpandCollapseToggle({
                 )}
             >
                 <ChevronsDownUp className="w-3.5 h-3.5" aria-hidden="true" />
-                <span className="hidden sm:inline">{collapseLabel}</span>
+                <span className="hidden sm:inline">{resolvedCollapseLabel}</span>
             </button>
         </div>
     );

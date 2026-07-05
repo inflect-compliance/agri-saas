@@ -20,6 +20,7 @@
  * theme switch lands automatically.
  */
 
+import { useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
 import { LIST_BACKFILL_CAP } from '@/lib/list-backfill-cap';
 
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function TruncationBanner({ truncated, cap = LIST_BACKFILL_CAP }: Props) {
+    const t = useTranslations('ui');
     if (!truncated) return null;
     return (
         <div
@@ -41,10 +43,10 @@ export function TruncationBanner({ truncated, cap = LIST_BACKFILL_CAP }: Props) 
             <AlertTriangle size={16} className="mt-0.5 shrink-0 text-content-warning" aria-hidden="true" />
             <div>
                 <span className="font-medium">
-                    Showing the first {cap.toLocaleString()} results.
+                    {t('truncationBanner.showingFirst', { cap: cap.toLocaleString() })}
                 </span>{' '}
                 <span className="text-content-muted">
-                    Refine your filters to narrow the view and see the rest.
+                    {t('truncationBanner.refineFilters')}
                 </span>
             </div>
         </div>
