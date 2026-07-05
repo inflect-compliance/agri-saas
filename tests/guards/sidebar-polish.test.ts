@@ -72,7 +72,9 @@ describe('Sidebar polish discipline (Roadmap-2 PR-3)', () => {
         expect(fnMatch).not.toBeNull();
         const sections = fnMatch![1]!;
         const head = sections.slice(0, 800);
-        expect(head).toMatch(/title:\s*['"][A-Z]/);
+        // i18n (T04): the eyebrow title routes through next-intl
+        // (`title: t('portfolio')`) rather than a literal string.
+        expect(head).toMatch(/title:\s*(?:['"][A-Z]|t\(['"])/);
     });
 
     it('SidebarContent renders the inline command-palette opener', () => {

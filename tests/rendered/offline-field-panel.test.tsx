@@ -37,14 +37,32 @@ jest.mock('@/components/ui/map/MapCanvas', () => ({ MapCanvas: () => null }));
 // OfflineFieldPanel now renders <AgStatusBadge> (→ next-intl). Mock it so
 // the ESM module isn't parsed and the label falls back to the English
 // default ("Done"/"Pending"/…) via t.has()===false.
-jest.mock('next-intl', () => ({
-    useTranslations: () => {
-        const t = (k: string) => k;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (t as any).has = () => false;
-        return t;
-    },
-}));
+jest.mock('next-intl', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const en = require('../../messages/en.json');
+    const get = (p: string): unknown =>
+        p.split('.').reduce<unknown>(
+            (o, k) => (o == null ? undefined : (o as Record<string, unknown>)[k]),
+            en,
+        );
+    return {
+        useTranslations: (ns?: string) => {
+            const t = (key: string, values?: Record<string, unknown>) => {
+                const full = ns ? `${ns}.${key}` : key;
+                const msg = get(full);
+                if (typeof msg !== 'string') return full;
+                return msg.replace(/\{(\w+)\}/g, (_, k) =>
+                    values?.[k] != null ? String(values[k]) : `{${k}}`,
+                );
+            };
+            // Keep has()===false so AgStatusBadge uses its default
+            // title-case label rendering (the test asserts on "Done").
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (t as any).has = () => false;
+            return t;
+        },
+    };
+});
 
 import * as outbox from '@/lib/offline/outbox';
 import { OfflineFieldPanel } from '@/components/offline/OfflineFieldPanel';

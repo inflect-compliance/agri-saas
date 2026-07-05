@@ -102,8 +102,10 @@ describe('Roadmap-14 PR-8 — NotificationsBell discipline', () => {
             // Assistive tech needs to know whether the bell is
             // demanding attention. Static "Notifications" would
             // hide the count from screen readers.
+            // i18n (T04): the count-aware aria copy lives in
+            // messages/en.json under notificationsBell.unreadNotifications.
             expect(BELL_SRC).toMatch(
-                /aria-label=\{[\s\S]*?unreadCount\s*>\s*0[\s\S]*?unread notifications/,
+                /aria-label=\{[\s\S]*?unreadCount\s*>\s*0[\s\S]*?t\(['"]unreadNotifications['"]/,
             );
         });
     });
@@ -178,7 +180,9 @@ describe('Roadmap-14 PR-8 — NotificationsBell discipline', () => {
                 /import\s+\{\s*EmptyState\s*\}\s+from\s+['"]@\/components\/ui\/empty-state['"]/,
             );
             expect(BELL_SRC).toMatch(/<EmptyState\b/);
-            expect(BELL_SRC).toMatch(/title="All clear"/);
+            // i18n (T04): "All clear" copy lives in en.json under
+            // notificationsBell.allClear.
+            expect(BELL_SRC).toMatch(/title=\{t\(['"]allClear['"]\)\}/);
         });
     });
 
@@ -187,8 +191,10 @@ describe('Roadmap-14 PR-8 — NotificationsBell discipline', () => {
             // No reason to render the action when there's nothing
             // to mark. The button only shows when at least one row
             // is unread.
+            // i18n (T04): "Mark all read" copy lives in en.json under
+            // notificationsBell.markAllRead.
             expect(BELL_SRC).toMatch(
-                /\{unreadCount\s*>\s*0\s*&&\s*\([\s\S]*?Mark all read/,
+                /\{unreadCount\s*>\s*0\s*&&\s*\([\s\S]*?t\(['"]markAllRead['"]\)/,
             );
             expect(BELL_SRC).toMatch(
                 /data-testid="notifications-mark-all-read"/,

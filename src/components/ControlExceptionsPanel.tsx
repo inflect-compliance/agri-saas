@@ -16,6 +16,7 @@
  * approve from another tab refreshes the badges in this one.
  */
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,7 @@ export function ControlExceptionsPanel({
     canWrite,
     canAdmin,
 }: Props) {
+    const t = useTranslations('controlExceptions');
     const queryClient = useQueryClient();
     const apiBase = `/api/t/${tenantSlug}/controls/${controlId}/exceptions`;
 
@@ -114,7 +116,7 @@ export function ControlExceptionsPanel({
             <header className="flex items-center justify-between">
                 <div className="flex items-center gap-compact">
                     <Heading level={2}>
-                        Control Exceptions
+                        {t('title')}
                     </Heading>
                     <ExceptionHeaderBadge ex={activeException} />
                 </div>
@@ -123,7 +125,7 @@ export function ControlExceptionsPanel({
                         onClick={() => setRequestOpen(true)}
                         data-testid="control-exception-request-button"
                     >
-                        Request exception
+                        {t('requestException')}
                     </Button>
                 ) : null}
             </header>
@@ -133,7 +135,7 @@ export function ControlExceptionsPanel({
                     className="text-sm text-content-muted"
                     data-testid="control-exceptions-empty"
                 >
-                    No exceptions on file. The control is enforced as designed.
+                    {t('empty')}
                 </p>
             ) : (
                 <ul className="space-y-tight" data-testid="control-exceptions-list">
@@ -150,12 +152,12 @@ export function ControlExceptionsPanel({
                                     </StatusBadge>
                                     <span className="text-sm text-content-muted">
                                         {r.expiresAt
-                                            ? `expires ${formatDate(r.expiresAt)}`
-                                            : 'no expiry set'}
+                                            ? t('expires', { date: formatDate(r.expiresAt) })
+                                            : t('noExpiry')}
                                     </span>
                                     {r.compensatingControl ? (
                                         <span className="text-xs text-content-muted">
-                                            compensating: {r.compensatingControl.name}
+                                            {t('compensating', { name: r.compensatingControl.name })}
                                         </span>
                                     ) : null}
                                 </div>
@@ -167,14 +169,14 @@ export function ControlExceptionsPanel({
                                                 onClick={() => setApproveTargetId(r.id)}
                                                 data-testid={`control-exception-approve-button-${r.id}`}
                                             >
-                                                Approve
+                                                {t('approve')}
                                             </Button>
                                             <Button
                                                 variant="secondary"
                                                 onClick={() => setRejectTargetId(r.id)}
                                                 data-testid={`control-exception-reject-button-${r.id}`}
                                             >
-                                                Reject
+                                                {t('reject')}
                                             </Button>
                                         </>
                                     ) : null}
@@ -184,14 +186,14 @@ export function ControlExceptionsPanel({
                                             onClick={() => setRenewTargetId(r.id)}
                                             data-testid={`control-exception-renew-button-${r.id}`}
                                         >
-                                            Renew
+                                            {t('renew')}
                                         </Button>
                                     ) : null}
                                 </div>
                             </div>
                             <p className="mt-2 text-xs text-content-muted">
-                                Requested {formatDateTime(r.createdAt)}
-                                {r.renewedFromId ? ` • renewed from ${r.renewedFromId.slice(0, 8)}…` : ''}
+                                {t('requested', { date: formatDateTime(r.createdAt) })}
+                                {r.renewedFromId ? t('renewedFrom', { id: r.renewedFromId.slice(0, 8) }) : ''}
                             </p>
                         </li>
                     ))}
@@ -282,13 +284,14 @@ export function ControlExceptionHeaderBadge({
 }
 
 function ExceptionHeaderBadge({ ex }: { ex?: ExceptionSummary }) {
+    const t = useTranslations('controlExceptions');
     if (!ex) return null;
     return (
         <StatusBadge
             variant={STATUS_VARIANT[ex.status]}
             data-testid="control-exception-header-badge"
         >
-            Exception: {ex.status}
+            {t('exceptionStatus', { status: ex.status })}
         </StatusBadge>
     );
 }
@@ -310,6 +313,7 @@ function RequestExceptionDialog({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const t = useTranslations('controlExceptions');
     const [justification, setJustification] = useState('');
     const [compensatingControlId, setCompensatingControlId] = useState<string | null>(null);
     const [riskAcceptedByUserId, setRiskAcceptedByUserId] = useState(defaultRiskAcceptedByUserId);
@@ -357,20 +361,20 @@ function RequestExceptionDialog({
 
     return (
         <Modal showModal setShowModal={(v) => !v && onClose()}>
-            <Modal.Header title="Request control exception" />
+            <Modal.Header title={t('dialogRequestTitle')} />
             <Modal.Body>
                 <div className="space-y-default">
-                    <FormField label="Justification" required>
+                    <FormField label={t('justification')} required>
                         <textarea
                             className="input"
                             rows={4}
                             value={justification}
                             onChange={(e) => setJustification(e.target.value)}
-                            placeholder="Explain why this control cannot be implemented as designed."
+                            placeholder={t('justificationPlaceholder')}
                             data-testid="exception-form-justification"
                         />
                     </FormField>
-                    <FormField label="Risk accepted by (user id)" required>
+                    <FormField label={t('riskAcceptedBy')} required>
                         <input
                             className="input"
                             value={riskAcceptedByUserId}
@@ -380,7 +384,7 @@ function RequestExceptionDialog({
                             data-testid="exception-form-risk-acceptor"
                         />
                     </FormField>
-                    <FormField label="Compensating control (optional)">
+                    <FormField label={t('compensatingControl')}>
                         <Combobox
                             options={compensatingChoiceOptions}
                             selected={
@@ -393,11 +397,11 @@ function RequestExceptionDialog({
                                     opt ? String(opt.value) : null,
                                 )
                             }
-                            placeholder="Pick a control that mitigates this gap"
+                            placeholder={t('compensatingPlaceholder')}
                             data-testid="exception-form-compensating-control"
                         />
                     </FormField>
-                    <FormField label="Proposed expiry (optional)">
+                    <FormField label={t('proposedExpiry')}>
                         <DatePicker
                             value={expiresAt}
                             onChange={setExpiresAt}
@@ -416,14 +420,14 @@ function RequestExceptionDialog({
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <Button
                     onClick={() => submit.mutate()}
                     disabled={!valid || submit.isPending}
                     data-testid="exception-form-submit"
                 >
-                    {submit.isPending ? 'Submitting…' : 'Request exception'}
+                    {submit.isPending ? t('submitting') : t('requestException')}
                 </Button>
             </Modal.Footer>
         </Modal>
@@ -441,6 +445,7 @@ function ApproveDialog({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const t = useTranslations('controlExceptions');
     const [expiresAt, setExpiresAt] = useState<Date | null>(null);
     const [note, setNote] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -472,19 +477,19 @@ function ApproveDialog({
 
     return (
         <Modal showModal setShowModal={(v) => !v && onClose()}>
-            <Modal.Header title="Approve exception" />
+            <Modal.Header title={t('dialogApproveTitle')} />
             <Modal.Body>
                 <div className="space-y-default">
-                    <FormField label="Expires on" required>
+                    <FormField label={t('expiresOn')} required>
                         <DatePicker value={expiresAt} onChange={setExpiresAt} />
                     </FormField>
-                    <FormField label="Note (optional)">
+                    <FormField label={t('noteOptional')}>
                         <textarea
                             className="input"
                             rows={2}
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
-                            placeholder="Conditions or scope of the approval"
+                            placeholder={t('approveNotePlaceholder')}
                         />
                     </FormField>
                     {error ? (
@@ -499,14 +504,14 @@ function ApproveDialog({
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <Button
                     onClick={() => submit.mutate()}
                     disabled={!expiresAt || submit.isPending}
                     data-testid="exception-approve-submit"
                 >
-                    {submit.isPending ? 'Approving…' : 'Approve'}
+                    {submit.isPending ? t('approving') : t('approve')}
                 </Button>
             </Modal.Footer>
         </Modal>
@@ -524,6 +529,7 @@ function RejectDialog({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const t = useTranslations('controlExceptions');
     const [reason, setReason] = useState('');
     const [error, setError] = useState<string | null>(null);
 
@@ -548,15 +554,15 @@ function RejectDialog({
 
     return (
         <Modal showModal setShowModal={(v) => !v && onClose()}>
-            <Modal.Header title="Reject exception" />
+            <Modal.Header title={t('dialogRejectTitle')} />
             <Modal.Body>
-                <FormField label="Reason" required>
+                <FormField label={t('reason')} required>
                     <textarea
                         className="input"
                         rows={3}
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        placeholder="Why is this exception being rejected?"
+                        placeholder={t('rejectReasonPlaceholder')}
                         data-testid="exception-reject-reason"
                     />
                 </FormField>
@@ -571,14 +577,14 @@ function RejectDialog({
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <Button
                     onClick={() => submit.mutate()}
                     disabled={!reason.trim() || submit.isPending}
                     data-testid="exception-reject-submit"
                 >
-                    {submit.isPending ? 'Rejecting…' : 'Reject'}
+                    {submit.isPending ? t('rejecting') : t('reject')}
                 </Button>
             </Modal.Footer>
         </Modal>
@@ -596,6 +602,7 @@ function RenewDialog({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const t = useTranslations('controlExceptions');
     const [error, setError] = useState<string | null>(null);
 
     const submit = useMutation({
@@ -619,14 +626,10 @@ function RenewDialog({
 
     return (
         <Modal showModal setShowModal={(v) => !v && onClose()}>
-            <Modal.Header title="Renew exception" />
+            <Modal.Header title={t('dialogRenewTitle')} />
             <Modal.Body>
                 <p className="text-sm text-content-muted">
-                    Creates a new exception in <strong>REQUESTED</strong> state with
-                    the same justification + compensating control as this one.
-                    The original record is preserved as part of the audit trail.
-                    An admin will need to approve the renewal before it takes
-                    effect.
+                    {t('renewBodyBefore')} <strong>REQUESTED</strong> {t('renewBodyState')}
                 </p>
                 {error ? (
                     <p
@@ -639,14 +642,14 @@ function RenewDialog({
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <Button
                     onClick={() => submit.mutate()}
                     disabled={submit.isPending}
                     data-testid="exception-renew-submit"
                 >
-                    {submit.isPending ? 'Renewing…' : 'Renew'}
+                    {submit.isPending ? t('renewing') : t('renew')}
                 </Button>
             </Modal.Footer>
         </Modal>

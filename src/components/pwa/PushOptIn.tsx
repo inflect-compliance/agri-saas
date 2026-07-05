@@ -9,6 +9,7 @@
  *   - A denied permission shows a quiet "blocked" state, never nags.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
@@ -31,6 +32,7 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 type Status = 'idle' | 'subscribing' | 'subscribed' | 'denied' | 'error';
 
 export function PushOptIn({ className }: { className?: string }) {
+    const t = useTranslations('pushOptIn');
     const buildUrl = useTenantApiUrl();
     const [supported, setSupported] = useState(false);
     const [status, setStatus] = useState<Status>('idle');
@@ -88,7 +90,7 @@ export function PushOptIn({ className }: { className?: string }) {
     if (status === 'subscribed') {
         return (
             <span data-testid="push-subscribed" className={className}>
-                <span className="text-xs text-content-secondary">Field alerts on</span>
+                <span className="text-xs text-content-secondary">{t('alertsOn')}</span>
             </span>
         );
     }
@@ -101,7 +103,7 @@ export function PushOptIn({ className }: { className?: string }) {
             disabled={status === 'subscribing' || status === 'denied'}
             data-testid="push-optin"
         >
-            {status === 'denied' ? 'Alerts blocked' : status === 'subscribing' ? 'Enabling…' : 'Enable alerts'}
+            {status === 'denied' ? t('alertsBlocked') : status === 'subscribing' ? t('enabling') : t('enableAlerts')}
         </Button>
     );
 }

@@ -36,6 +36,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Bell, CheckCheck } from 'lucide-react';
 
@@ -100,12 +101,12 @@ const ROW_UNREAD_CLASS = 'bg-bg-subtle';
  * Avoids dependency on date-fns / dayjs — this is the only place in
  * the bell that needs date formatting.
  */
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(t: ReturnType<typeof useTranslations>, iso: string): string {
     const then = new Date(iso).getTime();
     if (Number.isNaN(then)) return '';
     const diff = Date.now() - then;
     const minutes = Math.floor(diff / 60_000);
-    if (minutes < 1) return 'now';
+    if (minutes < 1) return t('now');
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h`;
@@ -117,6 +118,7 @@ function formatRelativeTime(iso: string): string {
 // ─── Component ─────────────────────────────────────────────────────
 
 export function NotificationsBell() {
+    const t = useTranslations('notificationsBell');
     const [open, setOpen] = useState(false);
     const [items, setItems] = useState<NotificationRow[] | null>(null);
     const [loading, setLoading] = useState(false);
@@ -132,17 +134,20 @@ export function NotificationsBell() {
                 credentials: 'same-origin',
             });
             if (!res.ok) {
-                throw new Error(`Failed to load notifications (${res.status})`);
+                throw new Error(t('loadErrorStatus', { status: res.status }));
             }
             const body = (await res.json()) as NotificationRow[];
             setItems(body);
         } catch (e) {
             setError(
-                e instanceof Error ? e.message : 'Failed to load notifications',
+                e instanceof Error ? e.message : t('loadError'),
             );
         } finally {
             setLoading(false);
         }
+        // `t` is a stable next-intl binding; intentionally omitted so the
+        // poll effect that depends on `fetchList` keeps a fixed interval.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // 2026-05-27 (PR-C) — SSE-first with REST poll as a fallback.
@@ -285,11 +290,11 @@ export function NotificationsBell() {
             sideOffset={8}
             popoverContentClassName="w-[340px] p-1"
             content={
-                <Popover.Menu aria-label="Notifications">
+                <Popover.Menu aria-label={t('notifications')}>
                     {/* Header row — count + mark-all-read action */}
                     <div className="flex items-center justify-between px-2.5 py-1.5">
                         <span className="text-[10px] font-semibold uppercase tracking-widest text-content-subtle">
-                            Notifications
+                            {t('notifications')}
                         </span>
                         {unreadCount > 0 && (
                             <button
@@ -302,7 +307,7 @@ export function NotificationsBell() {
                                     className="h-3 w-3"
                                     aria-hidden="true"
                                 />
-                                Mark all read
+                                {t('markAllRead')}
                             </button>
                         )}
                     </div>
@@ -316,7 +321,7 @@ export function NotificationsBell() {
                     >
                         {loading && items === null ? (
                             <div className="px-2.5 py-6 text-center text-xs text-content-muted animate-pulse">
-                                Loading…
+                                {t('loading')}
                             </div>
                         ) : error ? (
                             <div className="px-2.5 py-6 text-center text-xs text-content-error">
@@ -326,8 +331,8 @@ export function NotificationsBell() {
                             <div className="py-4">
                                 <EmptyState
                                     icon={Bell}
-                                    title="All clear"
-                                    description="You're caught up. New notifications will land here."
+                                    title={t('allClear')}
+                                    description={t('allClearDesc')}
                                 />
                             </div>
                         ) : (
@@ -339,7 +344,7 @@ export function NotificationsBell() {
                                                 {n.title}
                                             </p>
                                             <span className="flex-shrink-0 text-[10px] text-content-subtle tabular-nums">
-                                                {formatRelativeTime(n.createdAt)}
+                                                {formatRelativeTime(t, n.createdAt)}
                                             </span>
                                         </div>
                                         <p className="text-xs text-content-muted line-clamp-2">
@@ -384,8 +389,8 @@ export function NotificationsBell() {
                 className={BELL_BUTTON_CLASS}
                 aria-label={
                     unreadCount > 0
-                        ? `${unreadCount} unread notifications`
-                        : 'Notifications'
+                        ? t('unreadNotifications', { count: unreadCount })
+                        : t('notifications')
                 }
                 aria-expanded={open}
                 aria-haspopup="menu"

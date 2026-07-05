@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
     LayoutDashboard,
     Building2,
@@ -63,6 +64,7 @@ interface OrgNavSectionDef {
 export function useOrgNavSections(): OrgNavSectionDef[] {
     const orgHref = useOrgHref();
     const perms = useOrgPermissions();
+    const t = useTranslations('orgSidebar');
 
     const sections: OrgNavSectionDef[] = [
         {
@@ -70,25 +72,25 @@ export function useOrgNavSections(): OrgNavSectionDef[] {
             // group (mirrors "Manage" below + "Govern" on the
             // tenant sidebar). Gives the org sidebar the same
             // visual hierarchy the tenant sidebar carries.
-            title: 'Portfolio',
+            title: t('portfolio'),
             items: [
-                { href: orgHref('/'), label: 'Portfolio Overview', icon: LayoutDashboard },
-                { href: orgHref('/tenants'), label: 'All Tenants', icon: Building2 },
+                { href: orgHref('/'), label: t('portfolioOverview'), icon: LayoutDashboard },
+                { href: orgHref('/tenants'), label: t('allTenants'), icon: Building2 },
                 {
                     href: orgHref('/controls'),
-                    label: 'Non-Performing Controls',
+                    label: t('nonPerformingControls'),
                     icon: ShieldCheck,
                     requiresDrillDown: true,
                 },
                 {
                     href: orgHref('/risks'),
-                    label: 'Critical Risks',
+                    label: t('criticalRisks'),
                     icon: AlertTriangle,
                     requiresDrillDown: true,
                 },
                 {
                     href: orgHref('/evidence'),
-                    label: 'Overdue Evidence',
+                    label: t('overdueEvidence'),
                     icon: Paperclip,
                     requiresDrillDown: true,
                 },
@@ -99,23 +101,23 @@ export function useOrgNavSections(): OrgNavSectionDef[] {
                     // as Portfolio Overview (`canViewPortfolio`), so no
                     // `requires*` flag — visible to every org member.
                     href: orgHref('/grain'),
-                    label: 'Grain',
+                    label: t('grain'),
                     icon: Wheat,
                 },
             ],
         },
         {
-            title: 'Manage',
+            title: t('manage'),
             items: [
                 {
                     href: orgHref('/members'),
-                    label: 'Members',
+                    label: t('members'),
                     icon: Users,
                     requiresManageMembers: true,
                 },
                 {
                     href: orgHref('/audit'),
-                    label: 'Audit Log',
+                    label: t('auditLog'),
                     icon: ScrollText,
                     // Epic B — immutable per-org privilege ledger.
                     // Same gate as Members: ORG_ADMIN can review who
@@ -124,7 +126,7 @@ export function useOrgNavSections(): OrgNavSectionDef[] {
                 },
                 {
                     href: orgHref('/settings'),
-                    label: 'Settings',
+                    label: t('settings'),
                     icon: Settings,
                     // Settings UI is ORG_ADMIN-only because the spec
                     // gates org config changes (rename, delete, etc.)
@@ -169,6 +171,7 @@ export function OrgSidebarContent({ user, onLogout, onNavClick, onToggleCollapse
     const org = useOrgContext();
     const sections = useOrgNavSections();
     const collapsed = useSidebarCollapsed();
+    const t = useTranslations('orgSidebar');
 
     return (
         <div className="flex flex-col h-full">
@@ -192,7 +195,7 @@ export function OrgSidebarContent({ user, onLogout, onNavClick, onToggleCollapse
             </div>
 
             {/* Nav */}
-            <nav className="flex-1 p-2 overflow-y-auto" aria-label="Organization navigation">
+            <nav className="flex-1 p-2 overflow-y-auto" aria-label={t('navAria')}>
                 {sections.map((section, idx) => (
                     <NavSection
                         key={idx}
@@ -229,7 +232,7 @@ export function OrgSidebarContent({ user, onLogout, onNavClick, onToggleCollapse
                     <button
                         type="button"
                         onClick={onToggleCollapse}
-                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        aria-label={collapsed ? t('expandSidebar') : t('collapseSidebar')}
                         aria-pressed={collapsed}
                         data-testid="sidebar-collapse-toggle"
                         className={cn(
@@ -242,7 +245,7 @@ export function OrgSidebarContent({ user, onLogout, onNavClick, onToggleCollapse
                         ) : (
                             <PanelLeftClose className="h-4 w-4 shrink-0" aria-hidden="true" />
                         )}
-                        {!collapsed && <span className="flex-1 text-left">Collapse</span>}
+                        {!collapsed && <span className="flex-1 text-left">{t('collapse')}</span>}
                     </button>
                 </div>
             )}
@@ -263,11 +266,11 @@ export function OrgSidebarContent({ user, onLogout, onNavClick, onToggleCollapse
                     </div>
                 )}
                 {collapsed ? (
-                    <Tooltip content="Sign out" side="right">
+                    <Tooltip content={t('signOut')} side="right">
                         <button
                             type="button"
                             onClick={onLogout}
-                            aria-label="Sign out"
+                            aria-label={t('signOut')}
                             data-testid="org-nav-logout"
                             className="icon-btn icon-btn-sm mx-auto flex"
                         >
@@ -283,7 +286,7 @@ export function OrgSidebarContent({ user, onLogout, onNavClick, onToggleCollapse
                         data-testid="org-nav-logout"
                     >
                         <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-                        Sign out
+                        {t('signOut')}
                     </Button>
                 )}
             </div>

@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * ListPageShell — viewport-fit layout for list pages.
  *
@@ -43,6 +45,7 @@
  * after a release.
  */
 import { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 
 export interface ListPageShellProps {
@@ -116,6 +119,7 @@ function ListPageShellBody({
     aside,
     leftRail,
 }: ListPageShellBodyProps) {
+    const t = useTranslations('listPageShell');
     // No aside, no left rail — the prior single-column body,
     // unchanged. The `data-list-page-body` marker stays on this
     // div: DataTable's whole-row clip useEffect walks up to find
@@ -149,7 +153,7 @@ function ListPageShellBody({
             {leftRail && (
                 <aside
                     className="flex-shrink-0 xl:self-start"
-                    aria-label="Orientation"
+                    aria-label={t('orientation')}
                     data-testid="list-page-left-rail"
                 >
                     {leftRail}
@@ -167,7 +171,7 @@ function ListPageShellBody({
             {aside && (
                 <aside
                     className="flex-shrink-0 xl:self-start"
-                    aria-label="Context"
+                    aria-label={t('context')}
                     data-testid="list-page-aside"
                 >
                     {aside}

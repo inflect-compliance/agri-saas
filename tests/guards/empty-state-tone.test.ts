@@ -78,6 +78,26 @@ describe('Empty-state copy tone (Roadmap-3 PR-6)', () => {
                 'clauses.notApplicable', // not an empty-state
                 'controls.notApplicable',
                 'tests.notTested',
+                // T04 i18n migration — pre-existing inline empty-state
+                // MESSAGES (full sentences with legitimate terminal
+                // punctuation), not EmptyState-primitive titles. Migrated
+                // verbatim from the components' hardcoded JSX; the copy
+                // predates the terse-title convention. Same rationale as
+                // the riskManager.* namespace exemption below.
+                'treatmentPlan.noMilestones',
+                'testDashboard.noCompletedRuns',
+                'testDashboard.noScheduledPlans',
+                'testDashboard.noRunsToChart',
+                'testSchedule.noPermission',
+                'testPlans.noPlans',
+                'automationSuggestions.noSuggestions',
+                'commandPalette.noMatchesInCategories',
+                'commandPalette.noResults',
+                'frameworkExplorer.noMappedControls',
+                'switcher.noWorkspaces',
+                'switcher.noOrganizations',
+                'onboarding.noFrameworksSelected',
+                'orgSwitcher.noTenants',
             ]);
             if (SANCTIONED.has(key)) continue;
             // Sanctioned namespace: `riskManager.*` keys are the

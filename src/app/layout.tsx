@@ -106,9 +106,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 )}
             </head>
             <body suppressHydrationWarning nonce={nonce}>
-                <ServiceWorkerRegistrar />
-                <WebVitalsReporter />
                 <NextIntlClientProvider messages={messages} locale={locale}>
+                    {/*
+                        ServiceWorkerRegistrar renders <InstallPrompt />, and
+                        WebVitalsReporter is a client component — both must sit
+                        INSIDE NextIntlClientProvider now that InstallPrompt
+                        (and any future PWA chrome) calls useTranslations. When
+                        they lived outside the provider the T04 i18n migration
+                        500'd every page with "NextIntlClientProvider context
+                        not found" at InstallPrompt. Same provider-boundary
+                        rule as the global overlays inside <Providers>.
+                    */}
+                    <ServiceWorkerRegistrar />
+                    <WebVitalsReporter />
                     <Providers>
                         {children}
                     </Providers>

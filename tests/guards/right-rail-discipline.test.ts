@@ -56,11 +56,12 @@ describe('Right-rail master-detail discipline (Roadmap-2 PR-5)', () => {
 
     it('EntityDetailLayout renders the rail aside with the canonical test-id', () => {
         const src = read(SHELL_PATH);
-        // The aside MUST be a real <aside aria-label="Context"> so
-        // screen readers announce the column distinctly. Removing
-        // the role/label would degrade a11y silently.
+        // The aside MUST be a real <aside aria-label={…}> so screen
+        // readers announce the column distinctly. Removing the
+        // role/label would degrade a11y silently. i18n (T04): the
+        // "Context" copy routes through next-intl (entityDetailLayout.context).
         expect(src).toMatch(
-            /<aside[\s\S]*?aria-label=["']Context["'][\s\S]*?data-testid=["']entity-detail-rail["']/,
+            /<aside[\s\S]*?aria-label=\{[^}]+\}[\s\S]*?data-testid=["']entity-detail-rail["']/,
         );
     });
 
@@ -120,9 +121,10 @@ describe('Right-rail list-page aside discipline (Phase 2)', () => {
     it('ListPageShell.Body renders the aside as a real <aside> with the canonical test-id', () => {
         const src = read(LIST_SHELL_PATH);
         // a11y: a real <aside aria-label> so the column is announced
-        // as a distinct region.
+        // as a distinct region. i18n (T04): the label routes through
+        // next-intl (listPageShell.context), so accept a `{…}` expression.
         expect(src).toMatch(
-            /<aside[\s\S]*?aria-label=["'][^"']+["'][\s\S]*?data-testid=["']list-page-aside["']/,
+            /<aside[\s\S]*?aria-label=(?:["'][^"']+["']|\{[^}]+\})[\s\S]*?data-testid=["']list-page-aside["']/,
         );
     });
 

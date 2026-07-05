@@ -21,6 +21,7 @@
  */
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Map, {
     Layer,
     Marker,
@@ -149,6 +150,7 @@ export function ExchangeMap({
     basemapStyle = 'dataviz-dark',
     className,
 }: ExchangeMapProps) {
+    const t = useTranslations('exchangeMap');
     const mapRef = useRef<MapRef | null>(null);
     const [popup, setPopup] = useState<PopupState | null>(null);
     // Surface the map's own lifecycle so a failed style/GL init is visible
@@ -471,7 +473,7 @@ export function ExchangeMap({
                                     {popup.listing.commodity}
                                 </span>
                                 <span className="text-xs text-content-muted">
-                                    {popup.listing.side === 'SELL' ? 'Selling' : 'Buying'}
+                                    {popup.listing.side === 'SELL' ? t('selling') : t('buying')}
                                 </span>
                             </div>
                             <div className="text-xs text-content-secondary">
@@ -487,7 +489,7 @@ export function ExchangeMap({
                                 className="mt-1 w-full"
                                 onClick={() => onListingSelect(popup.listing.id)}
                             >
-                                View details
+                                {t('viewDetails')}
                             </Button>
                         </div>
                     </Popup>
@@ -497,7 +499,7 @@ export function ExchangeMap({
             {/* Loading scrim — until the basemap style + first tiles are in. */}
             {status === 'loading' && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-default/60">
-                    <span className="animate-pulse text-sm text-content-muted">Loading map…</span>
+                    <span className="animate-pulse text-sm text-content-muted">{t('loadingMap')}</span>
                 </div>
             )}
 
@@ -508,9 +510,9 @@ export function ExchangeMap({
             {status === 'error' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-bg-default/80 p-default">
                     <div className="flex max-w-xs flex-col items-center gap-compact rounded-lg border border-border-subtle bg-bg-elevated p-default text-center">
-                        <p className="text-sm font-medium text-content-emphasis">Map couldn’t load</p>
+                        <p className="text-sm font-medium text-content-emphasis">{t('mapLoadError')}</p>
                         <p className="text-xs text-content-muted">
-                            The basemap failed to load. The offer list still works — try reloading the page.
+                            {t('mapLoadErrorDetail')}
                         </p>
                     </div>
                 </div>
@@ -519,7 +521,7 @@ export function ExchangeMap({
             {/* Empty hint — map is fine, but nothing matches the filters. */}
             {status === 'ready' && listings.length === 0 && (
                 <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border-subtle bg-bg-elevated/90 px-3 py-1 text-xs text-content-muted">
-                    No offers to show on the map
+                    {t('noOffers')}
                 </div>
             )}
 
@@ -533,16 +535,16 @@ export function ExchangeMap({
                             style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }}
                         />
                         <span className="text-xs font-semibold tracking-wide text-content-emphasis">БОРСА</span>
-                        <span className="text-xs text-content-muted">· Exchange</span>
+                        <span className="text-xs text-content-muted">· {t('exchangeSuffix')}</span>
                     </div>
                     <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-compact rounded-lg border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }} />
-                            Selling
+                            {t('selling')}
                         </span>
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.BUY }} />
-                            Buying
+                            {t('buying')}
                         </span>
                     </div>
                 </>

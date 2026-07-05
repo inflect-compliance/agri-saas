@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any -- Tanstack-react-table cell callbacks (tanstack cell callbacks where row/getValue carry the implicit-any annotation) — typing each callback with `CellContext<TData, TValue>` requires importing the right generic per column and adds significant ceremony. The implicit any here is at the render-time boundary; row.original is type-narrowed by the column's accessorKey at runtime. */
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
@@ -37,6 +38,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
     // URL — the redirected request drops fetch credentials, and the
     // server-side log shows no traceability call. Strip the trailing
     // slash once so every nested URL is well-formed.
+    const t = useTranslations('traceability');
     const apiBase = apiBaseRaw.replace(/\/+$/, '');
     // Extract tenantSlug from apiBase if not provided (e.g. /api/t/acme-corp → acme-corp)
     const tenantSlug = tenantSlugProp || apiBase.split('/t/')[1]?.split('/')[0] || '';
@@ -148,7 +150,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                 const tempEntry = {
                     id: `temp:${crypto.randomUUID()}`,
                     rationale: rationale || null,
-                    [type]: { id: linkedId, title: 'Loading...', name: 'Loading...', status: '—', code: '' },
+                    [type]: { id: linkedId, title: t('loadingItem'), name: t('loadingItem'), status: '—', code: '' },
                 };
                 updated[section] = [...(updated[section] || []), tempEntry];
                 queryClient.setQueryData(traceabilityKey(tenantSlug, entityType, entityId), updated);
@@ -206,9 +208,9 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
     };
 
     const UNLINK_LABEL: Record<'risk' | 'control' | 'asset', string> = {
-        risk: 'Risk unlinked',
-        control: 'Control unlinked',
-        asset: 'Asset unlinked',
+        risk: t('riskUnlinked'),
+        control: t('controlUnlinked'),
+        asset: t('assetUnlinked'),
     };
 
     const handleLink = (type: 'risk' | 'control' | 'asset') => {
@@ -237,7 +239,7 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
 
         triggerUndoToast({
             message: UNLINK_LABEL[type],
-            undoMessage: 'Undo',
+            undoMessage: t('undo'),
             action: async () => {
                 const url = unlinkUrl(type, linkedId);
                 const res = await fetch(url, { method: 'DELETE' });
@@ -262,8 +264,8 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
         });
     };
 
-    if (loading) return <div className="p-6 text-center text-content-subtle animate-pulse">Loading traceability…</div>;
-    if (!data) return <div className="p-6 text-center text-content-subtle">Failed to load traceability data</div>;
+    if (loading) return <div className="p-6 text-center text-content-subtle animate-pulse">{t('loading')}</div>;
+    if (!data) return <div className="p-6 text-center text-content-subtle">{t('loadFailed')}</div>;
 
     const risks = data.risks || [];
     const controls = data.controls || [];
@@ -280,9 +282,9 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
             {showRisks && (
                 <div>
                     <div className="flex items-center justify-between mb-3">
-                        <Heading level={3} className="text-content-emphasis inline-flex items-center gap-tight">{entityType === 'control' ? <><AppIcon name="shield" size={16} /> Mitigates Risks</> : <><AppIcon name="warning" size={16} /> Associated Risks</>} ({risks.length})</Heading>
+                        <Heading level={3} className="text-content-emphasis inline-flex items-center gap-tight">{entityType === 'control' ? <><AppIcon name="shield" size={16} /> {t('mitigatesRisks')}</> : <><AppIcon name="warning" size={16} /> {t('associatedRisks')}</>} ({risks.length})</Heading>
                         {canWrite && (
-                            <Button variant="primary" size="xs" onClick={() => { setShowAddRisk(!showAddRisk); setAddId(''); }} id="add-risk-link-btn">Link Risk</Button>
+                            <Button variant="primary" size="xs" onClick={() => { setShowAddRisk(!showAddRisk); setAddId(''); }} id="add-risk-link-btn">{t('linkRisk')}</Button>
                         )}
                     </div>
                     {showAddRisk && canWrite && (
@@ -292,22 +294,22 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                 selected={availableRisks.map((r: any) => ({ value: r.id, label: r.title, meta: { status: r.status } })).find((o: { value: string }) => o.value === addId) ?? null}
                                 setSelected={(opt) => setAddId(opt?.value ?? '')}
                                 options={availableRisks.map((r: any) => ({ value: r.id, label: r.title, meta: { status: r.status } }))}
-                                optionDescription={(o) => (o.meta?.status ? `Status: ${o.meta.status}` : null)}
-                                placeholder="Select risk..."
+                                optionDescription={(o) => (o.meta?.status ? t('statusMeta', { status: o.meta.status }) : null)}
+                                placeholder={t('selectRisk')}
                                 matchTriggerWidth
                             />
-                            <input type="text" className="input w-full text-sm" placeholder="Rationale (optional)" value={addRationale} onChange={e => setAddRationale(e.target.value)} />
+                            <input type="text" className="input w-full text-sm" placeholder={t('rationalePlaceholder')} value={addRationale} onChange={e => setAddRationale(e.target.value)} />
                             <Button variant="primary" size="xs" disabled={!addId || linkMutation.isPending} onClick={() => handleLink('risk')} id="confirm-risk-link">
-                                {linkMutation.isPending ? 'Linking...' : 'Link'}
+                                {linkMutation.isPending ? t('linking') : t('link')}
                             </Button>
                         </div>
                     )}
                     <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                         {risks.length === 0 ? (
-                            <div className="p-6 text-center text-content-subtle text-sm" id="no-risks">No risks linked</div>
+                            <div className="p-6 text-center text-content-subtle text-sm" id="no-risks">{t('noRisksLinked')}</div>
                         ) : (
                             <table className="data-table" id="linked-risks-table">
-                                <thead><tr><th>Risk</th><th>Status</th><th>Score</th><th>Rationale</th>{canWrite && <th>Actions</th>}</tr></thead>
+                                <thead><tr><th>{t('colRisk')}</th><th>{t('colStatus')}</th><th>{t('colScore')}</th><th>{t('colRationale')}</th>{canWrite && <th>{t('colActions')}</th>}</tr></thead>
                                 <tbody>
                                     { }
                                     {risks.map((l: any) => {
@@ -320,8 +322,8 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                                 <td className="text-xs text-content-muted">{l.rationale || '—'}</td>
                                                 {canWrite && (
                                                     <td>
-                                                        <Tooltip content="Unlink risk">
-                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('risk', r?.id)} id={`unlink-risk-${r?.id}`} aria-label="Unlink risk">×</button>
+                                                        <Tooltip content={t('unlinkRisk')}>
+                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('risk', r?.id)} id={`unlink-risk-${r?.id}`} aria-label={t('unlinkRisk')}>×</button>
                                                         </Tooltip>
                                                     </td>
                                                 )}
@@ -339,9 +341,9 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
             {showControls && (
                 <div>
                     <div className="flex items-center justify-between mb-3">
-                        <Heading level={3} className="text-content-emphasis inline-flex items-center gap-tight">{entityType === 'risk' ? <><AppIcon name="shield" size={16} /> Mitigated by Controls</> : <><AppIcon name="controls" size={16} /> Covered by Controls</>} ({controls.length})</Heading>
+                        <Heading level={3} className="text-content-emphasis inline-flex items-center gap-tight">{entityType === 'risk' ? <><AppIcon name="shield" size={16} /> {t('mitigatedByControls')}</> : <><AppIcon name="controls" size={16} /> {t('coveredByControls')}</>} ({controls.length})</Heading>
                         {canWrite && (
-                            <Button variant="primary" size="xs" onClick={() => { setShowAddControl(!showAddControl); setAddId(''); }} id="add-control-link-btn">Link Control</Button>
+                            <Button variant="primary" size="xs" onClick={() => { setShowAddControl(!showAddControl); setAddId(''); }} id="add-control-link-btn">{t('linkControl')}</Button>
                         )}
                     </div>
                     {showAddControl && canWrite && (
@@ -351,22 +353,22 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                 selected={availableControls.map((c: any) => ({ value: c.id, label: c.code ? `${c.code} — ${c.name}` : c.name, meta: { status: c.status } })).find((o: { value: string }) => o.value === addId) ?? null}
                                 setSelected={(opt) => setAddId(opt?.value ?? '')}
                                 options={availableControls.map((c: any) => ({ value: c.id, label: c.code ? `${c.code} — ${c.name}` : c.name, meta: { status: c.status } }))}
-                                optionDescription={(o) => (o.meta?.status ? `Status: ${o.meta.status}` : null)}
-                                placeholder="Select control..."
+                                optionDescription={(o) => (o.meta?.status ? t('statusMeta', { status: o.meta.status }) : null)}
+                                placeholder={t('selectControl')}
                                 matchTriggerWidth
                             />
-                            <input type="text" className="input w-full text-sm" placeholder="Rationale (optional)" value={addRationale} onChange={e => setAddRationale(e.target.value)} />
+                            <input type="text" className="input w-full text-sm" placeholder={t('rationalePlaceholder')} value={addRationale} onChange={e => setAddRationale(e.target.value)} />
                             <Button variant="primary" size="xs" disabled={!addId || linkMutation.isPending} onClick={() => handleLink('control')} id="confirm-control-link">
-                                {linkMutation.isPending ? 'Linking...' : 'Link'}
+                                {linkMutation.isPending ? t('linking') : t('link')}
                             </Button>
                         </div>
                     )}
                     <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                         {controls.length === 0 ? (
-                            <div className="p-6 text-center text-content-subtle text-sm" id="no-controls">No controls linked</div>
+                            <div className="p-6 text-center text-content-subtle text-sm" id="no-controls">{t('noControlsLinked')}</div>
                         ) : (
                             <table className="data-table" id="linked-controls-table">
-                                <thead><tr><th>Code</th><th>Name</th><th>Status</th><th>Rationale</th>{canWrite && <th>Actions</th>}</tr></thead>
+                                <thead><tr><th>{t('colCode')}</th><th>{t('colName')}</th><th>{t('colStatus')}</th><th>{t('colRationale')}</th>{canWrite && <th>{t('colActions')}</th>}</tr></thead>
                                 <tbody>
                                     { }
                                     {controls.map((l: any) => {
@@ -379,8 +381,8 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                                 <td className="text-xs text-content-muted">{l.rationale || '—'}</td>
                                                 {canWrite && (
                                                     <td>
-                                                        <Tooltip content="Unlink control">
-                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('control', c?.id)} id={`unlink-control-${c?.id}`} aria-label="Unlink control">×</button>
+                                                        <Tooltip content={t('unlinkControl')}>
+                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('control', c?.id)} id={`unlink-control-${c?.id}`} aria-label={t('unlinkControl')}>×</button>
                                                         </Tooltip>
                                                     </td>
                                                 )}
@@ -398,9 +400,9 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
             {showAssets && (
                 <div>
                     <div className="flex items-center justify-between mb-3">
-                        <Heading level={3} className="text-content-emphasis inline-flex items-center gap-tight"><AppIcon name="package" size={16} /> {entityType === 'control' ? 'Covers Assets' : 'Affects Assets'} ({assets.length})</Heading>
+                        <Heading level={3} className="text-content-emphasis inline-flex items-center gap-tight"><AppIcon name="package" size={16} /> {entityType === 'control' ? t('coversAssets') : t('affectsAssets')} ({assets.length})</Heading>
                         {canWrite && (
-                            <Button variant="primary" size="xs" onClick={() => { setShowAddAsset(!showAddAsset); setAddId(''); }} id="add-asset-link-btn">Link Asset</Button>
+                            <Button variant="primary" size="xs" onClick={() => { setShowAddAsset(!showAddAsset); setAddId(''); }} id="add-asset-link-btn">{t('linkAsset')}</Button>
                         )}
                     </div>
                     {showAddAsset && canWrite && (
@@ -410,22 +412,22 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                 selected={availableAssets.map((a: any) => ({ value: a.id, label: a.name, meta: { type: a.type } })).find((o: { value: string }) => o.value === addId) ?? null}
                                 setSelected={(opt) => setAddId(opt?.value ?? '')}
                                 options={availableAssets.map((a: any) => ({ value: a.id, label: a.name, meta: { type: a.type } }))}
-                                optionDescription={(o) => (o.meta?.type ? `Type: ${o.meta.type}` : null)}
-                                placeholder="Select asset..."
+                                optionDescription={(o) => (o.meta?.type ? t('typeMeta', { type: o.meta.type }) : null)}
+                                placeholder={t('selectAsset')}
                                 matchTriggerWidth
                             />
-                            <input type="text" className="input w-full text-sm" placeholder="Rationale (optional)" value={addRationale} onChange={e => setAddRationale(e.target.value)} />
+                            <input type="text" className="input w-full text-sm" placeholder={t('rationalePlaceholder')} value={addRationale} onChange={e => setAddRationale(e.target.value)} />
                             <Button variant="primary" size="xs" disabled={!addId || linkMutation.isPending} onClick={() => handleLink('asset')} id="confirm-asset-link">
-                                {linkMutation.isPending ? 'Linking...' : 'Link'}
+                                {linkMutation.isPending ? t('linking') : t('link')}
                             </Button>
                         </div>
                     )}
                     <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                         {assets.length === 0 ? (
-                            <div className="p-6 text-center text-content-subtle text-sm" id="no-assets">No assets linked</div>
+                            <div className="p-6 text-center text-content-subtle text-sm" id="no-assets">{t('noAssetsLinked')}</div>
                         ) : (
                             <table className="data-table" id="linked-assets-table">
-                                <thead><tr><th>Name</th><th>Type</th><th>Criticality</th><th>Rationale</th>{canWrite && <th>Actions</th>}</tr></thead>
+                                <thead><tr><th>{t('colName')}</th><th>{t('colType')}</th><th>{t('colCriticality')}</th><th>{t('colRationale')}</th>{canWrite && <th>{t('colActions')}</th>}</tr></thead>
                                 <tbody>
                                     { }
                                     {assets.map((l: any) => {
@@ -438,8 +440,8 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                                                 <td className="text-xs text-content-muted">{l.rationale || '—'}</td>
                                                 {canWrite && (
                                                     <td>
-                                                        <Tooltip content="Unlink asset">
-                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('asset', a?.id)} id={`unlink-asset-${a?.id}`} aria-label="Unlink asset">×</button>
+                                                        <Tooltip content={t('unlinkAsset')}>
+                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('asset', a?.id)} id={`unlink-asset-${a?.id}`} aria-label={t('unlinkAsset')}>×</button>
                                                         </Tooltip>
                                                     </td>
                                                 )}

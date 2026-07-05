@@ -12,6 +12,7 @@
  */
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import type { Geometry } from 'geojson';
 import { Button } from '@/components/ui/button';
 import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
@@ -49,6 +50,7 @@ interface FieldOpView {
 }
 
 export function OfflineFieldPanel({ taskId }: { taskId: string }) {
+    const t = useTranslations('offline');
     const buildUrl = useTenantApiUrl();
     const { isMobile } = useMediaQuery();
     const { data, mutate, isLoading } = useTenantSWR<FieldOpView>(`/field-operations/${taskId}`);
@@ -132,7 +134,7 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
             // 2 — send-or-queue. A terminal failure (server rejected the
             //     mark) throws — revalidate to server truth and surface the
             //     error rather than leaving a phantom "Done" on screen.
-            const label = `Mark ${line.parcel?.name ?? 'parcel'} ${status.toLowerCase()}`;
+            const label = t('markLabel', { parcel: line.parcel?.name ?? t('parcelFallback'), status: status.toLowerCase() });
             try {
                 const result = await submit({
                     url: buildUrl(`/field-operations/${taskId}/parcels/${line.id}`),
@@ -155,18 +157,19 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                     await mutate();
                 }
             } catch {
-                setError('Could not save that change — it was reverted. Please retry.');
+                setError(t('saveError'));
                 haptic('error');
                 await mutate(); // revalidate → SWR effect discards the optimistic update
             } finally {
                 setMarkingId(null);
             }
         },
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is a stable next-intl binding
         [submit, buildUrl, taskId, mutate],
     );
 
-    if (isLoading && !view) return <div className="p-6 text-base text-content-secondary">Loading field operation…</div>;
-    if (!view) return <div className="p-6 text-base text-content-secondary">Field operation not found.</div>;
+    if (isLoading && !view) return <div className="p-6 text-base text-content-secondary">{t('loadingFieldOp')}</div>;
+    if (!view) return <div className="p-6 text-base text-content-secondary">{t('fieldOpNotFound')}</div>;
 
     return (
         // Content cross-fades in once the field op loads (skeleton/loader →
@@ -184,7 +187,7 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
             <div className="flex items-start justify-between gap-default">
                 <div className="min-w-0">
                     <Heading level={2}>{view.task.key ? `${view.task.key} · ` : ''}{view.task.title}</Heading>
-                    <p className="text-sm text-content-secondary">{view.progress.done} / {view.progress.total} parcels complete · {view.task.status}</p>
+                    <p className="text-sm text-content-secondary">{t('progress', { done: view.progress.done, total: view.progress.total, status: view.task.status })}</p>
                 </div>
                 <PushOptIn className="shrink-0" />
             </div>
@@ -222,20 +225,20 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
                         )}
                     >
                         <div className="mb-3">
-                            <div className="text-base font-semibold">{l.parcel?.name ?? 'Parcel'}</div>
+                            <div className="text-base font-semibold">{l.parcel?.name ?? t('parcelDefault')}</div>
                             <div className="text-sm text-content-secondary">
                                 {l.product?.name} · {String(l.doseValue)} {l.doseUnit?.symbol} · {l.parcel?.areaHa ?? '–'} ha
                             </div>
                         </div>
                         {l.status === 'PENDING' ? (
                             <div className="grid grid-cols-2 gap-compact">
-                                <Button variant="primary" size="lg" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'DONE')}>Done</Button>
-                                <Button variant="secondary" size="lg" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'SKIPPED')}>Skip</Button>
+                                <Button variant="primary" size="lg" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'DONE')}>{t('done')}</Button>
+                                <Button variant="secondary" size="lg" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'SKIPPED')}>{t('skip')}</Button>
                             </div>
                         ) : (
                             <div className="flex items-center justify-between">
                                 <AgStatusBadge entity="operationParcel" status={l.status} size="md" />
-                                <Button variant="secondary" size="sm" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'PENDING')}>Reopen</Button>
+                                <Button variant="secondary" size="sm" loading={markingId === l.id} disabled={markingId === l.id} onClick={() => void mark(l, 'PENDING')}>{t('reopen')}</Button>
                             </div>
                         )}
                     </li>

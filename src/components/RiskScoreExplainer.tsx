@@ -24,6 +24,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Popover } from '@/components/ui/popover';
 import { useKeyboardShortcut } from '@/lib/hooks/use-keyboard-shortcut';
 import { formatDateTime } from '@/lib/format-date';
@@ -35,20 +36,23 @@ import type { ScoreExplanation } from '@/app-layer/usecases/risk-score-explanati
  * by Alice" rather than "(accepted AI suggestion) by Alice", which
  * made the human assessor sound incidental to the machine.
  */
-function describeProvenance(source: string, actorName: string | null): string {
-    const by = actorName ? ` by ${actorName}` : '';
+function describeProvenance(
+    t: ReturnType<typeof useTranslations>,
+    source: string,
+    actorName: string | null,
+): string {
     switch (source) {
         case 'USER':
-            return actorName ? `manual assessment${by}` : 'manual assessment';
+            return actorName ? t('provManualBy', { name: actorName }) : t('provManual');
         case 'DERIVED':
-            return actorName ? `accepted control derivation${by}` : 'accepted control derivation';
+            return actorName ? t('provDerivedBy', { name: actorName }) : t('provDerived');
         case 'PLAN':
-            return actorName ? `treatment-plan completion${by}` : 'treatment-plan completion';
+            return actorName ? t('provPlanBy', { name: actorName }) : t('provPlan');
         case 'AI':
             // The assessor is the decision; the AI is the proposer.
-            return actorName ? `AI suggestion · accepted${by}` : 'AI suggestion';
+            return actorName ? t('provAiBy', { name: actorName }) : t('provAi');
         case 'MIGRATION':
-            return 'pre-provenance backfill';
+            return t('provMigration');
         default:
             return source;
     }
@@ -70,6 +74,7 @@ export function RiskScoreExplainer({
     label?: string;
     children: React.ReactNode;
 }) {
+    const t = useTranslations('riskScore');
     const [open, setOpen] = useState(false);
     const [data, setData] = useState<ScoreExplanation | null>(null);
     const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -116,21 +121,21 @@ export function RiskScoreExplainer({
                     className="w-80 max-w-[90vw] p-3 text-xs space-y-default"
                     id={`score-explainer-${riskId}`}
                     role="region"
-                    aria-label="Score explanation"
+                    aria-label={t('scoreExplanation')}
                 >
                     {state === 'loading' && (
-                        <p className="text-content-muted">Loading explanation…</p>
+                        <p className="text-content-muted">{t('loading')}</p>
                     )}
                     {state === 'error' && (
                         <div className="space-y-tight" data-testid="score-explainer-error">
-                            <p className="text-content-muted">Couldn&apos;t load the explanation.</p>
+                            <p className="text-content-muted">{t('loadError')}</p>
                             <button
                                 type="button"
                                 onClick={loadExplanation}
                                 className="text-content-emphasis underline hover:text-content-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 data-testid="score-explainer-retry"
                             >
-                                Retry
+                                {t('retry')}
                             </button>
                         </div>
                     )}
@@ -139,13 +144,13 @@ export function RiskScoreExplainer({
                             {/* Formula in the tenant's language */}
                             <div>
                                 <p className="font-medium text-content-emphasis">
-                                    Inherent {data.inherent.score}
+                                    {t('inherent', { score: data.inherent.score })}
                                     {data.inherent.bandName ? ` · ${data.inherent.bandName}` : ''}
                                 </p>
                                 <p className="text-content-muted">
-                                    {data.inherent.likelihoodLabel ?? `Likelihood ${data.inherent.likelihood}`}
+                                    {data.inherent.likelihoodLabel ?? t('likelihood', { value: data.inherent.likelihood })}
                                     {' × '}
-                                    {data.inherent.impactLabel ?? `Impact ${data.inherent.impact}`}
+                                    {data.inherent.impactLabel ?? t('impact', { value: data.inherent.impact })}
                                     {` = ${data.inherent.likelihood} × ${data.inherent.impact}`}
                                 </p>
                             </div>
@@ -154,12 +159,12 @@ export function RiskScoreExplainer({
                             {data.residual && (
                                 <div>
                                     <p className="font-medium text-content-emphasis">
-                                        Residual {data.residual.score}
+                                        {t('residual', { score: data.residual.score ?? '' })}
                                         {data.residual.bandName ? ` · ${data.residual.bandName}` : ''}
                                     </p>
                                     {data.residual.legacyUndecomposed && (
                                         <p className="text-content-muted">
-                                            Set before decomposition — dimensions unknown (legacy formula).
+                                            {t('legacyFormula')}
                                         </p>
                                     )}
                                 </div>
@@ -167,13 +172,12 @@ export function RiskScoreExplainer({
 
                             {/* Control derivation */}
                             <div>
-                                <p className="font-medium text-content-emphasis">Controls</p>
+                                <p className="font-medium text-content-emphasis">{t('controls')}</p>
                                 <p className="text-content-muted">{data.controls.summary}</p>
                                 {data.controls.suggestedScore !== null &&
                                     data.controls.suggestedScore !== data.residual?.score && (
                                         <p className="text-content-muted">
-                                            Current control stack suggests residual{' '}
-                                            {data.controls.suggestedScore}.
+                                            {t('suggestsResidual', { score: data.controls.suggestedScore })}
                                         </p>
                                     )}
                             </div>
@@ -186,20 +190,19 @@ export function RiskScoreExplainer({
                             {/* Appetite breaches */}
                             {data.openBreaches.length > 0 && (
                                 <p className="text-content-emphasis">
-                                    {data.openBreaches.length} open appetite breach
-                                    {data.openBreaches.length > 1 ? 'es' : ''} on this risk.
+                                    {t('appetiteBreaches', { count: data.openBreaches.length })}
                                 </p>
                             )}
 
                             {/* Provenance trail */}
                             {data.recentEvents.length > 0 && (
                                 <div>
-                                    <p className="font-medium text-content-emphasis">Recent changes</p>
+                                    <p className="font-medium text-content-emphasis">{t('recentChanges')}</p>
                                     <ul className="space-y-tight">
                                         {data.recentEvents.map((e, i) => (
                                             <li key={i} className="text-content-muted">
-                                                {e.kind === 'INHERENT' ? 'Inherent' : 'Residual'} → {e.score}{' '}
-                                                ({describeProvenance(e.source, e.actorName)})
+                                                {e.kind === 'INHERENT' ? t('inherentLabel') : t('residualLabel')} → {e.score}{' '}
+                                                ({describeProvenance(t, e.source, e.actorName)})
                                                 {' · '}
                                                 {formatDateTime(e.createdAt)}
                                             </li>
@@ -215,7 +218,7 @@ export function RiskScoreExplainer({
             <button
                 type="button"
                 className="cursor-help bg-transparent border-0 p-0 text-inherit"
-                aria-label={label ? `${label}, explain` : 'Explain this score'}
+                aria-label={label ? t('explainLabelled', { label }) : t('explain')}
             >
                 {children}
             </button>

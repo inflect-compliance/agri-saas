@@ -49,6 +49,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import {
@@ -187,6 +188,18 @@ function groupByKind(
 }
 
 export function CommandPalette() {
+    const t = useTranslations('commandPalette');
+    const entityHeadings: Record<EntityKind, string> = {
+        control: t('entControls'),
+        risk: t('entRisks'),
+        task: t('entTasks'),
+        policy: t('entPolicies'),
+        test: t('entTests'),
+        evidence: t('entEvidence'),
+        framework: t('entFrameworks'),
+        asset: t('entAssets'),
+        knowledge: t('entKnowledge'),
+    };
     const { isOpen, close } = useCommandPalette();
     const shortcuts = useRegisteredShortcuts();
     const router = useRouter();
@@ -343,7 +356,7 @@ export function CommandPalette() {
                     )}
                 />
                 <Dialog.Content
-                    aria-label="Command palette"
+                    aria-label={t('title')}
                     onOpenAutoFocus={(e) => {
                         // Radix focuses the first focusable child. cmdk's
                         // `Command.Input` is first in the tree and gets it
@@ -363,10 +376,9 @@ export function CommandPalette() {
                     data-command-palette
                 >
                     <VisuallyHidden.Root>
-                        <Dialog.Title>Command palette</Dialog.Title>
+                        <Dialog.Title>{t('title')}</Dialog.Title>
                         <Dialog.Description>
-                            Search for pages, entities, and actions. Use arrow
-                            keys to navigate and Enter to activate.
+                            {t('description')}
                         </Dialog.Description>
                     </VisuallyHidden.Root>
 
@@ -379,7 +391,7 @@ export function CommandPalette() {
                         // matches, so disable it.
                         shouldFilter={false}
                         className="flex flex-col"
-                        label="Command palette"
+                        label={t('title')}
                     >
                         <div
                             className={cn(
@@ -397,8 +409,8 @@ export function CommandPalette() {
                                 onValueChange={setQuery}
                                 placeholder={
                                     searchDisabled
-                                        ? 'Sign in to search controls, risks, policies…'
-                                        : 'Search controls, risks, policies, evidence, frameworks…'
+                                        ? t('placeholderSignedOut')
+                                        : t('placeholder')
                                 }
                                 className={cn(
                                     'flex-1 bg-transparent text-sm',
@@ -415,7 +427,7 @@ export function CommandPalette() {
                                     'sm:inline-flex',
                                 )}
                             >
-                                Esc
+                                {t('esc')}
                             </kbd>
                         </div>
 
@@ -434,7 +446,7 @@ export function CommandPalette() {
                             <div
                                 className="flex flex-wrap items-center gap-1.5 border-b border-border-subtle px-4 py-2"
                                 role="group"
-                                aria-label="Filter results by entity type"
+                                aria-label={t('filterAria')}
                                 data-testid="palette-filter-chips"
                             >
                                 {(Object.keys(SEARCH_TYPE_DEFAULTS) as SearchHitType[]).map((kind) => {
@@ -477,12 +489,12 @@ export function CommandPalette() {
                                 )}
                             >
                                 {loading
-                                    ? 'Searching…'
+                                    ? t('searching')
                                     : searchDisabled
-                                      ? 'Entity search is available after sign-in.'
+                                      ? t('searchAfterSignin')
                                       : activeKinds.size > 0 && results.length > 0
-                                        ? 'No matches in the selected categories. Toggle chips to widen.'
-                                        : 'No results found.'}
+                                        ? t('noMatchesInCategories')
+                                        : t('noResults')}
                             </Command.Empty>
 
                             {/* Recents — visible only when the user
@@ -500,7 +512,7 @@ export function CommandPalette() {
 
                             {navCommands.length > 0 && (
                                 <CommandGroup
-                                    heading="Navigation"
+                                    heading={t('navigation')}
                                     items={navCommands}
                                     testIdPrefix="nav"
                                     onNavigate={handleSelect}
@@ -511,7 +523,7 @@ export function CommandPalette() {
 
                             {actionCommands.length > 0 && (
                                 <CommandGroup
-                                    heading="Actions"
+                                    heading={t('actions')}
                                     items={actionCommands}
                                     testIdPrefix="action"
                                     onNavigate={handleSelect}
@@ -528,7 +540,7 @@ export function CommandPalette() {
                                     return (
                                         <EntityGroup
                                             key={kind}
-                                            heading={meta.heading}
+                                            heading={entityHeadings[kind]}
                                             Icon={meta.icon}
                                             items={items}
                                             onSelect={(href) => {
@@ -561,7 +573,7 @@ export function CommandPalette() {
                              */}
                             {showShortcuts && listedShortcuts.length > 0 && (
                                 <ShortcutGroup
-                                    heading="Keyboard shortcuts"
+                                    heading={t('keyboardShortcuts')}
                                     items={listedShortcuts}
                                 />
                             )}
@@ -773,9 +785,10 @@ function RecentsGroup({
         item: Omit<RecentItem, 'lastVisitedAt'>,
     ) => void;
 }) {
+    const t = useTranslations('commandPalette');
     return (
         <Command.Group
-            heading="Recent"
+            heading={t('recent')}
             className={cn(
                 '[&_[cmdk-group-heading]]:px-2',
                 '[&_[cmdk-group-heading]]:py-1.5',

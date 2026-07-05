@@ -28,6 +28,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
 import { FormField } from '@/components/ui/form-field';
@@ -61,6 +62,7 @@ export function LinkedTaskCreateModal({
     entityId,
     onCreated,
 }: LinkedTaskCreateModalProps) {
+    const t = useTranslations('linkedTask');
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [dueAt, setDueAt] = useState('');
@@ -145,13 +147,13 @@ export function LinkedTaskCreateModal({
                 else setOpen(next);
             }}
             size="md"
-            title="Create Task"
-            description={`Add a task linked to this ${entityType === 'ASSET' ? 'asset' : 'risk'}.`}
+            title={t('createTask')}
+            description={entityType === 'ASSET' ? t('descriptionAsset') : t('descriptionRisk')}
             preventDefaultClose={saving}
         >
             <Modal.Header
-                title="Create Task"
-                description={`Add a task linked to this ${entityType === 'ASSET' ? 'asset' : 'risk'}.`}
+                title={t('createTask')}
+                description={entityType === 'ASSET' ? t('descriptionAsset') : t('descriptionRisk')}
             />
             <Modal.Form
                 onSubmit={handleSubmit}
@@ -169,12 +171,12 @@ export function LinkedTaskCreateModal({
                         </div>
                     )}
                     <fieldset className="space-y-default" disabled={saving}>
-                        <FormField label="Title" required>
+                        <FormField label={t('title')} required>
                             <input
                                 id="linked-task-title-input"
                                 type="text"
                                 className="input w-full"
-                                placeholder="Task title"
+                                placeholder={t('titlePlaceholder')}
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 required
@@ -183,12 +185,12 @@ export function LinkedTaskCreateModal({
                                 data-testid="linked-task-title-input"
                             />
                         </FormField>
-                        <FormField label="Description">
+                        <FormField label={t('description')}>
                             <textarea
                                 id="linked-task-desc-input"
                                 className="input w-full"
                                 rows={3}
-                                placeholder="Optional"
+                                placeholder={t('descriptionPlaceholder')}
                                 value={description}
                                 onChange={(e) =>
                                     setDescription(e.target.value)
@@ -196,11 +198,11 @@ export function LinkedTaskCreateModal({
                                 data-testid="linked-task-desc-input"
                             />
                         </FormField>
-                        <FormField label="Due date">
+                        <FormField label={t('dueDate')}>
                             <DatePicker
                                 id="linked-task-due-input"
                                 className="w-full"
-                                placeholder="Pick a date"
+                                placeholder={t('dueDatePlaceholder')}
                                 clearable
                                 align="start"
                                 value={parseYMD(dueAt)}
@@ -210,7 +212,7 @@ export function LinkedTaskCreateModal({
                                 disabledDays={{
                                     before: startOfUtcDay(new Date()),
                                 }}
-                                aria-label="Task due date"
+                                aria-label={t('dueDateAria')}
                             />
                         </FormField>
                     </fieldset>
@@ -223,7 +225,7 @@ export function LinkedTaskCreateModal({
                         disabled={saving}
                         data-testid="linked-task-cancel-button"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -233,7 +235,7 @@ export function LinkedTaskCreateModal({
                         id="linked-task-submit-btn"
                         data-testid="linked-task-submit-btn"
                     >
-                        {saving ? 'Creating...' : 'Create'}
+                        {saving ? t('creating') : t('create')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>
