@@ -15,6 +15,7 @@
  * who want a blank audit can clear the checklist after creation.
  */
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Combobox } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
@@ -39,8 +40,6 @@ interface FrameworkOption {
     label: string;
 }
 
-const NO_FRAMEWORK_OPTION: FrameworkOption = { value: '', label: 'No framework' };
-
 export function NewAuditFields({
     form,
     labels,
@@ -48,6 +47,11 @@ export function NewAuditFields({
     form: NewAuditFormReturn;
     labels: NewAuditFieldsLabels;
 }) {
+    const t = useTranslations('audits');
+    const NO_FRAMEWORK_OPTION: FrameworkOption = {
+        value: '',
+        label: t('form.noFramework'),
+    };
     const apiUrl = useTenantApiUrl();
     const [frameworks, setFrameworks] = useState<FrameworkOption[]>([
         NO_FRAMEWORK_OPTION,
@@ -94,7 +98,7 @@ export function NewAuditFields({
                         required
                     />
                 </FormField>
-                <FormField label={labels.framework ?? 'Framework'}>
+                <FormField label={labels.framework ?? t('form.framework')}>
                     <Combobox
                         id="audit-framework-select"
                         data-testid="audit-framework-select"
@@ -107,7 +111,7 @@ export function NewAuditFields({
                         setSelected={(opt) =>
                             form.setField('frameworkKey', opt?.value ?? '')
                         }
-                        placeholder="No framework"
+                        placeholder={t('form.noFramework')}
                         matchTriggerWidth
                     />
                 </FormField>

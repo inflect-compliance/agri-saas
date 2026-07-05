@@ -26,6 +26,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useSWRConfig } from 'swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import {
@@ -97,6 +98,7 @@ export function EvidenceBulkImportModal({
     tenantSlug,
     apiUrl,
 }: EvidenceBulkImportModalProps) {
+    const t = useTranslations('evidence');
     const close = useCallback(() => setOpen(false), [setOpen]);
     const queryClient = useQueryClient();
     // Epic 69 — bridge cache invalidation to SWR (EvidenceClient
@@ -197,7 +199,7 @@ export function EvidenceBulkImportModal({
                       })()
                     : err instanceof Error
                       ? err.message
-                      : 'Bulk import failed';
+                      : t('bulkImport.bulkImportFailed');
             setError(msg);
             setBusy(false);
         },
@@ -244,13 +246,13 @@ export function EvidenceBulkImportModal({
             showModal={open}
             setShowModal={setOpen}
             size="md"
-            title="Bulk import evidence"
-            description="Upload a ZIP of evidence files to extract into individual evidence records."
+            title={t('bulkImport.title')}
+            description={t('bulkImport.description')}
             preventDefaultClose={busy && !isTerminal}
         >
             <Modal.Header
-                title="Bulk import evidence"
-                description="Drop a .zip and the worker will extract each supported file into its own evidence record."
+                title={t('bulkImport.title')}
+                description={t('bulkImport.headerDescription')}
             />
             <Modal.Form id="bulk-import-form" onSubmit={handleSubmit}>
                 <Modal.Body>
@@ -278,8 +280,8 @@ export function EvidenceBulkImportModal({
                             setError('');
                         }}
                         onUpload={onUpload}
-                        title="Drop a .zip"
-                        hint="Up to 100 MB per archive. PDF / Office / image / CSV / JSON entries are extracted; other entries are skipped."
+                        title={t('bulkImport.dropTitle')}
+                        hint={t('bulkImport.dropHint')}
                     />
 
                     {jobId && (
@@ -290,38 +292,40 @@ export function EvidenceBulkImportModal({
                             data-testid="evidence-bulk-import-status"
                         >
                             <p className="text-content-emphasis">
-                                Job <span className="font-mono">{jobId}</span>{' '}
-                                — {status?.state ?? 'queued'}
+                                {t('bulkImport.jobLabel')} <span className="font-mono">{jobId}</span>{' '}
+                                — {status?.state ?? t('bulkImport.queued')}
                             </p>
                             {progress && (
                                 <p className="mt-1 text-xs text-content-muted">
-                                    {progress.extracted} extracted ·{' '}
-                                    {progress.skipped} skipped ·{' '}
-                                    {progress.errored} errored ·{' '}
-                                    {progress.totalEntries} total entries
+                                    {t('bulkImport.progress', {
+                                        extracted: progress.extracted,
+                                        skipped: progress.skipped,
+                                        errored: progress.errored,
+                                        totalEntries: progress.totalEntries,
+                                    })}
                                 </p>
                             )}
                             {isTerminal && result && (
                                 <ul className="mt-2 space-y-0.5 text-xs">
                                     <li className="text-content-success">
-                                        Extracted: {result.extracted ?? 0}
+                                        {t('bulkImport.extracted', { count: result.extracted ?? 0 })}
                                     </li>
                                     <li className="text-content-warning">
-                                        Skipped: {result.skipped ?? 0}
+                                        {t('bulkImport.skipped', { count: result.skipped ?? 0 })}
                                     </li>
                                     <li className="text-content-error">
-                                        Errored: {result.errored ?? 0}
+                                        {t('bulkImport.errored', { count: result.errored ?? 0 })}
                                     </li>
                                     {result.firstError && (
                                         <li className="text-content-error">
-                                            First error: {result.firstError}
+                                            {t('bulkImport.firstError', { error: result.firstError })}
                                         </li>
                                     )}
                                 </ul>
                             )}
                             {status?.state === 'failed' && (
                                 <p className="mt-2 text-xs text-content-error">
-                                    {status.failedReason ?? 'Job failed'}
+                                    {status.failedReason ?? t('bulkImport.jobFailed')}
                                 </p>
                             )}
                         </Card>
@@ -335,7 +339,7 @@ export function EvidenceBulkImportModal({
                         id="bulk-import-cancel-btn"
                         onClick={cancel}
                     >
-                        {isTerminal ? 'Close' : 'Cancel'}
+                        {isTerminal ? t('bulkImport.close') : t('bulkImport.cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -347,10 +351,10 @@ export function EvidenceBulkImportModal({
                         }
                     >
                         {jobId
-                            ? 'Import running…'
+                            ? t('bulkImport.importRunning')
                             : busy
-                              ? 'Uploading…'
-                              : 'Start import'}
+                              ? t('bulkImport.uploading')
+                              : t('bulkImport.startImport')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

@@ -174,7 +174,11 @@ describe('NewRiskModal — templateOptions', () => {
 
 describe('UploadEvidenceModal — control linker', () => {
     it('drops the external controlSearch state (Combobox owns search)', () => {
-        expect(UPLOAD_SRC).not.toMatch(/controlSearch/);
+        // Word-anchored so it still catches a reintroduced `controlSearch`
+        // state identifier, but not the T08 i18n key name
+        // `upload.controlSearchHint{Singular,Plural}` (no word boundary
+        // before "Hint"), which legitimately contains the substring.
+        expect(UPLOAD_SRC).not.toMatch(/\bcontrolSearch\b/);
     });
 
     it('drops the external filteredControls memo', () => {
@@ -189,7 +193,13 @@ describe('UploadEvidenceModal — control linker', () => {
     });
 
     it('surfaces the control count in the FormField description', () => {
-        expect(UPLOAD_SRC).toMatch(/controls\.length\s*===\s*0[\s\S]{0,160}Search across/);
+        // The description copy was migrated to next-intl (T08 i18n batch):
+        // the `controls.length === 0` ternary now branches between the
+        // `upload.noControlsToLink` and `upload.controlSearchHint{Singular,Plural}`
+        // message keys instead of inline "Search across …" template literals.
+        expect(UPLOAD_SRC).toMatch(
+            /controls\.length\s*===\s*0[\s\S]{0,200}upload\.controlSearchHint/,
+        );
     });
 });
 

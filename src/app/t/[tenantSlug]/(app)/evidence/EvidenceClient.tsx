@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any -- Client component receiving server-rendered domain data; tanstack column callbacks; or library-boundary callbacks. Per-site narrowing requires generated DTOs / per-cell CellContext imports — out of scope for the lint cleanup PR. */
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSWRConfig } from 'swr';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantMutation } from '@/lib/hooks/use-tenant-mutation';
@@ -83,19 +84,20 @@ const ICON_ACTION_CLASS =
 
 type RetentionFilter = 'active' | 'expiring' | 'archived';
 
+type RetentionT = (key: string, values?: Record<string, string | number | Date>) => string;
 
-function getRetentionStatus(ev: any, now: Date | null): { label: string; badge: StatusBadgeVariant; icon: string } {
-    if (ev.isArchived) return { label: 'Archived', badge: 'neutral', icon: '' };
-    if (ev.expiredAt) return { label: 'Expired', badge: 'error', icon: '' };
+function getRetentionStatus(ev: any, now: Date | null, t: RetentionT): { label: string; badge: StatusBadgeVariant; icon: string } {
+    if (ev.isArchived) return { label: t('client.retentionArchived'), badge: 'neutral', icon: '' };
+    if (ev.expiredAt) return { label: t('client.retentionExpired'), badge: 'error', icon: '' };
     if (ev.retentionUntil) {
-        if (!now) return { label: 'Active', badge: 'success', icon: '' };
+        if (!now) return { label: t('client.retentionActive'), badge: 'success', icon: '' };
         const until = new Date(ev.retentionUntil);
         const daysLeft = Math.ceil((until.getTime() - now.getTime()) / 86_400_000);
-        if (daysLeft <= 0) return { label: 'Expired', badge: 'error', icon: '' };
-        if (daysLeft <= 30) return { label: `Expiring (${daysLeft}d)`, badge: 'warning', icon: '' };
-        return { label: 'Active', badge: 'success', icon: '' };
+        if (daysLeft <= 0) return { label: t('client.retentionExpired'), badge: 'error', icon: '' };
+        if (daysLeft <= 30) return { label: t('client.retentionExpiring', { days: daysLeft }), badge: 'warning', icon: '' };
+        return { label: t('client.retentionActive'), badge: 'success', icon: '' };
     }
-    return { label: 'No policy', badge: 'neutral', icon: '—' };
+    return { label: t('client.retentionNoPolicy'), badge: 'neutral', icon: '—' };
 }
 
 interface EvidenceClientProps {
@@ -128,6 +130,7 @@ export function EvidenceClient(props: EvidenceClientProps) {
 }
 
 function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permissions, translations: t }: EvidenceClientProps) {
+    const tr = useTranslations('evidence');
     // Stabilise across renders so dependent useCallbacks don't get a
     // fresh identity every cycle (was a real exhaustive-deps warning).
     const apiUrl = useCallback(
@@ -195,8 +198,8 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
     // Bulk-delete via the table selection action-row.
     const { batchAction: evidenceBulkDelete, dialog: evidenceDeleteDialog } =
         useBulkDelete({
-            entitySingular: 'evidence item',
-            entityPlural: 'evidence items',
+            entitySingular: tr('client.bulkSingular'),
+            entityPlural: tr('client.bulkPlural'),
             onDelete: async (ids) => {
                 // URL built in a const (not inlined into fetch(...)) so the
                 // RSC-regression heuristic doesn't misread this mutation as a
@@ -366,7 +369,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
     const unarchiveEvidence = (id: string) => setArchived(id, false);
 
     const statusLabel = (status: string) => {
-        const map: Record<string, string> = { DRAFT: t.draft, SUBMITTED: t.submitted, APPROVED: t.approved, REJECTED: t.rejected, PENDING_UPLOAD: 'Uploading...' };
+        const map: Record<string, string> = { DRAFT: t.draft, SUBMITTED: t.submitted, APPROVED: t.approved, REJECTED: t.rejected, PENDING_UPLOAD: tr('client.uploadingStatus') };
         return map[status] || status;
     };
 
@@ -534,21 +537,21 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
     // (ListPageShell.Body + DataTable fillBody) shows all rows.
     const evidenceColumnList = useMemo(
         () => [
-            { id: 'title', label: 'Title' },
-            { id: 'type', label: 'Type' },
-            { id: 'control', label: 'Control' },
+            { id: 'title', label: t.evidenceTitle },
+            { id: 'type', label: t.type },
+            { id: 'control', label: t.control },
             // B8 follow-up — Folder column. Hidden by default
             // (`defaultHidden: true` would be ideal but the dropdown
             // primitive doesn't carry that yet) — the user reveals
             // it via the gear once they start using folders.
-            { id: 'folder', label: 'Folder' },
-            { id: 'retention', label: 'Retention' },
-            { id: 'freshness', label: 'Freshness' },
-            { id: 'status', label: 'Status' },
-            { id: 'owner', label: 'Owner' },
-            { id: 'actions', label: 'Actions', alwaysVisible: true },
+            { id: 'folder', label: tr('client.colFolder') },
+            { id: 'retention', label: tr('client.colRetention') },
+            { id: 'freshness', label: tr('client.colFreshness') },
+            { id: 'status', label: t.status },
+            { id: 'owner', label: t.ownerLabel },
+            { id: 'actions', label: t.actions, alwaysVisible: true },
         ],
-        [],
+        [t, tr],
     );
     const {
         columnVisibility,
@@ -647,7 +650,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         },
         {
             id: 'folder',
-            header: 'Folder',
+            header: tr('client.colFolder'),
             // B8 follow-up \u2014 the Folder column matches the
             // VendorDocsTable shape: empty/null = em-dash, otherwise
             // a muted tag. Hidden by default if a tenant has zero
@@ -665,11 +668,11 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         },
         {
             id: 'retention',
-            header: 'Retention',
+            header: tr('client.colRetention'),
 
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
-                const rs = getRetentionStatus(ev, hydratedNow);
+                const rs = getRetentionStatus(ev, hydratedNow, tr);
                 // Retention is now edited from the evidence Edit modal
                 // (Edit icon → "Retention date"); the column is display-
                 // only. Status badge + the resolved date.
@@ -692,7 +695,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         },
         {
             id: 'freshness',
-            header: 'Freshness',
+            header: tr('client.colFreshness'),
 
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
@@ -741,10 +744,10 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                 const ev = row.original;
                 if (!permissions.canWrite || ev.id?.startsWith('temp:')) return null;
                 return (
-                    <Tooltip content="Edit evidence">
+                    <Tooltip content={tr('client.editEvidence')}>
                         <button
                             type="button"
-                            aria-label="Edit evidence"
+                            aria-label={tr('client.editEvidence')}
                             className={ICON_ACTION_CLASS}
                             id={`edit-evidence-${ev.id}`}
                             onClick={(e) => {
@@ -778,10 +781,10 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                 if (!permissions.canWrite || ev.id?.startsWith('temp:')) return null;
                 const archived = !!ev.isArchived;
                 return (
-                    <Tooltip content={archived ? 'Unarchive evidence' : 'Archive evidence'}>
+                    <Tooltip content={archived ? tr('client.unarchiveEvidence') : tr('client.archiveEvidence')}>
                         <button
                             type="button"
-                            aria-label={archived ? 'Unarchive evidence' : 'Archive evidence'}
+                            aria-label={archived ? tr('client.unarchiveEvidence') : tr('client.archiveEvidence')}
                             className={ICON_ACTION_CLASS}
                             id={`${archived ? 'unarchive' : 'archive'}-${ev.id}`}
                             onClick={(e) => {
@@ -807,11 +810,11 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                 const ev = row.original;
                 if (ev.type !== 'FILE' || !ev.fileRecordId || ev.id?.startsWith('temp:')) return null;
                 return (
-                    <Tooltip content="Download file">
+                    <Tooltip content={tr('client.downloadFile')}>
                         <a
                             href={apiUrl(`/evidence/files/${ev.fileRecordId}/download`)}
                             download
-                            aria-label="Download file"
+                            aria-label={tr('client.downloadFile')}
                             className={ICON_ACTION_CLASS}
                             id={`download-${ev.id}`}
                             onClick={(e) => e.stopPropagation()}
@@ -832,7 +835,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
                 const isPending = ev.id?.startsWith('temp:');
-                if (isPending) return <span className="text-xs text-content-subtle">Uploading...</span>;
+                if (isPending) return <span className="text-xs text-content-subtle">{tr('client.uploadingStatus')}</span>;
                 if (!permissions.canWrite) return null;
                 return (
                     <div className="flex gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
@@ -854,7 +857,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
             meta: { disableTruncate: true },
         },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    ]), [t, permissions, apiUrl]);
+    ]), [t, tr, permissions, apiUrl]);
 
     return (
         <ListPageShell className="animate-fadeIn gap-section">
@@ -863,7 +866,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                     <div>
                         <PageBreadcrumbs
                             items={[
-                                { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                                { label: tr('client.crumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
                                 { label: t.title },
                             ]}
                             className="mb-1"
@@ -961,27 +964,27 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                     affordances compose naturally. */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
                     <KpiFilterCard
-                        label="Total evidence"
+                        label={tr('client.kpiTotal')}
                         value={totalEvidence}
                         onClick={() => toggleEvidenceKpi('total')}
                         selected={activeEvidenceKpi === 'total'}
                     />
                     <KpiFilterCard
-                        label="Draft"
+                        label={tr('client.kpiDraft')}
                         value={draftEvidence}
                         tone="attention"
                         onClick={() => toggleEvidenceKpi('draft')}
                         selected={activeEvidenceKpi === 'draft'}
                     />
                     <KpiFilterCard
-                        label="Submitted"
+                        label={tr('client.kpiSubmitted')}
                         value={submittedEvidence}
                         tone="default"
                         onClick={() => toggleEvidenceKpi('submitted')}
                         selected={activeEvidenceKpi === 'submitted'}
                     />
                     <KpiFilterCard
-                        label="Approved"
+                        label={tr('client.kpiApproved')}
                         value={approvedEvidence}
                         tone="success"
                         onClick={() => toggleEvidenceKpi('approved')}
@@ -997,21 +1000,21 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                         onClick={() => setFilter('tab', 'active')}
                         id="tab-active"
                     >
-                        Active ({activeEvidence.length})
+                        {tr('client.tabActive', { count: activeEvidence.length })}
                     </Button>
                     <Button
                         variant={retentionFilter === 'expiring' ? 'destructive' : 'ghost'}
                         onClick={() => setFilter('tab', 'expiring')}
                         id="tab-expiring"
                     >
-                        Expiring ({expiringEvidence.length})
+                        {tr('client.tabExpiring', { count: expiringEvidence.length })}
                     </Button>
                     <Button
                         variant={retentionFilter === 'archived' ? 'secondary' : 'ghost'}
                         onClick={() => setFilter('tab', 'archived')}
                         id="tab-archived"
                     >
-                        Archived ({archivedEvidence.length})
+                        {tr('client.tabArchived', { count: archivedEvidence.length })}
                     </Button>
                 </div>
 
@@ -1031,10 +1034,10 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                         <>
                             <ToggleGroup
                                 size="sm"
-                                ariaLabel="Evidence view"
+                                ariaLabel={tr('client.viewLabel')}
                                 options={[
-                                    { value: 'list', label: 'List', id: 'evidence-view-list' },
-                                    { value: 'gallery', label: 'Gallery', id: 'evidence-view-gallery' },
+                                    { value: 'list', label: tr('client.viewList'), id: 'evidence-view-list' },
+                                    { value: 'gallery', label: tr('client.viewGallery'), id: 'evidence-view-gallery' },
                                 ]}
                                 selected={viewMode}
                                 selectAction={(v) => setFilter('view', v === 'list' ? '' : v)}
@@ -1052,9 +1055,8 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
 
                 {/* Archived warning */}
                 {retentionFilter === 'archived' && archivedEvidence.length > 0 && (
-                    <InlineNotice variant="warning" title="Archived evidence">
-                        Archived evidence should not be used in active audit packs or compliance assessments.
-                        Unarchive if you need to reuse this evidence.
+                    <InlineNotice variant="warning" title={tr('client.archivedNoticeTitle')}>
+                        {tr('client.archivedNoticeBody')}
                     </InlineNotice>
                 )}
             </ListPageShell.Filters>
@@ -1072,14 +1074,14 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                                     variant="no-results"
                                     title={
                                         retentionFilter === 'archived'
-                                            ? 'No archived evidence'
+                                            ? tr('client.emptyArchived')
                                             : retentionFilter === 'expiring'
-                                                ? 'No evidence expiring soon'
-                                                : 'No evidence matches your filters'
+                                                ? tr('client.emptyExpiring')
+                                                : tr('client.emptyNoMatch')
                                     }
-                                    description="Try widening your search or clearing one of the active filters."
+                                    description={tr('client.emptyFilteredDesc')}
                                     secondaryAction={{
-                                        label: 'Clear filters',
+                                        label: tr('client.clearFilters'),
                                         onClick: () => filterCtx.clearAll(),
                                     }}
                                 />
@@ -1088,7 +1090,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                                     size="sm"
                                     variant="no-records"
                                     title={t.noEvidence}
-                                    description="Upload screenshots, exports, and attestations that prove your controls work in practice."
+                                    description={tr('client.emptyRecordsDesc')}
                                 />
                             )
                         }
@@ -1099,7 +1101,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                         }
                         statusBadgeVariant={(s) => STATUS_BADGE[s] ?? 'neutral'}
                         retentionStatus={(ev: any) => {
-                            const rs = getRetentionStatus(ev, hydratedNow);
+                            const rs = getRetentionStatus(ev, hydratedNow, tr);
                             return { label: rs.label, badge: rs.badge };
                         }}
                         data-testid="evidence-gallery"
@@ -1144,14 +1146,14 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                                     variant="no-results"
                                     title={
                                         retentionFilter === 'archived'
-                                            ? 'No archived evidence'
+                                            ? tr('client.emptyArchived')
                                             : retentionFilter === 'expiring'
-                                                ? 'No evidence expiring soon'
-                                                : 'No evidence matches your filters'
+                                                ? tr('client.emptyExpiring')
+                                                : tr('client.emptyNoMatch')
                                     }
-                                    description="Try widening your search or clearing one of the active filters."
+                                    description={tr('client.emptyFilteredDesc')}
                                     secondaryAction={{
-                                        label: 'Clear filters',
+                                        label: tr('client.clearFilters'),
                                         onClick: () => filterCtx.clearAll(),
                                     }}
                                 />
@@ -1160,11 +1162,11 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                                     size="sm"
                                     variant="no-records"
                                     title={t.noEvidence}
-                                    description="Upload screenshots, exports, and attestations that prove your controls work in practice."
+                                    description={tr('client.emptyRecordsDesc')}
                                 />
                             )
                         }
-                        resourceName={(p) => p ? 'evidence items' : 'evidence item'}
+                        resourceName={(p) => p ? tr('client.resourcePlural') : tr('client.resourceSingular')}
                         columnVisibility={columnVisibility}
                         onColumnVisibilityChange={setColumnVisibility}
                         data-testid="evidence-table"
@@ -1177,7 +1179,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                     visibleCount={visibleEvidence.length}
                     totalCount={totalEvidenceCount}
                     onLoadMore={loadMoreEvidence}
-                    resourceName="evidence rows"
+                    resourceName={tr('client.loadMoreResource')}
                     testId="tenant-evidence-load-more"
                 />
             </ListPageShell.Body>
@@ -1195,11 +1197,12 @@ function EvidenceFilterToolbar({
     filters: FilterType[];
     actions?: React.ReactNode;
 }) {
+    const tr = useTranslations('evidence');
     return (
         <FilterToolbar
             filters={filters}
             searchId="evidence-search"
-            searchPlaceholder="Search evidence…"
+            searchPlaceholder={tr('client.searchPlaceholder')}
             actions={actions}
         />
     );

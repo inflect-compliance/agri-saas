@@ -43,9 +43,6 @@ describe('icon-only action discipline', () => {
     // wired — and a revert to a text `<Button>Freeze Pack</Button>` would
     // drop the `label=`/`aria-label=` and fail here.
     const ICON_ACTION_SITES: Array<{ file: string; label: string }> = [
-        { file: `${APP}/audits/packs/[packId]/page.tsx`, label: 'Freeze pack' },
-        { file: `${APP}/audits/packs/[packId]/page.tsx`, label: 'Generate share link' },
-        { file: `${APP}/audits/packs/[packId]/page.tsx`, label: 'Clone for retest' },
         { file: `${APP}/tests/due/page.tsx`, label: 'Run due planning' },
         // UI-18: the evidence "Upload file" + "Import ZIP" icon buttons were
         // removed — the +Evidence button opens the upload modal directly.
@@ -59,6 +56,27 @@ describe('icon-only action discipline', () => {
             expect(src).toMatch(
                 new RegExp(`<IconAction[\\s\\S]*?label="${label}"`),
             );
+        });
+    }
+
+    // i18n batch T08 — the audit-pack IconAction labels now route through
+    // next-intl (`t('packDetail.freezePack')` etc.). Assert the icon-only
+    // wiring is preserved AND the en.json values keep the copy so the a11y
+    // contract holds.
+    const PACK_ICON_ACTION_I18N: Array<{ key: string; en: string }> = [
+        { key: 'freezePack', en: 'Freeze pack' },
+        { key: 'generateShareLink', en: 'Generate share link' },
+        { key: 'cloneForRetest', en: 'Clone for retest' },
+    ];
+    for (const { key, en } of PACK_ICON_ACTION_I18N) {
+        it(`IconAction site stays icon-only (i18n): "${en}"`, () => {
+            const src = read(`${APP}/audits/packs/[packId]/page.tsx`);
+            expect(src).toMatch(/import \{ IconAction \} from '@\/components\/ui\/icon-action'/);
+            expect(src).toMatch(
+                new RegExp(`<IconAction[\\s\\S]*?label=\\{t\\('packDetail\\.${key}'\\)\\}`),
+            );
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            expect(require('../../messages/en.json').audits.packDetail[key]).toBe(en);
         });
     }
 
@@ -90,17 +108,19 @@ describe('icon-only action discipline', () => {
             ariaMatch: `aria-label=\\{tm\\('importRisks'\\)\\}[\\s\\S]*?size: 'icon'`,
             tooltipMatch: /<Tooltip content=\{tm\('importRisks'\)\}>/,
         },
+        // i18n batch T08 — the pack Export JSON/CSV icon-link labels + tooltips
+        // now route through next-intl (`t('packDetail.exportJson' | 'exportCsv')`).
         {
             file: `${APP}/audits/packs/[packId]/page.tsx`,
             ariaLabel: 'Export JSON',
-            ariaMatch: `aria-label="Export JSON"[\\s\\S]*?size: 'icon'`,
-            tooltipMatch: /<Tooltip content="(?:Export JSON|Export CSV)">/,
+            ariaMatch: `aria-label=\\{t\\('packDetail\\.exportJson'\\)\\}[\\s\\S]*?size: 'icon'`,
+            tooltipMatch: /<Tooltip content=\{t\('packDetail\.(?:exportJson|exportCsv)'\)\}>/,
         },
         {
             file: `${APP}/audits/packs/[packId]/page.tsx`,
             ariaLabel: 'Export CSV',
-            ariaMatch: `aria-label="Export CSV"[\\s\\S]*?size: 'icon'`,
-            tooltipMatch: /<Tooltip content="(?:Export JSON|Export CSV)">/,
+            ariaMatch: `aria-label=\\{t\\('packDetail\\.exportCsv'\\)\\}[\\s\\S]*?size: 'icon'`,
+            tooltipMatch: /<Tooltip content=\{t\('packDetail\.(?:exportJson|exportCsv)'\)\}>/,
         },
     ];
 

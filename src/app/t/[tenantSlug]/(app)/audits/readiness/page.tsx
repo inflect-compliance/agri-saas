@@ -32,6 +32,7 @@ import {
     BarChart3,
     type LucideIcon,
 } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { getReadinessOverview } from '@/app-layer/usecases/audit-readiness';
 import type { ReadinessResult } from '@/app-layer/usecases/audit-readiness-scoring';
@@ -102,6 +103,7 @@ export default async function ReadinessOverviewPage({
     const { tenantSlug } = await params;
     const ctx = await getTenantCtx({ tenantSlug });
     const { cycles, scoresByCycleId } = await getReadinessOverview(ctx);
+    const t = await getTranslations('audits');
 
     return (
         <div className="space-y-section animate-fadeIn">
@@ -109,21 +111,21 @@ export default async function ReadinessOverviewPage({
                 <div>
                     <PageBreadcrumbs
                         items={[
-                            { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                            { label: 'Audits', href: `/t/${tenantSlug}/audits` },
-                            { label: 'Readiness' },
+                            { label: t('crumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                            { label: t('crumbAudits'), href: `/t/${tenantSlug}/audits` },
+                            { label: t('crumbReadiness') },
                         ]}
                         className="mb-1"
                     />
                     <Heading level={1} id="readiness-heading">
-                        Audit Readiness
+                        {t('readinessOverview.heading')}
                     </Heading>
                     <p className="text-content-muted text-sm">
-                        Framework readiness scores across all audit cycles
+                        {t('readinessOverview.subtitle')}
                     </p>
                 </div>
                 <Link href={`/t/${tenantSlug}/audits/cycles`} className={buttonVariants({ variant: 'secondary' })}>
-                    View Cycles →
+                    {t('readinessOverview.viewCycles')}
                 </Link>
             </div>
 
@@ -143,10 +145,10 @@ export default async function ReadinessOverviewPage({
                         <BarChart3 className="size-10 text-content-muted mx-auto" aria-hidden="true" />
                     </div>
                     <Heading level={2} className="mb-2">
-                        No audit cycles yet
+                        {t('readinessOverview.emptyTitle')}
                     </Heading>
                     <p className="text-content-muted text-sm mb-4">
-                        Create an audit cycle to see readiness scores.
+                        {t('readinessOverview.emptyDescription')}
                     </p>
                     <Link
                         href={`/t/${tenantSlug}/audits/cycles`}
