@@ -58,8 +58,9 @@ describe('NewRiskModal — shared Modal composition', () => {
     });
 
     it('passes title + description for a11y naming', () => {
-        expect(MODAL_SRC).toMatch(/title=["']New risk["']/);
-        expect(MODAL_SRC).toMatch(/description=["'][^"']+["']/);
+        // i18n (T06): title + description now resolve through next-intl.
+        expect(MODAL_SRC).toMatch(/title=\{tn\('title'\)\}/);
+        expect(MODAL_SRC).toMatch(/description=\{tn\('(description|headerDescription)'\)\}/);
     });
 
     it('guards close-during-save via preventDefaultClose={submitting}', () => {
@@ -147,7 +148,9 @@ describe('NewRiskModal — scoring UX (shared RiskEvaluationFields)', () => {
     it('mounts the shared <RiskEvaluationFields> evaluation box', () => {
         expect(MODAL_SRC).toMatch(/<RiskEvaluationFields\b/);
         // Titled "Risk Evaluation" (R5) — the title lives in the shared box.
-        expect(SHARED_SRC).toMatch(/Risk Evaluation/);
+        // i18n (T06): the literal moved to messages; the box renders t('title').
+        expect(SHARED_SRC).toMatch(/useTranslations\('riskEvaluation'\)/);
+        expect(SHARED_SRC).toMatch(/\{t\('title'\)\}/);
     });
 
     it('the shared box exposes likelihood + impact as 1–5 range inputs', () => {

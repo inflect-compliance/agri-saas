@@ -2,6 +2,7 @@
 
 /* RQ-9 — Risk velocity card: portfolio direction + fastest rising/falling. */
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { ArrowTrendUp } from '@/components/ui/icons/nucleo/arrow-trend-up';
 import { PercentageArrowDown } from '@/components/ui/icons/nucleo/percentage-arrow-down';
 import { Card } from '@/components/ui/card';
@@ -17,6 +18,7 @@ interface VelocityResult {
 // RQ3-OB-A — money speaks the tenant's currency (useMoneyFormatter).
 
 export function VelocityCard() {
+    const tv = useTranslations('riskDashboard');
     const apiUrl = useTenantApiUrl();
     const money = useMoneyFormatter();
     const [v, setV] = useState<VelocityResult | null>(null);
@@ -34,18 +36,18 @@ export function VelocityCard() {
 
     return (
         <Card data-testid="risk-velocity">
-            <Heading level={2} className="mb-default">Risk Velocity (30-day window)</Heading>
+            <Heading level={2} className="mb-default">{tv('velocityTitle')}</Heading>
             <div className="mb-default flex items-center gap-default text-sm">
-                <span className="text-content-muted">Portfolio</span>
+                <span className="text-content-muted">{tv('portfolio')}</span>
                 <span className="tabular-nums text-content-emphasis">{money(pv.previousTotalAle)} → {money(pv.currentTotalAle)}</span>
                 <StatusBadge variant={improving ? 'success' : pv.trend === 'RISING' ? 'error' : 'neutral'}>
-                    {pv.deltaPercent >= 0 ? '+' : ''}{pv.deltaPercent.toFixed(1)}% {improving ? 'Improving' : pv.trend === 'RISING' ? 'Worsening' : 'Stable'}
+                    {pv.deltaPercent >= 0 ? '+' : ''}{pv.deltaPercent.toFixed(1)}% {improving ? tv('improving') : pv.trend === 'RISING' ? tv('worsening') : tv('stable')}
                 </StatusBadge>
             </div>
             <div className="grid grid-cols-1 gap-section md:grid-cols-2">
                 <div>
-                    <Heading level={3} className="mb-2 text-xs uppercase text-content-subtle">Fastest rising</Heading>
-                    {v.topRising.length === 0 ? <p className="text-xs text-content-subtle">None</p> : v.topRising.map((r) => (
+                    <Heading level={3} className="mb-2 text-xs uppercase text-content-subtle">{tv('fastestRising')}</Heading>
+                    {v.topRising.length === 0 ? <p className="text-xs text-content-subtle">{tv('none')}</p> : v.topRising.map((r) => (
                         <div key={r.riskId} className="flex items-center gap-tight py-tight text-sm">
                             <ArrowTrendUp className="size-3.5 shrink-0 text-content-error" />
                             <span className="truncate text-content-emphasis">{r.title}</span>
@@ -54,8 +56,8 @@ export function VelocityCard() {
                     ))}
                 </div>
                 <div>
-                    <Heading level={3} className="mb-2 text-xs uppercase text-content-subtle">Fastest falling</Heading>
-                    {v.topFalling.length === 0 ? <p className="text-xs text-content-subtle">None</p> : v.topFalling.map((r) => (
+                    <Heading level={3} className="mb-2 text-xs uppercase text-content-subtle">{tv('fastestFalling')}</Heading>
+                    {v.topFalling.length === 0 ? <p className="text-xs text-content-subtle">{tv('none')}</p> : v.topFalling.map((r) => (
                         <div key={r.riskId} className="flex items-center gap-tight py-tight text-sm">
                             <PercentageArrowDown className="size-3.5 shrink-0 text-content-success" />
                             <span className="truncate text-content-emphasis">{r.title}</span>

@@ -120,6 +120,24 @@ describe('Empty-state copy tone (Roadmap-3 PR-6)', () => {
                 'admin.members.noPendingInvites',
                 'admin.members.noActiveSessionsShort',
                 'admin.members.noActiveSessionsDesc',
+                // T06 i18n migration (risks batch) — pre-existing inline
+                // empty-state MESSAGES / conversational fallbacks migrated
+                // verbatim from the risk pages' hardcoded JSX. Full
+                // sentences with legitimate terminal punctuation, not terse
+                // EmptyState titles — same rationale as the T04/T05
+                // exemptions above.
+                'newRisk.noControlsToLink',
+                'riskAssessment.noControlsLinked',
+                'riskAssessment.noDerivableResidual',
+                'riskAi.noAssetsFound',
+                'riskCorrelations.noRisks',
+                'riskHierarchy.noNodes',
+                'riskKri.noKris',
+                'riskLossEvents.noActuals',
+                'riskLossEvents.noLossEvents',
+                'riskReports.noReports',
+                'riskScenarios.noScenarios',
+                'riskDashboard.noSimulation',
             ]);
             if (SANCTIONED.has(key)) continue;
             // Sanctioned namespace: `riskManager.*` keys are the

@@ -19,6 +19,7 @@
  * they NEVER disable the save button.
  */
 import { useState, useMemo, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -136,6 +137,7 @@ export function FairAnalysisPanel({
     /** RQ2-7 — drives the per-category calibration prior hints. */
     category?: string | null;
 }) {
+    const tf = useTranslations('riskFair');
     const apiUrl = useTenantApiUrl();
     const money = useMoneyFormatter();
     const [triples, setTriples] = useState<Triples>(() => seedTriples(initial));
@@ -175,13 +177,13 @@ export function FairAnalysisPanel({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ distributions, fairConfidence: conf }),
             });
-            setMsg(res.ok ? 'FAIR ranges saved.' : 'Save failed.');
+            setMsg(res.ok ? tf('rangesSaved') : tf('saveFailed'));
         } catch {
-            setMsg('Save failed — network error.');
+            setMsg(tf('saveFailedNetwork'));
         } finally {
             setSaving(false);
         }
-    }, [apiUrl, riskId, triples, conf]);
+    }, [apiUrl, riskId, triples, conf, tf]);
 
     // RQ2-7 → RQ3-2 — warn-only range checks + category anchors.
     const warnings = useMemo(() => validateFairTriples(triples), [triples]);
@@ -222,7 +224,7 @@ export function FairAnalysisPanel({
                         mean), shown, never asked. */}
                     {mean != null && (
                         <span className="text-[10px] tabular-nums text-content-subtle" data-testid={`fair-derived-${k}`}>
-                            derived ≈ {meta.isMoney ? money(mean) : Math.round(mean * 1000) / 1000}
+                            {tf('derived', { value: meta.isMoney ? money(mean) : Math.round(mean * 1000) / 1000 })}
                         </span>
                     )}
                 </div>
@@ -232,9 +234,9 @@ export function FairAnalysisPanel({
                     </p>
                 )}
                 <div className="flex gap-tight">
-                    {bound(k, 'min', 'Min')}
-                    {bound(k, 'mode', 'Likely')}
-                    {bound(k, 'max', 'Max')}
+                    {bound(k, 'min', tf('min'))}
+                    {bound(k, 'mode', tf('likely'))}
+                    {bound(k, 'max', tf('max'))}
                 </div>
                 {reflection && (
                     <span className="block text-[10px] text-content-subtle" data-testid={`fair-reflection-${k}`}>
@@ -247,11 +249,9 @@ export function FairAnalysisPanel({
 
     return (
         <Card className="space-y-default p-6">
-            <Heading level={3}>FAIR Analysis</Heading>
+            <Heading level={3}>{tf('title')}</Heading>
             <p className="text-sm text-content-muted">
-                Calibrate each factor as a range — give the interval you&apos;re 90% sure
-                contains the true value. The simulation samples the full range; the
-                derived point is the Beta-PERT mean.
+                {tf('intro')}
             </p>
 
             <div className="grid grid-cols-1 gap-default md:grid-cols-2">
@@ -259,7 +259,7 @@ export function FairAnalysisPanel({
             </div>
 
             <div className="flex flex-wrap items-center gap-default">
-                <span className="text-xs text-content-muted">Confidence:</span>
+                <span className="text-xs text-content-muted">{tf('confidence')}</span>
                 {(['LOW', 'MEDIUM', 'HIGH'] as Conf[]).map((c) => (
                     <Button key={c} size="sm" variant={conf === c ? 'secondary' : 'ghost'} onClick={() => setConf(c)}>
                         {c}
@@ -268,8 +268,8 @@ export function FairAnalysisPanel({
             </div>
 
             <div className="flex flex-wrap items-center gap-default rounded-md border border-border-default bg-bg-subtle p-3 text-sm">
-                <span>LEF: <span className="font-semibold tabular-nums">{derived.lef != null ? `${derived.lef.toFixed(2)}/yr` : '—'}</span></span>
-                <span className="ml-auto">FAIR ALE: <span className="font-semibold tabular-nums text-content-emphasis">{derived.ale != null ? `${money(derived.ale)}/yr` : '—'}</span></span>
+                <span>{tf('lef')} <span className="font-semibold tabular-nums">{derived.lef != null ? `${derived.lef.toFixed(2)}/yr` : '—'}</span></span>
+                <span className="ml-auto">{tf('fairAle')} <span className="font-semibold tabular-nums text-content-emphasis">{derived.ale != null ? `${money(derived.ale)}/yr` : '—'}</span></span>
             </div>
 
             {/* RQ2-7 — reasonableness warnings. Advisory by contract:
@@ -284,9 +284,9 @@ export function FairAnalysisPanel({
                 </InlineNotice>
             )}
 
-            {msg && <InlineNotice variant={msg.includes('saved') ? 'success' : 'error'}>{msg}</InlineNotice>}
+            {msg && <InlineNotice variant={msg === tf('rangesSaved') ? 'success' : 'error'}>{msg}</InlineNotice>}
             <div className="flex justify-end">
-                <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save FAIR ranges'}</Button>
+                <Button variant="primary" onClick={save} disabled={saving}>{saving ? tf('saving') : tf('saveRanges')}</Button>
             </div>
         </Card>
     );

@@ -16,6 +16,7 @@
  * the cached per-risk P90s instead of a line that would lie.
  */
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { KPIStat } from '@/components/ui/metric';
@@ -80,6 +81,7 @@ export function MonteCarloPanel({
     run: SimulationRun | null;
     onReload: () => Promise<void>;
 }) {
+    const tmc = useTranslations('riskDashboard');
     const apiUrl = useTenantApiUrl();
     const money = useMoneyFormatter();
     const [running, setRunning] = useState(false);
@@ -102,10 +104,10 @@ export function MonteCarloPanel({
     const referenceLines: LossReferenceLine[] = [];
     if (run) {
         const muted = 'var(--content-subtle, #94a3b8)';
-        if (run.portfolioP50 != null) referenceLines.push({ value: run.portfolioP50, label: 'P50', color: muted });
-        if (run.portfolioP80 != null) referenceLines.push({ value: run.portfolioP80, label: 'P80', color: muted });
-        if (run.portfolioP95 != null) referenceLines.push({ value: run.portfolioP95, label: 'P95', color: muted });
-        if (ceiling != null) referenceLines.push({ value: ceiling, label: 'Portfolio appetite' });
+        if (run.portfolioP50 != null) referenceLines.push({ value: run.portfolioP50, label: tmc('p50'), color: muted });
+        if (run.portfolioP80 != null) referenceLines.push({ value: run.portfolioP80, label: tmc('p80'), color: muted });
+        if (run.portfolioP95 != null) referenceLines.push({ value: run.portfolioP95, label: tmc('p95'), color: muted });
+        if (ceiling != null) referenceLines.push({ value: ceiling, label: tmc('portfolioAppetite') });
     }
     const breachProbability =
         ceiling != null && run?.lecPointsJson?.length
@@ -124,28 +126,26 @@ export function MonteCarloPanel({
     return (
         <Card data-testid="risk-monte-carlo">
             <div className="mb-default flex items-center justify-between">
-                <Heading level={2}>Loss exceedance (Monte Carlo)</Heading>
-                <Button variant="primary" size="sm" onClick={runSim} disabled={running}>{running ? 'Running…' : 'Run simulation'}</Button>
+                <Heading level={2}>{tmc('lossExceedance')}</Heading>
+                <Button variant="primary" size="sm" onClick={runSim} disabled={running}>{running ? tmc('running') : tmc('runSimulation')}</Button>
             </div>
             {!run ? (
-                <p className="text-sm text-content-muted">No simulation yet — run one to compute the portfolio loss distribution, VaR, and the loss exceedance curve.</p>
+                <p className="text-sm text-content-muted">{tmc('noSimulation')}</p>
             ) : (
                 <>
                     <p className="mb-default text-xs text-content-muted">
-                        Last run {run.completedAt ? formatDateTime(run.completedAt) : ''} · {run.iterations.toLocaleString()} iterations · {run.executionMs ?? 0}ms
+                        {tmc('lastRun', { when: run.completedAt ? formatDateTime(run.completedAt) : '', iterations: run.iterations.toLocaleString(), ms: run.executionMs ?? 0 })}
                     </p>
                     <div className="mb-default grid grid-cols-2 gap-default md:grid-cols-4">
-                        <div className="rounded-md bg-bg-muted/30 px-default py-default"><KPIStat value={money(run.portfolioMean)} label="Mean ALE" /></div>
-                        <div className="rounded-md bg-bg-muted/30 px-default py-default"><KPIStat value={money(run.portfolioP95)} label="VaR-95" tone="attention" /></div>
-                        <div className="rounded-md bg-bg-muted/30 px-default py-default"><KPIStat value={money(run.portfolioP99)} label="VaR-99" tone="critical" /></div>
-                        <div className="rounded-md bg-bg-muted/30 px-default py-default"><KPIStat value={money(run.portfolioStdDev)} label="Std dev (σ)" /></div>
+                        <div className="rounded-md bg-bg-muted/30 px-default py-default"><KPIStat value={money(run.portfolioMean)} label={tmc('meanAle')} /></div>
+                        <div className="rounded-md bg-bg-muted/30 px-default py-default"><KPIStat value={money(run.portfolioP95)} label={tmc('var95')} tone="attention" /></div>
+                        <div className="rounded-md bg-bg-muted/30 px-default py-default"><KPIStat value={money(run.portfolioP99)} label={tmc('var99')} tone="critical" /></div>
+                        <div className="rounded-md bg-bg-muted/30 px-default py-default"><KPIStat value={money(run.portfolioStdDev)} label={tmc('stdDev')} /></div>
                     </div>
                     <div className="grid grid-cols-1 gap-section lg:grid-cols-2">
                         <div>
                             <p className="mb-tight text-xs text-content-subtle">
-                                For each annual-loss threshold (x), the simulated
-                                probability the year&apos;s total losses are ≥ that
-                                threshold.
+                                {tmc('lecDesc')}
                             </p>
                             {lec.length > 0 && (
                                 // Heavy visx curve — defer its render until idle
@@ -155,7 +155,7 @@ export function MonteCarloPanel({
                                     <LossExceedanceCurve
                                         data={lec}
                                         testId="risk-mc-lec"
-                                        ariaLabel="Monte Carlo loss exceedance curve"
+                                        ariaLabel={tmc('mcAriaLabel')}
                                         referenceLines={referenceLines.length > 0 ? referenceLines : undefined}
                                     />
                                 </DeferredOnMobile>
@@ -165,21 +165,19 @@ export function MonteCarloPanel({
                                 height there is the breach probability. */}
                             {ceiling != null && breachProbability != null && (
                                 <p className="mt-tight text-xs text-content-muted tabular-nums" data-testid="lec-portfolio-appetite-note">
-                                    ≈{Math.round(breachProbability * 100)}% chance the year&apos;s
-                                    losses exceed the {money(ceiling)} portfolio appetite.
+                                    {tmc('portfolioAppetiteNote', { pct: Math.round(breachProbability * 100), amount: money(ceiling) })}
                                 </p>
                             )}
                             {/* The per-risk cap is NOT a portfolio
                                 threshold — it gets a per-risk answer. */}
                             {perRiskCap != null && perRiskRows.length > 0 && (
                                 <p className="mt-tight text-xs text-content-muted tabular-nums" data-testid="mc-per-risk-appetite-note">
-                                    {overCapCount} of {perRiskRows.length} simulated risks carry a
-                                    P90 loss above the {money(perRiskCap)} per-risk appetite cap.
+                                    {tmc('perRiskAppetiteNote', { over: overCapCount, total: perRiskRows.length, amount: money(perRiskCap) })}
                                 </p>
                             )}
                         </div>
                         <div>
-                            <Heading level={3} className="mb-2">Top contributors</Heading>
+                            <Heading level={3} className="mb-2">{tmc('topContributors')}</Heading>
                             <div className="space-y-tight">
                                 {top.map((r) => (
                                     <div key={r.riskId} className="flex justify-between gap-default rounded p-2 text-sm">

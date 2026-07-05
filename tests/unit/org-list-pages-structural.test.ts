@@ -143,7 +143,8 @@ describe('Epic O-4 — cross-tenant list pages structural contract', () => {
                 const src = read(spec.clientPath);
                 // Column id="tenantName" + a header that references "Tenant".
                 expect(src).toMatch(/id:\s*['"]tenantName['"]/);
-                expect(src).toMatch(/header:\s*['"]Tenant['"]/);
+                // i18n (T06): header may be a literal or a next-intl call.
+                expect(src).toMatch(/header:\s*(['"]Tenant['"]|t\('colTenant'\))/);
                 // And renders the human-readable name from the row.
                 expect(src).toMatch(/row\.original\.tenantName/);
             });

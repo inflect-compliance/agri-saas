@@ -68,6 +68,7 @@ describe('RQ3-OB-B — ALE sortability on the risks register', () => {
     });
 
     test('a column with id=\'ale\' exists so the header click can trigger the sort', () => {
-        expect(risksClient).toMatch(/id: 'ale',\s+header: 'ALE',/);
+        // i18n (T06): the column header resolves through next-intl.
+        expect(risksClient).toMatch(/id: 'ale',\s+header: tm\('colAle'\),/);
     });
 });

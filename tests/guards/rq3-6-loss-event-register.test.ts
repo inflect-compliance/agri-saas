@@ -111,7 +111,10 @@ describe('RQ3-6 — the register page surfaces the predicted-vs-actual overlay',
     test('page renders the roll-up, empty-state explanation, the form, and the register', () => {
         expect(page).toMatch(/data-testid="loss-events-rollup"/);
         expect(page).toMatch(/loss-events-empty/);
-        expect(page).toMatch(/forecasting stack is unfalsifiable/);
+        // i18n (T06): the empty-state explanation moved to messages.
+        expect(page).toMatch(/tle\('noActuals'\)/);
+        const en = JSON.parse(read('messages/en.json')) as { riskLossEvents: { noActuals: string } };
+        expect(en.riskLossEvents.noActuals).toMatch(/forecasting stack is unfalsifiable/);
         expect(page).toMatch(/loss-events-form/);
         expect(page).toMatch(/loss-events-list/);
         expect(page).toMatch(/loss-events-by-year/);

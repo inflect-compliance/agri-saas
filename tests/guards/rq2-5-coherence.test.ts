@@ -40,7 +40,8 @@ describe('RQ2-5 — both languages on every surface', () => {
 
     test('the detail header carries the ALE next to the score chip', () => {
         expect(riskDetail).toMatch(/resolveALE\(/);
-        expect(riskDetail).toMatch(/label: 'ALE'/);
+        // i18n (T06): the meta label resolves through next-intl.
+        expect(riskDetail).toMatch(/label: td\('ale'\)/);
     });
 
     test('the dashboard mounts the coherence widget behind the min-quantified gate', () => {

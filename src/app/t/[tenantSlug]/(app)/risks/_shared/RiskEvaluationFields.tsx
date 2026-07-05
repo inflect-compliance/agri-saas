@@ -8,6 +8,7 @@
  * (`risk-*` for create, `risk-edit-*` for edit).
  */
 import { InfoTooltip } from '@/components/ui/tooltip';
+import { useTranslations } from 'next-intl';
 
 export function getRiskBadge(score: number): {
     label: string;
@@ -42,12 +43,13 @@ export function RiskEvaluationFields({
     onImpact,
     idPrefix = 'risk',
 }: RiskEvaluationFieldsProps) {
+    const t = useTranslations('riskEvaluation');
     const score = likelihood * impact;
     const badge = getRiskBadge(score);
     return (
         <div className="space-y-default rounded-lg border border-border-subtle bg-bg-subtle p-4">
             <p className="text-sm font-medium text-content-emphasis">
-                Risk Evaluation
+                {t('title')}
             </p>
             <div className="grid grid-cols-1 gap-default sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <div>
@@ -56,15 +58,15 @@ export function RiskEvaluationFields({
                             className="text-sm text-content-default"
                             htmlFor={`${idPrefix}-likelihood`}
                         >
-                            Likelihood ·{' '}
+                            {t('likelihood')} ·{' '}
                             <span className="font-semibold text-content-emphasis">
                                 {likelihood}
                             </span>
                         </label>
                         <InfoTooltip
-                            aria-label="About likelihood"
+                            aria-label={t('aboutLikelihood')}
                             iconClassName="h-3.5 w-3.5"
-                            content="Inherent probability of this scenario in the next 12 months, ignoring current controls. 1 = rare, 5 = almost certain."
+                            content={t('likelihoodHelp')}
                         />
                     </div>
                     <input
@@ -83,15 +85,15 @@ export function RiskEvaluationFields({
                             className="text-sm text-content-default"
                             htmlFor={`${idPrefix}-impact`}
                         >
-                            Impact ·{' '}
+                            {t('impact')} ·{' '}
                             <span className="font-semibold text-content-emphasis">
                                 {impact}
                             </span>
                         </label>
                         <InfoTooltip
-                            aria-label="About impact"
+                            aria-label={t('aboutImpact')}
                             iconClassName="h-3.5 w-3.5"
-                            content="Severity to the organisation if the risk materialises. 1 = minor / isolated, 5 = catastrophic / regulatory."
+                            content={t('impactHelp')}
                         />
                     </div>
                     <input
@@ -109,10 +111,10 @@ export function RiskEvaluationFields({
                     data-testid={`${idPrefix}-score-preview`}
                 >
                     <p className="text-xs uppercase tracking-wider opacity-75">
-                        Score
+                        {t('score')}
                     </p>
                     <p className="text-xl font-bold">{score}</p>
-                    <p className="text-[11px] font-medium">{badge.label}</p>
+                    <p className="text-[11px] font-medium">{t(badge.label.toLowerCase())}</p>
                 </div>
             </div>
         </div>

@@ -42,7 +42,8 @@ describe('RQ2-6 — appetite thresholds on the LEC', () => {
     test('on the simulated portfolio curve the ceiling is the line — the per-risk cap is a note, never a line', () => {
         // The Σ-constraint IS the x-threshold on the portfolio axis.
         expect(mcPanel).toMatch(/totalAleThreshold/);
-        expect(mcPanel).toMatch(/Portfolio appetite/);
+        // i18n (T06): the reference-line label resolves through next-intl.
+        expect(mcPanel).toMatch(/tmc\('portfolioAppetite'\)/);
         expect(mcPanel).toMatch(/lec-portfolio-appetite-note/);
         // The per-risk cap stays off the portfolio curve: it must be
         // consumed only by the per-risk note, never pushed into

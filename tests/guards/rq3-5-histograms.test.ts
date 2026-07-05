@@ -73,7 +73,8 @@ describe('RQ3-5 — cell collisions flag on BOTH views', () => {
 
     test('the histogram path: the callout list with the drill-down', () => {
         expect(client).toMatch(/risk-collision-callouts/);
-        expect(client).toMatch(/Cell collisions/);
+        // i18n (T06): heading copy resolves through next-intl.
+        expect(client).toMatch(/tm\('cellCollisions'\)/);
         // Clicking a callout drills into the cell's risks, matching
         // the heatmap's onCellClick contract.
         const callout = client.slice(

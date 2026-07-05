@@ -2,6 +2,7 @@
 
 /* RQ-5 — Risk hierarchy: org trees with recursive ALE roll-up + treemap. */
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,21 +13,22 @@ import { useTenantApiUrl, useTenantHref, useMoneyFormatter } from '@/lib/tenant-
 
 interface Agg { nodeId: string; nodeName: string; riskCount: number; totalAle: number; children: Agg[] }
 const TYPES = [
-    { value: 'BUSINESS_UNIT', label: 'Business Unit' },
-    { value: 'GEOGRAPHY', label: 'Geography' },
-    { value: 'ASSET_CLASS', label: 'Asset Class' },
-    { value: 'CUSTOM', label: 'Custom' },
+    { value: 'BUSINESS_UNIT', labelKey: 'businessUnit' },
+    { value: 'GEOGRAPHY', labelKey: 'geography' },
+    { value: 'ASSET_CLASS', labelKey: 'assetClass' },
+    { value: 'CUSTOM', labelKey: 'custom' },
 ];
 // RQ3-OB-A — money speaks the tenant's currency (useMoneyFormatter).
 
 function TreeRow({ node, depth, max }: { node: Agg; depth: number; max: number }) {
     const money = useMoneyFormatter();
+    const th = useTranslations('riskHierarchy');
     return (
         <>
             <div className="flex items-center gap-default py-tight text-sm" style={{ paddingLeft: `${depth * 16}px` }}>
                 <span className="w-full sm:w-48 truncate text-content-emphasis">{node.nodeName}</span>
                 <div className="flex-1">
-                    <ProgressBar value={node.totalAle} max={max || 1} aria-label={`${node.nodeName} ALE share`} />
+                    <ProgressBar value={node.totalAle} max={max || 1} aria-label={th('aleShareAria', { name: node.nodeName })} />
                 </div>
                 <span className="w-24 sm:w-28 text-right tabular-nums text-content-muted">{money(node.totalAle)}</span>
                 <span className="w-16 text-right tabular-nums text-content-subtle">{node.riskCount}</span>
@@ -37,6 +39,7 @@ function TreeRow({ node, depth, max }: { node: Agg; depth: number; max: number }
 }
 
 export default function RiskHierarchyPage() {
+    const th = useTranslations('riskHierarchy');
     const apiUrl = useTenantApiUrl();
     const money = useMoneyFormatter();
     const tenantHref = useTenantHref();
@@ -62,34 +65,34 @@ export default function RiskHierarchyPage() {
 
     return (
         <div className="space-y-section">
-            <PageBreadcrumbs items={[{ label: 'Risks', href: tenantHref('/risks') }, { label: 'Hierarchy' }]} />
-            <Heading level={1}>Risk Hierarchy</Heading>
+            <PageBreadcrumbs items={[{ label: th('risks'), href: tenantHref('/risks') }, { label: th('breadcrumb') }]} />
+            <Heading level={1}>{th('title')}</Heading>
 
             <Card className="space-y-default p-6">
                 <div className="flex flex-wrap gap-tight">
                     {TYPES.map((tt) => (
-                        <Button key={tt.value} size="sm" variant={type === tt.value ? 'primary' : 'secondary'} onClick={() => setType(tt.value)}>{tt.label}</Button>
+                        <Button key={tt.value} size="sm" variant={type === tt.value ? 'primary' : 'secondary'} onClick={() => setType(tt.value)}>{th(tt.labelKey)}</Button>
                     ))}
                 </div>
                 <div className="flex flex-wrap items-end gap-default">
-                    <label className="block flex-1"><span className="text-xs text-content-muted">New node name</span>
-                        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Engineering" />
+                    <label className="block flex-1"><span className="text-xs text-content-muted">{th('newNodeName')}</span>
+                        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={th('nodeNamePlaceholder')} />
                     </label>
-                    <Button variant="primary" onClick={addNode} disabled={busy || !name.trim()}>Add node</Button>
+                    <Button variant="primary" onClick={addNode} disabled={busy || !name.trim()}>{th('addNode')}</Button>
                 </div>
             </Card>
 
             <Card className="space-y-default p-6">
                 <div className="flex items-center justify-between">
-                    <Heading level={2}>Exposure roll-up</Heading>
-                    <span className="text-sm text-content-muted">Total {money(total)} ALE/yr</span>
+                    <Heading level={2}>{th('exposureRollup')}</Heading>
+                    <span className="text-sm text-content-muted">{th('totalAle', { total: money(total) })}</span>
                 </div>
                 {treemap.length === 0 ? (
-                    <p className="text-sm text-content-muted">No nodes yet. Add a node, then link risks to it (via the hierarchy API or the risk form).</p>
+                    <p className="text-sm text-content-muted">{th('noNodes')}</p>
                 ) : (
                     <div>
                         <div className="flex items-center gap-default border-b border-border-subtle pb-tight text-xs text-content-subtle">
-                            <span className="w-full sm:w-48">Node</span><span className="flex-1">ALE share</span><span className="w-24 sm:w-28 text-right">Total ALE</span><span className="w-16 text-right">Risks</span>
+                            <span className="w-full sm:w-48">{th('colNode')}</span><span className="flex-1">{th('colAleShare')}</span><span className="w-24 sm:w-28 text-right">{th('colTotalAle')}</span><span className="w-16 text-right">{th('colRisks')}</span>
                         </div>
                         {treemap.map((n) => <TreeRow key={n.nodeId} node={n} depth={0} max={max} />)}
                     </div>
