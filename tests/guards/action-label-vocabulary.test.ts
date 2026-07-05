@@ -104,13 +104,15 @@ const BASELINE_PLUS_LITERAL_SITES = new Set<string>([
     // would trip no-plus-prefix-labels).
     'src/app/t/[tenantSlug]/(app)/policies/[policyId]/page.tsx:457',
     'src/app/t/[tenantSlug]/(app)/policies/[policyId]/page.tsx:761',
-    // Legacy `'+ Link'` / `'+ Comment'` string literals (the ones the
-    // regex catches — JSX text doesn't match, whitespace between `>`
-    // and `+`). Line numbers shift whenever this file grows; refreshed
-    // after the Evidence tab + edit-modal landed above them. The
-    // literals themselves are unchanged staged debt.
-    'src/app/t/[tenantSlug]/(app)/tasks/[taskId]/page.tsx:803',
-    'src/app/t/[tenantSlug]/(app)/tasks/[taskId]/page.tsx:831',
+    // Legacy `'+ Link'` / `'× Remove'` string literals (kept inline —
+    // migrating them into i18n message values would trip
+    // no-plus-prefix-labels, which HARD-REJECTs values leading with
+    // `+ ` / `× `). Line numbers shift whenever this file grows;
+    // re-anchored after the T10 i18n migration added the
+    // useTranslations hooks + t() calls above them (`+ Link` 782→784,
+    // `× Remove` 1072→1075). The literals themselves are unchanged.
+    'src/app/t/[tenantSlug]/(app)/tasks/[taskId]/page.tsx:784',
+    'src/app/t/[tenantSlug]/(app)/tasks/[taskId]/page.tsx:1075',
     'src/app/t/[tenantSlug]/(app)/tests/runs/[runId]/page.tsx:419',
     'src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx:369',
     'src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx:393',

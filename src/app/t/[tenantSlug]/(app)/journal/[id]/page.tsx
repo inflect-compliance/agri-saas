@@ -26,6 +26,7 @@ import { JournalEntryModal } from '../JournalEntryModal';
 import { JournalPhotosTab } from './JournalPhotosTab';
 import { PestSuggestionCard, type PestSuggestionData } from '@/components/ag/pest-suggestion-card';
 import { LOG_ENTRY_TYPE_LABELS } from '../filter-defs';
+import { useTranslations } from 'next-intl';
 
 const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     PLANNED: 'info',
@@ -81,6 +82,7 @@ export default function JournalDetailPage() {
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const { permissions, tenantSlug } = useTenantContext();
+    const t = useTranslations('journal.detail');
     const entryId = params.id as string;
 
     const detailKey = CACHE_KEYS.journal.detail(entryId);
@@ -133,9 +135,9 @@ export default function JournalDetailPage() {
     };
 
     const breadcrumbs = [
-        { label: 'Dashboard', href: tenantHref('/dashboard') },
-        { label: 'Journal', href: tenantHref('/journal') },
-        { label: entry?.title ?? 'Entry' },
+        { label: t('dashboard'), href: tenantHref('/dashboard') },
+        { label: t('breadcrumb'), href: tenantHref('/journal') },
+        { label: entry?.title ?? t('entryFallback') },
     ];
 
     if (isLoading && !entry) {
@@ -154,7 +156,7 @@ export default function JournalDetailPage() {
     }
     if (!entry) {
         return (
-            <EntityDetailLayout empty={{ message: 'Journal entry not found.' }} title="" breadcrumbs={breadcrumbs}>
+            <EntityDetailLayout empty={{ message: t('notFound') }} title="" breadcrumbs={breadcrumbs}>
                 <></>
             </EntityDetailLayout>
         );
@@ -166,9 +168,9 @@ export default function JournalDetailPage() {
     const equipment = entry.equipment ?? [];
 
     const tabs: ReadonlyArray<{ key: Tab; label: string; count?: number }> = [
-        { key: 'details', label: 'Details' },
-        { key: 'quantities', label: 'Quantities', count: quantities.length },
-        { key: 'photos', label: 'Photos', count: photos.length },
+        { key: 'details', label: t('tabDetails') },
+        { key: 'quantities', label: t('tabQuantities'), count: quantities.length },
+        { key: 'photos', label: t('tabPhotos'), count: photos.length },
     ];
 
     return (
@@ -180,14 +182,14 @@ export default function JournalDetailPage() {
                 <MetaStrip
                     items={[
                         {
-                            label: 'Type',
+                            label: t('metaType'),
                             value:
                                 (LOG_ENTRY_TYPE_LABELS as Record<string, string>)[entry.type] ??
                                 String(entry.type).replace(/_/g, ' '),
                         },
                         {
                             kind: 'status' as const,
-                            label: 'Status',
+                            label: t('metaStatus'),
                             value: entry.status,
                             variant: STATUS_BADGE[entry.status] ?? 'neutral',
                         },
@@ -208,13 +210,13 @@ export default function JournalDetailPage() {
                         </Button>
                     )}
                     {permissions.canWrite && (
-                        <Tooltip content="Edit entry">
+                        <Tooltip content={t('editEntry')}>
                             <Button
                                 variant="secondary"
                                 size="icon"
                                 onClick={() => setEditing(true)}
                                 id="edit-journal-btn"
-                                aria-label="Edit entry"
+                                aria-label={t('editEntry')}
                             >
                                 <Pen2 className="size-4" />
                             </Button>
@@ -256,11 +258,11 @@ export default function JournalDetailPage() {
                 <div className={cn(cardVariants(), 'space-y-default')} id="journal-detail">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-default">
                         <div>
-                            <Eyebrow>Occurred</Eyebrow>
+                            <Eyebrow>{t('occurred')}</Eyebrow>
                             <p className="text-sm">{formatDateTime(entry.occurredAt)}</p>
                         </div>
                         <div>
-                            <Eyebrow>Locations</Eyebrow>
+                            <Eyebrow>{t('locations')}</Eyebrow>
                             <p className="text-sm">
                                 {locations.length
                                     ? locations.map((l) => l.location?.name).filter(Boolean).join(', ')
@@ -268,7 +270,7 @@ export default function JournalDetailPage() {
                             </p>
                         </div>
                         <div>
-                            <Eyebrow>Equipment</Eyebrow>
+                            <Eyebrow>{t('equipment')}</Eyebrow>
                             <p className="text-sm">
                                 {equipment.length
                                     ? equipment.map((e) => e.equipment?.name).filter(Boolean).join(', ')
@@ -278,7 +280,7 @@ export default function JournalDetailPage() {
                     </div>
 
                     <div>
-                        <Eyebrow>Notes</Eyebrow>
+                        <Eyebrow>{t('notes')}</Eyebrow>
                         {entry.notes ? (
                             <div
                                 className="prose prose-sm prose-invert max-w-none text-sm"
@@ -295,11 +297,11 @@ export default function JournalDetailPage() {
 
                     <div className="grid grid-cols-2 gap-default border-t border-border-default/50 pt-4">
                         <div>
-                            <Eyebrow>Created</Eyebrow>
+                            <Eyebrow>{t('created')}</Eyebrow>
                             <p className="text-sm text-content-muted">{formatDateTime(entry.createdAt)}</p>
                         </div>
                         <div>
-                            <Eyebrow>Updated</Eyebrow>
+                            <Eyebrow>{t('updated')}</Eyebrow>
                             <p className="text-sm text-content-muted">{formatDateTime(entry.updatedAt)}</p>
                         </div>
                     </div>
@@ -308,13 +310,13 @@ export default function JournalDetailPage() {
 
             {activeTab === 'quantities' && (
                 <div className={cn(cardVariants(), 'space-y-default')} id="journal-quantities">
-                    <Heading level={3}>Quantities</Heading>
+                    <Heading level={3}>{t('quantitiesHeading')}</Heading>
                     {quantities.length === 0 ? (
                         <EmptyState
                             size="sm"
                             variant="no-records"
-                            title="No quantities"
-                            description="This entry records no measured amount (an input application or harvest would carry one)."
+                            title={t('noQuantitiesTitle')}
+                            description={t('quantitiesEmptyDescription')}
                         />
                     ) : (
                         <ul className="divide-y divide-border-subtle">

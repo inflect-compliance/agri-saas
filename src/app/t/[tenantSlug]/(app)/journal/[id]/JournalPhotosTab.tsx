@@ -10,6 +10,7 @@ import { haptic } from '@/lib/haptics';
 import { cn } from '@/lib/cn';
 import { cardVariants } from '@/components/ui/card';
 import { formatDateTime } from '@/lib/format-date';
+import { useTranslations } from 'next-intl';
 
 interface PhotoLink {
     id: string;
@@ -42,6 +43,7 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
     // keeps the camera flow responsive offline. Revoked on replace/unmount.
     const [previewSrc, setPreviewSrc] = useState<string | null>(null);
     const triggerUndoToast = useToastWithUndo();
+    const t = useTranslations('journal.photos');
 
     useEffect(() => {
         return () => {
@@ -108,8 +110,8 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
         // Optimistic removal happens via the parent refetch after commit;
         // the undo window holds the destructive DELETE for 5 seconds.
         triggerUndoToast({
-            message: `Photo removed`,
-            undoMessage: 'Undo',
+            message: t('photoRemoved'),
+            undoMessage: t('undo'),
             action: async () => {
                 await apiDelete(apiUrl(`/journal/${entryId}/files?fileRecordId=${encodeURIComponent(fileRecordId)}`));
                 onChanged();
@@ -132,7 +134,7 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
             {canWrite && (
                 <div className="flex flex-wrap items-center justify-between gap-default">
                     <span className="text-sm text-content-muted">
-                        Attach field photos and documents to this entry.
+                        {t('attachHint')}
                     </span>
                     <div className="flex items-center gap-compact">
                         {/* Camera capture — opens the phone's rear camera on
@@ -147,7 +149,7 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
                             disabled={uploading}
                             id="journal-photo-capture"
                         >
-                            Take photo
+                            {t('takePhoto')}
                         </Button>
                         <Button
                             variant="secondary"
@@ -158,7 +160,7 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
                             disabled={uploading}
                             id="journal-photo-upload"
                         >
-                            Upload
+                            {t('upload')}
                         </Button>
                     </div>
                     <input
@@ -190,11 +192,11 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
                     {/* eslint-disable-next-line @next/next/no-img-element -- local object-URL preview of a just-captured photo; next/image needs known dimensions + a remote allowlist that a transient blob URL can't satisfy. */}
                     <img
                         src={previewSrc}
-                        alt="Just captured"
+                        alt={t('justCaptured')}
                         className="size-16 shrink-0 rounded-md object-cover"
                     />
                     <span className="text-xs text-content-muted">
-                        {uploading ? 'Uploading photo…' : 'Photo captured.'}
+                        {uploading ? t('uploadingPhoto') : t('photoCaptured')}
                     </span>
                 </div>
             )}
@@ -203,8 +205,8 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
                 <EmptyState
                     size="sm"
                     variant="no-records"
-                    title="No photos yet"
-                    description={canWrite ? 'Upload a photo to start the visual record.' : 'No photos have been attached to this entry.'}
+                    title={t('emptyTitle')}
+                    description={canWrite ? t('emptyDescription') : t('emptyDescriptionReadonly')}
                 />
             ) : (
                 <ul className="divide-y divide-border-subtle">
@@ -231,7 +233,7 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => detach(fileId, name)}
-                                            aria-label={`Remove ${name}`}
+                                            aria-label={t('removeFile', { name })}
                                         >
                                             <Trash className="size-4" />
                                         </Button>

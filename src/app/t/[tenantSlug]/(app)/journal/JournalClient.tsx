@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
     const prefetchData = usePrefetchTenant();
+    const t = useTranslations('journal');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     const filterCtx = useFilters();
@@ -103,7 +105,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
             createColumns<JournalRow>([
                 {
                     accessorKey: 'type',
-                    header: 'Type',
+                    header: t('colType'),
                     cell: ({ row }) => (
                         <StatusBadge variant="info" size="sm">
                             {(LOG_ENTRY_TYPE_LABELS as Record<string, string>)[row.original.type] ??
@@ -115,7 +117,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                 },
                 {
                     accessorKey: 'title',
-                    header: 'Title',
+                    header: t('colTitle'),
                     cell: ({ row, getValue }) => (
                         <TableTitleCell
                             href={tenantHref(`/journal/${row.original.id}`)}
@@ -130,7 +132,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                 },
                 {
                     id: 'occurredAt',
-                    header: 'Date',
+                    header: t('colDate'),
                     accessorFn: (e) => e.occurredAt,
                     cell: ({ getValue }) => (
                         <TimestampTooltip
@@ -139,11 +141,11 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                         />
                     ),
                     // Mobile card key/value row — when the work happened.
-                    meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: 'Date' } },
+                    meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: t('colDate') } },
                 },
                 {
                     accessorKey: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => {
                         const status = row.original.status;
                         return (
@@ -157,7 +159,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                 },
                 {
                     id: 'location',
-                    header: 'Location',
+                    header: t('colLocation'),
                     accessorFn: (e) => {
                         const locs = e.locations ?? [];
                         const first = locs[0]?.location?.name;
@@ -168,11 +170,11 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                         <span className="text-xs text-content-muted">{getValue() as string}</span>
                     ),
                     // Mobile card key/value row — the field/block.
-                    meta: { mobileCard: { slot: 'meta', label: 'Location' } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colLocation') } },
                 },
             ]),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [tenantSlug],
+        [tenantSlug, t],
     );
 
     return (
@@ -180,11 +182,11 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Journal' },
+                    { label: t('dashboard'), href: tenantHref('/dashboard') },
+                    { label: t('breadcrumb') },
                 ],
-                title: 'Field Journal',
-                description: 'The durable record of work done — and planned — on the farm.',
+                title: t('title'),
+                description: t('description'),
                 actions: permissions.canWrite ? (
                     <Button
                         variant="primary"
@@ -192,14 +194,14 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                         onClick={() => setIsCreateOpen(true)}
                         id="new-journal-btn"
                     >
-                        Entry
+                        {t('addEntry')}
                     </Button>
                 ) : null,
             }}
             filters={{
                 defs: liveFilters,
                 searchId: 'journal-search',
-                searchPlaceholder: 'Search entries…',
+                searchPlaceholder: t('searchPlaceholder'),
             }}
             table={{
                 data: entries,
@@ -215,19 +217,19 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No entries match your filters"
-                        description="Try widening your search or clearing one of the active filters."
-                        secondaryAction={{ label: 'Clear filters', onClick: () => filterCtx.clearAll() }}
+                        title={t('filteredEmptyTitle')}
+                        description={t('filteredEmptyDescription')}
+                        secondaryAction={{ label: t('clearFilters'), onClick: () => filterCtx.clearAll() }}
                     />
                 ) : (
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No journal entries yet"
-                        description="Log field activities, observations, input applications, and harvests — the field record behind every traceability claim."
+                        title={t('emptyTitle')}
+                        description={t('emptyDescription')}
                         primaryAction={
                             permissions.canWrite
-                                ? { label: 'Add entry', onClick: () => setIsCreateOpen(true) }
+                                ? { label: t('emptyAction'), onClick: () => setIsCreateOpen(true) }
                                 : undefined
                         }
                     />
@@ -250,7 +252,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                     />
                     <Fab
                         onClick={() => setIsCreateOpen(true)}
-                        label="New Journal entry"
+                        label={t('fabLabel')}
                         icon={<Plus aria-hidden className="h-6 w-6" />}
                     />
                 </>

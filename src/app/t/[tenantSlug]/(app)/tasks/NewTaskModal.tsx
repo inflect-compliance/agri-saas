@@ -13,6 +13,7 @@
  */
 import { type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -53,6 +54,7 @@ export function NewTaskModal({
     const tenantHref = useTenantHref();
     const { tenantSlug } = useTenantContext();
     const router = useRouter();
+    const t = useTranslations('tasks.newModal');
 
     const form = useNewTaskForm({
         onSuccess: (task) => {
@@ -81,14 +83,14 @@ export function NewTaskModal({
             showModal={open}
             setShowModal={setOpen}
             size="lg"
-            title="New task"
-            description="Create a new task to track."
+            title={t('title')}
+            description={t('description')}
             preventDefaultClose={form.submitting}
             isDirty={form.isDirty}
         >
             <Modal.Header
-                title="New task"
-                description="Create a new task to track."
+                title={t('title')}
+                description={t('description')}
             />
             <Modal.Form id="new-task-form" onSubmit={handleSubmit}>
                 <Modal.Body>
@@ -116,7 +118,7 @@ export function NewTaskModal({
                         disabled={form.submitting}
                         id="new-task-cancel-btn"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -125,7 +127,7 @@ export function NewTaskModal({
                         disabled={!form.canSubmit}
                         id="create-task-btn"
                     >
-                        {form.submitting ? 'Creating…' : 'Create Task'}
+                        {form.submitting ? t('creating') : t('create')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

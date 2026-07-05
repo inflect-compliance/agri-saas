@@ -24,6 +24,7 @@ import { KPIStat } from '@/components/ui/metric';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SkeletonDashboard } from '@/components/ui/skeleton';
 import { cardVariants } from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
 
 const STATUS_LABELS: Record<string, string> = {
     OPEN: 'Open', TRIAGED: 'Triaged', IN_PROGRESS: 'In Progress',
@@ -80,6 +81,7 @@ interface Metrics {
 export default function TaskDashboardPage() {
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
+    const t = useTranslations('tasks.dashboard');
     const [metrics, setMetrics] = useState<Metrics | null>(null);
     const [overdueTasks, setOverdueTasks] = useState<any[]>([]);
     const [myTasks, setMyTasks] = useState<any[]>([]);
@@ -114,11 +116,11 @@ export default function TaskDashboardPage() {
     return (
         <DashboardLayout
             header={{
-                title: 'Task Dashboard',
-                description: `${metrics.total} total tasks`,
+                title: t('title'),
+                description: t('totalTasksMeta', { count: metrics.total }),
                 actions: (
-                    <Tooltip content="Task register">
-                        <Link href={tenantHref('/tasks')} aria-label="Task register" className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="tasks" size={16} /></Link>
+                    <Tooltip content={t('taskRegister')}>
+                        <Link href={tenantHref('/tasks')} aria-label={t('taskRegister')} className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="tasks" size={16} /></Link>
                     </Tooltip>
                 ),
             }}
@@ -127,32 +129,32 @@ export default function TaskDashboardPage() {
             {/* KPI Cards — Polish PR-2: KPIStat primitive. */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-default" id="dashboard-metrics">
                 <div className={cardVariants({ density: 'compact' })}>
-                    <KPIStat value={metrics.total} label="Total Tasks" />
+                    <KPIStat value={metrics.total} label={t('kpiTotal')} />
                 </div>
                 <div className={cardVariants({ density: 'compact' })}>
                     <KPIStat
                         value={metrics.overdue}
-                        label="Overdue"
+                        label={t('kpiOverdue')}
                         tone={metrics.overdue > 0 ? 'critical' : 'default'}
                     />
                 </div>
                 <div className={cardVariants({ density: 'compact' })}>
                     <KPIStat
                         value={metrics.dueIn7d}
-                        label="Due in 7 days"
+                        label={t('kpiDue7')}
                         tone={metrics.dueIn7d > 0 ? 'attention' : 'default'}
                     />
                 </div>
                 <div className={cardVariants({ density: 'compact' })}>
-                    <KPIStat value={metrics.dueIn30d} label="Due in 30 days" />
+                    <KPIStat value={metrics.dueIn30d} label={t('kpiDue30')} />
                 </div>
             </div>
 
             {/* My Tasks */}
             <div className={cardVariants({ density: 'compact' })} id="my-tasks-section">
-                <Heading level={3} className="mb-3"><User size={14} className="inline-block mr-1" /> My Tasks</Heading>
+                <Heading level={3} className="mb-3"><User size={14} className="inline-block mr-1" /> {t('myTasks')}</Heading>
                 {myTasks.length === 0 ? (
-                    <p className="text-content-subtle text-sm text-center py-4">No open tasks assigned to you</p>
+                    <p className="text-content-subtle text-sm text-center py-4">{t('noMyTasks')}</p>
                 ) : (
                     <div className="space-y-1">
                         {myTasks.map((task: any) => (
@@ -179,9 +181,9 @@ export default function TaskDashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-default">
                 {/* By Status — Epic 59: StatusBreakdown primitive. */}
                 <div className={cardVariants({ density: 'compact' })}>
-                    <Heading level={3} className="mb-3">By Status</Heading>
+                    <Heading level={3} className="mb-3">{t('byStatus')}</Heading>
                     <StatusBreakdown
-                        ariaLabel="Tasks by status"
+                        ariaLabel={t('byStatusAria')}
                         total={metrics.total}
                         size="sm"
                         items={Object.entries(STATUS_LABELS).map(([key, label]) => ({
@@ -201,9 +203,9 @@ export default function TaskDashboardPage() {
 
                 {/* By Severity — Epic 59: StatusBreakdown primitive. */}
                 <div className={cardVariants({ density: 'compact' })}>
-                    <Heading level={3} className="mb-3">By Severity</Heading>
+                    <Heading level={3} className="mb-3">{t('bySeverity')}</Heading>
                     <StatusBreakdown
-                        ariaLabel="Tasks by severity"
+                        ariaLabel={t('bySeverityAria')}
                         total={metrics.total}
                         size="sm"
                         items={Object.entries(SEVERITY_LABELS).map(([key, label]) => ({
@@ -217,20 +219,20 @@ export default function TaskDashboardPage() {
 
                 {/* 30-Day Trend */}
                 <div className={cardVariants({ density: 'compact' })}>
-                    <Heading level={3} className="mb-3">30-Day Trend</Heading>
+                    <Heading level={3} className="mb-3">{t('trend')}</Heading>
                     <div className="flex items-end gap-default h-24 mt-4">
                         <div className="flex-1 flex flex-col items-center gap-1">
                             <div className="w-full bg-bg-info rounded-t" style={{ height: `${(metrics.trend.created30d / maxBar) * 80}px` }}>
                                 <div className="w-full h-full bg-bg-info rounded-t" />
                             </div>
-                            <span className="text-xs text-content-muted">Created</span>
+                            <span className="text-xs text-content-muted">{t('created')}</span>
                             <span className="text-sm font-bold text-content-info">{metrics.trend.created30d}</span>
                         </div>
                         <div className="flex-1 flex flex-col items-center gap-1">
                             <div className="w-full bg-bg-success rounded-t" style={{ height: `${(metrics.trend.resolved30d / maxBar) * 80}px` }}>
                                 <div className="w-full h-full bg-bg-success rounded-t" />
                             </div>
-                            <span className="text-xs text-content-muted">Resolved</span>
+                            <span className="text-xs text-content-muted">{t('resolved')}</span>
                             <span className="text-sm font-bold text-content-success">{metrics.trend.resolved30d}</span>
                         </div>
                     </div>
@@ -239,7 +241,7 @@ export default function TaskDashboardPage() {
 
             {/* By Type */}
             <div className={cardVariants({ density: 'compact' })}>
-                <Heading level={3} className="mb-3">By Type</Heading>
+                <Heading level={3} className="mb-3">{t('byType')}</Heading>
                 <div className="flex flex-wrap gap-compact">
                     {Object.entries(TYPE_LABELS).map(([key, label]) => (
                         <div key={key} className="px-3 py-2 rounded-lg bg-bg-default/50 border border-border-default/50 text-xs">
@@ -253,7 +255,7 @@ export default function TaskDashboardPage() {
             {/* Top Controls with Open Tasks */}
             {metrics.topControls && metrics.topControls.length > 0 && (
                 <div className={cardVariants({ density: 'compact' })} id="top-controls-section">
-                    <Heading level={3} className="mb-3"><AppIcon name="controls" size={14} className="inline-block mr-1" /> Top Controls with Open Tasks</Heading>
+                    <Heading level={3} className="mb-3"><AppIcon name="controls" size={14} className="inline-block mr-1" /> {t('topControls')}</Heading>
                     <div className="space-y-tight">
                         {metrics.topControls.map((ctrl) => (
                             <Link
@@ -263,7 +265,7 @@ export default function TaskDashboardPage() {
                             >
                                 <span className="font-mono text-xs text-content-subtle w-20 truncate">{ctrl.code}</span>
                                 <span className="flex-1 text-content-emphasis truncate">{ctrl.name}</span>
-                                <StatusBadge variant="warning">{ctrl.openTaskCount} open</StatusBadge>
+                                <StatusBadge variant="warning">{t('openCount', { count: ctrl.openTaskCount })}</StatusBadge>
                             </Link>
                         ))}
                     </div>
@@ -273,7 +275,7 @@ export default function TaskDashboardPage() {
             {/* Top Linked Entities (Assets/Risks) */}
             {metrics.topLinkedEntities && metrics.topLinkedEntities.length > 0 && (
                 <div className={cardVariants({ density: 'compact' })} id="top-linked-entities-section">
-                    <Heading level={3} className="mb-3"><Link2 size={14} className="inline-block mr-1" /> Top Assets & Risks with Open Tasks</Heading>
+                    <Heading level={3} className="mb-3"><Link2 size={14} className="inline-block mr-1" /> {t('topLinkedEntities')}</Heading>
                     <div className="space-y-tight">
                         {metrics.topLinkedEntities.map((entity) => (
                             <div
@@ -284,7 +286,7 @@ export default function TaskDashboardPage() {
                                     {entity.entityType}
                                 </StatusBadge>
                                 <span className="flex-1 text-content-default font-mono text-xs truncate">{entity.entityId}</span>
-                                <StatusBadge variant="neutral">{entity.count} tasks</StatusBadge>
+                                <StatusBadge variant="neutral">{t('tasksCount', { count: entity.count })}</StatusBadge>
                             </div>
                         ))}
                     </div>
@@ -294,7 +296,7 @@ export default function TaskDashboardPage() {
             {/* Overdue Tasks */}
             {overdueTasks.length > 0 && (
                 <div className={cardVariants({ density: 'compact' })} id="overdue-tasks-section">
-                    <Heading level={3} className="mb-3 text-content-error"><AlertOctagon size={14} className="inline-block mr-1" /> Overdue Tasks</Heading>
+                    <Heading level={3} className="mb-3 text-content-error"><AlertOctagon size={14} className="inline-block mr-1" /> {t('overdueTasks')}</Heading>
                     <div className="space-y-tight">
                         {overdueTasks.slice(0, 10).map((task: any) => (
                             <Link
@@ -306,7 +308,7 @@ export default function TaskDashboardPage() {
                                 <span className="flex-1 text-content-emphasis truncate">{task.title}</span>
                                 <StatusBadge variant="error">{task.severity}</StatusBadge>
                                 <span className="text-xs text-content-error">
-                                    Due {formatDate(task.dueAt)}
+                                    {t('due', { date: formatDate(task.dueAt) })}
                                 </span>
                             </Link>
                         ))}

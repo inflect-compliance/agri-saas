@@ -46,6 +46,7 @@ import {
     toYMD,
 } from '@/components/ui/date-picker/date-utils';
 import { UserCombobox } from '@/components/ui/user-combobox';
+import { useTranslations } from 'next-intl';
 
 const SEVERITY_OPTIONS: ComboboxOption[] = [
     { value: 'INFO', label: 'Info' },
@@ -138,6 +139,7 @@ export function TaskDetailSheet({
     onSaved,
 }: TaskDetailSheetProps) {
     const open = taskId !== null;
+    const t = useTranslations('tasks.sheet');
     const titleRef = useRef<HTMLInputElement>(null);
 
     const [task, setTask] = useState<TaskDetail | null>(null);
@@ -286,7 +288,7 @@ export function TaskDetailSheet({
         if (dirty && !saving) {
             const ok =
                 typeof window !== 'undefined'
-                    ? window.confirm('Discard unsaved changes?')
+                    ? window.confirm(t('discardConfirm'))
                     : true;
             if (!ok) return;
         }
@@ -299,12 +301,12 @@ export function TaskDetailSheet({
             open={open}
             onOpenChange={handleOpenChange}
             size="md"
-            title={task?.title ?? 'Task detail'}
+            title={task?.title ?? t('fallbackTitle')}
             description={task?.key ?? undefined}
         >
             {loading || !task ? (
                 <>
-                    <Sheet.Header title={error ? 'Task' : 'Loading…'} />
+                    <Sheet.Header title={error ? t('headerTask') : t('headerLoading')} />
                     <Sheet.Body>
                         {error ? (
                             <div
@@ -316,7 +318,7 @@ export function TaskDetailSheet({
                             </div>
                         ) : (
                             <div className="flex h-40 items-center justify-center text-sm text-content-muted">
-                                Loading task…
+                                {t('loadingTask')}
                             </div>
                         )}
                     </Sheet.Body>
@@ -340,7 +342,7 @@ export function TaskDetailSheet({
                             >
                                 <div className="flex flex-col gap-0.5">
                                     <span className="text-xs uppercase tracking-wide text-content-muted">
-                                        Type
+                                        {t('summaryType')}
                                     </span>
                                     <StatusBadge variant="neutral" className="w-fit">
                                         {TYPE_LABELS[task.type] || task.type}
@@ -348,7 +350,7 @@ export function TaskDetailSheet({
                                 </div>
                                 <div className="flex flex-col gap-0.5">
                                     <span className="text-xs uppercase tracking-wide text-content-muted">
-                                        Status
+                                        {t('summaryStatus')}
                                     </span>
                                     <StatusBadge
                                         variant={STATUS_BADGE[task.status] || 'neutral'}
@@ -378,7 +380,7 @@ export function TaskDetailSheet({
                                         className="mb-1 block text-sm text-content-default"
                                         htmlFor="task-sheet-title-input"
                                     >
-                                        Title <RequiredMarker />
+                                        {t('fieldTitle')} <RequiredMarker />
                                     </label>
                                     <input
                                         id="task-sheet-title-input"
@@ -397,7 +399,7 @@ export function TaskDetailSheet({
                                         className="mb-1 block text-sm text-content-default"
                                         htmlFor="task-sheet-description-input"
                                     >
-                                        Description
+                                        {t('fieldDescription')}
                                     </label>
                                     <textarea
                                         id="task-sheet-description-input"
@@ -414,7 +416,7 @@ export function TaskDetailSheet({
                                         className="mb-1 block text-sm text-content-default"
                                         htmlFor="task-sheet-type-input"
                                     >
-                                        Type
+                                        {t('fieldType')}
                                     </label>
                                     <Combobox
                                         id="task-sheet-type-input"
@@ -428,7 +430,7 @@ export function TaskDetailSheet({
                                         setSelected={(o) =>
                                             update('type', o?.value ?? 'TASK')
                                         }
-                                        placeholder="—"
+                                        placeholder={t('typePlaceholder')}
                                         disabled={!canWrite}
                                         hideSearch
                                         matchTriggerWidth
@@ -443,7 +445,7 @@ export function TaskDetailSheet({
                                             className="mb-1 block text-sm text-content-default"
                                             htmlFor="task-sheet-severity-input"
                                         >
-                                            Severity
+                                            {t('fieldSeverity')}
                                         </label>
                                         <Combobox
                                             id="task-sheet-severity-input"
@@ -471,7 +473,7 @@ export function TaskDetailSheet({
                                             className="mb-1 block text-sm text-content-default"
                                             htmlFor="task-sheet-priority-input"
                                         >
-                                            Priority
+                                            {t('fieldPriority')}
                                         </label>
                                         <Combobox
                                             id="task-sheet-priority-input"
@@ -495,11 +497,11 @@ export function TaskDetailSheet({
                                         />
                                     </div>
                                 </div>
-                                <FormField label="Due Date">
+                                <FormField label={t('fieldDueDate')}>
                                     <DatePicker
                                         id="task-sheet-due-input"
                                         className="w-full"
-                                        placeholder="Select date"
+                                        placeholder={t('datePlaceholder')}
                                         clearable
                                         align="start"
                                         value={parseYMD(form.dueAt)}
@@ -507,12 +509,12 @@ export function TaskDetailSheet({
                                             update('dueAt', toYMD(next) ?? '')
                                         }
                                         disabledDays={{ before: startOfUtcDay(new Date()) }}
-                                        aria-label="Due date"
+                                        aria-label={t('dueDateAria')}
                                     />
                                 </FormField>
                                 <FormField
-                                    label="Assignee"
-                                    description="Search members to assign, or clear to unassign."
+                                    label={t('fieldAssignee')}
+                                    description={t('assigneeDescription')}
                                 >
                                     <UserCombobox
                                         id="task-sheet-assignee-input"
@@ -542,7 +544,7 @@ export function TaskDetailSheet({
                                         onClick={() => setShowDeleteConfirm(true)}
                                         disabled={deleting || saving}
                                         data-testid="task-sheet-delete"
-                                        text={deleting ? 'Deleting…' : 'Delete task'}
+                                        text={deleting ? t('deleting') : t('deleteTask')}
                                     />
                                 )}
                                 <Link
@@ -551,7 +553,7 @@ export function TaskDetailSheet({
                                     data-testid="task-sheet-open-full"
                                     onClick={() => setTaskId(null)}
                                 >
-                                    See full detail →
+                                    {t('seeFullDetail')}
                                 </Link>
                             </div>
                             <div className="flex items-center gap-tight">
@@ -561,7 +563,7 @@ export function TaskDetailSheet({
                                         variant="secondary"
                                         size="sm"
                                         data-testid="task-sheet-cancel"
-                                        text="Cancel"
+                                        text={t('cancel')}
                                     />
                                 </Sheet.Close>
                                 <Button
@@ -570,7 +572,7 @@ export function TaskDetailSheet({
                                     size="sm"
                                     data-testid="task-sheet-save"
                                     disabled={!canSave}
-                                    text={saving ? 'Saving…' : 'Save changes'}
+                                    text={saving ? t('saving') : t('saveChanges')}
                                 />
                             </div>
                         </Sheet.Actions>
@@ -585,9 +587,9 @@ export function TaskDetailSheet({
                 setShowDeleteConfirm(open);
             }}
             tone="danger"
-            title={task ? `Delete "${task.title}"?` : 'Delete task?'}
-            description="This permanently deletes the task and its comments, links, and watchers. This cannot be undone."
-            confirmLabel="Delete task"
+            title={task ? t('deleteConfirmTitle', { title: task.title }) : t('deleteConfirmTitleFallback')}
+            description={t('deleteConfirmDescription')}
+            confirmLabel={t('deleteConfirmLabel')}
             onConfirm={performDelete}
         />
         </>

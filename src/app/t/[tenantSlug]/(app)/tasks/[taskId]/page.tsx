@@ -42,6 +42,7 @@ import { EditTaskModal, type EditTaskForm } from './_modals/EditTaskModal';
 import { toYMD } from '@/components/ui/date-picker/date-utils';
 import { Pen2 } from '@/components/ui/icons/nucleo';
 import { cn } from '@/lib/cn';
+import { useTranslations } from 'next-intl';
 
 // Polish PR-1 — STATUS_BADGE / SEVERITY_BADGE moved to shared
 // domain mapping (TASK_STATUS_VARIANT / TASK_SEVERITY_VARIANT).
@@ -85,6 +86,7 @@ export default function TaskDetailPage() {
     const { permissions, role, tenantSlug } = useTenantContext();
     const taskId = params?.taskId as string;
     const triggerUndoToast = useToastWithUndo();
+    const t = useTranslations('tasks.detail');
 
     const [tab, setTab] = useState<Tab>('overview');
 
@@ -280,8 +282,8 @@ export default function TaskDetailPage() {
             { revalidate: false },
         );
         triggerUndoToast({
-            message: 'Link removed',
-            undoMessage: 'Undo',
+            message: t('linkRemoved'),
+            undoMessage: t('undo'),
             action: async () => {
                 const res = await fetch(
                     apiUrl(`/tasks/${taskId}/links/${linkId}`),
@@ -343,7 +345,7 @@ export default function TaskDetailPage() {
         }
 
         if (!evidenceUrl.trim()) {
-            setEvidenceError('Choose a file to upload, or enter an evidence URL.');
+            setEvidenceError(t('chooseFileError'));
             return;
         }
         setSavingEvidence(true);
@@ -378,8 +380,8 @@ export default function TaskDetailPage() {
             { revalidate: false },
         );
         triggerUndoToast({
-            message: 'Evidence removed',
-            undoMessage: 'Undo',
+            message: t('evidenceRemoved'),
+            undoMessage: t('undo'),
             action: async () => {
                 const res = await fetch(
                     apiUrl(`/tasks/${taskId}/evidence/${evidenceId}`),
@@ -464,9 +466,9 @@ export default function TaskDetailPage() {
     };
 
     const breadcrumbs = [
-        { label: 'Dashboard', href: tenantHref('/dashboard') },
-        { label: 'Tasks', href: tenantHref('/tasks') },
-        { label: task?.title ?? 'Task' },
+        { label: t('dashboard'), href: tenantHref('/dashboard') },
+        { label: t('breadcrumbTasks'), href: tenantHref('/tasks') },
+        { label: task?.title ?? t('taskFallback') },
     ];
     if (loading) {
         return (
@@ -484,18 +486,18 @@ export default function TaskDetailPage() {
     }
     if (!task) {
         return (
-            <EntityDetailLayout empty={{ message: 'Task not found.' }} title="" breadcrumbs={breadcrumbs}>
+            <EntityDetailLayout empty={{ message: t('notFound') }} title="" breadcrumbs={breadcrumbs}>
                 <></>
             </EntityDetailLayout>
         );
     }
 
     const tabs: { key: Tab; label: string; count?: number }[] = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'evidence', label: 'Evidence', count: evidenceQuery.data?.evidence?.length ?? task._count?.evidence },
-        { key: 'links', label: 'Links', count: task._count?.links ?? links.length },
-        { key: 'comments', label: 'Comments', count: task._count?.comments ?? comments.length },
-        { key: 'activity', label: 'Activity' },
+        { key: 'overview', label: t('tabOverview') },
+        { key: 'evidence', label: t('tabEvidence'), count: evidenceQuery.data?.evidence?.length ?? task._count?.evidence },
+        { key: 'links', label: t('tabLinks'), count: task._count?.links ?? links.length },
+        { key: 'comments', label: t('tabComments'), count: task._count?.comments ?? comments.length },
+        { key: 'activity', label: t('tabActivity') },
     ];
 
     const isOverdue = task.dueAt && new Date(task.dueAt) < new Date() && !(TERMINAL_WORK_ITEM_STATUSES as readonly string[]).includes(task.status);
@@ -513,12 +515,12 @@ export default function TaskDetailPage() {
                         ...(task.key
                             ? [
                                   {
-                                      label: 'Key',
+                                      label: t('metaKey'),
                                       value: (
                                           <CopyText
                                               value={task.key}
-                                              label={`Copy task key ${task.key}`}
-                                              successMessage="Task key copied"
+                                              label={t('copyTaskKey', { key: task.key })}
+                                              successMessage={t('taskKeyCopied')}
                                               className="text-xs text-content-subtle"
                                           >
                                               {task.key}
@@ -530,7 +532,7 @@ export default function TaskDetailPage() {
                         {
                             kind: 'status' as const,
                             id: 'task-status',
-                            label: 'Status',
+                            label: t('metaStatus'),
                             value:
                                 STATUS_LABELS[task.status] ?? task.status,
                             variant:
@@ -540,22 +542,22 @@ export default function TaskDetailPage() {
                         {
                             kind: 'status' as const,
                             id: 'task-severity',
-                            label: 'Severity',
+                            label: t('metaSeverity'),
                             value: task.severity,
                             variant:
                                 TASK_SEVERITY_VARIANT[task.severity] ??
                                 'neutral',
                         },
                         {
-                            label: 'Type',
+                            label: t('metaType'),
                             value: TYPE_LABELS[task.type] ?? task.type,
                         },
                         ...(isOverdue
                             ? [
                                   {
                                       kind: 'status' as const,
-                                      label: 'SLA',
-                                      value: 'Overdue',
+                                      label: t('metaSla'),
+                                      value: t('overdue'),
                                       variant: 'error' as const,
                                   },
                               ]
@@ -572,7 +574,7 @@ export default function TaskDetailPage() {
                         setSelected={(opt) => { if (opt) requestStatusChange(opt.value); }}
                         options={TASK_STATUS_CB_OPTIONS}
                         disabled={changingStatus}
-                        placeholder="Status"
+                        placeholder={t('statusPlaceholder')}
                         buttonProps={{ className: 'text-sm' }}
                     />
                 )
@@ -585,9 +587,9 @@ export default function TaskDetailPage() {
             {permissions.canWrite && (
                 <div className={cardVariants({ density: 'compact' })}>
                     <div className="flex items-center gap-compact">
-                        <span className="text-sm text-content-muted">Assignee:</span>
+                        <span className="text-sm text-content-muted">{t('assigneeLabel')}</span>
                         <span className="text-sm text-content-emphasis font-medium" id="task-assignee">
-                            {task.assignee?.name || task.assigneeUserId || 'Unassigned'}
+                            {task.assignee?.name || task.assigneeUserId || t('unassigned')}
                         </span>
                         <div className="w-64">
                             <UserCombobox
@@ -598,12 +600,12 @@ export default function TaskDetailPage() {
                                 onChange={(userId) =>
                                     setAssigneeDraft(userId ?? null)
                                 }
-                                placeholder="Unassigned"
+                                placeholder={t('unassigned')}
                                 forceDropdown={false}
                             />
                         </div>
                         <Button variant="secondary" onClick={handleAssign} disabled={assigning} id="assign-task-btn">
-                            {assigning ? 'Saving...' : 'Assign'}
+                            {assigning ? t('saving') : t('assign')}
                         </Button>
                     </div>
                 </div>
@@ -614,7 +616,7 @@ export default function TaskDetailPage() {
                 <div className={cn(cardVariants(), 'space-y-default')}>
                     {task && task.type === 'FIELD_OPERATION' && (
                         <div className="border-b border-border-subtle pb-section">
-                            <Heading level={3} className="mb-3">Field operation</Heading>
+                            <Heading level={3} className="mb-3">{t('fieldOperation')}</Heading>
                             <FieldOperationPanel taskId={task.id} />
                         </div>
                     )}
@@ -628,8 +630,8 @@ export default function TaskDetailPage() {
                                 onClick={openEditModal}
                                 data-testid="task-edit-button"
                                 id="task-edit-button"
-                                aria-label="Edit task"
-                                title="Edit task"
+                                aria-label={t('editTask')}
+                                title={t('editTask')}
                             >
                                 <Pen2 className="size-4" />
                             </Button>
@@ -637,40 +639,40 @@ export default function TaskDetailPage() {
                     )}
                     <div className="grid grid-cols-2 gap-section">
                         <div className="col-span-2">
-                            <span className="text-xs text-content-subtle uppercase">Description</span>
-                            <p className="text-sm text-content-default mt-1 whitespace-pre-wrap">{task.description || 'No description.'}</p>
+                            <span className="text-xs text-content-subtle uppercase">{t('description')}</span>
+                            <p className="text-sm text-content-default mt-1 whitespace-pre-wrap">{task.description || t('noDescription')}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Type</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('type')}</span>
                             <p className="text-sm text-content-default mt-1">{TYPE_LABELS[task.type] || task.type}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Priority</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('priority')}</span>
                             <p className="text-sm text-content-default mt-1">{PRIORITY_LABELS[task.priority] || task.priority}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Assignee</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('assignee')}</span>
                             <p className="text-sm text-content-default mt-1">{task.assignee?.name || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Reporter</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('reporter')}</span>
                             <p className="text-sm text-content-default mt-1">{task.createdBy?.name || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Due Date</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('dueDate')}</span>
                             <p className="text-sm text-content-default mt-1">{task.dueAt ? formatDate(task.dueAt) : '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Created</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('created')}</span>
                             <p className="text-sm text-content-default mt-1">{formatDateTime(task.createdAt)}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Created By</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('createdBy')}</span>
                             <p className="text-sm text-content-default mt-1">{task.createdBy?.name || '—'}</p>
                         </div>
                         {task.control && (
                             <div>
-                                <span className="text-xs text-content-subtle uppercase">Control</span>
+                                <span className="text-xs text-content-subtle uppercase">{t('control')}</span>
                                 <p className="text-sm mt-1">
                                     <Link
                                         href={tenantHref(`/controls/${task.control.id}`)}
@@ -684,13 +686,13 @@ export default function TaskDetailPage() {
                         )}
                         {task.completedAt && (
                             <div>
-                                <span className="text-xs text-content-subtle uppercase">Completed At</span>
+                                <span className="text-xs text-content-subtle uppercase">{t('completedAt')}</span>
                                 <p className="text-sm text-content-success mt-1">{formatDateTime(task.completedAt)}</p>
                             </div>
                         )}
                         {task.resolution && (
                             <div className="col-span-2">
-                                <span className="text-xs text-content-subtle uppercase">Resolution</span>
+                                <span className="text-xs text-content-subtle uppercase">{t('resolution')}</span>
                                 <p className="text-sm text-content-default mt-1 whitespace-pre-wrap">{task.resolution}</p>
                             </div>
                         )}
@@ -699,17 +701,17 @@ export default function TaskDetailPage() {
                     {/* Audit / Finding Fields from metadataJson */}
                     {(task.type === 'AUDIT_FINDING' || task.type === 'CONTROL_GAP') && (metadata.findingSource || metadata.controlGapType) && (
                         <div className="border-t border-border-default pt-4 mt-4">
-                            <Heading level={3} className="mb-3">Audit Details</Heading>
+                            <Heading level={3} className="mb-3">{t('auditDetails')}</Heading>
                             <div className="grid grid-cols-2 gap-default">
                                 {metadata.findingSource && (
                                     <div>
-                                        <span className="text-xs text-content-subtle uppercase">Finding Source</span>
+                                        <span className="text-xs text-content-subtle uppercase">{t('findingSource')}</span>
                                         <p className="text-sm text-content-default mt-1">{FINDING_SOURCE_LABELS[metadata.findingSource] || metadata.findingSource}</p>
                                     </div>
                                 )}
                                 {metadata.controlGapType && (
                                     <div>
-                                        <span className="text-xs text-content-subtle uppercase">Control Gap Type</span>
+                                        <span className="text-xs text-content-subtle uppercase">{t('controlGapType')}</span>
                                         <p className="text-sm text-content-default mt-1">{GAP_TYPE_LABELS[metadata.controlGapType] || metadata.controlGapType}</p>
                                     </div>
                                 )}
@@ -757,8 +759,8 @@ export default function TaskDetailPage() {
                     />
                     {evidenceQuery.error ? (
                         <InlineEmptyState
-                            title="Couldn't load evidence"
-                            description="Something went wrong fetching this task's evidence. Reload the page to try again."
+                            title={t('evidenceLoadErrorTitle')}
+                            description={t('evidenceLoadErrorDescription')}
                         />
                     ) : (
                         <EvidenceSubTable
@@ -807,7 +809,7 @@ export default function TaskDetailPage() {
                                 <Combobox hideSearch id="link-relation" selected={RELATION_CB_OPTIONS.find(o => o.value === linkRelation) ?? null} setSelected={(opt) => setLinkRelation(opt?.value ?? linkRelation)} options={RELATION_CB_OPTIONS} matchTriggerWidth />
                             </div>
                             <Button type="submit" variant="primary" disabled={savingLink} id="submit-link-btn">
-                                {savingLink ? 'Linking...' : 'Link'}
+                                {savingLink ? t('linking') : t('linkAction')}
                             </Button>
                         </form>
                     )}
@@ -828,14 +830,14 @@ export default function TaskDetailPage() {
                             <textarea
                                 className="input w-full"
                                 rows={3}
-                                placeholder="Add a comment..."
+                                placeholder={t('commentPlaceholder')}
                                 value={commentBody}
                                 onChange={e => setCommentBody(e.target.value)}
                                 required
                                 id="comment-body"
                             />
                             <Button type="submit" variant="primary" disabled={savingComment} id="submit-comment-btn">
-                                {savingComment ? 'Posting...' : 'Comment'}
+                                {savingComment ? t('posting') : t('commentAction')}
                             </Button>
                         </form>
                     )}
@@ -851,15 +853,15 @@ export default function TaskDetailPage() {
                             </div>
                         ) : comments.length === 0 ? (
                             <InlineEmptyState
-                                title="No comments yet"
-                                description="Use the comment box above to leave context, observations, or questions."
+                                title={t('noCommentsTitle')}
+                                description={t('noCommentsDescription')}
                             />
                         ) : (
                             <div className="divide-y divide-border-default/50">
                                 {comments.map((c: any) => (
                                     <div key={c.id} className="px-5 py-3">
                                         <div className="flex items-center gap-tight mb-1">
-                                            <span className="text-sm font-medium text-content-emphasis">{c.createdBy?.name || 'Unknown'}</span>
+                                            <span className="text-sm font-medium text-content-emphasis">{c.createdBy?.name || t('unknownUser')}</span>
                                             <span className="text-xs text-content-subtle">{formatDateTime(c.createdAt)}</span>
                                         </div>
                                         <p className="text-sm text-content-default whitespace-pre-wrap">{c.body}</p>
@@ -888,8 +890,8 @@ export default function TaskDetailPage() {
                         </div>
                     ) : activity.length === 0 ? (
                         <InlineEmptyState
-                            title="No activity yet"
-                            description="Status changes, assignments, and link updates show up here once anything moves."
+                            title={t('noActivityTitle')}
+                            description={t('noActivityDescription')}
                         />
                     ) : (
                         <div className="divide-y divide-border-default/50">
@@ -898,7 +900,7 @@ export default function TaskDetailPage() {
                                     <div className="w-2 h-2 rounded-full bg-[var(--brand-default)] mt-2 shrink-0" />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-tight mb-0.5">
-                                            <span className="text-sm font-medium text-content-emphasis">{evt.user?.name || 'System'}</span>
+                                            <span className="text-sm font-medium text-content-emphasis">{evt.user?.name || t('systemUser')}</span>
                                             <StatusBadge variant="neutral">{evt.action?.replace(/_/g, ' ')}</StatusBadge>
                                         </div>
                                         <p className="text-xs text-content-muted truncate">{evt.details?.split('\n')[0]}</p>
@@ -923,13 +925,13 @@ export default function TaskDetailPage() {
                     }
                 }}
                 size="sm"
-                title={`${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? 'Close'} task`}
-                description="Add a short resolution note for the audit trail."
+                title={`${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? t('closeFallback')} ${t('taskWord')}`}
+                description={t('resolutionModalDescription')}
                 preventDefaultClose={changingStatus}
             >
                 <Modal.Header
-                    title={`${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? 'Close'} task`}
-                    description="A resolution note is recorded on the audit trail."
+                    title={`${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? t('closeFallback')} ${t('taskWord')}`}
+                    description={t('resolutionModalHeaderDescription')}
                 />
                 <Modal.Body>
                     {statusError && (
@@ -941,12 +943,12 @@ export default function TaskDetailPage() {
                             {statusError}
                         </div>
                     )}
-                    <FormField label="Resolution" required>
+                    <FormField label={t('resolutionField')} required>
                         <textarea
                             id="task-resolution-input"
                             className="input w-full"
                             rows={3}
-                            placeholder="What was done / why it's being closed"
+                            placeholder={t('resolutionPlaceholder')}
                             value={resolutionDraft}
                             onChange={(e) => setResolutionDraft(e.target.value)}
                             disabled={changingStatus}
@@ -961,7 +963,7 @@ export default function TaskDetailPage() {
                         disabled={changingStatus}
                         id="task-status-cancel-btn"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         variant="primary"
@@ -977,8 +979,8 @@ export default function TaskDetailPage() {
                         }
                     >
                         {changingStatus
-                            ? 'Saving…'
-                            : `${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? 'Close'} task`}
+                            ? t('savingEllipsis')
+                            : `${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? t('closeFallback')} ${t('taskWord')}`}
                     </Button>
                 </Modal.Actions>
             </Modal>
@@ -1022,19 +1024,20 @@ function TaskLinksTable({
     canWrite: boolean;
     onRemove: (id: string) => void;
 }) {
+    const t = useTranslations('tasks.detail.links');
     const columns = useMemo(
         () =>
             createColumns<TaskLinkRow>([
                 {
                     id: 'entityType',
-                    header: 'Type',
+                    header: t('colType'),
                     cell: ({ row }) => (
                         <StatusBadge variant="info">{row.original.entityType}</StatusBadge>
                     ),
                 },
                 {
                     id: 'entityId',
-                    header: 'Entity ID',
+                    header: t('colEntityId'),
                     cell: ({ row }) => (
                         <span className="text-sm text-content-default font-mono">
                             {row.original.entityId}
@@ -1043,7 +1046,7 @@ function TaskLinksTable({
                 },
                 {
                     id: 'relation',
-                    header: 'Relation',
+                    header: t('colRelation'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted">
                             {row.original.relation?.replace(/_/g, ' ') || '—'}
@@ -1052,7 +1055,7 @@ function TaskLinksTable({
                 },
                 {
                     id: 'createdAt',
-                    header: 'Created',
+                    header: t('colCreated'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted">
                             {formatDate(row.original.createdAt)}
@@ -1063,7 +1066,7 @@ function TaskLinksTable({
                     ? [
                           {
                               id: 'actions',
-                              header: 'Actions',
+                              header: t('colActions'),
                               cell: ({ row }) => (
                                   <button
                                       className="text-content-error text-xs hover:text-content-error"
@@ -1076,7 +1079,7 @@ function TaskLinksTable({
                       ]
                     : []),
             ]),
-        [canWrite, onRemove],
+        [canWrite, onRemove, t],
     );
     return (
         <DataTable
@@ -1086,8 +1089,8 @@ function TaskLinksTable({
             loading={loading}
             emptyState={
                 <InlineEmptyState
-                    title="No links yet"
-                    description="Cross-link this task to related tasks, controls, evidence, or risks via + Link."
+                    title={t('noLinksTitle')}
+                    description={t('noLinksDescription')}
                 />
             }
             resourceName={(p) => (p ? 'links' : 'link')}

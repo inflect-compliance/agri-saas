@@ -41,6 +41,7 @@ import {
     toYMD,
 } from '@/components/ui/date-picker/date-utils';
 import { useFormTelemetry } from '@/lib/telemetry/form-telemetry';
+import { useTranslations } from 'next-intl';
 
 interface ControlOption {
     id: string;
@@ -96,6 +97,7 @@ export function CreateFindingModal({
     const queryClient = useQueryClient();
     const titleRef = useRef<HTMLInputElement>(null);
     const telemetry = useFormTelemetry('CreateFindingModal');
+    const t = useTranslations('findings.createModal');
 
     const [form, setForm] = useState({ ...EMPTY_FORM });
     const [selectedRiskIds, setSelectedRiskIds] = useState<Set<string>>(new Set());
@@ -236,13 +238,13 @@ export function CreateFindingModal({
             showModal={open}
             setShowModal={setOpen}
             size="lg"
-            title="New finding"
-            description="Record an audit finding."
+            title={t('modalTitle')}
+            description={t('modalDescription')}
             preventDefaultClose={submitting}
         >
             <Modal.Header
-                title="New finding"
-                description="Capture a nonconformity, observation, or opportunity — with its owner, controls, and implicated risks."
+                title={t('modalTitle')}
+                description={t('modalHeaderDescription')}
             />
             <Modal.Form id="create-finding-form" onSubmit={handleSubmit}>
                 <Modal.Body>
@@ -258,13 +260,13 @@ export function CreateFindingModal({
                     )}
 
                     <fieldset disabled={submitting} className="m-0 border-0 p-0">
-                        <FormSection eyebrow="Finding details">
-                            <FormField label="Title" required>
+                        <FormSection eyebrow={t('sectionDetails')}>
+                            <FormField label={t('fieldTitle')} required>
                                 <Input
                                     id="finding-title"
                                     ref={titleRef}
                                     type="text"
-                                    placeholder="e.g. Access reviews not performed quarterly"
+                                    placeholder={t('titlePlaceholder')}
                                     value={form.title}
                                     onChange={(e) => update('title', e.target.value)}
                                     required
@@ -273,7 +275,7 @@ export function CreateFindingModal({
                             </FormField>
 
                             <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
-                                <FormField label="Type">
+                                <FormField label={t('fieldType')}>
                                     <Combobox
                                         id="finding-type"
                                         name="type"
@@ -286,7 +288,7 @@ export function CreateFindingModal({
                                         caret
                                     />
                                 </FormField>
-                                <FormField label="Severity">
+                                <FormField label={t('fieldSeverity')}>
                                     <Combobox
                                         id="finding-severity"
                                         name="severity"
@@ -302,36 +304,36 @@ export function CreateFindingModal({
                             </div>
 
                             <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
-                                <FormField label="Assignee">
+                                <FormField label={t('fieldAssignee')}>
                                     <UserCombobox
                                         tenantSlug={tenantSlug}
                                         selectedId={form.assigneeUserId || null}
                                         onChange={(userId) => update('assigneeUserId', userId ?? '')}
                                         matchTriggerWidth
                                         id="finding-assignee"
-                                        placeholder="Unassigned"
+                                        placeholder={t('unassigned')}
                                     />
                                 </FormField>
-                                <FormField label="Due date">
+                                <FormField label={t('fieldDueDate')}>
                                     <DatePicker
                                         id="finding-due-date"
                                         className="w-full"
-                                        placeholder="Select date"
+                                        placeholder={t('datePlaceholder')}
                                         clearable
                                         align="start"
                                         value={parseYMD(form.dueDate)}
                                         onChange={(next) => update('dueDate', toYMD(next) ?? '')}
                                         disabledDays={{ before: startOfUtcDay(new Date()) }}
-                                        aria-label="Due date"
+                                        aria-label={t('dueDateAria')}
                                     />
                                 </FormField>
                             </div>
 
-                            <FormField label="Description" required>
+                            <FormField label={t('fieldDescription')} required>
                                 <Textarea
                                     id="finding-description"
                                     rows={3}
-                                    placeholder="What was observed?"
+                                    placeholder={t('descriptionPlaceholder')}
                                     value={form.description}
                                     onChange={(e) => update('description', e.target.value)}
                                     required
@@ -339,11 +341,11 @@ export function CreateFindingModal({
                             </FormField>
                         </FormSection>
 
-                        <FormSection eyebrow="Controls & risks">
+                        <FormSection eyebrow={t('sectionControlsRisks')}>
                             <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                                 <FormField
-                                    label="Linked control"
-                                    description="The control this finding is raised against."
+                                    label={t('fieldLinkedControl')}
+                                    description={t('linkedControlDescription')}
                                 >
                                     <Combobox
                                         id="finding-control"
@@ -352,9 +354,9 @@ export function CreateFindingModal({
                                         selected={controlOptions.find((o) => o.value === form.controlId) ?? null}
                                         setSelected={(o) => update('controlId', o?.value ?? '')}
                                         loading={controlsQuery.isLoading}
-                                        placeholder="— None"
-                                        searchPlaceholder="Search controls…"
-                                        emptyState="No controls match"
+                                        placeholder={t('controlNone')}
+                                        searchPlaceholder={t('controlSearch')}
+                                        emptyState={t('controlEmpty')}
                                         matchTriggerWidth
                                         forceDropdown
                                         buttonProps={{ className: 'w-full' }}
@@ -362,8 +364,8 @@ export function CreateFindingModal({
                                     />
                                 </FormField>
                                 <FormField
-                                    label="Compensating control"
-                                    description="A control that mitigates the finding."
+                                    label={t('fieldCompensatingControl')}
+                                    description={t('compensatingControlDescription')}
                                 >
                                     <Combobox
                                         id="finding-compensating-control"
@@ -374,9 +376,9 @@ export function CreateFindingModal({
                                         }
                                         setSelected={(o) => update('compensatingControlId', o?.value ?? '')}
                                         loading={controlsQuery.isLoading}
-                                        placeholder="— None"
-                                        searchPlaceholder="Search controls…"
-                                        emptyState="No controls match"
+                                        placeholder={t('controlNone')}
+                                        searchPlaceholder={t('controlSearch')}
+                                        emptyState={t('controlEmpty')}
                                         matchTriggerWidth
                                         forceDropdown
                                         buttonProps={{ className: 'w-full' }}
@@ -385,13 +387,13 @@ export function CreateFindingModal({
                                 </FormField>
                             </div>
 
-                            <FormField label={`Implicated risks (${selectedRiskIds.size} selected)`}>
+                            <FormField label={t('implicatedRisks', { count: selectedRiskIds.size })}>
                                 <div className="rounded-lg border border-border-subtle bg-bg-subtle">
                                     <div className="border-b border-border-subtle p-2">
                                         <Input
                                             id="finding-risk-filter"
                                             type="text"
-                                            placeholder="Search risks…"
+                                            placeholder={t('riskSearch')}
                                             value={riskFilter}
                                             onChange={(e) => setRiskFilter(e.target.value)}
                                             autoComplete="off"
@@ -402,10 +404,10 @@ export function CreateFindingModal({
                                         data-testid="finding-risks-list"
                                     >
                                         {risksQuery.isLoading ? (
-                                            <p className="px-1 py-1 text-sm text-content-muted">Loading risks…</p>
+                                            <p className="px-1 py-1 text-sm text-content-muted">{t('loadingRisks')}</p>
                                         ) : filteredRisks.length === 0 ? (
                                             <p className="px-1 py-1 text-sm text-content-muted">
-                                                No risks to link.
+                                                {t('noRisksToLink')}
                                             </p>
                                         ) : (
                                             filteredRisks.map((r) => (
@@ -432,15 +434,15 @@ export function CreateFindingModal({
                             </FormField>
                         </FormSection>
 
-                        <FormSection eyebrow="Analysis">
+                        <FormSection eyebrow={t('sectionAnalysis')}>
                             <FormField
-                                label="Analysis / comments"
-                                description="Free-text notes — encrypted at rest."
+                                label={t('fieldAnalysis')}
+                                description={t('analysisDescription')}
                             >
                                 <Textarea
                                     id="finding-analysis"
                                     rows={3}
-                                    placeholder="Investigation notes, context, remediation thoughts…"
+                                    placeholder={t('analysisPlaceholder')}
                                     value={form.analysis}
                                     onChange={(e) => update('analysis', e.target.value)}
                                 />
@@ -459,7 +461,7 @@ export function CreateFindingModal({
                         }}
                         disabled={submitting}
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -468,7 +470,7 @@ export function CreateFindingModal({
                         id="submit-finding"
                         disabled={!canSubmit}
                     >
-                        {submitting ? 'Creating…' : 'Create finding'}
+                        {submitting ? t('creating') : t('createFinding')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>
