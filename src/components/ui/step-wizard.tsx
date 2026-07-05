@@ -17,6 +17,7 @@
  * own `<form>` / submit buttons. `canAdvance` gates Next/Finish per step.
  */
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/cn";
 import { Button } from "./button";
 import { Modal } from "./modal";
@@ -59,9 +60,11 @@ export function StepWizard({
   title,
   steps,
   onFinish,
-  finishLabel = "Create",
+  finishLabel,
   isDirty,
 }: StepWizardProps) {
+  const t = useTranslations("ui.stepWizard");
+  const tc = useTranslations("common");
   const [index, setIndex] = useState(0);
   const [busy, setBusy] = useState(false);
   const [queued, setQueued] = useState(false);
@@ -137,7 +140,7 @@ export function StepWizard({
           {/* Progress dots — current is a wide pill, past steps filled, future muted. */}
           <ol
             className="mt-2 flex items-center gap-1.5"
-            aria-label={`Step ${safeIndex + 1} of ${steps.length}`}
+            aria-label={t("stepOf", { current: safeIndex + 1, total: steps.length })}
             data-testid="wizard-progress"
           >
             {steps.map((s, i) => (
@@ -160,7 +163,7 @@ export function StepWizard({
         <Modal.Body data-testid="wizard-body">
           {queued ? (
             <p className="py-8 text-center text-sm text-content-muted">
-              Saved offline — it&rsquo;ll sync when you&rsquo;re back online.
+              {t("savedOffline")}
             </p>
           ) : (
             current.content
@@ -176,7 +179,7 @@ export function StepWizard({
             disabled={safeIndex === 0 || busy || queued}
             data-testid="wizard-back"
           >
-            Back
+            {tc("back")}
           </Button>
           {isLast ? (
             <Button
@@ -186,7 +189,7 @@ export function StepWizard({
               disabled={!canAdvance || busy || queued}
               data-testid="wizard-finish"
             >
-              {busy ? "Saving…" : finishLabel}
+              {busy ? t("saving") : (finishLabel ?? tc("create"))}
             </Button>
           ) : (
             <Button
@@ -196,7 +199,7 @@ export function StepWizard({
               disabled={!canAdvance}
               data-testid="wizard-next"
             >
-              Next
+              {t("next")}
             </Button>
           )}
         </Modal.Actions>

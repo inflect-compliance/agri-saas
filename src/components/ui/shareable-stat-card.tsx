@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
@@ -50,15 +51,16 @@ export function ShareableStatCard({
     const captureRef = useRef<HTMLDivElement>(null);
     const [busy, setBusy] = useState(false);
     const toast = useToast();
+    const t = useTranslations('ui.shareableStatCard');
 
     async function onShare() {
         if (!captureRef.current) return;
         setBusy(true);
         const result = await exportShareCard(captureRef.current, fileName);
         setBusy(false);
-        if (result === 'shared') toast.success('Shared');
-        else if (result === 'downloaded') toast.success('Image saved');
-        else toast.error("Couldn't create the image", { description: 'Please try again.' });
+        if (result === 'shared') toast.success(t('shared'));
+        else if (result === 'downloaded') toast.success(t('imageSaved'));
+        else toast.error(t('createFailed'), { description: t('createFailedDescription') });
     }
 
     return (
@@ -91,7 +93,7 @@ export function ShareableStatCard({
             {!hideShare && (
                 <div className="mt-default flex justify-end">
                     <Button variant="secondary" size="sm" loading={busy} onClick={onShare}>
-                        Save / share
+                        {t('saveShare')}
                     </Button>
                 </div>
             )}

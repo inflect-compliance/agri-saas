@@ -86,7 +86,8 @@ describe('Sheet — accessibility', () => {
     it('always renders a Drawer.Title (visually-hidden fallback keeps SR anchored)', () => {
         expect(SHEET_SRC).toMatch(/from ["']@radix-ui\/react-visually-hidden["']/);
         expect(SHEET_SRC).toMatch(/<Drawer\.Title\b/);
-        expect(SHEET_SRC).toMatch(/\?\?\s*["']Sheet["']/);
+        // Fallback title is i18n-routed (ui.sheet.sheetFallback = "Sheet").
+        expect(SHEET_SRC).toMatch(/\?\?\s*t\(["']sheetFallback["']\)/);
     });
 
     it('wires the optional description through Drawer.Description', () => {
@@ -95,7 +96,8 @@ describe('Sheet — accessibility', () => {
     });
 
     it('Header renders a dedicated close button with aria-label="Close" + focus ring', () => {
-        expect(SHEET_SRC).toMatch(/aria-label="Close"/);
+        // Close label is i18n-routed (common.close = "Close").
+        expect(SHEET_SRC).toMatch(/aria-label=\{tc\(["']close["']\)\}/);
         expect(SHEET_SRC).toMatch(/focus-visible:ring-ring/);
     });
 

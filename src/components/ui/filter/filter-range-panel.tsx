@@ -6,6 +6,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { cn } from "@/lib/cn";
+import { useTranslations } from "next-intl";
 import { ChevronLeft } from "lucide-react";
 import { Tooltip } from "../tooltip";
 import {
@@ -35,10 +36,11 @@ function FilterRangeHeader({
   onBack: () => void;
   onClear?: () => void;
 }) {
+  const t = useTranslations("ui.filter");
   return (
     <div className="flex items-center justify-between px-2 pt-2">
       <div className="flex items-center gap-1">
-        <Tooltip content="Back to filter list">
+        <Tooltip content={t("backToFilterList")}>
           <button
             type="button"
             className={cn(
@@ -48,7 +50,7 @@ function FilterRangeHeader({
               "active:scale-[0.97] motion-reduce:active:scale-100",
             )}
             onClick={() => onBack()}
-            aria-label="Back to filter list"
+            aria-label={t("backToFilterList")}
           >
             <ChevronLeft className="size-3 shrink-0" />
           </button>
@@ -62,9 +64,9 @@ function FilterRangeHeader({
           type="button"
           className="text-content-emphasis hover:border-border-subtle flex h-7 items-center justify-center rounded-lg border border-transparent px-2.5 py-2 text-sm font-medium transition-colors"
           onClick={onClear}
-          aria-label="Clear"
+          aria-label={t("clear")}
         >
-          Clear
+          {t("clear")}
         </button>
       )}
     </div>
@@ -98,6 +100,7 @@ function RangeEndControl({
   onFocusPreviousField?: () => void;
   onEscapeCloseFilter?: () => void;
 }) {
+  const t = useTranslations("ui.filter");
   const [draft, setDraft] = useState(() => storageToDraft(value, displayScale));
 
   // Forwarded-ref bridge — same shape as TreeView. Setting `.current`
@@ -157,7 +160,7 @@ function RangeEndControl({
         type="text"
         inputMode={displayScale === 1 ? "numeric" : "decimal"}
         autoComplete="off"
-        aria-label={bound === "min" ? "Minimum value" : "Maximum value"}
+        aria-label={bound === "min" ? t("minimumValue") : t("maximumValue")}
         placeholder={unboundedLabel}
         id={`filter-range-input-${bound}`}
         className="min-w-0 flex-1 border-0 bg-transparent px-3 py-1 text-sm text-content-emphasis outline-none placeholder:text-content-subtle focus:ring-0"
@@ -260,6 +263,7 @@ function FilterRangeContent({
   /** When the applied range has both min and max, Escape closes the outer filter instead of going back. */
   onCloseFilter?: () => void;
 }) {
+  const t = useTranslations("ui.filter");
   const { min, max } = parseRangeToken(activeToken);
   const rangeFullyApplied = min != null && max != null;
   const parse =
@@ -349,7 +353,7 @@ function FilterRangeContent({
           <RangeEndControl
             bound="min"
             value={min}
-            unboundedLabel="No min"
+            unboundedLabel={t("noMin")}
             parseInput={parse}
             displayScale={displayScale}
             step={step}
@@ -361,13 +365,13 @@ function FilterRangeContent({
           />
         </div>
 
-        <span className="shrink-0 pb-2.5 text-xs text-content-muted">to</span>
+        <span className="shrink-0 pb-2.5 text-xs text-content-muted">{t("to")}</span>
 
         <div className="min-w-0 flex-1">
           <RangeEndControl
             bound="max"
             value={max}
-            unboundedLabel="No max"
+            unboundedLabel={t("noMax")}
             parseInput={parse}
             displayScale={displayScale}
             step={step}

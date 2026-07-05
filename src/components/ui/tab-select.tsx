@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/cn";
+import { useTranslations } from "next-intl";
 import { cva, type VariantProps } from "class-variance-authority";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
@@ -111,9 +112,11 @@ export function TabSelect<T extends string>({
     selected,
     onSelect,
     className,
-    ariaLabel = "Tabs",
+    ariaLabel: ariaLabelProp,
     idPrefix,
 }: TabSelectProps<T>) {
+    const t = useTranslations("ui.tabSelect");
+    const ariaLabel = ariaLabelProp ?? t("tabs");
     const layoutGroupId = useId();
     const effectiveIdPrefix = idPrefix ?? `tab-${layoutGroupId}-`;
     const btnRefs = useRef(new Map<string, HTMLElement>());

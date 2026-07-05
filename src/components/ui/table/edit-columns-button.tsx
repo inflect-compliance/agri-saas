@@ -17,6 +17,7 @@
 
 import { cn } from "./table-utils";
 import { Table } from "@tanstack/react-table";
+import { useTranslations } from "next-intl";
 import { Command } from "cmdk";
 import { RotateCcw, Settings } from "lucide-react";
 import { useState } from "react";
@@ -63,8 +64,10 @@ export function EditColumnsButton<T>({
   table,
   onReset,
   className,
-  title = "Edit columns",
+  title: titleProp,
 }: EditColumnsButtonProps<T>) {
+  const t = useTranslations("ui.table");
+  const title = titleProp ?? t("editColumns");
   const [isOpen, setIsOpen] = useState(false);
 
   const hideableColumns = table.getAllColumns().filter((c) => c.getCanHide());
@@ -134,7 +137,7 @@ export function EditColumnsButton<T>({
                     data-testid="column-reset"
                   >
                     <RotateCcw className="h-3.5 w-3.5 shrink-0" />
-                    <span>Reset to defaults</span>
+                    <span>{t("resetToDefaults")}</span>
                   </Command.Item>
                 </>
               )}

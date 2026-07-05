@@ -30,6 +30,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import * as React from "react";
 import { Combobox, type ComboboxOption } from "./combobox";
 import { InitialsAvatar } from "@/components/ui/initials-avatar";
@@ -207,6 +208,7 @@ function toOption(member: Member): ComboboxOption<Member> {
 // ─── Component ─────────────────────────────────────────────────────
 
 export function UserCombobox(props: UserComboboxProps) {
+    const t = useTranslations("ui.userCombobox");
     const {
         tenantSlug,
         id,
@@ -214,8 +216,8 @@ export function UserCombobox(props: UserComboboxProps) {
         disabled,
         required,
         invalid,
-        placeholder = "Unassigned",
-        searchPlaceholder = "Search members…",
+        placeholder: placeholderProp,
+        searchPlaceholder: searchPlaceholderProp,
         "aria-describedby": ariaDescribedBy,
         forceDropdown = true,
         matchTriggerWidth = true,
@@ -223,6 +225,8 @@ export function UserCombobox(props: UserComboboxProps) {
         filter,
         className,
     } = props;
+    const placeholder = placeholderProp ?? t("unassigned");
+    const searchPlaceholder = searchPlaceholderProp ?? t("searchMembers");
 
     const query = useTenantMembers(tenantSlug, {
         enabled: !preloadedMembers,
@@ -260,7 +264,7 @@ export function UserCombobox(props: UserComboboxProps) {
                 loading={!preloadedMembers && query.isLoading}
                 placeholder={placeholder}
                 searchPlaceholder={searchPlaceholder}
-                emptyState="No members match"
+                emptyState={t("noMembers")}
                 forceDropdown={forceDropdown}
                 matchTriggerWidth={matchTriggerWidth}
                 buttonProps={{ className: className ?? "w-full" }}

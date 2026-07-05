@@ -114,8 +114,9 @@ describe('Modal — source contract', () => {
 
     it('renders a Dialog.Title so every dialog has an accessible name', () => {
         expect(src).toMatch(/<Dialog\.Title\b/);
-        // Fallback when no title is passed.
-        expect(src).toMatch(/["']Dialog["']/);
+        // Fallback when no title is passed (i18n-routed:
+        // ui.modal.dialogFallback = "Dialog").
+        expect(src).toMatch(/dialogFallback/);
     });
 
     it('provides Header / Body / Footer slots + Close on the composite', () => {
@@ -128,7 +129,7 @@ describe('Modal — source contract', () => {
     });
 
     it('renders a focus-visible close button that uses the shared ring token', () => {
-        expect(src).toMatch(/aria-label="Close"/);
+        expect(src).toMatch(/aria-label=\{tc\(["']close["']\)\}/);
         expect(src).toMatch(/focus-visible:ring-ring/);
     });
 
@@ -183,7 +184,7 @@ describe('Sheet — source contract', () => {
 
     it('Header wires Drawer.Close on its built-in close affordance', () => {
         expect(src).toMatch(/<Drawer\.Close asChild/);
-        expect(src).toMatch(/aria-label="Close"/);
+        expect(src).toMatch(/aria-label=\{tc\(["']close["']\)\}/);
     });
 
     it('Title renders a Drawer.Title so screen readers pick up the sheet name', () => {

@@ -6,6 +6,7 @@
 /* eslint-disable react-hooks/exhaustive-deps -- Various useEffect/useMemo dep arrays in this file deliberately omit identity-unstable callbacks (handlers recreated each render) or use selector functions whose change-detection happens elsewhere. Adding the deps would either trigger unnecessary re-runs OR cause infinite render loops; the proper structural fix is to wrap parent-level callbacks in useCallback. Tracked as follow-up. */
 import { cn } from "@/lib/cn";
 import { truncate } from "@/lib/text-utils";
+import { useTranslations } from "next-intl";
 import { Command, useCommandState } from "cmdk";
 import { ChevronDown, ListFilter } from "lucide-react";
 import {
@@ -89,6 +90,7 @@ export function FilterSelect({
   emptyState,
   className,
 }: FilterSelectProps) {
+  const t = useTranslations("ui.filter");
   const { isMobile } = useMediaQuery();
 
   // Content-search mode: the top-level input is a live free-text search
@@ -304,7 +306,7 @@ export function FilterSelect({
                   placeholder={
                     !selectedFilter && contentSearch
                       ? searchPlaceholder
-                      : `${selectedFilter?.label || "Filter"}...`
+                      : `${selectedFilter?.label || t("filter")}...`
                   }
                   value={search}
                   onValueChange={setSearch}
@@ -452,7 +454,7 @@ export function FilterSelect({
       >
         <ListFilter className="size-4 shrink-0" />
         <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left text-content-emphasis">
-          {children ?? "Filter"}
+          {children ?? t("filter")}
         </span>
         {(activeFilters?.length ?? 0) +
         (contentSearch && searchValue ? 1 : 0) ? (
@@ -612,6 +614,7 @@ const CommandEmpty = ({
   onSelect: () => void;
   askAI?: boolean;
 }>) => {
+  const t = useTranslations("ui.filter");
   // If the selected filter has no options (and shouldFilter is true,
   // meaning it's leveraging Command.List's native filtering and not external/async filtering),
   // show the search input as an option
@@ -624,7 +627,7 @@ const CommandEmpty = ({
     if (!search)
       return (
         <Command.Empty className="p-2 text-center text-sm text-content-muted">
-          Start typing to search...
+          {t("startTyping")}
         </Command.Empty>
       );
 
@@ -646,7 +649,7 @@ const CommandEmpty = ({
       <Command.Empty className="flex min-w-[180px] items-center space-x-2 rounded-md bg-bg-muted px-3 py-2">
         <Magic className="h-4 w-4" />
         <p className="text-center text-sm text-content-default">
-          Ask AI <span className="text-content-emphasis">&quot;{search}&quot;</span>
+          {t("askAI")} <span className="text-content-emphasis">&quot;{search}&quot;</span>
         </p>
       </Command.Empty>
     );

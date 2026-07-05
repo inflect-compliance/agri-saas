@@ -749,6 +749,117 @@
             "cancel": "Cancel",
             "adding": "Adding…",
             "createError": "Could not create widget. Please retry."
+        },
+        "filter": {
+            "clearFilters": "Clear Filters",
+            "is": "is",
+            "isNot": "is not",
+            "filter": "Filter",
+            "startTyping": "Start typing to search...",
+            "askAI": "Ask AI",
+            "backToFilterList": "Back to filter list",
+            "clear": "Clear",
+            "minimumValue": "Minimum value",
+            "maximumValue": "Maximum value",
+            "noMin": "No min",
+            "noMax": "No max",
+            "to": "to"
+        },
+        "formPrimitive": {
+            "saveChanges": "Save Changes"
+        },
+        "leftAccordionRail": {
+            "tableOrientation": "Table orientation",
+            "collapsed": "{label} (collapsed)",
+            "expandRail": "Expand rail",
+            "collapseRail": "Collapse rail"
+        },
+        "modal": {
+            "dialogFallback": "Dialog",
+            "discardChanges": "Discard changes?",
+            "discardDescription": "Your unsaved changes will be lost.",
+            "discard": "Discard",
+            "keepEditing": "Keep editing",
+            "confirm": "Confirm"
+        },
+        "popover": {
+            "menu": "Menu",
+            "content": "Popover content"
+        },
+        "selectionSummary": {
+            "countLabel": "{word} selected",
+            "clearSelection": "Clear selection"
+        },
+        "shareableStatCard": {
+            "shared": "Shared",
+            "imageSaved": "Image saved",
+            "createFailed": "Couldn't create the image",
+            "createFailedDescription": "Please try again.",
+            "saveShare": "Save / share"
+        },
+        "sheet": {
+            "sheetFallback": "Sheet"
+        },
+        "skeleton": {
+            "loadingDashboard": "Loading dashboard",
+            "loadingDetails": "Loading details",
+            "loadingSettings": "Loading settings"
+        },
+        "statusBreakdown": {
+            "noData": "No data",
+            "count": "Count {value}",
+            "percentOfTotal": "{percent} of total",
+            "barLabel": "{label}: {value} of {total}"
+        },
+        "stepWizard": {
+            "stepOf": "Step {current} of {total}",
+            "savedOffline": "Saved offline — it’ll sync when you’re back online.",
+            "saving": "Saving…",
+            "next": "Next"
+        },
+        "tabSelect": {
+            "tabs": "Tabs"
+        },
+        "table": {
+            "selectAll": "Select all",
+            "select": "Select",
+            "selectAllRows": "Select all rows",
+            "deselectAllRows": "Deselect all rows",
+            "selectRow": "Select row",
+            "deselectAll": "Deselect all",
+            "selectAllCount": "Select all {count}",
+            "selectedCount": "{count} selected",
+            "batchActions": "Batch actions",
+            "clearSelection": "Clear selection",
+            "clear": "Clear",
+            "sortByColumn": "Sort by column",
+            "scrollableRegion": "Table contents (scrollable)",
+            "items": "items",
+            "editColumns": "Edit columns",
+            "resetToDefaults": "Reset to defaults",
+            "bulkDeleteDescription": "This removes the selected {noun} from your workspace. This can’t be undone.",
+            "pagination": {
+                "viewing": "Viewing",
+                "of": "of",
+                "items": "items",
+                "label": "Pagination",
+                "previous": "Previous",
+                "next": "Next",
+                "previousPage": "Go to previous page",
+                "nextPage": "Go to next page"
+            },
+            "emptyResults": "No results.",
+            "emptyItems": "No {resource} found."
+        },
+        "userCombobox": {
+            "unassigned": "Unassigned",
+            "searchMembers": "Search members…",
+            "noMembers": "No members match"
+        },
+        "viewToggle": {
+            "viewMode": "View mode",
+            "table": "Table",
+            "cards": "Cards"
         }
     },
     "ag": {
@@ -802,6 +913,84 @@
             "contractType": {
                 "SALE": "Sale",
                 "PURCHASE": "Purchase"
+            }
+        },
+        "map": {
+            "parcel": "Parcel",
+            "fieldOp": {
+                "loading": "Loading field operation…",
+                "notFound": "Field operation not found.",
+                "parcelsComplete": "{done} / {total} parcels complete",
+                "needs": "Needs {amount}",
+                "water": "{amount} water",
+                "done": "Done",
+                "skip": "Skip",
+                "reopen": "Reopen"
+            },
+            "canvas": {
+                "parcelMap": "Parcel map — {mode}",
+                "modeDraw": "drawing a new parcel",
+                "modeEdit": "editing parcel vertices",
+                "modeSplit": "splitting a parcel",
+                "modeSelect": "selecting parcels",
+                "modeReadonly": "read-only view",
+                "geoPermissionDenied": "Location permission denied — enable it to centre the map on you.",
+                "geoGetFailed": "Could not get your location. Try again with a clearer sky view.",
+                "geoUnavailable": "Location is not available on this device.",
+                "findMyField": "Find my field",
+                "startTracking": "Start live tracking",
+                "stopTracking": "Stop live tracking",
+                "zoomIn": "Zoom in",
+                "zoomOut": "Zoom out",
+                "fieldBoundariesEmpty": "No field boundaries to jump to yet."
+            },
+            "parcelSheet": {
+                "description": "Parcel detail and apply-rate calculator",
+                "area": "Area",
+                "crop": "Crop",
+                "lastApplication": "Last application",
+                "noApplications": "No applications recorded yet",
+                "calculator": "Apply-rate calculator",
+                "ratePerHectare": "Rate per hectare",
+                "ratePlaceholder": "e.g. 2.5",
+                "total": "Total for this parcel: {total} ({rate} × {area} ha)",
+                "areaUnknown": "Parcel area unknown — total can’t be computed.",
+                "enterRate": "Enter a rate to compute the total for this parcel.",
+                "qrTitle": "QR code linking to {name}",
+                "thisField": "this field",
+                "fieldQr": "Field QR",
+                "scanHint": "Scan to open this field on a phone — pin it by the gate or in the cab.",
+                "startOperation": "Start operation here"
+            },
+            "prescription": {
+                "createFailed": "Failed to create job",
+                "parcelsSelected": "{count, plural, one {# parcel} other {# parcels}} selected. Assign a product + dose to create a spray job.",
+                "product": "Product",
+                "selectProduct": "Select a product…",
+                "dose": "Dose",
+                "dosePlaceholder": "e.g. 2.5",
+                "unit": "Unit",
+                "unitPlaceholder": "Unit…",
+                "operator": "Operator",
+                "assignOperator": "Assign an operator…",
+                "note": "Note",
+                "notePlaceholder": "Optional target note",
+                "creating": "Creating…",
+                "createJob": "Create spray job"
+            },
+            "spatialImport": {
+                "title": "Import parcels",
+                "description": "Upload a shapefile (.zip), KML, or GeoJSON. Existing parcels are replaced.",
+                "spatialFile": "Spatial file",
+                "accepted": "Accepted: .zip (shapefile), .kml/.kmz, .geojson/.json",
+                "chooseFile": "Choose a file first.",
+                "failedProcessing": "Import failed during processing.",
+                "takingLong": "Import is taking longer than expected. Check the location shortly.",
+                "importFailed": "Import failed",
+                "statusCheckFailed": "Status check failed ({status})",
+                "importFailedStatus": "Import failed ({status})",
+                "importing": "Importing…",
+                "import": "Import"
             }
         }
     }

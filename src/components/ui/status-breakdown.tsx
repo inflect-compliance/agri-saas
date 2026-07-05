@@ -40,6 +40,7 @@
  */
 
 import { cn } from "@/lib/cn";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 export type StatusBreakdownVariant =
@@ -122,17 +123,22 @@ export function StatusBreakdown({
     showDot = true,
     showCount = true,
     showPercent = false,
-    emptyState = (
-        <p className="text-sm text-content-subtle">No data</p>
-    ),
+    emptyState,
     ariaLabel,
     className,
 }: StatusBreakdownProps) {
+    const t = useTranslations("ui.statusBreakdown");
     const computedTotal =
         total ?? items.reduce((sum, item) => sum + item.value, 0);
 
     if (computedTotal === 0 || items.length === 0) {
-        return <div className={className}>{emptyState}</div>;
+        return (
+            <div className={className}>
+                {emptyState ?? (
+                    <p className="text-sm text-content-subtle">{t("noData")}</p>
+                )}
+            </div>
+        );
     }
 
     const barHeight = SIZE_BAR_HEIGHT[size];
@@ -173,7 +179,7 @@ export function StatusBreakdown({
                         {showCount && (
                             <span
                                 className="min-w-[2rem] text-right font-mono text-content-emphasis"
-                                aria-label={`Count ${item.value}`}
+                                aria-label={t("count", { value: item.value })}
                             >
                                 {item.value}
                             </span>
@@ -181,7 +187,7 @@ export function StatusBreakdown({
                         {showPercent && (
                             <span
                                 className="min-w-[3rem] text-right text-content-muted"
-                                aria-label={`${percentLabel} of total`}
+                                aria-label={t("percentOfTotal", { percent: percentLabel })}
                             >
                                 {percentLabel}
                             </span>
@@ -194,7 +200,7 @@ export function StatusBreakdown({
                             role="progressbar"
                             aria-label={
                                 typeof item.label === "string"
-                                    ? `${item.label}: ${item.value} of ${computedTotal}`
+                                    ? t("barLabel", { label: item.label, value: item.value, total: computedTotal })
                                     : undefined
                             }
                             aria-valuenow={item.value}

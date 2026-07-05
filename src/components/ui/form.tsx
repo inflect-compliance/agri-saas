@@ -4,6 +4,7 @@
  * through whatever shape the caller's <input> element produces.
  */
 import { cn } from "@/lib/cn";
+import { useTranslations } from "next-intl";
 import { InputHTMLAttributes, ReactNode, useMemo, useState } from "react";
 import { Button } from "./button";
 import { Heading } from '@/components/ui/typography';
@@ -13,7 +14,7 @@ export function Form({
   description,
   inputAttrs,
   helpText,
-  buttonText = "Save Changes",
+  buttonText,
   disabledTooltip,
   handleSubmit,
 }: {
@@ -25,6 +26,7 @@ export function Form({
   disabledTooltip?: string | ReactNode;
   handleSubmit: (data: any) => Promise<any>;
 }) {
+  const t = useTranslations("ui.formPrimitive");
   const [value, setValue] = useState(inputAttrs.defaultValue);
   const [saving, setSaving] = useState(false);
   const saveDisabled = useMemo(() => {
@@ -85,7 +87,7 @@ export function Form({
         )}
         <div className="w-fit shrink-0">
           <Button
-            text={buttonText}
+            text={buttonText ?? t("saveChanges")}
             loading={saving}
             disabled={saveDisabled}
             disabledTooltip={disabledTooltip}

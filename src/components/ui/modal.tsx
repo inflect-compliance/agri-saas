@@ -33,6 +33,7 @@
  */
 
 import { cn } from "@/lib/cn";
+import { useTranslations } from "next-intl";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -164,6 +165,8 @@ function ModalRoot({
     description,
     showCloseButton = true,
 }: ModalProps) {
+    const t = useTranslations("ui.modal");
+    const tc = useTranslations("common");
     const router = useRouter();
     const { isMobile } = useMediaQuery();
     const { inset: keyboardInset, height: viewportHeight } = useKeyboardInset();
@@ -196,23 +199,23 @@ function ModalRoot({
             showModal={showDiscard}
             setShowModal={setShowDiscard}
             tone="warning"
-            title="Discard changes?"
-            description="Your unsaved changes will be lost."
-            confirmLabel="Discard"
-            cancelLabel="Keep editing"
+            title={t("discardChanges")}
+            description={t("discardDescription")}
+            confirmLabel={t("discard")}
+            cancelLabel={t("keepEditing")}
             onConfirm={performClose}
         />
     ) : null;
 
     const fallbackDialogTitle = (
         <VisuallyHidden.Root>
-            <Dialog.Title>{title ?? "Dialog"}</Dialog.Title>
+            <Dialog.Title>{title ?? t("dialogFallback")}</Dialog.Title>
             <Dialog.Description>{description ?? ""}</Dialog.Description>
         </VisuallyHidden.Root>
     );
     const fallbackDrawerTitle = (
         <VisuallyHidden.Root>
-            <Drawer.Title>{title ?? "Dialog"}</Drawer.Title>
+            <Drawer.Title>{title ?? t("dialogFallback")}</Drawer.Title>
             <Drawer.Description>{description ?? ""}</Drawer.Description>
         </VisuallyHidden.Root>
     );
@@ -306,11 +309,11 @@ function ModalRoot({
                     {fallbackDialogTitle}
                     {children}
                     {showCloseButton && !preventDefaultClose ? (
-                        <Tooltip content="Close" shortcut="Esc">
+                        <Tooltip content={tc("close")} shortcut="Esc">
                             <Dialog.Close asChild>
                                 <button
                                     type="button"
-                                    aria-label="Close"
+                                    aria-label={tc("close")}
                                     className="absolute right-3 top-3 rounded-md p-1.5 text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                     data-modal-close
                                 >
@@ -550,11 +553,13 @@ function Confirm({
     title,
     description,
     tone = "warning",
-    confirmLabel = "Confirm",
-    cancelLabel = "Cancel",
+    confirmLabel,
+    cancelLabel,
     onConfirm,
     onCancel,
 }: ConfirmModalProps) {
+    const t = useTranslations("ui.modal");
+    const tc = useTranslations("common");
     const handleConfirm = async () => {
         const result = onConfirm();
         if (result instanceof Promise) {
@@ -609,7 +614,7 @@ function Confirm({
                     data-modal-cancel
                     onClick={handleCancel}
                 >
-                    {cancelLabel}
+                    {cancelLabel ?? tc("cancel")}
                 </Button>
                 <Button
                     type="button"
@@ -618,7 +623,7 @@ function Confirm({
                     data-modal-confirm
                     onClick={handleConfirm}
                 >
-                    {confirmLabel}
+                    {confirmLabel ?? t("confirm")}
                 </Button>
             </Actions>
         </ModalRoot>

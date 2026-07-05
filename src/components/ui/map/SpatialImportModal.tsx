@@ -11,6 +11,7 @@
  * completes. A per-format/complexity/topology rejection surfaces as the
  * job's `failedReason`.
  */
+import { useTranslations } from 'next-intl';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,8 @@ const MAX_POLLS = 90; // ~90s ceiling — comfortably past the 30s parse budget.
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export function SpatialImportModal({ locationId, open, setOpen, onImported }: SpatialImportModalProps) {
+    const t = useTranslations('ag.map.spatialImport');
+    const tc = useTranslations('common');
     const buildUrl = useTenantApiUrl();
     const [file, setFile] = useState<File | null>(null);
     const [busy, setBusy] = useState(false);
@@ -48,21 +51,21 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
             const res = await fetch(buildUrl(`/locations/${locationId}/spatial-import/${jobId}`));
             if (!res.ok) {
                 const body = await res.json().catch(() => null);
-                throw new Error(body?.error?.message || body?.error || `Status check failed (${res.status})`);
+                throw new Error(body?.error?.message || body?.error || t('statusCheckFailed', { status: res.status }));
             }
             const status = (await res.json()) as JobStatus;
             if (status.state === 'completed') return status;
             if (status.state === 'failed') {
-                throw new Error(status.failedReason || 'Import failed during processing.');
+                throw new Error(status.failedReason || t('failedProcessing'));
             }
         }
-        throw new Error('Import is taking longer than expected. Check the location shortly.');
+        throw new Error(t('takingLong'));
     };
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!file) {
-            setError('Choose a file first.');
+            setError(t('chooseFile'));
             return;
         }
         setBusy(true);
@@ -73,7 +76,7 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
             const res = await fetch(buildUrl(`/locations/${locationId}/spatial-import`), { method: 'POST', body: fd });
             if (!res.ok) {
                 const body = await res.json().catch(() => null);
-                throw new Error(body?.error?.message || body?.error || `Import failed (${res.status})`);
+                throw new Error(body?.error?.message || body?.error || t('importFailedStatus', { status: res.status }));
             }
             // 202 Accepted → poll the job to completion.
             const { jobId } = await res.json();
@@ -87,7 +90,7 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
             setOpen(false);
             setFile(null);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Import failed');
+            setError(err instanceof Error ? err.message : t('importFailed'));
         } finally {
             setBusy(false);
         }
@@ -98,11 +101,11 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
             showModal={open}
             setShowModal={setOpen}
             size="md"
-            title="Import parcels"
-            description="Upload a shapefile (.zip), KML, or GeoJSON. Existing parcels are replaced."
+            title={t('title')}
+            description={t('description')}
             preventDefaultClose={busy}
         >
-            <Modal.Header title="Import parcels" description="Upload a shapefile (.zip), KML, or GeoJSON. Existing parcels are replaced." />
+            <Modal.Header title={t('title')} description={t('description')} />
             <Modal.Form id="spatial-import-form" onSubmit={submit}>
                 <Modal.Body>
                     {error && (
@@ -110,7 +113,7 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
                             {error}
                         </div>
                     )}
-                    <FormField label="Spatial file" required description="Accepted: .zip (shapefile), .kml/.kmz, .geojson/.json">
+                    <FormField label={t('spatialFile')} required description={t('accepted')}>
                         <input
                             type="file"
                             accept=".zip,.kml,.kmz,.geojson,.json"
@@ -120,9 +123,9 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
                     </FormField>
                 </Modal.Body>
                 <Modal.Actions>
-                    <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)}>{tc('cancel')}</Button>
                     <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!file || busy}>
-                        {busy ? 'Importing…' : 'Import'}
+                        {busy ? t('importing') : t('import')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

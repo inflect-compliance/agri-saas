@@ -176,7 +176,8 @@ describe('Modal — focus + dismissal', () => {
     });
 
     it('close button carries aria-label="Close" + focus-visible ring token', () => {
-        expect(MODAL_SRC).toMatch(/aria-label="Close"/);
+        // Close label is i18n-routed (common.close = "Close").
+        expect(MODAL_SRC).toMatch(/aria-label=\{tc\(["']close["']\)\}/);
         expect(MODAL_SRC).toMatch(/focus-visible:ring-ring/);
     });
 

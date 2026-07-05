@@ -749,6 +749,117 @@
             "cancel": "Отказ",
             "adding": "Добавяне…",
             "createError": "Джаджата не можа да бъде създадена. Опитайте отново."
+        },
+        "filter": {
+            "clearFilters": "Изчисти филтрите",
+            "is": "е",
+            "isNot": "не е",
+            "filter": "Филтър",
+            "startTyping": "Започнете да пишете за търсене...",
+            "askAI": "Попитай ИИ",
+            "backToFilterList": "Назад към списъка с филтри",
+            "clear": "Изчисти",
+            "minimumValue": "Минимална стойност",
+            "maximumValue": "Максимална стойност",
+            "noMin": "Без мин.",
+            "noMax": "Без макс.",
+            "to": "до"
+        },
+        "formPrimitive": {
+            "saveChanges": "Запази промените"
+        },
+        "leftAccordionRail": {
+            "tableOrientation": "Ориентация на таблицата",
+            "collapsed": "{label} (свито)",
+            "expandRail": "Разгъни панела",
+            "collapseRail": "Свий панела"
+        },
+        "modal": {
+            "dialogFallback": "Диалог",
+            "discardChanges": "Отхвърляне на промените?",
+            "discardDescription": "Незапазените ви промени ще бъдат загубени.",
+            "discard": "Отхвърли",
+            "keepEditing": "Продължи редакцията",
+            "confirm": "Потвърди"
+        },
+        "popover": {
+            "menu": "Меню",
+            "content": "Съдържание на изскачащия прозорец"
+        },
+        "selectionSummary": {
+            "countLabel": "{word} избрани",
+            "clearSelection": "Изчисти избора"
+        },
+        "shareableStatCard": {
+            "shared": "Споделено",
+            "imageSaved": "Изображението е запазено",
+            "createFailed": "Изображението не можа да бъде създадено",
+            "createFailedDescription": "Моля, опитайте отново.",
+            "saveShare": "Запази / сподели"
+        },
+        "sheet": {
+            "sheetFallback": "Панел"
+        },
+        "skeleton": {
+            "loadingDashboard": "Зареждане на таблото",
+            "loadingDetails": "Зареждане на детайли",
+            "loadingSettings": "Зареждане на настройки"
+        },
+        "statusBreakdown": {
+            "noData": "Няма данни",
+            "count": "Брой {value}",
+            "percentOfTotal": "{percent} от общо",
+            "barLabel": "{label}: {value} от {total}"
+        },
+        "stepWizard": {
+            "stepOf": "Стъпка {current} от {total}",
+            "savedOffline": "Запазено офлайн — ще се синхронизира, когато сте отново онлайн.",
+            "saving": "Запазване…",
+            "next": "Напред"
+        },
+        "tabSelect": {
+            "tabs": "Раздели"
+        },
+        "table": {
+            "selectAll": "Избери всички",
+            "select": "Избери",
+            "selectAllRows": "Избери всички редове",
+            "deselectAllRows": "Отмени избора на всички редове",
+            "selectRow": "Избери ред",
+            "deselectAll": "Отмени избора на всички",
+            "selectAllCount": "Избери всички {count}",
+            "selectedCount": "{count} избрани",
+            "batchActions": "Групови действия",
+            "clearSelection": "Изчисти избора",
+            "clear": "Изчисти",
+            "sortByColumn": "Сортирай по колона",
+            "scrollableRegion": "Съдържание на таблицата (с превъртане)",
+            "items": "елемента",
+            "editColumns": "Редактирай колоните",
+            "resetToDefaults": "Възстановяване на настройките по подразбиране",
+            "bulkDeleteDescription": "Това премахва избраните {noun} от работното ви пространство. Това не може да бъде отменено.",
+            "pagination": {
+                "viewing": "Показване на",
+                "of": "от",
+                "items": "елемента",
+                "label": "Странициране",
+                "previous": "Предишна",
+                "next": "Следваща",
+                "previousPage": "Към предходната страница",
+                "nextPage": "Към следващата страница"
+            },
+            "emptyResults": "Няма резултати.",
+            "emptyItems": "Няма намерени {resource}."
+        },
+        "userCombobox": {
+            "unassigned": "Без възложител",
+            "searchMembers": "Търсене на членове…",
+            "noMembers": "Няма съвпадащи членове"
+        },
+        "viewToggle": {
+            "viewMode": "Изглед",
+            "table": "Таблица",
+            "cards": "Карти"
         }
     },
     "ag": {
@@ -802,6 +913,84 @@
             "contractType": {
                 "SALE": "Продажба",
                 "PURCHASE": "Покупка"
+            }
+        },
+        "map": {
+            "parcel": "Парцел",
+            "fieldOp": {
+                "loading": "Зареждане на полската операция…",
+                "notFound": "Полската операция не е намерена.",
+                "parcelsComplete": "{done} / {total} парцела завършени",
+                "needs": "Необходимо: {amount}",
+                "water": "{amount} вода",
+                "done": "Готово",
+                "skip": "Пропусни",
+                "reopen": "Отвори отново"
+            },
+            "canvas": {
+                "parcelMap": "Карта на парцелите — {mode}",
+                "modeDraw": "чертане на нов парцел",
+                "modeEdit": "редактиране на върховете на парцела",
+                "modeSplit": "разделяне на парцел",
+                "modeSelect": "избор на парцели",
+                "modeReadonly": "изглед само за четене",
+                "geoPermissionDenied": "Достъпът до местоположението е отказан — разрешете го, за да центрирате картата върху вас.",
+                "geoGetFailed": "Местоположението ви не можа да бъде определено. Опитайте отново на по-открито.",
+                "geoUnavailable": "Местоположението не е налично на това устройство.",
+                "findMyField": "Намери моето поле",
+                "startTracking": "Стартирай проследяване на живо",
+                "stopTracking": "Спри проследяването на живо",
+                "zoomIn": "Приближи",
+                "zoomOut": "Отдалечи",
+                "fieldBoundariesEmpty": "Все още няма граници на полета, към които да преминете."
+            },
+            "parcelSheet": {
+                "description": "Детайли за парцела и калкулатор за норма на внасяне",
+                "area": "Площ",
+                "crop": "Култура",
+                "lastApplication": "Последно внасяне",
+                "noApplications": "Все още няма регистрирани внасяния",
+                "calculator": "Калкулатор за норма на внасяне",
+                "ratePerHectare": "Норма на хектар",
+                "ratePlaceholder": "напр. 2.5",
+                "total": "Общо за този парцел: {total} ({rate} × {area} ha)",
+                "areaUnknown": "Площта на парцела е неизвестна — общото не може да бъде изчислено.",
+                "enterRate": "Въведете норма, за да изчислите общото за този парцел.",
+                "qrTitle": "QR код, водещ към {name}",
+                "thisField": "това поле",
+                "fieldQr": "QR код на полето",
+                "scanHint": "Сканирайте, за да отворите това поле на телефон — закачете го до портата или в кабината.",
+                "startOperation": "Започни операция тук"
+            },
+            "prescription": {
+                "createFailed": "Неуспешно създаване на задача",
+                "parcelsSelected": "{count, plural, one {# избран парцел} other {# избрани парцела}}. Задайте продукт + доза, за да създадете задача за пръскане.",
+                "product": "Продукт",
+                "selectProduct": "Изберете продукт…",
+                "dose": "Доза",
+                "dosePlaceholder": "напр. 2.5",
+                "unit": "Единица",
+                "unitPlaceholder": "Единица…",
+                "operator": "Оператор",
+                "assignOperator": "Възложете на оператор…",
+                "note": "Бележка",
+                "notePlaceholder": "Незадължителна бележка за целта",
+                "creating": "Създаване…",
+                "createJob": "Създай задача за пръскане"
+            },
+            "spatialImport": {
+                "title": "Импорт на парцели",
+                "description": "Качете shapefile (.zip), KML или GeoJSON. Съществуващите парцели се заменят.",
+                "spatialFile": "Пространствен файл",
+                "accepted": "Приемани: .zip (shapefile), .kml/.kmz, .geojson/.json",
+                "chooseFile": "Първо изберете файл.",
+                "failedProcessing": "Импортът се провали по време на обработка.",
+                "takingLong": "Импортът отнема повече от очакваното. Проверете локацията скоро.",
+                "importFailed": "Импортът се провали",
+                "statusCheckFailed": "Проверката на статуса се провали ({status})",
+                "importFailedStatus": "Импортът се провали ({status})",
+                "importing": "Импортиране…",
+                "import": "Импорт"
             }
         }
     }

@@ -10,6 +10,7 @@
  * Location "Operations" tab.
  */
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import type { Geometry } from 'geojson';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ export interface FieldOperationPanelProps {
 }
 
 export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
+    const t = useTranslations('ag.map');
     const buildUrl = useTenantApiUrl();
     const { data, mutate, isLoading } = useTenantSWR<FieldOpView>(`/field-operations/${taskId}`);
     const [busyId, setBusyId] = useState<string | null>(null);
@@ -88,8 +90,8 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
         }
     };
 
-    if (isLoading && !data) return <div className="text-sm text-content-secondary">Loading field operation…</div>;
-    if (!data) return <div className="text-sm text-content-secondary">Field operation not found.</div>;
+    if (isLoading && !data) return <div className="text-sm text-content-secondary">{t('fieldOp.loading')}</div>;
+    if (!data) return <div className="text-sm text-content-secondary">{t('fieldOp.notFound')}</div>;
 
     // Spray-job complete → offer a shareable card. Area covered = the done
     // parcels' hectarage; the job's product is shared across its lines.
@@ -111,7 +113,7 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
             )}
             <div className="flex items-center justify-between">
                 <div className="text-sm text-content-secondary">
-                    {data.progress.done} / {data.progress.total} parcels complete
+                    {t('fieldOp.parcelsComplete', { done: data.progress.done, total: data.progress.total })}
                 </div>
                 <div className="text-sm font-medium">{data.task.status}</div>
             </div>
@@ -120,7 +122,7 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
                 {data.lines.map((l) => (
                     <li key={l.id} className="flex items-center justify-between gap-default px-4 py-3">
                         <div>
-                            <div className="text-sm font-medium">{l.parcel?.name ?? 'Parcel'}</div>
+                            <div className="text-sm font-medium">{l.parcel?.name ?? t('parcel')}</div>
                             <div className="text-xs text-content-secondary">
                                 {l.product?.name} · {String(l.doseValue)} {l.doseUnit?.symbol} · {l.parcel?.areaHa ?? '–'} ha
                             </div>
@@ -128,9 +130,9 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
                                 (per the unit's /ha or /dca basis). */}
                             {l.parcel?.areaHa != null && l.doseUnit?.symbol && (
                                 <div className="text-xs font-medium text-content-emphasis tabular-nums">
-                                    Needs {totalLabel(Number(l.doseValue), l.doseUnit.symbol, l.parcel.areaHa)}
+                                    {t('fieldOp.needs', { amount: totalLabel(Number(l.doseValue), l.doseUnit.symbol, l.parcel.areaHa) })}
                                     {l.waterRateValue != null && l.waterRateUnit?.symbol && (
-                                        <> · {totalLabel(Number(l.waterRateValue), l.waterRateUnit.symbol, l.parcel.areaHa)} water</>
+                                        <> · {t('fieldOp.water', { amount: totalLabel(Number(l.waterRateValue), l.waterRateUnit.symbol, l.parcel.areaHa) })}</>
                                     )}
                                 </div>
                             )}
@@ -139,11 +141,11 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
                             <AgStatusBadge entity="operationParcel" status={l.status} />
                             {l.status === 'PENDING' ? (
                                 <>
-                                    <Button size="sm" variant="primary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'DONE')}>Done</Button>
-                                    <Button size="sm" variant="secondary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'SKIPPED')}>Skip</Button>
+                                    <Button size="sm" variant="primary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'DONE')}>{t('fieldOp.done')}</Button>
+                                    <Button size="sm" variant="secondary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'SKIPPED')}>{t('fieldOp.skip')}</Button>
                                 </>
                             ) : (
-                                <Button size="sm" variant="secondary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'PENDING')}>Reopen</Button>
+                                <Button size="sm" variant="secondary" loading={busyId === l.id} disabled={busyId === l.id} onClick={() => mark(l.id, 'PENDING')}>{t('fieldOp.reopen')}</Button>
                             )}
                         </div>
                     </li>

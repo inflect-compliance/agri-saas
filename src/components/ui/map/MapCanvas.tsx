@@ -22,6 +22,7 @@
  * Geometry is GeoJSON in WGS84.
  */
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, Source, type MapLayerMouseEvent, type MapRef } from 'react-map-gl/maplibre';
 import type { Feature, FeatureCollection, Geometry, LineString, Polygon } from 'geojson';
@@ -165,6 +166,7 @@ export function MapCanvas({
     vectorTileUrl,
     className,
 }: MapCanvasProps) {
+    const t = useTranslations('ag.map.canvas');
     const reducedMotion = useReducedMotion();
     const indexActive = !!indexOverlay && indexOverlay.tileUrl.length > 0;
     const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -253,9 +255,9 @@ export function MapCanvas({
 
     const geoErrMessage = useCallback((err: GeolocationPositionError) =>
         err.code === err.PERMISSION_DENIED
-            ? 'Location permission denied — enable it to centre the map on you.'
-            : 'Could not get your location. Try again with a clearer sky view.',
-    []);
+            ? t('geoPermissionDenied')
+            : t('geoGetFailed'),
+    [t]);
 
     // "Find my field" — frame the next field (parcel) on the map and cycle
     // to the next one on each subsequent tap. NO GPS: the operator wants to
@@ -267,7 +269,7 @@ export function MapCanvas({
             (p): p is MapParcel & { geometry: Geometry } => !!p.geometry,
         );
         if (fields.length === 0) {
-            setGeoError('No field boundaries to jump to yet.');
+            setGeoError(t('fieldBoundariesEmpty'));
             return;
         }
         setGeoError(null);
@@ -282,7 +284,7 @@ export function MapCanvas({
         } catch {
             /* a malformed geometry shouldn't break the cycle */
         }
-    }, [parcels, reducedMotion]);
+    }, [parcels, reducedMotion, t]);
 
     // Ease the camera to frame the sole selected parcel (operator focus).
     // Only fires for a single selection so multi-select authoring isn't
@@ -313,7 +315,7 @@ export function MapCanvas({
     }, []);
 
     const startTracking = useCallback(() => {
-        if (!geoAvailable) { setGeoError('Location is not available on this device.'); return; }
+        if (!geoAvailable) { setGeoError(t('geoUnavailable')); return; }
         setGeoError(null);
         setTrail([]);
         setTracking(true);
@@ -333,7 +335,7 @@ export function MapCanvas({
             (err) => { setGeoError(geoErrMessage(err)); stopTracking(); },
             { enableHighAccuracy: true, timeout: 10_000, maximumAge: 5_000 },
         );
-    }, [geoAvailable, geoErrMessage, stopTracking]);
+    }, [geoAvailable, geoErrMessage, stopTracking, t]);
 
     // Battery-aware: always release the watch when the map unmounts.
     useEffect(() => () => {
@@ -494,14 +496,14 @@ export function MapCanvas({
     // gives. Mirrors the per-mode copy on the Location detail Map tab.
     const modeLabel =
         mode === 'draw'
-            ? 'drawing a new parcel'
+            ? t('modeDraw')
             : mode === 'edit'
-              ? 'editing parcel vertices'
+              ? t('modeEdit')
               : mode === 'split'
-                ? 'splitting a parcel'
+                ? t('modeSplit')
                 : interactive
-                  ? 'selecting parcels'
-                  : 'read-only view';
+                  ? t('modeSelect')
+                  : t('modeReadonly');
 
     return (
         // Keyboard-focusable, labelled map region. MapLibre's own canvas
@@ -510,7 +512,7 @@ export function MapCanvas({
         // <Map> wrapper is otherwise an unlabelled, un-focusable div).
         <div
             role="group"
-            aria-label={`Parcel map — ${modeLabel}`}
+            aria-label={t('parcelMap', { mode: modeLabel })}
             tabIndex={0}
             className={cn(
                 // `relative` anchors the absolutely-positioned on-map control
@@ -689,7 +691,7 @@ export function MapCanvas({
                             <button
                                 type="button"
                                 onClick={handleFindField}
-                                aria-label="Find my field"
+                                aria-label={t('findMyField')}
                                 data-testid="map-find-field"
                                 className={cn(controlBtn, 'rounded-lg border border-border-subtle shadow-md')}
                             >
@@ -700,7 +702,7 @@ export function MapCanvas({
                             <button
                                 type="button"
                                 onClick={() => (tracking ? stopTracking() : startTracking())}
-                                aria-label={tracking ? 'Stop live tracking' : 'Start live tracking'}
+                                aria-label={tracking ? t('stopTracking') : t('startTracking')}
                                 aria-pressed={tracking}
                                 data-testid="map-track"
                                 className={cn(
@@ -718,7 +720,7 @@ export function MapCanvas({
                             <button
                                 type="button"
                                 onClick={() => mapRef.current?.zoomIn()}
-                                aria-label="Zoom in"
+                                aria-label={t('zoomIn')}
                                 data-testid="map-zoom-in"
                                 className={controlBtn}
                             >
@@ -727,7 +729,7 @@ export function MapCanvas({
                             <button
                                 type="button"
                                 onClick={() => mapRef.current?.zoomOut()}
-                                aria-label="Zoom out"
+                                aria-label={t('zoomOut')}
                                 data-testid="map-zoom-out"
                                 className={controlBtn}
                             >
