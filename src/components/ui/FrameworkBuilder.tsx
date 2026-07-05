@@ -32,6 +32,7 @@
  */
 
 import { cn } from '@/lib/cn';
+import { useTranslations } from 'next-intl';
 import { GripVertical, Loader2, Save, Undo2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -77,6 +78,7 @@ export function FrameworkBuilder({
     onSaved,
     id = 'framework-builder',
 }: FrameworkBuilderProps) {
+    const t = useTranslations('ui');
     // The original model is the snapshot we compare against to
     // know if there are unsaved changes. Frozen via useMemo on
     // the tree's framework id — refreshes when the parent
@@ -111,11 +113,11 @@ export function FrameworkBuilder({
             await onSave(serializeForApi(model));
             onSaved?.();
         } catch (e) {
-            setError(e instanceof Error ? e.message : 'Failed to save reorder');
+            setError(e instanceof Error ? e.message : t('frameworkBuilder.saveError'));
         } finally {
             setSaving(false);
         }
-    }, [dirty, model, onSave, onSaved]);
+    }, [dirty, model, onSave, onSaved, t]);
 
     const handleDiscard = useCallback(() => {
         setModel(originalModel);
@@ -195,11 +197,10 @@ export function FrameworkBuilder({
             <div className="flex items-center justify-between flex-wrap gap-tight">
                 <div>
                     <Heading level={3}>
-                        Builder — reorder mode
+                        {t('frameworkBuilder.title')}
                     </Heading>
                     <p className="text-xs text-content-muted">
-                        Drag the handle on any row to reorder. Changes are saved per-tenant — the
-                        framework stays unchanged for everyone else.
+                        {t('frameworkBuilder.description')}
                     </p>
                 </div>
                 <div className="flex items-center gap-tight">
@@ -211,7 +212,7 @@ export function FrameworkBuilder({
                         id="framework-builder-discard"
                     >
                         <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
-                        Discard
+                        {t('frameworkBuilder.discard')}
                     </Button>
                     <Button
                         variant="primary"
@@ -225,7 +226,7 @@ export function FrameworkBuilder({
                         ) : (
                             <Save className="w-3.5 h-3.5" aria-hidden="true" />
                         )}
-                        Save reorder
+                        {t('frameworkBuilder.saveReorder')}
                     </Button>
                 </div>
             </div>

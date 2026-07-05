@@ -36,6 +36,7 @@
 import { cn } from '@/lib/cn';
 import { enUS } from 'date-fns/locale';
 import { X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
     useCallback,
     useEffect,
@@ -128,7 +129,7 @@ export function DatePicker({
     disabledDays,
     showYearNavigation = false,
     locale = enUS,
-    placeholder = 'Select date',
+    placeholder,
     hasError,
     invalid,
     align = 'center',
@@ -136,6 +137,8 @@ export function DatePicker({
     clearable = false,
     ...props
 }: DatePickerProps) {
+    const t = useTranslations('ui');
+    const resolvedPlaceholder = placeholder ?? t('datePicker.selectDate');
     const [open, setOpen] = useState(false);
     const isControlled = value !== undefined;
     const [internal, setInternal] = useState<DateValue>(
@@ -208,7 +211,7 @@ export function DatePicker({
                                 data-testid="date-picker-clear"
                             >
                                 <X className="size-3.5" aria-hidden="true" />
-                                <span>Clear</span>
+                                <span>{t('datePicker.clear')}</span>
                             </button>
                         )}
                     </div>
@@ -217,14 +220,14 @@ export function DatePicker({
                 {customTrigger ? (
                     customTrigger({
                         displayValue,
-                        placeholder,
+                        placeholder: resolvedPlaceholder,
                         open,
                         disabled,
                         invalid: Boolean(hasError ?? invalid),
                     })
                 ) : (
                     <Trigger
-                        placeholder={placeholder}
+                        placeholder={resolvedPlaceholder}
                         disabled={disabled}
                         className={className}
                         hasError={Boolean(hasError ?? invalid)}

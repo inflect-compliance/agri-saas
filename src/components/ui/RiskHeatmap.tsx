@@ -48,6 +48,7 @@
  * ```
  */
 import { Fragment, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { cardVariants } from '@/components/ui/card-variants';
 import { cn } from '@/lib/cn';
 
@@ -96,6 +97,7 @@ export default function RiskHeatmap({
     loading = false,
     onSelectCell,
 }: RiskHeatmapProps) {
+    const t = useTranslations('ui');
     // R21-PR-C — continuous OKLAB heat scale over the
     // likelihood×impact SCORE domain (1..scale²). Series 4 (pink)
     // is the closest available "severity" ramp in the R16 palette.
@@ -124,14 +126,14 @@ export default function RiskHeatmap({
                 data-heatmap-loading
             >
                 <Heading level={3} className="mb-3">
-                    Risk Heatmap
+                    {t('riskHeatmap.title')}
                 </Heading>
                 <ShimmerDots
                     rows={scale}
                     cols={scale}
                     dotSize="size-3"
                     className="aspect-square w-full"
-                    aria-label="Heatmap loading"
+                    aria-label={t('riskHeatmap.loading')}
                 />
             </div>
         );
@@ -149,8 +151,8 @@ export default function RiskHeatmap({
     if (totalRisks === 0) {
         return (
             <div id={id} className={cn(cardVariants(), className)}>
-                <Heading level={3} className="mb-3">Risk Heatmap</Heading>
-                <p className="text-xs text-content-subtle">No risks registered yet.</p>
+                <Heading level={3} className="mb-3">{t('riskHeatmap.title')}</Heading>
+                <p className="text-xs text-content-subtle">{t('riskHeatmap.emptyState')}</p>
             </div>
         );
     }
@@ -162,15 +164,15 @@ export default function RiskHeatmap({
     return (
         <div id={id} className={cn(cardVariants(), className)}>
             <div className="flex items-center justify-between mb-3">
-                <Heading level={3}>Risk Heatmap</Heading>
-                <span className="text-xs text-content-subtle tabular-nums">{totalRisks} risks</span>
+                <Heading level={3}>{t('riskHeatmap.title')}</Heading>
+                <span className="text-xs text-content-subtle tabular-nums">{t('riskHeatmap.riskCount', { count: totalRisks })}</span>
             </div>
 
             <div className="flex gap-tight">
                 {/* Y-axis label */}
                 <div className="flex flex-col items-center justify-center -mr-1">
                     <span className="text-[10px] text-content-subtle [writing-mode:vertical-lr] rotate-180 tracking-widest uppercase">
-                        Likelihood
+                        {t('riskHeatmap.likelihood')}
                     </span>
                 </div>
 
@@ -254,7 +256,12 @@ export default function RiskHeatmap({
                                                 // bottom of the ramp.
                                                 opacity: count === 0 ? 0.4 : 1,
                                             }}
-                                            title={`L${likelihood} × I${impact} = ${score} — ${count} risk${count !== 1 ? 's' : ''}`}
+                                            title={t('riskHeatmap.cellTitle', {
+                                                likelihood,
+                                                impact,
+                                                score,
+                                                count,
+                                            })}
                                         >
                                             {count > 0 ? count : ''}
                                         </button>
@@ -283,7 +290,7 @@ export default function RiskHeatmap({
                     {/* X-axis title */}
                     <div className="text-center mt-1">
                         <span className="text-[10px] text-content-subtle uppercase tracking-widest">
-                            Impact
+                            {t('riskHeatmap.impact')}
                         </span>
                     </div>
                 </div>
@@ -295,7 +302,7 @@ export default function RiskHeatmap({
                 <ChartLegend
                     variant="gradient"
                     heatScale={heat}
-                    label="Risk score"
+                    label={t('riskHeatmap.legendLabel')}
                 />
             </div>
         </div>

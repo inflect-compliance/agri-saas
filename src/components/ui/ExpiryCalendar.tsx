@@ -20,6 +20,7 @@
  * ```
  */
 
+import { useTranslations } from 'next-intl';
 import { formatDateCompact } from '@/lib/format-date';
 import { Heading } from '@/components/ui/typography';
 import { cardVariants } from '@/components/ui/card-variants';
@@ -65,18 +66,11 @@ function getUrgency(daysUntil: number): Urgency {
 // `tests/guards/raw-color-eradication.test.ts`.
 function urgencyConfig(u: Urgency) {
     switch (u) {
-        case 'overdue':  return { color: 'text-red-400', bg: 'bg-red-500/20', badge: 'bg-red-500/30 text-red-300', label: 'Overdue' };
-        case 'urgent':   return { color: 'text-amber-400', bg: 'bg-amber-500/20', badge: 'bg-amber-500/30 text-amber-300', label: 'This Week' };
-        case 'upcoming': return { color: 'text-yellow-400', bg: 'bg-yellow-500/20', badge: 'bg-yellow-500/30 text-yellow-300', label: 'Next Week' };
-        case 'normal':   return { color: 'text-content-muted', bg: 'bg-bg-subtle', badge: 'bg-bg-subtle text-content-default', label: 'This Month' };
+        case 'overdue':  return { color: 'text-red-400', bg: 'bg-red-500/20', badge: 'bg-red-500/30 text-red-300' };
+        case 'urgent':   return { color: 'text-amber-400', bg: 'bg-amber-500/20', badge: 'bg-amber-500/30 text-amber-300' };
+        case 'upcoming': return { color: 'text-yellow-400', bg: 'bg-yellow-500/20', badge: 'bg-yellow-500/30 text-yellow-300' };
+        case 'normal':   return { color: 'text-content-muted', bg: 'bg-bg-subtle', badge: 'bg-bg-subtle text-content-default' };
     }
-}
-
-function formatDaysUntil(days: number): string {
-    if (days < 0) return `${Math.abs(days)}d overdue`;
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Tomorrow';
-    return `${days}d`;
 }
 
 // Epic 58 — delegate to the canonical `formatDateCompact` so the
@@ -93,12 +87,30 @@ export default function ExpiryCalendar({
     className = '',
     id,
 }: ExpiryCalendarProps) {
+    const t = useTranslations('ui');
+
+    const urgencyLabel = (u: Urgency): string => {
+        switch (u) {
+            case 'overdue':  return t('expiryCalendar.overdue');
+            case 'urgent':   return t('expiryCalendar.thisWeek');
+            case 'upcoming': return t('expiryCalendar.nextWeek');
+            case 'normal':   return t('expiryCalendar.thisMonth');
+        }
+    };
+
+    const formatDaysUntil = (days: number): string => {
+        if (days < 0) return t('expiryCalendar.daysOverdue', { days: Math.abs(days) });
+        if (days === 0) return t('expiryCalendar.today');
+        if (days === 1) return t('expiryCalendar.tomorrow');
+        return t('expiryCalendar.days', { days });
+    };
+
     // Empty state
     if (!items || items.length === 0) {
         return (
             <div id={id} className={cn(cardVariants(), className)}>
-                <Heading level={3} className="mb-3">Evidence Expiry</Heading>
-                <p className="text-xs text-content-subtle">No upcoming evidence expirations.</p>
+                <Heading level={3} className="mb-3">{t('expiryCalendar.heading')}</Heading>
+                <p className="text-xs text-content-subtle">{t('expiryCalendar.empty')}</p>
             </div>
         );
     }
@@ -117,8 +129,8 @@ export default function ExpiryCalendar({
     return (
         <div id={id} className={cn(cardVariants(), className)}>
             <div className="flex items-center justify-between mb-3">
-                <Heading level={3}>Evidence Expiry</Heading>
-                <span className="text-xs text-content-subtle tabular-nums">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+                <Heading level={3}>{t('expiryCalendar.heading')}</Heading>
+                <span className="text-xs text-content-subtle tabular-nums">{t('expiryCalendar.itemCount', { count: items.length })}</span>
             </div>
 
             <div className="space-y-compact max-h-[280px] overflow-y-auto">
@@ -132,7 +144,7 @@ export default function ExpiryCalendar({
                             {/* Group header */}
                             <div className="flex items-center gap-tight mb-1.5">
                                 <span className={`text-[10px] uppercase tracking-wider font-semibold ${config.color}`}>
-                                    {config.label}
+                                    {urgencyLabel(urgency)}
                                 </span>
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${config.badge} tabular-nums`}>
                                     {groupItems.length}
@@ -147,7 +159,7 @@ export default function ExpiryCalendar({
                                         <div
                                             key={item.id}
                                             className={`flex items-center justify-between gap-tight px-2.5 py-1.5 rounded-lg ${itemConfig.bg}`}
-                                            title={`${item.title} — due ${item.nextReviewDate} (${formatDaysUntil(item.daysUntil)})`}
+                                            title={t('expiryCalendar.itemTooltip', { title: item.title, date: item.nextReviewDate, days: formatDaysUntil(item.daysUntil) })}
                                         >
                                             <div className="flex items-center gap-tight min-w-0 flex-1">
                                                 <span className="text-xs text-content-default truncate">{item.title}</span>

@@ -42,6 +42,7 @@
  */
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -73,8 +74,6 @@ type WidgetTypeKey =
 
 interface WidgetTypeOption {
     type: WidgetTypeKey;
-    label: string;
-    description: string;
     /** Default `(w, h)` for newly-created widgets of this type. */
     defaultSize: WidgetSize;
     /** Default chartType for the dropdown initial value. */
@@ -84,62 +83,37 @@ interface WidgetTypeOption {
 const WIDGET_TYPES: ReadonlyArray<WidgetTypeOption> = [
     {
         type: 'KPI',
-        label: 'KPI tile',
-        description: 'Single number with label and optional sparkline.',
         defaultSize: { w: 3, h: 2 },
         defaultChartType: 'coverage',
     },
     {
         type: 'DONUT',
-        label: 'Donut breakdown',
-        description: 'Distribution across labelled segments (e.g. RAG).',
         defaultSize: { w: 4, h: 4 },
         defaultChartType: 'rag-distribution',
     },
     {
         type: 'TREND',
-        label: 'Trend chart',
-        description: 'Time-series area or bar chart over a window.',
         defaultSize: { w: 6, h: 3 },
         defaultChartType: 'risks-open',
     },
     {
         type: 'TENANT_LIST',
-        label: 'Tenant coverage',
-        description: 'Per-tenant coverage list with drill-down rows.',
         defaultSize: { w: 12, h: 6 },
         defaultChartType: 'coverage',
     },
     {
         type: 'DRILLDOWN_CTAS',
-        label: 'Drill-down CTAs',
-        description: 'Navigation cards into controls / risks / evidence.',
         defaultSize: { w: 12, h: 2 },
         defaultChartType: 'default',
     },
 ];
 
-const CHART_TYPE_OPTIONS: Record<WidgetTypeKey, ReadonlyArray<{ value: string; label: string }>> = {
-    KPI: [
-        { value: 'coverage', label: 'Coverage' },
-        { value: 'critical-risks', label: 'Critical risks' },
-        { value: 'overdue-evidence', label: 'Overdue evidence' },
-        { value: 'tenants', label: 'Tenants' },
-    ],
-    DONUT: [
-        { value: 'rag-distribution', label: 'RAG distribution' },
-    ],
-    TREND: [
-        { value: 'risks-open', label: 'Open risks' },
-        { value: 'controls-coverage', label: 'Controls coverage' },
-        { value: 'evidence-overdue', label: 'Overdue evidence' },
-    ],
-    TENANT_LIST: [
-        { value: 'coverage', label: 'Coverage' },
-    ],
-    DRILLDOWN_CTAS: [
-        { value: 'default', label: 'Default (controls / risks / evidence)' },
-    ],
+const CHART_TYPE_OPTIONS: Record<WidgetTypeKey, ReadonlyArray<string>> = {
+    KPI: ['coverage', 'critical-risks', 'overdue-evidence', 'tenants'],
+    DONUT: ['rag-distribution'],
+    TREND: ['risks-open', 'controls-coverage', 'evidence-overdue'],
+    TENANT_LIST: ['coverage'],
+    DRILLDOWN_CTAS: ['default'],
 };
 
 function defaultConfigFor(
@@ -192,6 +166,7 @@ export function WidgetPicker({
     onCreated,
     defaultPosition = { x: 0, y: 0 },
 }: WidgetPickerProps) {
+    const t = useTranslations('ui');
     const [type, setType] = useState<WidgetTypeKey>('KPI');
     const [chartType, setChartType] = useState<string>('coverage');
     const [title, setTitle] = useState<string>('');
@@ -211,6 +186,32 @@ export function WidgetPicker({
         [type],
     );
     const variants = CHART_TYPE_OPTIONS[type];
+
+    const typeLabels: Record<WidgetTypeKey, string> = {
+        KPI: t('widgetPicker.kpiTileLabel'),
+        DONUT: t('widgetPicker.donutBreakdownLabel'),
+        TREND: t('widgetPicker.trendChartLabel'),
+        TENANT_LIST: t('widgetPicker.tenantCoverageLabel'),
+        DRILLDOWN_CTAS: t('widgetPicker.drilldownCtasLabel'),
+    };
+    const typeDescriptions: Record<WidgetTypeKey, string> = {
+        KPI: t('widgetPicker.kpiTileDescription'),
+        DONUT: t('widgetPicker.donutBreakdownDescription'),
+        TREND: t('widgetPicker.trendChartDescription'),
+        TENANT_LIST: t('widgetPicker.tenantCoverageDescription'),
+        DRILLDOWN_CTAS: t('widgetPicker.drilldownCtasDescription'),
+    };
+    const chartLabels: Record<string, string> = {
+        coverage: t('widgetPicker.chartCoverage'),
+        'critical-risks': t('widgetPicker.chartCriticalRisks'),
+        'overdue-evidence': t('widgetPicker.chartOverdueEvidence'),
+        tenants: t('widgetPicker.chartTenants'),
+        'rag-distribution': t('widgetPicker.chartRagDistribution'),
+        'risks-open': t('widgetPicker.chartOpenRisks'),
+        'controls-coverage': t('widgetPicker.chartControlsCoverage'),
+        'evidence-overdue': t('widgetPicker.chartOverdueEvidence'),
+        default: t('widgetPicker.chartDefault'),
+    };
 
     // Reset form when modal toggles closed → open transitions are
     // discoverable. We don't want a half-filled prior session
@@ -273,7 +274,7 @@ export function WidgetPicker({
             setError(
                 e instanceof Error
                     ? e.message
-                    : 'Could not create widget. Please retry.',
+                    : t('widgetPicker.createError'),
             );
         } finally {
             setSubmitting(false);
@@ -293,15 +294,15 @@ export function WidgetPicker({
             }}
         >
             <Modal.Header
-                title="Add widget"
-                description="Pick a widget type and a data variant. You can rearrange and resize after it lands."
+                title={t('widgetPicker.addWidget')}
+                description={t('widgetPicker.modalDescription')}
             />
             <Modal.Body>
                 <div className="space-y-section">
                     {/* ── Step 1: type ── */}
                     <FormField
-                        label="Widget type"
-                        description="What kind of visualization do you want?"
+                        label={t('widgetPicker.widgetTypeLabel')}
+                        description={t('widgetPicker.widgetTypeDescription')}
                     >
                         <RadioGroup
                             value={type}
@@ -316,17 +317,17 @@ export function WidgetPicker({
                                     <RadioGroupItem
                                         value={opt.type}
                                         id={`widget-type-${opt.type}`}
-                                        aria-label={opt.label}
+                                        aria-label={typeLabels[opt.type]}
                                     />
                                     <div className="min-w-0">
                                         <Label
                                             htmlFor={`widget-type-${opt.type}`}
                                             className="text-sm font-medium text-content-emphasis cursor-pointer"
                                         >
-                                            {opt.label}
+                                            {typeLabels[opt.type]}
                                         </Label>
                                         <p className="text-xs text-content-muted mt-0.5">
-                                            {opt.description}
+                                            {typeDescriptions[opt.type]}
                                         </p>
                                     </div>
                                 </div>
@@ -336,11 +337,11 @@ export function WidgetPicker({
 
                     {/* ── Step 2: chart variant ── */}
                     <FormField
-                        label="Data source"
+                        label={t('widgetPicker.dataSourceLabel')}
                         description={
                             type === 'TREND'
-                                ? 'Which metric should the chart track?'
-                                : 'Which slice of org data should this widget show?'
+                                ? t('widgetPicker.dataSourceTrendDescription')
+                                : t('widgetPicker.dataSourceDefaultDescription')
                         }
                     >
                         <select
@@ -350,8 +351,8 @@ export function WidgetPicker({
                             className="block w-full rounded-md border border-border-default bg-bg-default px-3 py-2 text-sm text-content-emphasis focus:outline-none focus:ring-2 focus:ring-ring"
                         >
                             {variants.map((v) => (
-                                <option key={v.value} value={v.value}>
-                                    {v.label}
+                                <option key={v} value={v}>
+                                    {chartLabels[v]}
                                 </option>
                             ))}
                         </select>
@@ -360,8 +361,8 @@ export function WidgetPicker({
                     {/* ── Step 3: per-type config ── */}
                     {type === 'KPI' && (
                         <FormField
-                            label="Format"
-                            description="How the headline number is rendered."
+                            label={t('widgetPicker.formatLabel')}
+                            description={t('widgetPicker.formatDescription')}
                         >
                             <RadioGroup
                                 value={kpiFormat}
@@ -372,8 +373,8 @@ export function WidgetPicker({
                                 className="flex gap-default"
                             >
                                 {[
-                                    { value: 'number', label: 'Number' },
-                                    { value: 'percent', label: 'Percent' },
+                                    { value: 'number', label: t('widgetPicker.formatNumber') },
+                                    { value: 'percent', label: t('widgetPicker.formatPercent') },
                                 ].map((opt) => (
                                     <div
                                         key={opt.value}
@@ -398,8 +399,8 @@ export function WidgetPicker({
 
                     {type === 'TREND' && (
                         <FormField
-                            label="Window (days)"
-                            description="History length for the trend chart. Min 7, max 365."
+                            label={t('widgetPicker.windowDaysLabel')}
+                            description={t('widgetPicker.windowDaysDescription')}
                         >
                             <input
                                 type="number"
@@ -421,7 +422,7 @@ export function WidgetPicker({
                     )}
 
                     {type === 'DONUT' && (
-                        <FormField label="Options">
+                        <FormField label={t('widgetPicker.optionsLabel')}>
                             <label className="flex items-center gap-tight text-sm text-content-emphasis">
                                 <input
                                     type="checkbox"
@@ -432,15 +433,15 @@ export function WidgetPicker({
                                     data-testid="widget-picker-donut-legend"
                                     className="size-4 rounded border-border-default focus:ring-ring"
                                 />
-                                Show legend below the chart
+                                {t('widgetPicker.showLegend')}
                             </label>
                         </FormField>
                     )}
 
                     {type === 'TENANT_LIST' && (
                         <FormField
-                            label="Sort by"
-                            description="How tenants are ordered in the list."
+                            label={t('widgetPicker.sortByLabel')}
+                            description={t('widgetPicker.sortByDescription')}
                         >
                             <select
                                 value={tenantSort}
@@ -455,24 +456,24 @@ export function WidgetPicker({
                                 data-testid="widget-picker-tenant-sort"
                                 className="block w-full rounded-md border border-border-default bg-bg-default px-3 py-2 text-sm text-content-emphasis focus:outline-none focus:ring-2 focus:ring-ring"
                             >
-                                <option value="rag">RAG (worst first)</option>
-                                <option value="name">Name (alphabetical)</option>
-                                <option value="coverage">Coverage</option>
+                                <option value="rag">{t('widgetPicker.sortRag')}</option>
+                                <option value="name">{t('widgetPicker.sortName')}</option>
+                                <option value="coverage">{t('widgetPicker.sortCoverage')}</option>
                             </select>
                         </FormField>
                     )}
 
                     {/* ── Step 4: title (optional) ── */}
                     <FormField
-                        label="Title"
-                        description="Leave blank to use the default title for this variant."
+                        label={t('widgetPicker.titleLabel')}
+                        description={t('widgetPicker.titleDescription')}
                     >
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             maxLength={120}
-                            placeholder={meta.label}
+                            placeholder={typeLabels[meta.type]}
                             data-testid="widget-picker-title"
                             className="block w-full rounded-md border border-border-default bg-bg-default px-3 py-2 text-sm text-content-emphasis placeholder:text-content-subtle focus:outline-none focus:ring-2 focus:ring-ring"
                         />
@@ -497,7 +498,7 @@ export function WidgetPicker({
                     data-testid="widget-picker-cancel"
                     disabled={submitting}
                 >
-                    Cancel
+                    {t('widgetPicker.cancel')}
                 </Button>
                 <Button
                     variant="primary"
@@ -508,7 +509,7 @@ export function WidgetPicker({
                     data-testid="widget-picker-submit"
                     disabled={submitting}
                 >
-                    {submitting ? 'Adding…' : 'Add widget'}
+                    {submitting ? t('widgetPicker.adding') : t('widgetPicker.addWidget')}
                 </Button>
             </Modal.Actions>
         </Modal>

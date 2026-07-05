@@ -506,11 +506,249 @@
             "placeholder": "Изберете…",
             "emptyState": "Няма съвпадения",
             "createLabel": "Създай \"{search}\"",
-            "createLabelEmpty": "Създай нова опция…"
+            "createLabelEmpty": "Създай нова опция…",
+            "selectAriaFallback": "Изберете"
         },
         "form": {
             "required": "Задължително",
             "invalid": "Невалидно"
+        },
+        "datePicker": {
+            "goToPreviousYear": "Към предходната година",
+            "goToPreviousMonth": "Към предходния месец",
+            "goToNextMonth": "Към следващия месец",
+            "goToNextYear": "Към следващата година",
+            "selectDate": "Изберете дата",
+            "clear": "Изчисти",
+            "selectDateRange": "Изберете период",
+            "clearRange": "Изчисти периода"
+        },
+        "asyncCombobox": {
+            "emptyState": "Няма резултати"
+        },
+        "fileUpload": {
+            "errorImages": "Неподдържан тип файл (само .png или .jpg)",
+            "errorCsv": "Неподдържан тип файл (само .csv)",
+            "errorDocuments": "Неподдържан тип файл (само документи)",
+            "errorProgramResourceImages": "Неподдържан тип файл (само .svg, .png, .jpg или .webp)",
+            "errorProgramResourceFiles": "Неподдържан тип файл (само документи или zip файлове)",
+            "errorEvidence": "Неподдържан тип файл — използвайте PDF, Office, CSV, изображение, JSON или ZIP",
+            "fileTypeNotSupported": "Неподдържан тип файл",
+            "fileSizeTooBig": "Файлът е твърде голям (макс. {maxFileSizeMB} MB)",
+            "defaultLabel": "Качване на файл",
+            "dragAndDrop": "Плъзнете и пуснете {clickToUpload} за качване.",
+            "orClick": "или щракнете",
+            "previewAlt": "Преглед"
+        },
+        "fileDropzone": {
+            "cancelled": "Отменено",
+            "uploadDropzone": "Зона за качване на файлове",
+            "dragAndDrop": "Плъзнете и пуснете {target} или щракнете за избор",
+            "targetFiles": "файлове",
+            "targetFile": "файл",
+            "cancelUploadOf": "Отмяна на качването на {fileName}",
+            "uploaded": "Качено",
+            "removeFromList": "Премахни {fileName} от списъка",
+            "clearCompleted": "Изчисти завършените ({count})",
+            "uploadProgress": "Напредък на качването за {fileName}",
+            "queued": "На опашка",
+            "uploading": "Качване…",
+            "failed": "Неуспешно"
+        },
+        "donutChart": {
+            "chartLoading": "Зареждане на диаграмата",
+            "noDataAvailable": "Няма налични данни",
+            "noData": "Няма данни",
+            "ariaLabel": "Кръгова диаграма: {segments}"
+        },
+        "aleHistogram": {
+            "lossBuckets": "Интервали на загубите",
+            "bucketLabel": "{lo}–{hi}: {count, plural, one {# риск} other {# риска}}"
+        },
+        "timeSeriesChart": {
+            "emptyState": "Няма налични данни за този период."
+        },
+        "sankeyChart": {
+            "noFlowsMatch": "Няма потоци, съответстващи на „{query}“",
+            "actualSize": "Действителен размер",
+            "fitToView": "Побиране в изгледа",
+            "ariaLabel": "Поток на проследимост между нивата (Санки)",
+            "nodeWeight": "{label} (тегло {weight})",
+            "emptyFlows": "Няма потоци на съпоставяне за показване.",
+            "emptyNodesNoLinks": "Възлите са налични, но все още не са регистрирани междунивови потоци на съпоставяне."
+        },
+        "riskHeatmap": {
+            "title": "Топлинна карта на риска",
+            "loading": "Зареждане на топлинната карта",
+            "emptyState": "Все още няма регистрирани рискове.",
+            "riskCount": "{count} риска",
+            "likelihood": "Вероятност",
+            "impact": "Въздействие",
+            "cellTitle": "Вер.{likelihood} × Възд.{impact} = {score} — {count, plural, one {# риск} other {# риска}}",
+            "legendLabel": "Оценка на риска"
+        },
+        "ganttTimeline": {
+            "emptyMessage": "Няма събития от графика в този период.",
+            "ariaLabel": "Времева линия (Гант)"
+        },
+        "treeView": {
+            "empty": "Няма елементи."
+        },
+        "tree": {
+            "expandAll": "Разгъване на всички",
+            "collapseAll": "Свиване на всички",
+            "controlsLabel": "Контроли за разгъване на дървото"
+        },
+        "frameworkBuilder": {
+            "title": "Конструктор — режим на пренареждане",
+            "description": "Плъзнете манипулатора на който и да е ред, за да пренаредите. Промените се запазват за отделния наемател — рамката остава непроменена за всички останали.",
+            "discard": "Отхвърляне",
+            "saveReorder": "Запазване на подредбата",
+            "saveError": "Неуспешно запазване на подредбата"
+        },
+        "frameworkMinimap": {
+            "navLabel": "Навигатор по раздели на рамката",
+            "sectionsHeading": "Раздели"
+        },
+        "graphExplorer": {
+            "emptyState": "Няма връзки за проследимост за показване.",
+            "noMatches": "Няма съвпадения за „{query}“"
+        },
+        "versionDiff": {
+            "emptyState": "Добавете втора версия, за да активирате сравнението.",
+            "from": "От",
+            "to": "До",
+            "compareFromLabel": "Сравняване от версия",
+            "compareToLabel": "Сравняване до версия",
+            "pickTwoDifferent": "Изберете две различни версии, за да видите разликите.",
+            "emptyDiff": "Няма текстови промени между v{from} и v{to}."
+        },
+        "actionCluster": {
+            "moreActions": "Още действия"
+        },
+        "approvalBanner": {
+            "approved": "Одобрено",
+            "rejected": "Отхвърлено",
+            "pendingReview": "Очаква преглед",
+            "version": "Версия {number}",
+            "requestedBy": "Заявено от",
+            "approvedVerb": "одобрено",
+            "reviewedVerb": "прегледано",
+            "by": "от",
+            "awaitingReviewer": "очаква преглед от администратор",
+            "selfApproval": "Не можете да одобрите собствената си заявка — друг рецензент трябва да реши.",
+            "regionLabel": "Статус на одобрение на политиката",
+            "addCommentAria": "Добавете коментар към решението си",
+            "comment": "Коментар",
+            "cannotApproveTitle": "Рецензентите не могат да одобряват собствената си заявка",
+            "cannotRejectTitle": "Рецензентите не могат да отхвърлят собствената си заявка",
+            "approve": "Одобри",
+            "reject": "Отхвърли",
+            "reviewerComment": "Коментар на рецензента (по избор)",
+            "commentPlaceholder": "Добавете контекст за заявителя…",
+            "unknown": "Неизвестен"
+        },
+        "truncationBanner": {
+            "showingFirst": "Показват се първите {cap} резултата.",
+            "refineFilters": "Прецизирайте филтрите, за да стесните изгледа и да видите останалите."
+        },
+        "expiryCalendar": {
+            "heading": "Изтичане на доказателства",
+            "empty": "Няма предстоящи изтичания на доказателства.",
+            "itemCount": "{count, plural, one {# елемент} other {# елемента}}",
+            "overdue": "Просрочени",
+            "thisWeek": "Тази седмица",
+            "nextWeek": "Следваща седмица",
+            "thisMonth": "Този месец",
+            "daysOverdue": "{days}д просрочка",
+            "today": "Днес",
+            "tomorrow": "Утре",
+            "days": "{days}д",
+            "itemTooltip": "{title} — краен срок {date} ({days})"
+        },
+        "evidenceGallery": {
+            "empty": "Няма доказателства за показване.",
+            "ariaLabel": "Галерия с доказателства",
+            "uploading": "Качване…",
+            "openPdfAria": "Отвори PDF: {title}",
+            "openPdf": "Отвори PDF"
+        },
+        "coachMark": {
+            "gotIt": "Разбрах"
+        },
+        "richTextEditor": {
+            "defaultPlaceholder": "Напишете политиката си тук…",
+            "editorAriaLabel": "Редактор на форматиран текст",
+            "switchToWysiwyg": "Превключване към WYSIWYG",
+            "switchToMarkdown": "Превключване към Markdown",
+            "wysiwyg": "WYSIWYG",
+            "markdown": "Markdown",
+            "bold": "Получер",
+            "italic": "Курсив",
+            "strikethrough": "Зачертан",
+            "heading1": "Заглавие 1",
+            "heading2": "Заглавие 2",
+            "bulletList": "Маркиран списък",
+            "numberedList": "Номериран списък",
+            "quote": "Цитат",
+            "inlineCode": "Вграден код",
+            "linkPrompt": "URL адрес на връзка (https://… или mailto:…)",
+            "insertLink": "Вмъкване на връзка"
+        },
+        "aiAssistRail": {
+            "intro": "Оставете ИИ да открие кандидат-рискове от вашата инвентаризация на активи — всеки оценен, с обосновка и предложени контроли.",
+            "pickAssets": "Изберете активите в обхвата",
+            "aiDraftsRisks": "ИИ съставя кандидат-рискове",
+            "reviewEditApply": "Прегледайте, редактирайте и приложете",
+            "generateRiskSuggestions": "Генериране на предложения за рискове"
+        },
+        "checklistGearButton": {
+            "resetToDefaults": "Възстановяване на настройките по подразбиране"
+        },
+        "widgetPicker": {
+            "kpiTileLabel": "KPI плочка",
+            "kpiTileDescription": "Единично число с етикет и незадължителна мини-графика.",
+            "donutBreakdownLabel": "Кръгова разбивка",
+            "donutBreakdownDescription": "Разпределение по обозначени сегменти (напр. RAG).",
+            "trendChartLabel": "Графика на тенденция",
+            "trendChartDescription": "Площна или стълбовидна графика на времеви редове за период.",
+            "tenantCoverageLabel": "Покритие по наематели",
+            "tenantCoverageDescription": "Списък с покритие по наемател с детайлни редове.",
+            "drilldownCtasLabel": "CTA за детайлизиране",
+            "drilldownCtasDescription": "Навигационни карти към контроли / рискове / доказателства.",
+            "chartCoverage": "Покритие",
+            "chartCriticalRisks": "Критични рискове",
+            "chartOverdueEvidence": "Просрочени доказателства",
+            "chartTenants": "Наематели",
+            "chartRagDistribution": "RAG разпределение",
+            "chartOpenRisks": "Отворени рискове",
+            "chartControlsCoverage": "Покритие на контролите",
+            "chartDefault": "По подразбиране (контроли / рискове / доказателства)",
+            "addWidget": "Добавяне на джаджа",
+            "modalDescription": "Изберете тип джаджа и вариант на данните. Можете да пренаредите и преоразмерите след добавянето.",
+            "widgetTypeLabel": "Тип джаджа",
+            "widgetTypeDescription": "Каква визуализация желаете?",
+            "dataSourceLabel": "Източник на данни",
+            "dataSourceTrendDescription": "Кой показател да следи графиката?",
+            "dataSourceDefaultDescription": "Кой срез от данните на организацията да показва тази джаджа?",
+            "formatLabel": "Формат",
+            "formatDescription": "Как се показва основното число.",
+            "formatNumber": "Число",
+            "formatPercent": "Процент",
+            "windowDaysLabel": "Прозорец (дни)",
+            "windowDaysDescription": "Дължина на историята за графиката на тенденция. Мин. 7, макс. 365.",
+            "optionsLabel": "Опции",
+            "showLegend": "Показване на легенда под графиката",
+            "sortByLabel": "Сортиране по",
+            "sortByDescription": "Как се подреждат наемателите в списъка.",
+            "sortRag": "RAG (най-лошите първо)",
+            "sortName": "Име (по азбучен ред)",
+            "sortCoverage": "Покритие",
+            "titleLabel": "Заглавие",
+            "titleDescription": "Оставете празно, за да използвате заглавието по подразбиране за този вариант.",
+            "cancel": "Отказ",
+            "adding": "Добавяне…",
+            "createError": "Джаджата не можа да бъде създадена. Опитайте отново."
         }
     },
     "ag": {

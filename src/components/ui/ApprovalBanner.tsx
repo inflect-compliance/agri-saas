@@ -26,6 +26,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, XCircle, Clock, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
@@ -69,8 +70,8 @@ export interface ApprovalBannerProps {
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-function userLabel(u?: ApprovalBannerUserRef | null): string {
-    if (!u) return 'Unknown';
+function userLabel(u: ApprovalBannerUserRef | null | undefined, unknownLabel: string): string {
+    if (!u) return unknownLabel;
     return u.name ?? u.email ?? u.id;
 }
 
@@ -85,6 +86,7 @@ export function ApprovalBanner({
     className = '',
     'data-testid': dataTestId = 'approval-banner',
 }: ApprovalBannerProps) {
+    const t = useTranslations('ui');
     const [comment, setComment] = useState('');
     const [showCommentField, setShowCommentField] = useState(false);
 
@@ -106,7 +108,7 @@ export function ApprovalBanner({
                     bg: 'bg-bg-success',
                     fg: 'text-content-success',
                     icon: <CheckCircle2 size={16} className="text-content-success" />,
-                    label: 'Approved',
+                    label: t('approvalBanner.approved'),
                 };
             case 'REJECTED':
                 return {
@@ -114,7 +116,7 @@ export function ApprovalBanner({
                     bg: 'bg-bg-error',
                     fg: 'text-content-error',
                     icon: <XCircle size={16} className="text-content-error" />,
-                    label: 'Rejected',
+                    label: t('approvalBanner.rejected'),
                 };
             case 'PENDING':
             default:
@@ -123,7 +125,7 @@ export function ApprovalBanner({
                     bg: 'bg-bg-warning',
                     fg: 'text-content-warning',
                     icon: <Clock size={16} className="text-content-warning" />,
-                    label: 'Pending Review',
+                    label: t('approvalBanner.pendingReview'),
                 };
         }
     })();
@@ -131,7 +133,7 @@ export function ApprovalBanner({
     return (
         <section
             role="region"
-            aria-label="Policy approval status"
+            aria-label={t('approvalBanner.regionLabel')}
             data-testid={dataTestId}
             data-status={approval.status}
             className={`rounded-lg border ${tone.border} ${tone.bg} px-4 py-3 ${className}`.trim()}
@@ -149,28 +151,28 @@ export function ApprovalBanner({
                         </Heading>
                         {approval.versionNumber != null && (
                             <span className="text-[11px] text-content-muted">
-                                · Version {approval.versionNumber}
+                                · {t('approvalBanner.version', { number: approval.versionNumber })}
                             </span>
                         )}
                     </div>
                     <p className="text-xs text-content-muted">
-                        Requested by{' '}
+                        {t('approvalBanner.requestedBy')}{' '}
                         <span
                             className="font-medium text-content-emphasis"
                             data-testid="approval-banner-requester"
                         >
-                            {userLabel(approval.requestedBy)}
+                            {userLabel(approval.requestedBy, t('approvalBanner.unknown'))}
                         </span>
                         {approval.approvedBy && (
                             <>
                                 {' · '}
-                                {approval.status === 'APPROVED' ? 'approved' : 'reviewed'}{' '}
-                                by{' '}
+                                {approval.status === 'APPROVED' ? t('approvalBanner.approvedVerb') : t('approvalBanner.reviewedVerb')}{' '}
+                                {t('approvalBanner.by')}{' '}
                                 <span
                                     className="font-medium text-content-emphasis"
                                     data-testid="approval-banner-reviewer"
                                 >
-                                    {userLabel(approval.approvedBy)}
+                                    {userLabel(approval.approvedBy, t('approvalBanner.unknown'))}
                                 </span>
                             </>
                         )}
@@ -181,7 +183,7 @@ export function ApprovalBanner({
                                     className="text-content-subtle"
                                     data-testid="approval-banner-reviewer"
                                 >
-                                    awaiting any admin reviewer
+                                    {t('approvalBanner.awaitingReviewer')}
                                 </span>
                             </>
                         )}
@@ -197,8 +199,7 @@ export function ApprovalBanner({
                     {isPending && isSelfApproval && (
                         <p className="mt-1 inline-flex items-center gap-1 text-xs text-content-subtle">
                             <AlertTriangle size={11} aria-hidden />
-                            You can&rsquo;t approve your own request — another
-                            reviewer must decide.
+                            {t('approvalBanner.selfApproval')}
                         </p>
                     )}
                 </div>
@@ -215,10 +216,10 @@ export function ApprovalBanner({
                                 onClick={() => setShowCommentField(true)}
                                 disabled={!canActNow}
                                 className="text-[11px] text-content-muted hover:text-content-emphasis disabled:opacity-50"
-                                aria-label="Add a comment with your decision"
+                                aria-label={t('approvalBanner.addCommentAria')}
                                 data-testid="approval-banner-add-comment"
                             >
-                                + Comment
+                                + {t('approvalBanner.comment')}
                             </button>
                         )}
                         <Button
@@ -230,11 +231,11 @@ export function ApprovalBanner({
                             data-testid="approval-banner-approve"
                             title={
                                 isSelfApproval
-                                    ? "Reviewers cannot approve their own request"
+                                    ? t('approvalBanner.cannotApproveTitle')
                                     : undefined
                             }
                         >
-                            {busy ? '…' : 'Approve'}
+                            {busy ? '…' : t('approvalBanner.approve')}
                         </Button>
                         <Button
                             variant="destructive"
@@ -245,11 +246,11 @@ export function ApprovalBanner({
                             data-testid="approval-banner-reject"
                             title={
                                 isSelfApproval
-                                    ? "Reviewers cannot reject their own request"
+                                    ? t('approvalBanner.cannotRejectTitle')
                                     : undefined
                             }
                         >
-                            {busy ? '…' : 'Reject'}
+                            {busy ? '…' : t('approvalBanner.reject')}
                         </Button>
                     </div>
                 )}
@@ -258,13 +259,13 @@ export function ApprovalBanner({
             {showCommentField && isPending && canDecide && (
                 <div className="mt-3 border-t border-border-default/50 pt-2">
                     <label className="block text-xs text-content-muted">
-                        Reviewer comment (optional)
+                        {t('approvalBanner.reviewerComment')}
                         <textarea
                             className="input mt-1 w-full text-xs"
                             rows={2}
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
-                            placeholder="Add context for the requester…"
+                            placeholder={t('approvalBanner.commentPlaceholder')}
                             data-testid="approval-banner-comment-input"
                         />
                     </label>

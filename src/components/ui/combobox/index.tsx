@@ -45,6 +45,7 @@
 import { cn } from "@/lib/cn";
 import { Command, useCommandState } from "cmdk";
 import { ChevronDown } from "lucide-react";
+import { useTranslations } from "next-intl";
 import * as React from "react";
 import {
     cloneElement,
@@ -231,6 +232,7 @@ export function Combobox<
     "aria-required": ariaRequired,
     children,
 }: ComboboxProps<TMultiple, TMeta>) {
+    const t = useTranslations("ui");
     const isMultiple = isMultipleSelection(multiple, setSelected);
 
     // Coerce selectedProp into an array so our internal bookkeeping
@@ -395,7 +397,9 @@ export function Combobox<
             "aria-label"
         ] ??
         (selectedTriggerText ||
-            (typeof placeholder === "string" ? placeholder : "Select"));
+            (typeof placeholder === "string"
+                ? placeholder
+                : t("combobox.selectAriaFallback")));
 
     const triggerA11yProps = {
         id,

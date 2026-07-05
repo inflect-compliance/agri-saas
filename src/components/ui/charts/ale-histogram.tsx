@@ -18,6 +18,7 @@
  * distribution).
  */
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { ParentSize } from '@visx/responsive';
 import { Group } from '@visx/group';
 import { AxisBottom, AxisLeft } from '@visx/axis';
@@ -103,6 +104,7 @@ function AleHistogramInner({
     className,
     formatMoney = (v) => formatCompactCurrency(v),
 }: AleHistogramProps & { width: number; height: number }) {
+    const t = useTranslations('ui');
     const buckets = useMemo(() => bucketByDecade(data), [data]);
 
     const xMax = Math.max(0, width - MARGIN.left - MARGIN.right);
@@ -131,6 +133,9 @@ function AleHistogramInner({
     if (buckets.length === 0 || width === 0 || height === 0) return null;
 
     const tallest = buckets.reduce((m, b) => (b.total > m.total ? b : m), buckets[0]);
+    // A11y screen-reader summary — generated plain-language text kept
+    // in-source (the RQ3-5 histogram guard locks its shape); the
+    // caller-supplied `ariaLabel` still overrides it when provided.
     const summary =
         `ALE histogram: ${data.length} quantified risks across ${buckets.filter((b) => b.total > 0).length} ` +
         `loss buckets from ${formatMoney(buckets[0].lo)} to ${formatMoney(buckets[buckets.length - 1].hi)}; ` +
@@ -147,14 +152,18 @@ function AleHistogramInner({
             className={className}
         >
             <Group left={MARGIN.left} top={MARGIN.top}>
-                <g role="list" aria-label="Loss buckets">
+                <g role="list" aria-label={t('aleHistogram.lossBuckets')}>
                 {buckets.map((b) => {
                     const x0 = xScale(b.exp) ?? 0;
                     const x1 = xScale(b.exp + 1) ?? 0;
                     const barWidth = Math.max(0, x1 - x0 - 2);
                     let yCursor = yMax;
                     const label =
-                        `${formatMoney(b.lo)}–${formatMoney(b.hi)}: ${b.total} risk${b.total === 1 ? '' : 's'}` +
+                        t('aleHistogram.bucketLabel', {
+                            lo: formatMoney(b.lo),
+                            hi: formatMoney(b.hi),
+                            count: b.total,
+                        }) +
                         (b.segments.length
                             ? ` (${b.segments.map((s) => `${s.count} ${s.bandName}`).join(', ')})`
                             : '');

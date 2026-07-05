@@ -19,6 +19,131 @@ import { toHaveNoViolations } from 'jest-axe';
 
 expect.extend(toHaveNoViolations);
 
+// ─── next-intl (project-wide mock) ──────────────────────────────
+//
+// The jsdom project doesn't wrap render trees in a
+// `NextIntlClientProvider`, and `next-intl` ships ESM that this
+// project's transform doesn't process — so ANY component importing
+// `next-intl` (Combobox, DatePicker, and the migrated UI
+// primitives, plus everything that mounts them transitively) would
+// otherwise fail to load with `SyntaxError: Unexpected token
+// 'export'`.
+//
+// This mock replaces the module project-wide and resolves the REAL
+// English strings from `messages/en.json` through ICU, so rendered
+// assertions stay byte-identical to production output. Individual
+// test files that need the key-echo behaviour (e.g. the ag-domain
+// a11y suite, which relies on `t.has() === false` to exercise a
+// component's English fallback) still override this with their own
+// `jest.mock('next-intl', …)` — a test-file factory wins over this
+// setup-file one.
+//
+// `require` inside the factory (not top-level imports) keeps
+// babel-jest's out-of-scope-variable check happy.
+jest.mock('next-intl', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const enMessages = require('../../messages/en.json');
+
+    const get = (path: string): unknown =>
+        path
+            .split('.')
+            .reduce<unknown>(
+                (o, k) =>
+                    o == null ? undefined : (o as Record<string, unknown>)[k],
+                enMessages,
+            );
+
+    // Minimal ICU formatter — the message catalogue only uses simple
+    // `{var}` interpolation and a basic `{n, plural, one {# x} other
+    // {# xs}}` shape, so a full ICU engine (and its ESM deps) isn't
+    // worth pulling into the transform. Renders byte-identical English.
+    const formatIcu = (msg: string, values: Record<string, unknown>): string => {
+        let out = msg;
+        const pluralStart = /\{(\w+),\s*plural,/;
+        let m: RegExpExecArray | null;
+        while ((m = pluralStart.exec(out))) {
+            const varName = m[1];
+            const start = m.index;
+            let depth = 0;
+            let end = start;
+            for (; end < out.length; end++) {
+                if (out[end] === '{') depth++;
+                else if (out[end] === '}') {
+                    depth--;
+                    if (depth === 0) break;
+                }
+            }
+            const block = out.slice(start, end + 1);
+            const branchesStr = block.slice(
+                block.indexOf('plural,') + 'plural,'.length,
+                -1,
+            );
+            const branches: Record<string, string> = {};
+            const branchRe = /(=\d+|zero|one|two|few|many|other)\s*\{/g;
+            let bm: RegExpExecArray | null;
+            while ((bm = branchRe.exec(branchesStr))) {
+                let d = 0;
+                let k = bm.index + bm[0].length - 1; // at '{'
+                const open = k;
+                for (; k < branchesStr.length; k++) {
+                    if (branchesStr[k] === '{') d++;
+                    else if (branchesStr[k] === '}') {
+                        d--;
+                        if (d === 0) break;
+                    }
+                }
+                branches[bm[1]] = branchesStr.slice(open + 1, k);
+                branchRe.lastIndex = k + 1;
+            }
+            const val = Number(values[varName]);
+            const chosen =
+                branches['=' + val] ??
+                branches[val === 1 ? 'one' : 'other'] ??
+                branches.other ??
+                '';
+            out =
+                out.slice(0, start) +
+                chosen.replace(/#/g, String(values[varName])) +
+                out.slice(end + 1);
+        }
+        return out.replace(/\{(\w+)\}/g, (_, k) =>
+            values[k] != null ? String(values[k]) : `{${k}}`,
+        );
+    };
+
+    const makeT = (namespace?: string) => {
+        const full = (key: string) => (namespace ? `${namespace}.${key}` : key);
+        const t = (key: string, values?: Record<string, unknown>) => {
+            const msg = get(full(key));
+            if (typeof msg !== 'string') return full(key);
+            if (!msg.includes('{')) return msg;
+            return formatIcu(msg, values ?? {});
+        };
+        t.has = (key: string) => typeof get(full(key)) === 'string';
+        t.rich = (key: string) => full(key);
+        t.markup = (key: string) => full(key);
+        t.raw = (key: string) => get(full(key));
+        return t;
+    };
+
+    const PassThrough = ({ children }: { children?: unknown }) => children;
+
+    return {
+        useTranslations: (namespace?: string) => makeT(namespace),
+        useFormatter: () => ({
+            number: (v: unknown) => String(v),
+            dateTime: (v: unknown) => String(v),
+            relativeTime: (v: unknown) => String(v),
+        }),
+        useLocale: () => 'en',
+        useNow: () => new Date(0),
+        useTimeZone: () => 'UTC',
+        useMessages: () => enMessages,
+        NextIntlClientProvider: PassThrough,
+        IntlProvider: PassThrough,
+    };
+});
+
 // R32-task-64 — flag the jsdom project as a React-act environment.
 //
 // React 19's `act()` runtime reads `globalThis.IS_REACT_ACT_ENVIRONMENT`;

@@ -35,6 +35,7 @@
  */
 
 import { useMemo, type CSSProperties } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 import { Card } from '@/components/ui/card';
 import {
@@ -106,10 +107,11 @@ export function EvidenceGallery<T extends EvidenceGalleryRow>({
     onRowClick,
     statusBadgeVariant,
     retentionStatus,
-    'aria-label': ariaLabel = 'Evidence gallery',
+    'aria-label': ariaLabel,
     'data-testid': dataTestId = 'evidence-gallery',
     style,
 }: EvidenceGalleryProps<T>) {
+    const t = useTranslations('ui');
     const items = useMemo(() => rows, [rows]);
 
     if (loading && rows.length === 0) {
@@ -137,7 +139,7 @@ export function EvidenceGallery<T extends EvidenceGalleryRow>({
                 density="none"
                 data-testid={`${dataTestId}-empty`}
             >
-                {emptyState ?? 'No evidence to show.'}
+                {emptyState ?? t('evidenceGallery.empty')}
             </Card>
         );
     }
@@ -145,7 +147,7 @@ export function EvidenceGallery<T extends EvidenceGalleryRow>({
     return (
         <div
             role="grid"
-            aria-label={ariaLabel}
+            aria-label={ariaLabel ?? t('evidenceGallery.ariaLabel')}
             data-testid={dataTestId}
             className="grid grid-cols-1 gap-default sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             style={style}
@@ -181,6 +183,7 @@ function GalleryCard<T extends EvidenceGalleryRow>({
     statusBadgeVariant,
     retentionStatus,
 }: GalleryCardProps<T>) {
+    const t = useTranslations('ui');
     const mime =
         row.fileRecord?.mimeType ??
         row.fileMimeType ??
@@ -261,7 +264,7 @@ function GalleryCard<T extends EvidenceGalleryRow>({
                 {isPending && (
                     <div className="absolute inset-0 flex items-center justify-center bg-bg-default/60 backdrop-blur-sm">
                         <span className="text-xs text-content-muted">
-                            Uploading…
+                            {t('evidenceGallery.uploading')}
                         </span>
                     </div>
                 )}
@@ -335,6 +338,7 @@ function PdfPreviewPlaceholder({
     title: string;
     rowId: string;
 }) {
+    const t = useTranslations('ui');
     return (
         <a
             href={url}
@@ -342,11 +346,11 @@ function PdfPreviewPlaceholder({
             rel="noopener noreferrer"
             className="flex h-full w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-rose-500/10 to-rose-500/5 transition-colors hover:from-rose-500/20 hover:to-rose-500/10"
             data-testid={`evidence-gallery-pdfthumb-${rowId}`}
-            aria-label={`Open PDF: ${title}`}
+            aria-label={t('evidenceGallery.openPdfAria', { title })}
             onClick={(e) => e.stopPropagation()}
         >
             <FileTypeIcon fileName="x.pdf" size={48} />
-            <span className="text-xs text-content-muted">Open PDF</span>
+            <span className="text-xs text-content-muted">{t('evidenceGallery.openPdf')}</span>
         </a>
     );
 }

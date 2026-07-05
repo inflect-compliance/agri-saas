@@ -44,6 +44,7 @@
  */
 
 import { useId, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Pie } from '@visx/shape';
 import { motion } from 'motion/react';
 import {
@@ -130,6 +131,7 @@ export default function DonutChart({
     id,
     loading = false,
 }: DonutChartProps) {
+    const t = useTranslations('ui');
     // useId provides a unique-per-instance gradient id prefix so
     // multiple donuts on the same page don't collide on SVG defs.
     const reactId = useId();
@@ -206,7 +208,7 @@ export default function DonutChart({
                         rows={Math.max(4, Math.round(size / 16))}
                         cols={Math.max(4, Math.round(size / 16))}
                         className="h-full w-full"
-                        aria-label="Chart loading"
+                        aria-label={t('donutChart.chartLoading')}
                     />
                 </div>
             </div>
@@ -258,7 +260,7 @@ export default function DonutChart({
                     height={size}
                     viewBox={`0 0 ${size} ${size}`}
                     role="img"
-                    aria-label="No data available"
+                    aria-label={t('donutChart.noDataAvailable')}
                 >
                     <circle
                         cx={center}
@@ -278,7 +280,7 @@ export default function DonutChart({
                         fontSize="14"
                         fontFamily="Inter, system-ui, sans-serif"
                     >
-                        No data
+                        {t('donutChart.noData')}
                     </text>
                 </svg>
             </div>
@@ -304,9 +306,11 @@ export default function DonutChart({
                 height={size}
                 viewBox={`0 0 ${size} ${size}`}
                 role="img"
-                aria-label={`Donut chart: ${segments
-                    .map((s) => `${s.label} ${s.value}`)
-                    .join(', ')}`}
+                aria-label={t('donutChart.ariaLabel', {
+                    segments: segments
+                        .map((s) => `${s.label} ${s.value}`)
+                        .join(', '),
+                })}
             >
                 <defs>
                     {seriesInUse.map((series) => (

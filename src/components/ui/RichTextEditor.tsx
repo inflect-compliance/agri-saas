@@ -36,6 +36,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -126,13 +127,15 @@ export function RichTextEditor({
     value,
     contentType,
     onChange,
-    placeholder = 'Write your policy here…',
+    placeholder: placeholderProp,
     disabled = false,
     minHeightPx = 300,
     id,
     'data-testid': dataTestId = 'rich-text-editor',
     className = '',
 }: RichTextEditorProps) {
+    const t = useTranslations('ui');
+    const placeholder = placeholderProp ?? t('richTextEditor.defaultPlaceholder');
     const [mode, setMode] = useState<RichTextContentType>(contentType);
     // Track whether onChange originated from the editor (avoids the
     // round-trip render → onUpdate → setEditorContent loop).
@@ -151,7 +154,7 @@ export function RichTextEditor({
                 'data-testid': 'rich-text-editor-content',
                 role: 'textbox',
                 'aria-multiline': 'true',
-                'aria-label': 'Rich text editor',
+                'aria-label': t('richTextEditor.editorAriaLabel'),
             },
         },
         onUpdate: ({ editor: ed }) => {
@@ -272,6 +275,7 @@ function Toolbar({
     disabled: boolean;
     onToggleMode: () => void;
 }) {
+    const t = useTranslations('ui');
     return (
         <div className="flex flex-wrap items-center gap-1 border-b border-border-default px-2 py-1.5">
             <button
@@ -279,17 +283,17 @@ function Toolbar({
                 onClick={onToggleMode}
                 disabled={disabled}
                 className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] text-content-muted hover:bg-bg-muted hover:text-content-emphasis disabled:opacity-50"
-                aria-label={mode === 'MARKDOWN' ? 'Switch to WYSIWYG' : 'Switch to Markdown'}
+                aria-label={mode === 'MARKDOWN' ? t('richTextEditor.switchToWysiwyg') : t('richTextEditor.switchToMarkdown')}
                 data-testid="rich-text-editor-toggle"
                 data-mode={mode}
             >
                 {mode === 'MARKDOWN' ? (
                     <>
-                        <Eye size={11} /> WYSIWYG
+                        <Eye size={11} /> {t('richTextEditor.wysiwyg')}
                     </>
                 ) : (
                     <>
-                        <Pencil size={11} /> Markdown
+                        <Pencil size={11} /> {t('richTextEditor.markdown')}
                     </>
                 )}
             </button>
@@ -301,21 +305,21 @@ function Toolbar({
                         action={() => editor.chain().focus().toggleBold().run()}
                         active={editor.isActive('bold')}
                         icon={<Bold size={12} />}
-                        label="Bold"
+                        label={t('richTextEditor.bold')}
                     />
                     <FormatButton
                         editor={editor}
                         action={() => editor.chain().focus().toggleItalic().run()}
                         active={editor.isActive('italic')}
                         icon={<Italic size={12} />}
-                        label="Italic"
+                        label={t('richTextEditor.italic')}
                     />
                     <FormatButton
                         editor={editor}
                         action={() => editor.chain().focus().toggleStrike().run()}
                         active={editor.isActive('strike')}
                         icon={<Strikethrough size={12} />}
-                        label="Strikethrough"
+                        label={t('richTextEditor.strikethrough')}
                     />
                     <Divider />
                     <FormatButton
@@ -325,7 +329,7 @@ function Toolbar({
                         }
                         active={editor.isActive('heading', { level: 1 })}
                         icon={<Heading1 size={12} />}
-                        label="Heading 1"
+                        label={t('richTextEditor.heading1')}
                     />
                     <FormatButton
                         editor={editor}
@@ -334,7 +338,7 @@ function Toolbar({
                         }
                         active={editor.isActive('heading', { level: 2 })}
                         icon={<Heading2 size={12} />}
-                        label="Heading 2"
+                        label={t('richTextEditor.heading2')}
                     />
                     <Divider />
                     <FormatButton
@@ -344,7 +348,7 @@ function Toolbar({
                         }
                         active={editor.isActive('bulletList')}
                         icon={<List size={12} />}
-                        label="Bullet list"
+                        label={t('richTextEditor.bulletList')}
                     />
                     <FormatButton
                         editor={editor}
@@ -353,7 +357,7 @@ function Toolbar({
                         }
                         active={editor.isActive('orderedList')}
                         icon={<ListOrdered size={12} />}
-                        label="Numbered list"
+                        label={t('richTextEditor.numberedList')}
                     />
                     <FormatButton
                         editor={editor}
@@ -362,21 +366,21 @@ function Toolbar({
                         }
                         active={editor.isActive('blockquote')}
                         icon={<Quote size={12} />}
-                        label="Quote"
+                        label={t('richTextEditor.quote')}
                     />
                     <FormatButton
                         editor={editor}
                         action={() => editor.chain().focus().toggleCode().run()}
                         active={editor.isActive('code')}
                         icon={<CodeIcon size={12} />}
-                        label="Inline code"
+                        label={t('richTextEditor.inlineCode')}
                     />
                     <Divider />
                     <button
                         type="button"
                         onClick={() => {
                             const url = window.prompt(
-                                'Link URL (https://… or mailto:…)',
+                                t('richTextEditor.linkPrompt'),
                             );
                             if (!url) return;
                             editor
@@ -387,7 +391,7 @@ function Toolbar({
                                 .run();
                         }}
                         className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-content-muted hover:bg-bg-muted hover:text-content-emphasis"
-                        aria-label="Insert link"
+                        aria-label={t('richTextEditor.insertLink')}
                         data-testid="rich-text-editor-link"
                     >
                         <LinkIcon size={12} />

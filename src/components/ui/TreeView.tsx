@@ -43,6 +43,7 @@
  */
 
 import { cn } from '@/lib/cn';
+import { useTranslations } from 'next-intl';
 import {
     type KeyboardEvent,
     type ReactNode,
@@ -124,6 +125,7 @@ export function TreeView<T extends TreeViewNode>(props: TreeViewProps<T>) {
         className,
         treeRef,
     } = props;
+    const t = useTranslations('ui');
 
     // Controlled / uncontrolled expansion.
     const isControlled = 'expanded' in props && props.expanded !== undefined;
@@ -293,7 +295,7 @@ export function TreeView<T extends TreeViewNode>(props: TreeViewProps<T>) {
         >
             {rows.length === 0 ? (
                 <div className="px-3 py-6 text-sm text-content-subtle text-center">
-                    No items.
+                    {t('treeView.empty')}
                 </div>
             ) : (
                 rows.map((row) => {

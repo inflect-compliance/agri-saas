@@ -42,6 +42,7 @@ import {
     useState,
 } from 'react';
 import { CheckCircle2, UploadCloud, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { FileTypeIcon } from '@/components/ui/file-type-icon';
 
@@ -203,6 +204,7 @@ function FileDropzoneInner(
     }: FileDropzoneProps,
     ref: ForwardedRef<FileDropzoneHandle>,
 ) {
+    const t = useTranslations('ui');
     const [entries, setEntries] = useState<FileUploadEntry[]>([]);
     const [dragActive, setDragActive] = useState(false);
     const [hint_, setHintMessage] = useState<string | null>(null);
@@ -478,7 +480,7 @@ function FileDropzoneInner(
                 aria-label={
                     typeof title === 'string'
                         ? title
-                        : 'File upload dropzone'
+                        : t('fileDropzone.uploadDropzone')
                 }
                 data-testid={dataTestId}
                 data-drag-active={dragActive ? 'true' : 'false'}
@@ -507,12 +509,12 @@ function FileDropzoneInner(
                 />
                 <div className="mt-2 text-center text-sm">
                     <p className="text-content-emphasis">
-                        {title ?? (
-                            <>
-                                Drag and drop {multiple ? 'files' : 'a file'} or
-                                click to browse
-                            </>
-                        )}
+                        {title ??
+                            t('fileDropzone.dragAndDrop', {
+                                target: multiple
+                                    ? t('fileDropzone.targetFiles')
+                                    : t('fileDropzone.targetFile'),
+                            })}
                     </p>
                     {hint && (
                         <p className="mt-0.5 text-xs text-content-muted">
@@ -583,7 +585,9 @@ function FileDropzoneInner(
                             {entry.status === 'uploading' && (
                                 <button
                                     type="button"
-                                    aria-label={`Cancel upload of ${entry.file.name}`}
+                                    aria-label={t('fileDropzone.cancelUploadOf', {
+                                        fileName: entry.file.name,
+                                    })}
                                     className="text-content-muted hover:text-content-emphasis"
                                     onClick={() => cancelEntry(entry.id)}
                                     data-testid={`file-dropzone-cancel-${entry.id}`}
@@ -595,14 +599,16 @@ function FileDropzoneInner(
                                 <CheckCircle2
                                     size={16}
                                     className="text-content-success"
-                                    aria-label="Uploaded"
+                                    aria-label={t('fileDropzone.uploaded')}
                                 />
                             )}
                             {(entry.status === 'error' ||
                                 entry.status === 'aborted') && (
                                 <button
                                     type="button"
-                                    aria-label={`Remove ${entry.file.name} from list`}
+                                    aria-label={t('fileDropzone.removeFromList', {
+                                        fileName: entry.file.name,
+                                    })}
                                     className="text-content-muted hover:text-content-emphasis"
                                     onClick={() =>
                                         setEntries((prev) =>
@@ -627,7 +633,9 @@ function FileDropzoneInner(
                         onClick={clearCompleted}
                         data-testid="file-dropzone-clear-completed"
                     >
-                        Clear completed ({completedCount})
+                        {t('fileDropzone.clearCompleted', {
+                            count: String(completedCount),
+                        })}
                     </button>
                 </div>
             )}
@@ -643,6 +651,7 @@ FileDropzone.displayName = 'FileDropzone';
 // ─── Internal helpers ───────────────────────────────────────────────
 
 function ProgressBar({ entry }: { entry: FileUploadEntry }) {
+    const t = useTranslations('ui');
     const pct = entry.status === 'success' ? 100 : (entry.percent ?? 0);
     const indeterminate =
         entry.status === 'uploading' && entry.percent === null;
@@ -661,7 +670,9 @@ function ProgressBar({ entry }: { entry: FileUploadEntry }) {
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={indeterminate ? undefined : pct}
-            aria-label={`Upload progress for ${entry.file.name}`}
+            aria-label={t('fileDropzone.uploadProgress', {
+                fileName: entry.file.name,
+            })}
             data-testid={`file-dropzone-progress-${entry.id}`}
         >
             <div
@@ -673,23 +684,27 @@ function ProgressBar({ entry }: { entry: FileUploadEntry }) {
 }
 
 function StatusLabel({ entry }: { entry: FileUploadEntry }) {
+    const t = useTranslations('ui');
     let text: string;
     switch (entry.status) {
         case 'queued':
-            text = 'Queued';
+            text = t('fileDropzone.queued');
             break;
         case 'uploading':
-            text = entry.percent == null ? 'Uploading…' : `${entry.percent}%`;
+            text =
+                entry.percent == null
+                    ? t('fileDropzone.uploading')
+                    : `${entry.percent}%`;
             break;
         case 'success':
-            text = 'Uploaded';
+            text = t('fileDropzone.uploaded');
             break;
         case 'aborted':
-            text = 'Cancelled';
+            text = t('fileDropzone.cancelled');
             break;
         case 'error':
         default:
-            text = entry.error ?? 'Failed';
+            text = entry.error ?? t('fileDropzone.failed');
             break;
     }
     return (

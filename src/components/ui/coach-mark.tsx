@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { hasSeenCoachMark, markCoachMarkSeen } from '@/lib/coach-marks';
@@ -62,6 +63,7 @@ export function CoachMark({
     children,
     className,
 }: CoachMarkProps) {
+    const t = useTranslations('ui');
     const [show, setShow] = useState(false);
 
     useEffect(() => {
@@ -90,7 +92,7 @@ export function CoachMark({
                     <p className="mt-1 text-xs text-content-secondary">{body}</p>
                     <div className="mt-default flex justify-end">
                         <Button variant="primary" size="sm" onClick={dismiss}>
-                            Got it
+                            {t('coachMark.gotIt')}
                         </Button>
                     </div>
                 </div>

@@ -15,6 +15,7 @@
  * and passes it in — this primitive never builds tenant URLs itself.
  */
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 
 import { Sparkle3 } from '@/components/ui/icons/nucleo/sparkle3';
@@ -25,19 +26,17 @@ export interface AiAssistRailProps {
     aiHref: string;
 }
 
-const STEPS: ReadonlyArray<{ n: number; label: string }> = [
-    { n: 1, label: 'Pick the assets in scope' },
-    { n: 2, label: 'AI drafts candidate risks' },
-    { n: 3, label: 'Review, edit, and apply' },
-];
-
 export function AiAssistRail({ aiHref }: AiAssistRailProps) {
+    const t = useTranslations('ui');
+    const STEPS: ReadonlyArray<{ n: number; label: string }> = [
+        { n: 1, label: t('aiAssistRail.pickAssets') },
+        { n: 2, label: t('aiAssistRail.aiDraftsRisks') },
+        { n: 3, label: t('aiAssistRail.reviewEditApply') },
+    ];
     return (
         <div className="space-y-default" data-testid="ai-assist-rail">
             <p className="text-sm text-content-muted">
-                Let AI surface candidate risks from your asset inventory
-                — each one scored, with a rationale and suggested
-                controls.
+                {t('aiAssistRail.intro')}
             </p>
 
             <ol className="space-y-tight">
@@ -66,7 +65,7 @@ export function AiAssistRail({ aiHref }: AiAssistRailProps) {
                 data-testid="ai-assist-rail-cta"
             >
                 <Sparkle3 className="h-4 w-4" aria-hidden="true" />
-                Generate risk suggestions
+                {t('aiAssistRail.generateRiskSuggestions')}
             </Link>
         </div>
     );
