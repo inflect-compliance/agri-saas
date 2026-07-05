@@ -220,10 +220,22 @@ export function ExchangeMap({
         [listings, highlightedId],
     );
 
+    // Re-fit the country to the pane. Called on load AND on every container
+    // resize — the flex/vh pane settles to its final size AFTER the map mounts,
+    // so a load-only fit is stale and clips the country's sides. A touch more
+    // horizontal padding keeps the east/west extremes off the edges on narrow
+    // (mobile) panes.
+    const fitToBulgaria = useCallback(() => {
+        mapRef.current?.fitBounds(BULGARIA_BOUNDS, {
+            padding: { top: 24, bottom: 24, left: 30, right: 30 },
+            duration: 0,
+        });
+    }, []);
+
     const handleLoad = useCallback(() => {
         setStatus('ready');
-        mapRef.current?.fitBounds(BULGARIA_BOUNDS, { padding: 28, duration: 0 });
-    }, []);
+        fitToBulgaria();
+    }, [fitToBulgaria]);
 
     const handleError = useCallback(() => {
         // A bad/missing MapTiler key or a blocked style fetch lands here.
@@ -287,14 +299,17 @@ export function ExchangeMap({
                 mapStyle={mapStyle}
                 onLoad={handleLoad}
                 onError={handleError}
+                onResize={fitToBulgaria}
                 onClick={handleClick}
                 interactiveLayerIds={['oblast-fill', 'clusters', 'unclustered-point']}
                 style={{ width: '100%', height: '100%' }}
                 cursor="pointer"
                 // Lock the frame to Bulgaria — no rotation, no wandering off to
-                // neighbouring countries, no zooming out to all of Europe.
+                // neighbouring countries, no zooming out to all of Europe. minZoom
+                // is a low floor so a narrow (mobile) pane can zoom out enough to
+                // fit the whole country; maxBounds is the real cage.
                 maxBounds={MAX_BOUNDS}
-                minZoom={5.6}
+                minZoom={4.8}
                 maxZoom={12}
                 dragRotate={false}
             >
