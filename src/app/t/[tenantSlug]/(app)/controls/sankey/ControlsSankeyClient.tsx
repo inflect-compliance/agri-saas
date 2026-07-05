@@ -17,6 +17,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { SankeyChart } from '@/components/ui/SankeyChart';
 import type { TraceabilityGraph } from '@/lib/traceability-graph/types';
 import { Heading } from '@/components/ui/typography';
@@ -30,6 +31,7 @@ export function ControlsSankeyClient({
     initialGraph,
     tenantSlug,
 }: ControlsSankeyClientProps) {
+    const t = useTranslations('controls');
     // R14-PR7 — standalone search input retired (the user's
     // directive: per-page searchbars die; users search via the
     // global command palette or page filters). For sankey
@@ -50,13 +52,13 @@ export function ControlsSankeyClient({
                         id="controls-sankey-back"
                     >
                         <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
-                        Back to Controls
+                        {t('sankey.backToControls')}
                     </Link>
                     <Heading level={1} className="mt-2" id="controls-sankey-heading">
-                        Controls flow
+                        {t('sankey.heading')}
                     </Heading>
                     <p className="text-sm text-content-muted mt-1">
-                        How assets expose risks and how controls mitigate them, at a glance.
+                        {t('sankey.description')}
                     </p>
                 </div>
             </div>

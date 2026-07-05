@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { DataTable, createColumns } from '@/components/ui/table';
@@ -39,6 +40,7 @@ function StatusBadgeForControl({ status }: { status: NonPerformingControlRow['st
 }
 
 export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor, orgSlug }: Props) {
+    const t = useTranslations('controls');
     const [sortBy, setSortBy] = useState<string>('tenantName');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -79,7 +81,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
             createColumns<NonPerformingControlRow>([
                 {
                     id: 'tenantName',
-                    header: 'Tenant',
+                    header: t('orgTable.colTenant'),
                     cell: ({ row }) => (
                         <span
                             className="text-xs font-medium text-content-muted"
@@ -91,7 +93,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                 },
                 {
                     id: 'name',
-                    header: 'Control',
+                    header: t('orgTable.colControl'),
                     cell: ({ row }) => (
                         <Link
                             href={row.original.drillDownUrl}
@@ -104,7 +106,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                 },
                 {
                     id: 'code',
-                    header: 'Code',
+                    header: t('orgTable.colCode'),
                     cell: ({ row }) => (
                         <span className="font-mono text-xs text-content-muted">
                             {row.original.code ?? '—'}
@@ -113,12 +115,12 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                 },
                 {
                     id: 'status',
-                    header: 'Status',
+                    header: t('orgTable.colStatus'),
                     cell: ({ row }) => <StatusBadgeForControl status={row.original.status} />,
                 },
                 {
                     id: 'updatedAt',
-                    header: 'Updated',
+                    header: t('orgTable.colUpdated'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-subtle tabular-nums">
                             {formatDate(row.original.updatedAt)}
@@ -126,7 +128,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                     ),
                 },
             ]),
-        [],
+        [t],
     );
 
     return (
@@ -134,11 +136,11 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
             <ListPageShell.Header>
                 <div>
                     <Heading level={1}>
-                        Non-Performing Controls
+                        {t('orgTable.heading')}
                     </Heading>
                     <p className="text-sm text-content-muted mt-1">
-                        {pagination.rows.length} applicable control{pagination.rows.length === 1 ? '' : 's'} not yet implemented across the portfolio
-                        {pagination.hasMore ? ' (more available)' : ''}
+                        {t('orgTable.summary', { count: pagination.rows.length })}
+                        {pagination.hasMore ? t('orgTable.moreAvailable') : ''}
                     </p>
                 </div>
             </ListPageShell.Header>
@@ -165,8 +167,8 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                     resourceName={(plural) => (plural ? 'controls' : 'control')}
                     emptyState={
                         <TableEmptyState
-                            title="All controls performing"
-                            description="No applicable controls are sitting in a non-implemented state across this organization's tenants."
+                            title={t('orgTable.emptyTitle')}
+                            description={t('orgTable.emptyDescription')}
                             icon={<ShieldCheck className="size-10" />}
                         />
                     }
@@ -184,7 +186,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                             }}
                             disabled={pagination.loading}
                         >
-                            {pagination.loading ? 'Loading…' : 'Load more controls'}
+                            {pagination.loading ? t('orgTable.loadingMore') : t('orgTable.loadMore')}
                         </Button>
                         {pagination.error && (
                             <span
@@ -192,7 +194,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                                 role="alert"
                                 data-testid="org-controls-load-error"
                             >
-                                Failed to load more — please retry.
+                                {t('orgTable.loadError')}
                             </span>
                         )}
                     </div>

@@ -17,6 +17,7 @@
  */
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Modal } from '@/components/ui/modal';
@@ -80,6 +81,7 @@ export function EditControlModal({
     onCancel,
     onSubmit,
 }: EditControlModalProps) {
+    const t = useTranslations('controls');
     return (
         <Modal
             showModal={open}
@@ -89,13 +91,13 @@ export function EditControlModal({
                 else setOpen(next);
             }}
             size="lg"
-            title="Edit Control"
-            description="Update the control's metadata."
+            title={t('editModal.title')}
+            description={t('editModal.description')}
             preventDefaultClose={saving}
         >
             <Modal.Header
-                title="Edit Control"
-                description="Update the control's metadata."
+                title={t('editModal.title')}
+                description={t('editModal.description')}
             />
             <Modal.Form
                 onSubmit={onSubmit}
@@ -118,7 +120,7 @@ export function EditControlModal({
                                 htmlFor="edit-name"
                                 className="mb-1 block text-sm text-content-default"
                             >
-                                Title <RequiredMarker />
+                                {t('editModal.titleField')} <RequiredMarker />
                             </label>
                             <input
                                 id="edit-name"
@@ -141,7 +143,7 @@ export function EditControlModal({
                                 htmlFor="edit-description"
                                 className="mb-1 block text-sm text-content-default"
                             >
-                                Description
+                                {t('editModal.descriptionField')}
                             </label>
                             <textarea
                                 id="edit-description"
@@ -162,7 +164,7 @@ export function EditControlModal({
                                 htmlFor="edit-intent"
                                 className="mb-1 block text-sm text-content-default"
                             >
-                                Intent
+                                {t('editModal.intent')}
                             </label>
                             <textarea
                                 id="edit-intent"
@@ -184,7 +186,7 @@ export function EditControlModal({
                                     htmlFor="edit-category"
                                     className="mb-1 block text-sm text-content-default"
                                 >
-                                    Category
+                                    {t('editModal.category')}
                                 </label>
                                 <Combobox
                                     hideSearch
@@ -202,7 +204,7 @@ export function EditControlModal({
                                         }))
                                     }
                                     options={categoryOptions}
-                                    placeholder="— None —"
+                                    placeholder={t('editModal.none')}
                                     matchTriggerWidth
                                 />
                             </div>
@@ -211,7 +213,7 @@ export function EditControlModal({
                                     htmlFor="edit-frequency"
                                     className="mb-1 block text-sm text-content-default"
                                 >
-                                    Frequency
+                                    {t('editModal.frequency')}
                                 </label>
                                 <Combobox
                                     hideSearch
@@ -229,7 +231,7 @@ export function EditControlModal({
                                         }))
                                     }
                                     options={frequencyOptions}
-                                    placeholder="— None —"
+                                    placeholder={t('editModal.none')}
                                     matchTriggerWidth
                                 />
                             </div>
@@ -240,7 +242,7 @@ export function EditControlModal({
                                     htmlFor="edit-automation-type"
                                     className="mb-1 block text-sm text-content-default"
                                 >
-                                    Automation Type
+                                    {t('editModal.automationType')}
                                 </label>
                                 <Combobox
                                     hideSearch
@@ -258,7 +260,7 @@ export function EditControlModal({
                                         }))
                                     }
                                     options={AUTOMATION_TYPE_OPTIONS}
-                                    placeholder="— None —"
+                                    placeholder={t('editModal.none')}
                                     matchTriggerWidth
                                 />
                             </div>
@@ -267,7 +269,7 @@ export function EditControlModal({
                                     htmlFor="edit-mitigation-type"
                                     className="mb-1 block text-sm text-content-default"
                                 >
-                                    Mitigation Type
+                                    {t('editModal.mitigationType')}
                                 </label>
                                 <Combobox
                                     hideSearch
@@ -285,7 +287,7 @@ export function EditControlModal({
                                         }))
                                     }
                                     options={MITIGATION_TYPE_OPTIONS}
-                                    placeholder="— None —"
+                                    placeholder={t('editModal.none')}
                                     matchTriggerWidth
                                 />
                             </div>
@@ -295,7 +297,7 @@ export function EditControlModal({
                                 htmlFor="edit-annual-cost"
                                 className="mb-1 block text-sm text-content-default"
                             >
-                                Annual cost
+                                {t('editModal.annualCost')}
                             </label>
                             <NumberStepper
                                 id="edit-annual-cost"
@@ -314,10 +316,10 @@ export function EditControlModal({
                                 }
                                 min={0}
                                 step={1000}
-                                ariaLabel="Annual cost"
+                                ariaLabel={t('editModal.annualCost')}
                             />
                             <p className="mt-1 text-xs text-content-subtle">
-                                Operate + maintain spend per year. Leave at 0 if not priced — the ROI surface shows an honest gap rather than fabricating a number.
+                                {t('editModal.annualCostHint')}
                             </p>
                         </div>
                         <div>
@@ -325,7 +327,7 @@ export function EditControlModal({
                                 htmlFor="edit-owner"
                                 className="mb-1 block text-sm text-content-default"
                             >
-                                Owner
+                                {t('editModal.owner')}
                             </label>
                             <UserCombobox
                                 id="edit-owner"
@@ -338,7 +340,7 @@ export function EditControlModal({
                                         owner: userId ?? '',
                                     }))
                                 }
-                                placeholder="Unassigned"
+                                placeholder={t('editModal.unassigned')}
                             />
                         </div>
                     </fieldset>
@@ -351,7 +353,7 @@ export function EditControlModal({
                         disabled={saving}
                         data-testid="edit-cancel-button"
                     >
-                        Cancel
+                        {t('editModal.cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -360,7 +362,7 @@ export function EditControlModal({
                         disabled={saving || form.name.trim().length < 3}
                         data-testid="edit-save-button"
                     >
-                        {saving ? 'Saving...' : 'Save'}
+                        {saving ? t('editModal.savingDots') : t('editModal.save')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

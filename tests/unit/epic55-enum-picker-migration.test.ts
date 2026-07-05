@@ -136,9 +136,14 @@ describe('NewControlModal — category + frequency Comboboxes', () => {
 
     it('category Combobox uses search (10 options); frequency uses hideSearch (7)', () => {
         // Category has `searchPlaceholder`; frequency has `hideSearch`.
+        // T07 i18n — searchPlaceholder moved to t('newModal.searchCategories');
+        // assert the t() reference AND the en.json value stays "Search categories…".
         expect(CONTROL_MODAL_SRC).toMatch(
-            /id=["']control-category-input["'][\s\S]{0,800}searchPlaceholder=["']Search categories/,
+            /id=["']control-category-input["'][\s\S]{0,800}searchPlaceholder=\{t\(['"]newModal\.searchCategories['"]\)\}/,
         );
+        expect(
+            JSON.parse(read('messages/en.json')).controls.newModal.searchCategories,
+        ).toMatch(/^Search categories/);
         expect(CONTROL_MODAL_SRC).toMatch(
             /id=["']control-frequency-input["'][\s\S]{0,800}hideSearch/,
         );

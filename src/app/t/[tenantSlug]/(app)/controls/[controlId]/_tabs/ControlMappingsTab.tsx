@@ -14,6 +14,7 @@
  * Mappings tab-badge count stays in sync after a map / unmap.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useToastWithUndo } from '@/components/ui/hooks';
@@ -39,6 +40,7 @@ export function ControlMappingsTab({
     canWrite,
     onMutated,
 }: ControlMappingsTabProps) {
+    const t = useTranslations('controls');
     const apiUrl = useTenantApiUrl();
     const triggerUndoToast = useToastWithUndo();
 
@@ -106,8 +108,8 @@ export function ControlMappingsTab({
             );
         }
         triggerUndoToast({
-            message: 'Requirement unmapped',
-            undoMessage: 'Undo',
+            message: t('mappings.unmappedToast'),
+            undoMessage: t('mappings.undo'),
             action: async () => {
                 const res = await fetch(
                     apiUrl(`/controls/${controlId}/requirements`),
@@ -144,7 +146,7 @@ export function ControlMappingsTab({
             createColumns<FrameworkMappingDTO>([
                 {
                     id: 'framework',
-                    header: 'Framework',
+                    header: t('mappings.colFramework'),
                     cell: ({ row }) => (
                         <span className="text-sm text-content-emphasis">
                             {row.original.fromRequirement?.framework?.name || '—'}
@@ -153,7 +155,7 @@ export function ControlMappingsTab({
                 },
                 {
                     id: 'requirement',
-                    header: 'Requirement',
+                    header: t('mappings.colRequirement'),
                     cell: ({ row }) => {
                         const fromReq = row.original.fromRequirement;
                         return (
@@ -161,8 +163,8 @@ export function ControlMappingsTab({
                                 {fromReq?.code && (
                                     <CopyText
                                         value={fromReq.code}
-                                        label={`Copy requirement code ${fromReq.code}`}
-                                        successMessage="Requirement code copied"
+                                        label={t('mappings.copyCode', { code: fromReq.code })}
+                                        successMessage={t('mappings.codeCopied')}
                                         className="mr-2 text-content-subtle"
                                     >
                                         {fromReq.code}
@@ -177,7 +179,7 @@ export function ControlMappingsTab({
                     ? [
                           {
                               id: 'actions',
-                              header: 'Actions',
+                              header: t('mappings.colActions'),
                               cell: ({ row }: { row: { original: FrameworkMappingDTO } }) => (
                                   <button
                                       className="text-content-error text-xs hover:text-content-error"
@@ -200,7 +202,7 @@ export function ControlMappingsTab({
         // unmapRequirement closes over SWR state, so include the data
         // fingerprint as a dependency to avoid stale undo snapshots.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [canWrite, mappingsSWR.data],
+        [canWrite, mappingsSWR.data, t],
     );
 
     return (
@@ -219,7 +221,7 @@ export function ControlMappingsTab({
                         selected={frameworks.map((f) => ({ value: f.key ?? f.id ?? '', label: f.name })).find((o) => o.value === selectedFramework) ?? null}
                         setSelected={(opt) => setSelectedFramework(opt?.value ?? '')}
                         options={frameworks.map((f) => ({ value: f.key ?? f.id ?? '', label: f.name }))}
-                        placeholder="Select Framework..."
+                        placeholder={t('mappings.phFramework')}
                         matchTriggerWidth
                     />
                     {requirements.length > 0 && (
@@ -229,11 +231,11 @@ export function ControlMappingsTab({
                                 selected={requirements.map((r) => ({ value: r.id, label: `${r.code ? `${r.code} — ` : ''}${r.title || r.description}` })).find((o) => o.value === selectedReq) ?? null}
                                 setSelected={(opt) => setSelectedReq(opt?.value ?? '')}
                                 options={requirements.map((r) => ({ value: r.id, label: `${r.code ? `${r.code} — ` : ''}${r.title || r.description}` }))}
-                                placeholder="Select Requirement..."
+                                placeholder={t('mappings.phRequirement')}
                                 matchTriggerWidth
                             />
                             <Button variant="primary" onClick={mapRequirement} disabled={!selectedReq || savingMap} id="submit-mapping-btn">
-                                {savingMap ? 'Mapping...' : 'Map'}
+                                {savingMap ? t('mappings.mapping') : t('mappings.map')}
                             </Button>
                         </>
                     )}
@@ -241,8 +243,8 @@ export function ControlMappingsTab({
             )}
             {mappingsSWR.error && !mappingsSWR.isLoading ? (
                 <InlineEmptyState
-                    title="Couldn't load mappings"
-                    description="Something went wrong fetching this control's framework mappings. Reload the page to try again."
+                    title={t('mappings.loadErrorTitle')}
+                    description={t('mappings.loadErrorDesc')}
                 />
             ) : (mappingsSWR.data?.length ?? 0) === 0 ? (
                 // Pre-migration the empty branch rendered an
@@ -260,8 +262,8 @@ export function ControlMappingsTab({
                     selectionEnabled={false}
                     emptyState={
                         <InlineEmptyState
-                            title="No framework mappings"
-                            description="Map this control to specific framework requirements to track coverage."
+                            title={t('mappings.emptyTitle')}
+                            description={t('mappings.emptyDesc')}
                         />
                     }
                 />

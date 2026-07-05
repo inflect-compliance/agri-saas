@@ -7,6 +7,7 @@
 /* eslint-disable react-hooks/exhaustive-deps -- Various useMemo dep arrays in this file deliberately omit identity-unstable callbacks (handlers/derived arrays recreated each render). The proper structural fix is wrapping parent-level callbacks in useCallback. Tracked as follow-up; existing per-line eslint-disable-next-line markers preserved. */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Row, RowSelectionState } from '@tanstack/react-table';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -169,6 +170,7 @@ function ControlsPageInner({
     appPermissions,
     permissions,
 }: ControlsClientProps) {
+    const t = useTranslations('controls');
     // Stable across renders — selection-toggle re-renders (Phase 2)
     // must NOT hand the DataTable fresh `columns` / `onRowClick` /
     // `getRowId` references, or it rebuilds the whole table model
@@ -341,12 +343,12 @@ function ControlsPageInner({
     // toolbar still gets the full `liveFilterDefs`.
     const kpiCards: CardDefinition[] = useMemo(
         () => [
-            { id: 'total', label: 'Total controls', kind: 'kpi' },
-            { id: 'implemented', label: 'Implemented', kind: 'kpi' },
-            { id: 'inProgress', label: 'In progress', kind: 'kpi' },
-            { id: 'notStarted', label: 'Not started', kind: 'kpi' },
+            { id: 'total', label: t('list.kpiTotal'), kind: 'kpi' },
+            { id: 'implemented', label: t('list.kpiImplemented'), kind: 'kpi' },
+            { id: 'inProgress', label: t('list.kpiInProgress'), kind: 'kpi' },
+            { id: 'notStarted', label: t('list.kpiNotStarted'), kind: 'kpi' },
         ],
-        [],
+        [t],
     );
     const { visibleCards: visibleKpiCards, dropdown: filtersDropdown } =
         useFilterCardVisibility({
@@ -410,22 +412,22 @@ function ControlsPageInner({
     // (ListPageShell.Body + DataTable fillBody) shows all rows.
     const controlColumnList = useMemo(
         () => [
-            { id: 'code', label: 'Code', defaultVisible: false },
-            { id: 'name', label: 'Title' },
+            { id: 'code', label: t('list.colCode'), defaultVisible: false },
+            { id: 'name', label: t('list.colTitle') },
             // Framework + Category, split into two columns (2026-06-07).
             // Both derived per-control via `categorizeControl` (ISO 27001
             // granular Annex domain, or the framework-native category) —
             // mirrors the Browse rail's grouping.
-            { id: 'framework', label: 'Framework' },
-            { id: 'category', label: 'Category' },
-            { id: 'status', label: 'Status' },
-            { id: 'applicability', label: 'Applicability' },
-            { id: 'owner', label: 'Owner' },
-            { id: 'frequency', label: 'Frequency', defaultVisible: false },
-            { id: 'tasks', label: 'Tasks' },
-            { id: 'evidence', label: 'Evidence' },
+            { id: 'framework', label: t('list.colFramework') },
+            { id: 'category', label: t('list.colCategory') },
+            { id: 'status', label: t('list.colStatus') },
+            { id: 'applicability', label: t('list.colApplicability') },
+            { id: 'owner', label: t('list.colOwner') },
+            { id: 'frequency', label: t('list.colFrequency'), defaultVisible: false },
+            { id: 'tasks', label: t('list.colTasks') },
+            { id: 'evidence', label: t('list.colEvidence') },
         ],
-        [],
+        [t],
     );
     const {
         columnVisibility,
@@ -574,14 +576,14 @@ function ControlsPageInner({
         {
             accessorFn: (c) => c.code || c.annexId || '',
             id: 'code',
-            header: 'Code',
+            header: t('list.colCode'),
             cell: ({ getValue }) => (
                 <span className="text-xs text-content-muted font-mono">{getValue<string>() || '—'}</span>
             ),
         },
         {
             accessorKey: 'name',
-            header: 'Title',
+            header: t('list.colTitle'),
             cell: ({ row }) => (
                 <TableTitleCell
                     href={tenantHref(`/controls/${row.original.id}`)}
@@ -596,7 +598,7 @@ function ControlsPageInner({
             // The framework a control belongs to, derived via
             // `categorizeControl`, as a small uppercase tag.
             id: 'framework',
-            header: 'Framework',
+            header: t('list.colFramework'),
             accessorFn: (c) => categorizeControl(c)?.frameworkLabel || '',
             cell: ({ row }) => {
                 const label = categorizeControl(row.original)?.frameworkLabel;
@@ -616,7 +618,7 @@ function ControlsPageInner({
             // ISO 27001 → granular Annex domain; other frameworks → their
             // persisted TSC / section category. No category → `—`.
             id: 'category',
-            header: 'Category',
+            header: t('list.colCategory'),
             accessorFn: (c) => categorizeControl(c)?.category || '',
             cell: ({ row }) => {
                 const cat = categorizeControl(row.original);
@@ -628,7 +630,7 @@ function ControlsPageInner({
         },
         {
             accessorKey: 'status',
-            header: 'Status',
+            header: t('list.colStatus'),
             cell: ({ row }) => {
                 const c = row.original;
                 // 2026-05-19 — inline-edit dropdown retired. The
@@ -651,7 +653,7 @@ function ControlsPageInner({
         },
         {
             accessorKey: 'applicability',
-            header: 'Applicability',
+            header: t('list.colApplicability'),
             cell: ({ row }) => {
                 const c = row.original;
                 // 2026-05-19 — inline-edit dropdown retired alongside
@@ -672,7 +674,7 @@ function ControlsPageInner({
         },
         {
             id: 'owner',
-            header: 'Owner',
+            header: t('list.colOwner'),
             accessorFn: (c) => ownerDisplayName(c.owner?.name, c.owner?.email) || '—',
             cell: ({ row }) => {
                 const c = row.original;
@@ -705,7 +707,7 @@ function ControlsPageInner({
         },
         {
             id: 'frequency',
-            header: 'Frequency',
+            header: t('list.colFrequency'),
             accessorFn: (c) => c.frequency ? FREQ_LABELS[c.frequency] || c.frequency : '—',
             cell: ({ getValue }) => (
                 <span className="text-xs text-content-muted">{getValue<string>()}</span>
@@ -713,7 +715,7 @@ function ControlsPageInner({
         },
         {
             id: 'tasks',
-            header: 'Tasks',
+            header: t('list.colTasks'),
             accessorFn: (c) => {
                 const ts = taskStats(c);
                 return `${ts.done}/${ts.total}`;
@@ -729,7 +731,7 @@ function ControlsPageInner({
         },
         {
             id: 'evidence',
-            header: 'Evidence',
+            header: t('list.colEvidence'),
             accessorFn: (c) => c._count?.evidenceLinks ?? 0,
             cell: ({ getValue, row }) => {
                 const n = getValue<number>();
@@ -756,7 +758,7 @@ function ControlsPageInner({
                 appPermissions.controls.edit ? (
                     <button
                         type="button"
-                        aria-label="Open control detail sheet"
+                        aria-label={t('list.quickEditAria')}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         data-testid={`control-quick-edit-${row.original.id}`}
                         onClick={(e) => {
@@ -769,7 +771,7 @@ function ControlsPageInner({
                 ) : null
             ),
         },
-    ]), [appPermissions, tenantHref, taskStats]);
+    ]), [appPermissions, tenantHref, taskStats, t]);
 
     // B1 (2026-06-07): the bulk-status verbs live in the DataTable's
     // header-row selection toolbar (`batchActions`) — the row-select action
@@ -779,17 +781,17 @@ function ControlsPageInner({
         ...(canEditControls
             ? [
                   {
-                      label: 'Mark Implemented',
+                      label: t('list.markImplemented'),
                       icon: <CheckCircle2 className="size-3.5" />,
                       onClick: () => bulkSetStatus('IMPLEMENTED'),
                   },
                   {
-                      label: 'Mark Needs Review',
+                      label: t('list.markNeedsReview'),
                       icon: <AlertTriangle className="size-3.5" />,
                       onClick: () => bulkSetStatus('NEEDS_REVIEW'),
                   },
                   {
-                      label: 'Mark Not Applicable',
+                      label: t('list.markNotApplicable'),
                       icon: <X className="size-3.5" />,
                       tone: 'danger' as const,
                       onClick: () => bulkSetStatus('NOT_APPLICABLE'),
@@ -869,7 +871,7 @@ function ControlsPageInner({
 
     const browseAside = (
         <AsidePanel
-            title="Browse"
+            title={t('list.browse')}
             surfaceKey="controls-list-browse"
             defaultWidth={480}
             icon={<AppIcon name="controls" size={16} />}
@@ -877,7 +879,7 @@ function ControlsPageInner({
             <div data-testid="controls-browse-aside" className="space-y-default">
                 {categoryGroups.length === 0 ? (
                     <p className="px-2 py-1 text-xs text-content-subtle">
-                        No categorised controls yet.
+                        {t('list.noCategorised')}
                     </p>
                 ) : (
                     <>
@@ -888,7 +890,7 @@ function ControlsPageInner({
                             trigger, so a plain wrap is safe). */}
                         <div className="flex justify-start">
                             <Tooltip
-                                content={allExpanded ? 'Collapse all' : 'Expand all'}
+                                content={allExpanded ? t('list.collapseAll') : t('list.expandAll')}
                             >
                                 <button
                                     type="button"
@@ -899,7 +901,7 @@ function ControlsPageInner({
                                     }
                                     className="flex items-center justify-center rounded-md p-1 text-content-muted hover:bg-bg-muted/50 hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&_svg]:h-4 [&_svg]:w-4"
                                     data-testid="controls-browse-expand-all"
-                                    aria-label={allExpanded ? 'Collapse all' : 'Expand all'}
+                                    aria-label={allExpanded ? t('list.collapseAll') : t('list.expandAll')}
                                     aria-expanded={allExpanded}
                                 >
                                     {allExpanded ? <ChevronDown /> : <ChevronLeft />}
@@ -1005,7 +1007,7 @@ function ControlsPageInner({
     // rendering a fabricated zero-row list.
     const bestValueAside = (
         <AsidePanel
-            title="Best-value controls"
+            title={t('list.bestValue')}
             surfaceKey="controls-list-best-value"
             defaultCollapsed
             icon={<AppIcon name="controls" size={16} />}
@@ -1016,7 +1018,7 @@ function ControlsPageInner({
 
     const aiAssistAside = appPermissions.controls.edit ? (
         <AsidePanel
-            title="AI Assist"
+            title={t('list.aiAssist')}
             surfaceKey="controls-list-ai"
             defaultCollapsed
             icon={<Sparkle3 className="h-4 w-4" />}
@@ -1067,14 +1069,14 @@ function ControlsPageInner({
                     // 180s test timeout in every Playwright spec on this
                     // page (create-control-modal, controls-filter-epic53,
                     // control-edit-modal, controls-enhanced).
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Controls' },
+                    { label: t('list.breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                    { label: t('list.breadcrumbControls') },
                 ],
                 title: (
                     <>
                         <AppIcon name="controls" className="inline-block mr-2 align-text-bottom" />
                         {' '}
-                        Controls
+                        {t('list.title')}
                     </>
                 ),
                 // Roadmap-2 PR-4 + PR-11 — editorial framing
@@ -1082,28 +1084,27 @@ function ControlsPageInner({
                 // the count in the table body (DataTable shows
                 // row count); the header line carries the
                 // editorial intent.
-                description:
-                    'Every control mapped to its requirements and evidence.',
+                description: t('listDescription'),
                 actions: (
                     <>
                         {/* Sankey is read-only and informational — keep it
                             outside the create-permission gate so READERs
                             can still glance at the asset → risk → control
                             flow. */}
-                        <Tooltip content="Sankey flow">
-                            <Link href={tenantHref('/controls/sankey')} aria-label="Sankey flow" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="controls-sankey-btn">
+                        <Tooltip content={t('list.tooltipSankey')}>
+                            <Link href={tenantHref('/controls/sankey')} aria-label={t('list.tooltipSankey')} className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="controls-sankey-btn">
                                 <AppIcon name="share" size={16} />
                             </Link>
                         </Tooltip>
                         {appPermissions.controls.create && (
                             <>
-                                <Tooltip content="Controls dashboard">
-                                    <Link href={tenantHref('/controls/dashboard')} aria-label="Controls dashboard" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="controls-dashboard-btn">
+                                <Tooltip content={t('list.tooltipDashboard')}>
+                                    <Link href={tenantHref('/controls/dashboard')} aria-label={t('list.tooltipDashboard')} className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="controls-dashboard-btn">
                                         <AppIcon name="dashboard" size={16} />
                                     </Link>
                                 </Tooltip>
-                                <Tooltip content="Install from templates">
-                                    <Link href={tenantHref('/controls/templates')} aria-label="Install from templates" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="install-templates-btn">
+                                <Tooltip content={t('list.tooltipTemplates')}>
+                                    <Link href={tenantHref('/controls/templates')} aria-label={t('list.tooltipTemplates')} className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="install-templates-btn">
                                         <AppIcon name="templates" size={16} />
                                     </Link>
                                 </Tooltip>
@@ -1113,7 +1114,7 @@ function ControlsPageInner({
                                     id="new-control-btn"
                                     onClick={() => setIsCreateOpen(true)}
                                 >
-                                    Control
+                                    {t('list.addControl')}
                                 </Button>
                             </>
                         )}
@@ -1176,7 +1177,7 @@ function ControlsPageInner({
             filters={{
                 defs: liveFilterDefs,
                 searchId: 'controls-search',
-                searchPlaceholder: 'Search controls…',
+                searchPlaceholder: t('searchPlaceholder'),
                 toolbarActions: (
                     <>
                         {columnsDropdown}
@@ -1214,10 +1215,10 @@ function ControlsPageInner({
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No controls match your filters"
-                        description="Try widening your search or clearing one of the active filters."
+                        title={t('list.emptyFilterTitle')}
+                        description={t('list.emptyFilterDesc')}
                         secondaryAction={{
-                            label: 'Clear filters',
+                            label: t('list.clearFilters'),
                             onClick: () => clearAll(),
                         }}
                     />
@@ -1225,14 +1226,14 @@ function ControlsPageInner({
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No controls yet"
-                        description="Start with a pre-built framework or define your own control."
+                        title={t('list.emptyTitle')}
+                        description={t('list.emptyDesc')}
                         primaryAction={{
-                            label: 'Install templates',
+                            label: t('list.installTemplates'),
                             href: tenantHref('/controls/templates'),
                         }}
                         secondaryAction={{
-                            label: 'Create control',
+                            label: t('list.createControl'),
                             onClick: () => setIsCreateOpen(true),
                         }}
                     />

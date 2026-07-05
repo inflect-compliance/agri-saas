@@ -37,6 +37,7 @@ import {
     type SetStateAction,
 } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -152,6 +153,7 @@ export interface NewControlModalProps {
 }
 
 export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalProps) {
+    const t = useTranslations('controls');
     const close = useCallback(() => setOpen(false), [setOpen]);
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
@@ -277,13 +279,13 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
             showModal={open}
             setShowModal={setOpen}
             size="lg"
-            title="New control"
-            description="Create a custom control for your register."
+            title={t('newModal.title')}
+            description={t('newModal.description')}
             preventDefaultClose={isSubmitting}
         >
             <Modal.Header
-                title="New Control"
-                description="Create a custom control for your register."
+                title={t('newModal.headerTitle')}
+                description={t('newModal.description')}
             />
             <Modal.Form onSubmit={handleSubmit(onSubmit)}>
                 <Modal.Body>
@@ -298,42 +300,42 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                     )}
 
                     <div className="space-y-default">
-                        <FormField label="Code" error={errors.code?.message}>
+                        <FormField label={t('newModal.code')} error={errors.code?.message}>
                             <Input
                                 id="control-code-input"
                                 type="text"
-                                placeholder="e.g. CTRL-001"
+                                placeholder={t('newModal.phCode')}
                                 autoComplete="off"
                                 {...register('code')}
                             />
                         </FormField>
                         <FormField
-                            label="Name"
+                            label={t('newModal.name')}
                             required
                             error={errors.name?.message}
                         >
                             <Input
                                 id="control-name-input"
                                 type="text"
-                                placeholder="e.g. Password Policy Enforcement"
+                                placeholder={t('newModal.phName')}
                                 autoComplete="off"
                                 {...register('name')}
                             />
                         </FormField>
                         <FormField
-                            label="Description"
+                            label={t('newModal.descriptionLabel')}
                             error={errors.description?.message}
                         >
                             <Textarea
                                 id="control-description-input"
                                 rows={3}
-                                placeholder="Brief description of this control"
+                                placeholder={t('newModal.phDescription')}
                                 {...register('description')}
                             />
                         </FormField>
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                             <FormField
-                                label="Category"
+                                label={t('newModal.category')}
                                 error={errors.category?.message}
                             >
                                 <Controller
@@ -352,8 +354,8 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                             setSelected={(o) =>
                                                 field.onChange(o?.value ?? '')
                                             }
-                                            placeholder="Select category…"
-                                            searchPlaceholder="Search categories…"
+                                            placeholder={t('newModal.phCategory')}
+                                            searchPlaceholder={t('newModal.searchCategories')}
                                             matchTriggerWidth
                                             forceDropdown
                                             buttonProps={{ className: 'w-full' }}
@@ -363,8 +365,8 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                 />
                             </FormField>
                             <FormField
-                                label="Frequency"
-                                hint="How often the control is expected to be reviewed or re-tested (monthly, quarterly, annually). Drives the next-review date on the control dashboard."
+                                label={t('newModal.frequency')}
+                                hint={t('newModal.frequencyHint')}
                                 error={errors.frequency?.message}
                             >
                                 <Controller
@@ -383,7 +385,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                             setSelected={(o) =>
                                                 field.onChange(o?.value ?? '')
                                             }
-                                            placeholder="Select frequency…"
+                                            placeholder={t('newModal.phFrequency')}
                                             hideSearch
                                             matchTriggerWidth
                                             forceDropdown
@@ -396,7 +398,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                         </div>
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                             <FormField
-                                label="Automation Type"
+                                label={t('newModal.automationType')}
                                 error={errors.automationType?.message}
                             >
                                 <Controller
@@ -415,7 +417,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                             setSelected={(o) =>
                                                 field.onChange(o?.value ?? '')
                                             }
-                                            placeholder="Select automation type…"
+                                            placeholder={t('newModal.phAutomation')}
                                             hideSearch
                                             matchTriggerWidth
                                             forceDropdown
@@ -426,7 +428,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                 />
                             </FormField>
                             <FormField
-                                label="Mitigation Type"
+                                label={t('newModal.mitigationType')}
                                 error={errors.mitigationType?.message}
                             >
                                 <Controller
@@ -445,7 +447,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                             setSelected={(o) =>
                                                 field.onChange(o?.value ?? '')
                                             }
-                                            placeholder="Select mitigation type…"
+                                            placeholder={t('newModal.phMitigation')}
                                             hideSearch
                                             matchTriggerWidth
                                             forceDropdown
@@ -456,7 +458,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                 />
                             </FormField>
                         </div>
-                        <FormField label="Owner" error={errors.ownerUserId?.message}>
+                        <FormField label={t('newModal.owner')} error={errors.ownerUserId?.message}>
                             <Controller
                                 control={control}
                                 name="ownerUserId"
@@ -469,7 +471,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                         onChange={(userId) =>
                                             field.onChange(userId ?? '')
                                         }
-                                        placeholder="Unassigned"
+                                        placeholder={t('newModal.unassigned')}
                                     />
                                 )}
                             />
@@ -480,12 +482,12 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                     id="applicability-legend"
                                     className="text-sm text-content-default"
                                 >
-                                    Applicability
+                                    {t('newModal.applicability')}
                                 </span>
                                 <InfoTooltip
-                                    aria-label="About control applicability"
+                                    aria-label={t('newModal.applicabilityInfoAria')}
                                     iconClassName="h-3.5 w-3.5"
-                                    content="Mark Not Applicable when scope legitimately excludes this control (e.g. no payment processing for PCI). The justification is required and appears verbatim in the SoA report."
+                                    content={t('newModal.applicabilityInfo')}
                                 />
                             </div>
                             <div className="flex gap-default">
@@ -495,7 +497,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                         value="APPLICABLE"
                                         {...register('applicability')}
                                     />
-                                    Applicable
+                                    {t('newModal.applicable')}
                                 </label>
                                 <label className="flex items-center gap-tight text-sm text-content-default">
                                     <input
@@ -503,7 +505,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                         value="NOT_APPLICABLE"
                                         {...register('applicability')}
                                     />
-                                    Not Applicable
+                                    {t('newModal.notApplicable')}
                                 </label>
                             </div>
                             {applicability === 'NOT_APPLICABLE' && (
@@ -515,8 +517,8 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                     <Textarea
                                         id="control-justification-input"
                                         rows={2}
-                                        placeholder="Justification is required..."
-                                        aria-label="Justification for non-applicable control"
+                                        placeholder={t('newModal.justificationPlaceholder')}
+                                        aria-label={t('newModal.justificationAria')}
                                         {...register('justification')}
                                     />
                                 </FormField>
@@ -534,7 +536,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                         }}
                         disabled={isSubmitting}
                     >
-                        Cancel
+                        {t('newModal.cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -543,7 +545,7 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                         id="create-control-btn"
                         disabled={submitDisabled}
                     >
-                        {isSubmitting ? 'Creating…' : 'Create Control'}
+                        {isSubmitting ? t('newModal.creating') : t('newModal.create')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

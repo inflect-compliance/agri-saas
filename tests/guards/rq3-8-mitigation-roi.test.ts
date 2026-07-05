@@ -129,8 +129,13 @@ describe('RQ3-8 — the UI honours honest-null', () => {
         expect(card).toMatch(/describeRoiGap/);
         expect(card).toMatch(/data-testid="control-roi-gap"/);
         // The "ROI is null on purpose" line is part of the contract —
-        // it tells the buyer the absence is honest, not a bug.
-        expect(card).toMatch(/ROI is null on purpose/);
+        // it tells the buyer the absence is honest, not a bug. i18n batch
+        // T07 routed it through next-intl (`t('roi.gapNote')`); assert the
+        // key is wired AND the en.json value preserves the copy.
+        expect(card).toMatch(/t\(['"]roi\.gapNote['"]\)/);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const roi = require('../../messages/en.json').controls.roi;
+        expect(roi.gapNote).toMatch(/ROI is null on purpose/);
     });
 
     test('the leaderboard renders an empty-state, never a zero-row list', () => {

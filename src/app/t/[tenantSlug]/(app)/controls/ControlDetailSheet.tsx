@@ -34,6 +34,7 @@
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { Sheet } from '@/components/ui/sheet';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -129,6 +130,7 @@ export function ControlDetailSheet({
     tenantHref,
     canWrite,
 }: ControlDetailSheetProps) {
+    const t = useTranslations('controls');
     const open = controlId !== null;
     const queryClient = useQueryClient();
     const nameInputRef = useRef<HTMLInputElement>(null);
@@ -262,44 +264,44 @@ export function ControlDetailSheet({
         if (!control) return [] as { label: string; value: string; badge?: StatusBadgeVariant }[];
         const rows: { label: string; value: string; badge?: StatusBadgeVariant }[] = [];
         if (control.code || control.annexId) {
-            rows.push({ label: 'Code', value: control.annexId || control.code || '—' });
+            rows.push({ label: t('sheet.labelCode'), value: control.annexId || control.code || '—' });
         }
         rows.push({
-            label: 'Status',
+            label: t('sheet.labelStatus'),
             value: control.status.replace(/_/g, ' '),
             badge: STATUS_BADGE[control.status] || 'neutral',
         });
         rows.push({
-            label: 'Applicability',
+            label: t('sheet.labelApplicability'),
             value: control.applicability === 'NOT_APPLICABLE' ? 'N/A' : 'Yes',
             badge: control.applicability === 'NOT_APPLICABLE' ? 'warning' : 'success',
         });
         if (control.owner?.name) {
-            rows.push({ label: 'Owner', value: control.owner.name });
+            rows.push({ label: t('sheet.labelOwner'), value: control.owner.name });
         }
         return rows;
-    }, [control]);
+    }, [control, t]);
 
     return (
         <Sheet
             open={open}
             onOpenChange={handleOpenChange}
             size="md"
-            title={control?.name ?? 'Control detail'}
+            title={control?.name ?? t('sheet.detailTitle')}
             description={control?.description ?? undefined}
         >
             {detailQuery.isLoading || !control ? (
                 <>
-                    <Sheet.Header title="Loading…" />
+                    <Sheet.Header title={t('sheet.loading')} />
                     <Sheet.Body>
                         <div className="flex h-40 items-center justify-center text-sm text-content-muted">
-                            Loading control…
+                            {t('sheet.loadingBody')}
                         </div>
                     </Sheet.Body>
                 </>
             ) : detailQuery.isError ? (
                 <>
-                    <Sheet.Header title="Control" />
+                    <Sheet.Header title={t('sheet.controlTitle')} />
                     <Sheet.Body>
                         <div
                             className="rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error"
@@ -308,7 +310,7 @@ export function ControlDetailSheet({
                         >
                             {detailQuery.error instanceof Error
                                 ? detailQuery.error.message
-                                : 'Failed to load control.'}
+                                : t('sheet.loadFailed')}
                         </div>
                     </Sheet.Body>
                 </>
@@ -363,7 +365,7 @@ export function ControlDetailSheet({
                                         className="mb-1 block text-sm text-content-default"
                                         htmlFor="sheet-name-input"
                                     >
-                                        Name <RequiredMarker />
+                                        {t('sheet.name')} <RequiredMarker />
                                     </label>
                                     <input
                                         id="sheet-name-input"
@@ -382,7 +384,7 @@ export function ControlDetailSheet({
                                         className="mb-1 block text-sm text-content-default"
                                         htmlFor="sheet-description-input"
                                     >
-                                        Description
+                                        {t('sheet.description')}
                                     </label>
                                     <textarea
                                         id="sheet-description-input"
@@ -397,7 +399,7 @@ export function ControlDetailSheet({
                                         className="mb-1 block text-sm text-content-default"
                                         htmlFor="sheet-intent-input"
                                     >
-                                        Intent
+                                        {t('sheet.intent')}
                                     </label>
                                     <textarea
                                         id="sheet-intent-input"
@@ -413,7 +415,7 @@ export function ControlDetailSheet({
                                             className="mb-1 block text-sm text-content-default"
                                             htmlFor="sheet-category-input"
                                         >
-                                            Category
+                                            {t('sheet.category')}
                                         </label>
                                         <Combobox
                                             id="sheet-category-input"
@@ -422,7 +424,7 @@ export function ControlDetailSheet({
                                             selected={CATEGORY_OPTIONS.find(o => o.value === form.category) ?? null}
                                             setSelected={(o) => update('category', o?.value ?? '')}
                                             placeholder="—"
-                                            searchPlaceholder="Search categories…"
+                                            searchPlaceholder={t('sheet.searchCategories')}
                                             disabled={!canWrite}
                                             matchTriggerWidth
                                             forceDropdown
@@ -435,7 +437,7 @@ export function ControlDetailSheet({
                                             className="mb-1 block text-sm text-content-default"
                                             htmlFor="sheet-frequency-input"
                                         >
-                                            Frequency
+                                            {t('sheet.frequency')}
                                         </label>
                                         <Combobox
                                             id="sheet-frequency-input"
@@ -454,8 +456,8 @@ export function ControlDetailSheet({
                                     </div>
                                 </div>
                                 <FormField
-                                    label="Owner"
-                                    description="Search members to assign, or clear to unassign."
+                                    label={t('sheet.owner')}
+                                    description={t('sheet.ownerHelp')}
                                 >
                                     <UserCombobox
                                         id="sheet-owner-input"
@@ -469,7 +471,7 @@ export function ControlDetailSheet({
                                         placeholder={
                                             control.owner?.name ||
                                             control.owner?.email ||
-                                            'Unassigned'
+                                            t('sheet.unassigned')
                                         }
                                     />
                                 </FormField>
@@ -482,7 +484,7 @@ export function ControlDetailSheet({
                                 data-testid="control-sheet-open-full"
                                 onClick={() => setControlId(null)}
                             >
-                                Open full detail →
+                                {t('sheet.openFull')}
                             </Link>
                             <div className="flex items-center gap-tight">
                                 <Sheet.Close asChild>
@@ -491,7 +493,7 @@ export function ControlDetailSheet({
                                         variant="secondary"
                                         size="sm"
                                         data-testid="control-sheet-cancel"
-                                        text="Cancel"
+                                        text={t('sheet.cancel')}
                                     />
                                 </Sheet.Close>
                                 <Button
@@ -500,7 +502,7 @@ export function ControlDetailSheet({
                                     size="sm"
                                     data-testid="control-sheet-save"
                                     disabled={!canSave}
-                                    text={mutation.isPending ? 'Saving…' : 'Save changes'}
+                                    text={mutation.isPending ? t('sheet.saving') : t('sheet.saveChanges')}
                                 />
                             </div>
                         </Sheet.Actions>

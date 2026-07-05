@@ -132,7 +132,22 @@ describe('Action-button canonical entity label', () => {
                 const lastGT = buttonBlock.lastIndexOf('>');
                 expect(lastGT).toBeGreaterThan(-1);
                 const textContent = buttonBlock.slice(lastGT + 1).trim();
-                expect(textContent).toBe(label);
+                // i18n batch T07 — ControlsClient's label routes through
+                // next-intl (`{t('list.addControl')}`). Accept either the
+                // bare literal noun OR a `t('<ns-key>')` call whose en.json
+                // value resolves to the same bare noun.
+                const tCall = textContent.match(/^\{t\(['"]([a-zA-Z0-9_.]+)['"]\)\}$/);
+                if (tCall) {
+                    const en = JSON.parse(read('messages/en.json')) as Record<string, unknown>;
+                    // The migrated inline sites all use useTranslations('controls').
+                    let resolved: unknown = (en as Record<string, unknown>).controls;
+                    for (const part of tCall[1].split('.')) {
+                        resolved = (resolved as Record<string, unknown> | undefined)?.[part];
+                    }
+                    expect(resolved).toBe(label);
+                } else {
+                    expect(textContent).toBe(label);
+                }
             },
         );
     });

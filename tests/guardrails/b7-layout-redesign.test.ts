@@ -119,7 +119,12 @@ describe('B7 — layout redesign', () => {
         );
 
         it('mounts an AsidePanel browse rail (NOT a LeftAccordionRail)', () => {
-            expect(src).toMatch(/<AsidePanel\b[\s\S]{0,200}title="Browse"/);
+            // i18n batch T07 — the rail title routes through next-intl
+            // (`t('list.browse')`); assert the key is wired AND the en.json
+            // value preserves the "Browse" copy.
+            expect(src).toMatch(/<AsidePanel\b[\s\S]{0,200}title=\{t\('list\.browse'\)\}/);
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            expect(require('../../messages/en.json').controls.list.browse).toBe('Browse');
             // The legacy left-rail wiring is gone — the import +
             // the JSX must both disappear so a future "move it back
             // left" PR fails this ratchet loudly.
@@ -172,7 +177,10 @@ describe('B7 — layout redesign', () => {
             // (`<AiAssistRail>`), same chrome (`<AsidePanel>`),
             // same destination (`/risks/ai`) so the panel reads as
             // ONE shared co-pilot across registers — not a stub.
-            expect(src).toMatch(/<AsidePanel\b[\s\S]{0,200}title="AI Assist"/);
+            // i18n batch T07 — the rail title routes through next-intl.
+            expect(src).toMatch(/<AsidePanel\b[\s\S]{0,200}title=\{t\('list\.aiAssist'\)\}/);
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            expect(require('../../messages/en.json').controls.list.aiAssist).toBe('AI Assist');
             expect(src).toMatch(/<AiAssistRail\b/);
             expect(src).toMatch(/aiHref=\{tenantHref\(['"]\/risks\/ai['"]\)\}/);
         });
@@ -181,7 +189,7 @@ describe('B7 — layout redesign', () => {
             // The co-pilot is a secondary rail; it should not
             // claim 320px unprompted. Matches the Risks contract.
             expect(src).toMatch(
-                /<AsidePanel\b[\s\S]{0,200}title="AI Assist"[\s\S]{0,400}defaultCollapsed/,
+                /<AsidePanel\b[\s\S]{0,200}title=\{t\('list\.aiAssist'\)\}[\s\S]{0,400}defaultCollapsed/,
             );
         });
     });
@@ -209,9 +217,12 @@ describe('B7 — layout redesign', () => {
             // The category is DERIVED per-control (framework-tagged
             // granular domain), not read from a single stored string —
             // so the column matches the Browse rail's grouping.
+            // T07 i18n — the header moved to t('list.colCategory'); assert
+            // the t() reference AND the en.json value stays "Category".
             expect(src).toMatch(
-                /id:\s*['"]category['"][\s\S]{0,200}header:\s*['"]Category['"]/,
+                /id:\s*['"]category['"][\s\S]{0,200}header:\s*t\(['"]list\.colCategory['"]\)/,
             );
+            expect(JSON.parse(read('messages/en.json')).controls.list.colCategory).toBe('Category');
             expect(src).toMatch(
                 /accessorFn:\s*\(c\)\s*=>\s*categorizeControl\(c\)/,
             );

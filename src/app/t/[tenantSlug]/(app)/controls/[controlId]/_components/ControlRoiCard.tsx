@@ -15,6 +15,7 @@
  */
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantContext } from '@/lib/tenant-context-provider';
 import { formatCompactCurrency } from '@/lib/risk-coherence';
@@ -33,6 +34,7 @@ interface RoiPayload {
 }
 
 export function ControlRoiCard({ controlId }: { controlId: string }) {
+    const t = useTranslations('controls');
     const { currencySymbol } = useTenantContext();
     const sym = currencySymbol ?? '€';
     const { data, error, isLoading } = useTenantSWR<RoiPayload>(`/controls/${controlId}/roi`);
@@ -54,26 +56,27 @@ export function ControlRoiCard({ controlId }: { controlId: string }) {
             data-testid="control-roi-card"
         >
             <div>
-                <span className="text-xs text-content-subtle uppercase">Mitigation ROI</span>
+                <span className="text-xs text-content-subtle uppercase">{t('roi.title')}</span>
             </div>
             {verdict.ok ? (
                 <div className="space-y-default">
                     <p className="text-sm text-content-default" data-testid="control-roi-headline">
-                        Reduces expected loss by{' '}
+                        {t('roi.reduceLead')}{' '}
                         <strong>{formatCompactCurrency(verdict.value.aleProtected, sym)}/yr</strong>{' '}
-                        on{' '}
+                        {t('roi.reduceOn')}{' '}
                         <strong>{formatCompactCurrency(annualCost, sym)}/yr</strong>{' '}
-                        spend —{' '}
+                        {t('roi.reduceSpend')}{' '}
                         <strong data-testid="control-roi-multiple">
                             {verdict.value.roiMultiple.toFixed(1)}×
                         </strong>{' '}
-                        ROI.
+                        {t('roi.reduceTail')}
                     </p>
                     <p className="text-xs text-content-subtle">
-                        Across{' '}
-                        {verdict.value.quantifiedRiskCount} of {verdict.value.linkedRiskCount}{' '}
-                        linked {verdict.value.linkedRiskCount === 1 ? 'risk' : 'risks'} with a quantified ALE,
-                        priced at {effectiveness}% declared effectiveness.
+                        {t('roi.across', {
+                            quantified: verdict.value.quantifiedRiskCount,
+                            linked: verdict.value.linkedRiskCount,
+                            effectiveness: effectiveness ?? 0,
+                        })}
                     </p>
                 </div>
             ) : (
@@ -82,7 +85,7 @@ export function ControlRoiCard({ controlId }: { controlId: string }) {
                         {describeRoiGap(verdict)}
                     </p>
                     <p className="text-xs text-content-subtle">
-                        ROI is null on purpose — the model never invents a number from missing inputs.
+                        {t('roi.gapNote')}
                     </p>
                 </div>
             )}

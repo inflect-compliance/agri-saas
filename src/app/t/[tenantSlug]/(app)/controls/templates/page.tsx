@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import { cardVariants } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 
 export default function ControlTemplatesPage() {
+    const t = useTranslations('controls');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const router = useRouter();
@@ -80,7 +82,7 @@ export default function ControlTemplatesPage() {
             }
             const result = await res.json();
             const count = Array.isArray(result) ? result.length : 1;
-            setSuccess(`Installed ${count} control(s) successfully!`);
+            setSuccess(t('templates.installed', { count }));
             setTimeout(() => router.push(tenantHref('/controls')), 1500);
 
         } catch (e: any) {
@@ -98,11 +100,11 @@ export default function ControlTemplatesPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <Heading level={1} id="templates-heading"><AppIcon name="templates" className="inline-block mr-2 align-text-bottom" /> Control Templates</Heading>
-                    <p className="text-content-muted text-sm">Select templates to install as controls in your register</p>
+                    <Heading level={1} id="templates-heading"><AppIcon name="templates" className="inline-block mr-2 align-text-bottom" /> {t('templates.heading')}</Heading>
+                    <p className="text-content-muted text-sm">{t('templates.subtitle')}</p>
                 </div>
                 <Link href={tenantHref('/controls')} className={buttonVariants({ variant: 'secondary' })}>
-                    ← Back to Controls
+                    {t('templates.backToControls')}
                 </Link>
             </div>
 
@@ -125,7 +127,7 @@ export default function ControlTemplatesPage() {
                             disabled={selectedIds.size === 0 || installing}
                             id="install-selected-btn"
                         >
-                            {installing ? 'Installing...' : `Install Selected (${selectedIds.size})`}
+                            {installing ? t('templates.installing') : t('templates.installSelected', { count: selectedIds.size })}
                         </Button>
                     </div>
                 </div>
@@ -134,11 +136,11 @@ export default function ControlTemplatesPage() {
             {/* Template list */}
             <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                 {loading ? (
-                    <div className="p-12 text-center text-content-subtle animate-pulse">Loading templates…</div>
+                    <div className="p-12 text-center text-content-subtle animate-pulse">{t('templates.loading')}</div>
                 ) : filtered.length === 0 ? (
                     <InlineEmptyState
-                        title="No templates yet"
-                        description="Templates are seeded by your admin."
+                        title={t('templates.emptyTitle')}
+                        description={t('templates.emptyDesc')}
                     />
                 ) : (
                     (() => {
@@ -151,17 +153,17 @@ export default function ControlTemplatesPage() {
                                     <input type="checkbox" checked={selectedIds.has(row.original.id)} onChange={() => toggle(row.original.id)} className="rounded" />
                                 ),
                             },
-                            { accessorKey: 'code', header: 'Code', cell: ({ getValue }: any) => <span className="text-xs text-content-muted font-mono">{getValue() || '—'}</span> },
-                            { accessorKey: 'name', header: 'Name', cell: ({ getValue }: any) => <span className="font-medium text-content-emphasis">{getValue()}</span> },
+                            { accessorKey: 'code', header: t('templates.colCode'), cell: ({ getValue }: any) => <span className="text-xs text-content-muted font-mono">{getValue() || '—'}</span> },
+                            { accessorKey: 'name', header: t('templates.colName'), cell: ({ getValue }: any) => <span className="font-medium text-content-emphasis">{getValue()}</span> },
                             {
-                                accessorKey: 'category', header: 'Category',
+                                accessorKey: 'category', header: t('templates.colCategory'),
                                 cell: ({ getValue }: any) => getValue() ? <StatusBadge variant="info">{getValue()}</StatusBadge> : null,
                             },
                             {
-                                accessorKey: 'frameworkTag', header: 'Framework',
+                                accessorKey: 'frameworkTag', header: t('templates.colFramework'),
                                 cell: ({ getValue }: any) => getValue() ? <StatusBadge variant="neutral">{getValue()}</StatusBadge> : null,
                             },
-                            { accessorKey: 'description', header: 'Description', cell: ({ getValue }: any) => <span className="text-xs text-content-subtle truncate max-w-xs">{getValue() || '—'}</span> },
+                            { accessorKey: 'description', header: t('templates.colDescription'), cell: ({ getValue }: any) => <span className="text-xs text-content-subtle truncate max-w-xs">{getValue() || '—'}</span> },
                         ]);
                         return (
                             <DataTable
@@ -171,8 +173,8 @@ export default function ControlTemplatesPage() {
                                 onRowClick={(row) => toggle(row.original.id)}
                                 emptyState={
                                     <TableEmptyState
-                                        title="No templates yet"
-                                        description="Templates are seeded by your admin."
+                                        title={t('templates.emptyTitle')}
+                                        description={t('templates.emptyDesc')}
                                     />
                                 }
                                 resourceName={(p) => p ? 'templates' : 'template'}
