@@ -23,6 +23,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, {
     Layer,
+    Marker,
     Popup,
     Source,
     type MapLayerMouseEvent,
@@ -73,6 +74,13 @@ const MASK_OPACITY = 0.66;
 
 /** Selected-region brand accent (emerald), matching the SELL marker family. */
 const REGION_ACCENT = '#22c55e';
+
+/** Flat land fill — a near-opaque cool dark that covers the basemap roads/
+ *  labels inside Bulgaria, so the country reads as one clean lifted shape
+ *  (the mockup look) instead of a busy street map. Slightly lighter than the
+ *  scrimmed surroundings so the country lifts off the dimmed neighbours. */
+const LAND_FILL = '#0f1826';
+const LAND_OPACITY = 0.94;
 
 const EMPTY_FC: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
@@ -198,6 +206,12 @@ export function ExchangeMap({
         [listings],
     );
 
+    // The offer under the list's row-hover — gets a live pulse ring on the map.
+    const hovered = useMemo(
+        () => listings.find((l) => l.id === highlightedId) ?? null,
+        [listings, highlightedId],
+    );
+
     const handleLoad = useCallback(() => {
         setStatus('ready');
         mapRef.current?.fitBounds(BULGARIA_BOUNDS, { padding: 28, duration: 0 });
@@ -295,17 +309,20 @@ export function ExchangeMap({
                         id="oblast-fill"
                         type="fill"
                         paint={{
+                            // Near-opaque flat fill hides the basemap detail so
+                            // the country is a clean lifted shape; selected
+                            // regions glow brand-emerald over that flat ground.
                             'fill-color': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
                                 REGION_ACCENT,
-                                '#7c8aa5',
+                                LAND_FILL,
                             ],
                             'fill-opacity': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                0.3,
-                                0.08,
+                                0.55,
+                                LAND_OPACITY,
                             ],
                         }}
                     />
@@ -424,6 +441,18 @@ export function ExchangeMap({
                     />
                 </Source>
 
+                {/* Live pulse ring on the offer the list row is hovering. */}
+                {hovered && (
+                    <Marker longitude={hovered.lon} latitude={hovered.lat}>
+                        <span className="pointer-events-none flex h-3 w-3">
+                            <span
+                                className="absolute inline-flex h-full w-full animate-ping rounded-full"
+                                style={{ backgroundColor: EXCHANGE_SIDE_COLORS[hovered.side], opacity: 0.5 }}
+                            />
+                        </span>
+                    </Marker>
+                )}
+
                 {popup && (
                     <Popup
                         longitude={popup.lng}
@@ -494,6 +523,37 @@ export function ExchangeMap({
                 <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border-subtle bg-bg-elevated/90 px-3 py-1 text-xs text-content-muted">
                     No offers to show on the map
                 </div>
+            )}
+
+            {/* Terminal chrome — a wordmark chip with a live pulse, and the
+                SELL/BUY key, floated on the map like a trading surface. */}
+            {status === 'ready' && (
+                <>
+                    <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
+                        <span className="relative flex h-2 w-2">
+                            <span
+                                className="absolute inline-flex h-full w-full animate-ping rounded-full"
+                                style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL, opacity: 0.55 }}
+                            />
+                            <span
+                                className="relative inline-flex h-2 w-2 rounded-full"
+                                style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }}
+                            />
+                        </span>
+                        <span className="text-xs font-semibold tracking-wide text-content-emphasis">БОРСА</span>
+                        <span className="text-xs text-content-muted">· Exchange</span>
+                    </div>
+                    <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-compact rounded-lg border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
+                        <span className="flex items-center gap-1.5 text-xs text-content-muted">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }} />
+                            Selling
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-content-muted">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.BUY }} />
+                            Buying
+                        </span>
+                    </div>
+                </>
             )}
         </div>
     );
