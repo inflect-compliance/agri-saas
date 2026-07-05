@@ -24,6 +24,7 @@
  */
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
 import { FormField } from '@/components/ui/form-field';
@@ -63,6 +64,7 @@ export function NewControlTaskModal({
     onSubmit,
     onCancel,
 }: NewControlTaskModalProps) {
+    const t = useTranslations('controls');
     return (
         <Modal
             showModal={open}
@@ -72,13 +74,13 @@ export function NewControlTaskModal({
                 else setOpen(next);
             }}
             size="md"
-            title="Create Task"
-            description="Add a task linked to this control."
+            title={t('taskModal.title')}
+            description={t('taskModal.description')}
             preventDefaultClose={saving}
         >
             <Modal.Header
-                title="Create Task"
-                description="Add a task linked to this control."
+                title={t('taskModal.title')}
+                description={t('taskModal.description')}
             />
             <Modal.Form
                 onSubmit={onSubmit}
@@ -87,12 +89,12 @@ export function NewControlTaskModal({
             >
                 <Modal.Body>
                     <fieldset className="space-y-default" disabled={saving}>
-                        <FormField label="Title" required>
+                        <FormField label={t('taskModal.titleField')} required>
                             <input
                                 id="task-title-input"
                                 type="text"
                                 className="input w-full"
-                                placeholder="Task title"
+                                placeholder={t('taskModal.phTitle')}
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 required
@@ -101,12 +103,12 @@ export function NewControlTaskModal({
                                 data-testid="task-title-input"
                             />
                         </FormField>
-                        <FormField label="Description">
+                        <FormField label={t('taskModal.descriptionField')}>
                             <textarea
                                 id="task-desc-input"
                                 className="input w-full"
                                 rows={3}
-                                placeholder="Optional"
+                                placeholder={t('taskModal.phOptional')}
                                 value={description}
                                 onChange={(e) =>
                                     setDescription(e.target.value)
@@ -114,11 +116,11 @@ export function NewControlTaskModal({
                                 data-testid="task-desc-input"
                             />
                         </FormField>
-                        <FormField label="Due date">
+                        <FormField label={t('taskModal.dueDate')}>
                             <DatePicker
                                 id="task-due-input"
                                 className="w-full"
-                                placeholder="Pick a date"
+                                placeholder={t('taskModal.phDate')}
                                 clearable
                                 align="start"
                                 value={parseYMD(dueAt)}
@@ -128,7 +130,7 @@ export function NewControlTaskModal({
                                 disabledDays={{
                                     before: startOfUtcDay(new Date()),
                                 }}
-                                aria-label="Task due date"
+                                aria-label={t('taskModal.dueAria')}
                             />
                         </FormField>
                     </fieldset>
@@ -141,7 +143,7 @@ export function NewControlTaskModal({
                         disabled={saving}
                         data-testid="task-cancel-button"
                     >
-                        Cancel
+                        {t('taskModal.cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -151,7 +153,7 @@ export function NewControlTaskModal({
                         id="submit-task-btn"
                         data-testid="submit-task-btn"
                     >
-                        {saving ? 'Creating...' : 'Create'}
+                        {saving ? t('taskModal.creating') : t('taskModal.create')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

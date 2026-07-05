@@ -124,9 +124,17 @@ describe('Controls list — UX polish', () => {
             // (the row-select bar that pops over the column-names row),
             // NOT the retired SelectionSummaryPanel right-rail.
             expect(source).toMatch(/batchActions:\s*controlBatchActions/);
-            expect(source).toContain("label: 'Mark Implemented'");
-            expect(source).toContain("label: 'Mark Needs Review'");
-            expect(source).toContain("label: 'Mark Not Applicable'");
+            // i18n batch T07 — the bulk-status verb labels route through
+            // next-intl; assert the keys are wired AND the en.json values
+            // preserve the copy.
+            expect(source).toContain("label: t('list.markImplemented')");
+            expect(source).toContain("label: t('list.markNeedsReview')");
+            expect(source).toContain("label: t('list.markNotApplicable')");
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const en = require('../../messages/en.json').controls.list;
+            expect(en.markImplemented).toBe('Mark Implemented');
+            expect(en.markNeedsReview).toBe('Mark Needs Review');
+            expect(en.markNotApplicable).toBe('Mark Not Applicable');
             expect(source).not.toContain('<SelectionSummaryPanel');
         });
 
@@ -134,7 +142,7 @@ describe('Controls list — UX polish', () => {
             // Locks the destructive treatment through to the batch-action
             // button's tone contract.
             expect(source).toMatch(
-                /label: 'Mark Not Applicable'[\s\S]{0,400}tone: 'danger'/,
+                /label: t\('list\.markNotApplicable'\)[\s\S]{0,400}tone: 'danger'/,
             );
         });
 
@@ -144,7 +152,7 @@ describe('Controls list — UX polish', () => {
             // collapses to `undefined` (no selection) when the viewer can do
             // neither — so a READER still gets no batch actions.
             expect(source).toMatch(
-                /canEditControls[\s\S]{0,200}label: 'Mark Implemented'/,
+                /canEditControls[\s\S]{0,200}label: t\('list\.markImplemented'\)/,
             );
             expect(source).toMatch(
                 /permissions\.canAdmin\s*\?\s*\[controlBulkDelete\]/,

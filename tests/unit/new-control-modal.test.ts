@@ -50,9 +50,16 @@ describe('NewControlModal — shared Modal composition', () => {
         expect(MODAL_SRC).toMatch(/size=["']lg["']/);
     });
 
-    it('passes title + description for a11y naming', () => {
-        expect(MODAL_SRC).toMatch(/title=["']New control["']/);
-        expect(MODAL_SRC).toMatch(/description=["']Create a custom control for your register\.["']/);
+    it('passes title + description for a11y naming (via next-intl)', () => {
+        // i18n batch T07 — the modal title/description now route through
+        // next-intl. Assert the keys are wired AND the en.json values
+        // preserve the original English copy (E2E getByText contract).
+        expect(MODAL_SRC).toMatch(/title=\{t\(['"]newModal\.title['"]\)\}/);
+        expect(MODAL_SRC).toMatch(/description=\{t\(['"]newModal\.description['"]\)\}/);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const en = require('../../messages/en.json').controls.newModal;
+        expect(en.title).toBe('New control');
+        expect(en.description).toBe('Create a custom control for your register.');
     });
 
     it('guards close-during-save via preventDefaultClose tied to RHF isSubmitting', () => {

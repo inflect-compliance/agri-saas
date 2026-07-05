@@ -27,8 +27,15 @@ describe('UI-13 — browse expand toggle is a chevron, not a text button', () =>
         expect(SRC).not.toMatch(/>\s*\{allExpanded \? 'Collapse all' : 'Expand all'\}\s*</);
     });
     it('keeps the canonical Tooltip hint + preserved test-id + aria-label', () => {
-        expect(SRC).toMatch(/<Tooltip\s+content=\{allExpanded \? 'Collapse all' : 'Expand all'\}/);
+        // i18n batch T07 — the Collapse/Expand copy routes through
+        // next-intl (`t('list.collapseAll')` / `t('list.expandAll')`);
+        // assert the keys are wired AND the en.json values preserve copy.
+        expect(SRC).toMatch(/<Tooltip\s+content=\{allExpanded \? t\('list\.collapseAll'\) : t\('list\.expandAll'\)\}/);
         expect(SRC).toMatch(/data-testid="controls-browse-expand-all"/);
-        expect(SRC).toMatch(/aria-label=\{allExpanded \? 'Collapse all' : 'Expand all'\}/);
+        expect(SRC).toMatch(/aria-label=\{allExpanded \? t\('list\.collapseAll'\) : t\('list\.expandAll'\)\}/);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const en = require('../../messages/en.json').controls.list;
+        expect(en.collapseAll).toBe('Collapse all');
+        expect(en.expandAll).toBe('Expand all');
     });
 });

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import type { ControlDashboardDTO, ConsistencyCheckDTO } from '@/lib/dto';
 import { AppIcon } from '@/components/icons/AppIcon';
@@ -34,6 +35,7 @@ const STATUS_VARIANT: Record<string, StatusBreakdownVariant> = {
 };
 
 export default function ControlsDashboard() {
+    const t = useTranslations('controls');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const { permissions } = useTenantContext();
@@ -79,24 +81,24 @@ export default function ControlsDashboard() {
 
     if (loading) return <SkeletonDashboard />;
     if (!data) return (
-        <DashboardLayout header={{ title: 'Controls Dashboard', titleId: 'dashboard-heading' }}>
-            <div className="p-12 text-center text-content-error">Failed to load dashboard.</div>
+        <DashboardLayout header={{ title: t('dashboard.title'), titleId: 'dashboard-heading' }}>
+            <div className="p-12 text-center text-content-error">{t('dashboard.failedToLoad')}</div>
         </DashboardLayout>
     );
 
     return (
         <DashboardLayout
             header={{
-                title: 'Controls Dashboard',
+                title: t('dashboard.title'),
                 titleId: 'dashboard-heading',
-                description: `${data.totalControls} controls in register`,
+                description: t('dashboard.inRegister', { count: data.totalControls }),
                 actions: (
                     <>
                         {permissions.canAdmin && (
-                            <IconAction variant="secondary" onClick={fetchConsistency} id="consistency-check-btn" icon={<AppIcon name="search" size={16} />} label="Consistency check" />
+                            <IconAction variant="secondary" onClick={fetchConsistency} id="consistency-check-btn" icon={<AppIcon name="search" size={16} />} label={t('dashboard.consistencyCheck')} />
                         )}
                         <Link href={tenantHref('/controls')} className={buttonVariants({ variant: 'secondary' })}>
-                            Back to Controls
+                            {t('dashboard.backToControls')}
                         </Link>
                     </>
                 ),
@@ -108,15 +110,15 @@ export default function ControlsDashboard() {
                     <KPIStat
                         id="implementation-progress"
                         value={`${data.implementationProgress}%`}
-                        label="Implementation Progress"
+                        label={t('dashboard.implementationProgress')}
                         tone="success"
-                        description={`${data.implementedCount}/${data.applicableCount} applicable controls`}
+                        description={t('dashboard.applicableControls', { implemented: data.implementedCount, applicable: data.applicableCount })}
                     />
                     <ProgressBar
                         value={data.implementationProgress}
                         variant={data.implementationProgress >= 80 ? 'success' : data.implementationProgress >= 50 ? 'warning' : 'error'}
                         size="sm"
-                        aria-label="Control implementation progress"
+                        aria-label={t('dashboard.progressAria')}
                         className="mt-2"
                     />
                 </div>
@@ -124,25 +126,25 @@ export default function ControlsDashboard() {
                     <KPIStat
                         id="overdue-tasks"
                         value={data.overdueTasks}
-                        label="Overdue Tasks"
+                        label={t('dashboard.overdueTasks')}
                         tone={data.overdueTasks > 0 ? 'critical' : 'default'}
-                        description="tasks past due date"
+                        description={t('dashboard.overdueDesc')}
                     />
                 </div>
                 <div className={cardVariants({ density: 'compact' })}>
                     <KPIStat
                         id="due-soon"
                         value={data.controlsDueSoon}
-                        label="Controls Due Soon"
+                        label={t('dashboard.dueSoon')}
                         tone={data.controlsDueSoon > 0 ? 'attention' : 'default'}
-                        description="within next 30 days"
+                        description={t('dashboard.dueSoonDesc')}
                     />
                 </div>
                 <div className={cardVariants({ density: 'compact' })}>
                     <KPIStat
                         value={data.applicabilityDistribution.applicable}
-                        label="Applicability"
-                        description={`${data.applicabilityDistribution.notApplicable} excluded (N/A)`}
+                        label={t('dashboard.applicability')}
+                        description={t('dashboard.excludedDesc', { count: data.applicabilityDistribution.notApplicable })}
                     />
                 </div>
             </div>
@@ -150,7 +152,7 @@ export default function ControlsDashboard() {
             {/* Status Distribution */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
                 <Card>
-                    <Heading level={3} className="mb-4">Status Distribution</Heading>
+                    <Heading level={3} className="mb-4">{t('dashboard.statusDistribution')}</Heading>
                     {/* Epic 59 — StatusBreakdown primitive. Bar widths are
                         proportional to the row's share of `total`
                         (maxStatus in the local scope was the previous
@@ -159,7 +161,7 @@ export default function ControlsDashboard() {
                         fills the track, everyone else scales down). */}
                     <div id="status-distribution">
                         <StatusBreakdown
-                            ariaLabel="Control status distribution"
+                            ariaLabel={t('dashboard.statusDistributionAria')}
                             showDot={false}
                             size="sm"
                             items={Object.entries(
@@ -175,18 +177,18 @@ export default function ControlsDashboard() {
                     </div>
                 </Card>
                 <Card>
-                    <Heading level={3} className="mb-4">Top Owners by Open Tasks</Heading>
+                    <Heading level={3} className="mb-4">{t('dashboard.topOwners')}</Heading>
                     {data.topOwners?.length > 0 ? (
                         <div className="space-y-tight" id="top-owners">
                             {data.topOwners.map((o) => (
                                 <div key={o.id} className="flex justify-between items-center text-sm">
                                     <span className="text-content-default">{o.name}</span>
-                                    <StatusBadge variant="neutral">{o.openTasks} open</StatusBadge>
+                                    <StatusBadge variant="neutral">{t('dashboard.openCount', { count: o.openTasks })}</StatusBadge>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <InlineEmptyState title="No assigned owners yet" />
+                        <InlineEmptyState title={t('dashboard.noOwners')} />
                     )}
                 </Card>
             </div>
@@ -194,29 +196,29 @@ export default function ControlsDashboard() {
             {/* Consistency Check */}
             {showConsistency && consistency && (
                 <Card id="consistency-results">
-                    <Heading level={3} className="mb-3"><AppIcon name="search" size={16} className="inline-block mr-1" /> Consistency Check Results</Heading>
+                    <Heading level={3} className="mb-3"><AppIcon name="search" size={16} className="inline-block mr-1" /> {t('dashboard.consistencyResults')}</Heading>
                     <div className="grid grid-cols-3 gap-default mb-4">
                         <div className="text-center">
                             <p className={`text-xl font-bold ${consistency.summary.missingCodeCount > 0 ? 'text-content-warning' : 'text-content-success'}`}>
                                 {consistency.summary.missingCodeCount}
                             </p>
-                            <p className="text-xs text-content-subtle">Missing Code</p>
+                            <p className="text-xs text-content-subtle">{t('dashboard.missingCode')}</p>
                         </div>
                         <div className="text-center">
                             <p className={`text-xl font-bold ${consistency.summary.duplicateCodeCount > 0 ? 'text-content-error' : 'text-content-success'}`}>
                                 {consistency.summary.duplicateCodeCount}
                             </p>
-                            <p className="text-xs text-content-subtle">Duplicate Codes</p>
+                            <p className="text-xs text-content-subtle">{t('dashboard.duplicateCodes')}</p>
                         </div>
                         <div className="text-center">
                             <p className={`text-xl font-bold ${consistency.summary.overdueTaskCount > 0 ? 'text-content-error' : 'text-content-success'}`}>
                                 {consistency.summary.overdueTaskCount}
                             </p>
-                            <p className="text-xs text-content-subtle">Overdue Tasks</p>
+                            <p className="text-xs text-content-subtle">{t('dashboard.overdueTasksCol')}</p>
                         </div>
                     </div>
                     {consistency.summary.missingCodeCount === 0 && consistency.summary.duplicateCodeCount === 0 && consistency.summary.overdueTaskCount === 0 && (
-                        <p className="text-sm text-content-success text-center"><AppIcon name="success" size={16} className="inline-block mr-1" /> All checks passed — no issues found</p>
+                        <p className="text-sm text-content-success text-center"><AppIcon name="success" size={16} className="inline-block mr-1" /> {t('dashboard.allChecksPassed')}</p>
                     )}
                 </Card>
             )}

@@ -9,6 +9,7 @@ import { SkeletonCard, SkeletonDetailPage } from '@/components/ui/skeleton';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { EditControlModal } from './_modals/EditControlModal';
@@ -125,6 +126,7 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 export default function ControlDetailPage() {
+    const t = useTranslations('controls');
     const params = useParams();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
@@ -581,8 +583,8 @@ export default function ControlDetailPage() {
             );
         }
         triggerUndoToast({
-            message: 'Evidence unlinked',
-            undoMessage: 'Undo',
+            message: t('detail.evidenceUnlinked'),
+            undoMessage: t('detail.undo'),
             action: async () => {
                 const res = await fetch(
                     apiUrl(`/controls/${controlId}/evidence/${linkId}`),
@@ -628,7 +630,7 @@ export default function ControlDetailPage() {
     }
     if (!control) {
         return (
-            <EntityDetailLayout empty={{ message: 'Control not found.' }} title="">
+            <EntityDetailLayout empty={{ message: t('detail.notFound') }} title="">
                 {null}
             </EntityDetailLayout>
         );
@@ -642,19 +644,19 @@ export default function ControlDetailPage() {
     const totalTasks = control._count?.controlTasks ?? 0;
     const doneTasks = control.doneControlTasks ?? 0;
     const tabs: { key: Tab; label: string; count?: number }[] = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'tasks', label: 'Tasks', count: totalTasks },
+        { key: 'overview', label: t('detail.tabOverview') },
+        { key: 'tasks', label: t('detail.tabTasks'), count: totalTasks },
         {
             key: 'evidence',
-            label: 'Evidence',
+            label: t('detail.tabEvidence'),
             count:
                 (control._count?.evidenceLinks ?? 0) +
                 (control._count?.evidence ?? 0),
         },
-        { key: 'mappings', label: 'Mappings', count: control._count?.frameworkMappings ?? 0 },
-        { key: 'traceability', label: 'Traceability' },
-        { key: 'activity', label: 'Activity' },
-        { key: 'tests', label: 'Tests' },
+        { key: 'mappings', label: t('detail.tabMappings'), count: control._count?.frameworkMappings ?? 0 },
+        { key: 'traceability', label: t('detail.tabTraceability') },
+        { key: 'activity', label: t('detail.tabActivity') },
+        { key: 'tests', label: t('detail.tabTests') },
     ];
 
     // ── Header meta strip (Polish PR-1) ──
@@ -671,12 +673,12 @@ export default function ControlDetailPage() {
                 ...(control.code
                     ? [
                           {
-                              label: 'Code',
+                              label: t('detail.codeLabel'),
                               value: (
                                   <CopyText
                                       value={control.code}
-                                      label={`Copy control code ${control.code}`}
-                                      successMessage="Control code copied"
+                                      label={t('detail.copyCode', { code: control.code })}
+                                      successMessage={t('detail.codeCopied')}
                                       className="text-xs text-content-subtle"
                                   >
                                       {control.code}
@@ -688,7 +690,7 @@ export default function ControlDetailPage() {
                 {
                     kind: 'status' as const,
                     id: 'control-status',
-                    label: 'Status',
+                    label: t('detail.status'),
                     value: STATUS_LABELS[control.status] ?? control.status,
                     variant:
                         CONTROL_STATUS_VARIANT[control.status] ?? 'neutral',
@@ -696,11 +698,11 @@ export default function ControlDetailPage() {
                 {
                     kind: 'status' as const,
                     id: 'control-applicability',
-                    label: 'Applicability',
+                    label: t('detail.applicability'),
                     value:
                         control.applicability === 'NOT_APPLICABLE'
-                            ? 'Not Applicable'
-                            : 'Applicable',
+                            ? t('detail.notApplicable')
+                            : t('detail.applicable'),
                     variant:
                         control.applicability === 'NOT_APPLICABLE'
                             ? 'warning'
@@ -717,31 +719,31 @@ export default function ControlDetailPage() {
         <>
             {syncStatus === 'CONFLICT' && (
                 <Tooltip
-                    title="Sync conflict"
-                    content={syncError ?? 'Local and remote state diverged — resolve before editing.'}
+                    title={t('detail.syncConflictTitle')}
+                    content={syncError ?? t('detail.syncConflictContent')}
                 >
                     <StatusBadge variant="error" className="flex items-center gap-1 cursor-help" id="sync-conflict-badge">
                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                        Sync Conflict
+                        {t('detail.syncConflict')}
                     </StatusBadge>
                 </Tooltip>
             )}
             {syncStatus === 'FAILED' && (
                 <Tooltip
-                    title="Last sync failed"
-                    content={syncError ?? 'The integration could not reach the source system.'}
+                    title={t('detail.syncFailedTitle')}
+                    content={syncError ?? t('detail.syncFailedContent')}
                 >
                     <StatusBadge variant="error" className="flex items-center gap-1 cursor-help" id="sync-failed-badge">
                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
-                        Sync Failed
+                        {t('detail.syncFailed')}
                     </StatusBadge>
                 </Tooltip>
             )}
             {syncStatus === 'SYNCED' && (
-                <Tooltip content={syncLastAt ? `Last synced: ${formatDateTime(syncLastAt)}` : 'Synced'}>
+                <Tooltip content={syncLastAt ? t('detail.lastSynced', { date: formatDateTime(syncLastAt) }) : t('detail.synced')}>
                     <StatusBadge variant="success" className="flex items-center gap-1 cursor-help" id="sync-ok-badge">
                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                        Synced
+                        {t('detail.synced')}
                     </StatusBadge>
                 </Tooltip>
             )}
@@ -763,7 +765,7 @@ export default function ControlDetailPage() {
                 id="control-where-used-btn"
                 data-testid="control-where-used-btn"
             >
-                Where used
+                {t('detail.whereUsed')}
             </Button>
             {permissions.canWrite && (
                 <>
@@ -774,11 +776,11 @@ export default function ControlDetailPage() {
                         setSelected={(opt) => { if (opt) changeStatus(opt.value); }}
                         options={STATUS_CB_OPTIONS}
                         disabled={changingStatus}
-                        placeholder="Status"
+                        placeholder={t('detail.statusPlaceholder')}
                         buttonProps={{ className: 'text-sm' }}
                     />
                     <Button variant="secondary" onClick={() => { setAppChoice(control.applicability); setAppJustification(control.applicabilityJustification || ''); setShowApplicability(!showApplicability); }} id="toggle-applicability-btn">
-                        Applicability
+                        {t('detail.applicability')}
                     </Button>
                 </>
             )}
@@ -789,8 +791,8 @@ export default function ControlDetailPage() {
         <EntityDetailLayout
             id="control-detail-page"
             breadcrumbs={[
-                { label: 'Dashboard', href: tenantHref('/dashboard') },
-                { label: 'Controls', href: tenantHref('/controls') },
+                { label: t('detail.breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                { label: t('detail.breadcrumbControls'), href: tenantHref('/controls') },
                 { label: control.name },
             ]}
             title={<span id="control-title">{control.name}</span>}
@@ -820,22 +822,22 @@ export default function ControlDetailPage() {
             {/* Applicability modal */}
             {showApplicability && permissions.canWrite && (
                 <div className={cn(cardVariants({ density: 'compact' }), 'space-y-compact')}>
-                    <Heading level={3}>Set Applicability</Heading>
+                    <Heading level={3}>{t('detail.setApplicability')}</Heading>
                     <div className="flex gap-default">
                         <label className="flex items-center gap-tight text-sm text-content-default">
                             <input type="radio" value="APPLICABLE" checked={appChoice === 'APPLICABLE'} onChange={() => setAppChoice('APPLICABLE')} />
-                            Applicable
+                            {t('detail.applicable')}
                         </label>
                         <label className="flex items-center gap-tight text-sm text-content-default">
                             <input type="radio" value="NOT_APPLICABLE" checked={appChoice === 'NOT_APPLICABLE'} onChange={() => setAppChoice('NOT_APPLICABLE')} />
-                            Not Applicable
+                            {t('detail.notApplicable')}
                         </label>
                     </div>
                     {appChoice === 'NOT_APPLICABLE' && (
-                        <textarea className="input w-full" rows={2} placeholder="Justification required..." value={appJustification} onChange={e => setAppJustification(e.target.value)} id="applicability-justification" />
+                        <textarea className="input w-full" rows={2} placeholder={t('detail.justificationPlaceholder')} value={appJustification} onChange={e => setAppJustification(e.target.value)} id="applicability-justification" />
                     )}
                     <Button variant="primary" onClick={saveApplicability} disabled={savingApp || (appChoice === 'NOT_APPLICABLE' && !appJustification.trim())} id="save-applicability-btn">
-                        {savingApp ? 'Saving...' : 'Save'}
+                        {savingApp ? t('detail.savingDots') : t('detail.save')}
                     </Button>
                 </div>
             )}
@@ -854,8 +856,8 @@ export default function ControlDetailPage() {
                                 onClick={openEditModal}
                                 data-testid="control-edit-button"
                                 id="control-edit-button"
-                                aria-label="Edit control"
-                                title="Edit control"
+                                aria-label={t('detail.editControlAria')}
+                                title={t('detail.editControlAria')}
                             >
                                 {/* B2 — icon-only edit affordance,
                                     canonical unified pattern. */}
@@ -865,45 +867,45 @@ export default function ControlDetailPage() {
                     )}
                     <div className="grid grid-cols-2 gap-section">
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Description</span>
-                            <p className="text-sm text-content-default mt-1">{control.description || 'No description.'}</p>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.fieldDescription')}</span>
+                            <p className="text-sm text-content-default mt-1">{control.description || t('detail.noDescription')}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Intent</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.fieldIntent')}</span>
                             <p className="text-sm text-content-default mt-1">{control.intent || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Category</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.fieldCategory')}</span>
                             <p className="text-sm text-content-default mt-1">{control.category || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Frequency</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.fieldFrequency')}</span>
                             <p className="text-sm text-content-default mt-1">{control.frequency ? FREQ_LABELS[control.frequency] || control.frequency : '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Automation Type</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.fieldAutomationType')}</span>
                             <p className="text-sm text-content-default mt-1">{control.automationType ? AUTOMATION_TYPE_LABELS[control.automationType] || control.automationType : '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Mitigation Type</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.fieldMitigationType')}</span>
                             <p className="text-sm text-content-default mt-1">{control.mitigationType ? MITIGATION_TYPE_LABELS[control.mitigationType] || control.mitigationType : '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Owner</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.fieldOwner')}</span>
                             <p className="text-sm text-content-default mt-1">{control.owner?.name || '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Tasks Progress</span>
-                            <p className="text-sm text-content-default mt-1">{doneTasks}/{totalTasks} completed</p>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.tasksProgress')}</span>
+                            <p className="text-sm text-content-default mt-1">{t('detail.tasksCompleted', { done: doneTasks, total: totalTasks })}</p>
                         </div>
                         {control.applicability === 'NOT_APPLICABLE' && control.applicabilityJustification && (
                             <div className="col-span-2">
-                                <span className="text-xs text-content-subtle uppercase">N/A Justification</span>
+                                <span className="text-xs text-content-subtle uppercase">{t('detail.naJustification')}</span>
                                 <p className="text-sm text-content-warning mt-1">{control.applicabilityJustification}</p>
                             </div>
                         )}
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Contributors</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.contributors')}</span>
                             <div className="text-sm text-content-default mt-1">
                                 {(control.contributors?.length ?? 0) > 0 ? control.contributors?.map((c: ContributorDTO) => (
                                     <StatusBadge variant="neutral" className="mr-1" key={c.user.id}>{c.user.name ?? '—'}</StatusBadge>
@@ -911,11 +913,11 @@ export default function ControlDetailPage() {
                             </div>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Last Tested</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.lastTested')}</span>
                             <p className="text-sm text-content-default mt-1">{control.lastTested ? formatDate(control.lastTested) : '—'}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Next Due</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('detail.nextDue')}</span>
                             <p className="text-sm text-content-default mt-1">{control.nextDueAt ? formatDate(control.nextDueAt) : '—'}</p>
                         </div>
                     </div>
@@ -950,7 +952,7 @@ export default function ControlDetailPage() {
             {/* Success toast */}
             {editSuccess && (
                 <div className="fixed bottom-6 right-6 z-50 bg-bg-success-emphasis text-content-emphasis px-4 py-2 rounded-lg shadow-lg animate-fadeIn text-sm" id="edit-success-toast">
-                    Control updated
+                    {t('detail.controlUpdated')}
                 </div>
             )}
 
@@ -1042,11 +1044,11 @@ export default function ControlDetailPage() {
             {tab === 'activity' && (
                 <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                     {activityLoading ? (
-                        <div className="p-8 text-center text-content-subtle animate-pulse">Loading activity…</div>
+                        <div className="p-8 text-center text-content-subtle animate-pulse">{t('detail.loadingActivity')}</div>
                     ) : activity.length === 0 ? (
                         <InlineEmptyState
-                            title="No activity recorded"
-                            description="Status changes, link updates, and edits show up here once anything moves."
+                            title={t('detail.noActivityTitle')}
+                            description={t('detail.noActivityDesc')}
                         />
                     ) : (
                         <div className="divide-y divide-border-default/50" id="activity-feed">

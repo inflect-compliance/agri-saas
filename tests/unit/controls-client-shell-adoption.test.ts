@@ -63,7 +63,12 @@ describe('ControlsClient — EntityListPage adoption', () => {
         expect(source).toMatch(/filters\s*=\s*\{\{/);
         expect(source).toContain('defs: liveFilterDefs');
         expect(source).toContain("searchId: 'controls-search'");
-        expect(source).toMatch(/searchPlaceholder:\s*['"]Search controls/);
+        // i18n batch T07 — the placeholder routes through next-intl
+        // (`t('searchPlaceholder')`); assert the key is wired AND the
+        // en.json value preserves the "Search controls…" copy.
+        expect(source).toMatch(/searchPlaceholder:\s*t\(['"]searchPlaceholder['"]\)/);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        expect(require('../../messages/en.json').controls.searchPlaceholder).toMatch(/^Search controls/);
     });
 
     it('threads the table config through the shell', () => {

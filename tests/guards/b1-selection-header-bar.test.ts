@@ -24,7 +24,12 @@ const TOOLBAR = read('src/components/ui/table/selection-toolbar.tsx');
 describe('B1 — row-select action bar in the header row', () => {
     it('Controls renders bulk-status verbs via batchActions, NOT a selection right-rail', () => {
         expect(CONTROLS).toMatch(/batchActions:\s*controlBatchActions/);
-        expect(CONTROLS).toMatch(/Mark Implemented/);
+        // i18n batch T07 — the bulk-status verb label routes through
+        // next-intl (`t('list.markImplemented')`); assert the key is wired
+        // AND the en.json value preserves the "Mark Implemented" copy.
+        expect(CONTROLS).toMatch(/t\(['"]list\.markImplemented['"]\)/);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        expect(require('../../messages/en.json').controls.list.markImplemented).toBe('Mark Implemented');
         // The selection-summary right-rail is gone.
         expect(CONTROLS).not.toMatch(/SelectionSummaryPanel/);
     });

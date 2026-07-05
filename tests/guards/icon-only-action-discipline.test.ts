@@ -46,7 +46,6 @@ describe('icon-only action discipline', () => {
         { file: `${APP}/audits/packs/[packId]/page.tsx`, label: 'Freeze pack' },
         { file: `${APP}/audits/packs/[packId]/page.tsx`, label: 'Generate share link' },
         { file: `${APP}/audits/packs/[packId]/page.tsx`, label: 'Clone for retest' },
-        { file: `${APP}/controls/dashboard/page.tsx`, label: 'Consistency check' },
         { file: `${APP}/tests/due/page.tsx`, label: 'Run due planning' },
         // UI-18: the evidence "Upload file" + "Import ZIP" icon buttons were
         // removed — the +Evidence button opens the upload modal directly.
@@ -62,6 +61,18 @@ describe('icon-only action discipline', () => {
             );
         });
     }
+
+    // i18n batch T07 — the controls-dashboard "Consistency check" IconAction
+    // label now routes through next-intl (`t('dashboard.consistencyCheck')`).
+    // Assert the icon-only wiring is preserved AND the en.json value keeps
+    // the copy so the a11y contract holds.
+    it('IconAction site stays icon-only (i18n): "Consistency check"', () => {
+        const src = read(`${APP}/controls/dashboard/page.tsx`);
+        expect(src).toMatch(/import \{ IconAction \} from '@\/components\/ui\/icon-action'/);
+        expect(src).toMatch(/<IconAction[\s\S]*?label=\{t\('dashboard\.consistencyCheck'\)\}/);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        expect(require('../../messages/en.json').controls.dashboard.consistencyCheck).toBe('Consistency check');
+    });
 
     // Link sites (download / navigation) — icon-only via a Tooltip-wrapped
     // `size:'icon'` anchor with an aria-label.

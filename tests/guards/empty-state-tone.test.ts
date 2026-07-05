@@ -138,6 +138,17 @@ describe('Empty-state copy tone (Roadmap-3 PR-6)', () => {
                 'riskReports.noReports',
                 'riskScenarios.noScenarios',
                 'riskDashboard.noSimulation',
+                // T07 i18n migration (controls batch) — pre-existing inline
+                // empty-state text migrated verbatim from the controls
+                // pages' hardcoded JSX. These render as inline `<p>` subtle
+                // text / EmptyState description fields (NOT terse EmptyState
+                // titles), so their terminal punctuation is legitimate and
+                // matches origin/main — same rationale as the T04/T05/T06
+                // exemptions above.
+                'controls.list.noCategorised',
+                'controls.detail.noDescription',
+                'controls.detail.noActivityDesc',
+                'controls.testPlan.noRuns',
             ]);
             if (SANCTIONED.has(key)) continue;
             // Sanctioned namespace: `riskManager.*` keys are the
