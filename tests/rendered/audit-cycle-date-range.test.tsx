@@ -38,12 +38,32 @@ jest.mock('next/navigation', () => ({
     usePathname: () => '/t/acme-corp/audits/cycles',
 }));
 
-// next-intl isn't wired in a bare render; the audit-cycles page
-// doesn't depend on it directly, but transitively-imported shared
-// components (if any pull it in) need a stub.
-jest.mock('next-intl', () => ({
-    useTranslations: () => (key: string) => key,
-}));
+// next-intl isn't wired in a bare render; the audit-cycles form
+// (NewAuditFields) routes its labels through useTranslations('audits')
+// after the T08 i18n migration, so the mock must resolve real English
+// from messages/en.json (a bare key-echo stub would render
+// "cyclesList.auditPeriod" instead of "Audit period").
+jest.mock('next-intl', () => {
+    const messages = require('../../messages/en.json');
+    const resolve = (path: string) =>
+        path.split('.').reduce<unknown>(
+            (o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined),
+            messages,
+        );
+    const interp = (str: string, values?: Record<string, unknown>) =>
+        values ? str.replace(/\{(\w+)[^}]*\}/g, (_m, k) => (values[k] !== undefined ? String(values[k]) : `{${k}}`)) : str;
+    const make = (ns?: string) => {
+        const t = (key: string, values?: Record<string, unknown>) => {
+            const full = ns ? `${ns}.${key}` : key;
+            const v = resolve(full);
+            return typeof v === 'string' ? interp(v, values) : full;
+        };
+        (t as unknown as { rich: unknown }).rich = (key: string) => t(key);
+        (t as unknown as { has: unknown }).has = (key: string) => resolve(ns ? `${ns}.${key}` : key) !== undefined;
+        return t;
+    };
+    return { useTranslations: (ns?: string) => make(ns), useLocale: () => 'en' };
+});
 
 // Next-auth used transitively by the palette / client boundaries in
 // some rendered trees — stub defensively.

@@ -45,7 +45,15 @@ describe('SP-3 SharePoint evidence import', () => {
     it('the evidence upload modal offers Import from SharePoint', () => {
         const modal = read('src/app/t/[tenantSlug]/(app)/evidence/UploadEvidenceModal.tsx');
         expect(modal).toMatch(/SharePointFilePicker/);
-        expect(modal).toMatch(/Import from SharePoint/);
+        // The "Import from SharePoint" button label was migrated to next-intl
+        // (T08 i18n batch) — the literal now lives in messages/en.json under
+        // `evidence.upload.importFromSharePoint`. The modal references it via
+        // the translation key.
+        expect(modal).toMatch(/upload\.importFromSharePoint/);
+        const en = JSON.parse(
+            read('messages/en.json'),
+        ) as { evidence: { upload: { importFromSharePoint: string } } };
+        expect(en.evidence.upload.importFromSharePoint).toBe('Import from SharePoint');
         expect(modal).toMatch(/\/integrations\/sharepoint\/import/);
     });
 });

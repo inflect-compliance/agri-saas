@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -57,6 +58,7 @@ interface AuditsClientProps {
  * Data is pre-fetched server-side and passed via props.
  */
 export function AuditsClient({ initialAudits, tenantSlug, translations: t }: AuditsClientProps) {
+    const tr = useTranslations('audits');
     const [selected, setSelected] = useState<any>(null);
 
     // Modal-form follow-up — create-audit modal mounted off the list,
@@ -139,7 +141,7 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
         <>
             <PageHeader
                 breadcrumbs={[
-                    { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                    { label: tr('crumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
                     { label: t.title },
                 ]}
                 title={t.title}
@@ -151,7 +153,7 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
                             className={cn(buttonVariants({ variant: 'secondary' }))}
                             id="audits-frameworks-link"
                         >
-                            Frameworks
+                            {tr('frameworksLink')}
                         </Link>
                         {/* B4 — Clauses moved off the primary nav
                             and into the Audit page as a secondary
@@ -167,7 +169,7 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
                             className={cn(buttonVariants({ variant: 'secondary' }))}
                             id="audits-clauses-link"
                         >
-                            Clauses
+                            {tr('clausesLink')}
                         </Link>
                         {/* Findings moved off the Tests page header onto
                             the Audit surface — findings are raised and
@@ -226,7 +228,7 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
                                                 setSelected={(opt) => opt && updateChecklist(item.id, opt.value)}
                                                 matchTriggerWidth
                                                 buttonProps={{ className: 'w-full sm:w-auto text-xs' }}
-                                                aria-label={`Result for ${item.prompt}`}
+                                                aria-label={tr('resultForAria', { prompt: item.prompt })}
                                                 caret
                                             />
                                             <div className="flex-1">

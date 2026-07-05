@@ -17,6 +17,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useSWRConfig } from 'swr';
 import {
     useCallback,
@@ -58,6 +59,7 @@ export function NewEvidenceTextModal({
     apiUrl,
     controls,
 }: NewEvidenceTextModalProps) {
+    const tr = useTranslations('evidence');
     const close = useCallback(() => setOpen(false), [setOpen]);
     const queryClient = useQueryClient();
     // Epic 69 — bridge cache invalidation. EvidenceClient now reads
@@ -156,7 +158,7 @@ export function NewEvidenceTextModal({
         onError: (err) => {
             telemetry.trackError(err);
             setError(
-                err instanceof Error ? err.message : 'Failed to create evidence',
+                err instanceof Error ? err.message : tr('textModal.createFailed'),
             );
         },
     });
@@ -182,13 +184,13 @@ export function NewEvidenceTextModal({
             showModal={open}
             setShowModal={setOpen}
             size="lg"
-            title="Add evidence"
-            description="Record a link, narrative, or attestation against a control."
+            title={tr('textModal.title')}
+            description={tr('textModal.description')}
             preventDefaultClose={mutation.isPending}
         >
             <Modal.Header
-                title="Add evidence"
-                description="Record a link, narrative, or attestation against a control."
+                title={tr('textModal.title')}
+                description={tr('textModal.description')}
             />
             <Modal.Form id="text-evidence-form" onSubmit={handleSubmit}>
                 <Modal.Body>
@@ -213,7 +215,7 @@ export function NewEvidenceTextModal({
                                     className="mb-1 block text-sm text-content-default"
                                     htmlFor="text-evidence-title-input"
                                 >
-                                    Title <RequiredMarker />
+                                    {tr('textModal.fieldTitle')} <RequiredMarker />
                                 </label>
                                 <input
                                     id="text-evidence-title-input"
@@ -228,7 +230,7 @@ export function NewEvidenceTextModal({
                                     autoComplete="off"
                                 />
                             </div>
-                            <FormField label="Link to control">
+                            <FormField label={tr('textModal.linkToControl')}>
                                 <Combobox<false, ControlOption>
                                     id="text-evidence-control-select"
                                     name="controlId"
@@ -241,9 +243,9 @@ export function NewEvidenceTextModal({
                                     setSelected={(option) =>
                                         update('controlId', option?.value ?? '')
                                     }
-                                    placeholder="— No control link"
-                                    searchPlaceholder="Search controls…"
-                                    emptyState="No controls match"
+                                    placeholder={tr('textModal.controlPlaceholder')}
+                                    searchPlaceholder={tr('textModal.searchControls')}
+                                    emptyState={tr('textModal.noControlsMatch')}
                                     matchTriggerWidth
                                     forceDropdown
                                     buttonProps={{ className: 'w-full' }}
@@ -255,7 +257,7 @@ export function NewEvidenceTextModal({
                                     className="mb-1 block text-sm text-content-default"
                                     htmlFor="text-evidence-owner-input"
                                 >
-                                    Owner
+                                    {tr('textModal.fieldOwner')}
                                 </label>
                                 <input
                                     id="text-evidence-owner-input"
@@ -273,7 +275,7 @@ export function NewEvidenceTextModal({
                                     className="mb-1 block text-sm text-content-default"
                                     htmlFor="text-evidence-category-input"
                                 >
-                                    Category
+                                    {tr('textModal.fieldCategory')}
                                 </label>
                                 <input
                                     id="text-evidence-category-input"
@@ -297,14 +299,14 @@ export function NewEvidenceTextModal({
                                 className="mb-1 block text-sm text-content-default"
                                 htmlFor="text-evidence-folder-input"
                             >
-                                Folder <span className="text-content-subtle font-normal">(optional)</span>
+                                {tr('textModal.folderLabel')} <span className="text-content-subtle font-normal">{tr('textModal.folderOptional')}</span>
                             </label>
                             <input
                                 id="text-evidence-folder-input"
                                 data-testid="text-evidence-folder-input"
                                 type="text"
                                 className="input w-full"
-                                placeholder="e.g. SOC2/2026 or Quarterly access reviews"
+                                placeholder={tr('textModal.folderPlaceholder')}
                                 list="evidence-folder-suggestions"
                                 value={form.folder}
                                 onChange={(e) =>
@@ -318,7 +320,7 @@ export function NewEvidenceTextModal({
                                 className="mb-1 block text-sm text-content-default"
                                 htmlFor="text-evidence-content-input"
                             >
-                                Content
+                                {tr('textModal.fieldContent')}
                             </label>
                             <textarea
                                 id="text-evidence-content-input"
@@ -328,7 +330,7 @@ export function NewEvidenceTextModal({
                                 onChange={(e) =>
                                     update('content', e.target.value)
                                 }
-                                placeholder="Paste a link or narrative…"
+                                placeholder={tr('textModal.contentPlaceholder')}
                             />
                         </div>
                     </fieldset>
@@ -344,7 +346,7 @@ export function NewEvidenceTextModal({
                         }}
                         disabled={mutation.isPending}
                     >
-                        Cancel
+                        {tr('textModal.cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -353,7 +355,7 @@ export function NewEvidenceTextModal({
                         id="create-text-evidence-btn"
                         disabled={!canSubmit}
                     >
-                        {mutation.isPending ? 'Creating…' : 'Add evidence'}
+                        {mutation.isPending ? tr('textModal.creating') : tr('textModal.addEvidence')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

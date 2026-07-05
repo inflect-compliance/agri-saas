@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Paperclip } from 'lucide-react';
 
 import { ListPageShell } from '@/components/layout/ListPageShell';
@@ -27,16 +28,18 @@ const STATUS_VARIANTS: Record<OverdueEvidenceRow['status'], 'warning' | 'info' |
 };
 
 function OverdueBadge({ days }: { days: number }) {
+    const t = useTranslations('evidence');
     // 30+ days → critical, 7+ → warning, otherwise pending.
     const variant = days >= 30 ? 'error' : days >= 7 ? 'warning' : 'warning';
     return (
         <StatusBadge variant={variant}>
-            {days}d overdue
+            {t('overdue.daysOverdue', { days })}
         </StatusBadge>
     );
 }
 
 export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor, orgSlug }: Props) {
+    const t = useTranslations('evidence');
     const [sortBy, setSortBy] = useState<string>('daysOverdue');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -74,7 +77,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
             createColumns<OverdueEvidenceRow>([
                 {
                     id: 'tenantName',
-                    header: 'Tenant',
+                    header: t('overdue.colTenant'),
                     cell: ({ row }) => (
                         <span
                             className="text-xs font-medium text-content-muted"
@@ -86,7 +89,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                 },
                 {
                     id: 'title',
-                    header: 'Evidence',
+                    header: t('overdue.colEvidence'),
                     cell: ({ row }) => (
                         <Link
                             href={row.original.drillDownUrl}
@@ -99,12 +102,12 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                 },
                 {
                     id: 'daysOverdue',
-                    header: 'Overdue',
+                    header: t('overdue.colOverdue'),
                     cell: ({ row }) => <OverdueBadge days={row.original.daysOverdue} />,
                 },
                 {
                     id: 'status',
-                    header: 'Status',
+                    header: t('overdue.colStatus'),
                     cell: ({ row }) => (
                         <StatusBadge variant={STATUS_VARIANTS[row.original.status]}>
                             {row.original.status}
@@ -113,7 +116,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                 },
                 {
                     id: 'nextReviewDate',
-                    header: 'Review due',
+                    header: t('overdue.colReviewDue'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-subtle tabular-nums">
                             {formatDate(row.original.nextReviewDate)}
@@ -121,7 +124,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                     ),
                 },
             ]),
-        [],
+        [t],
     );
 
     return (
@@ -129,11 +132,11 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
             <ListPageShell.Header>
                 <div>
                     <Heading level={1}>
-                        Overdue Evidence
+                        {t('overdue.title')}
                     </Heading>
                     <p className="text-sm text-content-muted mt-1">
-                        {pagination.rows.length} evidence item{pagination.rows.length === 1 ? '' : 's'} past review across the portfolio
-                        {pagination.hasMore ? ' (more available)' : ''}
+                        {t('overdue.subtitle', { count: pagination.rows.length })}
+                        {pagination.hasMore ? t('overdue.moreAvailable') : ''}
                     </p>
                 </div>
             </ListPageShell.Header>
@@ -150,11 +153,11 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                         if (p.sortBy) setSortBy(p.sortBy);
                         if (p.sortOrder) setSortOrder(p.sortOrder);
                     }}
-                    resourceName={(plural) => (plural ? 'evidence items' : 'evidence item')}
+                    resourceName={(plural) => (plural ? t('overdue.resourcePlural') : t('overdue.resourceSingular'))}
                     emptyState={
                         <TableEmptyState
-                            title="No overdue evidence"
-                            description="Every non-approved evidence item is within its review window across this organization's tenants."
+                            title={t('overdue.emptyTitle')}
+                            description={t('overdue.emptyDescription')}
                             icon={<Paperclip className="size-10" />}
                         />
                     }
@@ -172,7 +175,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                             }}
                             disabled={pagination.loading}
                         >
-                            {pagination.loading ? 'Loading…' : 'Load more evidence'}
+                            {pagination.loading ? t('overdue.loadingMore') : t('overdue.loadMore')}
                         </Button>
                         {pagination.error && (
                             <span
@@ -180,7 +183,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                                 role="alert"
                                 data-testid="org-evidence-load-error"
                             >
-                                Failed to load more — please retry.
+                                {t('overdue.loadError')}
                             </span>
                         )}
                     </div>

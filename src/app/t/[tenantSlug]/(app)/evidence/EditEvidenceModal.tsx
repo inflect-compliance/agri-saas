@@ -14,6 +14,7 @@
  * on close.
  */
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
@@ -54,6 +55,7 @@ export function EditEvidenceModal({
     initial,
     onSaved,
 }: EditEvidenceModalProps) {
+    const t = useTranslations('evidence');
     const apiUrl = useTenantApiUrl();
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -115,7 +117,7 @@ export function EditEvidenceModal({
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                setError(err.error?.message || 'Failed to update evidence');
+                setError(err.error?.message || t('edit.updateFailed'));
                 return;
             }
             // Retention moved into this modal — persist via the dedicated
@@ -133,7 +135,7 @@ export function EditEvidenceModal({
                 });
                 if (!rr.ok) {
                     const err = await rr.json().catch(() => ({}));
-                    setError(err.error?.message || 'Saved details, but failed to update retention');
+                    setError(err.error?.message || t('edit.retentionFailed'));
                     return;
                 }
             }
@@ -153,16 +155,14 @@ export function EditEvidenceModal({
                 if (submitting) return;
                 if (
                     isDirty &&
-                    !window.confirm(
-                        'Discard changes? Any edits you made will be lost.',
-                    )
+                    !window.confirm(t('edit.discardConfirm'))
                 ) {
                     return;
                 }
             }
             setOpen(next);
         },
-        [submitting, isDirty, setOpen],
+        [submitting, isDirty, setOpen, t],
     );
     const close = () => guardedSetOpen(false);
 
@@ -178,13 +178,13 @@ export function EditEvidenceModal({
             showModal={open}
             setShowModal={guardedSetOpen}
             size="lg"
-            title="Edit evidence"
-            description="Update the details of this evidence record."
+            title={t('edit.title')}
+            description={t('edit.description')}
             preventDefaultClose={submitting}
         >
             <Modal.Header
-                title="Edit evidence"
-                description="Update the details of this evidence record."
+                title={t('edit.title')}
+                description={t('edit.description')}
             />
             <Modal.Form id="edit-evidence-form" onSubmit={handleSubmit}>
                 <Modal.Body>
@@ -201,7 +201,7 @@ export function EditEvidenceModal({
                         disabled={submitting}
                         className="m-0 p-0 border-0 space-y-default"
                     >
-                        <FormField label="Title" required>
+                        <FormField label={t('edit.fieldTitle')} required>
                             <Input
                                 id="edit-evidence-title-input"
                                 value={title}
@@ -212,7 +212,7 @@ export function EditEvidenceModal({
                                 required
                             />
                         </FormField>
-                        <FormField label="Description">
+                        <FormField label={t('edit.fieldDescription')}>
                             <Textarea
                                 id="edit-evidence-description"
                                 className="h-24"
@@ -224,7 +224,7 @@ export function EditEvidenceModal({
                             />
                         </FormField>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-default">
-                            <FormField label="Owner">
+                            <FormField label={t('edit.fieldOwner')}>
                                 <UserCombobox
                                     id="edit-evidence-owner-input"
                                     name="ownerUserId"
@@ -234,10 +234,10 @@ export function EditEvidenceModal({
                                         setOwnerUserId(userId ?? null);
                                         markDirty();
                                     }}
-                                    placeholder="Unassigned"
+                                    placeholder={t('edit.ownerPlaceholder')}
                                 />
                             </FormField>
-                            <FormField label="Control (optional)">
+                            <FormField label={t('edit.fieldControl')}>
                                 <EntityPicker
                                     id="edit-evidence-control-input"
                                     tenantSlug={tenantSlug}
@@ -247,7 +247,7 @@ export function EditEvidenceModal({
                                         setControlId(id);
                                         markDirty();
                                     }}
-                                    placeholder="Link a control…"
+                                    placeholder={t('edit.controlPlaceholder')}
                                     testId="edit-evidence-control-picker"
                                 />
                             </FormField>
@@ -255,7 +255,7 @@ export function EditEvidenceModal({
                         {/* B8 follow-up — folder is editable post-
                             create. Clearing the field re-files the
                             evidence as unfoldered. */}
-                        <FormField label="Folder">
+                        <FormField label={t('edit.fieldFolder')}>
                             <Input
                                 id="edit-evidence-folder-input"
                                 data-testid="edit-evidence-folder-input"
@@ -264,20 +264,20 @@ export function EditEvidenceModal({
                                     setFolder(e.target.value);
                                     markDirty();
                                 }}
-                                placeholder="e.g. SOC2/2026 — clear to unfile"
+                                placeholder={t('edit.folderPlaceholder')}
                             />
                         </FormField>
                         {/* Retention date — moved here from the inline
                             table column. Clearing it sets the policy back
                             to NONE. */}
                         <FormField
-                            label="Retention date"
-                            description="When this evidence's retention period ends. Clear to remove the retention policy."
+                            label={t('edit.fieldRetention')}
+                            description={t('edit.retentionFieldDescription')}
                         >
                             <DatePicker
                                 id="edit-evidence-retention-input"
                                 className="w-full"
-                                placeholder="No retention date"
+                                placeholder={t('edit.retentionPlaceholder')}
                                 clearable
                                 align="start"
                                 value={parseYMD(retentionDate)}
@@ -286,7 +286,7 @@ export function EditEvidenceModal({
                                     markDirty();
                                 }}
                                 disabledDays={{ before: startOfUtcDay(new Date()) }}
-                                aria-label="Retention date"
+                                aria-label={t('edit.retentionAria')}
                             />
                         </FormField>
                     </fieldset>
@@ -299,7 +299,7 @@ export function EditEvidenceModal({
                         disabled={submitting}
                         id="edit-evidence-cancel-btn"
                     >
-                        Cancel
+                        {t('edit.cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -308,7 +308,7 @@ export function EditEvidenceModal({
                         disabled={!canSubmit}
                         id="edit-evidence-submit-btn"
                     >
-                        {submitting ? 'Saving…' : 'Save changes'}
+                        {submitting ? t('edit.saving') : t('edit.saveChanges')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>
