@@ -57,6 +57,7 @@ import {
     type Table as TableType,
 } from "@tanstack/react-table";
 import { List, type RowComponentProps } from "react-window";
+import { useTranslations } from "next-intl";
 
 import { SortOrder } from "../icons";
 import { Tooltip } from "../tooltip";
@@ -324,9 +325,11 @@ export function VirtualTable<T>({
     onSortChange,
     containerClassName,
     scrollWrapperClassName,
-    "aria-label": ariaLabel = "Table contents (scrollable)",
+    "aria-label": ariaLabelProp,
     "data-testid": testId,
 }: VirtualTableProps<T>) {
+    const t = useTranslations("ui.table");
+    const ariaLabel = ariaLabelProp ?? t("scrollableRegion");
     const rows = table.getRowModel().rows;
     const visibleColumns = table.getVisibleLeafColumns();
 
@@ -494,6 +497,7 @@ function VirtualTableHeader<T>({
     onSortChange,
     columnsAfterSelect,
 }: VirtualTableHeaderProps<T>) {
+    const t = useTranslations("ui.table");
     return (
         <div
             role="rowgroup"
@@ -535,7 +539,7 @@ function VirtualTableHeader<T>({
                                     {isSortable ? (
                                         <button
                                             type="button"
-                                            aria-label="Sort by column"
+                                            aria-label={t("sortByColumn")}
                                             className="flex items-center gap-tight"
                                             onClick={() =>
                                                 onSortChange?.({

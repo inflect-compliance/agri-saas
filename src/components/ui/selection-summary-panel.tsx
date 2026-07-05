@@ -17,6 +17,7 @@
  * presentation.
  */
 import { type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 
@@ -56,6 +57,7 @@ export function SelectionSummaryPanel({
     actions = [],
     onClear,
 }: SelectionSummaryPanelProps) {
+    const t = useTranslations('ui.selectionSummary');
     const word = count === 1 ? resourceLabel.singular : resourceLabel.plural;
 
     return (
@@ -71,7 +73,7 @@ export function SelectionSummaryPanel({
                     {count}
                 </span>
                 <span className="text-sm text-content-muted">
-                    {word} selected
+                    {t('countLabel', { word })}
                 </span>
             </p>
 
@@ -104,7 +106,7 @@ export function SelectionSummaryPanel({
                 className="w-full justify-start text-content-muted"
                 onClick={onClear}
             >
-                Clear selection
+                {t('clearSelection')}
             </Button>
         </div>
     );

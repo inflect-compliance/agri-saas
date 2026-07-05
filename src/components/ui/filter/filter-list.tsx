@@ -1,5 +1,8 @@
+'use client';
+
 import { cn } from "@/lib/cn";
 import { pluralize, truncate } from "@/lib/text-utils";
+import { useTranslations } from "next-intl";
 import { Command } from "cmdk";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -34,21 +37,6 @@ type FilterListProps = {
   className?: string;
 };
 
-function getOperatorLabel(operator: FilterOperator): string {
-  switch (operator) {
-    case "IS":
-    case "IS_ONE_OF":
-      return "is";
-
-    case "IS_NOT":
-    case "IS_NOT_ONE_OF":
-      return "is not";
-
-    default:
-      return "is";
-  }
-}
-
 export function FilterList({
   filters,
   activeFilters,
@@ -60,6 +48,7 @@ export function FilterList({
   isAdvancedFilter = false,
   className,
 }: FilterListProps) {
+  const t = useTranslations("ui.filter");
   // Epic 57 — Escape clears all active filters. Priority 1 so the
   // selection-toolbar clear (priority 2) wins when rows are selected,
   // and any overlay's native Radix/Vaul Escape handler wins when a
@@ -266,7 +255,7 @@ export function FilterList({
             )}
             onClick={onRemoveAll}
           >
-            Clear Filters
+            {t("clearFilters")}
             <kbd className="rounded-md border border-border-subtle px-1.5 py-0.5 text-xs text-content-emphasis group-hover:bg-bg-muted">
               ESC
             </kbd>
@@ -303,6 +292,7 @@ function OperatorFilterPill({
   onToggleOperator?: (key: string) => void;
   isAdvancedFilter?: boolean;
 }) {
+  const t = useTranslations("ui.filter");
   const [operatorDropdownOpen, setOperatorDropdownOpen] = useState(false);
   const [valueDropdownOpen, setValueDropdownOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -342,9 +332,9 @@ function OperatorFilterPill({
       (min != null && max != null
         ? `${fmt(min)} – ${fmt(max)}`
         : min != null
-          ? `${fmt(min)} – No max`
+          ? `${fmt(min)} – ${t("noMax")}`
           : max != null
-            ? `No min – ${fmt(max)}`
+            ? `${t("noMin")} – ${fmt(max)}`
             : token);
 
     return (
@@ -368,7 +358,7 @@ function OperatorFilterPill({
         </div>
 
         <div className="flex items-center px-3 py-2 text-sm text-content-muted">
-          is
+          {t("is")}
         </div>
 
         <Popover
@@ -490,7 +480,7 @@ function OperatorFilterPill({
                   setOperatorDropdownOpen(false);
                 }}
               >
-                is
+                {t("is")}
               </button>
               <button
                 type="button"
@@ -508,7 +498,7 @@ function OperatorFilterPill({
                   setOperatorDropdownOpen(false);
                 }}
               >
-                is not
+                {t("isNot")}
               </button>
             </div>
           }
@@ -523,11 +513,11 @@ function OperatorFilterPill({
               "active:scale-[0.98] motion-reduce:active:scale-100",
             )}
           >
-            {getOperatorLabel(operator)}
+            {t(operator.includes("NOT") ? "isNot" : "is")}
           </button>
         </Popover>
       ) : (
-        <div className="px-3 py-2 text-content-muted">is</div>
+        <div className="px-3 py-2 text-content-muted">{t("is")}</div>
       )}
 
       <Popover

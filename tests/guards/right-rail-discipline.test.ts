@@ -146,7 +146,9 @@ describe('Right-rail list-page aside discipline (Phase 2)', () => {
         // a selection summary; the batch verbs are caller-supplied.
         expect(src).toMatch(/data-testid=["']selection-summary["']/);
         expect(src).toMatch(/data-testid=["']selection-summary-count["']/);
-        expect(src).toContain('Clear selection');
+        // The clear affordance label is i18n-routed
+        // (ui.selectionSummary.clearSelection = "Clear selection").
+        expect(src).toMatch(/clearSelection/);
     });
 
     it('controls list page uses the header-row selection bar (B1), keeping the browse/AI rails', () => {

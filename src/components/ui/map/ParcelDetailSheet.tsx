@@ -18,6 +18,7 @@
  * here" action that hands the parcel back to the host to launch a spray
  * job.
  */
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
@@ -55,6 +56,8 @@ function formatNumber(n: number): string {
 }
 
 export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation, deepLinkUrl }: ParcelDetailSheetProps) {
+    const t = useTranslations('ag.map');
+    const tc = useTranslations('common');
     const [rate, setRate] = useState('');
 
     // Reset the calculator whenever a different parcel takes the sheet.
@@ -77,51 +80,51 @@ export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation
             // reachable — tapping a parcel to inspect it must not lock the
             // operator out of switching modes or merging.
             modal={false}
-            title={parcel?.name ?? 'Parcel'}
-            description="Parcel detail and apply-rate calculator"
+            title={parcel?.name ?? t('parcel')}
+            description={t('parcelSheet.description')}
         >
-            <Sheet.Header title={parcel?.name ?? 'Parcel'} />
+            <Sheet.Header title={parcel?.name ?? t('parcel')} />
             <Sheet.Body className="space-y-section">
                 <dl className="grid grid-cols-2 gap-default text-sm">
                     <div>
-                        <dt className="text-content-secondary">Area</dt>
+                        <dt className="text-content-secondary">{t('parcelSheet.area')}</dt>
                         <dd className="font-medium" data-testid="parcel-sheet-area">
                             {area != null ? `${formatNumber(area)} ha` : '—'}
                         </dd>
                     </div>
                     <div>
-                        <dt className="text-content-secondary">Crop</dt>
+                        <dt className="text-content-secondary">{t('parcelSheet.crop')}</dt>
                         <dd className="font-medium" data-testid="parcel-sheet-crop">{parcel?.cropType ?? '—'}</dd>
                     </div>
                     <div className="col-span-2">
-                        <dt className="text-content-secondary">Last application</dt>
+                        <dt className="text-content-secondary">{t('parcelSheet.lastApplication')}</dt>
                         <dd className="font-medium">
                             {parcel?.lastApplication
                                 ? `${parcel.lastApplication.label}${parcel.lastApplication.occurredAt ? ` · ${parcel.lastApplication.occurredAt}` : ''}`
-                                : 'No applications recorded yet'}
+                                : t('parcelSheet.noApplications')}
                         </dd>
                     </div>
                 </dl>
 
                 {/* Apply-rate calculator — pure client maths, no round-trip. */}
                 <div className="space-y-default rounded-lg border border-border-subtle p-4">
-                    <p className="text-sm font-medium text-content-emphasis">Apply-rate calculator</p>
-                    <FormField label="Rate per hectare">
+                    <p className="text-sm font-medium text-content-emphasis">{t('parcelSheet.calculator')}</p>
+                    <FormField label={t('parcelSheet.ratePerHectare')}>
                         <Input
                             value={rate}
                             onChange={(e) => setRate(e.target.value)}
                             inputMode="decimal"
-                            placeholder="e.g. 2.5"
-                            aria-label="Rate per hectare"
+                            placeholder={t('parcelSheet.ratePlaceholder')}
+                            aria-label={t('parcelSheet.ratePerHectare')}
                             data-testid="parcel-sheet-rate"
                         />
                     </FormField>
                     <p className="text-sm text-content-secondary" data-testid="parcel-sheet-total" aria-live="polite">
                         {total != null
-                            ? `Total for this parcel: ${formatNumber(total)} (${formatNumber(Number.parseFloat(rate))} × ${formatNumber(area!)} ha)`
+                            ? t('parcelSheet.total', { total: formatNumber(total), rate: formatNumber(Number.parseFloat(rate)), area: formatNumber(area!) })
                             : area == null
-                                ? 'Parcel area unknown — total can’t be computed.'
-                                : 'Enter a rate to compute the total for this parcel.'}
+                                ? t('parcelSheet.areaUnknown')
+                                : t('parcelSheet.enterRate')}
                     </p>
                 </div>
 
@@ -130,13 +133,13 @@ export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation
                         <QrCode
                             value={deepLinkUrl}
                             size={96}
-                            title={`QR code linking to ${parcel?.name ?? 'this field'}`}
+                            title={t('parcelSheet.qrTitle', { name: parcel?.name ?? t('parcelSheet.thisField') })}
                             className="shrink-0 rounded-md bg-white p-1"
                         />
                         <div className="min-w-0">
-                            <p className="text-sm font-medium text-content-emphasis">Field QR</p>
+                            <p className="text-sm font-medium text-content-emphasis">{t('parcelSheet.fieldQr')}</p>
                             <p className="text-xs text-content-secondary">
-                                Scan to open this field on a phone — pin it by the gate or in the cab.
+                                {t('parcelSheet.scanHint')}
                             </p>
                         </div>
                     </div>
@@ -145,7 +148,7 @@ export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation
             {onStartOperation && parcel && (
                 <Sheet.Actions align="between">
                     <Sheet.Close asChild>
-                        <Button variant="secondary" size="lg">Close</Button>
+                        <Button variant="secondary" size="lg">{tc('close')}</Button>
                     </Sheet.Close>
                     <Button
                         variant="primary"
@@ -153,7 +156,7 @@ export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation
                         data-testid="parcel-sheet-start-operation"
                         onClick={() => onStartOperation(parcel.id)}
                     >
-                        Start operation here
+                        {t('parcelSheet.startOperation')}
                     </Button>
                 </Sheet.Actions>
             )}

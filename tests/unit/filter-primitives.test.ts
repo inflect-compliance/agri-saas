@@ -285,7 +285,8 @@ describe('FilterList — primitive contract', () => {
     });
 
     it('renders a labelled Clear Filters button with an ESC keyboard hint', () => {
-        expect(src).toContain('Clear Filters');
+        // The label is i18n-routed (ui.filter.clearFilters = "Clear Filters").
+        expect(src).toMatch(/t\(["']clearFilters["']\)/);
         // The visible ESC kbd hint doubles as a keyboard-affordance cue.
         expect(src).toMatch(/<kbd[\s\S]*?ESC[\s\S]*?<\/kbd>/);
     });

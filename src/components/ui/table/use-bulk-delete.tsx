@@ -32,6 +32,7 @@
  */
 
 import { useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import type { Row } from "@tanstack/react-table";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Trash } from "@/components/ui/icons/nucleo";
@@ -84,6 +85,7 @@ export function useBulkDelete<T>({
     verb = "Delete",
     description,
 }: UseBulkDeleteOptions<T>): UseBulkDeleteResult<T> {
+    const t = useTranslations("ui.table");
     const [open, setOpen] = useState(false);
     const [pending, setPending] = useState<string[]>([]);
 
@@ -112,8 +114,7 @@ export function useBulkDelete<T>({
             tone="danger"
             title={`${verb} ${count} ${noun}?`}
             description={
-                description ??
-                `This removes the selected ${noun} from your workspace. This can’t be undone.`
+                description ?? t("bulkDeleteDescription", { noun })
             }
             confirmLabel={verb}
             onConfirm={async () => {

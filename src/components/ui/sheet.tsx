@@ -22,6 +22,7 @@
  */
 
 import { cn } from "@/lib/cn";
+import { useTranslations } from "next-intl";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 import { ComponentProps, type HTMLAttributes, type ReactNode } from "react";
@@ -79,6 +80,7 @@ function SheetRoot({
     description,
     ...rest
 }: SheetRootProps) {
+    const t = useTranslations("ui.sheet");
     const { isMobile } = useMediaQuery();
     const { inset: keyboardInset, height: viewportHeight } = useKeyboardInset();
     const RootComponent = nested ? Drawer.NestedRoot : Drawer.Root;
@@ -94,7 +96,7 @@ function SheetRoot({
 
     const fallbackTitle = (
         <VisuallyHidden.Root>
-            <Drawer.Title>{title ?? "Sheet"}</Drawer.Title>
+            <Drawer.Title>{title ?? t("sheetFallback")}</Drawer.Title>
             <Drawer.Description>{description ?? ""}</Drawer.Description>
         </VisuallyHidden.Root>
     );
@@ -235,6 +237,7 @@ function Header({
     /** Toggle the built-in close button. Default: true. */
     showCloseButton?: boolean;
 }) {
+    const tc = useTranslations("common");
     return (
         <div
             data-sheet-header
@@ -250,11 +253,11 @@ function Header({
                 {children}
             </div>
             {showCloseButton ? (
-                <Tooltip content="Close" shortcut="Esc">
+                <Tooltip content={tc("close")} shortcut="Esc">
                     <Drawer.Close asChild>
                         <button
                             type="button"
-                            aria-label="Close"
+                            aria-label={tc("close")}
                             data-sheet-close
                             className="shrink-0 rounded-md p-1.5 text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >

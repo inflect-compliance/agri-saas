@@ -1,3 +1,5 @@
+'use client';
+
 /* eslint-disable react-hooks/exhaustive-deps -- Various useEffect/useMemo dep arrays in this file deliberately omit identity-unstable callbacks (handlers recreated each render) or use selector functions whose change-detection happens elsewhere. Adding the deps would either trigger unnecessary re-runs OR cause infinite render loops; the proper structural fix is to wrap parent-level callbacks in useCallback. Tracked as follow-up. */
 /* eslint-disable @typescript-eslint/no-explicit-any --
  * Tanstack-react-table primitive wrapper. Remaining `any` usages are
@@ -19,6 +21,7 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { AnimatePresence, motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   CSSProperties,
@@ -146,6 +149,8 @@ export function useTable<T extends any>(
     columnResizeMode = "onChange",
   } = props;
 
+  const t = useTranslations("ui.table");
+
   // R12-PR1 — select column is default-on. Pages opt out via
   // `selectionEnabled={false}`. The previous gating (require either
   // `onRowSelectionChange` or `selectionControls`) made the select
@@ -250,10 +255,10 @@ export function useTable<T extends any>(
                     e.stopPropagation();
                     table.toggleAllRowsSelected();
                   }}
-                  title="Select all"
+                  title={t("selectAll")}
                 >
                   <Checkbox
-                    aria-label="Select all rows"
+                    aria-label={t("selectAllRows")}
                     className="border-border-emphasis pointer-events-none size-4 rounded-full data-[state=checked]:bg-[var(--brand-emphasis)] data-[state=indeterminate]:bg-[var(--brand-emphasis)]"
                     checked={
                       table.getIsAllRowsSelected()
@@ -335,10 +340,10 @@ export function useTable<T extends any>(
                     tabIndex={-1}
                     className="flex size-full cursor-pointer items-center justify-center"
                     onClick={onSelectRow}
-                    title="Select"
+                    title={t("select")}
                   >
                     <Checkbox
-                      aria-label="Select row"
+                      aria-label={t("selectRow")}
                       className="border-border-emphasis pointer-events-none size-4 rounded-full data-[state=checked]:bg-[var(--brand-emphasis)] data-[state=indeterminate]:bg-[var(--brand-emphasis)]"
                       checked={row.getIsSelected()}
                     />
@@ -658,6 +663,7 @@ export function Table<T>({
   children,
   enableColumnResizing = false,
 }: TableProps<T>) {
+  const t = useTranslations("ui.table");
   const selectionEnabled = selectionEnabledProp ?? true;
   const visibleColumns = table.getVisibleLeafColumns();
   const columnsAfterSelect = new Set<string>();
@@ -845,7 +851,7 @@ export function Table<T>({
             // meaningful announce-name for the table viewport.
             tabIndex={0}
             role="region"
-            aria-label="Table contents (scrollable)"
+            aria-label={t("scrollableRegion")}
             className={cn(
               "relative overflow-x-auto rounded-[inherit]",
               // B6 (2026-06-07): the 400px floor is for the EMPTY state only
@@ -993,7 +999,7 @@ export function Table<T>({
                               {...(isSortableColumn && {
                                 type: "button",
                                 disabled: !isSortableColumn,
-                                "aria-label": "Sort by column",
+                                "aria-label": t("sortByColumn"),
                                 onClick: () =>
                                   onSortChange?.({
                                     sortBy: header.column.id,
@@ -1292,14 +1298,15 @@ export function Table<T>({
               error
             )
           ) : (
-            emptyState || `No ${resourceName?.(true) || "items"} found.`
+            emptyState ||
+            t("emptyItems", { resource: resourceName?.(true) ?? t("items") })
           )}
         </div>
       )}
       {pagination && !error && !!data?.length && !!rowCount && (
         <div className="border-border-subtle bg-bg-default text-content-default sticky bottom-0 z-10 mx-auto -mt-px flex w-full max-w-full items-center justify-between rounded-b-[inherit] border-t px-4 py-3.5 text-sm leading-6 before:pointer-events-none before:absolute before:bottom-full before:left-0 before:right-0 before:h-6 before:bg-gradient-to-t before:from-bg-default before:to-transparent">
           <div>
-            <span className="hidden sm:inline-block">Viewing</span>{" "}
+            <span className="hidden sm:inline-block">{t("pagination.viewing")}</span>{" "}
             <span className="font-medium">
               {(
                 (pagination.pageIndex - 1) * pagination.pageSize +
@@ -1312,16 +1319,16 @@ export function Table<T>({
                 table.getRowCount(),
               ).toLocaleString()}
             </span>{" "}
-            of{" "}
+            {t("pagination.of")}{" "}
             <As href={paginationAllRowsHref ?? "#"} className="font-medium">
               {table.getRowCount().toLocaleString()}{" "}
-              {resourceName?.(table.getRowCount() !== 1) || "items"}
+              {resourceName?.(table.getRowCount() !== 1) || t("pagination.items")}
             </As>
           </div>
           <div className="flex items-center gap-tight">
             <Button
               variant="secondary"
-              text="Previous"
+              text={t("pagination.previous")}
               className="h-7 px-2"
               onClick={() => table.previousPage()}
               // disabled={!table.getCanPreviousPage()}
@@ -1329,7 +1336,7 @@ export function Table<T>({
             />
             <Button
               variant="secondary"
-              text="Next"
+              text={t("pagination.next")}
               className="h-7 px-2"
               onClick={() => table.nextPage()}
               // disabled={!table.getCanNextPage()}

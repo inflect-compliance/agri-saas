@@ -22,6 +22,7 @@
  */
 
 import { LayoutGrid, Table } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import type { ViewMode } from '@/components/ui/hooks/use-view-mode';
@@ -48,11 +49,13 @@ export interface ViewToggleProps {
 export function ViewToggle({
     view,
     onChange,
-    ariaLabel = 'View mode',
+    ariaLabel: ariaLabelProp,
     className,
     size = 'sm',
     'data-testid': testId,
 }: ViewToggleProps) {
+    const t = useTranslations('ui.viewToggle');
+    const ariaLabel = ariaLabelProp ?? t('viewMode');
     return (
         <div data-view-toggle data-view={view} data-testid={testId}>
             <ToggleGroup
@@ -71,7 +74,7 @@ export function ViewToggle({
                                     className="size-3.5"
                                     aria-hidden="true"
                                 />
-                                <span>Table</span>
+                                <span>{t('table')}</span>
                             </span>
                         ),
                     },
@@ -84,7 +87,7 @@ export function ViewToggle({
                                     className="size-3.5"
                                     aria-hidden="true"
                                 />
-                                <span>Cards</span>
+                                <span>{t('cards')}</span>
                             </span>
                         ),
                     },

@@ -34,6 +34,7 @@ import {
   type Table as TableType,
 } from "@tanstack/react-table";
 import type { MouseEvent, ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "./table-utils";
 
 // ── Column-meta augmentation ────────────────────────────────────────
@@ -96,6 +97,7 @@ export function MobileCardList<T>({
   emptyState,
   className,
 }: MobileCardListProps<T>) {
+  const t = useTranslations("ui.table");
   const rows = table.getRowModel().rows;
 
   if (error) {
@@ -130,7 +132,7 @@ export function MobileCardList<T>({
       <div className={className}>
         {emptyState ?? (
           <p className="px-4 py-8 text-center text-sm text-content-muted">
-            No results.
+            {t("emptyResults")}
           </p>
         )}
       </div>

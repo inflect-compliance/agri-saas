@@ -7,6 +7,7 @@
 
 import { cn } from "./table-utils";
 import { Table } from "@tanstack/react-table";
+import { useTranslations } from "next-intl";
 import {
   ButtonHTMLAttributes,
   forwardRef,
@@ -155,6 +156,7 @@ export function SelectionToolbar<T>({
   controls?: (table: Table<T>) => ReactNode;
   className?: string;
 }) {
+  const t = useTranslations("ui.table");
   const selectedCount = table.getSelectedRowModel().rows.length;
   const totalCount = table.getRowModel().rows.length;
   const [lastSelectedCount, setLastSelectedCount] = useState(0);
@@ -197,7 +199,7 @@ export function SelectionToolbar<T>({
           ? ({ inert: "" } as Record<string, string>)
           : {})}
       role="toolbar"
-      aria-label="Batch actions"
+      aria-label={t("batchActions")}
       data-testid="selection-toolbar"
     >
       {/* B1 (2026-06-07): the bar matches the column-header row height
@@ -209,8 +211,8 @@ export function SelectionToolbar<T>({
           <Tooltip
             content={
               table.getIsAllRowsSelected()
-                ? "Deselect all"
-                : `Select all ${totalCount}`
+                ? t("deselectAll")
+                : t("selectAllCount", { count: totalCount })
             }
           >
             {/* NB: <div>, not <button>. Radix Checkbox inside renders
@@ -233,8 +235,8 @@ export function SelectionToolbar<T>({
               <Checkbox
                 aria-label={
                   table.getIsAllRowsSelected()
-                    ? "Deselect all rows"
-                    : "Select all rows"
+                    ? t("deselectAllRows")
+                    : t("selectAllRows")
                 }
                 className="border-border-emphasis pointer-events-none size-4 rounded-full data-[state=checked]:bg-[var(--brand-emphasis)] data-[state=indeterminate]:bg-[var(--brand-emphasis)]"
                 checked={
@@ -257,7 +259,7 @@ export function SelectionToolbar<T>({
               selectedCount > 0 ? "translate-x-0" : "-translate-x-1",
             )}
           >
-            {lastSelectedCount} selected
+            {t("selectedCount", { count: lastSelectedCount })}
           </span>
 
           {/* Separator between count and actions */}
@@ -269,7 +271,7 @@ export function SelectionToolbar<T>({
           />
 
           {/* Clear selection button */}
-          <Tooltip content="Clear selection" shortcut="Esc">
+          <Tooltip content={t("clearSelection")} shortcut="Esc">
           <button
             type="button"
             className={cn(
@@ -280,9 +282,9 @@ export function SelectionToolbar<T>({
               e.stopPropagation();
               table.resetRowSelection();
             }}
-            aria-label="Clear selection"
+            aria-label={t("clearSelection")}
           >
-            Clear
+            {t("clear")}
           </button>
           </Tooltip>
 

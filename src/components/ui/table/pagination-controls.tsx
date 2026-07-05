@@ -22,6 +22,7 @@
 
 import { cn } from "./table-utils";
 import { Button } from "../button";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   getPageRange,
@@ -65,6 +66,7 @@ export function PaginationControls({
   allRowsHref,
   className,
 }: PaginationControlsProps) {
+  const t = useTranslations("ui.table.pagination");
   const meta: PaginationMeta = { page, pageSize, totalCount };
   const state = getPaginationState(meta);
 
@@ -91,22 +93,22 @@ export function PaginationControls({
         className,
       )}
       role="navigation"
-      aria-label="Pagination"
+      aria-label={t("label")}
       data-testid="pagination-controls"
     >
       {/* Range info: "Viewing 1–25 of 243 controls" */}
       <div>
-        <span className="hidden sm:inline-block">Viewing</span>{" "}
+        <span className="hidden sm:inline-block">{t("viewing")}</span>{" "}
         <span className="font-medium">
           {range.from.toLocaleString()}–{range.to.toLocaleString()}
         </span>{" "}
-        of{" "}
+        {t("of")}{" "}
         <As
           href={allRowsHref ?? "#"}
           className={cn("font-medium", allRowsHref && "hover:underline")}
         >
           {range.total.toLocaleString()}{" "}
-          {resourceName?.(range.total !== 1) ?? "items"}
+          {resourceName?.(range.total !== 1) ?? t("items")}
         </As>
       </div>
 
@@ -114,19 +116,19 @@ export function PaginationControls({
       <div className="flex items-center gap-tight">
         <Button
           variant="secondary"
-          text="Previous"
+          text={t("previous")}
           className="h-7 px-2"
           onClick={() => onPageChange(page - 1)}
           disabled={!state.canPreviousPage}
-          aria-label="Go to previous page"
+          aria-label={t("previousPage")}
         />
         <Button
           variant="secondary"
-          text="Next"
+          text={t("next")}
           className="h-7 px-2"
           onClick={() => onPageChange(page + 1)}
           disabled={!state.canNextPage}
-          aria-label="Go to next page"
+          aria-label={t("nextPage")}
         />
       </div>
     </div>
