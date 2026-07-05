@@ -51,7 +51,9 @@ describe('RiskHeatmap Widget', () => {
 
     test('handles empty state (zero risks)', () => {
         expect(content).toContain('totalRisks === 0');
-        expect(content).toContain('No risks registered yet');
+        // Empty-state copy is i18n-routed (ui.riskHeatmap.emptyState =
+        // "No risks registered yet" in messages/en.json).
+        expect(content).toContain("t('riskHeatmap.emptyState')");
     });
 
     test('color-codes by risk score via R21-PR-C useHeatScale', () => {
@@ -73,8 +75,10 @@ describe('RiskHeatmap Widget', () => {
     });
 
     test('has axis labels (Likelihood + Impact)', () => {
-        expect(content).toContain('Likelihood');
-        expect(content).toContain('Impact');
+        // Axis labels are i18n-routed (ui.riskHeatmap.likelihood =
+        // "Likelihood", ui.riskHeatmap.impact = "Impact").
+        expect(content).toContain("t('riskHeatmap.likelihood')");
+        expect(content).toContain("t('riskHeatmap.impact')");
     });
 
     test('has a gradient legend (R21-PR-C ChartLegend)', () => {
@@ -115,7 +119,9 @@ describe('ExpiryCalendar Widget', () => {
 
     test('handles empty state (no items)', () => {
         expect(content).toContain('items.length === 0');
-        expect(content).toContain('No upcoming evidence expirations');
+        // Empty-state copy is i18n-routed (ui.expiryCalendar.empty =
+        // "No upcoming evidence expirations.").
+        expect(content).toContain("t('expiryCalendar.empty')");
     });
 
     test('groups by urgency levels', () => {
@@ -132,9 +138,11 @@ describe('ExpiryCalendar Widget', () => {
     });
 
     test('formats days until correctly', () => {
-        expect(content).toContain("'Today'");
-        expect(content).toContain("'Tomorrow'");
-        expect(content).toContain('overdue');
+        // Day labels are i18n-routed (ui.expiryCalendar.today = "Today",
+        // .tomorrow = "Tomorrow", .daysOverdue = "{days}d overdue").
+        expect(content).toContain("t('expiryCalendar.today')");
+        expect(content).toContain("t('expiryCalendar.tomorrow')");
+        expect(content).toContain('expiryCalendar.daysOverdue');
     });
 
     test('date formatting uses UTC to avoid timezone shifts', () => {
@@ -281,7 +289,12 @@ describe('RiskHeatmap Score Logic (post R21-PR-C heatmap rebuild)', () => {
         // The score + cell count are surfaced in the tooltip
         // string. Severity buckets aren't a separate label any
         // more — the colour communicates severity directly.
-        expect(content).toContain('L${likelihood} × I${impact} = ${score}');
-        expect(content).toContain('${count} risk');
+        // The tooltip is i18n-routed via ui.riskHeatmap.cellTitle =
+        // "L{likelihood} × I{impact} = {score} — {count, plural, one
+        // {# risk} other {# risks}}", passed likelihood/impact/score/count.
+        expect(content).toContain("t('riskHeatmap.cellTitle'");
+        expect(content).toContain('likelihood');
+        expect(content).toContain('impact');
+        expect(content).toContain('count');
     });
 });
