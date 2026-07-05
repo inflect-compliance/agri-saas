@@ -6,6 +6,7 @@
 
 import { formatDate } from '@/lib/format-date';
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { AppIcon } from '@/components/icons/AppIcon';
 import { Button } from '@/components/ui/button';
@@ -32,10 +33,6 @@ interface TestPlan {
     }>;
 }
 
-const FREQ_LABELS: Record<string, string> = {
-    AD_HOC: 'Ad Hoc', DAILY: 'Daily', WEEKLY: 'Weekly',
-    MONTHLY: 'Monthly', QUARTERLY: 'Quarterly', ANNUALLY: 'Annually',
-};
 const RESULT_BADGE: Record<string, StatusBadgeVariant> = {
     PASS: 'success', FAIL: 'error', INCONCLUSIVE: 'warning',
 };
@@ -44,9 +41,15 @@ const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
 };
 
 export default function TestPlansPanel({ controlId }: { controlId: string }) {
+    const t = useTranslations('testPlans');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const { permissions } = useTenantContext();
+
+    const FREQ_LABELS: Record<string, string> = {
+        AD_HOC: t('freqAdHoc'), DAILY: t('freqDaily'), WEEKLY: t('freqWeekly'),
+        MONTHLY: t('freqMonthly'), QUARTERLY: t('freqQuarterly'), ANNUALLY: t('freqAnnually'),
+    };
 
     const [plans, setPlans] = useState<TestPlan[]>([]);
     const [loading, setLoading] = useState(true);
@@ -112,12 +115,12 @@ export default function TestPlansPanel({ controlId }: { controlId: string }) {
         return new Date(d) < new Date();
     };
 
-    if (loading) return <div className="animate-pulse text-content-subtle text-sm py-4">Loading test plans...</div>;
+    if (loading) return <div className="animate-pulse text-content-subtle text-sm py-4">{t('loading')}</div>;
 
     return (
         <div className="space-y-default">
             <div className="flex items-center justify-between">
-                <Heading level={3}>Test Plans</Heading>
+                <Heading level={3}>{t('title')}</Heading>
                 {permissions.canWrite && (
                     <Button
                         variant="primary"
@@ -132,18 +135,18 @@ export default function TestPlansPanel({ controlId }: { controlId: string }) {
             {showForm && (
                 <div className={cn(cardVariants({ density: 'compact' }), 'space-y-compact animate-fadeIn')}>
                     <div>
-                        <label className="text-xs text-content-muted block mb-1">Plan Name *</label>
+                        <label className="text-xs text-content-muted block mb-1">{t('planName')}</label>
                         <input
                             className="input w-full"
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            placeholder="e.g., Quarterly access review"
+                            placeholder={t('planNamePlaceholder')}
                             id="test-plan-name-input"
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-compact">
                         <div>
-                            <label className="text-xs text-content-muted block mb-1">Frequency</label>
+                            <label className="text-xs text-content-muted block mb-1">{t('frequency')}</label>
                             <select className="input w-full" value={frequency} onChange={e => setFrequency(e.target.value)} id="test-plan-frequency-select">
                                 {Object.entries(FREQ_LABELS).map(([v, l]) => (
                                     <option key={v} value={v}>{l}</option>
@@ -151,21 +154,21 @@ export default function TestPlansPanel({ controlId }: { controlId: string }) {
                             </select>
                         </div>
                         <div>
-                            <label className="text-xs text-content-muted block mb-1">Method</label>
+                            <label className="text-xs text-content-muted block mb-1">{t('method')}</label>
                             <select className="input w-full" value={method} onChange={e => setMethod(e.target.value)} id="test-plan-method-select">
-                                <option value="MANUAL">Manual</option>
-                                <option value="AUTOMATED">Automated</option>
+                                <option value="MANUAL">{t('methodManual')}</option>
+                                <option value="AUTOMATED">{t('methodAutomated')}</option>
                             </select>
                         </div>
                     </div>
                     <Button variant="primary" size="sm" onClick={createPlan} disabled={saving || !name.trim()} id="save-test-plan-btn">
-                        {saving ? 'Creating...' : <><AppIcon name="save" size={14} className="inline-block mr-1" /> Create Plan</>}
+                        {saving ? t('creating') : <><AppIcon name="save" size={14} className="inline-block mr-1" /> {t('createPlan')}</>}
                     </Button>
                 </div>
             )}
 
             {plans.length === 0 && !showForm && (
-                <div className="text-sm text-content-subtle py-4">No test plans configured for this control.</div>
+                <div className="text-sm text-content-subtle py-4">{t('noPlans')}</div>
             )}
 
             {plans.length > 0 && (
@@ -193,7 +196,7 @@ export default function TestPlansPanel({ controlId }: { controlId: string }) {
                                             <>
                                                 <span className="text-xs text-content-subtle">•</span>
                                                 <span className={`text-xs ${isOverdue(plan.nextDueAt) ? 'text-content-error font-semibold' : 'text-content-muted'}`}>
-                                                    Due: {formatDate(plan.nextDueAt)}
+                                                    {t('due', { date: formatDate(plan.nextDueAt) })}
                                                 </span>
                                             </>
                                         )}
@@ -212,7 +215,7 @@ export default function TestPlansPanel({ controlId }: { controlId: string }) {
                                         </StatusBadge>
                                     )}
                                     <span className="text-xs text-content-subtle">
-                                        {plan._count?.runs ?? 0} runs
+                                        {t('runsCount', { count: plan._count?.runs ?? 0 })}
                                     </span>
                                     {permissions.canWrite && plan.status === 'ACTIVE' && (
                                         <Button
@@ -223,7 +226,7 @@ export default function TestPlansPanel({ controlId }: { controlId: string }) {
                                             disabled={creatingRunFor === plan.id}
                                             id={`run-test-btn-${plan.id}`}
                                         >
-                                            {creatingRunFor === plan.id ? '...' : <><AppIcon name="run" size={14} className="inline-block mr-1" /> Run</>}
+                                            {creatingRunFor === plan.id ? '...' : <><AppIcon name="run" size={14} className="inline-block mr-1" /> {t('run')}</>}
                                         </Button>
                                     )}
                                 </div>

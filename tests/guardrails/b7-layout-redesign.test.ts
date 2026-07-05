@@ -74,6 +74,12 @@ describe('B7 — layout redesign', () => {
 
     describe('ListPageShell.Body accepts both rails + separates them', () => {
         const shell = read('src/components/layout/ListPageShell.tsx');
+        // T04 i18n — the rail <aside> markup (its aria-label is the shell's
+        // only translated string) moved to a `'use client'` leaf so the
+        // shell stays a shared server-compatible primitive. The slot props
+        // + the gap-section container stay on the shell; the rendered rail
+        // test-ids are asserted against the leaf.
+        const rail = read('src/components/layout/ListPageShellRail.tsx');
 
         it('ListPageShellBodyProps declares leftRail + aside', () => {
             expect(shell).toMatch(/leftRail\?:\s*ReactNode/);
@@ -87,8 +93,13 @@ describe('B7 — layout redesign', () => {
             // table area". The rail's wrapper is `flex-shrink-0
             // xl:self-start` so it tracks the body's top.
             expect(shell).toMatch(/gap-section/);
-            expect(shell).toMatch(/data-testid="list-page-left-rail"/);
-            expect(shell).toMatch(/data-testid="list-page-aside"/);
+            // The shell threads both rails through the leaf…
+            expect(shell).toMatch(/<ListPageShellRail\s+kind="orientation"\s+testId="list-page-left-rail"/);
+            expect(shell).toMatch(/<ListPageShellRail\s+kind="context"\s+testId="list-page-aside"/);
+            // …and the leaf renders a real <aside> carrying that test-id +
+            // the `flex-shrink-0 xl:self-start` wrapper class.
+            expect(rail).toMatch(/<aside[\s\S]*?data-testid=\{testId\}/);
+            expect(rail).toMatch(/flex-shrink-0 xl:self-start/);
         });
     });
 

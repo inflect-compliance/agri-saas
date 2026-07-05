@@ -168,11 +168,14 @@ describe('Roadmap-14 PR-9 — EnvironmentBadge discipline', () => {
         });
 
         it('carries an env-specific `aria-label`', () => {
+            // i18n (T04): aria-labels route through next-intl; the copy
+            // ("Staging environment" / "Development environment") lives in
+            // messages/en.json under environmentBadge.stagingAria/devAria.
             expect(BADGE_SRC).toMatch(
-                /aria-label="Staging environment"/,
+                /aria-label=\{t\(['"]stagingAria['"]\)\}/,
             );
             expect(BADGE_SRC).toMatch(
-                /aria-label="Development environment"/,
+                /aria-label=\{t\(['"]devAria['"]\)\}/,
             );
         });
     });

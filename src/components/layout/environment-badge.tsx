@@ -28,6 +28,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 // ─── Types ─────────────────────────────────────────────────────────
 
@@ -116,6 +117,7 @@ function useAppEnv(): AppEnv {
 // ─── Component ─────────────────────────────────────────────────────
 
 export function EnvironmentBadge() {
+    const t = useTranslations('environmentBadge');
     const env = useAppEnv();
 
     if (env === 'prod') return null;
@@ -125,11 +127,11 @@ export function EnvironmentBadge() {
             <span
                 className={BADGE_STAGING_CLASS}
                 role="status"
-                aria-label="Staging environment"
+                aria-label={t('stagingAria')}
                 data-testid="top-chrome-env-badge"
                 data-env="staging"
             >
-                Staging
+                {t('staging')}
             </span>
         );
     }
@@ -138,11 +140,11 @@ export function EnvironmentBadge() {
         <span
             className={BADGE_DEV_CLASS}
             role="status"
-            aria-label="Development environment"
+            aria-label={t('devAria')}
             data-testid="top-chrome-env-badge"
             data-env="dev"
         >
-            Dev
+            {t('dev')}
         </span>
     );
 }

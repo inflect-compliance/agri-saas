@@ -72,8 +72,10 @@ describe('Roadmap-14 PR-5 — UserMenu discipline', () => {
             // Defence in depth — the menu must never render
             // empty-string or "undefined" as the display name.
             // The fallback is the visible safety net.
+            // i18n (T04): the "Account" fallback copy lives in
+            // messages/en.json under userMenu.accountFallback.
             expect(USER_MENU_SRC).toMatch(
-                /effectiveName\s*=\s*resolvedName\.length\s*>\s*0\s*\?\s*resolvedName\s*:\s*['"]Account['"]/,
+                /effectiveName\s*=\s*resolvedName\.length\s*>\s*0\s*\?\s*resolvedName\s*:\s*t\(['"]accountFallback['"]\)/,
             );
         });
     });

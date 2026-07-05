@@ -44,6 +44,7 @@
  */
 import { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { ListPageShellRail } from './ListPageShellRail';
 
 export interface ListPageShellProps {
     children: ReactNode;
@@ -147,13 +148,9 @@ function ListPageShellBody({
     return (
         <div className="md:flex-1 md:min-h-0 md:flex md:flex-col xl:flex-row md:overflow-hidden gap-section">
             {leftRail && (
-                <aside
-                    className="flex-shrink-0 xl:self-start"
-                    aria-label="Orientation"
-                    data-testid="list-page-left-rail"
-                >
+                <ListPageShellRail kind="orientation" testId="list-page-left-rail">
                     {leftRail}
-                </aside>
+                </ListPageShellRail>
             )}
             <div
                 className={cn(
@@ -165,13 +162,9 @@ function ListPageShellBody({
                 {children}
             </div>
             {aside && (
-                <aside
-                    className="flex-shrink-0 xl:self-start"
-                    aria-label="Context"
-                    data-testid="list-page-aside"
-                >
+                <ListPageShellRail kind="context" testId="list-page-aside">
                     {aside}
-                </aside>
+                </ListPageShellRail>
             )}
         </div>
     );

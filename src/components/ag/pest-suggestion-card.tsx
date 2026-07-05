@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { AiSuggestionCard } from './ai-suggestion-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -36,23 +37,21 @@ export interface PestSuggestionData {
     fileRecordId?: string;
 }
 
-const FIELD_CAVEAT =
-    'Field photos are noisier than lab images — treat low-confidence results with extra caution.';
-
 export function PestSuggestionCard({ data }: { data: PestSuggestionData | null | undefined }) {
+    const t = useTranslations('pestSuggestion');
     if (!data) return null;
 
     const pct = Math.round(Math.max(0, Math.min(1, data.confidence)) * 100);
     const isHealthy = data.identifiedPest.toLowerCase() === 'healthy';
     const title = isHealthy
-        ? 'No pest or disease detected'
+        ? t('noPestDetected')
         : data.identifiedPest === 'unknown'
-          ? 'Photo analysed — inconclusive'
+          ? t('inconclusive')
           : data.identifiedPest;
 
     // Map the numeric confidence onto the shell's confidence badge band.
     const confidenceBand = data.lowConfidence ? 'low' : pct >= 80 ? 'high' : 'medium';
-    const meta = `${data.modelVersion} · ${data.backend === 'onnx' ? 'on-device' : 'cloud'}`;
+    const meta = `${data.modelVersion} · ${data.backend === 'onnx' ? t('onDevice') : t('cloud')}`;
 
     return (
         <AiSuggestionCard
@@ -65,12 +64,12 @@ export function PestSuggestionCard({ data }: { data: PestSuggestionData | null |
                 <div className="flex items-center gap-tight">
                     {data.lowConfidence && (
                         <StatusBadge variant="warning" size="sm">
-                            Low confidence
+                            {t('lowConfidence')}
                         </StatusBadge>
                     )}
                     {!isHealthy && data.identifiedPest !== 'unknown' && (
                         <StatusBadge variant="neutral" size="sm">
-                            Suggestion only
+                            {t('suggestionOnly')}
                         </StatusBadge>
                     )}
                 </div>
@@ -80,7 +79,7 @@ export function PestSuggestionCard({ data }: { data: PestSuggestionData | null |
                     variant={data.lowConfidence ? 'warning' : pct >= 80 ? 'success' : 'info'}
                     size="sm"
                     showValue
-                    aria-label="Classification confidence"
+                    aria-label={t('confidenceAria')}
                 />
 
                 <p>{data.recommendation}</p>
@@ -89,7 +88,7 @@ export function PestSuggestionCard({ data }: { data: PestSuggestionData | null |
                 <p className="text-[11px] font-medium text-content-warning">{data.disclaimer}</p>
 
                 {/* Lab-vs-field accuracy caveat. */}
-                <p className="text-[11px] text-content-subtle">{FIELD_CAVEAT}</p>
+                <p className="text-[11px] text-content-subtle">{t('fieldCaveat')}</p>
             </div>
         </AiSuggestionCard>
     );

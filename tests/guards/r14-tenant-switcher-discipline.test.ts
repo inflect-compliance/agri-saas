@@ -154,8 +154,10 @@ describe('Roadmap-14 PR-4 — TenantSwitcher discipline', () => {
         it('renders a `Manage workspaces` link to `/tenants`', () => {
             // Belt-and-braces. A user whose JWT memberships are
             // stale can still reach the canonical picker page.
+            // i18n (T04): the footer copy routes through next-intl
+            // (switcher.manageWorkspaces).
             expect(SWITCHER_SRC).toMatch(
-                /href="\/tenants"[\s\S]+?Manage workspaces/,
+                /href="\/tenants"[\s\S]+?t\(['"]manageWorkspaces['"]\)/,
             );
         });
 

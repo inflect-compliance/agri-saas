@@ -11,6 +11,7 @@
  * <AsidePanel> wrapper; this component owns the list + actions.
  */
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
@@ -45,6 +46,7 @@ function draftConfig(s: RuleSuggestion, currentUserId: string): Record<string, u
 }
 
 export function AutomationSuggestionsRail() {
+    const t = useTranslations('automationSuggestions');
     const { data: session } = useSession();
     const currentUserId = session?.user?.id ?? '';
     const apiUrl = useTenantApiUrl();
@@ -80,17 +82,16 @@ export function AutomationSuggestionsRail() {
     return (
         <div className="space-y-default" data-testid="automation-suggestions-rail">
             <p className="text-xs text-content-muted">
-                Automations that would close gaps in your current posture — each
-                scored, with a rationale. Create one as a draft, then refine it.
+                {t('intro')}
             </p>
 
             {isLoading && (
-                <p className="text-xs text-content-subtle">Analysing your posture…</p>
+                <p className="text-xs text-content-subtle">{t('analysing')}</p>
             )}
 
             {!isLoading && suggestions.length === 0 && (
                 <p className="text-xs text-content-subtle">
-                    No new suggestions — your enabled rules already cover the obvious gaps.
+                    {t('noSuggestions')}
                 </p>
             )}
 
@@ -122,7 +123,7 @@ export function AutomationSuggestionsRail() {
                         </div>
                         <div className="flex items-center gap-tight pt-1">
                             {applied.has(s.id) ? (
-                                <span className="text-[11px] text-content-success">Draft created</span>
+                                <span className="text-[11px] text-content-success">{t('draftCreated')}</span>
                             ) : (
                                 <>
                                     <Button
@@ -131,7 +132,7 @@ export function AutomationSuggestionsRail() {
                                         disabled={busy === s.id}
                                         onClick={() => createRule(s)}
                                     >
-                                        Create draft
+                                        {t('createDraft')}
                                     </Button>
                                     <button
                                         type="button"
@@ -140,7 +141,7 @@ export function AutomationSuggestionsRail() {
                                             setDismissed((prev) => new Set(prev).add(s.id))
                                         }
                                     >
-                                        Dismiss
+                                        {t('dismiss')}
                                     </button>
                                 </>
                             )}

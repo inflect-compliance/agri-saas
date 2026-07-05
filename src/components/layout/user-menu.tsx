@@ -33,6 +33,7 @@
  */
 
 import { useCallback, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { LogOut, ShieldCheck } from 'lucide-react';
@@ -82,13 +83,14 @@ export function UserMenu({
     displayEmail,
     displayImage,
 }: UserMenuProps) {
+    const t = useTranslations('userMenu');
     const [open, setOpen] = useState(false);
     const close = useCallback(() => setOpen(false), []);
 
     // Trim + fallback. `null` or whitespace-only renders as
     // "Account" so the chrome never shows an empty trigger.
     const resolvedName = displayName?.trim() ?? '';
-    const effectiveName = resolvedName.length > 0 ? resolvedName : 'Account';
+    const effectiveName = resolvedName.length > 0 ? resolvedName : t('accountFallback');
 
     const handleSignOut = useCallback(async () => {
         close();
@@ -104,7 +106,7 @@ export function UserMenu({
             sideOffset={8}
             popoverContentClassName="w-[240px] p-1"
             content={
-                <Popover.Menu aria-label="Account menu">
+                <Popover.Menu aria-label={t('accountMenu')}>
                     {/* Identity header — name + email at the top.
                         Quiet typography so the eye reads the
                         actionable items below, not the header. */}
@@ -135,7 +137,7 @@ export function UserMenu({
                         className="px-2.5 py-1.5 flex items-center justify-between text-sm text-content-default"
                         data-testid="user-menu-theme-row"
                     >
-                        <span>Theme</span>
+                        <span>{t('theme')}</span>
                         <ThemeToggle id="user-menu-theme-toggle" />
                     </div>
 
@@ -151,7 +153,7 @@ export function UserMenu({
                         className={MENU_ROW_CLASS}
                     >
                         <ShieldCheck className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-                        <span>Account security</span>
+                        <span>{t('accountSecurity')}</span>
                     </Link>
 
                     <Popover.Separator />
@@ -167,7 +169,7 @@ export function UserMenu({
                         className={MENU_ROW_CLASS}
                     >
                         <LogOut className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-                        <span>Sign out</span>
+                        <span>{t('signOut')}</span>
                     </button>
                 </Popover.Menu>
             }
@@ -175,7 +177,7 @@ export function UserMenu({
             <button
                 type="button"
                 className={AVATAR_BUTTON_CLASS}
-                aria-label={`Account menu for ${effectiveName}`}
+                aria-label={t('accountMenuFor', { name: effectiveName })}
                 aria-expanded={open}
                 aria-haspopup="menu"
                 data-testid="top-chrome-user-menu"

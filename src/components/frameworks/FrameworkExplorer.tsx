@@ -35,6 +35,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { FileText } from 'lucide-react';
 import { TreeView } from '@/components/ui/TreeView';
 import { TreeViewItem } from '@/components/ui/TreeViewItem';
@@ -87,6 +88,7 @@ export function FrameworkExplorer({
     coverage,
     onRequirementSelected,
 }: FrameworkExplorerProps) {
+    const t = useTranslations('frameworkExplorer');
     // ── Derived: per-requirement control mappings, keyed by code. ────
     // The coverage usecase keys by `requirementCode` (not id), so we
     // build a lookup once and reuse it on every selection.
@@ -230,7 +232,7 @@ export function FrameworkExplorer({
     if (tree.nodes.length === 0) {
         return (
             <div className={cn(cardVariants({ density: 'none' }), 'text-center py-10 text-content-subtle')} id="framework-explorer-empty">
-                This framework has no requirements yet.
+                {t('empty')}
             </div>
         );
     }
@@ -245,12 +247,12 @@ export function FrameworkExplorer({
                 <div className="flex flex-wrap items-center gap-tight mb-3">
                     <input
                         type="text"
-                        placeholder="Search code or title..."
+                        placeholder={t('searchPlaceholder')}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="input flex-1 min-w-[10rem]"
                         id="framework-explorer-search"
-                        aria-label="Search requirements"
+                        aria-label={t('searchAria')}
                     />
                     <TreeExpandCollapseToggle
                         expandedCount={expanded.size}
@@ -262,11 +264,11 @@ export function FrameworkExplorer({
                 </div>
                 <div className="flex items-center justify-between text-xs text-content-subtle mb-2">
                     <span>
-                        {tree.totals.sections} sections · {tree.totals.requirements} requirements
+                        {t('totalsSummary', { sections: tree.totals.sections, requirements: tree.totals.requirements })}
                     </span>
                     {trimmed && (
                         <span className="text-[var(--brand-default)]">
-                            Search active — all matches expanded
+                            {t('searchActive')}
                         </span>
                     )}
                 </div>
@@ -281,7 +283,7 @@ export function FrameworkExplorer({
                         onExpandedChange={handleExpandedChange}
                         selectedId={selectedId}
                         onSelect={handleSelect}
-                        ariaLabel={`${tree.framework.name} requirements`}
+                        ariaLabel={t('treeAria', { name: tree.framework.name })}
                         renderItem={(node, ctx) => (
                             <FrameworkTreeRow
                                 node={node}
@@ -318,10 +320,9 @@ export function FrameworkExplorer({
                 {!selectedNode ? (
                     <div className="h-full flex flex-col items-center justify-center text-center text-content-subtle px-6 py-10">
                         <FileText className="w-8 h-8 mb-2 opacity-60" aria-hidden="true" />
-                        <p className="text-sm font-medium text-content-muted">Select a requirement</p>
+                        <p className="text-sm font-medium text-content-muted">{t('selectRequirement')}</p>
                         <p className="text-xs mt-1 max-w-xs">
-                            Click any requirement on the left to see its description and the controls
-                            currently mapped to it.
+                            {t('selectRequirementHint')}
                         </p>
                     </div>
                 ) : selectedNode.kind === 'section' ? (
@@ -362,6 +363,7 @@ function FrameworkTreeRow({
     onToggle,
     onSelect,
 }: FrameworkTreeRowProps) {
+    const t = useTranslations('frameworkExplorer');
     // Epic 46.3 — compliance status comes from the server. Sections
     // get the aggregated status; requirements get their own. When
     // the tree was loaded without coverage context the status falls
@@ -416,7 +418,7 @@ function FrameworkTreeRow({
                 </StatusBadge>
             ) : (
                 <StatusBadge variant="neutral" size="sm">
-                    Unmapped
+                    {t('unmapped')}
                 </StatusBadge>
             );
         }
@@ -459,15 +461,15 @@ function FrameworkTreeRow({
 // ─── Detail-pane sub-components ────────────────────────────────────────
 
 function SectionDetail({ node }: { node: FrameworkTreeNode }) {
+    const t = useTranslations('frameworkExplorer');
     return (
         <div className="p-5">
             <p className="text-xs uppercase tracking-wider text-content-subtle mb-1">
-                Section
+                {t('section')}
             </p>
             <Heading level={2}>{node.label}</Heading>
             <p className="text-xs text-content-muted mt-2">
-                {node.descendantCount} requirement
-                {node.descendantCount === 1 ? '' : 's'} in this section.
+                {t('sectionReqCount', { count: node.descendantCount })}
             </p>
         </div>
     );
@@ -480,11 +482,12 @@ function RequirementDetail({
     node: FrameworkTreeNode;
     controls: ControlMapping[];
 }) {
+    const t = useTranslations('frameworkExplorer');
     return (
         <div className="p-5 space-y-default" id="framework-explorer-requirement-detail">
             <div>
                 <p className="text-xs uppercase tracking-wider text-content-subtle mb-1">
-                    Requirement
+                    {t('requirement')}
                 </p>
                 <div className="flex items-center gap-compact flex-wrap">
                     <code className="text-sm font-mono text-[var(--brand-default)]">
@@ -511,7 +514,7 @@ function RequirementDetail({
             {node.children.length > 0 && (
                 <div>
                     <p className="text-xs font-semibold text-content-subtle mb-2">
-                        Sub-requirements ({node.children.length})
+                        {t('subRequirements', { count: node.children.length })}
                     </p>
                     <ul className="space-y-1">
                         {node.children.map((c) => (
@@ -529,15 +532,15 @@ function RequirementDetail({
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-semibold text-content-subtle">
-                        Mapped Controls ({controls.length})
+                        {t('mappedControls', { count: controls.length })}
                     </p>
                     {controls.length === 0 && (
-                        <span className="text-[10px] text-content-warning">Unmapped</span>
+                        <span className="text-[10px] text-content-warning">{t('unmapped')}</span>
                     )}
                 </div>
                 {controls.length === 0 ? (
                     <p className="text-xs text-content-subtle italic">
-                        No controls are currently mapped to this requirement.
+                        {t('noMappedControls')}
                     </p>
                 ) : (
                     <ul className="space-y-1.5">

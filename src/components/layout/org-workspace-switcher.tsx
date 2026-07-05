@@ -33,6 +33,7 @@
  */
 
 import { useCallback, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Check, ChevronsUpDown } from 'lucide-react';
 
@@ -72,6 +73,7 @@ export function OrgWorkspaceSwitcher({
     memberships,
     orgMemberships,
 }: OrgWorkspaceSwitcherProps) {
+    const t = useTranslations('switcher');
     const { orgName, orgSlug } = useOrgContext();
     const [open, setOpen] = useState(false);
     const close = useCallback(() => setOpen(false), []);
@@ -85,18 +87,18 @@ export function OrgWorkspaceSwitcher({
             sideOffset={6}
             popoverContentClassName="w-[240px] p-1"
             content={
-                <Popover.Menu aria-label="Switch context">
+                <Popover.Menu aria-label={t('switchContext')}>
                     {/* PR-2 — Organizations come first when the
                         active context is itself an organization.
                         Mirrors TenantSwitcher's "Organizations"
                         section so users see exactly one switcher
                         UX regardless of which side they start from. */}
                     <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-content-subtle">
-                        Organizations
+                        {t('organizations')}
                     </p>
                     {orgMemberships.length === 0 ? (
                         <p className="px-2.5 py-3 text-xs text-content-muted">
-                            No organizations in this session.
+                            {t('noOrganizations')}
                         </p>
                     ) : (
                         orgMemberships.map((o) => {
@@ -118,7 +120,7 @@ export function OrgWorkspaceSwitcher({
                                                 {o.slug}
                                             </span>
                                             <span className="truncate text-[10px] text-content-subtle">
-                                                org · {o.role.toLowerCase().replace('org_', '')}
+                                                {t('orgRole', { role: o.role.toLowerCase().replace('org_', '') })}
                                             </span>
                                         </span>
                                     </span>
@@ -136,11 +138,11 @@ export function OrgWorkspaceSwitcher({
                     <Popover.Separator />
 
                     <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-content-subtle">
-                        Workspaces
+                        {t('workspaces')}
                     </p>
                     {memberships.length === 0 ? (
                         <p className="px-2.5 py-3 text-xs text-content-muted">
-                            No workspaces in this session.
+                            {t('noWorkspaces')}
                         </p>
                     ) : (
                         memberships.map((m) => (
@@ -177,7 +179,7 @@ export function OrgWorkspaceSwitcher({
                         className={MENU_ROW_CLASS}
                     >
                         <span className="text-content-muted">
-                            Manage workspaces
+                            {t('manageWorkspaces')}
                         </span>
                     </Link>
                 </Popover.Menu>
@@ -186,7 +188,7 @@ export function OrgWorkspaceSwitcher({
             <button
                 type="button"
                 className={SWITCHER_PILL_CLASS}
-                aria-label={`Current organization: ${orgName}. Click to switch.`}
+                aria-label={t('currentOrganization', { name: orgName })}
                 aria-expanded={open}
                 aria-haspopup="menu"
                 data-testid="top-chrome-org-switcher"

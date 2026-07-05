@@ -117,7 +117,10 @@ describe('B4 — filter + nav consistency', () => {
             // Anchor on the header copy + per-row testid + the
             // org route href. A regression that collapses the
             // section would miss at least one of these probes.
-            expect(switcher).toMatch(/Organizations[\s\S]{0,80}<\/p>/);
+            // T04 i18n — the header moved behind t('organizations'); match
+            // the t() reference and cross-check the en.json copy.
+            expect(switcher).toMatch(/t\(['"]organizations['"]\)/);
+            expect(JSON.parse(read('messages/en.json')).switcher.organizations).toBe('Organizations');
             expect(switcher).toMatch(/tenant-switcher-org-/);
             expect(switcher).toMatch(/href=\{`\/org\/\$\{o\.slug\}`\}/);
         });

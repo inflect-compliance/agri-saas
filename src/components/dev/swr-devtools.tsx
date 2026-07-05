@@ -41,6 +41,7 @@
 'use client';
 
 import * as React from 'react';
+import { useTranslations } from 'next-intl';
 import { useSWRConfig } from 'swr';
 
 interface KeyState {
@@ -79,6 +80,7 @@ const REFRESH_INTERVAL_MS = 1_000;
  * file gates render so production never reaches this code path.
  */
 function SWRDevToolsImpl() {
+    const t = useTranslations('swrDevtools');
     const { cache } = useSWRConfig();
     const [open, setOpen] = React.useState(false);
     const [snapshot, setSnapshot] = React.useState<CacheSnapshot>({
@@ -231,7 +233,7 @@ function SWRDevToolsImpl() {
                     opacity: 0.85,
                 }}
             >
-                SWR · {snapshot.total}
+                {t('label')} · {snapshot.total}
                 {snapshot.validatingCount > 0
                     ? ` · ↻${snapshot.validatingCount}`
                     : ''}
@@ -270,7 +272,7 @@ function SWRDevToolsImpl() {
                     background: '#1e293b',
                 }}
             >
-                <strong style={{ fontSize: 12 }}>SWR DevTools</strong>
+                <strong style={{ fontSize: 12 }}>{t('title')}</strong>
                 <button
                     type="button"
                     onClick={() => setOpen(false)}
@@ -283,7 +285,7 @@ function SWRDevToolsImpl() {
                         fontSize: 14,
                         lineHeight: 1,
                     }}
-                    aria-label="Close devtools panel"
+                    aria-label={t('closeAria')}
                 >
                     ×
                 </button>
@@ -298,22 +300,22 @@ function SWRDevToolsImpl() {
                 }}
             >
                 <span data-testid="swr-devtools-total">
-                    keys: <strong>{snapshot.total}</strong>
+                    {t('keysLabel')} <strong>{snapshot.total}</strong>
                 </span>
                 <span data-testid="swr-devtools-validating">
-                    validating: <strong>{snapshot.validatingCount}</strong>
+                    {t('validatingLabel')} <strong>{snapshot.validatingCount}</strong>
                 </span>
                 <span
                     data-testid="swr-devtools-hits"
-                    title="Cache fills since panel mount (a key transitioned out of validating with data and no error)"
+                    title={t('hitTitle')}
                 >
-                    hit: <strong>{snapshot.hits}</strong>
+                    {t('hitLabel')} <strong>{snapshot.hits}</strong>
                 </span>
                 <span
                     data-testid="swr-devtools-misses"
-                    title="Cache errors since panel mount"
+                    title={t('missTitle')}
                 >
-                    miss: <strong>{snapshot.misses}</strong>
+                    {t('missLabel')} <strong>{snapshot.misses}</strong>
                 </span>
             </div>
             <div
@@ -322,8 +324,7 @@ function SWRDevToolsImpl() {
             >
                 {snapshot.entries.length === 0 ? (
                     <div style={{ padding: '12px 10px', opacity: 0.6 }}>
-                        Cache is empty. Mount any `useTenantSWR` consumer
-                        on the current page to populate.
+                        {t('cacheEmpty')}
                     </div>
                 ) : (
                     snapshot.entries.map((entry) => (

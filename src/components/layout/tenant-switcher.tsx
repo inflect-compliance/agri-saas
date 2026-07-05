@@ -44,6 +44,7 @@
  */
 
 import { useCallback, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Check, ChevronsUpDown } from 'lucide-react';
 
@@ -118,6 +119,7 @@ export function TenantSwitcher({
     memberships,
     orgMemberships,
 }: TenantSwitcherProps) {
+    const t = useTranslations('switcher');
     const { tenantName, tenantSlug } = useTenantContext();
     const [open, setOpen] = useState(false);
     const close = useCallback(() => setOpen(false), []);
@@ -132,7 +134,7 @@ export function TenantSwitcher({
             sideOffset={6}
             popoverContentClassName="w-[240px] p-1"
             content={
-                <Popover.Menu aria-label="Switch context">
+                <Popover.Menu aria-label={t('switchContext')}>
                     {/* B4 — organizations section appears above
                         workspaces when the user belongs to one or
                         more orgs. The header copy + popover aria-
@@ -141,7 +143,7 @@ export function TenantSwitcher({
                     {orgs.length > 0 && (
                         <>
                             <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-content-subtle">
-                                Organizations
+                                {t('organizations')}
                             </p>
                             {orgs.map((o) => (
                                 <Link
@@ -159,7 +161,7 @@ export function TenantSwitcher({
                                                 {o.slug}
                                             </span>
                                             <span className="truncate text-[10px] text-content-subtle">
-                                                org · {o.role.toLowerCase().replace('org_', '')}
+                                                {t('orgRole', { role: o.role.toLowerCase().replace('org_', '') })}
                                             </span>
                                         </span>
                                     </span>
@@ -169,7 +171,7 @@ export function TenantSwitcher({
                         </>
                     )}
                     <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-content-subtle">
-                        Workspaces
+                        {t('workspaces')}
                     </p>
 
                     {memberships.length === 0 ? (
@@ -179,7 +181,7 @@ export function TenantSwitcher({
                         // popover renders before hydration completes
                         // we still want a graceful empty state.
                         <p className="px-2.5 py-3 text-xs text-content-muted">
-                            No workspaces in this session.
+                            {t('noWorkspaces')}
                         </p>
                     ) : (
                         memberships.map((m) => {
@@ -226,7 +228,7 @@ export function TenantSwitcher({
                         className={MENU_ROW_CLASS}
                     >
                         <span className="text-content-muted">
-                            Manage workspaces
+                            {t('manageWorkspaces')}
                         </span>
                     </Link>
                 </Popover.Menu>
@@ -235,7 +237,7 @@ export function TenantSwitcher({
             <button
                 type="button"
                 className={SWITCHER_PILL_CLASS}
-                aria-label={`Current workspace: ${tenantName}. Click to switch.`}
+                aria-label={t('currentWorkspace', { name: tenantName })}
                 aria-expanded={open}
                 aria-haspopup="menu"
                 data-testid="top-chrome-tenant-switcher"

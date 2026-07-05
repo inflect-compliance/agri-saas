@@ -114,8 +114,10 @@ describe('Roadmap-14 PR-13 — Living Top-Bar capstone bundle', () => {
             expect(SWITCHER_SRC).toMatch(/aria-haspopup="menu"/);
             expect(SWITCHER_SRC).toMatch(/<Check\b/);
             expect(SWITCHER_SRC).toMatch(/text-\[var\(--brand-default\)\]/);
+            // i18n (T04): footer copy routes through next-intl
+            // (switcher.manageWorkspaces).
             expect(SWITCHER_SRC).toMatch(
-                /href="\/tenants"[\s\S]+?Manage workspaces/,
+                /href="\/tenants"[\s\S]+?t\(['"]manageWorkspaces['"]\)/,
             );
         });
     });

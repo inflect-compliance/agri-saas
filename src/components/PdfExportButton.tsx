@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Download, Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -26,10 +27,12 @@ interface PdfExportButtonProps {
 export function PdfExportButton({
     tenantSlug,
     reportType,
-    label = 'Export PDF',
+    label,
     allowSave = false,
     className = '',
 }: PdfExportButtonProps) {
+    const t = useTranslations('pdfExport');
+    const resolvedLabel = label ?? t('exportPdf');
     const [generating, setGenerating] = useState(false);
     const [saving, setSaving] = useState(false);
 
@@ -55,7 +58,7 @@ export function PdfExportButton({
             if (saveToFile) {
                 // FileRecord saved — show confirmation
                 const data = await res.json();
-                alert(`PDF saved as evidence file.\nFile: ${data.fileName}\nSize: ${(data.sizeBytes / 1024).toFixed(1)} KB`);
+                alert(t('alertSaved', { fileName: data.fileName, size: (data.sizeBytes / 1024).toFixed(1) }));
             } else {
                 // Stream → download
                 const blob = await res.blob();
@@ -74,7 +77,7 @@ export function PdfExportButton({
             }
         } catch (err) {
             console.error('PDF export error:', err);
-            alert('Failed to generate PDF. Please try again.');
+            alert(t('alertFailed'));
         } finally {
             setLoading(false);
         }
@@ -96,16 +99,16 @@ export function PdfExportButton({
                 ) : (
                     <Download className="w-3.5 h-3.5" />
                 )}
-                {generating ? 'Generating...' : label}
+                {generating ? t('generating') : resolvedLabel}
             </Button>
 
             {allowSave && (
-                <Tooltip content="Export PDF and save as an evidence file">
+                <Tooltip content={t('saveTooltip')}>
                     <Button
                         variant="secondary"
                         onClick={() => handleExport(true)}
                         disabled={isLoading}
-                        aria-label="Export PDF and save as evidence file"
+                        aria-label={t('saveAria')}
                         id={`save-pdf-${reportType.toLowerCase()}-btn`}
                     >
                         {saving ? (

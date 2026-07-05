@@ -14,6 +14,7 @@
  * Graph boundary is never touched directly here.
  */
 import { useState, useEffect, useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
@@ -75,12 +76,13 @@ export function SharePointFilePicker({
     folderSelect?: boolean;
     onConfirmFolder?: (sel: { driveId: string; folderId?: string; folderName: string }) => void;
 }) {
+    const t = useTranslations('sharepointPicker');
     const apiUrl = useTenantApiUrl();
     const [sites, setSites] = useState<Opt[]>([]);
     const [drives, setDrives] = useState<Record<string, Opt[]>>({});
     const [siteId, setSiteId] = useState('');
     const [driveId, setDriveId] = useState('');
-    const [path, setPath] = useState<{ id?: string; name: string }[]>([{ name: 'Library' }]);
+    const [path, setPath] = useState<{ id?: string; name: string }[]>([{ name: t('library') }]);
     const [items, setItems] = useState<SpBrowseItem[]>([]);
     const [selected, setSelected] = useState<Record<string, SpPickedItem>>({});
     const [filter, setFilter] = useState<Filter>('all');
@@ -108,10 +110,11 @@ export function SharePointFilePicker({
                 setSiteId(firstSite);
                 setDriveId(driveOpts[firstSite]?.[0]?.value ?? '');
             } catch {
-                if (!cancelled) setError('Could not load SharePoint sites — check the connection.');
+                if (!cancelled) setError(t('loadSitesError'));
             }
         })();
         return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is a stable next-intl binding
     }, [showModal, connectionId, apiUrl]);
 
     const loadFolder = useCallback(
@@ -127,19 +130,21 @@ export function SharePointFilePicker({
                 const data = await res.json();
                 setItems(data.items);
             } catch {
-                setError('Could not list this folder.');
+                setError(t('loadFolderError'));
             } finally {
                 setLoading(false);
             }
         },
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is a stable next-intl binding
         [apiUrl, connectionId, driveId],
     );
 
     // Reset to the drive root whenever the drive changes.
     useEffect(() => {
         if (!driveId) return;
-        setPath([{ name: 'Library' }]);
+        setPath([{ name: t('library') }]);
         void loadFolder(undefined);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is a stable next-intl binding
     }, [driveId, loadFolder]);
 
     const enterFolder = (f: SpBrowseItem) => {
@@ -181,8 +186,8 @@ export function SharePointFilePicker({
     };
 
     return (
-        <Modal showModal={showModal} setShowModal={setShowModal} size="lg" title="Import from SharePoint">
-            <Modal.Header title="Import from SharePoint" description="Browse a document library and choose files." />
+        <Modal showModal={showModal} setShowModal={setShowModal} size="lg" title={t('title')}>
+            <Modal.Header title={t('title')} description={t('description')} />
             <Modal.Body className="space-y-default">
                 {error && <InlineNotice variant="error">{error}</InlineNotice>}
 
@@ -192,7 +197,7 @@ export function SharePointFilePicker({
                         options={sites}
                         selected={sites.find((o) => o.value === siteId) ?? null}
                         setSelected={(o) => setSiteId(o?.value ?? '')}
-                        placeholder="Site"
+                        placeholder={t('sitePlaceholder')}
                         matchTriggerWidth
                     />
                     <Combobox
@@ -200,7 +205,7 @@ export function SharePointFilePicker({
                         options={drives[siteId] ?? []}
                         selected={(drives[siteId] ?? []).find((o) => o.value === driveId) ?? null}
                         setSelected={(o) => setDriveId(o?.value ?? '')}
-                        placeholder="Library"
+                        placeholder={t('libraryPlaceholder')}
                         matchTriggerWidth
                     />
                 </div>
@@ -230,7 +235,7 @@ export function SharePointFilePicker({
                             size="sm"
                             onClick={() => setFilter(f)}
                         >
-                            {f === 'all' ? 'All' : f === 'pdf' ? 'PDFs' : f[0].toUpperCase() + f.slice(1)}
+                            {f === 'all' ? t('filterAll') : f === 'documents' ? t('filterDocuments') : f === 'spreadsheets' ? t('filterSpreadsheets') : t('filterPdf')}
                         </Button>
                     ))}
                 </div>
@@ -265,7 +270,7 @@ export function SharePointFilePicker({
                                             <Checkbox checked={!!selected[f.id]} onCheckedChange={() => toggle(f)} />
                                             <FileContent className="size-4 text-content-muted" />
                                             <span className="flex-1 truncate text-sm">{f.name}</span>
-                                            {f.mimeType && <StatusBadge variant="neutral">{shortType(f.mimeType)}</StatusBadge>}
+                                            {f.mimeType && <StatusBadge variant="neutral">{shortType(t, f.mimeType)}</StatusBadge>}
                                             {f.lastModified && (
                                                 <span className="w-24 text-right text-xs text-content-muted">
                                                     {formatDate(f.lastModified)}
@@ -276,7 +281,7 @@ export function SharePointFilePicker({
                                 </li>
                             ))}
                             {folders.length === 0 && files.length === 0 && (
-                                <li className="px-4 py-6 text-center text-sm text-content-muted">This folder is empty.</li>
+                                <li className="px-4 py-6 text-center text-sm text-content-muted">{t('folderEmpty')}</li>
                             )}
                         </ul>
                     )}
@@ -286,17 +291,17 @@ export function SharePointFilePicker({
                 {folderSelect ? (
                     <>
                         <span className="mr-auto truncate text-sm text-content-muted">
-                            Destination: {path[path.length - 1].name}
+                            {t('destination', { name: path[path.length - 1].name })}
                         </span>
-                        <Button variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
-                        <Button variant="primary" onClick={confirmFolder} disabled={!driveId}>Use this folder</Button>
+                        <Button variant="ghost" onClick={() => setShowModal(false)}>{t('cancel')}</Button>
+                        <Button variant="primary" onClick={confirmFolder} disabled={!driveId}>{t('useThisFolder')}</Button>
                     </>
                 ) : (
                     <>
-                        <span className="mr-auto text-sm text-content-muted">{selectedCount} selected</span>
-                        <Button variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
+                        <span className="mr-auto text-sm text-content-muted">{t('selectedCount', { count: selectedCount })}</span>
+                        <Button variant="ghost" onClick={() => setShowModal(false)}>{t('cancel')}</Button>
                         <Button variant="primary" onClick={confirm} disabled={selectedCount === 0}>
-                            {multiple ? `Import ${selectedCount || ''}`.trim() : 'Select'}
+                            {multiple ? (selectedCount ? t('importCount', { count: selectedCount }) : t('import')) : t('select')}
                         </Button>
                     </>
                 )}
@@ -306,11 +311,11 @@ export function SharePointFilePicker({
 }
 
 /** Compress a MIME type to a short badge label. */
-function shortType(mime: string): string {
-    if (/pdf/i.test(mime)) return 'PDF';
-    if (/sheet|excel|csv/i.test(mime)) return 'Sheet';
-    if (/word|document/i.test(mime)) return 'Doc';
-    if (/presentation|powerpoint/i.test(mime)) return 'Slides';
-    if (/image/i.test(mime)) return 'Image';
-    return mime.split('/').pop()?.slice(0, 8) ?? 'File';
+function shortType(t: ReturnType<typeof useTranslations>, mime: string): string {
+    if (/pdf/i.test(mime)) return t('typePdf');
+    if (/sheet|excel|csv/i.test(mime)) return t('typeSheet');
+    if (/word|document/i.test(mime)) return t('typeDoc');
+    if (/presentation|powerpoint/i.test(mime)) return t('typeSlides');
+    if (/image/i.test(mime)) return t('typeImage');
+    return mime.split('/').pop()?.slice(0, 8) ?? t('typeFile');
 }

@@ -26,6 +26,7 @@
  * save?" confusion.
  */
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
@@ -45,48 +46,16 @@ import { cn } from '@/lib/cn';
 
 interface Cadence {
     value: 'OFF' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY';
-    label: string;
-    description: string;
     cron: string | null;
 }
 
 const CADENCES: Cadence[] = [
-    {
-        value: 'OFF',
-        label: 'Off (manual)',
-        description: 'Test runs are created on demand. No auto-schedule.',
-        cron: null,
-    },
-    {
-        value: 'DAILY',
-        label: 'Daily at 09:00',
-        description: 'Runs every day at 09:00 in your local timezone.',
-        cron: '0 9 * * *',
-    },
-    {
-        value: 'WEEKLY',
-        label: 'Weekly (Mondays at 09:00)',
-        description: 'Runs every Monday at 09:00.',
-        cron: '0 9 * * MON',
-    },
-    {
-        value: 'MONTHLY',
-        label: 'Monthly (1st at 09:00)',
-        description: 'Runs the first of every month at 09:00.',
-        cron: '0 9 1 * *',
-    },
-    {
-        value: 'QUARTERLY',
-        label: 'Quarterly (1st of Jan/Apr/Jul/Oct)',
-        description: 'Runs on the first of each calendar quarter at 09:00.',
-        cron: '0 9 1 1,4,7,10 *',
-    },
+    { value: 'OFF', cron: null },
+    { value: 'DAILY', cron: '0 9 * * *' },
+    { value: 'WEEKLY', cron: '0 9 * * MON' },
+    { value: 'MONTHLY', cron: '0 9 1 * *' },
+    { value: 'QUARTERLY', cron: '0 9 1 1,4,7,10 *' },
 ];
-
-const CADENCE_OPTIONS: ComboboxOption[] = CADENCES.map((c) => ({
-    value: c.value,
-    label: c.label,
-}));
 
 /**
  * Map a stored cron string back to one of the canned cadences.
@@ -119,13 +88,6 @@ const TONE_CLASS: Record<NextRunTone, string> = {
     none: 'text-content-subtle',
 };
 
-const TONE_LABEL: Record<NextRunTone, string> = {
-    overdue: 'Overdue',
-    today: 'Today',
-    normal: 'Next run',
-    none: '',
-};
-
 // ─── Component ─────────────────────────────────────────────────────
 
 export interface TestPlanScheduleSectionProps {
@@ -147,7 +109,33 @@ export function TestPlanScheduleSection({
     canEdit,
     onSaved,
 }: TestPlanScheduleSectionProps) {
+    const t = useTranslations('testSchedule');
     const apiUrl = useTenantApiUrl();
+
+    const cadenceLabels: Record<Cadence['value'], string> = {
+        OFF: t('cadenceOffLabel'),
+        DAILY: t('cadenceDailyLabel'),
+        WEEKLY: t('cadenceWeeklyLabel'),
+        MONTHLY: t('cadenceMonthlyLabel'),
+        QUARTERLY: t('cadenceQuarterlyLabel'),
+    };
+    const cadenceDescriptions: Record<Cadence['value'], string> = {
+        OFF: t('cadenceOffDesc'),
+        DAILY: t('cadenceDailyDesc'),
+        WEEKLY: t('cadenceWeeklyDesc'),
+        MONTHLY: t('cadenceMonthlyDesc'),
+        QUARTERLY: t('cadenceQuarterlyDesc'),
+    };
+    const CADENCE_OPTIONS: ComboboxOption[] = CADENCES.map((c) => ({
+        value: c.value,
+        label: cadenceLabels[c.value],
+    }));
+    const toneLabels: Record<NextRunTone, string> = {
+        overdue: t('toneOverdue'),
+        today: t('toneToday'),
+        normal: t('toneNormal'),
+        none: '',
+    };
 
     const browserTz = useMemo(() => {
         try {
@@ -180,7 +168,7 @@ export function TestPlanScheduleSection({
             // Defensive — should never fire because the picker only
             // surfaces catalog cadences.
             if (!target) {
-                setError('Choose a cadence before saving.');
+                setError(t('chooseCadence'));
                 return;
             }
             const body = {
@@ -213,7 +201,7 @@ export function TestPlanScheduleSection({
                 setError(
                     parsed?.error ??
                         txt ??
-                        `Failed to save schedule (${res.status})`,
+                        t('failedToSave', { status: res.status }),
                 );
                 return;
             }
@@ -222,7 +210,7 @@ export function TestPlanScheduleSection({
             setError(
                 err instanceof Error
                     ? err.message
-                    : 'Could not save schedule',
+                    : t('couldNotSave'),
             );
         } finally {
             setSaving(false);
@@ -237,10 +225,10 @@ export function TestPlanScheduleSection({
         >
             <div className="flex items-center justify-between">
                 <Heading level={3}>
-                    Schedule
+                    {t('schedule')}
                 </Heading>
                 <span className="text-xs text-content-subtle">
-                    All times in {browserTz}
+                    {t('allTimesIn', { tz: browserTz })}
                 </span>
             </div>
 
@@ -251,7 +239,7 @@ export function TestPlanScheduleSection({
                         className="text-xs text-content-muted block mb-1"
                         htmlFor="test-plan-schedule-cadence"
                     >
-                        Frequency
+                        {t('frequency')}
                     </label>
                     <Combobox
                         hideSearch
@@ -275,7 +263,7 @@ export function TestPlanScheduleSection({
                     />
                     {cadenceObj && (
                         <p className="text-xs text-content-subtle mt-1">
-                            {cadenceObj.description}
+                            {cadenceDescriptions[cadenceObj.value]}
                         </p>
                     )}
                     {pendingCadence === 'CUSTOM' && (
@@ -283,9 +271,7 @@ export function TestPlanScheduleSection({
                             className="text-xs text-content-warning mt-1"
                             data-testid="test-plan-custom-schedule-warning"
                         >
-                            This plan has a custom schedule that doesn&apos;t
-                            match the standard cadences. Choosing a
-                            cadence above will overwrite it.
+                            {t('customWarning')}
                         </p>
                     )}
                 </div>
@@ -296,11 +282,11 @@ export function TestPlanScheduleSection({
                     data-testid="test-plan-next-run-indicator"
                 >
                     <div className="text-xs text-content-muted mb-1">
-                        Next run
+                        {t('nextRun')}
                     </div>
                     {tone === 'none' ? (
                         <div className={TONE_CLASS[tone]}>
-                            No automated runs scheduled
+                            {t('noAutomatedRuns')}
                         </div>
                     ) : (
                         <div className="space-y-0.5">
@@ -309,11 +295,11 @@ export function TestPlanScheduleSection({
                                 data-testid="test-plan-next-run-tone"
                                 data-tone={tone}
                             >
-                                {TONE_LABEL[tone]}: {formatDate(initialNextRunAt!)}
+                                {t('nextRunValue', { tone: toneLabels[tone], date: formatDate(initialNextRunAt!) })}
                             </div>
                             {initialAutomationType !== 'MANUAL' && (
                                 <div className="text-xs text-content-subtle">
-                                    Automation: {initialAutomationType}
+                                    {t('automationType', { type: initialAutomationType })}
                                 </div>
                             )}
                         </div>
@@ -334,7 +320,7 @@ export function TestPlanScheduleSection({
                         </span>
                     ) : (
                         <span className="text-xs text-content-subtle">
-                            Click save to apply the new schedule.
+                            {t('clickSave')}
                         </span>
                     )}
                     <Button
@@ -344,15 +330,14 @@ export function TestPlanScheduleSection({
                         disabled={saving}
                         id="save-test-plan-schedule-btn"
                     >
-                        {saving ? 'Saving…' : 'Save schedule'}
+                        {saving ? t('saving') : t('saveSchedule')}
                     </Button>
                 </div>
             )}
 
             {!canEdit && (
                 <p className="text-xs text-content-subtle">
-                    You don&apos;t have permission to change this plan&apos;s
-                    schedule.
+                    {t('noPermission')}
                 </p>
             )}
         </div>

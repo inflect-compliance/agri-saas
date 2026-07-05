@@ -105,7 +105,7 @@ const BASELINE_PLUS_LITERAL_SITES = new Set<string>([
     'src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx:369',
     'src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx:393',
     'src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx:470',
-    'src/components/TestPlansPanel.tsx:127',
+    'src/components/TestPlansPanel.tsx:130',
 ]);
 
 function walk(dir: string): string[] {

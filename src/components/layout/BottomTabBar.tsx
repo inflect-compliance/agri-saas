@@ -27,6 +27,7 @@
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 import { useNavSections } from './SidebarNav';
 
@@ -54,6 +55,7 @@ const BOTTOM_TAB_SUFFIXES = [
 ] as const;
 
 export function BottomTabBar() {
+    const t = useTranslations('bottomTabBar');
     const pathname = usePathname();
     const sections = useNavSections();
 
@@ -74,7 +76,7 @@ export function BottomTabBar() {
 
     return (
         <nav
-            aria-label="Primary"
+            aria-label={t('primary')}
             data-testid="bottom-tab-bar"
             className={cn(
                 // Mobile-only, pinned to the viewport bottom, below modals

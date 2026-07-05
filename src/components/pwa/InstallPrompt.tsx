@@ -14,6 +14,7 @@
  * standalone (installed). Renders nothing on desktop.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { useMediaQuery } from '@/components/ui/hooks';
 
@@ -48,6 +49,7 @@ function isIos(): boolean {
 }
 
 export function InstallPrompt() {
+    const t = useTranslations('installPrompt');
     const { isMobile } = useMediaQuery();
     const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
     const [iosHint, setIosHint] = useState(false);
@@ -110,15 +112,15 @@ export function InstallPrompt() {
             <div
                 data-testid="install-banner"
                 role="dialog"
-                aria-label="Install AgriSaaS"
+                aria-label={t('installTitle')}
                 className="fixed inset-x-2 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] z-40 flex items-center gap-default rounded-lg border border-border-default bg-bg-default p-3 md:hidden"
             >
                 <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-content-emphasis">Install AgriSaaS</p>
-                    <p className="text-xs text-content-secondary">Add it to your home screen — works in the field, online or off.</p>
+                    <p className="text-sm font-semibold text-content-emphasis">{t('installTitle')}</p>
+                    <p className="text-xs text-content-secondary">{t('installDesc')}</p>
                 </div>
-                <Button variant="secondary" size="sm" onClick={snooze} data-testid="install-dismiss" aria-label="Dismiss install prompt">Not now</Button>
-                <Button variant="primary" size="sm" onClick={() => void install()} data-testid="install-accept">Install</Button>
+                <Button variant="secondary" size="sm" onClick={snooze} data-testid="install-dismiss" aria-label={t('dismissPrompt')}>{t('notNow')}</Button>
+                <Button variant="primary" size="sm" onClick={() => void install()} data-testid="install-accept">{t('install')}</Button>
             </div>
         );
     }
@@ -128,16 +130,16 @@ export function InstallPrompt() {
             <div
                 data-testid="ios-install-hint"
                 role="dialog"
-                aria-label="Add AgriSaaS to your home screen"
+                aria-label={t('a2hsAria')}
                 className="fixed inset-x-2 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.5rem)] z-40 flex items-start gap-default rounded-lg border border-border-default bg-bg-default p-3 md:hidden"
             >
                 <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-content-emphasis">Add to Home Screen</p>
+                    <p className="text-sm font-semibold text-content-emphasis">{t('a2hsTitle')}</p>
                     <p className="text-xs text-content-secondary">
-                        Tap the Share icon, then “Add to Home Screen” to install AgriSaaS for offline field use.
+                        {t('a2hsDesc')}
                     </p>
                 </div>
-                <Button variant="secondary" size="sm" onClick={snooze} data-testid="install-dismiss" aria-label="Dismiss install hint">Got it</Button>
+                <Button variant="secondary" size="sm" onClick={snooze} data-testid="install-dismiss" aria-label={t('dismissHint')}>{t('gotIt')}</Button>
             </div>
         );
     }

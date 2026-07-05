@@ -50,6 +50,7 @@
  *     the Combobox primitive (Epic 55) is the canonical reach.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
     Building2,
@@ -97,6 +98,7 @@ export function OrgSwitcher({
     currentTenantSlug,
     initialTenants,
 }: OrgSwitcherProps) {
+    const tr = useTranslations('orgSwitcher');
     const [open, setOpen] = useState(false);
     const [tenants, setTenants] = useState<OrgSwitcherTenant[] | null>(
         initialTenants ?? null,
@@ -116,7 +118,7 @@ export function OrgSwitcher({
         fetch(`/api/org/${orgSlug}/tenants`, { credentials: 'same-origin' })
             .then(async (res) => {
                 if (!res.ok) {
-                    throw new Error(`Failed to load tenants (${res.status})`);
+                    throw new Error(tr('loadErrorStatus', { status: res.status }));
                 }
                 return res.json() as Promise<{ tenants: OrgSwitcherTenant[] }>;
             })
@@ -126,7 +128,7 @@ export function OrgSwitcher({
             })
             .catch((e: unknown) => {
                 if (cancelled) return;
-                setError(e instanceof Error ? e.message : 'Failed to load tenants');
+                setError(e instanceof Error ? e.message : tr('loadError'));
             })
             .finally(() => {
                 if (!cancelled) setLoading(false);
@@ -134,12 +136,13 @@ export function OrgSwitcher({
         return () => {
             cancelled = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `tr` is a stable next-intl binding
     }, [open, tenants, orgSlug]);
 
     const portfolioActive = currentKind === 'org';
     const close = useCallback(() => setOpen(false), []);
 
-    const tagline = currentKind === 'org' ? 'Portfolio' : 'Workspace';
+    const tagline = currentKind === 'org' ? tr('taglinePortfolio') : tr('taglineWorkspace');
 
     // Avatar monogram derived from the active org name. Falls back
     // to a neutral '?' when the name is empty/whitespace so the
@@ -165,7 +168,7 @@ export function OrgSwitcher({
             sideOffset={6}
             popoverContentClassName="w-[260px] p-1"
             content={
-                <Popover.Menu aria-label="Switch context">
+                <Popover.Menu aria-label={tr('switchContext')}>
                     <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-content-subtle">
                         {orgName}
                     </p>
@@ -184,7 +187,7 @@ export function OrgSwitcher({
                         <span className="inline-flex size-4 shrink-0 items-center justify-center text-content-muted">
                             <LayoutDashboard className="size-3.5" aria-hidden="true" />
                         </span>
-                        <span className="flex-1 truncate">Portfolio overview</span>
+                        <span className="flex-1 truncate">{tr('portfolioOverview')}</span>
                         {portfolioActive && (
                             <Check className="size-3.5 text-content-info" aria-hidden="true" />
                         )}
@@ -193,7 +196,7 @@ export function OrgSwitcher({
                     <Popover.Separator />
 
                     <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-content-subtle">
-                        Tenant workspaces
+                        {tr('tenantWorkspaces')}
                     </p>
 
                     {loading && (
@@ -203,7 +206,7 @@ export function OrgSwitcher({
                             aria-live="polite"
                         >
                             <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                            Loading tenants…
+                            {tr('loadingTenants')}
                         </div>
                     )}
 
@@ -219,7 +222,7 @@ export function OrgSwitcher({
 
                     {!loading && !error && tenants !== null && tenants.length === 0 && (
                         <p className="px-2.5 py-1.5 text-xs text-content-muted">
-                            No tenants linked yet.
+                            {tr('noTenants')}
                         </p>
                     )}
 
@@ -260,7 +263,7 @@ export function OrgSwitcher({
                 type="button"
                 aria-haspopup="menu"
                 aria-expanded={open}
-                aria-label="Switch organization context"
+                aria-label={tr('switchOrgContext')}
                 data-testid="org-switcher-trigger"
                 className="flex w-full items-center gap-tight rounded-lg border border-transparent px-2 py-1.5 hover:bg-bg-muted hover:border-border-subtle transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >

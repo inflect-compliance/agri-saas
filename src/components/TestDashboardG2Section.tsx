@@ -18,6 +18,7 @@
  */
 import Link from 'next/link';
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import DonutChart, { type DonutSegment } from '@/components/ui/DonutChart';
 import { MiniAreaChart } from '@/components/ui/mini-area-chart';
 import { useTenantHref } from '@/lib/tenant-context-provider';
@@ -72,15 +73,16 @@ export function TestDashboardG2Section({
     upcoming,
     trend,
 }: TestDashboardG2SectionProps) {
+    const t = useTranslations('testDashboard');
     const tenantHref = useTenantHref();
 
     const donutSegments = useMemo<DonutSegment[]>(
         () => [
-            { label: 'Pass', value: passRuns, color: '#22c55e' },
-            { label: 'Fail', value: failRuns, color: '#ef4444' },
-            { label: 'Inconclusive', value: inconclusiveRuns, color: '#f59e0b' },
+            { label: t('segPass'), value: passRuns, color: '#22c55e' },
+            { label: t('segFail'), value: failRuns, color: '#ef4444' },
+            { label: t('segInconclusive'), value: inconclusiveRuns, color: '#f59e0b' },
         ],
-        [passRuns, failRuns, inconclusiveRuns],
+        [t, passRuns, failRuns, inconclusiveRuns],
     );
     const totalCompleted = passRuns + failRuns + inconclusiveRuns;
     const passPct =
@@ -116,12 +118,13 @@ export function TestDashboardG2Section({
             data-testid="test-dashboard-g2-section"
         >
             <div className="flex items-baseline justify-between">
-                <Heading level={2}>Automation</Heading>
+                <Heading level={2}>{t('automation')}</Heading>
                 <span className="text-xs text-content-subtle">
-                    {automation.plansScheduledActive} scheduled •{' '}
-                    {automation.plansManual} manual •{' '}
-                    {automation.plansScript + automation.plansIntegration}{' '}
-                    automated
+                    {t('planSummary', {
+                        scheduled: automation.plansScheduledActive,
+                        manual: automation.plansManual,
+                        automated: automation.plansScript + automation.plansIntegration,
+                    })}
                 </span>
             </div>
 
@@ -132,18 +135,18 @@ export function TestDashboardG2Section({
                     data-testid="test-dashboard-g2-donut"
                 >
                     <Heading level={3} className="mb-4">
-                        Result distribution ({period}d)
+                        {t('resultDistribution', { period })}
                     </Heading>
                     {totalCompleted === 0 ? (
                         <p className="text-content-subtle text-sm">
-                            No completed runs in this period yet.
+                            {t('noCompletedRuns')}
                         </p>
                     ) : (
                         <div className="flex justify-center">
                             <DonutChart
                                 segments={donutSegments}
                                 centerLabel={`${passPct}%`}
-                                centerSub="Pass rate"
+                                centerSub={t('passRate')}
                                 size={180}
                             />
                         </div>
@@ -157,7 +160,7 @@ export function TestDashboardG2Section({
                 >
                     <div className="flex items-center justify-between mb-4">
                         <Heading level={3}>
-                            Overdue scheduled
+                            {t('overdueScheduled')}
                         </Heading>
                         <StatusBadge variant={automation.overdueScheduled > 0
                                     ? 'error'
@@ -168,8 +171,8 @@ export function TestDashboardG2Section({
                     {overdueRows.length === 0 ? (
                         <p className="text-content-subtle text-sm">
                             {automation.plansScheduledActive === 0
-                                ? 'No scheduled plans yet. Schedule a plan from its detail page.'
-                                : 'All scheduled plans are on track.'}
+                                ? t('noScheduledPlans')
+                                : t('allOnTrack')}
                         </p>
                     ) : (
                         <div className="space-y-1.5">
@@ -192,7 +195,7 @@ export function TestDashboardG2Section({
                                     </div>
                                     <div className="text-right shrink-0 ml-3">
                                         <div className="text-xs text-content-error font-semibold">
-                                            {Math.abs(row.daysUntilRun)}d overdue
+                                            {t('daysOverdue', { days: Math.abs(row.daysUntilRun) })}
                                         </div>
                                         <div className="text-xs text-content-subtle">
                                             {formatDate(row.nextRunAtIso)}
@@ -202,7 +205,7 @@ export function TestDashboardG2Section({
                             ))}
                             {automation.overdueScheduled > overdueRows.length && (
                                 <div className="text-xs text-content-subtle pt-1">
-                                    + {automation.overdueScheduled - overdueRows.length} more
+                                    + {t('moreCount', { count: automation.overdueScheduled - overdueRows.length })}
                                 </div>
                             )}
                         </div>
@@ -216,22 +219,22 @@ export function TestDashboardG2Section({
                 >
                     <div className="flex items-center justify-between mb-4">
                         <Heading level={3}>
-                            Daily runs ({period}d)
+                            {t('dailyRuns', { period })}
                         </Heading>
                         <span className="text-xs text-content-subtle">
-                            {totalCompleted} total
+                            {t('totalCount', { count: totalCompleted })}
                         </span>
                     </div>
                     {!sparklineHasAnyRun ? (
                         <p className="text-content-subtle text-sm">
-                            No runs to chart yet.
+                            {t('noRunsToChart')}
                         </p>
                     ) : (
                         <div className="h-24">
                             <MiniAreaChart
                                 data={sparklineData}
                                 variant="brand"
-                                aria-label="Daily completed test runs"
+                                aria-label={t('dailyRunsAria')}
                             />
                         </div>
                     )}

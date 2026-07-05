@@ -14,7 +14,13 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf-8');
 describe('score-chip a11y label', () => {
     test('the explainer derives its aria-label from the label prop', () => {
         const src = read('src/components/RiskScoreExplainer.tsx');
-        expect(src).toMatch(/aria-label=\{label \? `\$\{label\}, explain` : 'Explain this score'\}/);
+        // i18n (T04): the aria copy routes through next-intl —
+        // `label ? t('explainLabelled', { label }) : t('explain')`.
+        // The English still announces "<label>, explain" via
+        // riskScore.explainLabelled = "{label}, explain".
+        expect(src).toMatch(
+            /aria-label=\{label \? t\('explainLabelled', \{ label \}\) : t\('explain'\)\}/,
+        );
     });
 
     test('the risks list passes score · band', () => {

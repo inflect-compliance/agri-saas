@@ -24,6 +24,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export function ControlReverseLookupModal({
     open: boolean;
     onOpenChange: (next: boolean) => void;
 }) {
+    const t = useTranslations("controlReverseLookup");
     const [maps, setMaps] = useState<MapRef[] | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export function ControlReverseLookupModal({
                     `/api/t/${tenantSlug}/controls/${controlId}/process-maps`,
                 );
                 if (!res.ok) {
-                    throw new Error(`Lookup failed (${res.status})`);
+                    throw new Error(t("lookupFailed", { status: res.status }));
                 }
                 const body = (await res.json()) as { maps?: MapRef[] };
                 if (cancelled) return;
@@ -76,7 +78,7 @@ export function ControlReverseLookupModal({
                     setError(
                         err instanceof Error
                             ? err.message
-                            : "Could not load process maps",
+                            : t("couldNotLoad"),
                     );
                 }
             } finally {
@@ -86,6 +88,9 @@ export function ControlReverseLookupModal({
         return () => {
             cancelled = true;
         };
+        // `t` is a stable next-intl binding; omitted so opening the modal
+        // doesn't refetch on unrelated re-renders.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, tenantSlug, controlId]);
 
     // Group rows by map — multiple edges within the same map
@@ -123,12 +128,12 @@ export function ControlReverseLookupModal({
         <Modal
             showModal={open}
             setShowModal={(next) => onOpenChange(typeof next === "boolean" ? next : !open)}
-            title="Where this control is used"
-            description="Process maps that gate an edge with this control"
+            title={t("title")}
+            description={t("description")}
         >
             <Modal.Header
-                title="Where this control is used"
-                description="Process maps that gate an edge with this control"
+                title={t("title")}
+                description={t("description")}
             />
             <Modal.Body>
                 <div
@@ -137,7 +142,7 @@ export function ControlReverseLookupModal({
                 >
                     {loading && (
                         <div className="flex items-center gap-tight text-sm text-content-muted">
-                            <LoadingSpinner /> Loading…
+                            <LoadingSpinner /> {t("loading")}
                         </div>
                     )}
                     {!loading && error && (
@@ -153,9 +158,7 @@ export function ControlReverseLookupModal({
                             data-testid="control-reverse-lookup-empty"
                             className="text-sm text-content-subtle"
                         >
-                            No process maps reference this control yet.
-                            Open a process map and pick this control from
-                            an edge&apos;s &ldquo;Linked control&rdquo; picker.
+                            {t("empty")}
                         </p>
                     )}
                     {!loading && !error && groups.length > 0 && (
@@ -174,8 +177,7 @@ export function ControlReverseLookupModal({
                                             {g.mapName}
                                         </Link>
                                         <span className="text-[11px] text-content-subtle">
-                                            {g.mapStatus} · {g.edgeCount}{" "}
-                                            {g.edgeCount === 1 ? "edge" : "edges"}
+                                            {g.mapStatus} · {t("edgeCount", { count: g.edgeCount })}
                                         </span>
                                     </div>
                                 </li>
@@ -191,7 +193,7 @@ export function ControlReverseLookupModal({
                         onClick={() => onOpenChange(false)}
                         data-testid="control-reverse-lookup-close"
                     >
-                        Close
+                        {t("close")}
                     </Button>
                 </Modal.Actions>
             </Modal.Footer>

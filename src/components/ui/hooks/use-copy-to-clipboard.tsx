@@ -31,10 +31,12 @@ export interface CopyOptions {
     onError?: (error: Error) => void;
 }
 
+type CopyResult = Promise<boolean>;
+
 export type CopyFn = (
     value: string | ClipboardItem,
     options?: CopyOptions,
-) => Promise<boolean>;
+) => CopyResult;
 
 export interface UseCopyToClipboardResult {
     copy: CopyFn;
