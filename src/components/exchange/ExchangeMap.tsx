@@ -441,15 +441,13 @@ export function ExchangeMap({
                     />
                 </Source>
 
-                {/* Live pulse ring on the offer the list row is hovering. */}
+                {/* Soft pulsing ring on the offer the list row is hovering. */}
                 {hovered && (
                     <Marker longitude={hovered.lon} latitude={hovered.lat}>
-                        <span className="pointer-events-none flex h-3 w-3">
-                            <span
-                                className="absolute inline-flex h-full w-full animate-ping rounded-full"
-                                style={{ backgroundColor: EXCHANGE_SIDE_COLORS[hovered.side], opacity: 0.5 }}
-                            />
-                        </span>
+                        <span
+                            className="pointer-events-none block h-5 w-5 animate-pulse rounded-full border-2"
+                            style={{ borderColor: EXCHANGE_SIDE_COLORS[hovered.side], opacity: 0.6 }}
+                        />
                     </Marker>
                 )}
 
@@ -530,16 +528,10 @@ export function ExchangeMap({
             {status === 'ready' && (
                 <>
                     <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
-                        <span className="relative flex h-2 w-2">
-                            <span
-                                className="absolute inline-flex h-full w-full animate-ping rounded-full"
-                                style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL, opacity: 0.55 }}
-                            />
-                            <span
-                                className="relative inline-flex h-2 w-2 rounded-full"
-                                style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }}
-                            />
-                        </span>
+                        <span
+                            className="inline-flex h-2 w-2 animate-pulse rounded-full"
+                            style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }}
+                        />
                         <span className="text-xs font-semibold tracking-wide text-content-emphasis">БОРСА</span>
                         <span className="text-xs text-content-muted">· Exchange</span>
                     </div>
