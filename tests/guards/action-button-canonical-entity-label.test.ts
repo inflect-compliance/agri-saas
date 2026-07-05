@@ -104,7 +104,9 @@ describe('Action-button canonical entity label', () => {
                 'src/app/t/[tenantSlug]/(app)/tasks/TasksClient.tsx',
                 'new-task-btn',
                 'Task',
-                'tasks',
+                // T10 i18n — TasksClient uses useTranslations('tasks.list'),
+                // so the header button is `{t('addTask')}` → tasks.list.addTask.
+                'tasks.list',
             ],
             [
                 'src/app/t/[tenantSlug]/(app)/vendors/VendorsClient.tsx',
@@ -146,8 +148,11 @@ describe('Action-button canonical entity label', () => {
                 const tCall = textContent.match(/^\{\w+\(['"]([a-zA-Z0-9_.]+)['"]\)\}$/);
                 if (tCall) {
                     const en = JSON.parse(read('messages/en.json')) as Record<string, unknown>;
-                    let resolved: unknown = (en as Record<string, unknown>)[ns];
-                    for (const part of tCall[1].split('.')) {
+                    // `ns` may itself be dotted (e.g. 'tasks.list' when the
+                    // component calls useTranslations('tasks.list')); walk it
+                    // segment-by-segment, then walk the t() key.
+                    let resolved: unknown = en;
+                    for (const part of `${ns}.${tCall[1]}`.split('.')) {
                         resolved = (resolved as Record<string, unknown> | undefined)?.[part];
                     }
                     expect(resolved).toBe(label);

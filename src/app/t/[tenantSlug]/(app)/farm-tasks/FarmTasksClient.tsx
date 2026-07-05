@@ -22,6 +22,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
@@ -146,6 +147,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
     const buildUrl = useTenantApiUrl();
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
+    const t = useTranslations('farmTasks');
 
     const { data: tasks, mutate, isLoading } = useTenantSWR<FarmTaskRow[]>('/farm-tasks');
 
@@ -236,7 +238,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
             createColumns<FarmTaskRow>([
                 {
                     accessorKey: 'title',
-                    header: 'Title',
+                    header: t('colTitle'),
                     cell: ({ row }) => (
                         <span className="font-medium text-content-emphasis">{row.original.title}</span>
                     ),
@@ -245,7 +247,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 },
                 {
                     id: 'taskType',
-                    header: 'Task type',
+                    header: t('colTaskType'),
                     accessorFn: (t) => resolveTaskTypeName(t),
                     cell: ({ getValue }) => (
                         <span className="text-content-secondary">{getValue() as string}</span>
@@ -255,8 +257,8 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 },
                 {
                     id: 'dueAt',
-                    header: 'Due',
-                    accessorFn: (t) => t.dueAt,
+                    header: t('colDue'),
+                    accessorFn: (row) => row.dueAt,
                     cell: ({ row }) =>
                         row.original.dueAt ? (
                             <span className="text-xs text-content-muted">
@@ -266,11 +268,11 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                             <span className="text-content-subtle">—</span>
                         ),
                     // Mobile card key/value row — when the field work is due.
-                    meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: 'Due' } },
+                    meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: t('colDue') } },
                 },
                 {
                     accessorKey: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => (
                         <StatusBadge variant={STATUS_BADGE[row.original.status] ?? 'neutral'} size="sm">
                             {STATUS_LABELS[row.original.status] ?? row.original.status}
@@ -281,14 +283,14 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 },
                 {
                     id: 'assignee',
-                    header: 'Assignee',
-                    accessorFn: (t) => t.assignee?.name ?? t.assignee?.email ?? '—',
+                    header: t('colAssignee'),
+                    accessorFn: (row) => row.assignee?.name ?? row.assignee?.email ?? '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">{getValue() as string}</span>
                     ),
                 },
             ]),
-        [],
+        [t],
     );
 
     const rows = tasks ?? [];
@@ -298,11 +300,11 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Farm Tasks' },
+                    { label: t('dashboard'), href: tenantHref('/dashboard') },
+                    { label: t('breadcrumb') },
                 ],
-                title: 'Farm Tasks',
-                description: 'Your field-work queue — assigned farm tasks and operations, soonest-due first.',
+                title: t('title'),
+                description: t('description'),
                 actions: (
                     <Button
                         variant="primary"
@@ -310,7 +312,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                         onClick={openCreate}
                         id="new-farm-task-btn"
                     >
-                        Task
+                        {t('addTask')}
                     </Button>
                 ),
             }}
@@ -328,9 +330,9 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No farm tasks assigned"
-                        description="Create a farm task to plan field work — tillage, planting, scouting, irrigation, harvest — and assign it to an operator. Tasks assigned to you appear here, soonest-due first."
-                        primaryAction={{ label: 'Add task', onClick: openCreate }}
+                        title={t('emptyTitle')}
+                        description={t('emptyDescription')}
+                        primaryAction={{ label: t('emptyAction'), onClick: openCreate }}
                     />
                 ),
                 resourceName: (p) => (p ? 'tasks' : 'task'),
@@ -340,15 +342,15 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
         >
             <Fab
                 onClick={goToFieldMap}
-                label="Start Field Operation"
+                label={t('startFieldOperation')}
                 icon={<Plus aria-hidden className="h-6 w-6" />}
             />
             <Modal
                 showModal={isCreateOpen}
                 setShowModal={setIsCreateOpen}
                 size="lg"
-                title="New farm task"
-                description="Plan field work and assign it to an operator."
+                title={t('modalTitle')}
+                description={t('modalDescription')}
                 preventDefaultClose={submitting}
                 isDirty={
                     title.trim().length > 0 ||
@@ -360,8 +362,8 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 }
             >
                 <Modal.Header
-                    title="New farm task"
-                    description="Plan field work and assign it to an operator."
+                    title={t('modalTitle')}
+                    description={t('modalDescription')}
                 />
                 <Modal.Form
                     id="farm-task-form"
@@ -381,17 +383,17 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                             </div>
                         )}
                         <fieldset disabled={submitting} className="m-0 p-0 border-0 space-y-default">
-                            <FormField label="Title" required>
+                            <FormField label={t('fieldTitle')} required>
                                 <Input
                                     id="farm-task-title"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="e.g. Scout the north block for aphids"
+                                    placeholder={t('titlePlaceholder')}
                                 />
                             </FormField>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
-                                <FormField label="Task type" required>
+                                <FormField label={t('fieldTaskType')} required>
                                     <Combobox
                                         id="farm-task-type"
                                         options={TYPE_OPTIONS}
@@ -401,72 +403,72 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                                             const def = TYPE_BY_VALUE.get(o.value);
                                             return def ? CATEGORY_LABELS[def.category] ?? def.category : null;
                                         }}
-                                        placeholder="Select task type"
-                                        searchPlaceholder="Search task types…"
-                                        aria-label="Task type"
+                                        placeholder={t('taskTypePlaceholder')}
+                                        searchPlaceholder={t('taskTypeSearch')}
+                                        aria-label={t('taskTypeAria')}
                                         matchTriggerWidth
                                     />
                                 </FormField>
-                                <FormField label="Priority">
+                                <FormField label={t('fieldPriority')}>
                                     <Combobox
                                         id="farm-task-priority"
                                         options={PRIORITY_OPTIONS}
                                         selected={PRIORITY_OPTIONS.find((o) => o.value === priority) ?? null}
                                         setSelected={(o) => setPriority((o?.value as Priority) ?? 'P2')}
-                                        placeholder="Select priority"
+                                        placeholder={t('priorityPlaceholder')}
                                         hideSearch
-                                        aria-label="Priority"
+                                        aria-label={t('priorityAria')}
                                         matchTriggerWidth
                                     />
                                 </FormField>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
-                                <FormField label="Due date">
+                                <FormField label={t('fieldDueDate')}>
                                     <DatePicker
                                         id="farm-task-due"
                                         className="w-full"
                                         value={dueAt}
                                         onChange={setDueAt}
                                         clearable
-                                        placeholder="Select date"
-                                        aria-label="Due date"
+                                        placeholder={t('datePlaceholder')}
+                                        aria-label={t('dueDateAria')}
                                     />
                                 </FormField>
-                                <FormField label="Assignee">
+                                <FormField label={t('fieldAssignee')}>
                                     <UserCombobox
                                         id="farm-task-assignee"
                                         tenantSlug={tenantSlug}
                                         selectedId={assigneeUserId}
                                         onChange={(userId) => setAssigneeUserId(userId)}
-                                        placeholder="Unassigned"
+                                        placeholder={t('unassigned')}
                                         forceDropdown={false}
                                     />
                                 </FormField>
                             </div>
 
-                            <FormField label="Locations">
+                            <FormField label={t('fieldLocations')}>
                                 <Combobox
                                     id="farm-task-locations"
                                     multiple
                                     options={locationOptions}
                                     selected={locationOptions.filter((o) => locationIds.includes(o.value))}
                                     setSelected={(opts) => setLocationIds(opts.map((o) => o.value))}
-                                    placeholder={locationOptions.length ? 'Link field blocks' : 'No locations yet'}
-                                    aria-label="Linked locations"
+                                    placeholder={locationOptions.length ? t('locationsPlaceholder') : t('locationsEmpty')}
+                                    aria-label={t('locationsAria')}
                                     matchTriggerWidth
                                 />
                             </FormField>
 
-                            <FormField label="Equipment">
+                            <FormField label={t('fieldEquipment')}>
                                 <Combobox
                                     id="farm-task-equipment"
                                     multiple
                                     options={equipmentOptions}
                                     selected={equipmentOptions.filter((o) => equipmentIds.includes(o.value))}
                                     setSelected={(opts) => setEquipmentIds(opts.map((o) => o.value))}
-                                    placeholder={equipmentOptions.length ? 'Link equipment' : 'No equipment yet'}
-                                    aria-label="Linked equipment"
+                                    placeholder={equipmentOptions.length ? t('equipmentPlaceholder') : t('equipmentEmpty')}
+                                    aria-label={t('equipmentAria')}
                                     matchTriggerWidth
                                 />
                             </FormField>
@@ -481,7 +483,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                             disabled={submitting}
                             id="farm-task-cancel"
                         >
-                            Cancel
+                            {t('cancel')}
                         </Button>
                         <Button
                             variant="primary"
@@ -491,7 +493,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                             disabled={!canSubmit}
                             id="farm-task-submit"
                         >
-                            Create task
+                            {t('create')}
                         </Button>
                     </Modal.Actions>
                 </Modal.Form>

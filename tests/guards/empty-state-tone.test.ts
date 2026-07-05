@@ -158,6 +158,20 @@ describe('Empty-state copy tone (Roadmap-3 PR-6)', () => {
                 'policies.detail.noVersionPublished',
                 'policies.detail.noVersions',
                 'policies.detail.noActivity',
+                // T10 i18n migration (tasks/issues/journal/findings/calendar/
+                // farm-tasks batch) — inline empty-state MESSAGES migrated
+                // verbatim from the hardcoded JSX: standalone `<p>` fallbacks
+                // ("No description.", "No events on this day.") and
+                // EmptyState / InlineEmptyState DESCRIPTIONS (paired with a
+                // separate terse `noXTitle`). Full sentences with legitimate
+                // terminal punctuation, not terse EmptyState titles — same
+                // rationale as the T04–T09 exemptions above.
+                'calendar.noEventsDay',
+                'findings.createModal.noRisksToLink',
+                'tasks.detail.noDescription',
+                'tasks.detail.noCommentsDescription',
+                'tasks.detail.noActivityDescription',
+                'tasks.detail.links.noLinksDescription',
             ]);
             if (SANCTIONED.has(key)) continue;
             // Sanctioned namespace: `riskManager.*` keys are the

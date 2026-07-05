@@ -57,6 +57,7 @@ import { useHydratedNow } from '@/lib/hooks/use-hydrated-now';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
+import { useTranslations } from 'next-intl';
 
 const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     OPEN: 'neutral', TRIAGED: 'info', IN_PROGRESS: 'info',
@@ -134,6 +135,7 @@ function TasksPageInner({
     const { mutate: swrMutate } = useSWRConfig();
     const router = useRouter();
     const prefetchData = usePrefetchTenant();
+    const t = useTranslations('tasks.list');
 
     // Hydration marker — signals to E2E tests that React event handlers are attached
     const [hydrated, setHydrated] = useState(false);
@@ -478,15 +480,15 @@ function TasksPageInner({
     // R10-PR7 — column-visibility gear.
     const taskColumnList = useMemo(
         () => [
-            { id: 'title', label: 'Title' },
-            { id: 'type', label: 'Type' },
-            { id: 'severity', label: 'Severity' },
-            { id: 'status', label: 'Status' },
-            { id: 'assignee', label: 'Assignee' },
-            { id: 'dueAt', label: 'Due' },
-            { id: 'updatedAt', label: 'Updated', defaultVisible: false },
+            { id: 'title', label: t('colTitle') },
+            { id: 'type', label: t('colType') },
+            { id: 'severity', label: t('colSeverity') },
+            { id: 'status', label: t('colStatus') },
+            { id: 'assignee', label: t('colAssignee') },
+            { id: 'dueAt', label: t('colDue') },
+            { id: 'updatedAt', label: t('colUpdated'), defaultVisible: false },
         ],
-        [],
+        [t],
     );
     const {
         columnVisibility,
@@ -510,8 +512,8 @@ function TasksPageInner({
         cols.push(
             {
                 id: 'title',
-                header: 'Title',
-                accessorFn: (t) => t.title,
+                header: t('colTitle'),
+                accessorFn: (row) => row.title,
                 // R13-PR1 — title cell uses the canonical
                 // <TableTitleCell> primitive. The key prefix, Overdue
                 // badge, and SLA tooltip that used to live inline here
@@ -531,12 +533,12 @@ function TasksPageInner({
             },
             {
                 accessorKey: 'type',
-                header: 'Type',
+                header: t('colType'),
                 cell: ({ getValue }) => <span className="text-xs text-content-muted">{TYPE_LABELS[getValue<string>()] || getValue<string>()}</span>,
             },
             {
                 accessorKey: 'severity',
-                header: 'Severity',
+                header: t('colSeverity'),
                 cell: ({ row }) => (
                     <StatusBadge variant={SEVERITY_BADGE[row.original.severity] || 'neutral'} size="sm">
                         {row.original.severity}
@@ -545,7 +547,7 @@ function TasksPageInner({
             },
             {
                 accessorKey: 'status',
-                header: 'Status',
+                header: t('colStatus'),
                 cell: ({ row }) => (
                     <StatusBadge variant={STATUS_BADGE[row.original.status] || 'neutral'} size="sm">
                         {STATUS_LABELS[row.original.status] || row.original.status}
@@ -556,15 +558,15 @@ function TasksPageInner({
             },
             {
                 id: 'assignee',
-                header: 'Assignee',
-                accessorFn: (t) => t.assignee?.name || '—',
+                header: t('colAssignee'),
+                accessorFn: (row) => row.assignee?.name || '—',
                 cell: ({ getValue }) => <span className="text-xs text-content-muted">{getValue<string>()}</span>,
                 // Mobile card key/value row — who owns the task.
-                meta: { mobileCard: { slot: 'meta', label: 'Assignee' } },
+                meta: { mobileCard: { slot: 'meta', label: t('colAssignee') } },
             },
             {
                 id: 'dueAt',
-                header: 'Due Date',
+                header: t('colDueDate'),
                 cell: ({ row }) => (
                     <TimestampTooltip
                         date={row.original.dueAt}
@@ -572,11 +574,11 @@ function TasksPageInner({
                     />
                 ),
                 // Mobile card key/value row — when it's due.
-                meta: { mobileCard: { slot: 'meta', label: 'Due' } },
+                meta: { mobileCard: { slot: 'meta', label: t('colDue') } },
             },
             {
                 id: 'updatedAt',
-                header: 'Updated',
+                header: t('colUpdated'),
                 cell: ({ row }) => (
                     <TimestampTooltip
                         date={row.original.updatedAt}
@@ -598,7 +600,7 @@ function TasksPageInner({
                 cell: ({ row }) => (
                     <button
                         type="button"
-                        aria-label="Edit task"
+                        aria-label={t('editTask')}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         data-testid={`task-quick-edit-${row.original.id}`}
                         onClick={(e) => {
@@ -614,7 +616,7 @@ function TasksPageInner({
 
         return cols;
 
-    }, [appPermissions.tasks.edit, selected, tasks.length, tenantHref, hydratedNow]);
+    }, [appPermissions.tasks.edit, selected, tasks.length, tenantHref, hydratedNow, t]);
 
     return (
         <ListPageShell className="animate-fadeIn gap-section" data-hydrated={hydrated || undefined}>
@@ -623,19 +625,19 @@ function TasksPageInner({
                     <div>
                         <PageBreadcrumbs
                             items={[
-                                { label: 'Dashboard', href: tenantHref('/dashboard') },
-                                { label: 'Tasks' },
+                                { label: t('dashboard'), href: tenantHref('/dashboard') },
+                                { label: t('breadcrumb') },
                             ]}
                             className="mb-1"
                         />
-                        <Heading level={1}>Tasks</Heading>
+                        <Heading level={1}>{t('title')}</Heading>
                         <p className="text-sm text-content-muted mt-1">
-                            Compliance work prioritised, assigned, and tracked to closure.
+                            {t('description')}
                         </p>
                     </div>
                     <div className="flex gap-tight">
-                        <Tooltip content="Dashboard">
-                            <Link href={tenantHref('/tasks/dashboard')} aria-label="Dashboard" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="dashboard-btn"><AppIcon name="dashboard" size={16} /></Link>
+                        <Tooltip content={t('dashboardTooltip')}>
+                            <Link href={tenantHref('/tasks/dashboard')} aria-label={t('dashboardAria')} className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="dashboard-btn"><AppIcon name="dashboard" size={16} /></Link>
                         </Tooltip>
                         {appPermissions.tasks.create && (
                             <Button
@@ -644,7 +646,7 @@ function TasksPageInner({
                                 onClick={() => setIsCreateOpen(true)}
                                 id="new-task-btn"
                             >
-                                Task
+                                {t('addTask')}
                             </Button>
                         )}
                     </div>
@@ -655,27 +657,27 @@ function TasksPageInner({
                 {/* R23-PR-E — KPI strip. */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
                     <KpiFilterCard
-                        label="Total tasks"
+                        label={t('kpiTotal')}
                         value={totalTasks}
                         onClick={() => toggleTaskKpi('total')}
                         selected={activeTaskKpi === 'total'}
                     />
                     <KpiFilterCard
-                        label="Open"
+                        label={t('kpiOpen')}
                         value={openTasks}
                         tone="attention"
                         onClick={() => toggleTaskKpi('open')}
                         selected={activeTaskKpi === 'open'}
                     />
                     <KpiFilterCard
-                        label="Overdue"
+                        label={t('kpiOverdue')}
                         value={overdueTasks}
                         tone={overdueTasks > 0 ? 'critical' : 'default'}
                         onClick={() => toggleTaskKpi('overdue')}
                         selected={activeTaskKpi === 'overdue'}
                     />
                     <KpiFilterCard
-                        label="Due this week"
+                        label={t('kpiDueWeek')}
                         value={dueWeekTasks}
                         tone="attention"
                         onClick={() => toggleTaskKpi('dueWeek')}
@@ -685,7 +687,7 @@ function TasksPageInner({
                 <FilterToolbar
                     filters={visibleFilterDefs}
                     searchId="tasks-search"
-                    searchPlaceholder="Search tasks…"
+                    searchPlaceholder={t('searchPlaceholder')}
                     actions={<>{columnsDropdown}{filtersDropdown}</>}
                 />
             </ListPageShell.Filters>
@@ -729,7 +731,7 @@ function TasksPageInner({
                                 selected={BULK_ACTION_OPTIONS.find(o => o.value === bulkAction) ?? null}
                                 setSelected={(opt) => { setBulkAction(opt?.value ?? ''); setBulkValue(''); setBulkValueLabel(''); }}
                                 options={BULK_ACTION_OPTIONS}
-                                placeholder="Choose action..."
+                                placeholder={t('chooseAction')}
                                 matchTriggerWidth
                                 buttonProps={{ className: 'text-sm' }}
                             />
@@ -745,7 +747,7 @@ function TasksPageInner({
                                     }}
                                     forceDropdown
                                     matchTriggerWidth
-                                    placeholder="Assignee (blank = unassign)"
+                                    placeholder={t('assigneePlaceholder')}
                                     className="w-full sm:w-44"
                                     id="bulk-value-input"
                                 />
@@ -757,7 +759,7 @@ function TasksPageInner({
                                     selected={BULK_STATUS_CB_OPTIONS.find(o => o.value === bulkValue) ?? null}
                                     setSelected={(opt) => setBulkValue(opt?.value ?? '')}
                                     options={BULK_STATUS_CB_OPTIONS}
-                                    placeholder="Select status..."
+                                    placeholder={t('selectStatus')}
                                     matchTriggerWidth
                                     buttonProps={{ className: 'text-sm' }}
                                 />
@@ -766,13 +768,13 @@ function TasksPageInner({
                                 <DatePicker
                                     id="bulk-value-input"
                                     className="w-full sm:w-40 text-sm"
-                                    placeholder="Due date"
+                                    placeholder={t('bulkDuePlaceholder')}
                                     clearable
                                     align="start"
                                     value={parseYMD(bulkValue)}
                                     onChange={(next) => setBulkValue(toYMD(next) ?? '')}
                                     disabledDays={{ before: startOfUtcDay(new Date()) }}
-                                    aria-label="Bulk due date"
+                                    aria-label={t('bulkDueAria')}
                                 />
                             )}
                             <IconAction
@@ -791,7 +793,7 @@ function TasksPageInner({
                                 disabled={selected.size === 0}
                                 onClick={() => triggerTaskDelete(Array.from(selected))}
                             >
-                                Delete
+                                {t('delete')}
                             </Button>
                         </div>
                     )}
@@ -802,10 +804,10 @@ function TasksPageInner({
                             <EmptyState
                                 size="sm"
                                 variant="no-results"
-                                title="No tasks match your filters"
-                                description="Try widening your search or clearing one of the active filters."
+                                title={t('filteredEmptyTitle')}
+                                description={t('filteredEmptyDescription')}
                                 secondaryAction={{
-                                    label: 'Clear filters',
+                                    label: t('clearFilters'),
                                     onClick: () => filterCtx.clearAll(),
                                 }}
                             />
@@ -813,8 +815,8 @@ function TasksPageInner({
                             <EmptyState
                                 size="sm"
                                 variant="no-records"
-                                title="No tasks yet"
-                                description="Tasks track remediation work — anything that turns a finding or open risk into a closed loop."
+                                title={t('emptyTitle')}
+                                description={t('emptyDescription')}
                             />
                         )
                     }
@@ -840,7 +842,7 @@ function TasksPageInner({
                     <NewTaskModal open={isCreateOpen} setOpen={setIsCreateOpen} />
                     <Fab
                         onClick={() => setIsCreateOpen(true)}
-                        label="New Task"
+                        label={t('fabLabel')}
                         icon={<Plus aria-hidden className="h-6 w-6" />}
                     />
                 </>

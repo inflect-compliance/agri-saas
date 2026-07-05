@@ -36,6 +36,7 @@ import type {
 } from '@/app-layer/schemas/calendar.schemas';
 import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
+import { useTranslations } from 'next-intl';
 
 const DAY_MS = 86_400_000;
 
@@ -102,6 +103,7 @@ export function CalendarClient({
         null,
     );
     const queryClient = useQueryClient();
+    const t = useTranslations('calendar');
 
     // Pull `getTime()` into a stable primitive so the dep array is
     // statically checkable. We deliberately depend on `monthCursorMs`
@@ -178,18 +180,17 @@ export function CalendarClient({
                 <div className="min-w-0">
                     <PageBreadcrumbs
                         items={[
-                            { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                            { label: 'Calendar' },
+                            { label: t('dashboard'), href: `/t/${tenantSlug}/dashboard` },
+                            { label: t('breadcrumb') },
                         ]}
                         className="mb-1"
                     />
                     <Heading level={1} className="flex items-center gap-tight">
                         <CalIcon className="size-6 text-content-muted" aria-hidden="true" />
-                        Compliance Calendar
+                        {t('title')}
                     </Heading>
                     <p className="text-sm text-content-muted mt-1">
-                        Track every compliance deadline — evidence reviews, policy renewals,
-                        vendor renewals, audit cycles, control tests — in one place.
+                        {t('description')}
                     </p>
                 </div>
                 <div className="flex items-center gap-tight flex-wrap">
@@ -197,12 +198,12 @@ export function CalendarClient({
                         selected={view}
                         selectAction={(v) => setView(v as View)}
                         options={[
-                            { value: 'month', label: 'Month' },
-                            { value: 'heatmap', label: 'Heatmap' },
-                            { value: 'gantt', label: 'Timeline' },
+                            { value: 'month', label: t('viewMonth') },
+                            { value: 'heatmap', label: t('viewHeatmap') },
+                            { value: 'gantt', label: t('viewTimeline') },
                         ]}
                         size="sm"
-                        ariaLabel="Calendar view"
+                        ariaLabel={t('viewAriaLabel')}
                     />
                 </div>
             </header>
@@ -217,7 +218,7 @@ export function CalendarClient({
                         type="button"
                         variant="ghost"
                         onClick={handlePrev}
-                        aria-label="Previous month"
+                        aria-label={t('prevMonth')}
                     >
                         <ChevronLeft className="size-4" />
                     </Button>
@@ -232,7 +233,7 @@ export function CalendarClient({
                         type="button"
                         variant="ghost"
                         onClick={handleNext}
-                        aria-label="Next month"
+                        aria-label={t('nextMonth')}
                     >
                         <ChevronRight className="size-4" />
                     </Button>
@@ -242,7 +243,7 @@ export function CalendarClient({
             {/* Loading + error states */}
             {calQuery.isError && (
                 <div className="rounded-lg border border-border-error bg-bg-error px-4 py-3 text-sm text-content-error">
-                    Failed to load calendar events. Try refreshing.
+                    {t('loadError')}
                 </div>
             )}
 
@@ -279,7 +280,7 @@ export function CalendarClient({
                             from={range.from}
                             to={range.to}
                             events={ganttEvents}
-                            emptyMessage="No duration-based events in this range. Create an audit cycle to see it here."
+                            emptyMessage={t('ganttEmpty')}
                         />
                     )}
                 </div>
@@ -296,7 +297,7 @@ export function CalendarClient({
                             </Heading>
                             {selectedEvents.length === 0 ? (
                                 <p className="text-xs text-content-muted">
-                                    No events on this day.
+                                    {t('noEventsDay')}
                                 </p>
                             ) : (
                                 <ul className="space-y-tight">
@@ -328,7 +329,7 @@ export function CalendarClient({
                         </>
                     ) : (
                         <p className="text-xs text-content-muted">
-                            Click a day to see events on that date.
+                            {t('clickDay')}
                         </p>
                     )}
                 </aside>

@@ -29,6 +29,7 @@ import {
     LOG_ENTRY_TYPE_LABELS,
     LOG_ENTRY_STATUS_LABELS,
 } from './filter-defs';
+import { useTranslations } from 'next-intl';
 
 const RichTextEditor = dynamic(
     () => import('@/components/ui/RichTextEditor').then((m) => m.RichTextEditor),
@@ -113,6 +114,7 @@ const STATUS_OPTIONS: ComboboxOption[] = Object.entries(LOG_ENTRY_STATUS_LABELS)
 
 export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved }: JournalEntryModalProps) {
     const buildUrl = useTenantApiUrl();
+    const t = useTranslations('journal.entryModal');
     const isEdit = !!initial?.id;
 
     // Catalogs for the pickers.
@@ -282,7 +284,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
             const wantClose = typeof next === 'function' ? !next(true) : next === false;
             if (wantClose) {
                 if (submitting) return;
-                if (isEdit && dirty && !window.confirm('Discard entry? Any details you entered will be lost.')) {
+                if (isEdit && dirty && !window.confirm(t('discardConfirm'))) {
                     return;
                 }
             }
@@ -292,10 +294,10 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
     );
     const close = () => setOpen(false);
 
-    const heading = isEdit ? 'Edit journal entry' : 'New journal entry';
+    const heading = isEdit ? t('editTitle') : t('newTitle');
     const description = isEdit
-        ? 'Update this field record.'
-        : 'Record work done (or planned) on the farm.';
+        ? t('editDescription')
+        : t('newDescription');
 
     return (
         <Modal
@@ -327,7 +329,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                     )}
                     <fieldset disabled={submitting} className="m-0 p-0 border-0 space-y-default">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-default">
-                            <FormField label="Type" required>
+                            <FormField label={t('fieldType')} required>
                                 <Combobox
                                     options={TYPE_OPTIONS}
                                     selected={TYPE_OPTIONS.find((o) => o.value === type) ?? null}
@@ -335,12 +337,12 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                         setType(o?.value ?? 'ACTIVITY');
                                         markDirty();
                                     }}
-                                    placeholder="Select type"
-                                    aria-label="Entry type"
+                                    placeholder={t('typePlaceholder')}
+                                    aria-label={t('typeAria')}
                                     matchTriggerWidth
                                 />
                             </FormField>
-                            <FormField label="Status">
+                            <FormField label={t('fieldStatus')}>
                                 <Combobox
                                     options={STATUS_OPTIONS}
                                     selected={STATUS_OPTIONS.find((o) => o.value === status) ?? null}
@@ -348,36 +350,36 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                         setStatus(o?.value ?? 'DONE');
                                         markDirty();
                                     }}
-                                    placeholder="Select status"
-                                    aria-label="Entry status"
+                                    placeholder={t('statusPlaceholder')}
+                                    aria-label={t('statusAria')}
                                     matchTriggerWidth
                                 />
                             </FormField>
-                            <FormField label="Date">
+                            <FormField label={t('fieldDate')}>
                                 <DatePicker
                                     value={occurredAt}
                                     onChange={(d) => {
                                         setOccurredAt(d);
                                         markDirty();
                                     }}
-                                    placeholder="Select date"
+                                    placeholder={t('datePlaceholder')}
                                 />
                             </FormField>
                         </div>
 
-                        <FormField label="Title" required>
+                        <FormField label={t('fieldTitle')} required>
                             <Input
                                 value={title}
                                 onChange={(e) => {
                                     setTitle(e.target.value);
                                     markDirty();
                                 }}
-                                placeholder="e.g. Glyphosate pass on the south block"
+                                placeholder={t('titlePlaceholder')}
                                 id="journal-entry-title"
                             />
                         </FormField>
 
-                        <FormField label="Notes">
+                        <FormField label={t('fieldNotes')}>
                             <RichTextEditor
                                 value={notes}
                                 contentType="HTML"
@@ -385,12 +387,12 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                     setNotes(v);
                                     markDirty();
                                 }}
-                                placeholder="Conditions, observations, operator notes…"
+                                placeholder={t('notesPlaceholder')}
                                 minHeightPx={160}
                             />
                         </FormField>
 
-                        <FormField label="Locations">
+                        <FormField label={t('fieldLocations')}>
                             <Combobox
                                 multiple
                                 options={locationOptions}
@@ -399,8 +401,8 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                     setLocationIds(opts.map((o) => o.value));
                                     markDirty();
                                 }}
-                                placeholder={locationOptions.length ? 'Link field blocks' : 'No locations yet'}
-                                aria-label="Linked locations"
+                                placeholder={locationOptions.length ? t('locationsPlaceholder') : t('locationsEmpty')}
+                                aria-label={t('locationsAria')}
                                 matchTriggerWidth
                             />
                         </FormField>
@@ -413,13 +415,13 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                 id="journal-harvest-section"
                             >
                                 <div>
-                                    <span className="text-sm font-medium text-content-emphasis">Harvest output</span>
+                                    <span className="text-sm font-medium text-content-emphasis">{t('harvestOutput')}</span>
                                     <p className="mt-1 text-xs text-content-muted">
-                                        Optional — name the harvested product and amount to mint a stock lot and record its lineage.
+                                        {t('harvestHint')}
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
-                                    <FormField label="Harvested item">
+                                    <FormField label={t('harvestedItem')}>
                                         <Combobox
                                             options={harvestItemOptions}
                                             selected={harvestItemOptions.find((o) => o.value === harvestItemId) ?? null}
@@ -427,12 +429,12 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                                 setHarvestItemId(o?.value ?? '');
                                                 markDirty();
                                             }}
-                                            placeholder={harvestItemOptions.length ? 'Select product' : 'No products yet'}
-                                            aria-label="Harvested item"
+                                            placeholder={harvestItemOptions.length ? t('productPlaceholder') : t('productEmpty')}
+                                            aria-label={t('harvestedItemAria')}
                                             matchTriggerWidth
                                         />
                                     </FormField>
-                                    <FormField label="Quantity">
+                                    <FormField label={t('quantity')}>
                                         <Input
                                             inputMode="decimal"
                                             value={harvestQty}
@@ -440,21 +442,21 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                                 setHarvestQty(e.target.value.replace(/[^0-9.]/g, ''));
                                                 markDirty();
                                             }}
-                                            placeholder="Amount harvested"
-                                            aria-label="Harvest quantity"
+                                            placeholder={t('quantityPlaceholder')}
+                                            aria-label={t('harvestQtyAria')}
                                             id="journal-harvest-qty"
                                         />
                                     </FormField>
                                 </div>
-                                <FormField label="Lot code" hint="Optional — auto-generated if blank.">
+                                <FormField label={t('lotCode')} hint={t('lotCodeHint')}>
                                     <Input
                                         value={harvestLotCode}
                                         onChange={(e) => {
                                             setHarvestLotCode(e.target.value);
                                             markDirty();
                                         }}
-                                        placeholder="e.g. HARVEST-2026-06"
-                                        aria-label="Harvest lot code"
+                                        placeholder={t('lotCodePlaceholder')}
+                                        aria-label={t('lotCodeAria')}
                                     />
                                 </FormField>
                             </div>
@@ -463,7 +465,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                         {/* Quantities — farmOS measure + value + unit + label lines. */}
                         <div className="space-y-default">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-content-emphasis">Quantities</span>
+                                <span className="text-sm font-medium text-content-emphasis">{t('quantities')}</span>
                                 <Button
                                     type="button"
                                     variant="secondary"
@@ -472,12 +474,12 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                     onClick={addQuantity}
                                     id="journal-add-quantity"
                                 >
-                                    Quantity
+                                    {t('addQuantity')}
                                 </Button>
                             </div>
                             {quantities.length === 0 ? (
                                 <p className="text-xs text-content-muted">
-                                    Add the applied amount (an input application), the harvest weight, etc.
+                                    {t('quantitiesHint')}
                                 </p>
                             ) : (
                                 <div className="space-y-tight">
@@ -494,7 +496,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                                     setSelected={(o) =>
                                                         updateQuantity(i, { measure: (o?.value as QuantityMeasure) ?? 'COUNT' })
                                                     }
-                                                    aria-label="Measure"
+                                                    aria-label={t('measureAria')}
                                                     matchTriggerWidth
                                                 />
                                             </div>
@@ -509,8 +511,8 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                                             value: e.target.value.replace(/[^0-9.\-]/g, ''),
                                                         })
                                                     }
-                                                    placeholder="Amount"
-                                                    aria-label="Value"
+                                                    placeholder={t('valuePlaceholder')}
+                                                    aria-label={t('valueAria')}
                                                 />
                                             </div>
                                             <div className="col-span-3">
@@ -518,8 +520,8 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                                     options={unitOptions}
                                                     selected={unitOptions.find((o) => o.value === q.unitId) ?? null}
                                                     setSelected={(o) => updateQuantity(i, { unitId: o?.value ?? '' })}
-                                                    placeholder="Unit"
-                                                    aria-label="Unit"
+                                                    placeholder={t('unitPlaceholder')}
+                                                    aria-label={t('unitAria')}
                                                     matchTriggerWidth
                                                 />
                                             </div>
@@ -527,8 +529,8 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                                 <Input
                                                     value={q.label}
                                                     onChange={(e) => updateQuantity(i, { label: e.target.value })}
-                                                    placeholder="Label"
-                                                    aria-label="Label"
+                                                    placeholder={t('labelPlaceholder')}
+                                                    aria-label={t('labelAria')}
                                                 />
                                             </div>
                                             <div className="col-span-1 flex justify-end">
@@ -537,7 +539,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => removeQuantity(i)}
-                                                    aria-label="Remove quantity"
+                                                    aria-label={t('removeQuantity')}
                                                 >
                                                     <Trash className="size-4" />
                                                 </Button>
@@ -558,7 +560,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                         disabled={submitting}
                         id="journal-entry-cancel"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -568,7 +570,7 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                         loading={submitting}
                         id="journal-entry-submit"
                     >
-                        {isEdit ? 'Save entry' : 'Create entry'}
+                        {isEdit ? t('saveEntry') : t('createEntry')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>
