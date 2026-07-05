@@ -18,16 +18,17 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import type { SVGProps, ComponentType } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     BadgeCheck,
-    Car,
-    ClipboardList,
+    Directions,
+    BulletList,
     Flag,
-    Package,
+    Cube,
     Plus,
     ShieldCheck,
-    type LucideIcon,
-} from 'lucide-react';
+} from '@/components/ui/icons/nucleo';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 
@@ -42,15 +43,17 @@ import { useViewMode } from '@/components/ui/hooks';
 import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 
-const FW_META: Record<string, { icon: LucideIcon; color: string }> = {
+type FwIconType = ComponentType<SVGProps<SVGSVGElement>>;
+
+const FW_META: Record<string, { icon: FwIconType; color: string }> = {
     ISO27001: { icon: ShieldCheck, color: 'from-indigo-500 to-purple-600' },
     NIS2: { icon: Flag, color: 'from-blue-500 to-cyan-600' },
     ISO9001: { icon: BadgeCheck, color: 'from-emerald-500 to-green-600' },
-    ISO28000: { icon: Package, color: 'from-orange-500 to-amber-600' },
-    ISO39001: { icon: Car, color: 'from-rose-500 to-pink-600' },
+    ISO28000: { icon: Cube, color: 'from-orange-500 to-amber-600' },
+    ISO39001: { icon: Directions, color: 'from-rose-500 to-pink-600' },
 };
-const FW_DEFAULT: { icon: LucideIcon; color: string } = {
-    icon: ClipboardList,
+const FW_DEFAULT: { icon: FwIconType; color: string } = {
+    icon: BulletList,
     color: 'from-slate-500 to-slate-600',
 };
 
@@ -82,6 +85,7 @@ export function FrameworksClient({
     coverages,
     tenantSlug,
 }: FrameworksClientProps) {
+    const t = useTranslations('frameworks');
     const [view, setView] = useViewMode('frameworks', 'cards');
     // B8 — explanatory modal for custom-framework creation. Custom
     // frameworks require a tenantId column on the (currently global)
@@ -94,13 +98,13 @@ export function FrameworksClient({
     // R10-PR7 — column-visibility gear, table-mode only.
     const frameworkColumnList = useMemo(
         () => [
-            { id: 'name', label: 'Framework' },
-            { id: 'kind', label: 'Domain' },
-            { id: 'requirementCount', label: 'Requirements' },
-            { id: 'coverage', label: 'Coverage' },
-            { id: 'status', label: 'Status' },
+            { id: 'name', label: t('colFramework') },
+            { id: 'kind', label: t('colDomain') },
+            { id: 'requirementCount', label: t('colRequirements') },
+            { id: 'coverage', label: t('colCoverage') },
+            { id: 'status', label: t('colStatus') },
         ],
-        [],
+        [t],
     );
     const {
         columnVisibility,
@@ -156,16 +160,16 @@ export function FrameworksClient({
                 <div>
                     <PageBreadcrumbs
                         items={[
-                            { label: 'Dashboard', href: href('/dashboard') },
-                            { label: 'Frameworks' },
+                            { label: t('breadcrumbDashboard'), href: href('/dashboard') },
+                            { label: t('breadcrumbFrameworks') },
                         ]}
                         className="mb-1"
                     />
                     <Heading level={1} id="frameworks-heading">
-                        Certification Schemes
+                        {t('title')}
                     </Heading>
                     <p className="text-sm text-content-muted mt-1">
-                        Browse standards, install control packs, and track requirement coverage
+                        {t('description')}
                     </p>
                 </div>
                 <div className="flex items-center gap-tight">
@@ -185,7 +189,7 @@ export function FrameworksClient({
                         id="create-framework-btn"
                         data-testid="create-framework-btn"
                     >
-                        Create framework
+                        {t('createFramework')}
                     </Button>
                     {/* B8 — primary action: jump to the import flow
                         for the first uninstalled framework. Hides
@@ -200,7 +204,7 @@ export function FrameworksClient({
                                 id="import-framework-btn"
                                 data-testid="import-framework-btn"
                             >
-                                Import framework
+                                {t('importFramework')}
                             </Button>
                         </Link>
                     )}
@@ -208,7 +212,7 @@ export function FrameworksClient({
             </div>
 
             {view === 'cards' && (
-                <CardList aria-label="Frameworks" data-testid="frameworks-card-list">
+                <CardList aria-label={t('cardListAria')} data-testid="frameworks-card-list">
                     {rows.map((row) => {
                         const meta = FW_META[row.key] || FW_DEFAULT;
                         const FwIcon = meta.icon;
@@ -244,24 +248,24 @@ export function FrameworksClient({
                                     }
                                     badge={
                                         row.isInstalled ? (
-                                            <StatusBadge variant="success">Installed</StatusBadge>
+                                            <StatusBadge variant="success">{t('installed')}</StatusBadge>
                                         ) : (
-                                            <StatusBadge variant="warning">Available</StatusBadge>
+                                            <StatusBadge variant="warning">{t('available')}</StatusBadge>
                                         )
                                     }
                                 />
                                 <CardList.CardContent
                                     kv={[
                                         {
-                                            label: 'Requirements',
+                                            label: t('kvRequirements'),
                                             value: row.requirementCount,
                                         },
                                         {
-                                            label: 'Packs',
+                                            label: t('kvPacks'),
                                             value: row.packCount,
                                         },
                                         {
-                                            label: 'Coverage',
+                                            label: t('kvCoverage'),
                                             value: `${row.coveragePercent}%`,
                                         },
                                     ]}
@@ -281,7 +285,7 @@ export function FrameworksClient({
                                                 ? 'brand'
                                                 : 'neutral'
                                         }
-                                        aria-label={`${row.name} coverage`}
+                                        aria-label={t('coverageAria', { name: row.name })}
                                     />
                                 </CardList.CardContent>
                             </CardList.Card>
@@ -298,7 +302,7 @@ export function FrameworksClient({
                     columns={createColumns<FwRow>([
                         {
                             id: 'name',
-                            header: 'Framework',
+                            header: t('colFramework'),
                             cell: ({ row }) => (
                                 <Link
                                     href={row.original.href}
@@ -310,7 +314,7 @@ export function FrameworksClient({
                         },
                         {
                             id: 'kind',
-                            header: 'Domain',
+                            header: t('colDomain'),
                             cell: ({ row }) =>
                                 row.original.kind ? (
                                     <span className="text-xs text-content-muted">
@@ -322,7 +326,7 @@ export function FrameworksClient({
                         },
                         {
                             id: 'requirementCount',
-                            header: 'Requirements',
+                            header: t('colRequirements'),
                             cell: ({ row }) => (
                                 <span className="tabular-nums text-xs text-content-default">
                                     {row.original.requirementCount}
@@ -331,7 +335,7 @@ export function FrameworksClient({
                         },
                         {
                             id: 'coverage',
-                            header: 'Coverage',
+                            header: t('colCoverage'),
                             cell: ({ row }) => (
                                 <span className="tabular-nums text-xs text-content-default">
                                     {row.original.coveragePercent}%
@@ -340,12 +344,12 @@ export function FrameworksClient({
                         },
                         {
                             id: 'status',
-                            header: 'Status',
+                            header: t('colStatus'),
                             cell: ({ row }) =>
                                 row.original.isInstalled ? (
-                                    <StatusBadge variant="success">Installed</StatusBadge>
+                                    <StatusBadge variant="success">{t('installed')}</StatusBadge>
                                 ) : (
-                                    <StatusBadge variant="warning">Available</StatusBadge>
+                                    <StatusBadge variant="warning">{t('available')}</StatusBadge>
                                 ),
                         },
                     ])}
@@ -355,7 +359,7 @@ export function FrameworksClient({
             {rows.length === 0 && (
                 <div className={cn(cardVariants({ density: 'none' }), 'text-center py-12')}>
                     <p className="text-content-subtle">
-                        No frameworks available. Run the seed to populate.
+                        {t('emptyMessage')}
                     </p>
                 </div>
             )}
@@ -369,32 +373,24 @@ export function FrameworksClient({
                 showModal={customFwModalOpen}
                 setShowModal={setCustomFwModalOpen}
                 size="md"
-                title="Custom frameworks"
-                description="Where customisation lives today, and what's coming."
+                title={t('customModal.title')}
+                description={t('customModal.subtitle')}
             >
                 <Modal.Header
-                    title="Custom frameworks"
-                    description="Where customisation lives today, and what's coming."
+                    title={t('customModal.title')}
+                    description={t('customModal.subtitle')}
                 />
                 <Modal.Body>
                     <div className="space-y-default text-sm text-content-default">
                         <p>
-                            <strong>Today</strong> — the canonical path is to
-                            import a catalogue framework (ISO27001, NIS2, …)
-                            and then customise per requirement on the
-                            framework&apos;s <em>Customize</em> tab. Reorder
-                            requirements, link controls, and add per-tenant
-                            metadata — every change is tenant-scoped.
+                            <strong>{t('customModal.todayLabel')}</strong>
+                            {t.rich('customModal.todayBody', {
+                                em: (chunks) => <em>{chunks}</em>,
+                            })}
                         </p>
                         <p>
-                            <strong>Coming soon</strong> — tenant-scoped
-                            frameworks built from scratch. The current
-                            Framework model is global (one Framework row
-                            shared across every tenant); fully bespoke
-                            frameworks need a tenantId column + matching
-                            RLS policies. Queued behind the larger
-                            framework-lifecycle epic so the migration lands
-                            with the rest of the customisation surface.
+                            <strong>{t('customModal.comingSoonLabel')}</strong>
+                            {t('customModal.comingSoonBody')}
                         </p>
                     </div>
                 </Modal.Body>
@@ -404,7 +400,7 @@ export function FrameworksClient({
                         size="sm"
                         onClick={() => setCustomFwModalOpen(false)}
                     >
-                        Close
+                        {t('customModal.close')}
                     </Button>
                     {importHref && (
                         <Link href={importHref}>
@@ -413,7 +409,7 @@ export function FrameworksClient({
                                 size="sm"
                                 onClick={() => setCustomFwModalOpen(false)}
                             >
-                                Import framework
+                                {t('importFramework')}
                             </Button>
                         </Link>
                     )}

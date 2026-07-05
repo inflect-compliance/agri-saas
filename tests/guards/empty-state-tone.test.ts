@@ -172,6 +172,15 @@ describe('Empty-state copy tone (Roadmap-3 PR-6)', () => {
                 'tasks.detail.noCommentsDescription',
                 'tasks.detail.noActivityDescription',
                 'tasks.detail.links.noLinksDescription',
+                // T11 i18n migration (frameworks/clauses/schemes/coverage/
+                // access-reviews/assets batch) — EmptyState no-results
+                // DESCRIPTIONS (paired with a separate terse `noResultsTitle`).
+                // Full sentences with legitimate terminal punctuation, not
+                // terse EmptyState titles — same rationale as the T04–T10
+                // exemptions above. The `noResultsTitle` siblings ARE terse
+                // and pass the ratchet unaided.
+                'assets.noResultsDescription',
+                'schemes.noResultsDescription',
             ]);
             if (SANCTIONED.has(key)) continue;
             // Sanctioned namespace: `riskManager.*` keys are the

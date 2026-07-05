@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ function emptyRequirement(): RequirementRow {
 }
 
 export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) {
+    const t = useTranslations('schemes');
     const buildUrl = useTenantApiUrl();
 
     const [name, setName] = useState('');
@@ -116,18 +118,18 @@ export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) 
             const wantClose = typeof next === 'function' ? !next(true) : next === false;
             if (wantClose) {
                 if (submitting) return;
-                if (dirty && !window.confirm('Discard scheme? Anything you entered will be lost.')) {
+                if (dirty && !window.confirm(t('discardConfirm'))) {
                     return;
                 }
             }
             setOpen(next);
         },
-        [submitting, dirty, setOpen],
+        [submitting, dirty, setOpen, t],
     );
     const close = () => guardedSetOpen(false);
 
-    const heading = 'New certification scheme';
-    const subheading = 'Define the scheme and the requirements practices will be mapped to.';
+    const heading = t('modalHeading');
+    const subheading = t('modalSubheading');
 
     return (
         <Modal
@@ -158,45 +160,45 @@ export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) 
                     )}
                     <fieldset disabled={submitting} className="m-0 p-0 border-0 space-y-default">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
-                            <FormField label="Name" required>
+                            <FormField label={t('fieldName')} required>
                                 <Input
                                     value={name}
                                     onChange={(e) => {
                                         setName(e.target.value);
                                         markDirty();
                                     }}
-                                    placeholder="e.g. Organic Certification"
+                                    placeholder={t('namePlaceholder')}
                                     id="new-scheme-name"
                                 />
                             </FormField>
-                            <FormField label="Key" required hint="Stable identifier — letters, digits, . _ -">
+                            <FormField label={t('fieldKey')} required hint={t('keyHint')}>
                                 <Input
                                     value={key}
                                     onChange={(e) => {
                                         setKey(e.target.value.replace(/[^A-Za-z0-9._-]/g, ''));
                                         markDirty();
                                     }}
-                                    placeholder="e.g. ORGANIC-2026"
+                                    placeholder={t('keyPlaceholder')}
                                     id="new-scheme-key"
                                 />
                             </FormField>
                         </div>
 
-                        <FormField label="Description">
+                        <FormField label={t('fieldDescription')}>
                             <Input
                                 value={description}
                                 onChange={(e) => {
                                     setDescription(e.target.value);
                                     markDirty();
                                 }}
-                                placeholder="What this scheme certifies"
+                                placeholder={t('descriptionPlaceholder')}
                                 id="new-scheme-description"
                             />
                         </FormField>
 
                         <div className="space-y-default">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-content-emphasis">Requirements</span>
+                                <span className="text-sm font-medium text-content-emphasis">{t('requirementsLabel')}</span>
                                 <Button
                                     type="button"
                                     variant="secondary"
@@ -205,7 +207,7 @@ export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) 
                                     onClick={addRequirement}
                                     id="new-scheme-add-requirement"
                                 >
-                                    Requirement
+                                    {t('addRequirement')}
                                 </Button>
                             </div>
                             <div className="space-y-tight">
@@ -219,16 +221,16 @@ export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) 
                                             <Input
                                                 value={r.code}
                                                 onChange={(e) => updateRequirement(i, { code: e.target.value })}
-                                                placeholder="Code"
-                                                aria-label={`Requirement ${i + 1} code`}
+                                                placeholder={t('codePlaceholder')}
+                                                aria-label={t('reqCodeAria', { n: i + 1 })}
                                             />
                                         </div>
                                         <div className="col-span-8">
                                             <Input
                                                 value={r.title}
                                                 onChange={(e) => updateRequirement(i, { title: e.target.value })}
-                                                placeholder="Title"
-                                                aria-label={`Requirement ${i + 1} title`}
+                                                placeholder={t('titlePlaceholder')}
+                                                aria-label={t('reqTitleAria', { n: i + 1 })}
                                             />
                                         </div>
                                         <div className="col-span-1 flex justify-end">
@@ -238,7 +240,7 @@ export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) 
                                                 size="icon"
                                                 onClick={() => removeRequirement(i)}
                                                 disabled={requirements.length <= 1}
-                                                aria-label={`Remove requirement ${i + 1}`}
+                                                aria-label={t('removeReqAria', { n: i + 1 })}
                                             >
                                                 <Trash className="size-4" />
                                             </Button>
@@ -258,7 +260,7 @@ export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) 
                         disabled={submitting}
                         id="new-scheme-cancel"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -268,7 +270,7 @@ export function NewSchemeModal({ open, setOpen, onSaved }: NewSchemeModalProps) 
                         loading={submitting}
                         id="new-scheme-submit"
                     >
-                        Create scheme
+                        {t('createScheme')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

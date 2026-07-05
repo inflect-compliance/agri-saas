@@ -4,6 +4,7 @@
  * Controlled field markup for the asset-create form (agricultural
  * assets — machines, buildings, equipment).
  */
+import { useTranslations } from 'next-intl';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ export function NewAssetFields({
     labels: NewAssetFieldsLabels;
     tenantSlug: string;
 }) {
+    const t = useTranslations('assets');
     const numeric = (value: string): number | undefined =>
         value.trim() === '' ? undefined : Number(value);
 
@@ -44,7 +46,7 @@ export function NewAssetFields({
                     id="asset-name-input"
                     value={form.fields.name}
                     onChange={(e) => form.setField('name', e.target.value)}
-                    placeholder="e.g. John Deere 6155R"
+                    placeholder={t('namePlaceholderNew')}
                     required
                 />
             </FormField>
@@ -66,14 +68,14 @@ export function NewAssetFields({
                                 (o?.value ?? 'TRACTOR') as NewAssetFormFields['type'],
                             )
                         }
-                        placeholder="Select type…"
+                        placeholder={t('selectType')}
                         hideSearch
                         matchTriggerWidth
                         buttonProps={{ className: 'w-full' }}
                         caret
                     />
                 </FormField>
-                <FormField label="Criticality">
+                <FormField label={t('criticality')}>
                     <Combobox
                         id="asset-criticality-select"
                         name="criticality"
@@ -90,7 +92,7 @@ export function NewAssetFields({
                                     undefined,
                             )
                         }
-                        placeholder="Select criticality…"
+                        placeholder={t('selectCriticality')}
                         hideSearch
                         matchTriggerWidth
                         buttonProps={{ className: 'w-full' }}
@@ -100,28 +102,28 @@ export function NewAssetFields({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-default">
-                <FormField label="Manufacturer">
+                <FormField label={t('manufacturer')}>
                     <Input
                         id="asset-manufacturer-input"
                         value={form.fields.manufacturer}
                         onChange={(e) =>
                             form.setField('manufacturer', e.target.value)
                         }
-                        placeholder="e.g. John Deere"
+                        placeholder={t('manufacturerPlaceholder')}
                     />
                 </FormField>
-                <FormField label="Model">
+                <FormField label={t('model')}>
                     <Input
                         id="asset-model-input"
                         value={form.fields.model}
                         onChange={(e) => form.setField('model', e.target.value)}
-                        placeholder="e.g. 6155R"
+                        placeholder={t('modelPlaceholder')}
                     />
                 </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-default">
-                <FormField label="Serial number">
+                <FormField label={t('serialNumber')}>
                     <Input
                         id="asset-serial-input"
                         value={form.fields.serialNumber}
@@ -130,7 +132,7 @@ export function NewAssetFields({
                         }
                     />
                 </FormField>
-                <FormField label="Year">
+                <FormField label={t('year')}>
                     <Input
                         id="asset-year-input"
                         inputMode="numeric"
@@ -138,7 +140,7 @@ export function NewAssetFields({
                         onChange={(e) =>
                             form.setField('year', numeric(e.target.value))
                         }
-                        placeholder="e.g. 2021"
+                        placeholder={t('yearPlaceholder')}
                     />
                 </FormField>
             </div>
@@ -154,7 +156,7 @@ export function NewAssetFields({
                         }
                         forceDropdown
                         matchTriggerWidth
-                        placeholder="Unassigned"
+                        placeholder={t('unassigned')}
                     />
                 </FormField>
                 <FormField label={labels.location}>
@@ -164,13 +166,13 @@ export function NewAssetFields({
                         onChange={(e) =>
                             form.setField('location', e.target.value)
                         }
-                        placeholder="e.g. North machine shed"
+                        placeholder={t('locationPlaceholder')}
                     />
                 </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-default">
-                <FormField label="Status">
+                <FormField label={t('status')}>
                     <Combobox
                         id="asset-status-select"
                         name="status"
@@ -186,17 +188,17 @@ export function NewAssetFields({
                                 (o?.value ?? 'ACTIVE') as NewAssetFormFields['status'],
                             )
                         }
-                        placeholder="Select status…"
+                        placeholder={t('selectStatus')}
                         hideSearch
                         matchTriggerWidth
                         buttonProps={{ className: 'w-full' }}
                         caret
                     />
                 </FormField>
-                <FormField label="Purchase date">
+                <FormField label={t('purchaseDate')}>
                     <DatePicker
                         id="asset-purchase-date-input"
-                        placeholder="Select date"
+                        placeholder={t('selectDate')}
                         clearable
                         align="start"
                         value={parseYMD(form.fields.purchaseDate)}
@@ -207,7 +209,7 @@ export function NewAssetFields({
                 </FormField>
             </div>
 
-            <FormField label="Purchase cost">
+            <FormField label={t('purchaseCost')}>
                 <Input
                     id="asset-purchase-cost-input"
                     inputMode="decimal"
@@ -215,7 +217,7 @@ export function NewAssetFields({
                     onChange={(e) =>
                         form.setField('purchaseCost', numeric(e.target.value))
                     }
-                    placeholder="e.g. 145000"
+                    placeholder={t('costPlaceholder')}
                 />
             </FormField>
         </>

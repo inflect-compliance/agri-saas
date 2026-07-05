@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/format-date';
 import { SkeletonCard } from '@/components/ui/skeleton';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { useTenantMembers } from '@/components/ui/user-combobox';
@@ -38,6 +39,7 @@ const TraceabilityPanel = dynamic(() => import('@/components/TraceabilityPanel')
 });
 
 export default function AssetDetailPage() {
+    const t = useTranslations('assets');
     const params = useParams();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
@@ -54,7 +56,7 @@ export default function AssetDetailPage() {
     const assigneeName = asset?.ownerUserId
         ? (members?.find((m) => m.id === asset.ownerUserId)?.name ??
            members?.find((m) => m.id === asset.ownerUserId)?.email ??
-           'Assigned')
+           t('assigned'))
         : null;
 
     // B6 +1 — canonical 7-tab strip on every detail page. Same shape
@@ -72,13 +74,13 @@ export default function AssetDetailPage() {
         | 'tests';
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const tabs: ReadonlyArray<{ key: Tab; label: string }> = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'tasks', label: 'Tasks' },
-        { key: 'evidence', label: 'Evidence' },
-        { key: 'mappings', label: 'Mappings' },
-        { key: 'traceability', label: 'Traceability' },
-        { key: 'activity', label: 'Activity' },
-        { key: 'tests', label: 'Tests' },
+        { key: 'overview', label: t('tabOverview') },
+        { key: 'tasks', label: t('tabTasks') },
+        { key: 'evidence', label: t('tabEvidence') },
+        { key: 'mappings', label: t('tabMappings') },
+        { key: 'traceability', label: t('tabTraceability') },
+        { key: 'activity', label: t('tabActivity') },
+        { key: 'tests', label: t('tabTests') },
     ];
     // Modal-form P2 — the inline-edit panel is replaced by an
     // EditAssetModal launched from the detail header. The page URL
@@ -153,9 +155,9 @@ export default function AssetDetailPage() {
     const critColor = (c: string): StatusBadgeVariant => c === 'HIGH' ? 'error' : c === 'MEDIUM' ? 'warning' : 'success';
 
     const breadcrumbs = [
-        { label: 'Dashboard', href: tenantHref('/dashboard') },
-        { label: 'Assets', href: tenantHref('/assets') },
-        { label: asset?.name ?? 'Asset' },
+        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+        { label: t('breadcrumbAssets'), href: tenantHref('/assets') },
+        { label: asset?.name ?? t('assetFallback') },
     ];
     if (loading) {
         return (
@@ -173,7 +175,7 @@ export default function AssetDetailPage() {
     }
     if (!asset) {
         return (
-            <EntityDetailLayout empty={{ message: 'Asset not found.' }} title="" breadcrumbs={breadcrumbs}>
+            <EntityDetailLayout empty={{ message: t('notFound') }} title="" breadcrumbs={breadcrumbs}>
                 <></>
             </EntityDetailLayout>
         );
@@ -195,7 +197,7 @@ export default function AssetDetailPage() {
                         ids={assetIds}
                         currentId={assetId}
                         hrefFor={(id) => tenantHref(`/assets/${id}`)}
-                        labelSingular="asset"
+                        labelSingular={t('assetLabelSingular')}
                     />
                 </span>
             }
@@ -203,14 +205,14 @@ export default function AssetDetailPage() {
                 <MetaStrip
                     items={[
                         {
-                            label: 'Type',
+                            label: t('metaType'),
                             value: asset.type?.replace(/_/g, ' '),
                         },
                         ...(asset.criticality
                             ? [
                                   {
                                       kind: 'status' as const,
-                                      label: 'Criticality',
+                                      label: t('criticality'),
                                       value: asset.criticality,
                                       variant: critColor(asset.criticality),
                                   },
@@ -218,7 +220,7 @@ export default function AssetDetailPage() {
                             : []),
                         {
                             kind: 'status' as const,
-                            label: 'Status',
+                            label: t('status'),
                             value: asset.status || 'ACTIVE',
                             variant:
                                 asset.status === 'RETIRED'
@@ -266,7 +268,7 @@ export default function AssetDetailPage() {
             {activeTab === 'evidence' && (
                 <div className="space-y-section">
                     <div className="space-y-default">
-                        <Heading level={3}>Attached evidence</Heading>
+                        <Heading level={3}>{t('attachedEvidence')}</Heading>
                         <AttachedEvidencePanel
                             entityId={assetId}
                             entity="asset"
@@ -277,7 +279,7 @@ export default function AssetDetailPage() {
                         />
                     </div>
                     <div className="space-y-default">
-                        <Heading level={3}>Inherited from controls</Heading>
+                        <Heading level={3}>{t('inheritedFromControls')}</Heading>
                         <InheritedEvidencePanel
                             endpoint={apiUrl(`/assets/${assetId}/evidence`)}
                             tenantHref={tenantHref}
@@ -297,8 +299,8 @@ export default function AssetDetailPage() {
                 <EmptyState
                     size="sm"
                     variant="no-records"
-                    title="Asset activity log"
-                    description="A dedicated activity feed for this asset is on the roadmap. Tenant-wide audit log is available from Admin → Audit Log."
+                    title={t('activityTitle')}
+                    description={t('activityDescription')}
                 />
             )}
             {activeTab === 'tests' && (
@@ -318,13 +320,13 @@ export default function AssetDetailPage() {
                     <div className="flex justify-end -mt-1 -mb-2">
                         {/* B2 — icon-only edit affordance; opens the Edit
                             Asset modal, mirroring the control overview. */}
-                        <Tooltip content="Edit asset">
+                        <Tooltip content={t('editAsset')}>
                             <Button
                                 variant="secondary"
                                 size="icon"
                                 onClick={() => setEditing(true)}
                                 id="edit-asset-btn"
-                                aria-label="Edit asset"
+                                aria-label={t('editAsset')}
                             >
                                 <Pen2 className="size-4" />
                             </Button>
@@ -333,15 +335,15 @@ export default function AssetDetailPage() {
                 )}
                 <>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
-                            <div><Eyebrow>Manufacturer</Eyebrow><p className="text-sm">{asset.manufacturer || '—'}</p></div>
-                            <div><Eyebrow>Model</Eyebrow><p className="text-sm">{asset.model || '—'}</p></div>
+                            <div><Eyebrow>{t('manufacturer')}</Eyebrow><p className="text-sm">{asset.manufacturer || '—'}</p></div>
+                            <div><Eyebrow>{t('model')}</Eyebrow><p className="text-sm">{asset.model || '—'}</p></div>
                             <div>
-                                <Eyebrow>Serial number</Eyebrow>
+                                <Eyebrow>{t('serialNumber')}</Eyebrow>
                                 {asset.serialNumber ? (
                                     <CopyText
                                         value={asset.serialNumber}
-                                        label={`Copy serial number ${asset.serialNumber}`}
-                                        successMessage="Serial number copied"
+                                        label={t('copySerial', { value: asset.serialNumber })}
+                                        successMessage={t('serialCopied')}
                                         className="text-sm text-content-default"
                                     >
                                         {asset.serialNumber}
@@ -350,19 +352,19 @@ export default function AssetDetailPage() {
                                     <p className="text-sm">—</p>
                                 )}
                             </div>
-                            <div><Eyebrow>Year</Eyebrow><p className="text-sm">{asset.year ?? '—'}</p></div>
+                            <div><Eyebrow>{t('year')}</Eyebrow><p className="text-sm">{asset.year ?? '—'}</p></div>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
-                            <div><Eyebrow>Assigned to</Eyebrow><p className="text-sm">{assigneeName || '—'}</p></div>
-                            <div><Eyebrow>Keeper</Eyebrow><p className="text-sm">{asset.owner || '—'}</p></div>
-                            <div><Eyebrow>Location</Eyebrow><p className="text-sm">{asset.location || '—'}</p></div>
+                            <div><Eyebrow>{t('assignedTo')}</Eyebrow><p className="text-sm">{assigneeName || '—'}</p></div>
+                            <div><Eyebrow>{t('keeper')}</Eyebrow><p className="text-sm">{asset.owner || '—'}</p></div>
+                            <div><Eyebrow>{t('location')}</Eyebrow><p className="text-sm">{asset.location || '—'}</p></div>
                             <div>
-                                <Eyebrow>External Ref</Eyebrow>
+                                <Eyebrow>{t('externalRef')}</Eyebrow>
                                 {asset.externalRef ? (
                                     <CopyText
                                         value={asset.externalRef}
-                                        label={`Copy external reference ${asset.externalRef}`}
-                                        successMessage="External reference copied"
+                                        label={t('copyExternalRef', { value: asset.externalRef })}
+                                        successMessage={t('externalRefCopied')}
                                         className="text-sm text-content-default"
                                     >
                                         {asset.externalRef}
@@ -373,12 +375,12 @@ export default function AssetDetailPage() {
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-default border-t border-border-default/50 pt-4">
-                            <div><Eyebrow>Purchase date</Eyebrow><p className="text-sm">{asset.purchaseDate ? formatDate(asset.purchaseDate) : '—'}</p></div>
-                            <div><Eyebrow>Purchase cost</Eyebrow><p className="text-sm">{asset.purchaseCost != null ? Number(asset.purchaseCost).toLocaleString() : '—'}</p></div>
+                            <div><Eyebrow>{t('purchaseDate')}</Eyebrow><p className="text-sm">{asset.purchaseDate ? formatDate(asset.purchaseDate) : '—'}</p></div>
+                            <div><Eyebrow>{t('purchaseCost')}</Eyebrow><p className="text-sm">{asset.purchaseCost != null ? Number(asset.purchaseCost).toLocaleString() : '—'}</p></div>
                         </div>
                         <div className="grid grid-cols-2 gap-default border-t border-border-default/50 pt-4">
-                            <div><Eyebrow>Created</Eyebrow><p className="text-sm text-content-muted">{formatDate(asset.createdAt)}</p></div>
-                            <div><Eyebrow>Updated</Eyebrow><p className="text-sm text-content-muted">{formatDate(asset.updatedAt)}</p></div>
+                            <div><Eyebrow>{t('created')}</Eyebrow><p className="text-sm text-content-muted">{formatDate(asset.createdAt)}</p></div>
+                            <div><Eyebrow>{t('updated')}</Eyebrow><p className="text-sm text-content-muted">{formatDate(asset.updatedAt)}</p></div>
                         </div>
                     </>
             </div>

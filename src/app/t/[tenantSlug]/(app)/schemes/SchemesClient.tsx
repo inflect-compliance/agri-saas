@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ export function SchemesClient(props: SchemesClientProps) {
 }
 
 function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesClientProps) {
+    const t = useTranslations('schemes');
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -68,7 +70,7 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
             createColumns<SchemeRow>([
                 {
                     accessorKey: 'name',
-                    header: 'Name',
+                    header: t('colName'),
                     cell: ({ row, getValue }) => (
                         <TableTitleCell id={`scheme-name-${row.original.id}`}>
                             {getValue() as string}
@@ -77,7 +79,7 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                 },
                 {
                     accessorKey: 'key',
-                    header: 'Key',
+                    header: t('colKey'),
                     cell: ({ getValue }) => (
                         <span className="font-mono text-xs text-content-muted">
                             {getValue() as string}
@@ -86,7 +88,7 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                 },
                 {
                     id: 'requirements',
-                    header: 'Requirements',
+                    header: t('colRequirements'),
                     accessorFn: (s) => s._count?.requirements ?? 0,
                     cell: ({ getValue }) => (
                         <span className="tabular-nums text-content-muted">
@@ -96,7 +98,7 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                     meta: { disableTruncate: true },
                 },
             ]),
-        [],
+        [t],
     );
 
     return (
@@ -104,11 +106,11 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Schemes' },
+                    { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                    { label: t('breadcrumbSchemes') },
                 ],
-                title: 'Certification Schemes',
-                description: 'Certification standards your practices and records are mapped to.',
+                title: t('title'),
+                description: t('listDescription'),
                 actions: permissions.canAdmin ? (
                     <Button
                         variant="primary"
@@ -116,14 +118,14 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                         onClick={() => setIsCreateOpen(true)}
                         id="new-scheme-btn"
                     >
-                        Scheme
+                        {t('addSchemeButton')}
                     </Button>
                 ) : null,
             }}
             filters={{
                 defs: [],
                 searchId: 'scheme-search',
-                searchPlaceholder: 'Search schemes…',
+                searchPlaceholder: t('searchPlaceholder'),
             }}
             table={{
                 data: schemes,
@@ -134,24 +136,24 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No schemes match your search"
-                        description="Try a different term or clear the search."
-                        secondaryAction={{ label: 'Clear search', onClick: () => clearAll() }}
+                        title={t('noResultsTitle')}
+                        description={t('noResultsDescription')}
+                        secondaryAction={{ label: t('clearSearch'), onClick: () => clearAll() }}
                     />
                 ) : (
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No certification schemes yet"
-                        description="Create a scheme — its requirements become the checklist your practices are mapped against."
+                        title={t('emptyTitle')}
+                        description={t('emptyDescription')}
                         primaryAction={
                             permissions.canAdmin
-                                ? { label: 'Add scheme', onClick: () => setIsCreateOpen(true) }
+                                ? { label: t('addScheme'), onClick: () => setIsCreateOpen(true) }
                                 : undefined
                         }
                     />
                 ),
-                resourceName: (p) => (p ? 'schemes' : 'scheme'),
+                resourceName: (p) => (p ? t('schemePlural') : t('schemeSingular')),
                 'data-testid': 'schemes-table',
                 className: 'hover:bg-bg-muted',
             }}

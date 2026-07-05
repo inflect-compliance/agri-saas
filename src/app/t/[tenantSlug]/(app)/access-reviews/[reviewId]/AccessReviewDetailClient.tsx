@@ -21,6 +21,7 @@
  *     the campaign is CLOSED.
  */
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -102,6 +103,7 @@ export function AccessReviewDetailClient({
     currentUserId,
     isAdmin,
 }: Props) {
+    const t = useTranslations('accessReviews');
     const queryClient = useQueryClient();
     const router = useRouter();
     const apiBase = `/api/t/${tenantSlug}/access-reviews/${initialReview.id}`;
@@ -135,7 +137,7 @@ export function AccessReviewDetailClient({
         () => createColumns<DecisionRow>([
             {
                 id: 'subject',
-                header: 'Subject',
+                header: t('colSubject'),
                 cell: ({ row }) => (
                     <div data-testid={`decision-row-${row.original.id}`}>
                         <div className="font-medium text-content-default">
@@ -149,37 +151,37 @@ export function AccessReviewDetailClient({
             },
             {
                 id: 'snapshotRole',
-                header: 'Snapshot role',
+                header: t('colSnapshotRole'),
                 cell: ({ row }) => (
                     <span className="text-sm">{row.original.snapshotRole}</span>
                 ),
             },
             {
                 id: 'liveRole',
-                header: 'Live role',
+                header: t('colLiveRole'),
                 cell: ({ row }) =>
                     row.original.membership ? (
                         <span className="text-sm">{row.original.membership.role}</span>
                     ) : (
-                        <span className="text-sm text-content-muted italic">(deleted)</span>
+                        <span className="text-sm text-content-muted italic">{t('deleted')}</span>
                     ),
             },
             {
                 id: 'lastActive',
-                header: 'Last active',
+                header: t('colLastActive'),
                 cell: ({ row }) => {
                     const lastActiveAt =
                         review.lastActivityByUser[row.original.subjectUserId] ?? null;
                     return (
                         <span className="text-sm text-content-muted">
-                            {lastActiveAt ? formatDate(lastActiveAt) : 'never'}
+                            {lastActiveAt ? formatDate(lastActiveAt) : t('never')}
                         </span>
                     );
                 },
             },
             {
                 id: 'decision',
-                header: 'Decision',
+                header: t('colDecision'),
                 cell: ({ row }) => {
                     const d = row.original;
                     if (d.decision) {
@@ -204,28 +206,28 @@ export function AccessReviewDetailClient({
                                     e.target.value = '';
                                 }}
                             >
-                                <option value="" disabled>Decide…</option>
-                                <option value="CONFIRM">Confirm access</option>
-                                <option value="REVOKE">Revoke access</option>
-                                <option value="MODIFY">Modify role</option>
+                                <option value="" disabled>{t('decidePlaceholder')}</option>
+                                <option value="CONFIRM">{t('decisionConfirm')}</option>
+                                <option value="REVOKE">{t('decisionRevoke')}</option>
+                                <option value="MODIFY">{t('decisionModify')}</option>
                             </select>
                         );
                     }
                     return (
-                        <span className="text-xs text-content-muted">pending</span>
+                        <span className="text-xs text-content-muted">{t('pending')}</span>
                     );
                 },
             },
         ]),
-        [canDecide, review.lastActivityByUser],
+        [canDecide, review.lastActivityByUser, t],
     );
 
     return (
         <EntityDetailLayout
             id="access-review-detail-page"
             breadcrumbs={[
-                { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                { label: 'Access Reviews', href: `/t/${tenantSlug}/access-reviews` },
+                { label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                { label: t('breadcrumbAccessReviews'), href: `/t/${tenantSlug}/access-reviews` },
                 { label: review.name },
             ]}
             title={<span data-testid="access-review-detail-title">{review.name}</span>}
@@ -234,7 +236,7 @@ export function AccessReviewDetailClient({
                     items={[
                         {
                             kind: 'status',
-                            label: 'Status',
+                            label: t('metaStatus'),
                             value: review.status,
                             variant:
                                 STATUS_VARIANT[review.status] ?? 'neutral',
@@ -248,7 +250,7 @@ export function AccessReviewDetailClient({
                         <ProgressBar
                             value={pct}
                             variant={pct >= 100 ? 'success' : pct >= 50 ? 'info' : 'brand'}
-                            aria-label={`${decided} of ${decisionsTotal} decisions made`}
+                            aria-label={t('progressAria', { decided, total: decisionsTotal })}
                             className="w-full sm:w-48"
                         />
                         <span className="text-xs text-content-muted whitespace-nowrap">
@@ -264,7 +266,7 @@ export function AccessReviewDetailClient({
                                 }
                                 data-testid="access-review-download-evidence"
                             >
-                                Download evidence PDF
+                                {t('downloadEvidence')}
                             </Button>
                         ) : null}
                         {canClose ? (
@@ -273,7 +275,7 @@ export function AccessReviewDetailClient({
                                 disabled={decided !== decisionsTotal}
                                 data-testid="access-review-close-button"
                             >
-                                Close campaign
+                                {t('closeCampaign')}
                             </Button>
                         ) : null}
                     </div>
@@ -291,20 +293,20 @@ export function AccessReviewDetailClient({
                 ) : null}
                 <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-content-muted">
                     <div>
-                        <dt className="font-semibold uppercase">Reviewer</dt>
+                        <dt className="font-semibold uppercase">{t('metaReviewer')}</dt>
                         <dd>{review.reviewer.email}</dd>
                     </div>
                     <div>
-                        <dt className="font-semibold uppercase">Scope</dt>
+                        <dt className="font-semibold uppercase">{t('metaScope')}</dt>
                         <dd>{review.scope.replace('_', ' ').toLowerCase()}</dd>
                     </div>
                     <div>
-                        <dt className="font-semibold uppercase">Due</dt>
+                        <dt className="font-semibold uppercase">{t('metaDue')}</dt>
                         <dd>{review.dueAt ? formatDate(review.dueAt) : '—'}</dd>
                     </div>
                     {review.closedAt ? (
                         <div>
-                            <dt className="font-semibold uppercase">Closed</dt>
+                            <dt className="font-semibold uppercase">{t('metaClosed')}</dt>
                             <dd>{formatDateTime(review.closedAt)}</dd>
                         </div>
                     ) : null}
@@ -316,8 +318,8 @@ export function AccessReviewDetailClient({
                 data={review.decisions}
                 columns={decisionColumns}
                 getRowId={(d) => d.id}
-                emptyState="No subjects in this review."
-                resourceName={(p) => (p ? 'subjects' : 'subject')}
+                emptyState={t('rosterEmpty')}
+                resourceName={(p) => (p ? t('subjectPlural') : t('subjectSingular'))}
                 data-testid="access-review-roster-table"
             />
 
@@ -369,6 +371,7 @@ function DecisionDialog({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const t = useTranslations('accessReviews');
     const [notes, setNotes] = useState('');
     const [modifiedToRole, setModifiedToRole] = useState<Role>('READER');
     const [error, setError] = useState<string | null>(null);
@@ -405,31 +408,31 @@ function DecisionDialog({
     });
 
     const titleByType: Record<DecisionType, string> = {
-        CONFIRM: 'Confirm access',
-        REVOKE: 'Revoke access',
-        MODIFY: 'Modify role',
+        CONFIRM: t('decisionConfirm'),
+        REVOKE: t('decisionRevoke'),
+        MODIFY: t('decisionModify'),
     };
 
     return (
         <Modal showModal={true} setShowModal={(v) => !v && onClose()}>
             <Modal.Header
-                title={`${titleByType[decision.type]} — ${decision.row.subjectUser.email}`}
+                title={t('decisionDialogTitle', { action: titleByType[decision.type], email: decision.row.subjectUser.email })}
             />
             <Modal.Body>
                 <div className="space-y-default">
                     <p className="text-sm text-content-muted">
-                        Snapshot role at campaign creation:{' '}
+                        {t('snapshotRolePrefix')}{' '}
                         <strong>{decision.row.snapshotRole}</strong>
                         {decision.row.membership &&
                         decision.row.membership.role !== decision.row.snapshotRole ? (
                             <>
                                 {' '}
-                                (live now: <strong>{decision.row.membership.role}</strong>)
+                                ({t('liveNowPrefix')} <strong>{decision.row.membership.role}</strong>)
                             </>
                         ) : null}
                     </p>
                     {decision.type === 'MODIFY' ? (
-                        <FormField label="Target role" required>
+                        <FormField label={t('targetRole')} required>
                             <select
                                 className="input"
                                 value={modifiedToRole}
@@ -447,8 +450,8 @@ function DecisionDialog({
                     <FormField
                         label={
                             decision.type === 'CONFIRM'
-                                ? 'Justification (optional)'
-                                : 'Justification (recommended)'
+                                ? t('justificationOptional')
+                                : t('justificationRecommended')
                         }
                     >
                         <textarea
@@ -456,7 +459,7 @@ function DecisionDialog({
                             rows={3}
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder="Why this decision?"
+                            placeholder={t('notesPlaceholder')}
                             data-testid="decision-modal-notes"
                         />
                     </FormField>
@@ -472,14 +475,14 @@ function DecisionDialog({
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <Button
                     onClick={() => submit.mutate()}
                     disabled={submit.isPending}
                     data-testid="decision-modal-submit"
                 >
-                    {submit.isPending ? 'Submitting…' : 'Submit decision'}
+                    {submit.isPending ? t('submitting') : t('submitDecision')}
                 </Button>
             </Modal.Footer>
         </Modal>
@@ -497,6 +500,7 @@ function CloseDialog({
     onClose: () => void;
     onSuccess: () => void;
 }) {
+    const t = useTranslations('accessReviews');
     const [error, setError] = useState<string | null>(null);
 
     const close = useMutation({
@@ -519,15 +523,10 @@ function CloseDialog({
 
     return (
         <Modal showModal={true} setShowModal={(v) => !v && onClose()}>
-            <Modal.Header title="Close access review campaign" />
+            <Modal.Header title={t('closeDialogTitle')} />
             <Modal.Body>
                 <p className="text-sm text-content-muted">
-                    Closing executes every <strong>REVOKE</strong> and{' '}
-                    <strong>MODIFY</strong> decision against the live tenant
-                    memberships. <strong>CONFIRM</strong> decisions stay
-                    untouched. A signed PDF evidence artifact will be
-                    generated and linked to the campaign. This cannot be
-                    undone.
+                    {t.rich('closeDialogBody', { b: (chunks) => <strong>{chunks}</strong> })}
                 </p>
                 {error ? (
                     <p
@@ -540,14 +539,14 @@ function CloseDialog({
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onClose}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
                 <Button
                     onClick={() => close.mutate()}
                     disabled={close.isPending}
                     data-testid="close-modal-submit"
                 >
-                    {close.isPending ? 'Closing…' : 'Close + generate evidence'}
+                    {close.isPending ? t('closing') : t('closeGenerate')}
                 </Button>
             </Modal.Footer>
         </Modal>
