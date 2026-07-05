@@ -1,3 +1,5 @@
+'use client';
+
 import { cn } from "@/lib/cn";
 import { pluralize, truncate } from "@/lib/text-utils";
 import { useTranslations } from "next-intl";

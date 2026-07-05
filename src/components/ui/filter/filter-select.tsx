@@ -1,3 +1,5 @@
+'use client';
+
 /* TODO(swr-migration): this file has fetch-on-mount + setState
  * patterns flagged by react-hooks/set-state-in-effect. Each call site
  * carries an inline disable directive; collectively they should

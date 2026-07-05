@@ -1,3 +1,5 @@
+'use client';
+
 /* eslint-disable @typescript-eslint/no-explicit-any --
  * Form primitive — generic over arbitrary input value shapes. The
  * 2 `any` sites here are in onSubmit/onChange handlers that pass
