@@ -82,10 +82,13 @@ const BASELINE_PLUS_LITERAL_SITES = new Set<string>([
     // dropped. The `+ Question` submit label stays a ternary string
     // literal; its line shifted 687 → 690 when the i18n hooks landed.
     'src/app/t/[tenantSlug]/(app)/admin/vendor-templates/[templateId]/VendorTemplateBuilderClient.tsx:690',
-    'src/app/t/[tenantSlug]/(app)/audits/cycles/[cycleId]/page.tsx:122',
-    'src/app/t/[tenantSlug]/(app)/audits/cycles/page.tsx:134',
-    'src/app/t/[tenantSlug]/(app)/audits/cycles/page.tsx:207',
-    'src/app/t/[tenantSlug]/(app)/audits/cycles/page.tsx:219',
+    // T08 i18n — the `+ Pack`/`+ Cycle`/`+ Audit Cycle` literals stay
+    // (moving them into message values would trip no-plus-prefix-labels);
+    // their lines shifted +2 when the useTranslations hooks + t() calls landed.
+    'src/app/t/[tenantSlug]/(app)/audits/cycles/[cycleId]/page.tsx:124',
+    'src/app/t/[tenantSlug]/(app)/audits/cycles/page.tsx:136',
+    'src/app/t/[tenantSlug]/(app)/audits/cycles/page.tsx:209',
+    'src/app/t/[tenantSlug]/(app)/audits/cycles/page.tsx:221',
     'src/app/t/[tenantSlug]/(app)/audits/readiness/page.tsx:155',
     'src/app/t/[tenantSlug]/(app)/controls/[controlId]/tests/[planId]/page.tsx:300',
     // B9 — line numbers shifted by 13 when the Export PDF anchor
