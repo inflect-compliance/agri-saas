@@ -5,6 +5,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -55,6 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function VendorDashboardPage() {
+    const t = useTranslations('vendors.dashboard');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
 
@@ -72,16 +74,16 @@ export default function VendorDashboardPage() {
     useEffect(() => { fetchMetrics(); }, [fetchMetrics]);
 
     if (loading) return <SkeletonDashboard />;
-    if (!metrics) return <div className="text-content-error py-8 text-center">Failed to load metrics</div>;
+    if (!metrics) return <div className="text-content-error py-8 text-center">{t('failed')}</div>;
 
     return (
         <DashboardLayout
             header={{
-                title: 'Vendor Dashboard',
-                description: `${metrics.totalVendors} total vendors`,
+                title: t('title'),
+                description: t('totalDesc', { count: metrics.totalVendors }),
                 actions: (
-                    <Tooltip content="Vendor register">
-                        <Link href={tenantHref('/vendors')} aria-label="Vendor register" className={buttonVariants({ variant: 'secondary', size: 'icon' })}>
+                    <Tooltip content={t('registerTooltip')}>
+                        <Link href={tenantHref('/vendors')} aria-label={t('registerTooltip')} className={buttonVariants({ variant: 'secondary', size: 'icon' })}>
                             <AppIcon name="overview" size={16} />
                         </Link>
                     </Tooltip>
@@ -91,34 +93,34 @@ export default function VendorDashboardPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-default">
-                <MetricCard label="Total Vendors" value={metrics.totalVendors} />
-                <MetricCard label="Overdue Reviews" value={metrics.overdueReview} tone={metrics.overdueReview > 0 ? 'critical' : 'success'}
+                <MetricCard label={t('totalVendors')} value={metrics.totalVendors} />
+                <MetricCard label={t('overdueReviews')} value={metrics.overdueReview} tone={metrics.overdueReview > 0 ? 'critical' : 'success'}
                     href={tenantHref('/vendors?reviewDue=overdue')} />
-                <MetricCard label="Upcoming Reviews" value={metrics.upcomingReview} tone="attention" />
-                <MetricCard label="Overdue Renewals" value={metrics.overdueRenewal} tone={metrics.overdueRenewal > 0 ? 'critical' : 'success'} />
-                <MetricCard label="Upcoming Renewals" value={metrics.upcomingRenewal} tone="attention" />
-                <MetricCard label="High Risk (No Assessment)" value={metrics.highRiskNoAssessment} tone={metrics.highRiskNoAssessment > 0 ? 'critical' : 'success'} />
+                <MetricCard label={t('upcomingReviews')} value={metrics.upcomingReview} tone="attention" />
+                <MetricCard label={t('overdueRenewals')} value={metrics.overdueRenewal} tone={metrics.overdueRenewal > 0 ? 'critical' : 'success'} />
+                <MetricCard label={t('upcomingRenewals')} value={metrics.upcomingRenewal} tone="attention" />
+                <MetricCard label={t('highRiskNoAssessment')} value={metrics.highRiskNoAssessment} tone={metrics.highRiskNoAssessment > 0 ? 'critical' : 'success'} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-section">
                 {/* By Criticality */}
                 <div className={cn(cardVariants(), 'space-y-compact')}>
-                    <Heading level={3}>By Criticality</Heading>
+                    <Heading level={3}>{t('byCriticality')}</Heading>
                     <BreakdownBar data={metrics.byCriticality} colors={CRIT_COLORS} />
                 </div>
 
                 {/* By Status */}
                 <div className={cn(cardVariants(), 'space-y-compact')}>
-                    <Heading level={3}>By Status</Heading>
+                    <Heading level={3}>{t('byStatus')}</Heading>
                     <BreakdownBar data={metrics.byStatus} colors={STATUS_COLORS} />
                 </div>
 
                 {/* By Risk Rating */}
                 <div className={cn(cardVariants(), 'space-y-compact')}>
-                    <Heading level={3}>By Risk Rating</Heading>
+                    <Heading level={3}>{t('byRiskRating')}</Heading>
                     {Object.keys(metrics.byRiskRating).length > 0
                         ? <BreakdownBar data={metrics.byRiskRating} colors={CRIT_COLORS} />
-                        : <InlineEmptyState title="No assessments completed yet" />}
+                        : <InlineEmptyState title={t('noAssessments')} />}
                 </div>
             </div>
 
@@ -127,9 +129,9 @@ export default function VendorDashboardPage() {
                 <div className={cn(cardVariants(), 'border border-orange-500/30')}>
                     <div className="flex items-center gap-tight">
                         <span className="text-orange-400 text-lg font-semibold">!</span>
-                        <span className="font-semibold">{metrics.expiringDocuments} document(s) expiring within 30 days</span>
+                        <span className="font-semibold">{t('expiringDocs', { count: metrics.expiringDocuments })}</span>
                     </div>
-                    <p className="text-sm text-content-muted mt-1">Review vendor documents tab to check validity dates.</p>
+                    <p className="text-sm text-content-muted mt-1">{t('expiringHint')}</p>
                 </div>
             )}
         </DashboardLayout>

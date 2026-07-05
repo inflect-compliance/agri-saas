@@ -3,6 +3,7 @@
 /**
  * Controlled field markup for the vendor-create form.
  */
+import { useTranslations } from 'next-intl';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
@@ -17,28 +18,27 @@ import {
 } from '@/components/ui/date-picker/date-utils';
 import type { NewVendorFormFields, NewVendorFormReturn } from './useNewVendorForm';
 
-const STATUS_OPTIONS = [
-    { value: 'ACTIVE', label: 'Active' },
-    { value: 'ONBOARDING', label: 'Onboarding' },
-];
-
-const CRIT_OPTIONS: ComboboxOption[] = [
-    { value: 'LOW', label: 'Low' },
-    { value: 'MEDIUM', label: 'Medium' },
-    { value: 'HIGH', label: 'High' },
-    { value: 'CRITICAL', label: 'Critical' },
-];
-const DATA_ACCESS_OPTIONS: ComboboxOption[] = [
-    { value: 'NONE', label: 'None' },
-    { value: 'LOW', label: 'Low' },
-    { value: 'MEDIUM', label: 'Medium' },
-    { value: 'HIGH', label: 'High' },
-];
-
 export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
+    const t = useTranslations('vendors.fields');
+    const STATUS_OPTIONS = [
+        { value: 'ACTIVE', label: t('statusActive') },
+        { value: 'ONBOARDING', label: t('statusOnboarding') },
+    ];
+    const CRIT_OPTIONS: ComboboxOption[] = [
+        { value: 'LOW', label: t('critLow') },
+        { value: 'MEDIUM', label: t('critMedium') },
+        { value: 'HIGH', label: t('critHigh') },
+        { value: 'CRITICAL', label: t('critCritical') },
+    ];
+    const DATA_ACCESS_OPTIONS: ComboboxOption[] = [
+        { value: 'NONE', label: t('daNone') },
+        { value: 'LOW', label: t('daLow') },
+        { value: 'MEDIUM', label: t('daMedium') },
+        { value: 'HIGH', label: t('daHigh') },
+    ];
     return (
         <>
-            <FormField label="Vendor Name" required>
+            <FormField label={t('name')} required>
                 <Input
                     id="vendor-name-input"
                     value={form.fields.name}
@@ -48,25 +48,25 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
             </FormField>
 
             <div className="grid grid-cols-2 gap-default">
-                <FormField label="Legal Name">
+                <FormField label={t('legalName')}>
                     <Input
                         id="vendor-legal-name"
                         value={form.fields.legalName}
                         onChange={(e) => form.setField('legalName', e.target.value)}
                     />
                 </FormField>
-                <FormField label="Domain">
+                <FormField label={t('domain')}>
                     <Input
                         id="vendor-domain"
                         value={form.fields.domain}
                         onChange={(e) => form.setField('domain', e.target.value)}
-                        placeholder="e.g. aws.amazon.com"
+                        placeholder={t('domainPlaceholder')}
                     />
                 </FormField>
             </div>
 
             <div className="grid grid-cols-2 gap-default">
-                <FormField label="Website URL">
+                <FormField label={t('websiteUrl')}>
                     <Input
                         id="vendor-website"
                         type="url"
@@ -74,7 +74,7 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
                         onChange={(e) => form.setField('websiteUrl', e.target.value)}
                     />
                 </FormField>
-                <FormField label="Country">
+                <FormField label={t('country')}>
                     <Input
                         id="vendor-country"
                         value={form.fields.country}
@@ -83,7 +83,7 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
                 </FormField>
             </div>
 
-            <FormField label="Description">
+            <FormField label={t('description')}>
                 <Textarea
                     id="vendor-description"
                     className="h-20"
@@ -95,7 +95,7 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
             <div className="grid grid-cols-3 gap-default">
                 <div>
                     <label className="block text-sm font-medium text-content-default mb-1">
-                        Status
+                        {t('status')}
                     </label>
                     <RadioGroup
                         id="vendor-status-select"
@@ -124,7 +124,7 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
                         })}
                     </RadioGroup>
                 </div>
-                <FormField label="Criticality">
+                <FormField label={t('criticality')}>
                     <Combobox
                         id="vendor-criticality-select"
                         name="criticality"
@@ -140,14 +140,14 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
                                 (o?.value ?? 'MEDIUM') as NewVendorFormFields['criticality'],
                             )
                         }
-                        placeholder="Select criticality…"
+                        placeholder={t('criticalityPlaceholder')}
                         hideSearch
                         matchTriggerWidth
                         buttonProps={{ className: 'w-full' }}
                         caret
                     />
                 </FormField>
-                <FormField label="Data Access">
+                <FormField label={t('dataAccess')}>
                     <Combobox
                         id="vendor-data-access"
                         name="dataAccess"
@@ -160,7 +160,7 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
                         setSelected={(o) =>
                             form.setField('dataAccess', o?.value ?? '')
                         }
-                        placeholder="— None —"
+                        placeholder={t('dataAccessPlaceholder')}
                         hideSearch
                         matchTriggerWidth
                         buttonProps={{ className: 'w-full' }}
@@ -170,11 +170,11 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
             </div>
 
             <div className="grid grid-cols-2 gap-default">
-                <FormField label="Next Review Date">
+                <FormField label={t('nextReview')}>
                     <DatePicker
                         id="vendor-next-review"
                         className="w-full"
-                        placeholder="Select date"
+                        placeholder={t('selectDate')}
                         clearable
                         align="start"
                         value={parseYMD(form.fields.nextReviewAt)}
@@ -184,14 +184,14 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
                         disabledDays={{
                             before: startOfUtcDay(new Date()),
                         }}
-                        aria-label="Next review date"
+                        aria-label={t('nextReviewAria')}
                     />
                 </FormField>
-                <FormField label="Contract Renewal Date">
+                <FormField label={t('contractRenewal')}>
                     <DatePicker
                         id="vendor-contract-renewal"
                         className="w-full"
-                        placeholder="Select date"
+                        placeholder={t('selectDate')}
                         clearable
                         align="start"
                         value={parseYMD(form.fields.contractRenewalAt)}
@@ -201,7 +201,7 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
                         disabledDays={{
                             before: startOfUtcDay(new Date()),
                         }}
-                        aria-label="Contract renewal date"
+                        aria-label={t('contractRenewalAria')}
                     />
                 </FormField>
             </div>
@@ -215,7 +215,7 @@ export function NewVendorFields({ form }: { form: NewVendorFormReturn }) {
                     }
                     id="vendor-subprocessor"
                 />
-                This vendor is a sub-processor
+                {t('isSubprocessor')}
             </label>
         </>
     );

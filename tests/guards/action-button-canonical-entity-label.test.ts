@@ -85,32 +85,38 @@ describe('Action-button canonical entity label', () => {
     describe('2. Header action buttons use the icon-slot Plus pattern', () => {
         // Inline-literal callers — Plus is imported, Button has
         // both `icon={<Plus />}` AND a bare entity-noun label.
-        const INLINE_SITES: Array<[string, string, string]> = [
+        // [file, buttonId, expected bare-noun label, i18n namespace the
+        //  button's t()/tr() call resolves against]
+        const INLINE_SITES: Array<[string, string, string, string]> = [
             [
                 'src/app/t/[tenantSlug]/(app)/controls/ControlsClient.tsx',
                 'new-control-btn',
                 'Control',
+                'controls',
             ],
             [
                 'src/app/t/[tenantSlug]/(app)/policies/PoliciesClient.tsx',
                 'new-policy-btn',
                 'Policy',
+                'policies',
             ],
             [
                 'src/app/t/[tenantSlug]/(app)/tasks/TasksClient.tsx',
                 'new-task-btn',
                 'Task',
+                'tasks',
             ],
             [
                 'src/app/t/[tenantSlug]/(app)/vendors/VendorsClient.tsx',
                 'new-vendor-btn',
                 'Vendor',
+                'vendors',
             ],
         ];
 
         it.each(INLINE_SITES)(
             '%s uses icon={<Plus />} + bare label `%s`',
-            (file, btnId, label) => {
+            (file, btnId, label, ns) => {
                 const src = read(file);
                 const idIdx = src.indexOf(`id="${btnId}"`);
                 expect(idIdx).toBeGreaterThan(-1);
@@ -132,15 +138,15 @@ describe('Action-button canonical entity label', () => {
                 const lastGT = buttonBlock.lastIndexOf('>');
                 expect(lastGT).toBeGreaterThan(-1);
                 const textContent = buttonBlock.slice(lastGT + 1).trim();
-                // i18n batch T07 — ControlsClient's label routes through
-                // next-intl (`{t('list.addControl')}`). Accept either the
-                // bare literal noun OR a `t('<ns-key>')` call whose en.json
-                // value resolves to the same bare noun.
-                const tCall = textContent.match(/^\{t\(['"]([a-zA-Z0-9_.]+)['"]\)\}$/);
+                // i18n batches T07/T09 — migrated labels route through
+                // next-intl (`{t('list.addControl')}`, `{tr('newButton')}`).
+                // Accept either the bare literal noun OR a `<binding>('<key>')`
+                // call whose en.json value (under the site's namespace)
+                // resolves to the same bare noun. Binding may be t/tr/etc.
+                const tCall = textContent.match(/^\{\w+\(['"]([a-zA-Z0-9_.]+)['"]\)\}$/);
                 if (tCall) {
                     const en = JSON.parse(read('messages/en.json')) as Record<string, unknown>;
-                    // The migrated inline sites all use useTranslations('controls').
-                    let resolved: unknown = (en as Record<string, unknown>).controls;
+                    let resolved: unknown = (en as Record<string, unknown>)[ns];
                     for (const part of tCall[1].split('.')) {
                         resolved = (resolved as Record<string, unknown> | undefined)?.[part];
                     }

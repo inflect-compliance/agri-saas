@@ -98,8 +98,12 @@ const BASELINE_PLUS_LITERAL_SITES = new Set<string>([
     // baseline honest.
     // SP-4 — shifted +1/+4 when the PolicySharePointSection import + mount
     // landed; the `+ Version` labels themselves are unchanged staged debt.
-    'src/app/t/[tenantSlug]/(app)/policies/[policyId]/page.tsx:453',
-    'src/app/t/[tenantSlug]/(app)/policies/[policyId]/page.tsx:757',
+    // T09 i18n — lines shifted +4 (453→457, 757→761) when the
+    // useTranslations/useTranslations('common') hooks + import landed above
+    // them. The `+ Version` literals stay (moving them into a message value
+    // would trip no-plus-prefix-labels).
+    'src/app/t/[tenantSlug]/(app)/policies/[policyId]/page.tsx:457',
+    'src/app/t/[tenantSlug]/(app)/policies/[policyId]/page.tsx:761',
     // Legacy `'+ Link'` / `'+ Comment'` string literals (the ones the
     // regex catches — JSX text doesn't match, whitespace between `>`
     // and `+`). Line numbers shift whenever this file grows; refreshed

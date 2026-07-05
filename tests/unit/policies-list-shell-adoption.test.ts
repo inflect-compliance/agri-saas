@@ -66,7 +66,9 @@ describe('Policies list — Epic 45.1 shell + column wiring', () => {
         // policies page wires both props through the EntityListPage
         // `filters` seam.
         expect(clientSrc).toContain("searchId: 'policies-search'");
-        expect(clientSrc).toMatch(/searchPlaceholder:\s*['"]Search policies/);
+        // T09 i18n — searchPlaceholder now routes through next-intl
+        // (tr('searchPlaceholder')); the literal lives in messages/en.json.
+        expect(clientSrc).toMatch(/searchPlaceholder:\s*\w+\(['"]searchPlaceholder['"]\)/);
     });
 
     it('preserves row navigation to the detail page', () => {

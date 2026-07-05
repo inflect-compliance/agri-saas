@@ -5,11 +5,12 @@ import { Tooltip } from '@/components/ui/tooltip';
 import { AppIcon } from '@/components/icons/AppIcon';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NewVendorModal } from './NewVendorModal';
 import { Button } from '@/components/ui/button';
-import { Plus } from '@/components/ui/icons/nucleo';
+import { Plus, Cube } from '@/components/ui/icons/nucleo';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import type { CappedList } from '@/lib/list-backfill-cap';
@@ -20,7 +21,6 @@ import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import { DataTable, createColumns, useColumnsDropdown, useBulkDelete } from '@/components/ui/table';
-import { Package } from 'lucide-react';
 import {
     FilterProvider,
     useFilterContext,
@@ -77,6 +77,7 @@ export function VendorsClient(props: VendorsClientProps) {
 }
 
 function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissions }: VendorsClientProps) {
+    const t = useTranslations('vendors');
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
     // Null until hydrated — keeps Overdue/Due badges stable across SSR.
@@ -292,7 +293,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
             cell: ({ row }: any) => (
                 <span>
                     <TimestampTooltip date={row.original.nextReviewAt} />
-                    {isOverdue(row.original.nextReviewAt, hydratedNow) && <span className="ml-1 text-xs text-content-error font-semibold">Overdue</span>}
+                    {isOverdue(row.original.nextReviewAt, hydratedNow) && <span className="ml-1 text-xs text-content-error font-semibold">{t('overdue')}</span>}
                 </span>
             ),
         },
@@ -302,7 +303,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
             cell: ({ row }: any) => (
                 <span>
                     <TimestampTooltip date={row.original.contractRenewalAt} />
-                    {isOverdue(row.original.contractRenewalAt, hydratedNow) && <span className="ml-1 text-xs text-content-warning font-semibold">Due</span>}
+                    {isOverdue(row.original.contractRenewalAt, hydratedNow) && <span className="ml-1 text-xs text-content-warning font-semibold">{t('due')}</span>}
                 </span>
             ),
         },
@@ -321,19 +322,19 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                     <div>
                         <PageBreadcrumbs
                             items={[
-                                { label: 'Dashboard', href: tenantHref('/dashboard') },
-                                { label: 'Vendor Register' },
+                                { label: t('crumbDashboard'), href: tenantHref('/dashboard') },
+                                { label: t('registerCrumb') },
                             ]}
                             className="mb-1"
                         />
-                        <Heading level={1}>Vendor Register</Heading>
+                        <Heading level={1}>{t('registerTitle')}</Heading>
                         <p className="text-sm text-content-muted mt-1">
-                            Third-party relationships, assessed and renewed on a cadence.
+                            {t('registerDescription')}
                         </p>
                     </div>
                     <div className="flex gap-tight">
-                        <Tooltip content="Dashboard">
-                            <Link href={tenantHref('/vendors/dashboard')} aria-label="Dashboard" className={cn(buttonVariants({ variant: 'secondary', size: 'icon' }))} id="vendor-dashboard-btn">
+                        <Tooltip content={t('dashboardTooltip')}>
+                            <Link href={tenantHref('/vendors/dashboard')} aria-label={t('dashboardTooltip')} className={cn(buttonVariants({ variant: 'secondary', size: 'icon' }))} id="vendor-dashboard-btn">
                                 <AppIcon name="dashboard" size={16} />
                             </Link>
                         </Tooltip>
@@ -344,7 +345,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                                 onClick={() => setIsCreateOpen(true)}
                                 id="new-vendor-btn"
                             >
-                                Vendor
+                                {t('newButton')}
                             </Button>
                         )}
                     </div>
@@ -355,27 +356,27 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                 {/* R23-PR-F — KPI strip. */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
                     <KpiFilterCard
-                        label="Total vendors"
+                        label={t('kpi.total')}
                         value={totalVendors}
                         onClick={() => toggleVendorKpi('total')}
                         selected={activeVendorKpi === 'total'}
                     />
                     <KpiFilterCard
-                        label="Active"
+                        label={t('kpi.active')}
                         value={activeVendors}
                         tone="success"
                         onClick={() => toggleVendorKpi('active')}
                         selected={activeVendorKpi === 'active'}
                     />
                     <KpiFilterCard
-                        label="Critical"
+                        label={t('kpi.critical')}
                         value={criticalVendors}
                         tone={criticalVendors > 0 ? 'critical' : 'default'}
                         onClick={() => toggleVendorKpi('critical')}
                         selected={activeVendorKpi === 'critical'}
                     />
                     <KpiFilterCard
-                        label="Review overdue"
+                        label={t('kpi.reviewOverdue')}
                         value={reviewOverdueVendors}
                         tone={reviewOverdueVendors > 0 ? 'critical' : 'default'}
                         onClick={() => toggleVendorKpi('reviewOverdue')}
@@ -385,7 +386,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                 <FilterToolbar
                     filters={visibleFilterDefs}
                     searchId="vendors-search"
-                    searchPlaceholder="Search vendors…"
+                    searchPlaceholder={t('searchPlaceholder')}
                     actions={<>{columnsDropdown}{filtersDropdown}</>}
                 />
             </ListPageShell.Filters>
@@ -409,20 +410,20 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                                 <EmptyState
                                     size="sm"
                                     variant="no-results"
-                                    title="No vendors match your filters"
-                                    description="Try widening your search or clearing one of the active filters."
+                                    title={t('empty.noResults.title')}
+                                    description={t('empty.noResults.description')}
                                     secondaryAction={{
-                                        label: 'Clear filters',
+                                        label: t('clearFilters'),
                                         onClick: () => filterCtx.clearAll(),
                                     }}
                                 />
                             ) : (
                                 <EmptyState
                                     size="sm"
-                                    icon={Package}
+                                    icon={Cube}
                                     variant="no-records"
-                                    title="No vendors yet"
-                                    description="Register sub-processors and suppliers to track DPAs, contracts, and risk reviews in one place."
+                                    title={t('empty.noRecords.title')}
+                                    description={t('empty.noRecords.description')}
                                 />
                             )
                         }

@@ -149,6 +149,15 @@ describe('Empty-state copy tone (Roadmap-3 PR-6)', () => {
                 'controls.detail.noDescription',
                 'controls.detail.noActivityDesc',
                 'controls.testPlan.noRuns',
+                // T09 i18n migration (policies/vendors batch) — pre-existing
+                // inline empty-state MESSAGES migrated verbatim from the
+                // policy detail page's hardcoded JSX (inline `<p>` / `<Card>`
+                // / activity-feed fallbacks). Full sentences with legitimate
+                // terminal punctuation, not terse EmptyState titles — same
+                // rationale as the T04–T07 exemptions above.
+                'policies.detail.noVersionPublished',
+                'policies.detail.noVersions',
+                'policies.detail.noActivity',
             ]);
             if (SANCTIONED.has(key)) continue;
             // Sanctioned namespace: `riskManager.*` keys are the
