@@ -67,11 +67,12 @@ const MASK_WORLD_RING: Position[] = [
 ];
 
 /** Dark scrim that dims everything outside Bulgaria (navy to match the UI).
- *  Opacity tuned from the interactive mockup — 0.66 keeps neighbours dim
- *  without flattening them to a solid block. Kept cool (no warm land tint:
- *  the mockup's warmth dialled to ~0), for a minimal night-terminal read. */
+ *  Near-opaque (0.92): the scrim sits over real dataviz-dark TILES, so it has
+ *  to be strong to actually black out neighbouring countries' roads + city
+ *  labels — the mockup's lower value looked right only because it had no tiles
+ *  beneath it. Slightly darker than the flat land fill so Bulgaria lifts. */
 const MASK_FILL = '#060a14';
-const MASK_OPACITY = 0.66;
+const MASK_OPACITY = 0.92;
 
 /** Selected-region brand accent (emerald), matching the SELL marker family. */
 const REGION_ACCENT = '#22c55e';
@@ -202,6 +203,11 @@ export function ExchangeMap({
                     regionName: l.regionName,
                     lon: l.lon,
                     lat: l.lat,
+                    // Pinned map label — same shape as the popup line. Units are
+                    // symbols (mirrors the popup), so no new translatable copy.
+                    chipLabel:
+                        `${l.commodity} · ${l.quantityTonnes} t` +
+                        (l.pricePerTonne ? ` · ${l.pricePerTonne} ${l.priceCurrency}/t` : ''),
                 },
             })),
         }),
@@ -439,6 +445,29 @@ export function ExchangeMap({
                             ],
                             'circle-stroke-width': 2,
                             'circle-stroke-color': '#ffffff',
+                        }}
+                    />
+                    {/* Pinned price chip on each UNCLUSTERED offer — commodity ·
+                        tonnes · price. Collapses into the cluster count at low
+                        zoom (unclustered filter), and MapLibre collision hides
+                        any that would overlap, so the map never clutters. */}
+                    <Layer
+                        id="offer-label"
+                        type="symbol"
+                        filter={['!', ['has', 'point_count']]}
+                        layout={{
+                            'text-field': ['get', 'chipLabel'],
+                            'text-size': 11,
+                            'text-anchor': 'left',
+                            'text-offset': [0.9, 0],
+                            'text-optional': true,
+                            'text-max-width': 14,
+                        }}
+                        paint={{
+                            'text-color': '#e5e7eb',
+                            'text-halo-color': '#0b0f18',
+                            'text-halo-width': 1.6,
+                            'text-halo-blur': 0.4,
                         }}
                     />
                 </Source>
