@@ -94,7 +94,7 @@ describe("Epic P2-PR-A — control picker on edge", () => {
             expect(src).toMatch(
                 /data-testid="inspector-edge-control-picker"/,
             );
-            expect(src).toMatch(/aria-label="Linked control"/);
+            expect(src).toMatch(/aria-label=\{t\("processInspector\.linkedControl"\)\}/);
         });
 
         it("commitLinkedControl emits patch with a single EdgeControlRef on pick + empty on clear", () => {

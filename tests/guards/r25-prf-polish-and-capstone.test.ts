@@ -39,9 +39,7 @@ describe("R25-PR-F — Polish + capstone", () => {
             // The R25 calmness commitment: one sentence, no card,
             // no illustration. Affordances should not linger past
             // the moment of need.
-            expect(canvasSrc).toMatch(
-                /Drag a process step from the palette to begin/,
-            );
+            expect(canvasSrc).toMatch(/processCanvas\.emptyDragHint/);
         });
 
         it("empty-state container is pointer-events-none (does not block canvas)", () => {
@@ -74,7 +72,7 @@ describe("R25-PR-F — Polish + capstone", () => {
         const canvasSrc = read("src/components/processes/ProcessCanvas.tsx");
 
         it("ReactFlow surface has an aria-label", () => {
-            expect(canvasSrc).toMatch(/aria-label="Process canvas"/);
+            expect(canvasSrc).toMatch(/aria-label=\{t\("processCanvas\.ariaLabel"\)\}/);
         });
     });
 

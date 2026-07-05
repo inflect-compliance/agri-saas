@@ -62,7 +62,7 @@ describe("PR-B polish — clipboard copy + collapsible groups", () => {
             expect(src).toMatch(/canCopyImageToClipboard/);
             expect(src).toMatch(/copyCanvasAsImageToClipboard/);
             expect(src).toMatch(/data-testid="canvas-export-clipboard"/);
-            expect(src).toMatch(/Copy as image/);
+            expect(src).toMatch(/canvasExport\.copyAsImage/);
             // The menu's `run` callback must handle the new
             // "clipboard" kind alongside the existing four.
             expect(src).toMatch(

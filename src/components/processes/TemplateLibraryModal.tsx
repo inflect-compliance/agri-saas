@@ -9,6 +9,7 @@
  * dropping time-to-value for common GRC automation.
  */
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSWRConfig } from 'swr';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,8 @@ export interface TemplateLibraryModalProps {
 }
 
 export function TemplateLibraryModal({ open, setOpen }: TemplateLibraryModalProps) {
+    const tr = useTranslations('ui');
+    const tCommon = useTranslations('common');
     const apiUrl = useTenantApiUrl();
     const { mutate } = useSWRConfig();
     const { data: templates } = useTenantSWR<Template[]>(CACHE_KEYS.automation.templates());
@@ -63,8 +66,8 @@ export function TemplateLibraryModal({ open, setOpen }: TemplateLibraryModalProp
     }
 
     return (
-        <Modal showModal={open} setShowModal={setOpen} title="Rule templates" size="xl">
-            <Modal.Header title="Rule templates" />
+        <Modal showModal={open} setShowModal={setOpen} title={tr('templateLibrary.title')} size="xl">
+            <Modal.Header title={tr('templateLibrary.title')} />
             <Modal.Body>
                 <div className="mb-default flex flex-wrap gap-tight">
                     <button
@@ -72,7 +75,7 @@ export function TemplateLibraryModal({ open, setOpen }: TemplateLibraryModalProp
                         onClick={() => setTag(null)}
                         className={`rounded-full px-2.5 py-0.5 text-xs ${tag === null ? 'bg-bg-inverted text-content-inverted' : 'bg-bg-muted text-content-muted'}`}
                     >
-                        All
+                        {tCommon('all')}
                     </button>
                     {ALL_TAGS.map((t) => (
                         <button
@@ -108,7 +111,7 @@ export function TemplateLibraryModal({ open, setOpen }: TemplateLibraryModalProp
                                     disabled={usingId !== null}
                                     onClick={() => useTemplate(t.id)}
                                 >
-                                    Use template
+                                    {tr('templateLibrary.useTemplate')}
                                 </Button>
                             </div>
                         </div>
@@ -117,7 +120,7 @@ export function TemplateLibraryModal({ open, setOpen }: TemplateLibraryModalProp
             </Modal.Body>
             <Modal.Actions align="right">
                 <Button variant="ghost" onClick={() => setOpen(false)}>
-                    Close
+                    {tCommon('close')}
                 </Button>
             </Modal.Actions>
         </Modal>

@@ -117,7 +117,7 @@ describe("Epic P4-PR-A — canvas auto-layout (dagre)", () => {
         });
 
         it("the command palette has a Layout group with both directions", () => {
-            expect(src).toMatch(/heading:\s*["']Layout["']/);
+            expect(src).toMatch(/heading:\s*t\("persistedCanvas\.headingLayout"\)/);
             expect(src).toMatch(/id:\s*["']arrange-lr["']/);
             expect(src).toMatch(/id:\s*["']arrange-tb["']/);
             expect(src).toMatch(/handleAutoLayout\(["']LR["']\)/);

@@ -12,6 +12,7 @@
  * lands; the Edit button opens the builder modal from Epic 3.
  */
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Sheet } from '@/components/ui/sheet';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -42,6 +43,8 @@ export interface RuleDetailSheetProps {
 }
 
 export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetailSheetProps) {
+    const t = useTranslations('ui');
+    const tCommon = useTranslations('common');
     const apiUrl = useTenantApiUrl();
 
     const patchMutation = useTenantMutation<
@@ -86,8 +89,8 @@ export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetail
         <Sheet
             open={open}
             onOpenChange={onOpenChange}
-            title={rule?.name ?? 'Rule'}
-            description="Automation rule detail"
+            title={rule?.name ?? t('ruleDetail.rule')}
+            description={t('ruleDetail.detailDescription')}
         >
             {rule && (
                 <>
@@ -104,7 +107,7 @@ export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetail
                                     </StatusBadge>
                                 </div>
                                 <label className="flex items-center gap-compact text-sm text-content-muted">
-                                    {isEnabled ? 'Enabled' : 'Disabled'}
+                                    {isEnabled ? t('automationInspector.enabled') : t('automationInspector.disabled')}
                                     <Switch
                                         checked={isEnabled}
                                         disabled={isArchived || patchMutation.isMutating}
@@ -114,7 +117,7 @@ export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetail
                                                 status: checked ? 'ENABLED' : 'DISABLED',
                                             })
                                         }
-                                        aria-label="Toggle rule enabled"
+                                        aria-label={t('automationInspector.toggleEnabled')}
                                     />
                                 </label>
                             </div>
@@ -123,7 +126,7 @@ export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetail
                             <Card>
                                 <div className="space-y-tight">
                                     <p className="text-[11px] uppercase tracking-wide text-content-subtle">
-                                        Trigger
+                                        {t('ruleDetail.trigger')}
                                     </p>
                                     <p className="text-sm text-content-emphasis">
                                         {triggerSummary}
@@ -135,7 +138,7 @@ export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetail
                             <Card>
                                 <div className="space-y-tight">
                                     <p className="text-[11px] uppercase tracking-wide text-content-subtle">
-                                        Action
+                                        {t('ruleDetail.action')}
                                     </p>
                                     <p className="text-sm text-content-emphasis">
                                         {RULE_ACTION_LABELS[rule.actionType] ?? rule.actionType}
@@ -145,7 +148,7 @@ export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetail
 
                             {/* Priority */}
                             <div className="flex items-center justify-between gap-default">
-                                <span className="text-sm text-content-muted">Priority</span>
+                                <span className="text-sm text-content-muted">{t('ruleDetail.priority')}</span>
                                 <NumberStepper
                                     value={rule.priority}
                                     min={0}
@@ -154,7 +157,7 @@ export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetail
                                     onChange={(value) =>
                                         patchMutation.trigger({ id: rule.id, priority: value })
                                     }
-                                    aria-label="Rule priority"
+                                    aria-label={t('ruleDetail.rulePriority')}
                                 />
                             </div>
 
@@ -166,11 +169,11 @@ export function RuleDetailSheet({ rule, open, onOpenChange, onEdit }: RuleDetail
                     </Sheet.Body>
                     <Sheet.Actions align="between">
                         <Sheet.Close asChild>
-                            <Button variant="ghost">Close</Button>
+                            <Button variant="ghost">{tCommon('close')}</Button>
                         </Sheet.Close>
                         {onEdit && !isArchived && (
                             <Button variant="secondary" onClick={() => onEdit(rule)}>
-                                Edit
+                                {tCommon('edit')}
                             </Button>
                         )}
                     </Sheet.Actions>

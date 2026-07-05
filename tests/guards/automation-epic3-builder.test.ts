@@ -30,7 +30,7 @@ describe('Automation Epic 3 — visual rule builder', () => {
         expect(src).toMatch(/RadioGroup/);
         expect(src).toMatch(/UserCombobox/);
         // three steps
-        expect(src).toMatch(/Step \{step\} of 3/);
+        expect(src).toMatch(/ruleBuilder\.stepLine/);
         expect(src).toMatch(/step === 1/);
         expect(src).toMatch(/step === 2/);
         expect(src).toMatch(/step === 3/);

@@ -139,7 +139,7 @@ describe("R27-PR-B — persistence", () => {
 
     it("the inspector exposes the size control", () => {
         expect(INSPECTOR).toMatch(/ToggleGroup/);
-        expect(INSPECTOR).toMatch(/Node size/);
+        expect(INSPECTOR).toMatch(/processInspector\.nodeSize/);
     });
 
     it("--canvas-edge has light + dark theme parity", () => {

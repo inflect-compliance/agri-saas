@@ -151,7 +151,7 @@ describe("R32-PR11 — small details bundle A", () => {
             // exact selector + tone tone so a future regression
             // (someone tightens it back to `text-sm`) fails CI.
             expect(src).toMatch(
-                /text-base font-medium text-content-emphasis[\s\S]{0,100}Map a business or IT process/,
+                /text-base font-medium text-content-emphasis[\s\S]{0,100}persistedCanvas\.emptyTitle/,
             );
         });
     });

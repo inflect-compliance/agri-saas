@@ -9,6 +9,7 @@
  * page) via SWR; "Load more" advances the cursor.
  */
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import useSWR from 'swr';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ export function ExecutionsPanel({
     ruleId: string;
     ruleEnabled: boolean;
 }) {
+    const t = useTranslations('ui');
     const apiUrl = useTenantApiUrl();
     const key = apiUrl(CACHE_KEYS.automation.rules.executions(ruleId));
     const { data, isLoading, mutate } = useSWR<{ items: ExecutionRow[]; nextCursor: string | null }>(
@@ -66,7 +68,7 @@ export function ExecutionsPanel({
         <div className="space-y-tight">
             <div className="flex items-center justify-between">
                 <p className="text-[11px] uppercase tracking-wide text-content-subtle">
-                    Recent executions
+                    {t('executions.recentExecutions')}
                 </p>
                 <Button
                     variant="ghost"
@@ -75,13 +77,13 @@ export function ExecutionsPanel({
                     loading={retriggering}
                     onClick={reTrigger}
                 >
-                    Re-trigger
+                    {t('executions.reTrigger')}
                 </Button>
             </div>
             {isLoading ? (
-                <p className="text-sm text-content-muted">Loading…</p>
+                <p className="text-sm text-content-muted">{t('executions.loading')}</p>
             ) : items.length === 0 ? (
-                <p className="text-sm text-content-subtle">No executions yet.</p>
+                <p className="text-sm text-content-subtle">{t('executions.emptyExecutions')}</p>
             ) : (
                 <ul className="space-y-tight" data-testid="executions-list">
                     {items.map((e) => (
@@ -103,7 +105,7 @@ export function ExecutionsPanel({
                             </button>
                             {expanded === e.id && (
                                 <div className="mt-2 space-y-tight text-xs text-content-muted">
-                                    {e.durationMs != null && <p>Duration: {e.durationMs}ms</p>}
+                                    {e.durationMs != null && <p>{t('executions.duration', { ms: e.durationMs })}</p>}
                                     {e.errorMessage && (
                                         <p className="text-content-error">{e.errorMessage}</p>
                                     )}

@@ -83,6 +83,6 @@ describe("R31 (Bundle 5) — inspector AsidePanel parity", () => {
         //   <span>Inspector</span>
         // The AsidePanel primitive owns the title bar now;
         // the inline span is gone.
-        expect(src).toMatch(/title=["']Inspector["']/);
+        expect(src).toMatch(/title=\{t\("processInspector\.inspector"\)\}/);
     });
 });

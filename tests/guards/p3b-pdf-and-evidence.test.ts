@@ -172,7 +172,7 @@ describe("Epic P3-PR-B — PDF export + Evidence attachment", () => {
 
         it("Evidence success surfaces toast.success", () => {
             expect(src).toMatch(
-                /toast\.success\(["']Process map attached to Evidence/,
+                /toast\.success\(t\("canvasExport\.attachedToEvidence"\)/,
             );
         });
     });

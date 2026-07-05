@@ -45,6 +45,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { memo, useCallback, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 import { ProcessPalette, PALETTE_DRAG_MIME } from "./ProcessPalette";
 import {
@@ -96,6 +97,7 @@ function ProcessCanvasInner({
     initialEdges = [],
     paletteSlot,
 }: ProcessCanvasInnerProps) {
+    const t = useTranslations("ui");
     const [nodes, setNodes] = useState<Node[]>(initialNodes);
     const [edges, setEdges] = useState<Edge[]>(initialEdges);
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -179,7 +181,7 @@ function ProcessCanvasInner({
                         data-canvas-empty-state="true"
                     >
                         <p className="text-sm text-content-muted">
-                            Drag a process step from the palette to begin.
+                            {t("processCanvas.emptyDragHint")}
                         </p>
                     </div>
                 )}
@@ -193,7 +195,7 @@ function ProcessCanvasInner({
                     onConnect={onConnect}
                     fitView
                     proOptions={{ hideAttribution: true }}
-                    aria-label="Process canvas"
+                    aria-label={t("processCanvas.ariaLabel")}
                 >
                     {/* IC token-aware background. Dot variant reads as
                         a calm graph-paper surface — line variant adds

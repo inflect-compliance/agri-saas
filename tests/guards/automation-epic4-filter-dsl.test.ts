@@ -37,7 +37,7 @@ describe('Automation Epic 4 — Filter DSL v2', () => {
 
     it('the builder Step 2 emits operators + AND/OR logic', () => {
         const src = read(MODAL);
-        expect(src).toMatch(/OPERATOR_OPTIONS/);
+        expect(src).toMatch(/OPERATOR_VALUES/);
         expect(src).toMatch(/logic: form\.logic/);
         // the equality-only note from Epic 3 is gone
         expect(src).not.toMatch(/match by equality\. Operators and AND\/OR/);
