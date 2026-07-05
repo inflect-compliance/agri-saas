@@ -33,6 +33,7 @@
  */
 
 import type { DragEvent } from "react";
+import { useTranslations } from "next-intl";
 import {
     NODE_TAXONOMY,
     NODE_TAXONOMY_ORDER,
@@ -74,6 +75,7 @@ const CATEGORY_ORDER: readonly NodeCategory[] = [
 ];
 
 export function ProcessPalette() {
+    const t = useTranslations("ui");
     const isAutomation = useIsAutomationMode();
     const onDragStart = (
         event: DragEvent<HTMLDivElement>,
@@ -104,10 +106,10 @@ export function ProcessPalette() {
             className="flex w-14 shrink-0 flex-col items-center gap-tight border-r border-canvas-border bg-canvas-frame py-3"
             data-process-palette="true"
             data-process-palette-layout="vertical"
-            aria-label="Process palette"
+            aria-label={t("processPalette.ariaLabel")}
         >
             <span className="text-[9px] font-semibold uppercase tracking-wider text-content-subtle">
-                Tools
+                {t("processPalette.tools")}
             </span>
             {CATEGORY_ORDER.map((category, categoryIdx) => {
                 const kindsInCategory = grouped[category];
@@ -142,7 +144,7 @@ export function ProcessPalette() {
                                     data-palette-item={kind}
                                     data-process-palette-item="true"
                                     title={meta.label}
-                                    aria-label={`Drag to add a ${meta.label.toLowerCase()} node`}
+                                    aria-label={t("processPalette.dragToAdd", { label: meta.label.toLowerCase() })}
                                     className="inline-flex h-8 w-8 cursor-grab items-center justify-center rounded-[8px] border border-canvas-border bg-canvas-node-muted text-content-default transition-colors hover:border-border-emphasis hover:bg-canvas-node hover:text-content-emphasis active:cursor-grabbing"
                                 >
                                     <Icon
@@ -178,7 +180,7 @@ export function ProcessPalette() {
                                 data-palette-item={kind}
                                 data-process-palette-item="true"
                                 title={meta.label}
-                                aria-label={`Drag to add a ${meta.label.toLowerCase()} node`}
+                                aria-label={t("processPalette.dragToAdd", { label: meta.label.toLowerCase() })}
                                 className="inline-flex h-8 w-8 cursor-grab items-center justify-center rounded-[8px] border border-canvas-border bg-canvas-node-muted text-content-default transition-colors hover:border-border-emphasis hover:bg-canvas-node hover:text-content-emphasis active:cursor-grabbing"
                             >
                                 <Icon className="h-3.5 w-3.5" aria-hidden="true" />

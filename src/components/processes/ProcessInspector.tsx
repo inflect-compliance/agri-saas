@@ -32,6 +32,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { Edge, Node } from "@xyflow/react";
 import { ToggleGroup } from "@/components/ui/toggle-group";
 import { AsidePanel } from "@/components/ui/aside-panel";
@@ -93,7 +94,6 @@ import {
     type ProcessNodeSize,
 } from "./ProcessTypedNode";
 import {
-    EDGE_VARIANT_META,
     EDGE_VARIANT_ORDER,
     isProcessEdgeVariant,
     type ProcessEdgeVariant,
@@ -174,6 +174,7 @@ export function ProcessInspector({
     onUpdate,
     onEdgeUpdate,
 }: ProcessInspectorProps) {
+    const t = useTranslations("ui");
     // Local state mirrors the node's data so the user can type
     // without every keystroke flushing to the canvas state. The
     // mirror commits on blur (or Enter), which is when the canvas
@@ -223,7 +224,7 @@ export function ProcessInspector({
                 ? ((data as { ruleId?: string }).ruleId as string)
                 : null;
         return (
-            <AsidePanel title="Rule" surfaceKey="processes-inspector">
+            <AsidePanel title={t("ruleDetail.rule")} surfaceKey="processes-inspector">
                 <div className="flex flex-col gap-default p-default">
                     <AutomationInspectorPanel
                         kind={data!.kind as "trigger" | "condition" | "action" | "slaGate"}
@@ -260,13 +261,13 @@ export function ProcessInspector({
     // testid the R28 ratchet pins; only the chrome moved.
     return (
         <AsidePanel
-            title="Inspector"
+            title={t("processInspector.inspector")}
             surfaceKey="processes-inspector"
         >
             <div
                 className="flex flex-col gap-default"
                 data-process-inspector="true"
-                aria-label="Selected node properties"
+                aria-label={t("processInspector.selectedNodeProps")}
             >
                 {kindMeta && (
                     <span className="text-[10px] uppercase tracking-wide text-content-subtle">
@@ -275,7 +276,7 @@ export function ProcessInspector({
                 )}
                 <label className="flex flex-col gap-tight">
                 <span className="text-[10px] uppercase tracking-wide text-content-muted">
-                    Label
+                    {t("processInspector.label")}
                 </span>
                 <input
                     type="text"
@@ -293,7 +294,7 @@ export function ProcessInspector({
             </label>
             <label className="flex flex-col gap-tight">
                 <span className="text-[10px] uppercase tracking-wide text-content-muted">
-                    Subtitle
+                    {t("processInspector.subtitle")}
                 </span>
                 <input
                     type="text"
@@ -305,23 +306,23 @@ export function ProcessInspector({
                             e.currentTarget.blur();
                         }
                     }}
-                    placeholder="optional"
+                    placeholder={t("processInspector.optional")}
                     className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-1 text-xs text-content-emphasis focus:border-border-emphasis focus:outline-none"
                     data-testid="inspector-subtitle-input"
                 />
             </label>
             <div className="flex flex-col gap-tight">
                 <span className="text-[10px] uppercase tracking-wide text-content-muted">
-                    Size
+                    {t("processInspector.size")}
                 </span>
                 <ToggleGroup
                     size="sm"
-                    ariaLabel="Node size"
+                    ariaLabel={t("processInspector.nodeSize")}
                     selected={size}
                     options={[
-                        { value: "sm", label: "S" },
-                        { value: "md", label: "M" },
-                        { value: "lg", label: "L" },
+                        { value: "sm", label: t("processInspector.sizeS") },
+                        { value: "md", label: t("processInspector.sizeM") },
+                        { value: "lg", label: t("processInspector.sizeL") },
                     ]}
                     selectAction={(v) =>
                         onUpdate(node.id, { size: v as ProcessNodeSize })
@@ -347,7 +348,7 @@ export function ProcessInspector({
                 }
             />
                 <p className="text-[10px] text-content-subtle">
-                    Click off the field or press Enter to save the edit.
+                    {t("processInspector.saveHint")}
                 </p>
             </div>
         </AsidePanel>
@@ -367,6 +368,7 @@ function NodeLinkedEntityPicker({
     selectedId: string | null;
     onCommit: (id: string | null) => void;
 }) {
+    const t = useTranslations("ui");
     // Three hooks unconditionally — React rules of hooks. Each
     // short-circuits to a no-op when the slug is the empty string,
     // and we discard the unused responses below.
@@ -387,32 +389,32 @@ function NodeLinkedEntityPicker({
     const active =
         nodeKind === "control"
             ? {
-                  label: "Linked control",
+                  label: t("processInspector.linkedControl"),
                   options: controls.options.map((c) => ({
                       value: c.id,
                       label: formatControlLabel(c),
                   })),
                   loading: controls.loading,
-                  emptyHint: "No controls yet",
+                  emptyHint: t("processInspector.noControls"),
               }
             : nodeKind === "risk"
               ? {
-                    label: "Linked risk",
+                    label: t("processInspector.linkedRisk"),
                     options: risks.options.map((r) => ({
                         value: r.id,
                         label: r.title,
                     })),
                     loading: risks.loading,
-                    emptyHint: "No risks yet",
+                    emptyHint: t("processInspector.noRisks"),
                 }
               : {
-                    label: "Linked asset",
+                    label: t("processInspector.linkedAsset"),
                     options: assets.options.map((a) => ({
                         value: a.id,
                         label: formatAssetLabel(a),
                     })),
                     loading: assets.loading,
-                    emptyHint: "No assets yet",
+                    emptyHint: t("processInspector.noAssets"),
                 };
 
     const selectedOption = selectedId
@@ -444,7 +446,7 @@ function NodeLinkedEntityPicker({
                         className={`rounded-[4px] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${entityStatusTone(liveStatus)}`}
                         data-testid="inspector-node-entity-status"
                         data-status={liveStatus}
-                        title={`Current status: ${liveStatus}`}
+                        title={t("processInspector.statusTitle", { status: liveStatus })}
                     >
                         {liveStatus}
                     </span>
@@ -460,10 +462,10 @@ function NodeLinkedEntityPicker({
                 aria-label={active.label}
                 placeholder={
                     active.loading
-                        ? "Loading…"
+                        ? t("processInspector.loading")
                         : active.options.length === 0
                           ? active.emptyHint
-                          : "Pick one…"
+                          : t("processInspector.pickOne")
                 }
             />
         </div>
@@ -481,6 +483,7 @@ function EdgeInspectorBody({
     tenantSlug?: string;
     onEdgeUpdate?: ProcessInspectorProps["onEdgeUpdate"];
 }) {
+    const t = useTranslations("ui");
     const variantRaw = (edge.data as { variant?: unknown } | undefined)
         ?.variant;
     const variant: ProcessEdgeVariant = isProcessEdgeVariant(variantRaw)
@@ -554,21 +557,21 @@ function EdgeInspectorBody({
     // inspector panel persist its collapse state across both modes.
     return (
         <AsidePanel
-            title="Inspector"
+            title={t("processInspector.inspector")}
             surfaceKey="processes-inspector"
         >
             <div
                 className="flex flex-col gap-default"
                 data-process-inspector="true"
                 data-inspector-mode="edge"
-                aria-label="Selected edge properties"
+                aria-label={t("processInspector.selectedEdgeProps")}
             >
                 <span className="text-[10px] uppercase tracking-wide text-content-subtle">
-                    Connection
+                    {t("processInspector.connection")}
                 </span>
                 <label className="flex flex-col gap-tight">
                 <span className="text-[10px] uppercase tracking-wide text-content-muted">
-                    Label
+                    {t("processInspector.label")}
                 </span>
                 <input
                     type="text"
@@ -580,22 +583,22 @@ function EdgeInspectorBody({
                             e.currentTarget.blur();
                         }
                     }}
-                    placeholder="optional"
+                    placeholder={t("processInspector.optional")}
                     className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-1 text-xs text-content-emphasis focus:border-border-emphasis focus:outline-none"
                     data-testid="inspector-edge-label-input"
                 />
             </label>
             <div className="flex flex-col gap-tight">
                 <span className="text-[10px] uppercase tracking-wide text-content-muted">
-                    Variant
+                    {t("processInspector.variant")}
                 </span>
                 <ToggleGroup
                     size="sm"
-                    ariaLabel="Edge variant"
+                    ariaLabel={t("processInspector.edgeVariant")}
                     selected={variant}
                     options={EDGE_VARIANT_ORDER.map((v) => ({
                         value: v,
-                        label: EDGE_VARIANT_META[v].label,
+                        label: t(`processEdge.variantLabel.${v}`),
                     }))}
                     selectAction={(v) =>
                         onEdgeUpdate?.(edge.id, {
@@ -604,7 +607,7 @@ function EdgeInspectorBody({
                     }
                 />
                 <span className="text-[10px] text-content-subtle">
-                    {EDGE_VARIANT_META[variant].description}
+                    {t(`processEdge.variantDescription.${variant}`)}
                 </span>
             </div>
             {/* Epic P2-PR-A — Linked control picker. Mounts a tenant-
@@ -617,29 +620,28 @@ function EdgeInspectorBody({
                 data-testid="inspector-edge-control-picker"
             >
                 <span className="text-[10px] uppercase tracking-wide text-content-muted">
-                    Linked control
+                    {t("processInspector.linkedControl")}
                 </span>
                 <Combobox
                     selected={selectedControlOption}
                     setSelected={commitLinkedControl}
                     options={controlOptions}
                     disabled={controlsLoading || tenantControls.length === 0}
-                    aria-label="Linked control"
+                    aria-label={t("processInspector.linkedControl")}
                     placeholder={
                         controlsLoading
-                            ? "Loading controls…"
+                            ? t("processInspector.loadingControls")
                             : tenantControls.length === 0
-                              ? "No controls yet"
-                              : "Pick a control…"
+                              ? t("processInspector.noControls")
+                              : t("processInspector.pickControl")
                     }
                 />
                 <span className="text-[10px] text-content-subtle">
-                    Auditors see the chosen control as a shield pill on
-                    the connection.
+                    {t("processInspector.auditorsSeeControl")}
                 </span>
             </div>
                 <p className="text-[10px] text-content-subtle">
-                    Click off the field or press Enter to save the edit.
+                    {t("processInspector.saveHint")}
                 </p>
             </div>
         </AsidePanel>

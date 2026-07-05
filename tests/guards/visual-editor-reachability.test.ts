@@ -34,7 +34,7 @@ describe('visual editor reachability', () => {
     it('AUTOMATION canvas mode is creatable from the UI', () => {
         const src = read(CANVAS);
         expect(src).toMatch(/handleNew\("AUTOMATION"\)/);
-        expect(src).toMatch(/New automation workflow/);
+        expect(src).toMatch(/persistedCanvas\.cmdNewAutomation/);
     });
 
     it('exposes a Run Mode toggle in the document bar', () => {

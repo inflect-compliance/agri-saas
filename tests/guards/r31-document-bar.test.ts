@@ -80,7 +80,7 @@ describe("R31 (Bundle 3) — document bar", () => {
 
         it("renders an inline <nav> breadcrumb on the toolbar", () => {
             expect(src).toMatch(/data-canvas-document-breadcrumb="true"/);
-            expect(src).toMatch(/aria-label="Breadcrumb"/);
+            expect(src).toMatch(/aria-label=\{t\("processDocBar\.breadcrumb"\)\}/);
         });
 
         it("breadcrumb links to the tenant dashboard", () => {

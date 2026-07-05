@@ -119,7 +119,7 @@ describe("Epic P6-PR-A — sub-flow drill-down", () => {
         });
 
         it("wraps the trail in a nav landmark labelled 'Drill-down trail'", () => {
-            expect(src).toMatch(/aria-label="Drill-down trail"/);
+            expect(src).toMatch(/aria-label=\{t\("canvasDrill\.trailLabel"\)\}/);
         });
     });
 

@@ -55,7 +55,7 @@ describe("R26-PR-E — editor UX wiring", () => {
             expect(docBarSrc).toMatch(
                 /data-testid=["']process-name-input["']/,
             );
-            expect(docBarSrc).toMatch(/aria-label=["']Process name["']/);
+            expect(docBarSrc).toMatch(/aria-label=\{t\("processDocBar\.processName"\)\}/);
         });
 
         it("rename commits on blur / Enter (NOT on every keystroke)", () => {

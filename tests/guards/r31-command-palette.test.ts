@@ -88,9 +88,9 @@ describe("R31 (Bundle 8) — canvas command palette", () => {
             // Locked at exactly three groups so the canonical
             // taxonomy doesn't drift silently. Adding a fourth
             // group means a deliberate update here.
-            expect(src).toMatch(/heading:\s*["']Document["']/);
-            expect(src).toMatch(/heading:\s*["']Selection["']/);
-            expect(src).toMatch(/heading:\s*["']Modes["']/);
+            expect(src).toMatch(/heading:\s*t\("persistedCanvas\.headingDocument"\)/);
+            expect(src).toMatch(/heading:\s*t\("persistedCanvas\.headingSelection"\)/);
+            expect(src).toMatch(/heading:\s*t\("persistedCanvas\.headingModes"\)/);
         });
 
         it("registers every R28-R31 canvas verb as a command", () => {

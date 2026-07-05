@@ -24,6 +24,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/icons/loading-spinner";
@@ -60,6 +61,8 @@ export function CanvasDiffOverlay({
     currentSnapshot: DiffGraphSnapshot;
     currentVersion: number;
 }) {
+    const t = useTranslations("ui");
+    const tCommon = useTranslations("common");
     const [snapshot, setSnapshot] = useState<SnapshotResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -88,7 +91,7 @@ export function CanvasDiffOverlay({
                     setError(
                         err instanceof Error
                             ? err.message
-                            : "Diff load failed",
+                            : t("canvasDiff.diffLoadFailed"),
                     );
                 }
             } finally {
@@ -98,7 +101,7 @@ export function CanvasDiffOverlay({
         return () => {
             cancelled = true;
         };
-    }, [open, tenantSlug, mapId, targetVersion]);
+    }, [open, tenantSlug, mapId, targetVersion, t]);
 
     const diff: CanvasDiff | null = snapshot
         ? computeCanvasDiff(snapshot.graphJson, currentSnapshot)
@@ -110,12 +113,12 @@ export function CanvasDiffOverlay({
             setShowModal={(next) =>
                 onOpenChange(typeof next === "boolean" ? next : !open)
             }
-            title={`Diff v${targetVersion} vs v${currentVersion}`}
-            description="Comparing the snapshot to the current canvas state"
+            title={t("canvasDiff.title", { target: targetVersion, current: currentVersion })}
+            description={t("canvasDiff.description")}
         >
             <Modal.Header
-                title={`Diff v${targetVersion} vs v${currentVersion}`}
-                description="Comparing the snapshot to the current canvas state"
+                title={t("canvasDiff.title", { target: targetVersion, current: currentVersion })}
+                description={t("canvasDiff.description")}
             />
             <Modal.Body>
                 <div
@@ -124,7 +127,7 @@ export function CanvasDiffOverlay({
                 >
                     {loading && (
                         <div className="flex items-center gap-tight text-sm text-content-muted">
-                            <LoadingSpinner /> Loading snapshot…
+                            <LoadingSpinner /> {t("canvasDiff.loadingSnapshot")}
                         </div>
                     )}
                     {!loading && error && (
@@ -139,13 +142,13 @@ export function CanvasDiffOverlay({
                         <>
                             <DiffSummary diff={diff} />
                             <DiffList
-                                title="Node changes"
+                                title={t("canvasDiff.nodeChanges")}
                                 entries={Array.from(diff.nodes.entries()).filter(
                                     ([, c]) => c !== "unchanged",
                                 )}
                             />
                             <DiffList
-                                title="Edge changes"
+                                title={t("canvasDiff.edgeChanges")}
                                 entries={Array.from(diff.edges.entries()).filter(
                                     ([, c]) => c !== "unchanged",
                                 )}
@@ -161,7 +164,7 @@ export function CanvasDiffOverlay({
                         onClick={() => onOpenChange(false)}
                         data-testid="canvas-diff-overlay-close"
                     >
-                        Close
+                        {tCommon("close")}
                     </Button>
                 </Modal.Actions>
             </Modal.Footer>
@@ -170,6 +173,7 @@ export function CanvasDiffOverlay({
 }
 
 function DiffSummary({ diff }: { diff: CanvasDiff }) {
+    const t = useTranslations("ui");
     const s = diff.summary;
     const total =
         s.nodesAdded +
@@ -185,7 +189,7 @@ function DiffSummary({ diff }: { diff: CanvasDiff }) {
                 data-testid="canvas-diff-overlay-empty"
                 className="text-sm text-content-subtle"
             >
-                No changes between these versions.
+                {t("canvasDiff.emptyChanges")}
             </p>
         );
     }
@@ -194,27 +198,27 @@ function DiffSummary({ diff }: { diff: CanvasDiff }) {
             data-testid="canvas-diff-summary"
             className="flex flex-wrap gap-tight text-[11px] text-content-muted"
         >
-            <SummaryChip count={s.nodesAdded} label="nodes added" tone="added" />
+            <SummaryChip count={s.nodesAdded} label={t("canvasDiff.nodesAdded")} tone="added" />
             <SummaryChip
                 count={s.nodesRemoved}
-                label="nodes removed"
+                label={t("canvasDiff.nodesRemoved")}
                 tone="removed"
             />
-            <SummaryChip count={s.nodesMoved} label="nodes moved" tone="moved" />
+            <SummaryChip count={s.nodesMoved} label={t("canvasDiff.nodesMoved")} tone="moved" />
             <SummaryChip
                 count={s.nodesModified}
-                label="nodes modified"
+                label={t("canvasDiff.nodesModified")}
                 tone="modified"
             />
-            <SummaryChip count={s.edgesAdded} label="edges added" tone="added" />
+            <SummaryChip count={s.edgesAdded} label={t("canvasDiff.edgesAdded")} tone="added" />
             <SummaryChip
                 count={s.edgesRemoved}
-                label="edges removed"
+                label={t("canvasDiff.edgesRemoved")}
                 tone="removed"
             />
             <SummaryChip
                 count={s.edgesModified}
-                label="edges modified"
+                label={t("canvasDiff.edgesModified")}
                 tone="modified"
             />
         </ul>

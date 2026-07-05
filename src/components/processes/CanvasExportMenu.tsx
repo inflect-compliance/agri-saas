@@ -27,6 +27,7 @@
  */
 
 import { useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { Node } from "@xyflow/react";
 import { Popover } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,8 @@ export function CanvasExportMenu({
     /** External disable signal (saving / no active map / etc.). */
     disabled?: boolean;
 }) {
+    const t = useTranslations("ui");
+    const tCommon = useTranslations("common");
     const [open, setOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const toast = useToast();
@@ -93,7 +96,7 @@ export function CanvasExportMenu({
                         nodes,
                         mapName,
                     });
-                    toast.success("Canvas copied to clipboard.");
+                    toast.success(t("canvasExport.copiedToClipboard"));
                 } else if (kind === "pdf") {
                     if (!tenantSlug || !mapId) {
                         throw new Error("PDF export needs tenantSlug + mapId");
@@ -118,20 +121,20 @@ export function CanvasExportMenu({
                         tenantSlug,
                         mapId,
                     });
-                    toast.success("Process map attached to Evidence.");
+                    toast.success(t("canvasExport.attachedToEvidence"));
                 }
                 setOpen(false);
             } catch (err) {
                 toast.error(
                     err instanceof Error
                         ? err.message
-                        : "Export failed",
+                        : t("canvasExport.exportFailed"),
                 );
             } finally {
                 setBusy(false);
             }
         },
-        [canvasEl, nodes, mapName, tenantSlug, mapId, toast],
+        [canvasEl, nodes, mapName, tenantSlug, mapId, toast, t],
     );
 
     const showServerItems = Boolean(tenantSlug && mapId);
@@ -146,20 +149,20 @@ export function CanvasExportMenu({
             setOpenPopover={setOpen}
             data-testid="canvas-export-popover"
             content={
-                <Popover.Menu aria-label="Export options">
+                <Popover.Menu aria-label={t("canvasExport.exportOptions")}>
                     <Popover.Item
                         data-testid="canvas-export-png"
                         onClick={() => void run("png")}
                         disabled={busy}
                     >
-                        Export as PNG
+                        {t("canvasExport.exportPng")}
                     </Popover.Item>
                     <Popover.Item
                         data-testid="canvas-export-svg"
                         onClick={() => void run("svg")}
                         disabled={busy}
                     >
-                        Export as SVG
+                        {t("canvasExport.exportSvg")}
                     </Popover.Item>
                     {showClipboardItem && (
                         <Popover.Item
@@ -167,7 +170,7 @@ export function CanvasExportMenu({
                             onClick={() => void run("clipboard")}
                             disabled={busy}
                         >
-                            Copy as image
+                            {t("canvasExport.copyAsImage")}
                         </Popover.Item>
                     )}
                     {showServerItems && (
@@ -178,14 +181,14 @@ export function CanvasExportMenu({
                                 onClick={() => void run("pdf")}
                                 disabled={busy}
                             >
-                                Export as PDF
+                                {t("canvasExport.exportPdf")}
                             </Popover.Item>
                             <Popover.Item
                                 data-testid="canvas-export-evidence"
                                 onClick={() => void run("evidence")}
                                 disabled={busy}
                             >
-                                Attach to Evidence
+                                {t("canvasExport.attachToEvidence")}
                             </Popover.Item>
                         </>
                     )}
@@ -199,7 +202,7 @@ export function CanvasExportMenu({
                 data-testid="canvas-export-trigger"
                 aria-haspopup="menu"
             >
-                {busy ? "Exporting…" : "Export"}
+                {busy ? t("canvasExport.exporting") : tCommon("export")}
             </Button>
         </Popover>
     );

@@ -12,6 +12,7 @@
  */
 
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 export function CanvasDrillBreadcrumb({
     trail,
@@ -24,6 +25,7 @@ export function CanvasDrillBreadcrumb({
      */
     onJump: (targetDepth: number) => void;
 }) {
+    const t = useTranslations("ui");
     if (trail.length <= 1) {
         // Root view — no trail to render.
         return null;
@@ -63,11 +65,11 @@ export function CanvasDrillBreadcrumb({
     return (
         <nav
             className="flex items-center gap-1 border-b border-canvas-border bg-canvas-frame px-default py-1 text-[11px]"
-            aria-label="Drill-down trail"
+            aria-label={t("canvasDrill.trailLabel")}
             data-testid="canvas-drill-breadcrumb"
         >
             <span className="mr-1 font-semibold uppercase tracking-wider text-content-subtle">
-                You are in
+                {t("canvasDrill.youAreIn")}
             </span>
             {items}
         </nav>

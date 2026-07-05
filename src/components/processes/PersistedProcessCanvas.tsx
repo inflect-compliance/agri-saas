@@ -134,6 +134,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 // capstones are updated to document the supersession.
 import type { ProcessEdgeVariant } from "./ProcessEdge";
 import type { ProcessMapSummary } from "@/app/t/[tenantSlug]/(app)/processes/ProcessesClient";
+import { useTranslations } from "next-intl";
 import { useToast } from "@/components/ui/hooks";
 import { useMediaQuery } from "@/components/ui/hooks/use-media-query";
 import { surfaceVersionConflict } from "@/lib/processes/version-conflict-toast";
@@ -154,12 +155,6 @@ const PROXIMITY_PREVIEW_ID = "__proximity_preview__";
  * rejection path. A shared `id: "canvas-connection-rejected"`
  * collapses rapid-fire misclicks into one toast.
  */
-const REJECT_MESSAGES: Record<"self" | "duplicate" | "annotation", string> = {
-    self: "A step can't connect to itself.",
-    duplicate: "These steps are already connected.",
-    annotation: "Annotations don't carry the flow — they sit beside it.",
-};
-
 // Every taxonomy kind registers the SAME renderer. The renderer
 // branches internally on `data.kind` so the chassis stays shared.
 // Module-level so the reference is stable across re-renders
@@ -344,6 +339,8 @@ function Inner({
         null,
     );
     const toast = useToast();
+    const t = useTranslations("ui");
+    const tCommon = useTranslations("common");
     // Epic P3-PR-A — ref to the [data-process-canvas] wrapper so
     // the export menu can walk down to xyflow's viewport child.
     const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -567,7 +564,7 @@ function Inner({
                 });
             } catch (err) {
                 if (!cancelled) {
-                    setError(err instanceof Error ? err.message : "Load failed");
+                    setError(err instanceof Error ? err.message : t("persistedCanvas.loadFailed"));
                 }
             } finally {
                 if (!cancelled) setLoading(false);
@@ -680,7 +677,7 @@ function Inner({
                 version: data.version,
             });
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Save failed");
+            setError(err instanceof Error ? err.message : t("persistedCanvas.saveFailed"));
         } finally {
             setSaving(false);
         }
@@ -771,7 +768,7 @@ function Inner({
                         n.data &&
                         typeof (n.data as { label?: unknown }).label === "string"
                             ? (n.data as { label: string }).label
-                            : "Untitled step",
+                            : t("persistedCanvas.untitledStep"),
                     subtitle:
                         n.data &&
                         typeof (n.data as { subtitle?: unknown }).subtitle ===
@@ -815,7 +812,7 @@ function Inner({
                 ),
             );
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Rename failed");
+            setError(err instanceof Error ? err.message : t("persistedCanvas.renameFailed"));
         } finally {
             setSaving(false);
         }
@@ -869,7 +866,7 @@ function Inner({
                                 typeof (n.data as { label?: unknown }).label ===
                                     "string"
                                     ? (n.data as { label: string }).label
-                                    : "Untitled step",
+                                    : t("persistedCanvas.untitledStep"),
                             subtitle:
                                 n.data &&
                                 typeof (n.data as { subtitle?: unknown })
@@ -911,7 +908,7 @@ function Inner({
             onProcessesChange([summary, ...processes]);
             onActiveIdChange(filled.id);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Duplicate failed");
+            setError(err instanceof Error ? err.message : t("persistedCanvas.duplicateFailed"));
         } finally {
             setDuplicating(false);
         }
@@ -966,7 +963,7 @@ function Inner({
                 onProcessesChange([summary, ...processes]);
                 onActiveIdChange(data.id);
             } catch (err) {
-                setError(err instanceof Error ? err.message : "Create failed");
+                setError(err instanceof Error ? err.message : t("persistedCanvas.createFailed"));
             } finally {
                 setCreating(false);
             }
@@ -988,7 +985,7 @@ function Inner({
                 ),
             );
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Mode switch failed");
+            setError(err instanceof Error ? err.message : t("persistedCanvas.modeSwitchFailed"));
         }
     }, [activeId, activeProcess, tenantSlug, processes, onProcessesChange]);
 
@@ -1100,7 +1097,7 @@ function Inner({
             // refused — without inventing a phantom anchor element.
             const reject = (reason: "self" | "duplicate" | "annotation") => {
                 setRejectedSource(src);
-                toast.warning(REJECT_MESSAGES[reason], {
+                toast.warning(t(`persistedCanvas.reject.${reason}`), {
                     id: "canvas-connection-rejected",
                 });
                 return false;
@@ -1118,7 +1115,7 @@ function Inner({
             }
             return true;
         },
-        [nodes, edges, toast],
+        [nodes, edges, toast, t],
     );
 
     // R28 — edge inspector commit. Patches the edge's label (top-
@@ -1384,7 +1381,7 @@ function Inner({
             position: { x: minX, y: minY },
             style: { width: maxX - minX, height: maxY - minY },
             data: {
-                label: "Group",
+                label: t("persistedCanvas.groupLabel"),
                 kind: "group",
                 width: maxX - minX,
                 height: maxY - minY,
@@ -1481,15 +1478,15 @@ function Inner({
     ]);
 
     useKeyboardShortcut("mod+z", handleUndo, {
-        description: "Undo last canvas edit",
+        description: t("persistedCanvas.scUndo"),
         enabled: Boolean(activeId),
     });
     useKeyboardShortcut("mod+shift+z", handleRedo, {
-        description: "Redo last undone edit",
+        description: t("persistedCanvas.scRedo"),
         enabled: Boolean(activeId),
     });
     useKeyboardShortcut("mod+s", () => void handleSave(), {
-        description: "Save the current process map",
+        description: t("persistedCanvas.scSave"),
         enabled: Boolean(activeId),
     });
 
@@ -1518,15 +1515,15 @@ function Inner({
         handlePaste();
     }, [nodes, edges, handlePaste]);
     useKeyboardShortcut("mod+c", handleCopy, {
-        description: "Copy selected nodes",
+        description: t("persistedCanvas.scCopy"),
         enabled: Boolean(activeId),
     });
     useKeyboardShortcut("mod+v", handlePaste, {
-        description: "Paste nodes from clipboard",
+        description: t("persistedCanvas.scPaste"),
         enabled: Boolean(activeId),
     });
     useKeyboardShortcut("mod+d", handleDuplicateSelection, {
-        description: "Duplicate selected nodes",
+        description: t("persistedCanvas.scDuplicate"),
         enabled: Boolean(activeId),
         preventDefault: true,
     });
@@ -1550,7 +1547,7 @@ function Inner({
                 x: source.position.x + 280,
                 y: source.position.y,
             },
-            data: { label: "Untitled", kind },
+            data: { label: t("persistedCanvas.untitled"), kind },
             selected: true,
         };
         const newEdge: Edge = {
@@ -1569,7 +1566,7 @@ function Inner({
         autosave.markDirty();
     }, [nodes, edges, history, autosave]);
     useKeyboardShortcut("tab", handleTabCreate, {
-        description: "Tab — create a connected sibling node",
+        description: t("persistedCanvas.scTab"),
         enabled: Boolean(activeId),
         preventDefault: true,
     });
@@ -1583,8 +1580,8 @@ function Inner({
     const [rejectedSource, setRejectedSource] = useState<string | null>(null);
     useEffect(() => {
         if (rejectedSource === null) return;
-        const t = setTimeout(() => setRejectedSource(null), 600);
-        return () => clearTimeout(t);
+        const timer = setTimeout(() => setRejectedSource(null), 600);
+        return () => clearTimeout(timer);
     }, [rejectedSource]);
 
     // R26-PR-C — proximity auto-bind. When the user drags a node
@@ -1682,50 +1679,50 @@ function Inner({
     // Distribute / Delete), then mode toggles (Snap).
     const commandGroups: CanvasCommandGroup[] = [
         {
-            heading: "Document",
+            heading: t("persistedCanvas.headingDocument"),
             commands: [
                 {
                     id: "save",
-                    label: "Save",
-                    description: "Persist the current process map",
+                    label: tCommon("save"),
+                    description: t("persistedCanvas.cmdSaveDesc"),
                     shortcut: "⌘S",
                     disabled: !activeId || saving || loading,
                     onSelect: () => void handleSave(),
                 },
                 {
                     id: "undo",
-                    label: "Undo",
-                    description: "Revert the last canvas edit",
+                    label: t("processDocBar.undo"),
+                    description: t("persistedCanvas.cmdUndoDesc"),
                     shortcut: "⌘Z",
                     disabled: !history.canUndo || saving || loading,
                     onSelect: handleUndo,
                 },
                 {
                     id: "redo",
-                    label: "Redo",
-                    description: "Re-apply the last undone edit",
+                    label: t("processDocBar.redo"),
+                    description: t("persistedCanvas.cmdRedoDesc"),
                     shortcut: "⌘⇧Z",
                     disabled: !history.canRedo || saving || loading,
                     onSelect: handleRedo,
                 },
                 {
                     id: "duplicate",
-                    label: "Duplicate process",
-                    description: "Clone the current graph into a new map",
+                    label: t("persistedCanvas.cmdDuplicate"),
+                    description: t("persistedCanvas.cmdDuplicateDesc"),
                     disabled: !activeId || duplicating || saving || loading,
                     onSelect: handleDuplicate,
                 },
                 {
                     id: "new",
-                    label: "New process",
-                    description: "Start an empty process map",
+                    label: t("persistedCanvas.cmdNew"),
+                    description: t("persistedCanvas.cmdNewDesc"),
                     disabled: creating,
                     onSelect: () => handleNew("DOCUMENT"),
                 },
                 {
                     id: "new-automation",
-                    label: "New automation workflow",
-                    description: "Start a visual rule editor (automation) canvas",
+                    label: t("persistedCanvas.cmdNewAutomation"),
+                    description: t("persistedCanvas.cmdNewAutomationDesc"),
                     disabled: creating,
                     onSelect: () => handleNew("AUTOMATION"),
                 },
@@ -1733,19 +1730,19 @@ function Inner({
         },
         {
             // Epic P4-PR-A — dagre auto-layout.
-            heading: "Layout",
+            heading: t("persistedCanvas.headingLayout"),
             commands: [
                 {
                     id: "arrange-lr",
-                    label: "Arrange left-to-right",
-                    description: "Auto-layout the canvas with a left-to-right flow",
+                    label: t("persistedCanvas.cmdArrangeLr"),
+                    description: t("persistedCanvas.cmdArrangeLrDesc"),
                     disabled: nodes.length === 0 || saving || loading,
                     onSelect: () => handleAutoLayout("LR"),
                 },
                 {
                     id: "arrange-tb",
-                    label: "Arrange top-to-bottom",
-                    description: "Auto-layout the canvas with a top-to-bottom flow",
+                    label: t("persistedCanvas.cmdArrangeTb"),
+                    description: t("persistedCanvas.cmdArrangeTbDesc"),
                     disabled: nodes.length === 0 || saving || loading,
                     onSelect: () => handleAutoLayout("TB"),
                 },
@@ -1756,17 +1753,15 @@ function Inner({
                 // user expects.
                 {
                     id: "arrange-selection-lr",
-                    label: "Auto-arrange selection (left-to-right)",
-                    description:
-                        "Auto-layout only the selected nodes — left-to-right",
+                    label: t("persistedCanvas.cmdArrangeSelLr"),
+                    description: t("persistedCanvas.cmdArrangeSelLrDesc"),
                     disabled: selectionCount < 2 || saving || loading,
                     onSelect: () => handleAutoLayoutSelection("LR"),
                 },
                 {
                     id: "arrange-selection-tb",
-                    label: "Auto-arrange selection (top-to-bottom)",
-                    description:
-                        "Auto-layout only the selected nodes — top-to-bottom",
+                    label: t("persistedCanvas.cmdArrangeSelTb"),
+                    description: t("persistedCanvas.cmdArrangeSelTbDesc"),
                     disabled: selectionCount < 2 || saving || loading,
                     onSelect: () => handleAutoLayoutSelection("TB"),
                 },
@@ -1776,29 +1771,27 @@ function Inner({
                 // dynamically imported by `computeForceLayout`).
                 {
                     id: "arrange-force",
-                    label: "Force-directed layout (organic)",
-                    description:
-                        "Auto-layout the canvas as an organic spring-simulated graph",
+                    label: t("persistedCanvas.cmdForce"),
+                    description: t("persistedCanvas.cmdForceDesc"),
                     disabled: nodes.length === 0 || saving || loading,
                     onSelect: () => void handleAutoLayoutForce(false),
                 },
                 {
                     id: "arrange-force-selection",
-                    label: "Force-directed layout (selection)",
-                    description:
-                        "Apply force-directed layout to only the selected nodes",
+                    label: t("persistedCanvas.cmdForceSel"),
+                    description: t("persistedCanvas.cmdForceSelDesc"),
                     disabled: selectionCount < 2 || saving || loading,
                     onSelect: () => void handleAutoLayoutForce(true),
                 },
             ],
         },
         {
-            heading: "Selection",
+            heading: t("persistedCanvas.headingSelection"),
             commands: [
                 {
                     id: "group",
-                    label: "Group selected",
-                    description: "Wrap the selected nodes in a group container",
+                    label: t("persistedCanvas.groupSelected"),
+                    description: t("persistedCanvas.groupDesc"),
                     disabled:
                         selectionCount < 2 ||
                         nodes
@@ -1813,8 +1806,8 @@ function Inner({
                 },
                 {
                     id: "ungroup",
-                    label: "Ungroup",
-                    description: "Dissolve the selected group + lift children",
+                    label: t("persistedCanvas.ungroup"),
+                    description: t("persistedCanvas.ungroupDesc"),
                     disabled:
                         !selectedNode ||
                         (selectedNode.data as { kind?: unknown })?.kind !==
@@ -1823,56 +1816,56 @@ function Inner({
                 },
                 {
                     id: "align-left",
-                    label: "Align left",
+                    label: t("persistedCanvas.alignLeft"),
                     disabled: selectionCount < 2,
                     onSelect: () => handleAlign("left"),
                 },
                 {
                     id: "align-center-x",
-                    label: "Align centre horizontally",
+                    label: t("persistedCanvas.alignCenterX"),
                     disabled: selectionCount < 2,
                     onSelect: () => handleAlign("center-x"),
                 },
                 {
                     id: "align-right",
-                    label: "Align right",
+                    label: t("persistedCanvas.alignRight"),
                     disabled: selectionCount < 2,
                     onSelect: () => handleAlign("right"),
                 },
                 {
                     id: "align-top",
-                    label: "Align top",
+                    label: t("persistedCanvas.alignTop"),
                     disabled: selectionCount < 2,
                     onSelect: () => handleAlign("top"),
                 },
                 {
                     id: "align-center-y",
-                    label: "Align centre vertically",
+                    label: t("persistedCanvas.alignCenterY"),
                     disabled: selectionCount < 2,
                     onSelect: () => handleAlign("center-y"),
                 },
                 {
                     id: "align-bottom",
-                    label: "Align bottom",
+                    label: t("persistedCanvas.alignBottom"),
                     disabled: selectionCount < 2,
                     onSelect: () => handleAlign("bottom"),
                 },
                 {
                     id: "distribute-h",
-                    label: "Distribute horizontally",
+                    label: t("persistedCanvas.distributeH"),
                     disabled: selectionCount < 3,
                     onSelect: () => handleDistribute("horizontal"),
                 },
                 {
                     id: "distribute-v",
-                    label: "Distribute vertically",
+                    label: t("persistedCanvas.distributeV"),
                     disabled: selectionCount < 3,
                     onSelect: () => handleDistribute("vertical"),
                 },
                 {
                     id: "delete",
-                    label: "Delete selected",
-                    description: "Remove every selected node + its edges",
+                    label: t("persistedCanvas.cmdDelete"),
+                    description: t("persistedCanvas.cmdDeleteDesc"),
                     shortcut: "Del",
                     disabled: selectionCount === 0,
                     onSelect: handleBulkDelete,
@@ -1880,14 +1873,14 @@ function Inner({
             ],
         },
         {
-            heading: "Modes",
+            heading: t("persistedCanvas.headingModes"),
             commands: [
                 {
                     id: "snap-toggle",
                     label: snapEnabled
-                        ? "Snap to grid: on"
-                        : "Snap to grid: off",
-                    description: "Toggle 16px-grid snapping while dragging",
+                        ? t("persistedCanvas.cmdSnapOn")
+                        : t("persistedCanvas.cmdSnapOff"),
+                    description: t("persistedCanvas.cmdSnapDesc"),
                     onSelect: () => setSnapEnabled((v) => !v),
                 },
             ],
@@ -2008,17 +2001,17 @@ function Inner({
                         data-single-group-toolbar="true"
                     >
                         <span className="mr-1 font-semibold uppercase tracking-wider text-content-subtle">
-                            Group selected
+                            {t("persistedCanvas.groupSelected")}
                         </span>
                         <button
                             type="button"
                             className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                             onClick={handleUngroup}
                             data-testid="ungroup-btn"
-                            aria-label="Ungroup"
-                            title="Ungroup"
+                            aria-label={t("persistedCanvas.ungroup")}
+                            title={t("persistedCanvas.ungroup")}
                         >
-                            Ungroup
+                            {t("persistedCanvas.ungroup")}
                         </button>
                     </div>
                 )}
@@ -2030,41 +2023,41 @@ function Inner({
                 >
                     <span
                         className="mr-1 font-semibold uppercase tracking-wider text-content-subtle"
-                        aria-label={`${selectionCount} nodes selected`}
+                        aria-label={t("persistedCanvas.nodesSelected", { count: selectionCount })}
                     >
-                        {selectionCount} selected
+                        {t("persistedCanvas.selectedCount", { count: selectionCount })}
                     </span>
                     <span className="mr-1 text-content-subtle">·</span>
-                    <span className="text-content-muted">Align</span>
+                    <span className="text-content-muted">{t("persistedCanvas.align")}</span>
                     <button
                         type="button"
                         className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                         onClick={() => handleAlign("left")}
                         data-testid="align-left-btn"
-                        aria-label="Align left"
-                        title="Align left"
+                        aria-label={t("persistedCanvas.alignLeft")}
+                        title={t("persistedCanvas.alignLeft")}
                     >
-                        L
+                        {t("persistedCanvas.letterL")}
                     </button>
                     <button
                         type="button"
                         className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                         onClick={() => handleAlign("center-x")}
                         data-testid="align-center-x-btn"
-                        aria-label="Align centre horizontally"
-                        title="Align centre horizontally"
+                        aria-label={t("persistedCanvas.alignCenterX")}
+                        title={t("persistedCanvas.alignCenterX")}
                     >
-                        C
+                        {t("persistedCanvas.letterC")}
                     </button>
                     <button
                         type="button"
                         className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                         onClick={() => handleAlign("right")}
                         data-testid="align-right-btn"
-                        aria-label="Align right"
-                        title="Align right"
+                        aria-label={t("persistedCanvas.alignRight")}
+                        title={t("persistedCanvas.alignRight")}
                     >
-                        R
+                        {t("persistedCanvas.letterR")}
                     </button>
                     <span className="mx-1 text-content-subtle">·</span>
                     <button
@@ -2072,56 +2065,56 @@ function Inner({
                         className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                         onClick={() => handleAlign("top")}
                         data-testid="align-top-btn"
-                        aria-label="Align top"
-                        title="Align top"
+                        aria-label={t("persistedCanvas.alignTop")}
+                        title={t("persistedCanvas.alignTop")}
                     >
-                        T
+                        {t("persistedCanvas.letterT")}
                     </button>
                     <button
                         type="button"
                         className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                         onClick={() => handleAlign("center-y")}
                         data-testid="align-center-y-btn"
-                        aria-label="Align centre vertically"
-                        title="Align centre vertically"
+                        aria-label={t("persistedCanvas.alignCenterY")}
+                        title={t("persistedCanvas.alignCenterY")}
                     >
-                        M
+                        {t("persistedCanvas.letterM")}
                     </button>
                     <button
                         type="button"
                         className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                         onClick={() => handleAlign("bottom")}
                         data-testid="align-bottom-btn"
-                        aria-label="Align bottom"
-                        title="Align bottom"
+                        aria-label={t("persistedCanvas.alignBottom")}
+                        title={t("persistedCanvas.alignBottom")}
                     >
-                        B
+                        {t("persistedCanvas.letterB")}
                     </button>
                     {selectionCount >= 3 && (
                         <>
                             <span className="mx-1 text-content-subtle">·</span>
                             <span className="text-content-muted">
-                                Distribute
+                                {t("persistedCanvas.distribute")}
                             </span>
                             <button
                                 type="button"
                                 className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                                 onClick={() => handleDistribute("horizontal")}
                                 data-testid="distribute-h-btn"
-                                aria-label="Distribute horizontally"
-                                title="Distribute horizontally"
+                                aria-label={t("persistedCanvas.distributeH")}
+                                title={t("persistedCanvas.distributeH")}
                             >
-                                H
+                                {t("persistedCanvas.letterH")}
                             </button>
                             <button
                                 type="button"
                                 className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis"
                                 onClick={() => handleDistribute("vertical")}
                                 data-testid="distribute-v-btn"
-                                aria-label="Distribute vertically"
-                                title="Distribute vertically"
+                                aria-label={t("persistedCanvas.distributeV")}
+                                title={t("persistedCanvas.distributeV")}
                             >
-                                V
+                                {t("persistedCanvas.letterV")}
                             </button>
                         </>
                     )}
@@ -2148,19 +2141,19 @@ function Inner({
                                 className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-muted hover:border-border-emphasis hover:text-content-emphasis disabled:opacity-50"
                                 onClick={handleGroupSelected}
                                 data-testid="group-selected-btn"
-                                aria-label="Group selected nodes"
+                                aria-label={t("persistedCanvas.groupNodesAria")}
                                 title={
                                     groupDisabled
-                                        ? "Can't nest groups or fold a node already inside a group"
-                                        : "Group selected"
+                                        ? t("persistedCanvas.groupDisabledTitle")
+                                        : t("persistedCanvas.groupSelected")
                                 }
                                 disabled={groupDisabled}
                             >
-                                Group
+                                {t("persistedCanvas.groupBtn")}
                             </button>
                         );
                         return groupDisabled ? (
-                            <Tooltip content="Can't nest groups or fold a node already inside a group">
+                            <Tooltip content={t("persistedCanvas.groupDisabledTitle")}>
                                 {groupBtn}
                             </Tooltip>
                         ) : (
@@ -2173,10 +2166,10 @@ function Inner({
                         className="rounded-[6px] border border-canvas-border bg-canvas-surface px-2 py-0.5 text-content-error hover:border-border-error hover:bg-bg-error"
                         onClick={handleBulkDelete}
                         data-testid="bulk-delete-btn"
-                        aria-label={`Delete ${selectionCount} selected nodes`}
-                        title="Delete selected (Del)"
+                        aria-label={t("persistedCanvas.deleteSelectedNodesAria", { count: selectionCount })}
+                        title={t("persistedCanvas.deleteSelectedTitle")}
                     >
-                        Delete
+                        {tCommon("delete")}
                     </button>
                 </div>
             )}
@@ -2212,7 +2205,7 @@ function Inner({
                             data-canvas-empty-state="true"
                         >
                             <p className="text-[11px] text-content-subtle">
-                                Drag a process step from the palette to begin
+                                {t("persistedCanvas.dragToBegin")}
                             </p>
                         </div>
                     )}
@@ -2339,7 +2332,7 @@ function Inner({
                         onlyRenderVisibleElements
                         fitView
                         proOptions={{ hideAttribution: true }}
-                        aria-label="Process canvas"
+                        aria-label={t("processCanvas.ariaLabel")}
                     >
                         {/* R31 — two-layer background discipline.
                             Coarse 128px dot field at low opacity
@@ -2394,7 +2387,7 @@ function Inner({
                             showInteractive={false}
                             className="!bg-canvas-frame/90 !border !border-canvas-border !rounded-[8px] !shadow-canvas-node backdrop-blur"
                             data-testid="canvas-zoom-controls"
-                            aria-label="Zoom controls"
+                            aria-label={t("persistedCanvas.zoomControls")}
                         />
                     </ReactFlow>
                 </div>
@@ -2454,6 +2447,7 @@ function CanvasEmpty({
     onNew: () => void;
     creating: boolean;
 }): ReactNode {
+    const t = useTranslations("ui");
     return (
         <div
             className="absolute inset-0 z-10 flex items-center justify-center"
@@ -2468,11 +2462,10 @@ function CanvasEmpty({
                     (`text-xs text-content-muted`) so the weight
                     hierarchy is explicit. */}
                 <p className="text-base font-medium text-content-emphasis">
-                    Map a business or IT process.
+                    {t("persistedCanvas.emptyTitle")}
                 </p>
                 <p className="text-xs text-content-muted">
-                    Capture the steps, mark the controls between them, and
-                    annotate the risks and assets each step touches.
+                    {t("persistedCanvas.emptyBody")}
                 </p>
                 <Button
                     size="sm"
@@ -2481,7 +2474,7 @@ function CanvasEmpty({
                     disabled={creating}
                     data-testid="empty-state-new-btn"
                 >
-                    {creating ? "Creating…" : "Create your first process"}
+                    {creating ? t("processDocBar.creating") : t("persistedCanvas.createFirst")}
                 </Button>
             </div>
         </div>

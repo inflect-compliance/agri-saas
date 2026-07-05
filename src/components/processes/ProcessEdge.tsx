@@ -41,6 +41,7 @@ import {
 } from "@xyflow/react";
 import { ShieldCheck, ShieldPlus, Spline } from "lucide-react";
 import { memo, useCallback, type CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { useCanvasEmphasis } from "@/lib/processes/canvas-emphasis-context";
 
 /** The three connection variants. Minimal, meaningful, curated. */
@@ -174,6 +175,7 @@ function ProcessEdgeImpl(props: EdgeProps) {
         data,
         label,
     } = props;
+    const t = useTranslations("ui");
 
     const [edgePath, labelX, labelY] = getBezierPath({
         sourceX,
@@ -201,13 +203,13 @@ function ProcessEdgeImpl(props: EdgeProps) {
                           ...edge,
                           data: {
                               ...(edge.data as ProcessEdgeData | undefined),
-                              control: { label: "Control" },
+                              control: { label: t("processEdge.controlDefault") },
                           },
                       }
                     : edge,
             ),
         );
-    }, [id, setEdges]);
+    }, [id, setEdges, t]);
 
     // R27-PR-B — cycle the connection variant
     // flow → conditional → reference → flow. One affordance, no
@@ -261,7 +263,10 @@ function ProcessEdgeImpl(props: EdgeProps) {
         ? { ...baseStyle, opacity: 0.3 }
         : baseStyle;
     // The automation kind's chip shows when there's no explicit label/control.
-    const autoLabel = autoStyle?.label && autoStyle.label.length > 0 ? autoStyle.label : null;
+    const autoLabel =
+        autoStyle?.label && autoStyle.label.length > 0 && autoKind
+            ? t(`processEdge.autoLabel.${autoKind}`)
+            : null;
 
     return (
         <>
@@ -356,7 +361,9 @@ function ProcessEdgeImpl(props: EdgeProps) {
                         <button
                             type="button"
                             onClick={cycleVariant}
-                            title={`${EDGE_VARIANT_META[variant].description} — click to change`}
+                            title={t("processEdge.variantChangeTitle", {
+                                description: t(`processEdge.variantDescription.${variant}`),
+                            })}
                             className="inline-flex items-center gap-1 rounded-[8px] border border-canvas-border bg-canvas-frame px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-content-default transition-colors hover:border-border-emphasis hover:text-content-emphasis"
                             data-edge-variant-affordance="true"
                         >
@@ -364,7 +371,7 @@ function ProcessEdgeImpl(props: EdgeProps) {
                                 className="h-3 w-3 shrink-0 text-[color:var(--brand-default)]"
                                 aria-hidden="true"
                             />
-                            <span>{EDGE_VARIANT_META[variant].label}</span>
+                            <span>{t(`processEdge.variantLabel.${variant}`)}</span>
                         </button>
                         {!control && selected && (
                             <button
@@ -377,7 +384,7 @@ function ProcessEdgeImpl(props: EdgeProps) {
                                     className="h-3 w-3 shrink-0 text-[color:var(--brand-default)]"
                                     aria-hidden="true"
                                 />
-                                <span>Add control</span>
+                                <span>{t("processEdge.addControl")}</span>
                             </button>
                         )}
                     </div>

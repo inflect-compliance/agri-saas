@@ -20,6 +20,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AsidePanel } from "@/components/ui/aside-panel";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/icons/loading-spinner";
@@ -58,6 +59,7 @@ export function CanvasHistorySidebar({
      */
     onRestored?: () => void;
 }) {
+    const t = useTranslations("ui");
     const toast = useToast();
     const [restoringVersion, setRestoringVersion] = useState<number | null>(
         null,
@@ -68,7 +70,7 @@ export function CanvasHistorySidebar({
         if (
             typeof window !== "undefined" &&
             !window.confirm(
-                `Restore to v${targetVersion}? The current state will be preserved as part of the history.`,
+                t("canvasHistory.restoreConfirm", { version: targetVersion }),
             )
         ) {
             return;
@@ -86,11 +88,11 @@ export function CanvasHistorySidebar({
             if (!res.ok) {
                 throw new Error(`Restore failed (${res.status})`);
             }
-            toast.success(`Restored to v${targetVersion}.`);
+            toast.success(t("canvasHistory.restored", { version: targetVersion }));
             onRestored?.();
         } catch (err) {
             toast.error(
-                err instanceof Error ? err.message : "Restore failed",
+                err instanceof Error ? err.message : t("canvasHistory.restoreFailed"),
             );
         } finally {
             setRestoringVersion(null);
@@ -126,7 +128,7 @@ export function CanvasHistorySidebar({
                     setError(
                         err instanceof Error
                             ? err.message
-                            : "Could not load history",
+                            : t("canvasHistory.couldNotLoad"),
                     );
                 }
             } finally {
@@ -143,7 +145,7 @@ export function CanvasHistorySidebar({
 
     return (
         <AsidePanel
-            title="Version history"
+            title={t("canvasHistory.title")}
             surfaceKey="processes-history"
         >
             <div
@@ -152,7 +154,7 @@ export function CanvasHistorySidebar({
             >
                 {loading && (
                     <div className="flex items-center gap-tight text-sm text-content-muted">
-                        <LoadingSpinner /> Loading…
+                        <LoadingSpinner /> {t("canvasHistory.loading")}
                     </div>
                 )}
                 {!loading && error && (
@@ -168,8 +170,7 @@ export function CanvasHistorySidebar({
                         data-testid="canvas-history-empty"
                         className="text-sm text-content-subtle"
                     >
-                        No versions yet. Save the canvas to capture the
-                        first snapshot.
+                        {t("canvasHistory.emptyVersions")}
                     </p>
                 )}
                 {!loading && !error && rows !== null && rows.length > 0 && (
@@ -192,7 +193,7 @@ export function CanvasHistorySidebar({
                                                 className="text-[10px] uppercase tracking-wide text-brand-default"
                                                 data-testid="canvas-history-current"
                                             >
-                                                Current
+                                                {t("canvasHistory.current")}
                                             </span>
                                         )}
                                     </div>
@@ -217,7 +218,7 @@ export function CanvasHistorySidebar({
                                                 disabled={!onDiffRequest}
                                                 data-testid="canvas-history-diff"
                                             >
-                                                Diff
+                                                {t("canvasHistory.diff")}
                                             </Button>
                                             <Button
                                                 variant="secondary"
@@ -232,8 +233,8 @@ export function CanvasHistorySidebar({
                                                 data-testid="canvas-history-restore"
                                             >
                                                 {restoringVersion === r.version
-                                                    ? "Restoring…"
-                                                    : "Restore"}
+                                                    ? t("canvasHistory.restoring")
+                                                    : t("canvasHistory.restore")}
                                             </Button>
                                         </div>
                                     )}

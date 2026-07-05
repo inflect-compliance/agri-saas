@@ -33,6 +33,7 @@ import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { cn } from "@/lib/cn";
 import { Command } from "cmdk";
 import { useCallback, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Magnifier } from "@/components/ui/icons/nucleo/magnifier";
 
 import { useKeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcut";
@@ -64,6 +65,7 @@ export interface CanvasCommandPaletteProps {
 }
 
 export function CanvasCommandPalette({ groups }: CanvasCommandPaletteProps) {
+    const t = useTranslations("ui");
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState("");
 
@@ -78,7 +80,7 @@ export function CanvasCommandPalette({ groups }: CanvasCommandPaletteProps) {
     // to `allowInInputs: false`, so typing `/` in the inspector
     // label field won't accidentally fire.
     useKeyboardShortcut("/", open, {
-        description: "Open canvas command palette",
+        description: t("canvasCommandPalette.openShortcut"),
         // The canvas can be mounted under a modal (e.g. a future
         // preview overlay); keep this scoped to global mode so
         // it doesn't fight modal context.
@@ -96,7 +98,7 @@ export function CanvasCommandPalette({ groups }: CanvasCommandPaletteProps) {
                     )}
                 />
                 <Dialog.Content
-                    aria-label="Canvas command palette"
+                    aria-label={t("canvasCommandPalette.ariaLabel")}
                     className={cn(
                         "fixed left-1/2 top-[20%] z-50 w-[92vw] max-w-[560px]",
                         "-translate-x-1/2",
@@ -108,15 +110,13 @@ export function CanvasCommandPalette({ groups }: CanvasCommandPaletteProps) {
                     data-canvas-command-palette="true"
                 >
                     <VisuallyHidden.Root>
-                        <Dialog.Title>Canvas commands</Dialog.Title>
+                        <Dialog.Title>{t("canvasCommandPalette.title")}</Dialog.Title>
                         <Dialog.Description>
-                            Every canvas action — undo, redo, save, alignment,
-                            grouping, snap toggle. Use arrow keys to navigate
-                            and Enter to run.
+                            {t("canvasCommandPalette.description")}
                         </Dialog.Description>
                     </VisuallyHidden.Root>
 
-                    <Command loop label="Canvas commands" className="flex flex-col">
+                    <Command loop label={t("canvasCommandPalette.title")} className="flex flex-col">
                         <div
                             className={cn(
                                 "flex items-center gap-tight border-b border-border-subtle",
@@ -131,7 +131,7 @@ export function CanvasCommandPalette({ groups }: CanvasCommandPaletteProps) {
                                 autoFocus
                                 value={query}
                                 onValueChange={setQuery}
-                                placeholder="Search canvas actions…"
+                                placeholder={t("canvasCommandPalette.searchPlaceholder")}
                                 className={cn(
                                     "flex-1 bg-transparent text-sm",
                                     "text-content-emphasis placeholder:text-content-subtle",
@@ -145,7 +145,7 @@ export function CanvasCommandPalette({ groups }: CanvasCommandPaletteProps) {
                             <Command.Empty
                                 className="px-3 py-6 text-center text-xs text-content-subtle"
                             >
-                                No canvas action matches that.
+                                {t("canvasCommandPalette.empty")}
                             </Command.Empty>
                             {groups.map((group, gi) => (
                                 <Command.Group

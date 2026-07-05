@@ -98,7 +98,7 @@ describe("R32-PR12 — small details bundle B", () => {
             // "Untitled". R32 widens to "Untitled process" so
             // the empty input still communicates the document
             // context, not just the document state.
-            expect(docBar).toMatch(/placeholder="Untitled process"/);
+            expect(docBar).toMatch(/placeholder=\{t\("processDocBar\.untitledProcess"\)\}/);
         });
     });
 
@@ -123,13 +123,13 @@ describe("R32-PR12 — small details bundle B", () => {
             // the user reads WHY clicking won't fire.
             expect(canvas).toMatch(/<Tooltip\b/);
             expect(canvas).toMatch(
-                /Can't nest groups or fold a node already inside a group/,
+                /persistedCanvas\.groupDisabledTitle/,
             );
             // Both the button's `title=` attribute AND the
             // Tooltip carry the same explanation so screen-readers
             // + sighted users both get the rationale.
             expect(canvas).toMatch(
-                /title=\{[\s\S]{0,200}Can't nest groups[\s\S]{0,200}Group selected/,
+                /title=\{[\s\S]{0,200}persistedCanvas\.groupDisabledTitle[\s\S]{0,200}persistedCanvas\.groupSelected/,
             );
         });
 

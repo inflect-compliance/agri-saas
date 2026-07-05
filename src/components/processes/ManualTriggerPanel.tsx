@@ -8,6 +8,7 @@
  * real (manual re-trigger). EDITOR+ only; the API enforces the gate.
  */
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
@@ -17,6 +18,7 @@ import { CACHE_KEYS } from '@/lib/swr-keys';
 import type { AutomationRuleRow } from '@/app/t/[tenantSlug]/(app)/processes/RulesTab';
 
 export function ManualTriggerPanel() {
+    const t = useTranslations('ui');
     const apiUrl = useTenantApiUrl();
     const { data: rules } = useTenantSWR<AutomationRuleRow[]>(CACHE_KEYS.automation.rules.list());
     const [ruleId, setRuleId] = useState<string>('');
@@ -42,7 +44,7 @@ export function ManualTriggerPanel() {
                 body: JSON.stringify({}),
             });
             const json = await res.json();
-            setResult(json.matches ? 'Dry run: filter MATCHES — would fire.' : 'Dry run: filter does NOT match — would skip.');
+            setResult(json.matches ? t('manualTrigger.dryRunMatches') : t('manualTrigger.dryRunNoMatch'));
         } finally {
             setBusy(false);
         }
@@ -56,7 +58,7 @@ export function ManualTriggerPanel() {
             const res = await fetch(apiUrl(`/automation/rules/${ruleId}/re-trigger`), {
                 method: 'POST',
             });
-            setResult(res.ok ? 'Fired — a manual execution was enqueued.' : 'Fire failed.');
+            setResult(res.ok ? t('manualTrigger.fired') : t('manualTrigger.fireFailed'));
         } finally {
             setBusy(false);
         }
@@ -66,21 +68,21 @@ export function ManualTriggerPanel() {
         <Card>
             <div className="space-y-default">
                 <p className="text-[11px] uppercase tracking-wide text-content-subtle">
-                    Test a rule
+                    {t('manualTrigger.testRule')}
                 </p>
                 <Combobox
                     options={options}
                     selected={ruleId ? options.find((o) => o.value === ruleId) ?? null : null}
                     setSelected={(o) => setRuleId(o?.value ?? '')}
-                    placeholder="Select an enabled rule…"
+                    placeholder={t('manualTrigger.selectRule')}
                     matchTriggerWidth
                 />
                 <div className="flex gap-compact">
                     <Button variant="secondary" disabled={!ruleId || busy} loading={busy} onClick={dryRun}>
-                        Dry run
+                        {t('manualTrigger.dryRun')}
                     </Button>
                     <Button variant="primary" disabled={!ruleId || busy} onClick={fire}>
-                        Fire
+                        {t('manualTrigger.fire')}
                     </Button>
                 </div>
                 {result && <p className="text-sm text-content-muted">{result}</p>}

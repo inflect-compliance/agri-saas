@@ -12,6 +12,7 @@
  * invariant); it never writes logic back onto the node.
  */
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -35,13 +36,6 @@ interface Rule {
     slaWindowMinutes: number | null;
 }
 
-const ACTION_OPTIONS: ComboboxOption[] = [
-    { value: 'NOTIFY_USER', label: 'Notify user' },
-    { value: 'CREATE_TASK', label: 'Create task' },
-    { value: 'UPDATE_STATUS', label: 'Update status' },
-    { value: 'WEBHOOK', label: 'Webhook' },
-];
-
 const TRIGGER_OPTIONS: ComboboxOption[] = eventOptionsByDomain().flatMap((g) =>
     g.events.map((ev) => ({ value: ev.name, label: ev.label })),
 );
@@ -53,7 +47,17 @@ export function AutomationInspectorPanel({
     kind: AutomationKind;
     ruleId: string | null;
 }) {
+    const t = useTranslations('ui');
     const apiUrl = useTenantApiUrl();
+    const ACTION_OPTIONS: ComboboxOption[] = useMemo(
+        () => [
+            { value: 'NOTIFY_USER', label: t('automationInspector.actionNotifyUser') },
+            { value: 'CREATE_TASK', label: t('automationInspector.actionCreateTask') },
+            { value: 'UPDATE_STATUS', label: t('automationInspector.actionUpdateStatus') },
+            { value: 'WEBHOOK', label: t('automationInspector.actionWebhook') },
+        ],
+        [t],
+    );
     const { data: rule, mutate } = useTenantSWR<Rule>(
         ruleId ? CACHE_KEYS.automation.rules.detail(ruleId) : null,
     );
@@ -84,13 +88,13 @@ export function AutomationInspectorPanel({
     );
     const actionSelected = useMemo(
         () => ACTION_OPTIONS.find((o) => o.value === rule?.actionType) ?? null,
-        [rule?.actionType],
+        [ACTION_OPTIONS, rule?.actionType],
     );
 
     if (!ruleId) {
         return (
             <p className="text-sm text-content-muted" data-testid="automation-inspector-unsynced">
-                Save the canvas to link this node to a rule, then configure it here.
+                {t('automationInspector.unsynced')}
             </p>
         );
     }
@@ -99,19 +103,19 @@ export function AutomationInspectorPanel({
         <div className="space-y-default" data-testid="automation-inspector">
             <div className="flex items-center justify-between">
                 <span className="text-[11px] uppercase tracking-wide text-content-subtle">
-                    {kind} rule
+                    {t('automationInspector.kindRule', { kind })}
                 </span>
                 <label className="flex items-center gap-tight text-xs text-content-muted">
-                    {rule?.status === 'ENABLED' ? 'Enabled' : 'Disabled'}
+                    {rule?.status === 'ENABLED' ? t('automationInspector.enabled') : t('automationInspector.disabled')}
                     <Switch
                         checked={rule?.status === 'ENABLED'}
                         onCheckedChange={(c) => patchRule({ status: c ? 'ENABLED' : 'DISABLED' })}
-                        aria-label="Toggle rule enabled"
+                        aria-label={t('automationInspector.toggleEnabled')}
                     />
                 </label>
             </div>
 
-            <FormField label="Rule name">
+            <FormField label={t('automationInspector.ruleName')}>
                 <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -120,12 +124,12 @@ export function AutomationInspectorPanel({
             </FormField>
 
             {kind === 'trigger' && (
-                <FormField label="Trigger event">
+                <FormField label={t('automationInspector.triggerEvent')}>
                     <Combobox
                         options={TRIGGER_OPTIONS}
                         selected={triggerSelected}
                         setSelected={(o) => o && patchRule({ triggerEvent: o.value })}
-                        placeholder="Select event…"
+                        placeholder={t('automationInspector.selectEvent')}
                         forceDropdown
                         matchTriggerWidth
                     />
@@ -133,12 +137,12 @@ export function AutomationInspectorPanel({
             )}
 
             {kind === 'action' && (
-                <FormField label="Action type">
+                <FormField label={t('automationInspector.actionType')}>
                     <Combobox
                         options={ACTION_OPTIONS}
                         selected={actionSelected}
                         setSelected={(o) => o && patchRule({ actionType: o.value })}
-                        placeholder="Select action…"
+                        placeholder={t('automationInspector.selectAction')}
                         forceDropdown
                         matchTriggerWidth
                     />
@@ -147,13 +151,16 @@ export function AutomationInspectorPanel({
 
             {kind === 'condition' && (
                 <p className="text-xs text-content-subtle">
-                    Condition filter: {rule?.triggerFilterJson ? 'configured' : 'matches all'}.
-                    Edit the full filter in the rule builder.
+                    {t('automationInspector.conditionFilter', {
+                        state: rule?.triggerFilterJson
+                            ? t('automationInspector.configured')
+                            : t('automationInspector.matchesAll'),
+                    })}
                 </p>
             )}
 
             {kind === 'slaGate' && (
-                <FormField label="SLA window (minutes)">
+                <FormField label={t('automationInspector.slaWindow')}>
                     <Input
                         type="number"
                         min={1}
@@ -162,7 +169,7 @@ export function AutomationInspectorPanel({
                         onBlur={() =>
                             patchRule({ slaWindowMinutes: sla ? Number(sla) : null })
                         }
-                        placeholder="e.g. 1440"
+                        placeholder={t('automationInspector.slaPlaceholder')}
                     />
                 </FormField>
             )}

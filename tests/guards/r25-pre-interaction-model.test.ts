@@ -56,7 +56,7 @@ describe("R25-PR-E — interaction model", () => {
             // a default label. No naming dialog, no inline editing
             // (those are explicitly out of R25 scope).
             expect(SRC).toMatch(
-                /control:\s*\{\s*label:\s*["']Control["']\s*\}/,
+                /control:\s*\{\s*label:\s*t\("processEdge\.controlDefault"\)\s*\}/,
             );
         });
 
