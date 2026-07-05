@@ -108,11 +108,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <body suppressHydrationWarning nonce={nonce}>
                 <ServiceWorkerRegistrar />
                 <WebVitalsReporter />
-                <Providers>
-                    <NextIntlClientProvider messages={messages} locale={locale}>
+                <NextIntlClientProvider messages={messages} locale={locale}>
+                    <Providers>
                         {children}
-                    </NextIntlClientProvider>
-                </Providers>
+                    </Providers>
+                </NextIntlClientProvider>
             </body>
         </html>
     );
