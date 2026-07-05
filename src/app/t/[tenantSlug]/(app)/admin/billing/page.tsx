@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { formatDate } from '@/lib/format-date';
 import { notFound } from 'next/navigation';
 import { auth } from '@/auth';
@@ -25,6 +26,7 @@ export default async function BillingPage({
     params: Promise<{ tenantSlug: string }>;
 }) {
     const { tenantSlug } = await params;
+    const t = await getTranslations('admin.billing');
 
     const session = await auth();
     if (!session?.user?.id) notFound();
@@ -80,15 +82,18 @@ export default async function BillingPage({
             <div>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                        { label: 'Admin', href: `/t/${tenantSlug}/admin` },
-                        { label: 'Billing' },
+                        { label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                        { label: t('breadcrumbAdmin'), href: `/t/${tenantSlug}/admin` },
+                        { label: t('breadcrumbBilling') },
                     ]}
                     className="mb-1"
                 />
-                <Heading level={1}>Billing</Heading>
+                <Heading level={1}>{t('heading')}</Heading>
                 <p className="text-sm text-content-muted mt-1">
-                    Manage your workspace plan and billing for <span className="text-content-emphasis font-medium">{tenantCtx.tenant.name}</span>.
+                    {t.rich('description', {
+                        name: tenantCtx.tenant.name,
+                        b: (chunks) => <span className="text-content-emphasis font-medium">{chunks}</span>,
+                    })}
                 </p>
             </div>
 
@@ -99,11 +104,11 @@ export default async function BillingPage({
                         <div>
                             <p className={`text-sm font-semibold ${trialDaysRemaining <= 3 ? 'text-content-error' : 'text-content-warning'}`}>
                                 {trialDaysRemaining === 0
-                                    ? 'Your trial expires today!'
-                                    : `${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left in your trial`}
+                                    ? t('trialExpiresToday')
+                                    : t('trialDaysLeft', { count: trialDaysRemaining })}
                             </p>
                             <p className="text-xs text-content-muted mt-0.5">
-                                Trial ends on {formatDate(trialEnd)}. Upgrade to keep access to premium features.
+                                {t('trialEndsOn', { date: formatDate(trialEnd) })}
                             </p>
                         </div>
                         {billingMode === 'SAAS' && (
@@ -115,10 +120,10 @@ export default async function BillingPage({
 
             {/* Current Plan Card */}
             <section className={cardVariants()}>
-                <Heading level={2} className="mb-4">Current Plan</Heading>
+                <Heading level={2} className="mb-4">{t('currentPlan')}</Heading>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-default">
                     <div>
-                        <p className="text-xs text-content-subtle uppercase tracking-wider mb-1">Plan</p>
+                        <p className="text-xs text-content-subtle uppercase tracking-wider mb-1">{t('plan')}</p>
                         <StatusBadge variant={plan === 'ENTERPRISE' ? 'warning' :
                             plan === 'PRO' ? 'info' :
                             plan === 'TRIAL' ? 'neutral' :
@@ -127,7 +132,7 @@ export default async function BillingPage({
                         </StatusBadge>
                     </div>
                     <div>
-                        <p className="text-xs text-content-subtle uppercase tracking-wider mb-1">Status</p>
+                        <p className="text-xs text-content-subtle uppercase tracking-wider mb-1">{t('status')}</p>
                         <StatusBadge variant={status === 'ACTIVE' ? 'info' :
                             status === 'TRIALING' ? 'warning' :
                             status === 'PAST_DUE' ? 'error' :
@@ -137,20 +142,20 @@ export default async function BillingPage({
                         </StatusBadge>
                     </div>
                     <div>
-                        <p className="text-xs text-content-subtle uppercase tracking-wider mb-1">Renewal</p>
+                        <p className="text-xs text-content-subtle uppercase tracking-wider mb-1">{t('renewal')}</p>
                         <p className="text-sm text-content-emphasis">
                             {periodEnd ? formatDate(periodEnd) : '—'}
                         </p>
                     </div>
                     <div>
-                        <p className="text-xs text-content-subtle uppercase tracking-wider mb-1">Trial Ends</p>
+                        <p className="text-xs text-content-subtle uppercase tracking-wider mb-1">{t('trialEnds')}</p>
                         <p className="text-sm text-content-emphasis">
                             {trialEnd ? (
                                 <>
                                     {formatDate(trialEnd)}
                                     {trialDaysRemaining !== null && (
                                         <span className={`ml-1 text-xs ${trialDaysRemaining <= 3 ? 'text-content-error' : 'text-content-warning'}`}>
-                                            ({trialDaysRemaining}d left)
+                                            {t('daysLeftShort', { count: trialDaysRemaining })}
                                         </span>
                                     )}
                                 </>
@@ -164,9 +169,9 @@ export default async function BillingPage({
                     <InlineNotice
                         variant="error"
                         className="mt-4"
-                        title="Payment issue detected"
+                        title={t('paymentIssue')}
                     >
-                        Please update your payment method to avoid service interruption.
+                        {t('paymentIssueBody')}
                     </InlineNotice>
                 )}
             </section>
@@ -181,13 +186,10 @@ export default async function BillingPage({
                     id="billing-self-hosted-banner"
                 >
                     <p className="text-sm font-semibold text-content-warning">
-                        Self-hosted deployment
+                        {t('selfHosted')}
                     </p>
                     <p className="text-xs text-content-muted mt-1">
-                        This instance runs without a Stripe integration —
-                        plan limits resolve to ENTERPRISE for every tenant
-                        and the in-app upgrade / portal buttons are disabled.
-                        Subscription changes are managed by your operator.
+                        {t('selfHostedBody')}
                     </p>
                 </div>
             )}
@@ -195,31 +197,31 @@ export default async function BillingPage({
             {/* Upgrade Options */}
             {billingMode === 'SAAS' && (plan === 'FREE' || plan === 'TRIAL') && (
                 <section>
-                    <Heading level={2} className="mb-4">Upgrade</Heading>
+                    <Heading level={2} className="mb-4">{t('upgrade')}</Heading>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
                         <div className={cn(cardVariants(), 'border border-[var(--brand-default)]/30 hover:border-[var(--brand-default)]/60 transition')}>
                             <div className="flex items-center justify-between mb-3">
-                                <Heading level={3}>Pro</Heading>
-                                <StatusBadge variant="info">Recommended</StatusBadge>
+                                <Heading level={3}>{t('pro')}</Heading>
+                                <StatusBadge variant="info">{t('recommended')}</StatusBadge>
                             </div>
                             <ul className="text-sm text-content-muted space-y-1 mb-4">
-                                <li>Unlimited controls & policies</li>
-                                <li>Advanced reporting</li>
-                                <li>Audit readiness features</li>
-                                <li>Priority support</li>
+                                <li>{t('proFeature1')}</li>
+                                <li>{t('proFeature2')}</li>
+                                <li>{t('proFeature3')}</li>
+                                <li>{t('proFeature4')}</li>
                             </ul>
                             <BillingActions plan="PRO" tenantSlug={tenantSlug} />
                         </div>
                         <div className={cn(cardVariants(), 'border border-purple-500/30 hover:border-purple-500/60 transition')}>
                             <div className="flex items-center justify-between mb-3">
-                                <Heading level={3}>Enterprise</Heading>
-                                <StatusBadge variant="warning">Premium</StatusBadge>
+                                <Heading level={3}>{t('enterprise')}</Heading>
+                                <StatusBadge variant="warning">{t('premium')}</StatusBadge>
                             </div>
                             <ul className="text-sm text-content-muted space-y-1 mb-4">
-                                <li>Everything in Pro</li>
-                                <li>SSO & advanced security</li>
-                                <li>Custom integrations</li>
-                                <li>Dedicated account manager</li>
+                                <li>{t('entFeature1')}</li>
+                                <li>{t('entFeature2')}</li>
+                                <li>{t('entFeature3')}</li>
+                                <li>{t('entFeature4')}</li>
                             </ul>
                             <BillingActions plan="ENTERPRISE" tenantSlug={tenantSlug} />
                         </div>
@@ -230,10 +232,10 @@ export default async function BillingPage({
             {/* Manage Subscription */}
             {billingMode === 'SAAS' && hasSubscription && (
                 <section>
-                    <Heading level={2} className="mb-4">Manage Subscription</Heading>
+                    <Heading level={2} className="mb-4">{t('manageSubscription')}</Heading>
                     <div className={cardVariants()}>
                         <p className="text-sm text-content-muted mb-4">
-                            Update payment method, view invoices, or change your plan via the Stripe Customer Portal.
+                            {t('manageSubscriptionBody')}
                         </p>
                         <BillingActions portal tenantSlug={tenantSlug} />
                     </div>
@@ -242,7 +244,7 @@ export default async function BillingPage({
 
             {/* Billing Event History */}
             <section>
-                <Heading level={2} className="mb-4">Recent Activity</Heading>
+                <Heading level={2} className="mb-4">{t('recentActivity')}</Heading>
                 <BillingEventLog
                     events={recentEvents.map(e => ({
                         id: e.id,

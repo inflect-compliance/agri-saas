@@ -6,6 +6,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, cardVariants } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { Shield, ExternalLink, Trash2, Save, Eye, EyeOff } from 'lucide-react';
@@ -38,19 +39,21 @@ type Tab = 'OIDC' | 'SAML';
 // Was previously declared inside `SsoAdminPage` and closed over
 // `existingProvider`; now takes it as a prop.
 function ProviderStatusBadge({ existingProvider }: { existingProvider: SsoProvider | null | undefined }) {
+    const t = useTranslations('admin.sso');
     if (!existingProvider) {
-        return <StatusBadge variant="neutral">Not Configured</StatusBadge>;
+        return <StatusBadge variant="neutral">{t('notConfigured')}</StatusBadge>;
     }
     if (existingProvider.isEnforced) {
-        return <StatusBadge variant="warning">Enforced</StatusBadge>;
+        return <StatusBadge variant="warning">{t('enforced')}</StatusBadge>;
     }
     if (existingProvider.isEnabled) {
-        return <StatusBadge variant="info">Enabled</StatusBadge>;
+        return <StatusBadge variant="info">{t('enabled')}</StatusBadge>;
     }
-    return <StatusBadge variant="error">Disabled</StatusBadge>;
+    return <StatusBadge variant="error">{t('disabled')}</StatusBadge>;
 }
 
 export default function SsoAdminPage() {
+    const t = useTranslations('admin.sso');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const [providers, setProviders] = useState<SsoProvider[]>([]);
@@ -180,7 +183,7 @@ export default function SsoAdminPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     id: existingProvider?.id,
-                    name: formName || `${tab} Provider`,
+                    name: formName || t('providerNameDefault', { tab }),
                     type: tab,
                     isEnabled: formEnabled,
                     isEnforced: formEnforced,
@@ -190,12 +193,12 @@ export default function SsoAdminPage() {
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Unknown error' }));
-                setError(err.error || err.message || 'Save failed');
+                const err = await res.json().catch(() => ({ error: t('unknownError') }));
+                setError(err.error || err.message || t('saveFailed'));
                 return;
             }
 
-            setSuccess('Configuration saved successfully');
+            setSuccess(t('configSaved'));
             await fetchProviders();
         } catch (err) {
             setError((err as Error).message);
@@ -222,7 +225,7 @@ export default function SsoAdminPage() {
             if (res.ok) {
                 resetForm();
                 await fetchProviders();
-                setSuccess('Configuration deleted');
+                setSuccess(t('configDeleted'));
             }
         } catch (err) {
             setError((err as Error).message);
@@ -243,13 +246,13 @@ export default function SsoAdminPage() {
             <div className="space-y-section animate-fadeIn">
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'SSO & Identity' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbSso') },
                     ]}
                     className="mb-1"
                 />
-                <Heading level={2}>Loading SSO &amp; Identity…</Heading>
+                <Heading level={2}>{t('loading')}</Heading>
                 <Card className="space-y-default">
                     <div className="h-4 bg-bg-elevated/60 rounded w-1/3 animate-pulse" />
                     <div className="h-4 bg-bg-elevated/60 rounded w-2/3 animate-pulse" />
@@ -265,18 +268,18 @@ export default function SsoAdminPage() {
             <div>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'SSO & Identity' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbSso') },
                     ]}
                     className="mb-1"
                 />
                 <Heading level={1} className="flex items-center gap-tight">
                     <Shield className="w-6 h-6 text-[var(--brand-default)]" />
-                    SSO &amp; Identity
+                    {t('heading')}
                 </Heading>
                 <p className="text-sm text-content-muted mt-1">
-                    Configure enterprise single sign-on for your workspace.
+                    {t('description')}
                 </p>
             </div>
 
@@ -285,10 +288,10 @@ export default function SsoAdminPage() {
                 for any future E2E selector use. */}
             <div className="flex items-center gap-tight">
                 <ToggleGroup
-                    ariaLabel="SSO protocol"
+                    ariaLabel={t('protocolLabel')}
                     options={[
                         { value: 'OIDC', label: 'OIDC', id: 'sso-tab-oidc' },
-                        { value: 'SAML', label: 'SAML 2.0', id: 'sso-tab-saml' },
+                        { value: 'SAML', label: t('saml2'), id: 'sso-tab-saml' },
                     ]}
                     selected={tab}
                     selectAction={(v) => setTab(v as 'OIDC' | 'SAML')}
@@ -308,19 +311,19 @@ export default function SsoAdminPage() {
 
             {/* Config form */}
             <div className={cardVariants()}>
-                <Heading level={2} className="mb-4">{tab} Configuration</Heading>
+                <Heading level={2} className="mb-4">{t('configTitle', { tab })}</Heading>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
                     {/* Provider name */}
                     <div>
                         <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">
-                            Provider Name
+                            {t('providerName')}
                         </label>
                         <input
                             id="sso-name"
                             value={formName}
                             onChange={(e) => setFormName(e.target.value)}
-                            placeholder={tab === 'OIDC' ? 'e.g. Okta, Azure AD' : 'e.g. Okta SAML, ADFS'}
+                            placeholder={tab === 'OIDC' ? t('providerNamePlaceholderOidc') : t('providerNamePlaceholderSaml')}
                             className="input w-full"
                         />
                     </div>
@@ -328,16 +331,16 @@ export default function SsoAdminPage() {
                     {/* Email domains */}
                     <div>
                         <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">
-                            Email Domains
+                            {t('emailDomains')}
                         </label>
                         <input
                             id="sso-domains"
                             value={formEmailDomains}
                             onChange={(e) => setFormEmailDomains(e.target.value)}
-                            placeholder="acme.com, acme.io"
+                            placeholder={t('emailDomainsPlaceholder')}
                             className="input w-full"
                         />
-                        <span className="text-xs text-content-subtle mt-0.5">Comma-separated</span>
+                        <span className="text-xs text-content-subtle mt-0.5">{t('commaSeparated')}</span>
                     </div>
                 </div>
 
@@ -345,7 +348,7 @@ export default function SsoAdminPage() {
                 {tab === 'OIDC' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-default mt-4">
                         <div>
-                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">Issuer URL</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('issuerUrl')}</label>
                             <input
                                 id="sso-oidc-issuer"
                                 value={oidcIssuer}
@@ -355,24 +358,24 @@ export default function SsoAdminPage() {
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">Client ID</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('clientId')}</label>
                             <input
                                 id="sso-oidc-client-id"
                                 value={oidcClientId}
                                 onChange={(e) => setOidcClientId(e.target.value)}
-                                placeholder="client-id-from-idp"
+                                placeholder={t('clientIdPlaceholder')}
                                 className="input w-full"
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">Client Secret</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('clientSecret')}</label>
                             <div className="relative">
                                 <input
                                     id="sso-oidc-client-secret"
                                     type={showSecret ? 'text' : 'password'}
                                     value={oidcClientSecret}
                                     onChange={(e) => setOidcClientSecret(e.target.value)}
-                                    placeholder="client-secret"
+                                    placeholder={t('clientSecretPlaceholder')}
                                     className="input w-full pr-10"
                                 />
                                 <button
@@ -385,12 +388,12 @@ export default function SsoAdminPage() {
                             </div>
                         </div>
                         <div>
-                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">Scopes</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('scopes')}</label>
                             <input
                                 id="sso-oidc-scopes"
                                 value={oidcScopes}
                                 onChange={(e) => setOidcScopes(e.target.value)}
-                                placeholder="openid email profile"
+                                placeholder={t('scopesPlaceholder')}
                                 className="input w-full"
                             />
                         </div>
@@ -398,7 +401,7 @@ export default function SsoAdminPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-default mt-4">
                         <div>
-                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">IdP Entity ID</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('idpEntityId')}</label>
                             <input
                                 id="sso-saml-entity-id"
                                 value={samlEntityId}
@@ -408,7 +411,7 @@ export default function SsoAdminPage() {
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">SSO URL</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('ssoUrl')}</label>
                             <input
                                 id="sso-saml-sso-url"
                                 value={samlSsoUrl}
@@ -418,7 +421,7 @@ export default function SsoAdminPage() {
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">X.509 Certificate</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('x509Certificate')}</label>
                             <textarea
                                 id="sso-saml-certificate"
                                 value={samlCertificate}
@@ -430,11 +433,11 @@ export default function SsoAdminPage() {
                         </div>
                         <div>
                             <div className="mb-1 flex items-center gap-1.5">
-                                <label className="text-xs text-content-muted uppercase tracking-wider">NameID Format (optional)</label>
+                                <label className="text-xs text-content-muted uppercase tracking-wider">{t('nameIdFormat')}</label>
                                 <InfoTooltip
-                                    aria-label="About NameID format"
+                                    aria-label={t('nameIdFormatAbout')}
                                     iconClassName="h-3.5 w-3.5"
-                                    content="Leave empty if your IdP issues email-format NameIDs (the common case). Override only if your IdP uses a non-standard URN — check the IdP's SAML attribute mapping."
+                                    content={t('nameIdFormatTooltip')}
                                 />
                             </div>
                             <input
@@ -446,7 +449,7 @@ export default function SsoAdminPage() {
                             />
                         </div>
                         <div>
-                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">ACS URL (your callback)</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('acsUrl')}</label>
                             <input
                                 readOnly
                                 value={typeof window !== 'undefined'
@@ -468,7 +471,7 @@ export default function SsoAdminPage() {
                             className="accent-[var(--brand-default)]"
                             id="sso-enabled"
                         />
-                        <span className="text-sm text-content-emphasis">Enable SSO</span>
+                        <span className="text-sm text-content-emphasis">{t('enableSso')}</span>
                     </label>
                     <label className="flex items-center gap-tight cursor-pointer">
                         <input
@@ -478,19 +481,19 @@ export default function SsoAdminPage() {
                             className="accent-amber-500"
                             id="sso-enforced"
                         />
-                        <span className="text-sm text-content-emphasis">Enforce SSO</span>
-                        <span className="text-xs text-content-subtle">(disables local login)</span>
+                        <span className="text-sm text-content-emphasis">{t('enforceSso')}</span>
+                        <span className="text-xs text-content-subtle">{t('disablesLocalLogin')}</span>
                         <InfoTooltip
-                            aria-label="About SSO enforcement"
+                            aria-label={t('enforceAbout')}
                             iconClassName="h-3.5 w-3.5"
-                            content="Everyone must sign in via your IdP once this saves. Local-password admins keep break-glass access — confirm at least one admin has a working password before enabling."
+                            content={t('enforceTooltip')}
                         />
                     </label>
                 </div>
 
                 {formEnforced && (
                     <InlineNotice variant="warning" className="mt-3">
-                        When enforced, users must authenticate via SSO. Only admins with a local password can bypass (break-glass access).
+                        {t('enforcedNotice')}
                     </InlineNotice>
                 )}
 
@@ -504,7 +507,7 @@ export default function SsoAdminPage() {
                         id="sso-save-btn"
                     >
                         <Save className="w-3.5 h-3.5" />
-                        {saving ? 'Saving...' : 'Save Configuration'}
+                        {saving ? t('savingConfig') : t('saveConfig')}
                     </Button>
 
                     {existingProvider && existingProvider.isEnabled && (
@@ -516,7 +519,7 @@ export default function SsoAdminPage() {
                             id="sso-test-btn"
                         >
                             <ExternalLink className="w-3.5 h-3.5" />
-                            Test Login
+                            {t('testLogin')}
                         </a>
                     )}
 
@@ -528,7 +531,7 @@ export default function SsoAdminPage() {
                             id="sso-delete-btn"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
-                            Delete
+                            {t('delete')}
                         </Button>
                     )}
                 </div>
@@ -536,21 +539,21 @@ export default function SsoAdminPage() {
 
             {/* Info card */}
             <div className={cn(cardVariants({ density: 'compact' }), 'border border-border-default/50')}>
-                <Heading level={3} className="mb-2">How SSO works</Heading>
+                <Heading level={3} className="mb-2">{t('howItWorks')}</Heading>
                 <ul className="text-xs text-content-muted space-y-1.5">
-                    <li>• Users must already have an account and tenant membership to login via SSO</li>
-                    <li>• SSO links are created automatically on first successful login</li>
-                    <li>• When enforced, only admins with a local password can bypass SSO (break-glass)</li>
-                    <li>• Email domains help auto-discover SSO on the login page</li>
+                    <li>{t('howItWorks1')}</li>
+                    <li>{t('howItWorks2')}</li>
+                    <li>{t('howItWorks3')}</li>
+                    <li>{t('howItWorks4')}</li>
                 </ul>
             </div>
             <ConfirmDialog
                 showModal={showDeleteConfirm}
                 setShowModal={setShowDeleteConfirm}
                 tone="danger"
-                title="Delete SSO configuration?"
-                description="Users will need to use local login until SSO is reconfigured. This cannot be undone."
-                confirmLabel="Delete configuration"
+                title={t('confirmDeleteTitle')}
+                description={t('confirmDeleteDesc')}
+                confirmLabel={t('confirmDeleteLabel')}
                 onConfirm={performDelete}
             />
         </div>

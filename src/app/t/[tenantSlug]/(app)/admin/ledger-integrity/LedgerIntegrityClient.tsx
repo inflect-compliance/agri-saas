@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, ShieldAlert, ShieldQuestion, RefreshCw } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -35,6 +36,7 @@ interface LedgerReconciliationRun {
  *   • History — every past run, newest first.
  */
 export function LedgerIntegrityClient({ history }: { history: LedgerReconciliationRun[] }) {
+    const t = useTranslations('admin.ledgerIntegrity');
     const router = useRouter();
     const apiUrl = useTenantApiUrl();
     const toast = useToast();
@@ -48,7 +50,7 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
             createColumns<LedgerReconciliationRun>([
                 {
                     accessorKey: 'runAt',
-                    header: 'Run at',
+                    header: t('colRunAt'),
                     cell: ({ row }) => (
                         <span className="text-sm text-content-default">
                             {formatDateTime(row.original.runAt)}
@@ -57,12 +59,12 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
                 },
                 {
                     accessorKey: 'valid',
-                    header: 'Result',
+                    header: t('colResult'),
                     cell: ({ row }) => <ResultBadge valid={row.original.valid} />,
                 },
                 {
                     accessorKey: 'totalEntries',
-                    header: 'Entries',
+                    header: t('colEntries'),
                     cell: ({ row }) => (
                         <span className="text-sm tabular-nums text-content-muted">
                             {row.original.totalEntries ?? '—'}
@@ -71,22 +73,22 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
                 },
                 {
                     accessorKey: 'firstBreakAt',
-                    header: 'Break',
+                    header: t('colBreak'),
                     cell: ({ row }) => {
                         const { valid, firstBreakAt } = row.original;
                         if (valid !== false) return <span className="text-content-subtle">—</span>;
                         return (
                             <span className="text-sm text-content-error">
-                                entry #{firstBreakAt ?? '?'}
+                                {t('entryNum', { num: firstBreakAt ?? '?' })}
                             </span>
                         );
                     },
                 },
                 {
                     accessorKey: 'runBy',
-                    header: 'Run by',
+                    header: t('colRunBy'),
                     cell: ({ row }) => (
-                        <span className="text-sm text-content-muted">{row.original.runBy ?? 'System'}</span>
+                        <span className="text-sm text-content-muted">{row.original.runBy ?? t('system')}</span>
                     ),
                 },
             ]),
@@ -99,22 +101,22 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
         try {
             const res = await fetch(apiUrl('/admin/ledger-reconciliation'), { method: 'POST' });
             if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Reconciliation failed' }));
-                const msg = err.error?.message || err.error || err.message || 'Reconciliation failed';
+                const err = await res.json().catch(() => ({ error: t('reconFailed') }));
+                const msg = err.error?.message || err.error || err.message || t('reconFailed');
                 setError(msg);
                 toast.error(msg);
                 return;
             }
             const report = (await res.json()) as { valid: boolean; totalEntries: number };
             if (report.valid) {
-                toast.success(`Ledger verified intact across ${report.totalEntries} entries.`);
+                toast.success(t('verifiedAcross', { count: report.totalEntries }));
             } else {
-                toast.error('Reconciliation found a hash-chain break — review the report below.');
+                toast.error(t('foundBreak'));
             }
             // Re-fetch the server-rendered history so the hero + timeline update.
             router.refresh();
         } catch (e) {
-            const msg = (e as Error).message || 'Reconciliation failed';
+            const msg = (e as Error).message || t('reconFailed');
             setError(msg);
             toast.error(msg);
         } finally {
@@ -137,14 +139,14 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
                         disabled={running}
                         id="run-reconciliation-btn"
                     >
-                        {running ? 'Running…' : 'Run reconciliation'}
+                        {running ? t('running') : t('runReconciliation')}
                     </Button>
                 </div>
             </Card>
 
             {/* ── History ── */}
             <div className="space-y-default">
-                <Heading level={2}>History</Heading>
+                <Heading level={2}>{t('history')}</Heading>
                 <DataTable<LedgerReconciliationRun>
                     data-testid="ledger-reconciliation-history-table"
                     data={history}
@@ -152,7 +154,7 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
                     columns={historyColumns}
                     emptyState={
                         <div className="py-8 text-center text-sm text-content-muted">
-                            No reconciliation runs yet. Run one to verify the stock ledger.
+                            {t('noRuns')}
                         </div>
                     }
                 />
@@ -163,23 +165,24 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
 
 /** The big verdict block on the left of the hero card. */
 function StatusHero({ latest }: { latest: LedgerReconciliationRun | null }) {
+    const t = useTranslations('admin.ledgerIntegrity');
     if (!latest) {
         return (
             <HeroLayout
                 icon={<ShieldQuestion className="w-8 h-8 text-content-muted" />}
-                title="Never run"
-                subtitle="Run a reconciliation to verify the append-only stock ledger's hash chain."
+                title={t('neverRun')}
+                subtitle={t('neverRunSubtitle')}
             />
         );
     }
-    const when = `${formatDateTime(latest.runAt)}${latest.runBy ? ` by ${latest.runBy}` : ''}`;
+    const when = `${formatDateTime(latest.runAt)}${latest.runBy ? t('byRunner', { name: latest.runBy }) : ''}`;
     if (latest.valid === false) {
         return (
             <HeroLayout
                 icon={<ShieldAlert className="w-8 h-8 text-content-error" />}
-                title="Drift detected"
+                title={t('driftDetected')}
                 titleClassName="text-content-error"
-                subtitle={`Hash-chain break at entry #${latest.firstBreakAt ?? '?'}. Do not mutate the ledger — see the runbook. Last run ${when}.`}
+                subtitle={t('driftSubtitle', { num: latest.firstBreakAt ?? '?', when })}
             />
         );
     }
@@ -187,17 +190,17 @@ function StatusHero({ latest }: { latest: LedgerReconciliationRun | null }) {
         return (
             <HeroLayout
                 icon={<ShieldCheck className="w-8 h-8 text-content-success" />}
-                title="Ledger verified intact"
+                title={t('verifiedIntact')}
                 titleClassName="text-content-success"
-                subtitle={`${latest.totalEntries ?? 0} entries checked. Last run ${when}.`}
+                subtitle={t('intactSubtitle', { count: latest.totalEntries ?? 0, when })}
             />
         );
     }
     return (
         <HeroLayout
             icon={<ShieldQuestion className="w-8 h-8 text-content-muted" />}
-            title="Last run recorded"
-            subtitle={`Verdict unavailable for this run. Last run ${when}.`}
+            title={t('lastRunRecorded')}
+            subtitle={t('unknownSubtitle', { when })}
         />
     );
 }
@@ -225,7 +228,8 @@ function HeroLayout({
 }
 
 function ResultBadge({ valid }: { valid: boolean | null }) {
-    if (valid === true) return <StatusBadge variant="success" size="sm">Intact</StatusBadge>;
-    if (valid === false) return <StatusBadge variant="error" size="sm">Drift</StatusBadge>;
-    return <StatusBadge variant="neutral" size="sm">Unknown</StatusBadge>;
+    const t = useTranslations('admin.ledgerIntegrity');
+    if (valid === true) return <StatusBadge variant="success" size="sm">{t('intact')}</StatusBadge>;
+    if (valid === false) return <StatusBadge variant="error" size="sm">{t('drift')}</StatusBadge>;
+    return <StatusBadge variant="neutral" size="sm">{t('unknown')}</StatusBadge>;
 }

@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -34,6 +35,7 @@ interface ModuleSettings {
 }
 
 export default function ModuleSettingsPage() {
+    const t = useTranslations('admin.modules');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const [settings, setSettings] = useState<ModuleSettings | null>(null);
@@ -103,9 +105,9 @@ export default function ModuleSettingsPage() {
             <div>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'Modules' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbModules') },
                     ]}
                     className="mb-1"
                 />
@@ -113,23 +115,21 @@ export default function ModuleSettingsPage() {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-default">
                 <div className="flex flex-wrap items-center gap-compact">
-                    <Heading level={1}>Modules</Heading>
+                    <Heading level={1}>{t('heading')}</Heading>
                     <StatusBadge variant={settings.customized ? 'info' : 'neutral'}>
-                        {settings.customized ? 'Simple mode' : 'All modules on'}
+                        {settings.customized ? t('simpleMode') : t('allModulesOn')}
                     </StatusBadge>
                 </div>
                 <div className="flex items-center gap-compact">
-                    {saved && <span className="text-sm text-content-success">Saved</span>}
+                    {saved && <span className="text-sm text-content-success">{t('saved')}</span>}
                     <Button variant="primary" onClick={handleSave} disabled={saving} loading={saving}>
-                        {saving ? 'Saving…' : 'Save'}
+                        {saving ? t('saving') : t('save')}
                     </Button>
                 </div>
             </div>
 
             <p className="text-sm text-content-muted max-w-2xl">
-                Turn modules off to hide the parts of the product your team doesn&apos;t use. A
-                disabled module&apos;s pages and APIs return a permission error until you turn it
-                back on. Leaving everything on is the default.
+                {t('description')}
             </p>
 
             <div className={cn(cardVariants(), 'space-y-default')}>
@@ -149,7 +149,7 @@ export default function ModuleSettingsPage() {
                             <Switch
                                 checked={on}
                                 onCheckedChange={(v) => toggle(key, v)}
-                                aria-label={`Toggle ${MODULE_LABELS[key]}`}
+                                aria-label={t('toggleModule', { name: MODULE_LABELS[key] })}
                             />
                         </div>
                     );
@@ -159,8 +159,8 @@ export default function ModuleSettingsPage() {
             {!allOn && (
                 <p className="text-xs text-content-subtle">
                     {enabled.size === 0
-                        ? 'Every module is off — only core admin and settings remain available.'
-                        : `${enabled.size} of ${ALL_MODULES.length} modules enabled.`}
+                        ? t('everyModuleOff')
+                        : t('modulesEnabled', { enabled: enabled.size, total: ALL_MODULES.length })}
                 </p>
             )}
         </div>

@@ -97,6 +97,15 @@ const DYNAMIC_LABEL_EXEMPT: Record<string, string> = {
     // canonical), defaulting to "Delete". Every table reuses this, so the
     // verb safety is enforced by the union type, not a literal.
     'src/components/ui/table/use-bulk-delete.tsx': 'verb prop typed to canonical verbs',
+    // T05 i18n migration — confirmLabel is now an i18n key
+    // (`confirmLabel={t('...')}`), not a literal the static scan can read.
+    // The resolved en+bg values both begin with a canonical verb:
+    //   api-keys → t('revokeKey')          = "Revoke key"
+    //   scim     → t('confirmRevokeLabel') = "Revoke token"
+    //   sso      → t('confirmDeleteLabel') = "Delete configuration"
+    'src/app/t/[tenantSlug]/(app)/admin/api-keys/page.tsx': 'confirmLabel i18n key t(revokeKey) → "Revoke key"',
+    'src/app/t/[tenantSlug]/(app)/admin/scim/page.tsx': 'confirmLabel i18n key t(confirmRevokeLabel) → "Revoke token"',
+    'src/app/t/[tenantSlug]/(app)/admin/sso/page.tsx': 'confirmLabel i18n key t(confirmDeleteLabel) → "Delete configuration"',
 };
 
 describe('Destructive-action vocabulary (Roadmap-4 PR-9)', () => {

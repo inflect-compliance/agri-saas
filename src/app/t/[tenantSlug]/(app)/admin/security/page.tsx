@@ -6,6 +6,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, cardVariants } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
@@ -43,6 +44,7 @@ const POLICY_OPTIONS: { value: MfaPolicy; label: string; description: string }[]
 ];
 
 export default function AdminSecurityPage() {
+    const t = useTranslations('admin.security');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const [settings, setSettings] = useState<SecuritySettings>({ mfaPolicy: 'DISABLED', sessionMaxAgeMinutes: null });
@@ -61,7 +63,7 @@ export default function AdminSecurityPage() {
                 setSettings(data);
             }
         } catch {
-            setError('Failed to load security settings');
+            setError(t('loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -82,52 +84,52 @@ export default function AdminSecurityPage() {
             });
             if (!res.ok) {
                 const data = await res.json();
-                throw new Error(data.error || 'Failed to save');
+                throw new Error(data.error || t('saveFailed'));
             }
             const updated = await res.json();
             setSettings(updated);
-            setSuccess('Security settings saved successfully.');
+            setSuccess(t('settingsSaved'));
             setTimeout(() => setSuccess(null), 3000);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to save settings');
+            setError(err instanceof Error ? err.message : t('saveSettingsFailed'));
         } finally {
             setSaving(false);
         }
     };
 
     const handleRevokeMySessions = async () => {
-        if (!confirm('This will sign you out of all devices. Continue?')) return;
+        if (!confirm(t('confirmRevokeMine'))) return;
         setRevoking(true);
         setError(null);
         try {
             const res = await fetch(apiUrl('/security/sessions/revoke-current'), { method: 'POST' });
             if (res.ok) {
-                setSuccess('Your sessions have been revoked. You will be signed out shortly.');
+                setSuccess(t('mySessionsRevoked'));
                 setTimeout(() => window.location.href = '/login', 2000);
             } else {
-                throw new Error('Failed to revoke sessions');
+                throw new Error(t('revokeSessionsFailed'));
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Revocation failed');
+            setError(err instanceof Error ? err.message : t('revocationFailed'));
         } finally {
             setRevoking(false);
         }
     };
 
     const handleRevokeAllTenant = async () => {
-        if (!confirm('WARNING: This will sign out ALL users in your organization. Are you sure?')) return;
+        if (!confirm(t('confirmRevokeAll'))) return;
         setRevoking(true);
         setError(null);
         try {
             const res = await fetch(apiUrl('/security/sessions/revoke-all'), { method: 'POST' });
             const data = await res.json();
             if (res.ok) {
-                setSuccess(`Sessions revoked for ${data.usersAffected} users. Everyone will need to sign in again.`);
+                setSuccess(t('allSessionsRevoked', { count: data.usersAffected }));
             } else {
-                throw new Error(data.error || 'Failed to revoke');
+                throw new Error(data.error || t('revokeFailedShort'));
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Bulk revocation failed');
+            setError(err instanceof Error ? err.message : t('bulkRevocationFailed'));
         } finally {
             setRevoking(false);
         }
@@ -135,7 +137,7 @@ export default function AdminSecurityPage() {
 
     const handleRevokeUser = async () => {
         if (!revokeUserId.trim()) return;
-        if (!confirm(`Revoke all sessions for user ${revokeUserId}?`)) return;
+        if (!confirm(t('confirmRevokeUser', { user: revokeUserId }))) return;
         setRevoking(true);
         setError(null);
         try {
@@ -146,14 +148,14 @@ export default function AdminSecurityPage() {
             });
             const data = await res.json();
             if (res.ok) {
-                setSuccess('Sessions revoked for user.');
+                setSuccess(t('userSessionsRevoked'));
                 setRevokeUserId('');
                 setTimeout(() => setSuccess(null), 3000);
             } else {
-                throw new Error(data.error || 'Failed to revoke user sessions');
+                throw new Error(data.error || t('revokeUserFailed'));
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'User revocation failed');
+            setError(err instanceof Error ? err.message : t('userRevocationFailed'));
         } finally {
             setRevoking(false);
         }
@@ -164,15 +166,15 @@ export default function AdminSecurityPage() {
             <div className="space-y-section animate-fadeIn">
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'Security & MFA' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbSecurity') },
                     ]}
                     className="mb-1"
                 />
                 <Heading level={2} className="flex items-center gap-tight">
                     <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
-                    Loading Security & MFA…
+                    {t('loading')}
                 </Heading>
                 <Card>
                     <div className="animate-pulse space-y-default">
@@ -191,15 +193,15 @@ export default function AdminSecurityPage() {
             <div>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'Security & MFA' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbSecurity') },
                     ]}
                     className="mb-1"
                 />
                 <Heading level={1} className="flex items-center gap-tight">
                     <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
-                    Security & MFA
+                    {t('heading')}
                 </Heading>
             </div>
 
@@ -215,15 +217,15 @@ export default function AdminSecurityPage() {
             <div className={cn(cardVariants(), 'space-y-default')}>
                 <div>
                     <div className="flex items-center gap-tight">
-                        <Heading level={2}>Multi-Factor Authentication Policy</Heading>
+                        <Heading level={2}>{t('mfaPolicyTitle')}</Heading>
                         <InfoTooltip
-                            aria-label="About the MFA policy"
+                            aria-label={t('mfaPolicyAbout')}
                             iconClassName="h-4 w-4"
-                            content="Applies tenant-wide on the next login. Switching to Required forces everyone who isn't enrolled into the enrolment flow before they can access any page."
+                            content={t('mfaPolicyTooltip')}
                         />
                     </div>
                     <p className="text-sm text-content-muted mt-1">
-                        Configure whether MFA is required, optional, or disabled for your organization.
+                        {t('mfaPolicyDesc')}
                     </p>
                 </div>
 
@@ -249,23 +251,23 @@ export default function AdminSecurityPage() {
                                 <span className={`text-sm font-medium ${
                                     settings.mfaPolicy === option.value ? 'text-[var(--brand-muted)]' : 'text-content-emphasis'
                                 }`}>
-                                    {option.label}
+                                    {t(`policy.${option.value}.label`)}
                                     {option.value === 'REQUIRED' && (
-                                        <StatusBadge variant="warning" className="ml-2">Strict</StatusBadge>
+                                        <StatusBadge variant="warning" className="ml-2">{t('strict')}</StatusBadge>
                                     )}
                                 </span>
-                                <p className="text-xs text-content-muted mt-1">{option.description}</p>
+                                <p className="text-xs text-content-muted mt-1">{t(`policy.${option.value}.description`)}</p>
                             </div>
                         </label>
                     ))}
                 </div>
 
                 {settings.mfaPolicy === 'REQUIRED' && (
-                    <InlineNotice variant="warning" title="Before enabling Required MFA:">
+                    <InlineNotice variant="warning" title={t('beforeRequired')}>
                         <ul className="text-xs text-content-warning list-disc pl-4 space-y-1">
-                            <li>Ensure you (the admin) have enrolled in MFA first</li>
-                            <li>Users without MFA will be redirected to enrollment on their next login</li>
-                            <li>Break-glass admin access is preserved via SSO if configured</li>
+                            <li>{t('beforeRequired1')}</li>
+                            <li>{t('beforeRequired2')}</li>
+                            <li>{t('beforeRequired3')}</li>
                         </ul>
                     </InlineNotice>
                 )}
@@ -274,26 +276,26 @@ export default function AdminSecurityPage() {
             {/* Session Settings */}
             <div className={cn(cardVariants(), 'space-y-default')}>
                 <div>
-                    <Heading level={2} className="mb-1">Session Settings</Heading>
+                    <Heading level={2} className="mb-1">{t('sessionSettings')}</Heading>
                     <p className="text-sm text-content-muted">
-                        Configure session timeout for your organization. Leave blank for the default.
+                        {t('sessionSettingsDesc')}
                     </p>
                 </div>
 
                 <div>
                     <div className="mb-1 flex items-center gap-1.5">
-                        <label className="block text-sm text-content-default">Maximum Session Age (minutes)</label>
+                        <label className="block text-sm text-content-default">{t('maxSessionAge')}</label>
                         <InfoTooltip
-                            aria-label="About session max age"
+                            aria-label={t('maxSessionAgeAbout')}
                             iconClassName="h-3.5 w-3.5"
-                            content="Absolute lifetime of a login session — users must re-authenticate after this many minutes regardless of activity. Leave blank to inherit the platform default."
+                            content={t('maxSessionAgeTooltip')}
                         />
                     </div>
                     <input
                         type="number"
                         min={5}
                         max={43200}
-                        placeholder="Default (no limit)"
+                        placeholder={t('defaultNoLimit')}
                         value={settings.sessionMaxAgeMinutes ?? ''}
                         onChange={(e) => {
                             const val = e.target.value ? parseInt(e.target.value, 10) : null;
@@ -301,7 +303,7 @@ export default function AdminSecurityPage() {
                         }}
                         className="input w-full max-w-xs"
                     />
-                    <p className="text-xs text-content-subtle mt-1">Min: 5 minutes. Max: 30 days (43200 min).</p>
+                    <p className="text-xs text-content-subtle mt-1">{t('minMaxNote')}</p>
                 </div>
             </div>
 
@@ -315,16 +317,16 @@ export default function AdminSecurityPage() {
                     id="security-save-btn"
                 >
                     <Save className="w-4 h-4" />
-                    {saving ? 'Saving...' : 'Save Settings'}
+                    {saving ? t('savingSettings') : t('saveSettings')}
                 </Button>
             </div>
 
             {/* ──── Session Management ──── */}
             <div className={cn(cardVariants(), 'space-y-default')}>
                 <div>
-                    <Heading level={2} className="mb-1">Session Management</Heading>
+                    <Heading level={2} className="mb-1">{t('sessionManagement')}</Heading>
                     <p className="text-sm text-content-muted">
-                        Revoke active sessions. Revoked users must sign in again.
+                        {t('sessionManagementDesc')}
                     </p>
                 </div>
 
@@ -338,8 +340,8 @@ export default function AdminSecurityPage() {
                     >
                         <LogOut className="w-5 h-5 text-content-muted group-hover:text-[var(--brand-default)] transition mt-0.5 shrink-0" />
                         <div>
-                            <span className="text-sm font-medium text-content-emphasis">Sign Out Other Sessions</span>
-                            <p className="text-xs text-content-subtle mt-1">Invalidate all your active sessions across devices.</p>
+                            <span className="text-sm font-medium text-content-emphasis">{t('signOutOthers')}</span>
+                            <p className="text-xs text-content-subtle mt-1">{t('signOutOthersDesc')}</p>
                         </div>
                     </button>
 
@@ -352,19 +354,19 @@ export default function AdminSecurityPage() {
                     >
                         <Users className="w-5 h-5 text-content-error transition mt-0.5 shrink-0" />
                         <div>
-                            <span className="text-sm font-medium text-content-error">Revoke All User Sessions</span>
-                            <p className="text-xs text-content-subtle mt-1">Force all organization members to sign in again. Use for incidents.</p>
+                            <span className="text-sm font-medium text-content-error">{t('revokeAllUsers')}</span>
+                            <p className="text-xs text-content-subtle mt-1">{t('revokeAllUsersDesc')}</p>
                         </div>
                     </button>
                 </div>
 
                 {/* Revoke specific user */}
                 <div className="border-t border-border-default/50 pt-4">
-                    <label className="block text-sm text-content-default mb-2">Revoke sessions for a specific user</label>
+                    <label className="block text-sm text-content-default mb-2">{t('revokeSpecificUser')}</label>
                     <div className="flex gap-tight">
                         <input
                             type="text"
-                            placeholder="User ID"
+                            placeholder={t('userIdPlaceholder')}
                             value={revokeUserId}
                             onChange={(e) => setRevokeUserId(e.target.value)}
                             className="input flex-1"
@@ -377,7 +379,7 @@ export default function AdminSecurityPage() {
                             id="revoke-user-btn"
                         >
                             <UserX className="w-4 h-4" />
-                            Revoke
+                            {t('revoke')}
                         </Button>
                     </div>
                 </div>

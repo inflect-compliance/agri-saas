@@ -2,6 +2,7 @@
 
 /* RQ-2 — Risk appetite configuration + breach history. */
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ interface Breach {
 // tenant's currency via the canonical formatter.
 
 export default function RiskAppetitePage() {
+    const t = useTranslations('admin.riskAppetite');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const money = useMoneyFormatter();
@@ -66,6 +68,7 @@ export default function RiskAppetitePage() {
     const numField = (label: string, k: 'totalAleThreshold' | 'singleRiskAleMax' | 'qualScoreMax', hint: string) => (
         <label className="block">
             <span className="text-xs text-content-muted">{label} ({hint})</span>
+            {/* label + hint are already localized by the caller */}
             <Input type="text" inputMode="decimal" value={cfg[k] ?? ''} onChange={(e) => setCfg({ ...cfg, [k]: e.target.value.trim() === '' ? null : Number(e.target.value) })} />
         </label>
     );
@@ -76,7 +79,7 @@ export default function RiskAppetitePage() {
             const res = await fetch(apiUrl('/risk-appetite'), {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
             });
-            if (res.ok) { setMsg('Saved.'); await load(); } else setMsg('Save failed.');
+            if (res.ok) { setMsg(t('savedMsg')); await load(); } else setMsg(t('saveFailedMsg'));
         } finally { setSaving(false); }
     };
 
@@ -102,34 +105,34 @@ export default function RiskAppetitePage() {
 
     return (
         <div className="space-y-section">
-            <PageBreadcrumbs items={[{ label: 'Admin', href: tenantHref('/admin') }, { label: 'Risk appetite' }]} />
+            <PageBreadcrumbs items={[{ label: t('breadcrumbAdmin'), href: tenantHref('/admin') }, { label: t('breadcrumbRiskAppetite') }]} />
             <div className="flex items-center justify-between">
-                <Heading level={1}>Risk Appetite</Heading>
+                <Heading level={1}>{t('heading')}</Heading>
                 {status && status.status !== 'NONE' && (
                     <StatusBadge variant={statusVariant}>
-                        {status.status === 'BREACHED' ? `Breached (${status.activeBreaches})` : status.status === 'APPROACHING' ? 'Approaching' : 'Within appetite'} · {status.portfolioTested?.simulated
-                            ? `P${status.portfolioTested.percentile} ${money(status.portfolioTested.value)}/yr`
-                            : `${money(status.portfolioAle)}/yr`}
+                        {status.status === 'BREACHED' ? t('breached', { count: status.activeBreaches }) : status.status === 'APPROACHING' ? t('approaching') : t('withinAppetite')} · {status.portfolioTested?.simulated
+                            ? t('perYearP', { percentile: status.portfolioTested.percentile, money: money(status.portfolioTested.value) })
+                            : t('perYear', { money: money(status.portfolioAle) })}
                     </StatusBadge>
                 )}
             </div>
 
             <Card className="space-y-default p-6">
-                <Heading level={2}>Configuration</Heading>
+                <Heading level={2}>{t('configuration')}</Heading>
                 <label className="block">
-                    <span className="text-xs text-content-muted">Appetite statement (board-approved)</span>
+                    <span className="text-xs text-content-muted">{t('appetiteStatement')}</span>
                     <Textarea rows={3} value={cfg.appetiteStatement ?? ''} onChange={(e) => setCfg({ ...cfg, appetiteStatement: e.target.value })} />
                 </label>
                 <div className="grid grid-cols-1 gap-default sm:grid-cols-3">
-                    {numField('Portfolio ALE ceiling', 'totalAleThreshold', '$/yr')}
-                    {numField('Single-risk ALE max', 'singleRiskAleMax', '$')}
-                    {numField('Qualitative score max', 'qualScoreMax', 'of 25')}
+                    {numField(t('portfolioAleCeiling'), 'totalAleThreshold', t('hintPerYear'))}
+                    {numField(t('singleRiskAleMax'), 'singleRiskAleMax', t('hintDollar'))}
+                    {numField(t('qualScoreMax'), 'qualScoreMax', t('hintOf25'))}
                 </div>
                 {/* RQ3-3 — board-level policy: which simulated
                     percentile the portfolio ceiling is tested at.
                     P50 = a typical year; P95 = severe-tail planning. */}
                 <div className="flex flex-wrap items-center gap-tight" data-testid="appetite-tested-percentile">
-                    <span className="text-xs text-content-muted">Ceiling tested at:</span>
+                    <span className="text-xs text-content-muted">{t('ceilingTestedAt')}</span>
                     {([50, 80, 90, 95, 99] as TestedPercentile[]).map((pVal) => (
                         <Button
                             key={pVal}
@@ -141,19 +144,19 @@ export default function RiskAppetitePage() {
                         </Button>
                     ))}
                     <span className="text-[10px] text-content-subtle">
-                        simulated portfolio percentile (falls back to Σ of means until a simulation runs)
+                        {t('simulatedNote')}
                     </span>
                 </div>
-                {msg && <InlineNotice variant={msg === 'Saved.' ? 'success' : 'error'}>{msg}</InlineNotice>}
+                {msg && <InlineNotice variant={msg === t('savedMsg') ? 'success' : 'error'}>{msg}</InlineNotice>}
                 <div className="flex justify-end">
-                    <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save configuration'}</Button>
+                    <Button variant="primary" onClick={save} disabled={saving}>{saving ? t('saving') : t('saveConfiguration')}</Button>
                 </div>
             </Card>
 
             <Card className="space-y-default p-6">
-                <Heading level={2}>Breach history</Heading>
+                <Heading level={2}>{t('breachHistory')}</Heading>
                 {breaches.length === 0 ? (
-                    <p className="text-sm text-content-muted">No breaches recorded.</p>
+                    <p className="text-sm text-content-muted">{t('noBreaches')}</p>
                 ) : (
                     <ul className="divide-y divide-border-subtle">
                         {breaches.map((b) => (
@@ -162,12 +165,12 @@ export default function RiskAppetitePage() {
                             // /admin/risk-appetite#breach-{id} link
                             // scrolls the assignee to the source row.
                             <li key={b.id} id={`breach-${b.id}`} className="flex flex-wrap items-center gap-default py-default text-sm scroll-mt-default target:bg-bg-muted/50">
-                                <StatusBadge variant={b.resolvedAt ? 'success' : 'error'}>{b.resolvedAt ? 'Resolved' : 'Active'}</StatusBadge>
+                                <StatusBadge variant={b.resolvedAt ? 'success' : 'error'}>{b.resolvedAt ? t('resolved') : t('active')}</StatusBadge>
                                 <span className="font-mono text-xs">{b.breachType}</span>
-                                <span className="text-content-muted">threshold {money(b.thresholdValue)} · actual {money(b.actualValue)}</span>
+                                <span className="text-content-muted">{t('thresholdActual', { threshold: money(b.thresholdValue), actual: money(b.actualValue) })}</span>
                                 <span className="ml-auto text-xs text-content-muted">{formatDate(new Date(b.detectedAt))}</span>
                                 {!b.resolvedAt && !b.acknowledgedAt && (
-                                    <Button size="sm" variant="ghost" onClick={() => acknowledge(b.id)}>Acknowledge</Button>
+                                    <Button size="sm" variant="ghost" onClick={() => acknowledge(b.id)}>{t('acknowledge')}</Button>
                                 )}
                                 {/* RQ2-6 — breach → remediation task. */}
                                 {b.remediationTaskId ? (
@@ -176,7 +179,7 @@ export default function RiskAppetitePage() {
                                         className="text-xs underline text-content-default"
                                         data-testid={`breach-task-link-${b.id}`}
                                     >
-                                        View task
+                                        {t('viewTask')}
                                     </a>
                                 ) : !b.resolvedAt ? (
                                     <Button
@@ -186,7 +189,7 @@ export default function RiskAppetitePage() {
                                         disabled={spawningTaskFor === b.id}
                                         data-testid={`breach-task-create-${b.id}`}
                                     >
-                                        {spawningTaskFor === b.id ? 'Creating…' : 'Create task'}
+                                        {spawningTaskFor === b.id ? t('creating') : t('createTask')}
                                     </Button>
                                 ) : null}
                             </li>

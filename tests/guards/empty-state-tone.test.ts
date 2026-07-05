@@ -98,6 +98,28 @@ describe('Empty-state copy tone (Roadmap-3 PR-6)', () => {
                 'switcher.noOrganizations',
                 'onboarding.noFrameworksSelected',
                 'orgSwitcher.noTenants',
+                // T05 i18n migration (admin.* namespace) — pre-existing
+                // inline empty-state MESSAGES + descriptions migrated
+                // verbatim from the admin pages' hardcoded JSX (DataTable
+                // `emptyState` props, inline `<p>` fallbacks, EmptyState
+                // description/help fields). Full sentences with legitimate
+                // terminal punctuation, not terse EmptyState titles — same
+                // rationale as the T04 exemptions above.
+                'admin.apiKeys.noActiveKeys',
+                'admin.apiKeys.noRevokedExpired',
+                'admin.integrations.noIntegrations',
+                'admin.integrations.noSpActivity',
+                'admin.ledgerIntegrity.noRuns',
+                'admin.riskAppetite.noBreaches',
+                'admin.roles.noRoles',
+                'admin.scim.noPermission',
+                'admin.scim.noActiveTokensHelp',
+                'admin.vendorTemplates.noTemplatesDesc',
+                'admin.vendorTemplateBuilder.noQuestions',
+                'admin.members.noMembers',
+                'admin.members.noPendingInvites',
+                'admin.members.noActiveSessionsShort',
+                'admin.members.noActiveSessionsDesc',
             ]);
             if (SANCTIONED.has(key)) continue;
             // Sanctioned namespace: `riskManager.*` keys are the

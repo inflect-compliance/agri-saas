@@ -4,6 +4,7 @@
  * sibling admin/sso page). Migrate to useTenantSWR with that page. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ const EMPTY: EntraConfig = {
 };
 
 export default function EntraProviderWizard() {
+    const t = useTranslations('admin.entra');
     const apiUrl = useTenantApiUrl();
     const [config, setConfig] = useState<EntraConfig>(EMPTY);
     const [configured, setConfigured] = useState(false);
@@ -70,13 +72,13 @@ export default function EntraProviderWizard() {
                 }),
             });
             if (!res.ok) {
-                setError('Save failed — check the directory + client IDs are valid GUIDs.');
+                setError(t('saveFailedGuid'));
                 return;
             }
             setConfigured(true);
             setSaved(true);
         } catch {
-            setError('Save failed — network error.');
+            setError(t('saveFailedNetwork'));
         } finally {
             setSaving(false);
         }
@@ -84,29 +86,31 @@ export default function EntraProviderWizard() {
 
     return (
         <div className="space-y-section">
-            <PageBreadcrumbs items={[{ label: 'Admin' }, { label: 'Entra ID' }]} />
+            <PageBreadcrumbs items={[{ label: t('breadcrumbAdmin') }, { label: t('breadcrumbEntra') }]} />
             <div className="flex items-center gap-default">
-                <Heading level={1}>Microsoft Entra ID</Heading>
+                <Heading level={1}>{t('heading')}</Heading>
                 {configured && (
                     <span className="inline-flex items-center gap-tight text-sm text-content-muted">
-                        Configured
+                        {t('configured')}
                     </span>
                 )}
             </div>
 
             {/* Step 1 + 2 — setup instructions the tenant admin performs in Entra */}
             <Card className="space-y-default p-6">
-                <Heading level={3}>1 · App registration &amp; token configuration</Heading>
+                <Heading level={3}>{t('step1Title')}</Heading>
                 <ol className="list-decimal space-y-tight pl-5 text-sm text-content-muted">
                     <li>
-                        Create an App Registration in the Entra portal; set the redirect URI to{' '}
-                        <code>{`{IC_URL}`}/api/auth/callback/microsoft-entra-id</code>.
+                        {t.rich('step1Item1', {
+                            icUrl: '{IC_URL}',
+                            code: (chunks) => <code>{chunks}</code>,
+                        })}
                     </li>
                     <li>
-                        In <strong>Token configuration</strong>, add a <strong>groups</strong> claim set to
-                        <strong> Security groups</strong> (manifest{' '}
-                        <code>&quot;groupMembershipClaims&quot;: &quot;SecurityGroup&quot;</code>). IC cannot
-                        set this for you — without it, no group claims reach IC.
+                        {t.rich('step1Item2', {
+                            strong: (chunks) => <strong>{chunks}</strong>,
+                            code: (chunks) => <code>{chunks}</code>,
+                        })}
                     </li>
                 </ol>
                 <a
@@ -115,17 +119,17 @@ export default function EntraProviderWizard() {
                     target="_blank"
                     rel="noopener noreferrer"
                 >
-                    Open Entra portal ↗
+                    {t('openEntraPortal')}
                 </a>
             </Card>
 
             {/* Step 3 — provider config form */}
             <Card className="space-y-default p-6">
-                <Heading level={3}>2 · Provider configuration</Heading>
+                <Heading level={3}>{t('step2Title')}</Heading>
                 {error && <InlineNotice variant="error">{error}</InlineNotice>}
-                {saved && <InlineNotice variant="success">Saved.</InlineNotice>}
+                {saved && <InlineNotice variant="success">{t('saved')}</InlineNotice>}
 
-                <FormField label="Directory (tenant) ID">
+                <FormField label={t('directoryIdLabel')}>
                     <Input
                         id="aadTenantId"
                         placeholder="00000000-0000-0000-0000-000000000000"
@@ -133,7 +137,7 @@ export default function EntraProviderWizard() {
                         onChange={(e) => setConfig((c) => ({ ...c, aadTenantId: e.target.value }))}
                     />
                 </FormField>
-                <FormField label="Application (client) ID">
+                <FormField label={t('clientIdLabel')}>
                     <Input
                         id="clientId"
                         placeholder="00000000-0000-0000-0000-000000000000"
@@ -141,10 +145,10 @@ export default function EntraProviderWizard() {
                         onChange={(e) => setConfig((c) => ({ ...c, clientId: e.target.value }))}
                     />
                 </FormField>
-                <FormField label="Allowed sign-in domains (comma-separated, optional)">
+                <FormField label={t('allowedDomainsLabel')}>
                     <Input
                         id="domains"
-                        placeholder="contoso.com, fabrikam.com"
+                        placeholder={t('allowedDomainsPlaceholder')}
                         value={(config.allowedDomains ?? []).join(', ')}
                         onChange={(e) =>
                             setConfig((c) => ({
@@ -158,22 +162,22 @@ export default function EntraProviderWizard() {
                     Roles aren't supported yet (the resolver reads the `groups`
                     claim only); the schema keeps the value for back-compat. */}
                 <FormField
-                    label="Enforce group gate"
-                    hint="When on, a user who matches none of your group → role mappings is denied access. Only takes effect once you've added at least one mapping below."
+                    label={t('enforceGateLabel')}
+                    hint={t('enforceGateHint')}
                 >
                     <ToggleGroup
                         selected={config.enforceGroupGate ? 'on' : 'off'}
                         selectAction={(v) => setConfig((c) => ({ ...c, enforceGroupGate: v === 'on' }))}
                         options={[
-                            { value: 'off', label: 'Off' },
-                            { value: 'on', label: 'On' },
+                            { value: 'off', label: t('off') },
+                            { value: 'on', label: t('on') },
                         ]}
                     />
                 </FormField>
 
                 <div className="flex justify-end pt-default">
                     <Button variant="primary" onClick={save} disabled={saving}>
-                        {saving ? 'Saving…' : 'Save'}
+                        {saving ? t('saving') : t('save')}
                     </Button>
                 </div>
             </Card>

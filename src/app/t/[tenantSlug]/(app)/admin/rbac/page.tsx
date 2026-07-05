@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { resolveTenantContext } from '@/lib/tenant-context';
@@ -25,6 +26,7 @@ export default async function RbacPage({
     params: Promise<{ tenantSlug: string }>;
 }) {
     const { tenantSlug } = await params;
+    const t = await getTranslations('admin.rbac');
 
     // ─── Server-side guard ───
     const session = await auth();
@@ -78,34 +80,37 @@ export default async function RbacPage({
             <div>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                        { label: 'Admin', href: `/t/${tenantSlug}/admin` },
-                        { label: 'Roles & Access' },
+                        { label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                        { label: t('breadcrumbAdmin'), href: `/t/${tenantSlug}/admin` },
+                        { label: t('breadcrumbRolesAccess') },
                     ]}
                     className="mb-1"
                 />
-                <Heading level={1}>Roles &amp; Access</Heading>
+                <Heading level={1}>{t('heading')}</Heading>
                 <p className="text-sm text-content-muted mt-1">
-                    Permission matrix for <span className="text-content-emphasis font-medium">{tenantCtx.tenant.name}</span>.
-                    Your role: <StatusBadge variant="info">{tenantCtx.role}</StatusBadge>
+                    {t.rich('matrixFor', {
+                        name: tenantCtx.tenant.name,
+                        b: (chunks) => <span className="text-content-emphasis font-medium">{chunks}</span>,
+                    })}{' '}
+                    {t('yourRole')} <StatusBadge variant="info">{tenantCtx.role}</StatusBadge>
                 </p>
             </div>
 
             {/* Members Table */}
             <section>
-                <Heading level={2} className="mb-3">Team Members</Heading>
+                <Heading level={2} className="mb-3">{t('teamMembers')}</Heading>
                 <MembersTable members={members} />
             </section>
 
             {/* Permission Matrix */}
             <section>
-                <Heading level={2} className="mb-3">Permission Matrix</Heading>
+                <Heading level={2} className="mb-3">{t('permissionMatrix')}</Heading>
                 <div className={cn(cardVariants({ density: 'none' }), 'overflow-x-auto')}>
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th className="sticky left-0 bg-bg-default/90 z-10">Resource</th>
-                                <th className="sticky left-[120px] bg-bg-default/90 z-10">Action</th>
+                                <th className="sticky left-0 bg-bg-default/90 z-10">{t('resource')}</th>
+                                <th className="sticky left-[120px] bg-bg-default/90 z-10">{t('action')}</th>
                                 {roles.map((r) => (
                                     <th key={r} className="text-center">{r}</th>
                                 ))}

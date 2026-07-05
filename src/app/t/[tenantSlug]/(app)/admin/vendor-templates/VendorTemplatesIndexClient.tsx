@@ -11,6 +11,7 @@
  * create form. Click a row to open the builder.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -40,6 +41,7 @@ interface TemplateRow {
 }
 
 export function VendorTemplatesIndexClient() {
+    const t = useTranslations('admin.vendorTemplates');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const router = useRouter();
@@ -70,7 +72,7 @@ export function VendorTemplatesIndexClient() {
 
     async function handleCreate() {
         if (!newName.trim() || !newKey.trim()) {
-            setCreateError('Key and name are required.');
+            setCreateError(t('keyNameRequired'));
             return;
         }
         setCreating(true);
@@ -83,7 +85,7 @@ export function VendorTemplatesIndexClient() {
             });
             if (!res.ok) {
                 const body = await res.json().catch(() => ({}));
-                setCreateError(body.error ?? `HTTP ${res.status}`);
+                setCreateError(body.error ?? t('httpStatus', { status: res.status }));
                 return;
             }
             const created = (await res.json()) as { id: string };
@@ -98,26 +100,24 @@ export function VendorTemplatesIndexClient() {
             <header>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'Vendor Templates' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbVendorTemplates') },
                     ]}
                     className="mb-1"
                 />
                 <Heading level={1} id="vendor-templates-title">
-                    Vendor questionnaire templates
+                    {t('heading')}
                 </Heading>
                 <p className="text-sm text-content-muted mt-1">
-                    Author and publish reusable assessment templates. Edits
-                    on a published template require cloning to a new draft
-                    revision.
+                    {t('description')}
                 </p>
             </header>
 
             {permissions.canWrite && (
                 <div className={cardVariants({ density: 'compact' })}>
                     <Heading level={3} className="mb-3">
-                        Create a new template
+                        {t('createNewTemplate')}
                     </Heading>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-compact items-end">
                         <div>
@@ -125,7 +125,7 @@ export function VendorTemplatesIndexClient() {
                                 className="text-xs text-content-muted block mb-1"
                                 htmlFor="new-template-key"
                             >
-                                Key
+                                {t('keyLabel')}
                             </label>
                             <input
                                 id="new-template-key"
@@ -140,14 +140,14 @@ export function VendorTemplatesIndexClient() {
                                 className="text-xs text-content-muted block mb-1"
                                 htmlFor="new-template-name"
                             >
-                                Name
+                                {t('nameLabel')}
                             </label>
                             <input
                                 id="new-template-name"
                                 className="input w-full"
                                 value={newName}
                                 onChange={(e) => setNewName(e.target.value)}
-                                placeholder="SOC 2 vendor questionnaire"
+                                placeholder={t('namePlaceholder')}
                             />
                         </div>
                         <div>
@@ -159,7 +159,7 @@ export function VendorTemplatesIndexClient() {
                                 loading={creating}
                                 id="create-template-btn"
                             >
-                                {creating ? 'Creating…' : 'Create draft'}
+                                {creating ? t('creating') : t('createDraft')}
                             </Button>
                         </div>
                     </div>
@@ -177,43 +177,43 @@ export function VendorTemplatesIndexClient() {
 
             <div className={cardVariants({ density: 'compact' })}>
                 <Heading level={3} className="mb-3">
-                    All templates ({items?.length ?? 0})
+                    {t('allTemplates', { count: items?.length ?? 0 })}
                 </Heading>
                 {loading ? (
                     <SkeletonCard lines={3} />
                 ) : items === null || items.length === 0 ? (
                     <EmptyState
                         variant="no-records"
-                        title="No templates yet"
-                        description="Use the form above to create your first vendor questionnaire template."
+                        title={t('noTemplates')}
+                        description={t('noTemplatesDesc')}
                     />
                 ) : (
                     <div className="divide-y divide-border-default/40">
-                        {items.map((t) => (
+                        {items.map((item) => (
                             <Link
-                                key={t.id}
+                                key={item.id}
                                 href={tenantHref(
-                                    `/admin/vendor-templates/${t.id}`,
+                                    `/admin/vendor-templates/${item.id}`,
                                 )}
                                 className="flex items-center justify-between py-3 hover:bg-bg-muted/50 px-2 rounded transition"
-                                data-testid={`template-row-${t.id}`}
+                                data-testid={`template-row-${item.id}`}
                             >
                                 <div>
                                     <div className="text-sm text-content-emphasis font-medium">
-                                        {t.name}
+                                        {item.name}
                                     </div>
                                     <div className="text-xs text-content-subtle">
-                                        {t.key} · v{t.version} ·{' '}
-                                        {t._count.sections} section(s) ·{' '}
-                                        {t._count.questions} question(s)
+                                        {item.key} · v{item.version} ·{' '}
+                                        {t('sectionsCount', { count: item._count.sections })} ·{' '}
+                                        {t('questionsCount', { count: item._count.questions })}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-compact">
-                                    <StatusBadge variant={t.isPublished ? 'success' : 'warning'} size="sm">
-                                        {t.isPublished ? 'Published' : 'Draft'}
+                                    <StatusBadge variant={item.isPublished ? 'success' : 'warning'} size="sm">
+                                        {item.isPublished ? t('published') : t('draft')}
                                     </StatusBadge>
                                     <span className="text-xs text-content-subtle">
-                                        Updated {formatDate(t.updatedAt)}
+                                        {t('updatedOn', { date: formatDate(item.updatedAt) })}
                                     </span>
                                 </div>
                             </Link>

@@ -76,7 +76,9 @@ describe('RQ3-3 — appetite checks honour the tested percentile', () => {
 
     test('the admin page exposes the board-level percentile choice', () => {
         expect(adminPage).toMatch(/appetite-tested-percentile/);
-        expect(adminPage).toMatch(/Ceiling tested at/);
+        // Copy moved to next-intl (admin.riskAppetite.ceilingTestedAt); the
+        // page now references the i18n key instead of the literal.
+        expect(adminPage).toMatch(/ceilingTestedAt/);
     });
 });
 

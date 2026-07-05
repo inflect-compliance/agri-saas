@@ -7,6 +7,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Tanstack-react-table cell callbacks (tanstack cell callbacks where row/getValue carry the implicit-any annotation) — typing each callback with `CellContext<TData, TValue>` requires importing the right generic per column and adds significant ceremony. The implicit any here is at the render-time boundary; row.original is type-narrowed by the column's accessorKey at runtime. */
 import { formatDate } from '@/lib/format-date';
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { Trash2, CheckCircle, XCircle, Loader2, Link2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ interface ProviderInfo {
 }
 
 export default function AdminIntegrationsPage() {
+    const t = useTranslations('admin.integrations');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
 
@@ -75,7 +77,7 @@ export default function AdminIntegrationsPage() {
             setProviders(data.availableProviders ?? []);
             setWebhookBaseUrl(data.webhookBaseUrl ?? '');
         } catch {
-            setMessage({ type: 'error', text: 'Failed to load integrations' });
+            setMessage({ type: 'error', text: t('loadFailed') });
         }
         setLoading(false);
     }, [apiUrl]);
@@ -95,7 +97,7 @@ export default function AdminIntegrationsPage() {
 
     const handleSave = async () => {
         if (!formProvider || !formName) {
-            setMessage({ type: 'error', text: 'Provider and name are required' });
+            setMessage({ type: 'error', text: t('providerNameRequired') });
             return;
         }
         setSaving(true);
@@ -122,20 +124,20 @@ export default function AdminIntegrationsPage() {
 
             if (!res.ok) {
                 const err = await res.json();
-                setMessage({ type: 'error', text: err.error || 'Failed to save' });
+                setMessage({ type: 'error', text: err.error || t('saveFailed') });
             } else {
                 const data = await res.json();
                 setMessage({
                     type: 'success',
                     text: editingId
-                        ? 'Connection updated'
-                        : `Connection created.${data.warning ? ` ${data.warning}` : ''}`,
+                        ? t('connectionUpdated')
+                        : `${t('connectionCreated')}${data.warning ? ` ${data.warning}` : ''}`,
                 });
                 resetForm();
                 await fetchConnections();
             }
         } catch {
-            setMessage({ type: 'error', text: 'Network error' });
+            setMessage({ type: 'error', text: t('networkError') });
         }
         setSaving(false);
     };
@@ -156,11 +158,11 @@ export default function AdminIntegrationsPage() {
             const data = await res.json();
             setMessage({
                 type: data.valid ? 'success' : 'error',
-                text: data.valid ? 'Connection test passed' : `Test failed: ${data.error || 'unknown error'}`,
+                text: data.valid ? t('testPassed') : t('testFailedError', { error: data.error || t('unknownError') }),
             });
             await fetchConnections();
         } catch {
-            setMessage({ type: 'error', text: 'Test failed: network error' });
+            setMessage({ type: 'error', text: t('testFailedNetwork') });
         }
         setTesting(null);
     };
@@ -173,10 +175,10 @@ export default function AdminIntegrationsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ connectionId }),
             });
-            setMessage({ type: 'success', text: 'Connection disabled' });
+            setMessage({ type: 'success', text: t('connectionDisabled') });
             await fetchConnections();
         } catch {
-            setMessage({ type: 'error', text: 'Failed to disable' });
+            setMessage({ type: 'error', text: t('disableFailed') });
         }
     };
 
@@ -187,13 +189,13 @@ export default function AdminIntegrationsPage() {
                 <div>
                     <PageBreadcrumbs
                         items={[
-                            { label: 'Dashboard', href: tenantHref('/dashboard') },
-                            { label: 'Admin', href: tenantHref('/admin') },
-                            { label: 'Integrations' },
+                            { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                            { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                            { label: t('breadcrumbIntegrations') },
                         ]}
                         className="mb-1"
                     />
-                    <Heading level={1}>Integrations</Heading>
+                    <Heading level={1}>{t('heading')}</Heading>
                 </div>
 
                 {/* SP-1 — SharePoint connection (delegated consent, separate
@@ -215,7 +217,7 @@ export default function AdminIntegrationsPage() {
                 {/* Webhook endpoint info */}
                 {webhookBaseUrl && (
                     <div className={cardVariants({ density: 'compact' })}>
-                        <p className="text-xs text-content-muted mb-1">Webhook Base URL</p>
+                        <p className="text-xs text-content-muted mb-1">{t('webhookBaseUrl')}</p>
                         <code className="text-sm text-[var(--brand-default)] font-mono">{webhookBaseUrl}/&#123;provider&#125;</code>
                     </div>
                 )}
@@ -228,7 +230,7 @@ export default function AdminIntegrationsPage() {
                     Add button hoist above the table. */}
                 <div>
                     <div className="flex justify-between items-center mb-3">
-                        <Heading level={2}>Configured Connections</Heading>
+                        <Heading level={2}>{t('configuredConnections')}</Heading>
                         <Button
                             variant="primary"
                             onClick={() => { resetForm(); setShowForm(true); }}
@@ -241,24 +243,24 @@ export default function AdminIntegrationsPage() {
                     {loading ? (
                         <div className="p-8 text-center text-content-subtle">
                             <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                            <span className="sr-only">Fetching integrations</span>
+                            <span className="sr-only">{t('fetchingIntegrations')}</span>
                         </div>
                     ) : connections.length === 0 ? (
                         <div className="p-8 text-center text-content-subtle">
-                            No integrations configured. Click &quot;Add Integration&quot; to get started.
+                            {t('noIntegrations')}
                         </div>
                     ) : (
                         (() => {
                             const connCols = createColumns<ConnectionDTO>([
-                                { accessorKey: 'provider', header: 'Provider', cell: ({ getValue }: any) => <StatusBadge variant="info">{getValue()}</StatusBadge> },
-                                { accessorKey: 'name', header: 'Name', cell: ({ getValue }: any) => <span className="font-medium">{getValue()}</span> },
+                                { accessorKey: 'provider', header: t('colProvider'), cell: ({ getValue }: any) => <StatusBadge variant="info">{getValue()}</StatusBadge> },
+                                { accessorKey: 'name', header: t('colName'), cell: ({ getValue }: any) => <span className="font-medium">{getValue()}</span> },
                                 {
-                                    id: 'status', header: 'Status', accessorKey: 'isEnabled',
-                                    cell: ({ row }: any) => <StatusBadge variant={row.original.isEnabled ? 'success' : 'error'}>{row.original.isEnabled ? 'Active' : 'Disabled'}</StatusBadge>,
+                                    id: 'status', header: t('colStatus'), accessorKey: 'isEnabled',
+                                    cell: ({ row }: any) => <StatusBadge variant={row.original.isEnabled ? 'success' : 'error'}>{row.original.isEnabled ? t('active') : t('disabled')}</StatusBadge>,
                                 },
-                                { id: 'secrets', header: 'Secrets', cell: () => <span className="text-content-subtle font-mono">••••••••</span> },
+                                { id: 'secrets', header: t('colSecrets'), cell: () => <span className="text-content-subtle font-mono">••••••••</span> },
                                 {
-                                    id: 'lastTest', header: 'Last Test', accessorKey: 'lastTestedAt',
+                                    id: 'lastTest', header: t('colLastTest'), accessorKey: 'lastTestedAt',
                                     cell: ({ row }: any) => row.original.lastTestedAt ? (
                                         <span className="flex items-center gap-1 text-content-muted">
                                             {row.original.lastTestStatus === 'ok' ? <CheckCircle className="w-3.5 h-3.5 text-content-success" /> : <XCircle className="w-3.5 h-3.5 text-content-error" />}
@@ -266,18 +268,18 @@ export default function AdminIntegrationsPage() {
                                         </span>
                                     ) : <span className="text-content-subtle">—</span>,
                                 },
-                                { id: 'executions', header: 'Executions', accessorFn: (c: ConnectionDTO) => c._count?.executions ?? 0, cell: ({ getValue }: any) => <span>{getValue()}</span> },
+                                { id: 'executions', header: t('colExecutions'), accessorFn: (c: ConnectionDTO) => c._count?.executions ?? 0, cell: ({ getValue }: any) => <span>{getValue()}</span> },
                                 {
-                                    id: 'actions', header: 'Actions',
+                                    id: 'actions', header: t('colActions'),
                                     cell: ({ row }: any) => (
                                         <div className="flex gap-1">
-                                            <Tooltip content="Test connection">
-                                                <Button variant="secondary" size="xs" onClick={() => handleTest(row.original)} disabled={testing === row.original.id} aria-label="Test connection">
+                                            <Tooltip content={t('testConnection')}>
+                                                <Button variant="secondary" size="xs" onClick={() => handleTest(row.original)} disabled={testing === row.original.id} aria-label={t('testConnection')}>
                                                     {testing === row.original.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
                                                 </Button>
                                             </Tooltip>
-                                            <Tooltip content="Disable integration">
-                                                <Button variant="destructive-outline" size="xs" onClick={() => handleDisable(row.original.id)} aria-label="Disable integration">
+                                            <Tooltip content={t('disableIntegration')}>
+                                                <Button variant="destructive-outline" size="xs" onClick={() => handleDisable(row.original.id)} aria-label={t('disableIntegration')}>
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </Button>
                                             </Tooltip>
@@ -290,8 +292,8 @@ export default function AdminIntegrationsPage() {
                                     data={connections}
                                     columns={connCols}
                                     getRowId={(c) => c.id}
-                                    emptyState='No integrations configured. Click "Add Integration" to get started.'
-                                    resourceName={(p) => p ? 'connections' : 'connection'}
+                                    emptyState={t('noIntegrations')}
+                                    resourceName={(p) => p ? t('connectionsPlural') : t('connectionSingular')}
                                     data-testid="integrations-table"
                                 />
                             );
@@ -303,18 +305,18 @@ export default function AdminIntegrationsPage() {
                 {showForm && (
                     <div className={cn(cardVariants(), 'space-y-default')}>
                         <Heading level={2}>
-                            {editingId ? 'Edit Integration' : 'Add Integration'}
+                            {editingId ? t('editIntegration') : t('addIntegrationForm')}
                         </Heading>
 
                         {/* Provider select */}
                         <div>
-                            <label className="block text-sm text-content-muted mb-1">Provider</label>
+                            <label className="block text-sm text-content-muted mb-1">{t('provider')}</label>
                             <Combobox
                                 id="integration-provider-select"
                                 selected={providers.map(p => ({ value: p.id, label: p.displayName })).find(o => o.value === formProvider) ?? null}
                                 setSelected={(opt) => { setFormProvider(opt?.value ?? ''); setFormConfig({}); setFormSecrets({}); }}
                                 options={providers.map(p => ({ value: p.id, label: p.displayName }))}
-                                placeholder="Select a provider..."
+                                placeholder={t('selectProvider')}
                                 disabled={!!editingId}
                                 matchTriggerWidth
                             />
@@ -325,13 +327,13 @@ export default function AdminIntegrationsPage() {
 
                         {/* Name */}
                         <div>
-                            <label className="block text-sm text-content-muted mb-1">Connection Name</label>
+                            <label className="block text-sm text-content-muted mb-1">{t('connectionName')}</label>
                             <input
                                 type="text"
                                 value={formName}
                                 onChange={e => setFormName(e.target.value)}
                                 className="input w-full"
-                                placeholder="e.g. Acme GitHub Org"
+                                placeholder={t('connectionNamePlaceholder')}
                                 id="integration-name-input"
                             />
                         </div>
@@ -339,7 +341,7 @@ export default function AdminIntegrationsPage() {
                         {/* Config fields */}
                         {selectedProvider && selectedProvider.configSchema.configFields.length > 0 && (
                             <div className="space-y-compact">
-                                <Heading level={3}>Configuration</Heading>
+                                <Heading level={3}>{t('configuration')}</Heading>
                                 {selectedProvider.configSchema.configFields.map(field => (
                                     <div key={field.key}>
                                         <label className="block text-xs text-content-muted mb-1">
@@ -364,19 +366,19 @@ export default function AdminIntegrationsPage() {
                         {selectedProvider && selectedProvider.configSchema.secretFields.length > 0 && (
                             <div className="space-y-compact">
                                 <div className="flex items-center justify-between">
-                                    <Heading level={3}>Secrets</Heading>
+                                    <Heading level={3}>{t('secrets')}</Heading>
                                     <Button
                                         variant="secondary"
                                         size="xs"
                                         onClick={() => setShowSecrets(!showSecrets)}
                                     >
                                         {showSecrets ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                        {showSecrets ? 'Hide' : 'Show'}
+                                        {showSecrets ? t('hide') : t('show')}
                                     </Button>
                                 </div>
                                 <div className="p-3 rounded border border-border-warning bg-bg-warning">
                                     <p className="text-xs text-content-warning">
-                                        Secrets are encrypted at rest. They cannot be viewed after saving.
+                                        {t('secretsEncrypted')}
                                     </p>
                                 </div>
                                 {selectedProvider.configSchema.secretFields.map(field => (
@@ -400,7 +402,7 @@ export default function AdminIntegrationsPage() {
                         {/* Supported checks */}
                         {selectedProvider && (
                             <div>
-                                <Heading level={3} className="mb-1">Supported Checks</Heading>
+                                <Heading level={3} className="mb-1">{t('supportedChecks')}</Heading>
                                 <div className="flex flex-wrap gap-1">
                                     {selectedProvider.supportedChecks.map(check => (
                                         <StatusBadge variant="neutral" key={check}>
@@ -420,9 +422,9 @@ export default function AdminIntegrationsPage() {
                                 loading={saving}
                                 id="save-integration-btn"
                             >
-                                {editingId ? 'Update' : 'Create'} Connection
+                                {editingId ? t('updateConnection') : t('createConnection')}
                             </Button>
-                            <Button variant="secondary" onClick={resetForm}>Cancel</Button>
+                            <Button variant="secondary" onClick={resetForm}>{t('cancel')}</Button>
                         </div>
                     </div>
                 )}
