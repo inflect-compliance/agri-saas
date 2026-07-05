@@ -4,6 +4,7 @@
  * admin/security page). Migrate to useTenantSWR with Epic 69. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { cardVariants } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { OfficeBuilding } from '@/components/ui/icons/nucleo/office-building';
@@ -54,6 +55,7 @@ const EMPTY_PROFILE: Profile = PROFILE_FIELDS.reduce(
 );
 
 export default function AdminFarmProfilePage() {
+    const t = useTranslations('admin.farmProfile');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
@@ -123,15 +125,15 @@ export default function AdminFarmProfilePage() {
             <div className="space-y-section animate-fadeIn">
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'Farm profile' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbFarmProfile') },
                     ]}
                     className="mb-1"
                 />
                 <Heading level={2} className="flex items-center gap-tight">
                     <OfficeBuilding className="w-6 h-6 text-[var(--brand-default)]" />
-                    Loading farm profile…
+                    {t('loading')}
                 </Heading>
                 <div className={cn(cardVariants(), 'space-y-default')}>
                     <SkeletonInput />
@@ -147,15 +149,15 @@ export default function AdminFarmProfilePage() {
             <div>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'Farm profile' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbFarmProfile') },
                     ]}
                     className="mb-1"
                 />
                 <Heading level={1} className="flex items-center gap-tight">
                     <OfficeBuilding className="w-6 h-6 text-[var(--brand-default)]" />
-                    Farm profile
+                    {t('heading')}
                 </Heading>
             </div>
 

@@ -27,6 +27,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, cardVariants } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { getPermissionsForRole, type PermissionSet } from '@/lib/permissions';
@@ -110,6 +111,7 @@ function PermissionGrid({
     onChange: (p: PermissionSet) => void;
     readonly?: boolean;
 }) {
+    const t = useTranslations('admin.roles');
     const toggle = (resource: keyof PermissionSet, action: string) => {
         if (readonly) return;
         const current = (permissions[resource] as Record<string, boolean>)[action];
@@ -132,7 +134,7 @@ function PermissionGrid({
             <table className="data-table text-xs">
                 <thead>
                     <tr>
-                        <th className="sticky left-0 bg-bg-default/90 z-10 text-left">Resource</th>
+                        <th className="sticky left-0 bg-bg-default/90 z-10 text-left">{t('resource')}</th>
                         {allActions.map((action) => (
                             <th key={action} className="text-center capitalize px-2">
                                 {action}
@@ -146,7 +148,7 @@ function PermissionGrid({
                         return (
                             <tr key={resource}>
                                 <td className="sticky left-0 bg-bg-default/50 text-xs font-medium text-content-default">
-                                    {RESOURCE_LABELS[resource]}
+                                    {t(`resourceLabels.${resource}`)}
                                 </td>
                                 {allActions.map((action) => {
                                     const hasAction = resourceActions.includes(action);
@@ -168,7 +170,7 @@ function PermissionGrid({
                                                     }
                                                     ${readonly ? 'cursor-default' : 'cursor-pointer'}
                                                 `}
-                                                title={`${resource}.${action}: ${granted ? 'granted' : 'denied'}`}
+                                                title={`${resource}.${action}: ${granted ? t('granted') : t('denied')}`}
                                                 id={`perm-${resource}-${action}`}
                                             >
                                                 {granted ? <Check size={10} /> : null}
@@ -200,6 +202,7 @@ function RoleForm({
     submitting: boolean;
     submitLabel: string;
 }) {
+    const t = useTranslations('admin.roles');
     const [name, setName] = useState(initial?.name ?? '');
     const [description, setDescription] = useState(initial?.description ?? '');
     const [baseRole, setBaseRole] = useState<Role>(initial?.baseRole ?? 'READER');
@@ -220,13 +223,13 @@ function RoleForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
                 <div>
                     <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">
-                        Role Name *
+                        {t('roleNameLabel')}
                     </label>
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Compliance Lead"
+                        placeholder={t('roleNamePlaceholder')}
                         className="input w-full"
                         maxLength={100}
                         id="role-name-input"
@@ -234,7 +237,7 @@ function RoleForm({
                 </div>
                 <div>
                     <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">
-                        Base Role (fallback)
+                        {t('baseRoleLabel')}
                     </label>
                     <Combobox
                         hideSearch
@@ -245,20 +248,20 @@ function RoleForm({
                         matchTriggerWidth
                     />
                     <p className="text-[10px] text-content-subtle mt-1">
-                        Used for coarse authorization when custom permissions don&apos;t apply.
+                        {t('baseRoleHint')}
                     </p>
                 </div>
             </div>
 
             <div>
                 <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">
-                    Description
+                    {t('descriptionLabel')}
                 </label>
                 <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Optional — describe what this role is for"
+                    placeholder={t('descriptionPlaceholder')}
                     className="input w-full"
                     maxLength={500}
                     id="role-description-input"
@@ -274,14 +277,14 @@ function RoleForm({
                     id="toggle-permissions-btn"
                 >
                     {showGrid ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    {showGrid ? 'Hide' : 'Show'} Permission Grid
+                    {showGrid ? t('hidePermissionGrid') : t('showPermissionGrid')}
                 </button>
                 {showGrid && (
                     <div className={cn(cardVariants({ density: 'compact' }), 'mt-3')}>
                         <div className="flex items-center justify-between mb-3">
-                            <Eyebrow>Permissions</Eyebrow>
+                            <Eyebrow>{t('permissions')}</Eyebrow>
                             <div className="flex gap-1">
-                                <span className="text-[10px] text-content-subtle">Preset from:</span>
+                                <span className="text-[10px] text-content-subtle">{t('presetFrom')}</span>
                                 {BASE_ROLES.map((r) => (
                                     <button
                                         key={r}
@@ -309,10 +312,10 @@ function RoleForm({
                     loading={submitting}
                     id="role-submit-btn"
                 >
-                    {submitting ? 'Saving...' : submitLabel}
+                    {submitting ? t('savingEllipsis') : submitLabel}
                 </Button>
                 <Button variant="secondary" type="button" onClick={onCancel}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
             </div>
         </div>
@@ -322,6 +325,7 @@ function RoleForm({
 // ─── Main Page ───
 
 export default function CustomRolesPage() {
+    const t = useTranslations('admin.roles');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
 
@@ -344,11 +348,11 @@ export default function CustomRolesPage() {
                 setRoles(data.filter((r: CustomRole) => r.isActive));
             }
         } catch {
-            setError('Failed to load custom roles');
+            setError(t('loadFailed'));
         } finally {
             setLoading(false);
         }
-    }, [apiUrl]);
+    }, [apiUrl, t]);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { fetchRoles(); }, [fetchRoles]);
@@ -365,11 +369,11 @@ export default function CustomRolesPage() {
                 body: JSON.stringify(data),
             });
             if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Create failed' }));
-                setError(err.error?.message || err.error || err.message || 'Create failed');
+                const err = await res.json().catch(() => ({ error: t('createFailed') }));
+                setError(err.error?.message || err.error || err.message || t('createFailed'));
                 return;
             }
-            setSuccess(`Custom role "${data.name}" created successfully.`);
+            setSuccess(t('createdSuccess', { name: data.name }));
             setShowCreate(false);
             await fetchRoles();
         } catch (err) {
@@ -390,11 +394,11 @@ export default function CustomRolesPage() {
                 body: JSON.stringify(data),
             });
             if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Update failed' }));
-                setError(err.error?.message || err.error || err.message || 'Update failed');
+                const err = await res.json().catch(() => ({ error: t('updateFailed') }));
+                setError(err.error?.message || err.error || err.message || t('updateFailed'));
                 return;
             }
-            setSuccess(`Custom role "${data.name}" updated successfully.`);
+            setSuccess(t('updatedSuccess', { name: data.name }));
             setEditingId(null);
             await fetchRoles();
         } catch (err) {
@@ -406,21 +410,21 @@ export default function CustomRolesPage() {
 
     async function handleDelete(role: CustomRole) {
         const memberWarning = role._count.memberships > 0
-            ? `\n\n${role._count.memberships} member(s) will lose this custom role and fall back to their base role.`
+            ? t('memberWarning', { count: role._count.memberships })
             : '';
-        if (!confirm(`Delete "${role.name}"?${memberWarning}`)) return;
+        if (!confirm(t('confirmDelete', { name: role.name }) + memberWarning)) return;
 
         setError(null);
         setSuccess(null);
         try {
             const res = await fetch(apiUrl(`/admin/roles/${role.id}`), { method: 'DELETE' });
             if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Delete failed' }));
-                setError(err.error?.message || err.error || err.message || 'Delete failed');
+                const err = await res.json().catch(() => ({ error: t('deleteFailed') }));
+                setError(err.error?.message || err.error || err.message || t('deleteFailed'));
                 return;
             }
             const result = await res.json();
-            setSuccess(`Deleted "${role.name}". ${result.membersCleared} member(s) reassigned to fallback.`);
+            setSuccess(t('deletedSuccess', { name: role.name, count: result.membersCleared }));
             await fetchRoles();
         } catch (err) {
             setError((err as Error).message);
@@ -432,15 +436,15 @@ export default function CustomRolesPage() {
     // soft-delete + member-fallback semantics; the usecase is idempotent.
     const { batchAction: roleBulkAction, dialog: roleDeleteDialog } =
         useBulkDelete<CustomRole>({
-            entitySingular: 'role',
-            entityPlural: 'roles',
+            entitySingular: t('roleSingular'),
+            entityPlural: t('rolePlural'),
             onDelete: async (roleIds) => {
                 const res = await fetch(apiUrl('/admin/roles/bulk/delete'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ roleIds }),
                 });
-                if (!res.ok) throw new Error('Failed to delete roles');
+                if (!res.ok) throw new Error(t('deleteRolesFailed'));
                 await fetchRoles();
             },
         });
@@ -475,7 +479,7 @@ export default function CustomRolesPage() {
         () => createColumns<CustomRole>([
             {
                 id: 'name',
-                header: 'Name',
+                header: t('colName'),
                 accessorKey: 'name',
                 cell: ({ row }) => (
                     <span className="text-sm font-medium text-content-emphasis">{row.original.name}</span>
@@ -483,7 +487,7 @@ export default function CustomRolesPage() {
             },
             {
                 id: 'baseRole',
-                header: 'Base Role',
+                header: t('colBaseRole'),
                 accessorKey: 'baseRole',
                 cell: ({ row }) => (
                     <StatusBadge variant={ROLE_COLORS[row.original.baseRole] || 'neutral'}>
@@ -493,7 +497,7 @@ export default function CustomRolesPage() {
             },
             {
                 id: 'description',
-                header: 'Description',
+                header: t('colDescription'),
                 accessorKey: 'description',
                 cell: ({ row }) => (
                     <span className="text-content-muted truncate block max-w-xs">
@@ -503,7 +507,7 @@ export default function CustomRolesPage() {
             },
             {
                 id: 'members',
-                header: 'Members',
+                header: t('colMembers'),
                 accessorFn: (r) => r._count.memberships,
                 cell: ({ row }) => (
                     <span className="flex items-center gap-1 text-content-default">
@@ -514,7 +518,7 @@ export default function CustomRolesPage() {
             },
             {
                 id: 'permissions',
-                header: 'Permissions',
+                header: t('colPermissions'),
                 accessorFn: (r) => countGranted(r.permissionsJson),
                 cell: ({ row }) => (
                     <span className="text-content-muted font-mono">
@@ -529,7 +533,7 @@ export default function CustomRolesPage() {
                     const role = row.original;
                     return (
                         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
-                            <Tooltip content="Edit role">
+                            <Tooltip content={t('editRole')}>
                                 <Button
                                     variant="secondary"
                                     size="xs"
@@ -537,18 +541,18 @@ export default function CustomRolesPage() {
                                         setShowCreate(false);
                                         setEditingId(role.id);
                                     }}
-                                    aria-label="Edit role"
+                                    aria-label={t('editRole')}
                                     id={`edit-role-${role.id}`}
                                 >
                                     <Pencil className="w-3.5 h-3.5" />
                                 </Button>
                             </Tooltip>
-                            <Tooltip content="Delete role">
+                            <Tooltip content={t('deleteRole')}>
                                 <Button
                                     variant="destructive-outline"
                                     size="xs"
                                     onClick={() => handleDelete(role)}
-                                    aria-label="Delete role"
+                                    aria-label={t('deleteRole')}
                                     id={`delete-role-${role.id}`}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -569,15 +573,15 @@ export default function CustomRolesPage() {
             <div className="space-y-section animate-fadeIn">
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'Custom Roles' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbCustomRoles') },
                     ]}
                     className="mb-1"
                 />
                 <Heading level={2} className="flex items-center gap-tight">
                     <Shield className="w-6 h-6 text-[var(--brand-default)]" />
-                    Loading Custom Roles…
+                    {t('loading')}
                 </Heading>
                 <Card className="space-y-default">
                     <div className="h-4 bg-bg-elevated/60 rounded w-1/3 animate-pulse" />
@@ -595,11 +599,10 @@ export default function CustomRolesPage() {
                     <div>
                         <Heading level={1} className="flex items-center gap-tight">
                             <Shield className="w-6 h-6 text-[var(--brand-default)]" />
-                            Custom Roles
+                            {t('heading')}
                         </Heading>
                         <p className="text-sm text-content-muted mt-1">
-                            {roles.length} custom role{roles.length !== 1 ? 's' : ''} defined.
-                            Members assigned a custom role use its permissions instead of the built-in role defaults.
+                            {t('rolesDefined', { count: roles.length })}
                         </p>
                     </div>
                     {!showCreate && !editingId && (
@@ -638,12 +641,12 @@ export default function CustomRolesPage() {
                 {/* Create Form */}
                 {showCreate && (
                     <div className={cn(cardVariants(), 'border border-[var(--brand-default)]/30')} id="create-role-form">
-                        <Heading level={3} className="mb-4">Create Custom Role</Heading>
+                        <Heading level={3} className="mb-4">{t('createCustomRole')}</Heading>
                         <RoleForm
                             onSubmit={handleCreate}
                             onCancel={() => setShowCreate(false)}
                             submitting={submitting}
-                            submitLabel="Create Role"
+                            submitLabel={t('createRole')}
                         />
                     </div>
                 )}
@@ -653,14 +656,14 @@ export default function CustomRolesPage() {
                 {editingRole && (
                     <div className={cn(cardVariants(), 'border border-[var(--brand-default)]/30')} id="edit-role-form">
                         <Heading level={3} className="mb-4">
-                            Edit: {editingRole.name}
+                            {t('editRoleName', { name: editingRole.name })}
                         </Heading>
                         <RoleForm
                             initial={editingRole}
                             onSubmit={(data) => handleUpdate(editingRole.id, data)}
                             onCancel={() => setEditingId(null)}
                             submitting={submitting}
-                            submitLabel="Save Changes"
+                            submitLabel={t('saveChanges')}
                         />
                     </div>
                 )}
@@ -680,8 +683,8 @@ export default function CustomRolesPage() {
                         columns={roleColumns}
                         getRowId={(r) => r.id}
                         batchActions={[roleBulkAction]}
-                        emptyState='No custom roles defined yet. Click "Create Custom Role" to get started.'
-                        resourceName={(p) => (p ? 'custom roles' : 'custom role')}
+                        emptyState={t('noRoles')}
+                        resourceName={(p) => (p ? t('customRolesPlural') : t('customRoleSingular'))}
                         data-testid="roles-table"
                     />
                 </div>

@@ -6,6 +6,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card, cardVariants } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
@@ -85,6 +86,7 @@ function ScopePicker({
     selected: string[];
     onChange: (scopes: string[]) => void;
 }) {
+    const t = useTranslations('admin.apiKeys');
     const isFullAccess = selected.includes('*');
 
     const toggleFullAccess = () => {
@@ -117,27 +119,27 @@ function ScopePicker({
                     }`}
                     id="scope-full-access"
                 >
-                    Full Access (*)
+                    {t('fullAccess')}
                 </button>
                 <InfoTooltip
-                    aria-label="About the Full Access scope"
+                    aria-label={t('fullAccessAbout')}
                     iconClassName="h-3.5 w-3.5"
-                    content="Gives this key read + write on every resource — evidence, controls, admin settings. Prefer narrow scopes for automation."
+                    content={t('fullAccessTooltip')}
                 />
                 {isFullAccess && (
                     <span className="text-[10px] text-content-warning flex items-center gap-1">
                         <AlertTriangle className="w-3.5 h-3.5" />
-                        Grants all permissions
+                        {t('grantsAllPermissions')}
                     </span>
                 )}
             </div>
 
             {!isFullAccess && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-tight">
-                    {Object.entries(SCOPE_GROUPS).map(([, group]) => (
+                    {Object.entries(SCOPE_GROUPS).map(([groupKey, group]) => (
                         <div key={group.label} className="bg-bg-default/40 rounded-lg p-2 space-y-1">
                             <div className="text-[10px] text-content-subtle uppercase tracking-wider font-medium">
-                                {group.label}
+                                {t(`scopes.${groupKey}`)}
                             </div>
                             {group.scopes.map((scope) => {
                                 const action = scope.split(':')[1];
@@ -172,6 +174,7 @@ function ScopePicker({
 // ─── Copy-Once Key Display ───
 
 export function KeyDisplay({ plaintext }: { plaintext: string }) {
+    const t = useTranslations('admin.apiKeys');
     const [visible, setVisible] = useState(false);
     const { copy, copied } = useCopyToClipboard({ timeout: 2500 });
     const toast = useToast();
@@ -179,9 +182,9 @@ export function KeyDisplay({ plaintext }: { plaintext: string }) {
     const handleCopy = async () => {
         const ok = await copy(plaintext);
         if (ok) {
-            toast.success('API key copied — paste it into your tool now.');
+            toast.success(t('keyCopied'));
         } else {
-            toast.error('Copy failed — select the key and copy manually.');
+            toast.error(t('keyCopyFailed'));
         }
     };
 
@@ -190,19 +193,19 @@ export function KeyDisplay({ plaintext }: { plaintext: string }) {
             variant="warning"
             id="key-display"
             icon={AlertTriangle}
-            title="Copy this key now — it will never be shown again!"
+            title={t('copyKeyNow')}
             className="flex-col items-stretch space-y-tight p-4"
         >
             <div className="flex items-center gap-tight">
                 <code className="flex-1 bg-bg-page px-3 py-2 rounded text-sm font-mono text-content-success select-all break-all">
                     {visible ? plaintext : plaintext.slice(0, 13) + '•'.repeat(40)}
                 </code>
-                <Tooltip content={visible ? 'Hide key' : 'Show key'}>
+                <Tooltip content={visible ? t('hideKey') : t('showKey')}>
                     <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => setVisible(!visible)}
-                        aria-label={visible ? 'Hide key' : 'Show key'}
+                        aria-label={visible ? t('hideKey') : t('showKey')}
                         id="key-toggle-visibility"
                     >
                         {visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -215,7 +218,7 @@ export function KeyDisplay({ plaintext }: { plaintext: string }) {
                     id="key-copy-btn"
                 >
                     {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied ? 'Copied!' : 'Copy'}
+                    {copied ? t('copiedExclaim') : t('copy')}
                 </Button>
             </div>
         </InlineNotice>
@@ -225,6 +228,7 @@ export function KeyDisplay({ plaintext }: { plaintext: string }) {
 // ─── Main Page ───
 
 export default function ApiKeysPage() {
+    const t = useTranslations('admin.apiKeys');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
 
@@ -250,7 +254,7 @@ export default function ApiKeysPage() {
             const res = await fetch(apiUrl('/admin/api-keys'));
             if (res.ok) setKeys(await res.json());
         } catch {
-            setError('Failed to load API keys');
+            setError(t('loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -284,14 +288,14 @@ export default function ApiKeysPage() {
             });
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Create failed' }));
-                setError(err.error?.message || err.error || err.message || 'Create failed');
+                const err = await res.json().catch(() => ({ error: t('createFailed') }));
+                setError(err.error?.message || err.error || err.message || t('createFailed'));
                 return;
             }
 
             const result = await res.json();
             setCreatedKey(result);
-            setSuccess(`API key "${createName}" created. Copy the key below.`);
+            setSuccess(t('createdSuccess', { name: createName }));
             setCreateName('');
             setCreateScopes([]);
             setCreateExpiry('');
@@ -317,11 +321,11 @@ export default function ApiKeysPage() {
         try {
             const res = await fetch(apiUrl(`/admin/api-keys/${key.id}`), { method: 'DELETE' });
             if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: 'Revoke failed' }));
-                setError(err.error?.message || err.error || 'Revoke failed');
-                throw new Error(err.error?.message || err.error || 'Revoke failed');
+                const err = await res.json().catch(() => ({ error: t('revokeFailed') }));
+                setError(err.error?.message || err.error || t('revokeFailed'));
+                throw new Error(err.error?.message || err.error || t('revokeFailed'));
             }
-            setSuccess(`API key "${key.name}" revoked successfully.`);
+            setSuccess(t('revokedSuccess', { name: key.name }));
             await fetchKeys();
         } catch (err) {
             setError((err as Error).message);
@@ -336,8 +340,8 @@ export default function ApiKeysPage() {
     // ─── Bulk revoke (selection action-row) ───
     const { batchAction: bulkRevokeAction, dialog: bulkRevokeDialog } =
         useBulkDelete<ApiKeyRecord>({
-            entitySingular: 'API key',
-            entityPlural: 'API keys',
+            entitySingular: t('apiKeySingular'),
+            entityPlural: t('apiKeyPlural'),
             verb: 'Revoke',
             onDelete: async (ids) => {
                 setError(null);
@@ -348,13 +352,13 @@ export default function ApiKeysPage() {
                     body: JSON.stringify({ apiKeyIds: ids }),
                 });
                 if (!res.ok) {
-                    const err = await res.json().catch(() => ({ error: 'Revoke failed' }));
-                    const msg = err.error?.message || err.error || 'Revoke failed';
+                    const err = await res.json().catch(() => ({ error: t('revokeFailed') }));
+                    const msg = err.error?.message || err.error || t('revokeFailed');
                     setError(msg);
                     throw new Error(msg);
                 }
                 const { revoked } = await res.json();
-                setSuccess(`Revoked ${revoked} API ${revoked === 1 ? 'key' : 'keys'}.`);
+                setSuccess(t('revokedCount', { count: revoked }));
                 await fetchKeys();
             },
         });
@@ -365,21 +369,21 @@ export default function ApiKeysPage() {
             createColumns<ApiKeyRecord>([
                 {
                     accessorKey: 'name',
-                    header: 'Name',
+                    header: t('colName'),
                     cell: ({ row }) => (
                         <span className="text-sm font-medium text-content-emphasis">{row.original.name}</span>
                     ),
                 },
                 {
                     accessorKey: 'keyPrefix',
-                    header: 'Key',
+                    header: t('colKey'),
                     cell: ({ row }) => (
                         <code className="text-content-muted font-mono">{row.original.keyPrefix}...</code>
                     ),
                 },
                 {
                     accessorKey: 'scopes',
-                    header: 'Scopes',
+                    header: t('colScopes'),
                     cell: ({ row }) => {
                         const scopes = row.original.scopes as string[];
                         return (
@@ -396,7 +400,7 @@ export default function ApiKeysPage() {
                 },
                 {
                     accessorKey: 'expiresAt',
-                    header: 'Expires',
+                    header: t('colExpires'),
                     cell: ({ row }) =>
                         row.original.expiresAt ? (
                             <span className="flex items-center gap-1 text-content-muted">
@@ -404,40 +408,40 @@ export default function ApiKeysPage() {
                                 {formatDateTime(row.original.expiresAt)}
                             </span>
                         ) : (
-                            <span className="text-content-subtle">Never</span>
+                            <span className="text-content-subtle">{t('never')}</span>
                         ),
                 },
                 {
                     accessorKey: 'lastUsedAt',
-                    header: 'Last Used',
+                    header: t('colLastUsed'),
                     cell: ({ row }) => (
                         <span className="text-content-muted">{formatDateTime(row.original.lastUsedAt)}</span>
                     ),
                 },
                 {
                     accessorKey: 'createdAt',
-                    header: 'Created',
+                    header: t('colCreated'),
                     cell: ({ row }) => (
                         <span className="text-content-subtle">
                             {formatDateTime(row.original.createdAt)}
                             <br />
                             <span className="text-content-subtle">
-                                by {row.original.createdBy?.name || row.original.createdBy?.email || '—'}
+                                {t('byUser', { name: row.original.createdBy?.name || row.original.createdBy?.email || '—' })}
                             </span>
                         </span>
                     ),
                 },
                 {
                     id: 'actions',
-                    header: () => <span className="sr-only">Actions</span>,
+                    header: () => <span className="sr-only">{t('actions')}</span>,
                     cell: ({ row }) => (
                         <div className="text-right">
-                            <Tooltip content="Revoke key">
+                            <Tooltip content={t('revokeKey')}>
                                 <Button
                                     variant="destructive-outline"
                                     size="xs"
                                     onClick={() => handleRevoke(row.original)}
-                                    aria-label="Revoke key"
+                                    aria-label={t('revokeKey')}
                                     id={`revoke-key-${row.original.id}`}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -459,31 +463,31 @@ export default function ApiKeysPage() {
             createColumns<ApiKeyRecord>([
                 {
                     accessorKey: 'name',
-                    header: 'Name',
+                    header: t('colName'),
                     cell: ({ row }) => (
                         <span className="text-sm text-content-muted line-through">{row.original.name}</span>
                     ),
                 },
                 {
                     accessorKey: 'keyPrefix',
-                    header: 'Key',
+                    header: t('colKey'),
                     cell: ({ row }) => (
                         <code className="text-content-subtle font-mono">{row.original.keyPrefix}...</code>
                     ),
                 },
                 {
                     id: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) =>
                         row.original.revokedAt ? (
-                            <StatusBadge variant="error" size="sm">Revoked</StatusBadge>
+                            <StatusBadge variant="error" size="sm">{t('revoked')}</StatusBadge>
                         ) : (
-                            <StatusBadge variant="warning" size="sm">Expired</StatusBadge>
+                            <StatusBadge variant="warning" size="sm">{t('expired')}</StatusBadge>
                         ),
                 },
                 {
                     accessorKey: 'createdAt',
-                    header: 'Created',
+                    header: t('colCreated'),
                     cell: ({ row }) => (
                         <span className="text-content-subtle">{formatDateTime(row.original.createdAt)}</span>
                     ),
@@ -497,7 +501,7 @@ export default function ApiKeysPage() {
             <div className="space-y-section animate-fadeIn">
                 <Heading level={2} className="flex items-center gap-tight">
                     <KeyRound className="w-6 h-6 text-[var(--brand-default)]" />
-                    Loading API keys…
+                    {t('loading')}
                 </Heading>
                 <Card className="space-y-default">
                     <div className="h-4 bg-bg-elevated/60 rounded w-1/3 animate-pulse" />
@@ -514,19 +518,18 @@ export default function ApiKeysPage() {
                 <div>
                     <PageBreadcrumbs
                         items={[
-                            { label: 'Dashboard', href: tenantHref('/dashboard') },
-                            { label: 'Admin', href: tenantHref('/admin') },
-                            { label: 'API keys' },
+                            { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                            { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                            { label: t('breadcrumbApiKeys') },
                         ]}
                         className="mb-1"
                     />
                     <Heading level={1} className="flex items-center gap-tight">
                         <KeyRound className="w-6 h-6 text-[var(--brand-default)]" />
-                        API Keys
+                        {t('heading')}
                     </Heading>
                     <p className="text-sm text-content-muted mt-1">
-                        Manage machine-to-machine API keys for programmatic access.
-                        Keys are scoped to specific resources and actions.
+                        {t('description')}
                     </p>
                 </div>
                 {!showCreate && !createdKey && (
@@ -566,7 +569,7 @@ export default function ApiKeysPage() {
                         onClick={() => setCreatedKey(null)}
                         id="dismiss-key-display"
                     >
-                        I&apos;ve copied the key — dismiss
+                        {t('copiedDismiss')}
                     </Button>
                 </div>
             )}
@@ -574,24 +577,24 @@ export default function ApiKeysPage() {
             {/* Create Form */}
             {showCreate && (
                 <div className={cn(cardVariants(), 'border border-[var(--brand-default)]/30 space-y-default')} id="create-key-form">
-                    <Heading level={3}>Create API Key</Heading>
+                    <Heading level={3}>{t('createApiKey')}</Heading>
 
                     <div>
-                        <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">Name *</label>
+                        <label className="text-xs text-content-muted uppercase tracking-wider mb-1 block">{t('nameLabel')}</label>
                         <input
                             type="text" value={createName} onChange={(e) => setCreateName(e.target.value)}
-                            placeholder="e.g. CI/CD Pipeline, Monitoring Agent"
+                            placeholder={t('namePlaceholder')}
                             className="input w-full" maxLength={100} id="key-name-input"
                         />
                     </div>
 
                     <div>
                         <div className="mb-1 flex items-center gap-1.5">
-                            <label className="text-xs text-content-muted uppercase tracking-wider">Expiry</label>
+                            <label className="text-xs text-content-muted uppercase tracking-wider">{t('expiryLabel')}</label>
                             <InfoTooltip
-                                aria-label="About key expiry"
+                                aria-label={t('expiryAbout')}
                                 iconClassName="h-3.5 w-3.5"
-                                content="Keys with no expiry stay valid until someone manually revokes them. Set a deadline for any automation or third-party integration."
+                                content={t('expiryTooltip')}
                             />
                         </div>
                         <Combobox
@@ -600,14 +603,14 @@ export default function ApiKeysPage() {
                             selected={EXPIRY_CB_OPTIONS.find(o => o.value === createExpiry) ?? null}
                             setSelected={(opt) => setCreateExpiry(opt?.value ?? '')}
                             options={EXPIRY_CB_OPTIONS}
-                            placeholder="No expiry"
+                            placeholder={t('noExpiry')}
                             matchTriggerWidth
                             buttonProps={{ className: 'w-full sm:w-48' }}
                         />
                     </div>
 
                     <div>
-                        <label className="text-xs text-content-muted uppercase tracking-wider mb-2 block">Scopes *</label>
+                        <label className="text-xs text-content-muted uppercase tracking-wider mb-2 block">{t('scopesLabel')}</label>
                         <ScopePicker selected={createScopes} onChange={setCreateScopes} />
                     </div>
 
@@ -619,9 +622,9 @@ export default function ApiKeysPage() {
                             loading={creating}
                             id="key-submit-btn"
                         >
-                            {creating ? 'Creating...' : 'Create Key'}
+                            {creating ? t('creating') : t('createKey')}
                         </Button>
-                        <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+                        <Button variant="secondary" onClick={() => setShowCreate(false)}>{t('cancel')}</Button>
                     </div>
                 </div>
             )}
@@ -632,14 +635,14 @@ export default function ApiKeysPage() {
                 only one (matches Controls list visually). The section
                 heading hoists out above the table. */}
             <div id="active-keys-card">
-                <Heading level={3} className="mb-3">Active Keys ({activeKeys.length})</Heading>
+                <Heading level={3} className="mb-3">{t('activeKeys', { count: activeKeys.length })}</Heading>
                 <DataTable
                     data={activeKeys}
                     columns={activeKeyColumns}
                     getRowId={(k) => k.id}
                     batchActions={[bulkRevokeAction]}
-                    emptyState="No active API keys."
-                    resourceName={(p) => (p ? 'API keys' : 'API key')}
+                    emptyState={t('noActiveKeys')}
+                    resourceName={(p) => (p ? t('apiKeyPlural') : t('apiKeySingular'))}
                     data-testid="active-keys-table"
                 />
             </div>
@@ -647,13 +650,13 @@ export default function ApiKeysPage() {
             {/* Inactive/Revoked Keys */}
             {inactiveKeys.length > 0 && (
                 <div className="opacity-60" id="inactive-keys-card">
-                    <Heading level={3} className="mb-3">Revoked / Expired ({inactiveKeys.length})</Heading>
+                    <Heading level={3} className="mb-3">{t('revokedExpired', { count: inactiveKeys.length })}</Heading>
                     <DataTable
                         data={inactiveKeys}
                         columns={inactiveKeyColumns}
                         getRowId={(k) => k.id}
-                        emptyState="No revoked or expired keys."
-                        resourceName={(p) => (p ? 'revoked keys' : 'revoked key')}
+                        emptyState={t('noRevokedExpired')}
+                        resourceName={(p) => (p ? t('revokedKeyPlural') : t('revokedKeySingular'))}
                         data-testid="inactive-keys-table"
                     />
                 </div>
@@ -672,15 +675,15 @@ export default function ApiKeysPage() {
                 tone="danger"
                 title={
                     keyToRevoke
-                        ? `Revoke API key "${keyToRevoke.name}"?`
-                        : 'Revoke API key?'
+                        ? t('confirmRevokeTitle', { name: keyToRevoke.name })
+                        : t('confirmRevokeTitleGeneric')
                 }
                 description={
                     keyToRevoke
-                        ? `Key prefix ${keyToRevoke.keyPrefix}… will stop working immediately. Any integration using it will lose access. This cannot be undone.`
+                        ? t('confirmRevokeDesc', { prefix: keyToRevoke.keyPrefix })
                         : undefined
                 }
-                confirmLabel="Revoke key"
+                confirmLabel={t('revokeKey')}
                 onConfirm={async () => {
                     if (keyToRevoke) await performRevoke(keyToRevoke);
                 }}

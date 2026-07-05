@@ -77,8 +77,11 @@ const BASELINE_PLUS_LITERAL_SITES = new Set<string>([
     'src/app/t/[tenantSlug]/(app)/admin/integrations/page.tsx:234',
     'src/app/t/[tenantSlug]/(app)/admin/roles/page.tsx:593',
     'src/app/t/[tenantSlug]/(app)/admin/scim/page.tsx:216',
-    'src/app/t/[tenantSlug]/(app)/admin/vendor-templates/[templateId]/VendorTemplateBuilderClient.tsx:584',
-    'src/app/t/[tenantSlug]/(app)/admin/vendor-templates/[templateId]/VendorTemplateBuilderClient.tsx:687',
+    // T05 i18n migration — the `+ Section` label is now own-line JSX
+    // text (not a regex-caught literal), so its baseline anchor is
+    // dropped. The `+ Question` submit label stays a ternary string
+    // literal; its line shifted 687 → 690 when the i18n hooks landed.
+    'src/app/t/[tenantSlug]/(app)/admin/vendor-templates/[templateId]/VendorTemplateBuilderClient.tsx:690',
     'src/app/t/[tenantSlug]/(app)/audits/cycles/[cycleId]/page.tsx:122',
     'src/app/t/[tenantSlug]/(app)/audits/cycles/page.tsx:134',
     'src/app/t/[tenantSlug]/(app)/audits/cycles/page.tsx:207',

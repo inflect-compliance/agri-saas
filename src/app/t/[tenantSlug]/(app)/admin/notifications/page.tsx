@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any -- Tanstack-react-table cell callbacks (tanstack cell callbacks where row/getValue carry the implicit-any annotation) — typing each callback with `CellContext<TData, TValue>` requires importing the right generic per column and adds significant ceremony. The implicit any here is at the render-time boundary; row.original is type-narrowed by the column's accessorKey at runtime. */
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
@@ -25,6 +26,7 @@ interface OutboxStats {
 }
 
 export default function NotificationSettingsPage() {
+    const t = useTranslations('admin.notificationSettings');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const [tab, setTab] = useState<'settings' | 'stats'>('settings');
@@ -47,7 +49,7 @@ export default function NotificationSettingsPage() {
     useEffect(() => { fetchData(); }, [fetchData]);
 
     async function handleRunJob(jobType: 'processOutbox' | 'dailySweep') {
-        if (!confirm(`Are you sure you want to run the ${jobType} job now?`)) return;
+        if (!confirm(t('confirmRunJob', { job: jobType }))) return;
         setRunningJob(jobType);
         try {
             const res = await fetch(apiUrl('/notification-settings/run-job'), {
@@ -57,10 +59,10 @@ export default function NotificationSettingsPage() {
             });
             const data = await res.json();
             if (res.ok) {
-                alert(`Success: ${data.message}\n` + JSON.stringify(data.stats, null, 2));
+                alert(t('jobSuccess', { message: data.message }) + '\n' + JSON.stringify(data.stats, null, 2));
                 fetchData(); // Refresh stats
             } else {
-                alert(`Error: ${data.error || 'Failed to trigger job'}`);
+                alert(t('jobError', { error: data.error || t('failedToTrigger') }));
             }
         } finally {
             setRunningJob(null);
@@ -93,18 +95,18 @@ export default function NotificationSettingsPage() {
             <div>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Admin', href: tenantHref('/admin') },
-                        { label: 'Email Notifications' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                        { label: t('breadcrumbEmailNotifications') },
                     ]}
                     className="mb-1"
                 />
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-default">
                 <div className="flex flex-wrap items-center gap-compact">
-                    <Heading level={1}>Email Notifications</Heading>
+                    <Heading level={1}>{t('heading')}</Heading>
                     <StatusBadge variant={settings.enabled ? 'success' : 'warning'}>
-                        {settings.enabled ? 'Enabled' : 'Disabled'}
+                        {settings.enabled ? t('enabled') : t('disabled')}
                     </StatusBadge>
                 </div>
                 <div className="flex items-center gap-compact">
@@ -116,7 +118,7 @@ export default function NotificationSettingsPage() {
                         loading={runningJob === 'processOutbox'}
                         className="rounded-full"
                     >
-                        {runningJob === 'processOutbox' ? 'Sending...' : 'Process Outbox Now'}
+                        {runningJob === 'processOutbox' ? t('sending') : t('processOutboxNow')}
                     </Button>
                     <Button
                         variant="secondary"
@@ -126,17 +128,17 @@ export default function NotificationSettingsPage() {
                         loading={runningJob === 'dailySweep'}
                         className="rounded-full"
                     >
-                        {runningJob === 'dailySweep' ? 'Running...' : 'Run Daily Sweep'}
+                        {runningJob === 'dailySweep' ? t('runningEllipsis') : t('runDailySweep')}
                     </Button>
                 </div>
             </div>
 
             {/* Epic 60 — ToggleGroup replaces hand-rolled tab bar. */}
             <ToggleGroup
-                ariaLabel="Notification admin view"
+                ariaLabel={t('adminView')}
                 options={[
-                    { value: 'settings', label: 'Settings' },
-                    { value: 'stats', label: 'Send Stats' },
+                    { value: 'settings', label: t('settingsTab') },
+                    { value: 'stats', label: t('sendStatsTab') },
                 ]}
                 selected={tab}
                 selectAction={(v) => setTab(v as 'settings' | 'stats')}
@@ -152,52 +154,52 @@ export default function NotificationSettingsPage() {
                             onChange={e => setSettings({ ...settings, enabled: e.target.checked })}
                             className="toggle toggle-brand"
                         />
-                        <span className="text-sm font-medium">Enable email notifications</span>
+                        <span className="text-sm font-medium">{t('enableEmailNotifications')}</span>
                     </label>
 
                     {/* From Name */}
                     <div>
-                        <label className="block text-xs text-content-muted mb-1">Sender Name</label>
+                        <label className="block text-xs text-content-muted mb-1">{t('senderName')}</label>
                         <input
                             type="text"
                             value={settings.defaultFromName}
                             onChange={e => setSettings({ ...settings, defaultFromName: e.target.value })}
                             className="input input-bordered w-full max-w-md"
-                            placeholder="Agrent"
+                            placeholder={t('senderNamePlaceholder')}
                         />
                     </div>
 
                     {/* From Email */}
                     <div>
-                        <label className="block text-xs text-content-muted mb-1">Sender Email</label>
+                        <label className="block text-xs text-content-muted mb-1">{t('senderEmail')}</label>
                         <input
                             type="email"
                             value={settings.defaultFromEmail}
                             onChange={e => setSettings({ ...settings, defaultFromEmail: e.target.value })}
                             className="input input-bordered w-full max-w-md"
-                            placeholder="noreply@inflect.app"
+                            placeholder={t('senderEmailPlaceholder')}
                         />
                     </div>
 
                     {/* Compliance Mailbox */}
                     <div>
-                        <label className="block text-xs text-content-muted mb-1">Compliance Mailbox (BCC)</label>
+                        <label className="block text-xs text-content-muted mb-1">{t('complianceMailbox')}</label>
                         <input
                             type="email"
                             value={settings.complianceMailbox || ''}
                             onChange={e => setSettings({ ...settings, complianceMailbox: e.target.value || null })}
                             className="input input-bordered w-full max-w-md"
-                            placeholder="compliance@yourcompany.com (optional)"
+                            placeholder={t('complianceMailboxPlaceholder')}
                         />
-                        <p className="text-xs text-content-subtle mt-1">All outbound emails will be BCC&apos;d to this address.</p>
+                        <p className="text-xs text-content-subtle mt-1">{t('bccNote')}</p>
                     </div>
 
                     {/* Save */}
                     <div className="flex items-center gap-compact pt-2">
                         <Button variant="primary" onClick={handleSave} disabled={saving} loading={saving}>
-                            {saving ? 'Saving...' : 'Save Settings'}
+                            {saving ? t('savingSettings') : t('saveSettings')}
                         </Button>
-                        {saved && <span className="text-sm text-content-success">Saved successfully</span>}
+                        {saved && <span className="text-sm text-content-success">{t('savedSuccessfully')}</span>}
                     </div>
                 </div>
             ) : (
@@ -207,24 +209,24 @@ export default function NotificationSettingsPage() {
                 <div>
                     {stats ? (() => {
                         const statsColumns = createColumns<{ label: string; pending: number; sent: number; failed: number; total: number }>([
-                            { accessorKey: 'label', header: 'Period', cell: ({ getValue }: any) => <span className="font-medium">{getValue()}</span> },
-                            { accessorKey: 'pending', header: 'Pending', cell: ({ getValue }: any) => <StatusBadge variant="warning">{getValue()}</StatusBadge> },
-                            { accessorKey: 'sent', header: 'Sent', cell: ({ getValue }: any) => <StatusBadge variant="success">{getValue()}</StatusBadge> },
-                            { accessorKey: 'failed', header: 'Failed', cell: ({ getValue }: any) => <StatusBadge variant="error">{getValue()}</StatusBadge> },
-                            { accessorKey: 'total', header: 'Total', cell: ({ getValue }: any) => <span className="text-content-muted">{getValue()}</span> },
+                            { accessorKey: 'label', header: t('colPeriod'), cell: ({ getValue }: any) => <span className="font-medium">{getValue()}</span> },
+                            { accessorKey: 'pending', header: t('colPending'), cell: ({ getValue }: any) => <StatusBadge variant="warning">{getValue()}</StatusBadge> },
+                            { accessorKey: 'sent', header: t('colSent'), cell: ({ getValue }: any) => <StatusBadge variant="success">{getValue()}</StatusBadge> },
+                            { accessorKey: 'failed', header: t('colFailed'), cell: ({ getValue }: any) => <StatusBadge variant="error">{getValue()}</StatusBadge> },
+                            { accessorKey: 'total', header: t('colTotal'), cell: ({ getValue }: any) => <span className="text-content-muted">{getValue()}</span> },
                         ]);
                         const statsData = [
-                            { label: 'Last 24 hours', ...stats.last24h, total: stats.last24h.pending + stats.last24h.sent + stats.last24h.failed },
-                            { label: 'Last 7 days', ...stats.last7d, total: stats.last7d.pending + stats.last7d.sent + stats.last7d.failed },
-                            { label: 'Last 30 days', ...stats.last30d, total: stats.last30d.pending + stats.last30d.sent + stats.last30d.failed },
+                            { label: t('last24h'), ...stats.last24h, total: stats.last24h.pending + stats.last24h.sent + stats.last24h.failed },
+                            { label: t('last7d'), ...stats.last7d, total: stats.last7d.pending + stats.last7d.sent + stats.last7d.failed },
+                            { label: t('last30d'), ...stats.last30d, total: stats.last30d.pending + stats.last30d.sent + stats.last30d.failed },
                         ];
                         return (
                             <DataTable
                                 data={statsData}
                                 columns={statsColumns}
                                 getRowId={(r) => r.label}
-                                emptyState="No stats available"
-                                resourceName={(p) => p ? 'periods' : 'period'}
+                                emptyState={t('noStats')}
+                                resourceName={(p) => p ? t('periodsPlural') : t('periodSingular')}
                                 data-testid="notification-stats-table"
                             />
                         );

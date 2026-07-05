@@ -19,6 +19,7 @@
  * "clone first" banner and disables the forms.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import {
     useTenantApiUrl,
@@ -92,6 +93,7 @@ export function VendorTemplateBuilderClient({
 }: {
     templateId: string;
 }) {
+    const t = useTranslations('admin.vendorTemplateBuilder');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const router = useRouter();
@@ -111,19 +113,19 @@ export function VendorTemplateBuilderClient({
                 apiUrl(`/vendor-assessment-templates/${templateId}`),
             );
             if (!res.ok) {
-                setError(`Failed to load template (${res.status})`);
+                setError(t('loadFailed', { status: res.status }));
                 return;
             }
-            const t = (await res.json()) as TemplateTree;
-            setTree(t);
+            const data = (await res.json()) as TemplateTree;
+            setTree(data);
             // Build section[] with embedded questions for the
             // editor's local model.
-            const grouped: Section[] = t.sections.map((s) => ({
+            const grouped: Section[] = data.sections.map((s) => ({
                 id: s.id,
                 sortOrder: s.sortOrder,
                 title: s.title,
                 description: s.description,
-                questions: t.questions
+                questions: data.questions
                     .filter((q) => q.sectionId === s.id)
                     .sort((a, b) => a.sortOrder - b.sortOrder)
                     .map((q) => ({
@@ -244,7 +246,7 @@ export function VendorTemplateBuilderClient({
             );
             if (!res.ok) {
                 const b = await res.json().catch(() => ({}));
-                setError(b.error ?? `Save failed (${res.status})`);
+                setError(b.error ?? t('saveFailed', { status: res.status }));
                 return;
             }
             setDirty(false);
@@ -265,7 +267,7 @@ export function VendorTemplateBuilderClient({
             },
         );
         if (res.ok) await refresh();
-        else setError(`Add section failed (${res.status})`);
+        else setError(t('addSectionFailed', { status: res.status }));
     }
 
     async function addQuestionToSection(
@@ -294,7 +296,7 @@ export function VendorTemplateBuilderClient({
         if (res.ok) await refresh();
         else {
             const b = await res.json().catch(() => ({}));
-            setError(b.error ?? `Add question failed (${res.status})`);
+            setError(b.error ?? t('addQuestionFailed', { status: res.status }));
         }
     }
 
@@ -312,7 +314,7 @@ export function VendorTemplateBuilderClient({
             const cloned = (await res.json()) as { id: string };
             router.push(tenantHref(`/admin/vendor-templates/${cloned.id}`));
         } else {
-            setError(`Clone failed (${res.status})`);
+            setError(t('cloneFailed', { status: res.status }));
         }
     }
 
@@ -320,7 +322,7 @@ export function VendorTemplateBuilderClient({
     if (!tree)
         return (
             <div className="p-12 text-center text-content-error">
-                {error ?? 'Template not found.'}
+                {error ?? t('templateNotFound')}
             </div>
         );
 
@@ -334,9 +336,9 @@ export function VendorTemplateBuilderClient({
                 <div>
                     <PageBreadcrumbs
                         items={[
-                            { label: 'Dashboard', href: tenantHref('/dashboard') },
-                            { label: 'Admin', href: tenantHref('/admin') },
-                            { label: 'Vendor Templates', href: tenantHref('/admin/vendor-templates') },
+                            { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                            { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                            { label: t('breadcrumbVendorTemplates'), href: tenantHref('/admin/vendor-templates') },
                             { label: tree.name },
                         ]}
                         className="mb-1"
@@ -348,7 +350,7 @@ export function VendorTemplateBuilderClient({
                         <span>v{tree.version}</span>
                         <span>·</span>
                         <StatusBadge variant={tree.isPublished ? 'success' : 'warning'} size="sm">
-                            {tree.isPublished ? 'Published' : 'Draft'}
+                            {tree.isPublished ? t('published') : t('draft')}
                         </StatusBadge>
                     </div>
                 </div>
@@ -361,7 +363,7 @@ export function VendorTemplateBuilderClient({
                         loading={saving}
                         id="save-order-btn"
                     >
-                        {saving ? 'Saving…' : 'Save order'}
+                        {saving ? t('saving') : t('saveOrder')}
                     </Button>
                 )}
             </div>
@@ -373,12 +375,10 @@ export function VendorTemplateBuilderClient({
                     data-testid="published-banner"
                 >
                     <p className="text-sm text-content-emphasis">
-                        This template is published.
+                        {t('publishedBannerTitle')}
                     </p>
                     <p className="text-xs text-content-muted mt-1">
-                        Edits to a published template would invalidate any
-                        live assessments pinned to its version. Clone it to a
-                        new draft revision to continue editing.
+                        {t('publishedBannerBody')}
                     </p>
                     {permissions.canWrite && (
                         <Button
@@ -388,7 +388,7 @@ export function VendorTemplateBuilderClient({
                             onClick={clonePublished}
                             id="clone-template-btn"
                         >
-                            Clone to new draft
+                            {t('cloneToNewDraft')}
                         </Button>
                     )}
                 </div>
@@ -470,6 +470,7 @@ function SectionCard({
         weight: number,
     ) => Promise<void>;
 }) {
+    const t = useTranslations('admin.vendorTemplateBuilder');
     return (
         <div
             className={cardVariants({ density: 'compact' })}
@@ -484,7 +485,7 @@ function SectionCard({
                     {editable && (
                         <span
                             className="text-content-subtle cursor-grab"
-                            aria-label="Drag to reorder section"
+                            aria-label={t('dragReorderSection')}
                         >
                             ⋮⋮
                         </span>
@@ -528,7 +529,7 @@ function SectionCard({
                         </StatusBadge>
                         {q.required && (
                             <StatusBadge variant="warning" size="sm">
-                                required
+                                {t('required')}
                             </StatusBadge>
                         )}
                         <span className="text-xs text-content-subtle">
@@ -542,7 +543,7 @@ function SectionCard({
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={() => onQuestionDrop(null)}
                     >
-                        No questions yet — drag here or add one below.
+                        {t('noQuestions')}
                     </div>
                 )}
             </div>
@@ -555,6 +556,7 @@ function SectionCard({
 // ─── Forms ─────────────────────────────────────────────────────────
 
 function AddSectionForm({ onSubmit }: { onSubmit: (title: string) => void }) {
+    const t = useTranslations('admin.vendorTemplateBuilder');
     const [title, setTitle] = useState('');
     return (
         <form
@@ -570,10 +572,10 @@ function AddSectionForm({ onSubmit }: { onSubmit: (title: string) => void }) {
         >
             <input
                 className="input flex-1"
-                placeholder="New section title"
+                placeholder={t('newSectionTitle')}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                aria-label="New section title"
+                aria-label={t('newSectionTitle')}
             />
             <Button
                 variant="primary"
@@ -596,6 +598,7 @@ function AddQuestionForm({
         weight: number,
     ) => Promise<void>;
 }) {
+    const t = useTranslations('admin.vendorTemplateBuilder');
     const [prompt, setPrompt] = useState('');
     const [type, setType] = useState<Question['answerType']>('YES_NO');
     const [required, setRequired] = useState(true);
@@ -623,18 +626,18 @@ function AddQuestionForm({
         >
             <div className="md:col-span-5">
                 <label className="text-xs text-content-muted block mb-1">
-                    Prompt
+                    {t('promptLabel')}
                 </label>
                 <input
                     className="input w-full"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Do you encrypt data at rest?"
+                    placeholder={t('promptPlaceholder')}
                 />
             </div>
             <div className="md:col-span-3">
                 <label className="text-xs text-content-muted block mb-1">
-                    Type
+                    {t('typeLabel')}
                 </label>
                 <Combobox
                     hideSearch
@@ -651,7 +654,7 @@ function AddQuestionForm({
             </div>
             <div className="md:col-span-1">
                 <label className="text-xs text-content-muted block mb-1">
-                    Weight
+                    {t('weightLabel')}
                 </label>
                 <input
                     className="input w-full"
@@ -673,7 +676,7 @@ function AddQuestionForm({
                         onChange={(e) => setRequired(e.target.checked)}
                         className="mr-1"
                     />
-                    Required
+                    {t('requiredCheckbox')}
                 </label>
             </div>
             <div className="md:col-span-2">

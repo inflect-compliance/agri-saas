@@ -4,6 +4,7 @@
  * integrations page. Migrate together to useTenantSWR. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ interface SpSite {
  * Connect (delegated consent), test, choose allowed sites, disconnect.
  */
 export function SharePointCard() {
+    const t = useTranslations('admin.integrations');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const searchParams = useSearchParams();
@@ -67,13 +69,13 @@ export function SharePointCard() {
         try {
             const res = await fetch(apiUrl('/admin/integrations/sharepoint/connect'), { method: 'POST' });
             if (!res.ok) {
-                setError('Could not start the SharePoint consent flow.');
+                setError(t('consentFlowError'));
                 return;
             }
             const { authorizeUrl } = await res.json();
             window.location.href = authorizeUrl; // hand off to Microsoft consent
         } catch {
-            setError('Could not start the SharePoint consent flow.');
+            setError(t('consentFlowError'));
         } finally {
             setBusy(false);
         }
@@ -81,7 +83,7 @@ export function SharePointCard() {
 
     const test = useCallback(
         async (id: string) => {
-            setTestResult((r) => ({ ...r, [id]: 'Testing…' }));
+            setTestResult((r) => ({ ...r, [id]: t('testing') }));
             try {
                 const res = await fetch(apiUrl('/admin/integrations/sharepoint/test'), {
                     method: 'POST',
@@ -89,10 +91,10 @@ export function SharePointCard() {
                     body: JSON.stringify({ connectionId: id }),
                 });
                 const data = await res.json();
-                setTestResult((r) => ({ ...r, [id]: data.message ?? (data.ok ? 'OK' : 'Failed') }));
+                setTestResult((r) => ({ ...r, [id]: data.message ?? (data.ok ? t('ok') : t('failed')) }));
                 void load();
             } catch {
-                setTestResult((r) => ({ ...r, [id]: 'Test failed' }));
+                setTestResult((r) => ({ ...r, [id]: t('testFailed') }));
             }
         },
         [apiUrl, load],
@@ -134,17 +136,17 @@ export function SharePointCard() {
         (conn: SpConnection) => {
             setConnections((cs) => cs.filter((c) => c.id !== conn.id)); // optimistic
             triggerUndoToast({
-                message: `${conn.name} disconnected`,
-                undoMessage: 'Undo',
+                message: t('disconnectedToast', { name: conn.name }),
+                undoMessage: t('undo'),
                 action: async () => {
                     const res = await fetch(apiUrl(`/admin/integrations/sharepoint?connectionId=${conn.id}`), {
                         method: 'DELETE',
                     });
-                    if (!res.ok && res.status !== 404) throw new Error(`Disconnect failed (${res.status})`);
+                    if (!res.ok && res.status !== 404) throw new Error(t('disconnectFailedStatus', { status: res.status }));
                 },
                 undoAction: () => load(),
                 onError: () => {
-                    setError('Failed to disconnect — restored.');
+                    setError(t('disconnectRestored'));
                     void load();
                 },
             });
@@ -157,29 +159,27 @@ export function SharePointCard() {
     return (
         <Card className="space-y-default p-6">
             <div className="flex items-center justify-between">
-                <Heading level={2}>Microsoft SharePoint</Heading>
+                <Heading level={2}>{t('spTitle')}</Heading>
                 <div className="flex items-center gap-default">
                     {connections.length > 0 && (
                         <Link href={tenantHref('/admin/integrations/sharepoint-health')} className="text-sm text-content-link">
-                            Sync health →
+                            {t('syncHealthLink')}
                         </Link>
                     )}
                     {connections.length === 0 && (
                         <Button variant="primary" onClick={connect} disabled={busy}>
-                            {busy ? 'Connecting…' : 'Connect'}
+                            {busy ? t('connecting') : t('connect')}
                         </Button>
                     )}
                 </div>
             </div>
             <p className="text-sm text-content-muted">
-                Source compliance evidence from SharePoint document libraries and keep
-                policies in sync. Connecting grants IC delegated read access to the
-                sites you choose.
+                {t('spDescription')}
             </p>
 
-            {spStatus === 'connected' && <InlineNotice variant="success">SharePoint connected.</InlineNotice>}
-            {spStatus === 'declined' && <InlineNotice variant="warning">Consent was declined.</InlineNotice>}
-            {spStatus === 'error' && <InlineNotice variant="error">SharePoint connection failed — try again.</InlineNotice>}
+            {spStatus === 'connected' && <InlineNotice variant="success">{t('spConnected')}</InlineNotice>}
+            {spStatus === 'declined' && <InlineNotice variant="warning">{t('spDeclined')}</InlineNotice>}
+            {spStatus === 'error' && <InlineNotice variant="error">{t('spConnectFailed')}</InlineNotice>}
             {error && <InlineNotice variant="error">{error}</InlineNotice>}
 
             {connections.map((conn) => (
@@ -187,15 +187,15 @@ export function SharePointCard() {
                     <div className="flex items-center gap-default">
                         <span className="font-medium text-content-default">{conn.name}</span>
                         <StatusBadge variant={conn.lastTestStatus === 'error' ? 'error' : 'success'}>
-                            {conn.lastTestStatus === 'error' ? 'Error' : 'Connected'}
+                            {conn.lastTestStatus === 'error' ? t('error') : t('connected')}
                         </StatusBadge>
                         <span className="text-xs text-content-muted">
-                            {conn.configJson?.allowedSiteIds?.length ?? 0} site(s) allowed
+                            {t('sitesAllowed', { count: conn.configJson?.allowedSiteIds?.length ?? 0 })}
                         </span>
                         <div className="ml-auto flex gap-tight">
-                            <Button variant="ghost" size="sm" onClick={() => test(conn.id)}>Test</Button>
-                            <Button variant="ghost" size="sm" onClick={() => openSites(conn)}>Sites</Button>
-                            <Button variant="ghost" size="sm" onClick={() => disconnect(conn)}>Disconnect</Button>
+                            <Button variant="ghost" size="sm" onClick={() => test(conn.id)}>{t('test')}</Button>
+                            <Button variant="ghost" size="sm" onClick={() => openSites(conn)}>{t('sites')}</Button>
+                            <Button variant="ghost" size="sm" onClick={() => disconnect(conn)}>{t('disconnect')}</Button>
                         </div>
                     </div>
                     {testResult[conn.id] && (
@@ -203,20 +203,20 @@ export function SharePointCard() {
                     )}
                     {sitesFor === conn.id && (
                         <div className="space-y-default border-t border-border-subtle pt-default">
-                            <p className="text-sm text-content-muted">Choose which sites IC may access:</p>
+                            <p className="text-sm text-content-muted">{t('chooseSites')}</p>
                             <Combobox
                                 id={`sp-sites-${conn.id}`}
                                 multiple
                                 options={siteOptions}
                                 selected={siteOptions.filter((o) => selectedSites.includes(o.value))}
                                 setSelected={(opts) => setSelectedSites(opts.map((o) => o.value))}
-                                placeholder="Select sites…"
+                                placeholder={t('selectSites')}
                                 matchTriggerWidth
                             />
                             <div className="flex justify-end gap-tight">
-                                <Button variant="ghost" size="sm" onClick={() => setSitesFor(null)}>Cancel</Button>
+                                <Button variant="ghost" size="sm" onClick={() => setSitesFor(null)}>{t('cancel')}</Button>
                                 <Button variant="secondary" size="sm" onClick={() => saveSites(conn.id)} disabled={busy}>
-                                    Save sites
+                                    {t('saveSites')}
                                 </Button>
                             </div>
                         </div>

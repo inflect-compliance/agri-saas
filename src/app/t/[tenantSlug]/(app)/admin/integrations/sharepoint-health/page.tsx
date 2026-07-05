@@ -2,6 +2,7 @@
 
 /* SP-5 — SharePoint sync-health dashboard. */
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { KPIStat } from '@/components/ui/metric';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -18,6 +19,7 @@ interface Health {
 }
 
 export default function SharePointHealthPage() {
+    const t = useTranslations('admin.integrations');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const [data, setData] = useState<Health | null>(null);
@@ -41,12 +43,12 @@ export default function SharePointHealthPage() {
         <div className="space-y-section">
             <PageBreadcrumbs
                 items={[
-                    { label: 'Admin', href: tenantHref('/admin') },
-                    { label: 'Integrations', href: tenantHref('/admin/integrations') },
-                    { label: 'SharePoint health' },
+                    { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                    { label: t('breadcrumbIntegrations'), href: tenantHref('/admin/integrations') },
+                    { label: t('healthBreadcrumb') },
                 ]}
             />
-            <Heading level={1}>SharePoint sync health</Heading>
+            <Heading level={1}>{t('healthHeading')}</Heading>
 
             {/* Connection strip */}
             <div className="grid grid-cols-1 gap-default sm:grid-cols-2 lg:grid-cols-3">
@@ -55,11 +57,11 @@ export default function SharePointHealthPage() {
                         <div className="flex items-center gap-default">
                             <span className="font-medium text-content-default">{c.name}</span>
                             <StatusBadge variant={c.lastTestStatus === 'error' ? 'error' : 'success'}>
-                                {c.lastTestStatus === 'error' ? 'Error' : 'OK'}
+                                {c.lastTestStatus === 'error' ? t('error') : t('ok')}
                             </StatusBadge>
                         </div>
                         <p className="text-xs text-content-muted">
-                            Last tested: {c.lastTestedAt ? formatDateTime(c.lastTestedAt) : 'never'}
+                            {t('lastTested', { value: c.lastTestedAt ? formatDateTime(c.lastTestedAt) : t('neverLower') })}
                         </p>
                     </Card>
                 ))}
@@ -67,17 +69,17 @@ export default function SharePointHealthPage() {
 
             {/* Coverage + policy links */}
             <div className="grid grid-cols-2 gap-default sm:grid-cols-4">
-                <Card className="p-4"><KPIStat value={cov?.synced ?? 0} label="Evidence synced" /></Card>
-                <Card className="p-4"><KPIStat value={cov?.stale ?? 0} label="Stale" /></Card>
-                <Card className="p-4"><KPIStat value={cov?.failed ?? 0} label="Failed" /></Card>
-                <Card className="p-4"><KPIStat value={data?.policyLinks ?? 0} label="Policy links" /></Card>
+                <Card className="p-4"><KPIStat value={cov?.synced ?? 0} label={t('evidenceSynced')} /></Card>
+                <Card className="p-4"><KPIStat value={cov?.stale ?? 0} label={t('stale')} /></Card>
+                <Card className="p-4"><KPIStat value={cov?.failed ?? 0} label={t('failed')} /></Card>
+                <Card className="p-4"><KPIStat value={data?.policyLinks ?? 0} label={t('policyLinks')} /></Card>
             </div>
 
             {/* Recent activity */}
             <Card className="space-y-default p-6">
-                <Heading level={2}>Recent sync activity</Heading>
+                <Heading level={2}>{t('recentSyncActivity')}</Heading>
                 {(data?.executions ?? []).length === 0 ? (
-                    <p className="text-sm text-content-muted">No SharePoint activity yet.</p>
+                    <p className="text-sm text-content-muted">{t('noSpActivity')}</p>
                 ) : (
                     <ul className="divide-y divide-border-subtle">
                         {(data?.executions ?? []).map((e) => (

@@ -19,6 +19,7 @@
  *   • DRAFT / SENT / IN_PROGRESS   — "not yet submitted" placeholder
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import {
     useTenantApiUrl,
@@ -115,6 +116,7 @@ export function VendorAssessmentReviewClient({
 }: {
     assessmentId: string;
 }) {
+    const t = useTranslations('admin.vendorReview');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const { permissions } = useTenantContext();
@@ -138,7 +140,7 @@ export function VendorAssessmentReviewClient({
                 apiUrl(`/vendor-assessment-reviews/${assessmentId}`),
             );
             if (!res.ok) {
-                setError(`Failed to load (${res.status})`);
+                setError(t('loadFailed', { status: res.status }));
                 return;
             }
             const data = (await res.json()) as ReviewView;
@@ -237,7 +239,7 @@ export function VendorAssessmentReviewClient({
             );
             if (!res.ok) {
                 const b = await res.json().catch(() => ({}));
-                setError(b.error ?? `Save failed (${res.status})`);
+                setError(b.error ?? t('saveFailed', { status: res.status }));
                 return;
             }
             await refresh();
@@ -260,7 +262,7 @@ export function VendorAssessmentReviewClient({
             );
             if (!res.ok) {
                 const b = await res.json().catch(() => ({}));
-                setError(b.error ?? `Close failed (${res.status})`);
+                setError(b.error ?? t('closeFailed', { status: res.status }));
                 return;
             }
             await refresh();
@@ -273,7 +275,7 @@ export function VendorAssessmentReviewClient({
     if (!view)
         return (
             <div className="p-12 text-center text-content-error">
-                {error ?? 'Assessment not found'}
+                {error ?? t('assessmentNotFound')}
             </div>
         );
 
@@ -287,7 +289,7 @@ export function VendorAssessmentReviewClient({
                     href={tenantHref(`/vendors/${view.vendor.id}`)}
                     className="text-content-muted text-xs hover:text-content-emphasis transition"
                 >
-                    ← Back to vendor
+                    {t('backToVendor')}
                 </Link>
                 <div className="flex items-start justify-between mt-1">
                     <div>
@@ -309,7 +311,7 @@ export function VendorAssessmentReviewClient({
                                 <>
                                     <span>·</span>
                                     <span>
-                                        Submitted {formatDate(view.submittedAt)}
+                                        {t('submittedOn', { date: formatDate(view.submittedAt) })}
                                     </span>
                                 </>
                             )}
@@ -337,11 +339,10 @@ export function VendorAssessmentReviewClient({
                     data-testid="not-yet-submitted-state"
                 >
                     <p className="text-sm text-content-emphasis">
-                        Awaiting external respondent.
+                        {t('awaitingRespondent')}
                     </p>
                     <p className="text-xs text-content-muted mt-1">
-                        The vendor hasn&apos;t submitted yet. Review controls
-                        unlock once the assessment moves to SUBMITTED.
+                        {t('awaitingRespondentBody')}
                     </p>
                 </div>
             )}
@@ -355,21 +356,21 @@ export function VendorAssessmentReviewClient({
                     data-testid="scoring-panel"
                 >
                     <Stat
-                        label="Mode"
+                        label={t('mode')}
                         value={view.scoring.mode.replace(/_/g, ' ')}
                     />
-                    <Stat label="Score" value={fmtNum(view.scoring.score)} />
+                    <Stat label={t('score')} value={fmtNum(view.scoring.score)} />
                     <Stat
-                        label="Auto sum"
+                        label={t('autoSum')}
                         value={fmtNum(view.scoring.autoSum)}
                     />
                     <Stat
-                        label="Effective sum"
+                        label={t('effectiveSum')}
                         value={fmtNum(view.scoring.effectiveSum)}
                     />
                     {view.scoring.verdict ? (
                         <Stat
-                            label="Verdict"
+                            label={t('verdict')}
                             value={view.scoring.verdict}
                             tone={
                                 view.scoring.verdict === 'PASS'
@@ -379,7 +380,7 @@ export function VendorAssessmentReviewClient({
                         />
                     ) : (
                         <Stat
-                            label="Suggested rating"
+                            label={t('suggestedRating')}
                             value={view.scoring.suggestedRating ?? '—'}
                         />
                     )}
@@ -422,7 +423,7 @@ export function VendorAssessmentReviewClient({
                                                 </StatusBadge>{' '}
                                                 {q.required && (
                                                     <StatusBadge variant="warning" size="sm">
-                                                        required
+                                                        {t('required')}
                                                     </StatusBadge>
                                                 )}{' '}
                                                 <span>w={q.weight}</span>
@@ -433,7 +434,7 @@ export function VendorAssessmentReviewClient({
                                             data-testid={`review-answer-${q.id}`}
                                         >
                                             <p className="text-xs text-content-muted mb-1">
-                                                Submitted answer
+                                                {t('submittedAnswer')}
                                             </p>
                                             <RenderAnswer
                                                 answerJson={a?.answerJson}
@@ -441,7 +442,7 @@ export function VendorAssessmentReviewClient({
                                         </div>
                                         <div className="md:col-span-2">
                                             <p className="text-xs text-content-muted">
-                                                Auto
+                                                {t('auto')}
                                             </p>
                                             <p className="text-sm text-content-emphasis">
                                                 {fmtNum(
@@ -453,7 +454,7 @@ export function VendorAssessmentReviewClient({
                                                     className="input w-full mt-1"
                                                     type="text"
                                                     inputMode="decimal"
-                                                    placeholder="Override"
+                                                    placeholder={t('override')}
                                                     value={
                                                         ov.points === null
                                                             ? ''
@@ -484,15 +485,14 @@ export function VendorAssessmentReviewClient({
                                             ) : (
                                                 ov.points !== null && (
                                                     <p className="text-xs text-content-warning mt-1">
-                                                        Override:{' '}
-                                                        {fmtNum(ov.points)}
+                                                        {t('overrideValue', { value: fmtNum(ov.points) })}
                                                     </p>
                                                 )
                                             )}
                                         </div>
                                         <div className="md:col-span-2">
                                             <p className="text-xs text-content-muted">
-                                                Notes
+                                                {t('notes')}
                                             </p>
                                             {editable ? (
                                                 <textarea
@@ -536,7 +536,7 @@ export function VendorAssessmentReviewClient({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-compact">
                         <div>
                             <label className="text-xs text-content-muted block mb-1">
-                                Final risk rating
+                                {t('finalRiskRating')}
                             </label>
                             {editable ? (
                                 <Combobox
@@ -553,8 +553,8 @@ export function VendorAssessmentReviewClient({
                                     matchTriggerWidth
                                     placeholder={
                                         view.scoring.suggestedRating
-                                            ? `Suggested: ${view.scoring.suggestedRating}`
-                                            : 'Choose rating'
+                                            ? t('suggestedRatingPlaceholder', { rating: view.scoring.suggestedRating })
+                                            : t('chooseRating')
                                     }
                                 />
                             ) : (
@@ -568,7 +568,7 @@ export function VendorAssessmentReviewClient({
                         </div>
                         <div>
                             <label className="text-xs text-content-muted block mb-1">
-                                Reviewer notes (assessment-level)
+                                {t('reviewerNotes')}
                             </label>
                             {editable ? (
                                 <textarea
@@ -597,7 +597,7 @@ export function VendorAssessmentReviewClient({
                                 loading={saving}
                                 id="save-review-btn"
                             >
-                                {saving ? 'Saving…' : 'Save review'}
+                                {saving ? t('saving') : t('saveReview')}
                             </Button>
                         )}
                         {closable && (
@@ -609,7 +609,7 @@ export function VendorAssessmentReviewClient({
                                 loading={saving}
                                 id="close-assessment-btn"
                             >
-                                {saving ? 'Closing…' : 'Close assessment'}
+                                {saving ? t('closing') : t('closeAssessment')}
                             </Button>
                         )}
                     </div>
@@ -621,8 +621,8 @@ export function VendorAssessmentReviewClient({
                     className={cn(cardVariants({ density: 'compact' }), 'text-sm text-content-muted')}
                     data-testid="closed-banner"
                 >
-                    Closed{view.closedAt ? ` ${formatDate(view.closedAt)}` : ''}.
-                    Final rating:{' '}
+                    {t('closed')}{view.closedAt ? ` ${formatDate(view.closedAt)}` : ''}.{' '}
+                    {t('finalRatingColon')}{' '}
                     <strong className="text-content-emphasis">
                         {view.riskRating ?? '—'}
                     </strong>
@@ -662,8 +662,9 @@ function Stat({
 }
 
 function RenderAnswer({ answerJson }: { answerJson: unknown }) {
+    const t = useTranslations('admin.vendorReview');
     if (answerJson === null || answerJson === undefined) {
-        return <span className="text-content-subtle italic">no answer</span>;
+        return <span className="text-content-subtle italic">{t('noAnswer')}</span>;
     }
     if (
         typeof answerJson === 'object' &&
@@ -677,11 +678,12 @@ function RenderAnswer({ answerJson }: { answerJson: unknown }) {
 }
 
 function RenderValue({ v }: { v: unknown }) {
+    const t = useTranslations('admin.vendorReview');
     if (Array.isArray(v)) {
         return <span>{v.join(', ')}</span>;
     }
     if (v === null || v === undefined) {
-        return <span className="text-content-subtle italic">no answer</span>;
+        return <span className="text-content-subtle italic">{t('noAnswer')}</span>;
     }
     return <span>{String(v)}</span>;
 }
