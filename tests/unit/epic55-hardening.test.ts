@@ -127,9 +127,14 @@ describe('policies/new — category', () => {
         expect(POLICIES_NEW_SRC).toMatch(
             /<Combobox[\s\S]{0,500}id=["']policy-category-select["']/,
         );
+        // T09 i18n — searchPlaceholder moved to t('categorySearch'); assert
+        // the t() reference AND the en.json value stays "Search categories…".
         expect(POLICIES_NEW_SRC).toMatch(
-            /searchPlaceholder=["']Search categories/,
+            /searchPlaceholder=\{\w+\(['"][\w.]*categorySearch['"]\)\}/,
         );
+        expect(
+            JSON.parse(read('messages/en.json')).policies.fields.categorySearch,
+        ).toMatch(/^Search categories/);
     });
 });
 

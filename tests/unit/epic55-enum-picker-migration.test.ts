@@ -280,9 +280,14 @@ describe('vendors/new — mixed primitives (RadioGroup + Combobox)', () => {
         expect(VENDORS_NEW_SRC).toMatch(
             /DATA_ACCESS_OPTIONS:\s*ComboboxOption\[\]\s*=\s*\[\s*\{\s*value:\s*['"]NONE['"]/,
         );
+        // T09 i18n — the placeholder moved to t('dataAccessPlaceholder');
+        // assert the t() reference AND the en.json value stays "— None —".
         expect(VENDORS_NEW_SRC).toMatch(
-            /placeholder=["']— None —["']/,
+            /placeholder=\{\w+\(['"][\w.]*dataAccessPlaceholder['"]\)\}/,
         );
+        expect(
+            JSON.parse(read('messages/en.json')).vendors.fields.dataAccessPlaceholder,
+        ).toBe('— None —');
     });
 });
 

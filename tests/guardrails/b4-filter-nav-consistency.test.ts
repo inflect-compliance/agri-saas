@@ -31,7 +31,9 @@ describe('B4 — filter + nav consistency', () => {
             // documents tab block. Anchor on the id so unrelated
             // search inputs don't false-match.
             expect(src).toMatch(/id="doc-search-input"/);
-            expect(src).toMatch(/placeholder="Search documents…"/);
+            // T09 i18n — placeholder routes through next-intl
+            // (`t('searchDocuments')`); the literal lives in messages/en.json.
+            expect(src).toMatch(/placeholder=\{\w+\(['"]searchDocuments['"]\)\}/);
         });
 
         it('docs tab carries a type filter combobox', () => {

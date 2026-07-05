@@ -6,6 +6,7 @@
 
 import { formatDate } from '@/lib/format-date';
 import { useEffect, useState, useCallback, use } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ export default function AssessmentPage(
     props: { params: Promise<{ tenantSlug: string; vendorId: string; assessmentId: string }> }
 ) {
     const params = use(props.params);
+    const t = useTranslations('vendors.assessment');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const { permissions, role } = useTenantContext();
@@ -76,7 +78,7 @@ export default function AssessmentPage(
         });
         if (res.ok) {
             const result = await res.json();
-            setSavedMessage(`Saved ${result.saved} answers · Score: ${result.score} (${result.riskRating})`);
+            setSavedMessage(t('saved', { saved: result.saved, score: result.score, riskRating: result.riskRating }));
             setTimeout(() => setSavedMessage(''), 4000);
             fetchAssessment(); // refresh score
         }
@@ -84,7 +86,7 @@ export default function AssessmentPage(
     };
 
     const submitAssessment = async () => {
-        if (!confirm('Submit this assessment for review? Answers will be locked.')) return;
+        if (!confirm(t('submitConfirm'))) return;
         setSubmitting(true);
         const res = await fetch(apiUrl(`/vendors/${params.vendorId}/assessments/${params.assessmentId}/submit`), { method: 'POST' });
         if (res.ok) fetchAssessment();
@@ -102,7 +104,7 @@ export default function AssessmentPage(
     };
 
     if (loading) return <SkeletonDetailPage />;
-    if (!assessment) return <div className="text-content-error py-8 text-center">Assessment not found</div>;
+    if (!assessment) return <div className="text-content-error py-8 text-center">{t('notFound')}</div>;
 
     const isDraft = assessment.status === 'DRAFT';
     const isInReview = assessment.status === 'IN_REVIEW';
@@ -128,12 +130,12 @@ export default function AssessmentPage(
                     <label className="flex items-center gap-1.5 text-sm">
                         <input type="radio" name={`q-${q.id}`} checked={value === true || value === 'YES'}
                             onChange={() => setAnswers(p => ({ ...p, [q.id]: true }))} disabled={disabled} />
-                        Yes
+                        {t('yes')}
                     </label>
                     <label className="flex items-center gap-1.5 text-sm">
                         <input type="radio" name={`q-${q.id}`} checked={value === false || value === 'NO'}
                             onChange={() => setAnswers(p => ({ ...p, [q.id]: false }))} disabled={disabled} />
-                        No
+                        {t('no')}
                     </label>
                 </div>
             );
@@ -147,7 +149,7 @@ export default function AssessmentPage(
                     selected={options.map((o: string) => ({ value: o, label: o })).find((opt: { value: string }) => opt.value === value) ?? null}
                     setSelected={(opt) => setAnswers(p => ({ ...p, [q.id]: opt?.value ?? '' }))}
                     options={options.map((o: string) => ({ value: o, label: o }))}
-                    placeholder="— Select —"
+                    placeholder={t('selectOption')}
                     disabled={disabled}
                     matchTriggerWidth
                     buttonProps={{ className: 'w-full max-w-xs' }}
@@ -170,21 +172,21 @@ export default function AssessmentPage(
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-compact">
-                    <Link href={tenantHref(`/vendors/${params.vendorId}`)} className="text-content-muted hover:text-content-emphasis">← Back to Vendor</Link>
+                    <Link href={tenantHref(`/vendors/${params.vendorId}`)} className="text-content-muted hover:text-content-emphasis">{t('backToVendor')}</Link>
                 </div>
             </div>
 
             <div className={cn(cardVariants(), 'space-y-tight')}>
                 <div className="flex items-center justify-between">
-                    <Heading level={1} id="assessment-title">{assessment.template?.name || 'Assessment'}</Heading>
+                    <Heading level={1} id="assessment-title">{assessment.template?.name || t('fallbackName')}</Heading>
                     <StatusBadge variant={STATUS_BADGE[assessment.status]} id="assessment-status">{assessment.status}</StatusBadge>
                 </div>
                 <div className="flex gap-default text-sm text-content-muted">
-                    <span>Score: <strong className="text-content-emphasis" id="assessment-score">{assessment.score != null ? assessment.score.toFixed(1) : '—'}</strong></span>
-                    <span>Rating: {assessment.riskRating ? <StatusBadge variant={CRIT_BADGE[assessment.riskRating]} id="assessment-rating">{assessment.riskRating}</StatusBadge> : '—'}</span>
-                    <span>Requested by: {assessment.requestedBy?.name || '—'}</span>
+                    <span>{t('score')} <strong className="text-content-emphasis" id="assessment-score">{assessment.score != null ? assessment.score.toFixed(1) : '—'}</strong></span>
+                    <span>{t('rating')} {assessment.riskRating ? <StatusBadge variant={CRIT_BADGE[assessment.riskRating]} id="assessment-rating">{assessment.riskRating}</StatusBadge> : '—'}</span>
+                    <span>{t('requestedBy')} {assessment.requestedBy?.name || '—'}</span>
                 </div>
-                {assessment.decidedBy && <p className="text-sm text-content-muted">Decided by: {assessment.decidedBy.name} on {formatDate(assessment.decidedAt)}</p>}
+                {assessment.decidedBy && <p className="text-sm text-content-muted">{t('decidedBy', { name: assessment.decidedBy.name, date: formatDate(assessment.decidedAt) })}</p>}
                 {assessment.notes && <p className="text-sm text-content-default bg-bg-default/50 p-2 rounded">{assessment.notes}</p>}
             </div>
 
@@ -203,7 +205,7 @@ export default function AssessmentPage(
                                     <p className="text-sm font-medium">{q.prompt}{q.required && <RequiredMarker />}</p>
                                     <div className="mt-1.5">{renderInput(q)}</div>
                                 </div>
-                                <Tooltip content="Question weight — multiplies the response score in the overall risk calculation.">
+                                <Tooltip content={t('weightTooltip')}>
                                     <span className="text-xs text-content-subtle cursor-help">w:{q.weight}</span>
                                 </Tooltip>
                             </div>
@@ -217,29 +219,29 @@ export default function AssessmentPage(
                 {isDraft && canWrite && (
                     <>
                         <Button variant="primary" onClick={saveAnswers} disabled={saving} id="save-answers-btn">
-                            {saving ? 'Saving…' : 'Save Answers'}
+                            {saving ? t('saving') : t('saveAnswers')}
                         </Button>
                         <Button variant="secondary" onClick={submitAssessment} disabled={submitting} id="submit-assessment-btn">
-                            {submitting ? 'Submitting…' : 'Submit for Review'}
+                            {submitting ? t('submitting') : t('submitForReview')}
                         </Button>
                     </>
                 )}
                 {isInReview && isAdmin && (
                     <div className="flex items-center gap-tight w-full">
-                        <input className="input flex-1" placeholder="Decision notes (optional)…" value={decideNotes}
+                        <input className="input flex-1" placeholder={t('decisionNotes')} value={decideNotes}
                             onChange={e => setDecideNotes(e.target.value)} id="decide-notes-input" />
                         <Button variant="primary" onClick={() => decideAssessment('APPROVED')} disabled={deciding} id="approve-assessment-btn">
-                            Approve
+                            {t('approve')}
                         </Button>
                         <Button variant="destructive" onClick={() => decideAssessment('REJECTED')} disabled={deciding} id="reject-assessment-btn">
-                            Reject
+                            {t('reject')}
                         </Button>
                     </div>
                 )}
                 {isDecided && (
                     <div className="text-sm text-content-muted">
-                        Assessment is <strong className={assessment.status === 'APPROVED' ? 'text-content-success' : 'text-content-error'}>{assessment.status}</strong>.
-                        {assessment.riskRating && <span className="ml-2">Risk Rating: <StatusBadge variant={CRIT_BADGE[assessment.riskRating]}>{assessment.riskRating}</StatusBadge></span>}
+                        {t('decidedPrefix')} <strong className={assessment.status === 'APPROVED' ? 'text-content-success' : 'text-content-error'}>{assessment.status}</strong>.
+                        {assessment.riskRating && <span className="ml-2">{t('riskRatingLabel')} <StatusBadge variant={CRIT_BADGE[assessment.riskRating]}>{assessment.riskRating}</StatusBadge></span>}
                     </div>
                 )}
             </div>

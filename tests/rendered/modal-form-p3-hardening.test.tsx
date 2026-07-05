@@ -150,7 +150,28 @@ describe.each(FLOWS.filter((f) => f.guard !== 'native'))(
 
         it('guard prompts before discarding', () => {
             expect(src).toMatch(/window\.confirm\(/);
-            expect(src).toMatch(flow.confirmCopy);
+            // T09 i18n — the policies/vendors modals now pass a
+            // next-intl key to window.confirm (`t('newModal.discardConfirm')`)
+            // instead of an inline literal. When the confirm argument is a
+            // t()/binding call, resolve it against en.json (the flow.label
+            // doubles as the namespace) and match the copy there; otherwise
+            // the inline literal must still match.
+            const confirmArg = src.match(
+                /window\.confirm\(\s*\w+\(['"]([a-zA-Z0-9_.]+)['"]\)/,
+            );
+            if (confirmArg) {
+                const en = JSON.parse(
+                    fs.readFileSync(path.join(ROOT, 'messages/en.json'), 'utf8'),
+                ) as Record<string, unknown>;
+                let resolved: unknown = en[flow.label];
+                for (const part of confirmArg[1].split('.')) {
+                    resolved = (resolved as Record<string, unknown> | undefined)?.[part];
+                }
+                expect(typeof resolved).toBe('string');
+                expect(resolved as string).toMatch(flow.confirmCopy);
+            } else {
+                expect(src).toMatch(flow.confirmCopy);
+            }
         });
 
         it("Modal's setShowModal receives the guarded setter (not bare setOpen)", () => {

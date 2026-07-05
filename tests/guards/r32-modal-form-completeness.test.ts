@@ -129,9 +129,26 @@ describe("R32-task-63 — modal-form completeness", () => {
                 // The "Discard … will be lost" copy is the
                 // canonical prompt; locked here so a future copy
                 // change has to land deliberately.
-                expect(src).toMatch(
-                    /window\.confirm\([\s\S]{0,200}lost\./,
+                // T09 i18n — policies/vendors modals pass a next-intl key
+                // to window.confirm (`t('newModal.discardConfirm')`); the
+                // literal lives in messages/en.json (namespace = slug).
+                const confirmArg = src.match(
+                    /window\.confirm\(\s*\w+\(['"]([a-zA-Z0-9_.]+)['"]\)/,
                 );
+                if (confirmArg) {
+                    const en = JSON.parse(read("messages/en.json")) as Record<
+                        string,
+                        unknown
+                    >;
+                    let resolved: unknown = en[entity.slug];
+                    for (const part of confirmArg[1].split(".")) {
+                        resolved = (resolved as Record<string, unknown> | undefined)?.[part];
+                    }
+                    expect(typeof resolved).toBe("string");
+                    expect(resolved as string).toMatch(/lost\.$/);
+                } else {
+                    expect(src).toMatch(/window\.confirm\([\s\S]{0,200}lost\./);
+                }
             });
         });
     }

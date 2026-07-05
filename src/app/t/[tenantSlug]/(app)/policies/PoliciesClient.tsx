@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Server payload is loosely typed at the page boundary; per-cell TanStack column callbacks need a per-row narrowing pass to remove the `any`s, tracked as follow-up. */
 import { TimestampTooltip } from '@/components/ui/timestamp-tooltip';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NewPolicyModal } from './NewPolicyModal';
@@ -97,6 +98,7 @@ function PoliciesPageInner({
     permissions,
     translations: t,
 }: PoliciesClientProps) {
+    const tr = useTranslations('policies');
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
     // Null on SSR + first client render so the "Overdue" badge doesn't
@@ -407,7 +409,7 @@ function PoliciesPageInner({
                         <TimestampTooltip date={p.nextReviewAt} />
                         {isOverdue && (
                             <StatusBadge variant="error" data-testid={`policy-overdue-${p.id}`}>
-                                Overdue
+                                {tr('overdue')}
                             </StatusBadge>
                         )}
                     </span>
@@ -434,7 +436,7 @@ function PoliciesPageInner({
             banner={<TruncationBanner truncated={truncated} />}
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
+                    { label: tr('crumbDashboard'), href: tenantHref('/dashboard') },
                     { label: t.title },
                 ],
                 title: t.title,
@@ -447,7 +449,7 @@ function PoliciesPageInner({
                             className={buttonVariants({ variant: 'secondary' })}
                             id="policy-from-template-btn"
                         >
-                            From Template
+                            {tr('fromTemplate')}
                         </Link>
                         <Button
                             variant="primary"
@@ -458,7 +460,7 @@ function PoliciesPageInner({
                             }}
                             id="new-policy-btn"
                         >
-                            Policy
+                            {tr('newButton')}
                         </Button>
                     </>
                 ) : null,
@@ -468,27 +470,27 @@ function PoliciesPageInner({
                    kpis slot (added in R23-PR-D). */
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
                     <KpiFilterCard
-                        label="Total policies"
+                        label={tr('kpi.total')}
                         value={totalPolicies}
                         onClick={() => togglePolicyKpi('total')}
                         selected={activePolicyKpi === 'total'}
                     />
                     <KpiFilterCard
-                        label="Draft"
+                        label={tr('kpi.draft')}
                         value={draftPolicies}
                         tone="attention"
                         onClick={() => togglePolicyKpi('draft')}
                         selected={activePolicyKpi === 'draft'}
                     />
                     <KpiFilterCard
-                        label="In review"
+                        label={tr('kpi.inReview')}
                         value={inReviewPolicies}
                         tone="default"
                         onClick={() => togglePolicyKpi('inReview')}
                         selected={activePolicyKpi === 'inReview'}
                     />
                     <KpiFilterCard
-                        label="Approved"
+                        label={tr('kpi.approved')}
                         value={approvedPolicies}
                         tone="success"
                         onClick={() => togglePolicyKpi('approved')}
@@ -499,7 +501,7 @@ function PoliciesPageInner({
             filters={{
                 defs: visibleFilterDefs,
                 searchId: 'policies-search',
-                searchPlaceholder: 'Search policies…',
+                searchPlaceholder: tr('searchPlaceholder'),
                 toolbarActions: (
                     <>
                         {columnsDropdown}
@@ -519,10 +521,10 @@ function PoliciesPageInner({
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No policies match your filters"
-                        description="Try widening your search or clearing one of the active filters."
+                        title={tr('empty.noResults.title')}
+                        description={tr('empty.noResults.description')}
                         secondaryAction={{
-                            label: 'Clear filters',
+                            label: tr('clearFilters'),
                             onClick: () => filterCtx.clearAll(),
                         }}
                     />
@@ -530,8 +532,8 @@ function PoliciesPageInner({
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No policies yet"
-                        description="Author the documents that govern how your organisation operates — security, privacy, acceptable use, incident response."
+                        title={tr('empty.noRecords.title')}
+                        description={tr('empty.noRecords.description')}
                     />
                 ),
                 resourceName: (p) => (p ? 'policies' : 'policy'),

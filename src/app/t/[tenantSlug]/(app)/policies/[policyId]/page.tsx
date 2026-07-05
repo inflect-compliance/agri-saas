@@ -6,6 +6,7 @@
 
 import { formatDate } from '@/lib/format-date';
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
@@ -63,6 +64,9 @@ const EVENT_ICONS: Record<string, string> = {
 type ContentMode = 'MARKDOWN' | 'EXTERNAL_LINK' | 'FILE';
 
 export default function PolicyDetailPage() {
+    const t = useTranslations('policies.detail');
+    const tp = useTranslations('policies');
+    const c = useTranslations('common');
     const params = useParams();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
@@ -281,7 +285,7 @@ export default function PolicyDetailPage() {
         if (v.contentType === 'HTML') {
             const safe = sanitizeRichTextHtml(v.contentText ?? '');
             if (!safe.trim()) {
-                return <span className="text-content-subtle italic">No content</span>;
+                return <span className="text-content-subtle italic">{t('noContent')}</span>;
             }
             return (
                 <div
@@ -293,7 +297,7 @@ export default function PolicyDetailPage() {
         }
         return (
             <div className="prose prose-sm prose-invert max-w-none text-content-default whitespace-pre-wrap text-sm">
-                {v.contentText || <span className="text-content-subtle italic">No content</span>}
+                {v.contentText || <span className="text-content-subtle italic">{t('noContent')}</span>}
             </div>
         );
     };
@@ -320,9 +324,9 @@ export default function PolicyDetailPage() {
     // ── Render ──
 
     const breadcrumbs = [
-        { label: 'Dashboard', href: tenantHref('/dashboard') },
-        { label: 'Policies', href: tenantHref('/policies') },
-        { label: policy?.title ?? 'Policy' },
+        { label: tp('crumbDashboard'), href: tenantHref('/dashboard') },
+        { label: t('crumbPolicies'), href: tenantHref('/policies') },
+        { label: policy?.title ?? tp('policyFallback') },
     ];
     if (loading) {
         return (
@@ -340,7 +344,7 @@ export default function PolicyDetailPage() {
     }
     if (!policy) {
         return (
-            <EntityDetailLayout empty={{ message: 'Policy not found.' }} title="" breadcrumbs={breadcrumbs}>
+            <EntityDetailLayout empty={{ message: t('notFound') }} title="" breadcrumbs={breadcrumbs}>
                 <></>
             </EntityDetailLayout>
         );
@@ -353,10 +357,10 @@ export default function PolicyDetailPage() {
 
     type PolicyTab = 'current' | 'versions' | 'editor' | 'activity';
     const tabs: ReadonlyArray<{ key: PolicyTab; label: string }> = [
-        { key: 'current', label: 'Current' },
-        { key: 'versions', label: 'Versions' },
-        ...(canWrite ? ([{ key: 'editor' as const, label: 'Editor' }]) : []),
-        { key: 'activity', label: 'Activity' },
+        { key: 'current', label: t('tabCurrent') },
+        { key: 'versions', label: t('tabVersions') },
+        ...(canWrite ? ([{ key: 'editor' as const, label: t('tabEditor') }]) : []),
+        { key: 'activity', label: t('tabActivity') },
     ];
 
     // Epic 45.3 — surface the active pending approval (if any) above
@@ -439,7 +443,7 @@ export default function PolicyDetailPage() {
                         data-testid="export-policy-pdf-btn"
                         className={buttonVariants({ variant: 'secondary', size: 'sm' })}
                     >
-                        Export PDF
+                        {t('exportPdf')}
                     </a>
                     {canWrite && policy.status !== 'ARCHIVED' && (
                         <button onClick={() => {
@@ -454,7 +458,7 @@ export default function PolicyDetailPage() {
                     )}
                     {canAdmin && policy.status !== 'ARCHIVED' && (
                         <Button variant="ghost" size="sm" className="text-content-muted hover:text-content-error" onClick={archivePolicy} disabled={actionLoading === 'archive'} id="archive-btn">
-                            {actionLoading === 'archive' ? '...' : 'Archive'}
+                            {actionLoading === 'archive' ? '...' : t('archive')}
                         </Button>
                     )}
                 </>
@@ -491,16 +495,16 @@ export default function PolicyDetailPage() {
                             {policy.owner && <span>{policy.owner.name}</span>}
                             {policy.nextReviewAt && (
                                 <span className={isOverdue ? 'text-content-error' : ''}>
-                                    Review: {formatDate(policy.nextReviewAt)}
+                                    {t('reviewPrefix', { date: formatDate(policy.nextReviewAt) })}
                                 </span>
                             )}
-                            {policy.reviewFrequencyDays && <span>Every {policy.reviewFrequencyDays}d</span>}
-                            <span>{versions.length} version{versions.length !== 1 ? 's' : ''}</span>
+                            {policy.reviewFrequencyDays && <span>{t('everyDays', { days: policy.reviewFrequencyDays })}</span>}
+                            <span>{t('versionCount', { count: versions.length })}</span>
                         </div>
                         {/* Review edit toggle */}
                         {canWrite && !editingReview && (
                             <button onClick={() => setEditingReview(true)} className="text-xs text-[var(--brand-default)] hover:text-[var(--brand-muted)] mt-2">
-                                Edit review schedule
+                                {t('editReviewSchedule')}
                             </button>
                         )}
                         {editingReview && (
@@ -510,7 +514,7 @@ export default function PolicyDetailPage() {
                                         className="text-xs text-content-subtle"
                                         htmlFor="policy-review-frequency-input"
                                     >
-                                        Frequency (days)
+                                        {t('frequencyDays')}
                                     </label>
                                     {/* Epic 60 — NumberStepper gives us +/- buttons,
                                         ArrowUp/Down keyboard, bounded clamping, and
@@ -521,7 +525,7 @@ export default function PolicyDetailPage() {
                                         id="policy-review-frequency-input"
                                         className="w-36"
                                         size="sm"
-                                        ariaLabel="Policy review frequency in days"
+                                        ariaLabel={t('frequencyAria')}
                                         value={
                                             reviewDays === ""
                                                 ? 30
@@ -530,7 +534,7 @@ export default function PolicyDetailPage() {
                                         onChange={(v) => setReviewDays(String(v))}
                                         min={1}
                                         max={3650}
-                                        formatValue={(v) => `${v} days`}
+                                        formatValue={(v) => t('daysUnit', { value: v })}
                                     />
                                 </div>
                                 <div>
@@ -538,7 +542,7 @@ export default function PolicyDetailPage() {
                                         className="text-xs text-content-subtle"
                                         htmlFor="policy-next-review-input"
                                     >
-                                        Next review
+                                        {t('nextReview')}
                                     </label>
                                     {/*
                                       Epic 58 — replaces the previous
@@ -550,7 +554,7 @@ export default function PolicyDetailPage() {
                                     <DatePicker
                                         id="policy-next-review-input"
                                         className="w-44 text-sm"
-                                        placeholder="Pick date"
+                                        placeholder={t('pickDate')}
                                         clearable
                                         align="start"
                                         value={parseYMD(nextReview)}
@@ -560,12 +564,12 @@ export default function PolicyDetailPage() {
                                         disabledDays={{
                                             before: startOfUtcDay(new Date()),
                                         }}
-                                        aria-label="Next review date"
+                                        aria-label={t('nextReviewAria')}
                                     />
                                 </div>
-                                <Button variant="secondary" size="xs" onClick={() => setEditingReview(false)}>Cancel</Button>
+                                <Button variant="secondary" size="xs" onClick={() => setEditingReview(false)}>{c('cancel')}</Button>
                                 <Button variant="primary" size="xs" onClick={saveReview} disabled={savingReview}>
-                                    {savingReview ? '…' : 'Save'}
+                                    {savingReview ? '…' : t('save')}
                                 </Button>
                             </div>
                         )}
@@ -585,16 +589,16 @@ export default function PolicyDetailPage() {
                         <>
                             <div className="flex items-center justify-between mb-4">
                                 <div className="text-sm text-content-muted">
-                                    Version {currentVersion.versionNumber} · {currentVersion.createdBy?.name} · {formatDate(currentVersion.createdAt)}
-                                    {currentVersion.contentType === 'EXTERNAL_LINK' && <StatusBadge variant="info" className="ml-2">External</StatusBadge>}
+                                    {t('versionLabel')} {currentVersion.versionNumber} · {currentVersion.createdBy?.name} · {formatDate(currentVersion.createdAt)}
+                                    {currentVersion.contentType === 'EXTERNAL_LINK' && <StatusBadge variant="info" className="ml-2">{t('external')}</StatusBadge>}
                                 </div>
                             </div>
                             {renderVersionContent(currentVersion)}
                         </>
                     ) : (
                         <div className="text-center text-content-subtle py-8">
-                            <p>No version published yet.</p>
-                            {canWrite && <p className="text-sm mt-1">Create a version in the Editor tab.</p>}
+                            <p>{t('noVersionPublished')}</p>
+                            {canWrite && <p className="text-sm mt-1">{t('createInEditor')}</p>}
                         </div>
                     )}
                 </div>
@@ -621,7 +625,7 @@ export default function PolicyDetailPage() {
                         />
                     )}
                     {versions.length === 0 ? (
-                        <Card className="text-center text-content-subtle">No versions yet.</Card>
+                        <Card className="text-center text-content-subtle">{t('noVersions')}</Card>
                     ) : versions.map((v: PolicyVersionDTO) => {
                         const vApprovals = (v.approvals || []).filter((a) => a.status === 'PENDING' || a.status === 'APPROVED' || a.status === 'REJECTED');
                         const hasPending = vApprovals.some((a) => a.status === 'PENDING');
@@ -633,8 +637,8 @@ export default function PolicyDetailPage() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-compact">
                                         <span className="text-sm font-semibold text-[var(--brand-default)]">v{v.versionNumber}</span>
-                                        {isCurrentPublished && <StatusBadge variant="success">Published</StatusBadge>}
-                                        {v.contentType === 'EXTERNAL_LINK' && <StatusBadge variant="info">External Link</StatusBadge>}
+                                        {isCurrentPublished && <StatusBadge variant="success">{t('published')}</StatusBadge>}
+                                        {v.contentType === 'EXTERNAL_LINK' && <StatusBadge variant="info">{t('externalLink')}</StatusBadge>}
                                         <span className="text-xs text-content-subtle">
                                             {v.createdBy?.name} · {formatDate(v.createdAt)}
                                         </span>
@@ -642,39 +646,39 @@ export default function PolicyDetailPage() {
                                     <div className="flex gap-tight">
                                         {canWrite && !hasPending && !isCurrentPublished && (
                                             <Button variant="secondary" size="sm" onClick={() => requestApproval(v.id)} disabled={!!actionLoading} id={`request-approval-${v.versionNumber}`}>
-                                                {actionLoading === 'approve-' + v.id ? '...' : 'Request Approval'}
+                                                {actionLoading === 'approve-' + v.id ? '...' : t('requestApproval')}
                                             </Button>
                                         )}
                                         {canAdmin && hasApproved && !isCurrentPublished && (
                                             <Button variant="primary" size="sm" onClick={() => publishVersion(v.id)} disabled={!!actionLoading} id={`publish-version-${v.versionNumber}`}>
-                                                {actionLoading === 'publish-' + v.id ? '...' : 'Publish'}
+                                                {actionLoading === 'publish-' + v.id ? '...' : t('publish')}
                                             </Button>
                                         )}
                                     </div>
                                 </div>
                                 {v.changeSummary && <p className="text-sm text-content-muted italic">{v.changeSummary}</p>}
                                 <details className="group">
-                                    <summary className="text-xs text-[var(--brand-default)] cursor-pointer hover:text-[var(--brand-muted)]">Show content</summary>
+                                    <summary className="text-xs text-[var(--brand-default)] cursor-pointer hover:text-[var(--brand-muted)]">{t('showContent')}</summary>
                                     <div className="mt-2 border-t border-border-default pt-2">{renderVersionContent(v)}</div>
                                 </details>
                                 {vApprovals.length > 0 && (
                                     <div className="border-t border-border-default/50 pt-2 space-y-1">
-                                        <p className="text-xs font-semibold text-content-subtle">Approvals</p>
+                                        <p className="text-xs font-semibold text-content-subtle">{t('approvalsHeading')}</p>
                                         {vApprovals.map((a) => (
                                             <div key={a.id} className="flex items-center justify-between text-xs">
                                                 <div className="flex items-center gap-tight">
                                                     <StatusBadge variant={APPROVAL_BADGE[a.status]}>{a.status}</StatusBadge>
                                                     <span className="text-content-muted">
-                                                        by {a.requestedBy?.name || 'Unknown'}
+                                                        {t('by', { name: a.requestedBy?.name || t('unknown') })}
                                                         {a.decidedAt && ` · ${formatDate(a.decidedAt)}`}
                                                     </span>
                                                 </div>
                                                 {canAdmin && a.status === 'PENDING' && (
                                                     <div className="flex gap-1">
                                                         <Button variant="primary" size="xs" onClick={() => decideApproval(a.id, 'APPROVED')} disabled={!!actionLoading} id={`approve-${a.id}`}>
-                                                            {actionLoading === 'decide-' + a.id ? '...' : 'Approve'}
+                                                            {actionLoading === 'decide-' + a.id ? '...' : t('approve')}
                                                         </Button>
-                                                        <Button variant="destructive" size="xs" onClick={() => decideApproval(a.id, 'REJECTED')} disabled={!!actionLoading}>Reject</Button>
+                                                        <Button variant="destructive" size="xs" onClick={() => decideApproval(a.id, 'REJECTED')} disabled={!!actionLoading}>{t('reject')}</Button>
                                                     </div>
                                                 )}
                                             </div>
@@ -691,15 +695,15 @@ export default function PolicyDetailPage() {
             {tab === 'editor' && canWrite && (
                 <div className={cn(cardVariants(), 'space-y-default')}>
                     <div className="flex items-center justify-between">
-                        <Heading level={3}>Create New Version</Heading>
+                        <Heading level={3}>{t('createNewVersion')}</Heading>
                     </div>
 
                     {/* Content type selector */}
                     <div className="flex gap-tight">
                         {([
-                            { key: 'MARKDOWN' as const, label: 'Markdown', icon: '' },
-                            { key: 'EXTERNAL_LINK' as const, label: 'External Link', icon: '' },
-                            { key: 'FILE' as const, label: 'File Upload', icon: '' },
+                            { key: 'MARKDOWN' as const, label: t('markdown'), icon: '' },
+                            { key: 'EXTERNAL_LINK' as const, label: t('externalLinkOpt'), icon: '' },
+                            { key: 'FILE' as const, label: t('fileUpload'), icon: '' },
                         ]).map(opt => (
                             <button key={opt.key} onClick={() => setContentMode(opt.key)}
                                 className={`px-3 py-1.5 text-xs rounded-lg border transition ${contentMode === opt.key
@@ -715,7 +719,7 @@ export default function PolicyDetailPage() {
                             id="version-editor"
                             value={editorContent}
                             contentType={editorContentType}
-                            placeholder="# Policy Content&#10;&#10;Write your policy here..."
+                            placeholder={t('editorPlaceholder')}
                             onChange={(value, contentType) => {
                                 setEditorContent(value);
                                 setEditorContentType(contentType);
@@ -726,18 +730,18 @@ export default function PolicyDetailPage() {
                     {/* External link input */}
                     {contentMode === 'EXTERNAL_LINK' && (
                         <div>
-                            <label className="input-label">External Document URL</label>
+                            <label className="input-label">{t('externalDocUrl')}</label>
                             <input type="url" className="input w-full" value={externalUrl}
                                 onChange={e => setExternalUrl(e.target.value)}
                                 placeholder="https://docs.google.com/..." id="external-url-input" />
-                            <p className="text-xs text-content-subtle mt-1">Link to an external policy document (Google Docs, Confluence, etc.)</p>
+                            <p className="text-xs text-content-subtle mt-1">{t('externalHint')}</p>
                         </div>
                     )}
 
                     {/* File upload */}
                     {contentMode === 'FILE' && (
                         <div>
-                            <label className="input-label">Upload File</label>
+                            <label className="input-label">{t('uploadFile')}</label>
                             <input type="file" className="input w-full" id="file-upload-input"
                                 onChange={e => setSelectedFile(e.target.files?.[0] || null)}
                                 accept=".pdf,.doc,.docx,.txt,.md" />
@@ -748,13 +752,13 @@ export default function PolicyDetailPage() {
                     )}
 
                     <div>
-                        <label className="input-label">Change Summary (optional)</label>
+                        <label className="input-label">{t('changeSummary')}</label>
                         <input className="input w-full" value={changeSummary} onChange={e => setChangeSummary(e.target.value)}
-                            placeholder="What changed in this version?" id="change-summary-input" />
+                            placeholder={t('changeSummaryPlaceholder')} id="change-summary-input" />
                     </div>
 
                     <Button variant="primary" onClick={createVersion} disabled={saving} id="save-version-btn">
-                        {saving ? 'Saving...' : '+ Version'}
+                        {saving ? t('saving') : '+ Version'}
                     </Button>
                 </div>
             )}
@@ -762,11 +766,11 @@ export default function PolicyDetailPage() {
             {/* ── Activity Feed ── */}
             {tab === 'activity' && (
                 <div className={cardVariants()} id="activity-feed">
-                    <Heading level={3} className="mb-4">Activity Timeline</Heading>
+                    <Heading level={3} className="mb-4">{t('activityTimeline')}</Heading>
                     {activitiesLoading ? (
-                        <div className="text-center text-content-subtle animate-pulse py-8">Loading activity…</div>
+                        <div className="text-center text-content-subtle animate-pulse py-8">{t('loadingActivity')}</div>
                     ) : activities.length === 0 ? (
-                        <div className="text-center text-content-subtle py-8">No activity recorded yet.</div>
+                        <div className="text-center text-content-subtle py-8">{t('noActivity')}</div>
                     ) : (
                         <div className="space-y-compact">
                             {activities.map((evt: AuditLogEntry) => (
@@ -780,7 +784,7 @@ export default function PolicyDetailPage() {
                                             <span className="text-xs text-content-subtle">{relativeTime(evt.createdAt)}</span>
                                         </div>
                                         <p className="text-xs text-content-muted mt-0.5 truncate">
-                                            {evt.user?.name || 'System'}{evt.details ? ` — ${evt.details.split('\n')[0]}` : ''}
+                                            {evt.user?.name || t('system')}{evt.details ? ` — ${evt.details.split('\n')[0]}` : ''}
                                         </p>
                                     </div>
                                 </div>

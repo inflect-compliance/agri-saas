@@ -5,6 +5,7 @@
  */
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTenantHref } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -19,6 +20,8 @@ export interface NewVendorModalProps {
 export function NewVendorModal({ open, setOpen }: NewVendorModalProps) {
     const tenantHref = useTenantHref();
     const router = useRouter();
+    const t = useTranslations('vendors');
+    const c = useTranslations('common');
 
     const form = useNewVendorForm({
         onSuccess: (vendor) => {
@@ -36,9 +39,7 @@ export function NewVendorModal({ open, setOpen }: NewVendorModalProps) {
                 if (form.submitting) return;
                 if (
                     form.isDirty &&
-                    !window.confirm(
-                        'Discard vendor? Any details you entered will be lost.',
-                    )
+                    !window.confirm(t('newModal.discardConfirm'))
                 ) {
                     return;
                 }
@@ -59,13 +60,13 @@ export function NewVendorModal({ open, setOpen }: NewVendorModalProps) {
             showModal={open}
             setShowModal={guardedSetOpen}
             size="lg"
-            title="New vendor"
-            description="Create a vendor to track third-party risk."
+            title={t('newModal.title')}
+            description={t('newModal.desc')}
             preventDefaultClose={form.submitting}
         >
             <Modal.Header
-                title="New vendor"
-                description="Create a vendor to track third-party risk."
+                title={t('newModal.title')}
+                description={t('newModal.desc')}
             />
             <Modal.Form id="new-vendor-form" onSubmit={handleSubmit}>
                 <Modal.Body>
@@ -93,7 +94,7 @@ export function NewVendorModal({ open, setOpen }: NewVendorModalProps) {
                         disabled={form.submitting}
                         id="new-vendor-cancel-btn"
                     >
-                        Cancel
+                        {c('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -102,7 +103,7 @@ export function NewVendorModal({ open, setOpen }: NewVendorModalProps) {
                         disabled={!form.canSubmit}
                         id="create-vendor-submit"
                     >
-                        {form.submitting ? 'Creating…' : 'Create Vendor'}
+                        {form.submitting ? t('newModal.creating') : t('newModal.create')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

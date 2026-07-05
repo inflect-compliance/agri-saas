@@ -6,6 +6,7 @@
  * when the SharePoint copy is newer than the last sync.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -24,6 +25,7 @@ interface SpStatus {
 }
 
 export function PolicySharePointSection({ policyId }: { policyId: string }) {
+    const t = useTranslations('policies.sharepoint');
     const apiUrl = useTenantApiUrl();
     const [connId, setConnId] = useState<string | null>(null);
     const [status, setStatus] = useState<SpStatus | null>(null);
@@ -68,7 +70,7 @@ export function PolicySharePointSection({ policyId }: { policyId: string }) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ connectionId: connId, driveId: items[0].driveId, itemId: items[0].itemId }),
                 });
-                if (!res.ok) { setMsg('Link failed.'); return; }
+                if (!res.ok) { setMsg(t('linkFailed')); return; }
                 await loadStatus();
             } finally {
                 setBusy(false);
@@ -83,7 +85,7 @@ export function PolicySharePointSection({ policyId }: { policyId: string }) {
             setMsg(null);
             try {
                 const res = await fetch(apiUrl(`/policies/${policyId}/sharepoint${path}`), { method });
-                if (!res.ok) { setMsg('Action failed.'); return; }
+                if (!res.ok) { setMsg(t('actionFailed')); return; }
                 setMsg(okMsg);
                 await loadStatus();
             } finally {
@@ -106,17 +108,17 @@ export function PolicySharePointSection({ policyId }: { policyId: string }) {
                 onConfirm={link}
             />
             <div className="flex items-center justify-between">
-                <Heading level={3}>SharePoint</Heading>
+                <Heading level={3}>{t('heading')}</Heading>
                 {status?.linked ? (
-                    <StatusBadge variant="success">Linked</StatusBadge>
+                    <StatusBadge variant="success">{t('linked')}</StatusBadge>
                 ) : (
-                    <StatusBadge variant="neutral">Not linked</StatusBadge>
+                    <StatusBadge variant="neutral">{t('notLinked')}</StatusBadge>
                 )}
             </div>
 
             {status?.conflict && (
                 <InlineNotice variant="warning">
-                    The SharePoint version is newer than the last sync — pull first to avoid overwriting it.
+                    {t('conflict')}
                 </InlineNotice>
             )}
             {msg && <InlineNotice variant="success">{msg}</InlineNotice>}
@@ -130,28 +132,28 @@ export function PolicySharePointSection({ policyId }: { policyId: string }) {
                             rel="noopener noreferrer"
                             className="text-sm text-content-link"
                         >
-                            View in SharePoint ↗
+                            {t('viewInSharePoint')}
                         </a>
                     )}
                     <div className="ml-auto flex gap-tight">
-                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('/push', 'POST', 'Pushed to SharePoint.')}>
-                            Push
+                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('/push', 'POST', t('pushed'))}>
+                            {t('push')}
                         </Button>
-                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('/pull', 'POST', 'Pulled a new version.')}>
-                            Pull
+                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('/pull', 'POST', t('pulled'))}>
+                            {t('pull')}
                         </Button>
-                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('', 'DELETE', 'Unlinked.')}>
-                            Unlink
+                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => act('', 'DELETE', t('unlinked'))}>
+                            {t('unlink')}
                         </Button>
                     </div>
                 </div>
             ) : (
                 <div className="flex items-center gap-default">
                     <p className="text-sm text-content-muted">
-                        Link this policy to a SharePoint document for two-way sync.
+                        {t('linkPrompt')}
                     </p>
                     <Button variant="secondary" size="sm" disabled={busy} onClick={() => setPickerOpen(true)}>
-                        Link document
+                        {t('linkDocument')}
                     </Button>
                 </div>
             )}

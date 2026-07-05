@@ -14,6 +14,7 @@
  */
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTenantHref } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -34,6 +35,8 @@ export function NewPolicyModal({
 }: NewPolicyModalProps) {
     const tenantHref = useTenantHref();
     const router = useRouter();
+    const t = useTranslations('policies');
+    const c = useTranslations('common');
 
     const form = useNewPolicyForm({
         isTemplateMode,
@@ -55,9 +58,7 @@ export function NewPolicyModal({
                 if (form.submitting) return;
                 if (
                     form.isDirty &&
-                    !window.confirm(
-                        'Discard policy? Any details you entered will be lost.',
-                    )
+                    !window.confirm(t('newModal.discardConfirm'))
                 ) {
                     return;
                 }
@@ -78,20 +79,20 @@ export function NewPolicyModal({
             showModal={open}
             setShowModal={guardedSetOpen}
             size="lg"
-            title={isTemplateMode ? 'New policy from template' : 'New policy'}
+            title={isTemplateMode ? t('newModal.titleTemplate') : t('newModal.title')}
             description={
                 isTemplateMode
-                    ? 'Select a template to start with pre-written content.'
-                    : 'Create a blank policy and add content later.'
+                    ? t('newModal.descTemplate')
+                    : t('newModal.desc')
             }
             preventDefaultClose={form.submitting}
         >
             <Modal.Header
-                title={isTemplateMode ? 'New policy from template' : 'New policy'}
+                title={isTemplateMode ? t('newModal.titleTemplate') : t('newModal.title')}
                 description={
                     isTemplateMode
-                        ? 'Select a template to start with pre-written content.'
-                        : 'Create a blank policy and add content later.'
+                        ? t('newModal.descTemplate')
+                        : t('newModal.desc')
                 }
             />
             <Modal.Form id="new-policy-form" onSubmit={handleSubmit}>
@@ -120,7 +121,7 @@ export function NewPolicyModal({
                         disabled={form.submitting}
                         id="new-policy-cancel-btn"
                     >
-                        Cancel
+                        {c('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -129,7 +130,7 @@ export function NewPolicyModal({
                         disabled={!form.canSubmit}
                         id="create-policy-btn"
                     >
-                        {form.submitting ? 'Creating…' : 'Create Policy'}
+                        {form.submitting ? t('newModal.creating') : t('createPolicy')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

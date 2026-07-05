@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { buttonVariants } from '@/components/ui/button-variants';
 import Link from 'next/link';
 import { Combobox } from '@/components/ui/combobox';
 import { EmptyState } from '@/components/ui/empty-state';
-import { FileText, SearchX } from 'lucide-react';
+import { FileContent, Magnifier } from '@/components/ui/icons/nucleo';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { Card, cardVariants } from '@/components/ui/card';
@@ -18,6 +19,7 @@ export default function TemplatesPage() {
     const tenantHref = useTenantHref();
     const router = useRouter();
     const tenant = useTenantContext();
+    const t = useTranslations('policies.templates');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [templates, setTemplates] = useState<any[]>([]);
@@ -71,10 +73,10 @@ export default function TemplatesPage() {
         <div className="space-y-section animate-fadeIn">
             <div className="flex items-center justify-between">
                 <div>
-                    <Heading level={1}>Policy Templates</Heading>
-                    <p className="text-content-muted text-sm">{templates.length} templates available</p>
+                    <Heading level={1}>{t('heading')}</Heading>
+                    <p className="text-content-muted text-sm">{t('countAvailable', { count: templates.length })}</p>
                 </div>
-                <Link href={tenantHref('/policies')} className={buttonVariants({ variant: 'secondary' })}>← Back to Policies</Link>
+                <Link href={tenantHref('/policies')} className={buttonVariants({ variant: 'secondary' })}>{t('backToPolicies')}</Link>
             </div>
 
             {/* Filters */}
@@ -85,7 +87,7 @@ export default function TemplatesPage() {
                     selected={categories.map(c => ({ value: c, label: c })).find(o => o.value === categoryFilter) ?? null}
                     setSelected={(opt) => setCategoryFilter(opt?.value ?? '')}
                     options={categories.map(c => ({ value: c, label: c }))}
-                    placeholder="All Categories"
+                    placeholder={t('allCategories')}
                     matchTriggerWidth
                     buttonProps={{ className: 'w-48' }}
                 />
@@ -93,22 +95,22 @@ export default function TemplatesPage() {
 
             {/* Grid */}
             {loading ? (
-                <div className="p-12 text-center text-content-subtle animate-pulse">Loading templates…</div>
+                <div className="p-12 text-center text-content-subtle animate-pulse">{t('loading')}</div>
             ) : filtered.length === 0 ? (
                 <div className={cardVariants({ density: 'none' })}>
                     {templates.length === 0 ? (
                         <EmptyState
-                            icon={FileText}
+                            icon={FileContent}
                             variant="no-records"
-                            title="No templates yet"
-                            description="Policy templates will appear here once your tenant or admin loads them."
+                            title={t('emptyRecords.title')}
+                            description={t('emptyRecords.description')}
                         />
                     ) : (
                         <EmptyState
-                            icon={SearchX}
+                            icon={Magnifier}
                             variant="no-results"
-                            title="No templates match your filters"
-                            description="Try clearing the category filter or broadening your search."
+                            title={t('emptyResults.title')}
+                            description={t('emptyResults.description')}
                         />
                     )}
                 </div>
@@ -144,7 +146,7 @@ export default function TemplatesPage() {
                                     disabled={!!creating}
                                     id={`use-template-${tpl.id}`}
                                 >
-                                    {creating === tpl.id ? 'Creating...' : 'Use Template'}
+                                    {creating === tpl.id ? t('creating') : t('useTemplate')}
                                 </Button>
                             )}
                         </Card>
