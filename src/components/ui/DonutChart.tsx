@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * DonutChart — proportional distribution donut.
  *

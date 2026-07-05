@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * ExpiryCalendar — Evidence expiry timeline widget.
  *

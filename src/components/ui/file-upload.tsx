@@ -1,3 +1,5 @@
+'use client';
+
 import { cn } from "@/lib/cn";
 import { resizeImage } from "@/lib/resize-image";
 import { VariantProps, cva } from "class-variance-authority";
