@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -72,6 +73,9 @@ export function AssetsClient(props: AssetsClientProps) {
 }
 
 function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permissions, translations: t }: AssetsClientProps) {
+    // Inline strings not passed via the server `translations` prop use a
+    // client-side `useTranslations('assets')` binding (`tm`).
+    const tm = useTranslations('assets');
     // Modal-form follow-up — create-asset modal mounted off the list,
     // auto-opening on `?create=1` (the redirect target from
     // `/assets/new`). Matches the canonical NewVendorModal wiring.
@@ -134,8 +138,8 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
     // Bulk-delete via the table selection action-row.
     const { batchAction: assetBulkDelete, dialog: assetDeleteDialog } =
         useBulkDelete({
-            entitySingular: 'asset',
-            entityPlural: 'assets',
+            entitySingular: tm('assetSingular'),
+            entityPlural: tm('assetPlural'),
             onDelete: async (assetIds) => {
                 const res = await fetch(`/api/t/${tenantSlug}/assets/bulk/delete`, {
                     method: 'POST',
@@ -153,12 +157,12 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
     // filter categories (which stay in the Filter dropdown).
     const kpiCards: CardDefinition[] = useMemo(
         () => [
-            { id: 'total', label: 'Total assets', kind: 'kpi' },
-            { id: 'active', label: 'Active', kind: 'kpi' },
-            { id: 'critical', label: 'High criticality', kind: 'kpi' },
-            { id: 'retired', label: 'Retired', kind: 'kpi' },
+            { id: 'total', label: tm('kpiTotal'), kind: 'kpi' },
+            { id: 'active', label: tm('kpiActive'), kind: 'kpi' },
+            { id: 'critical', label: tm('kpiCritical'), kind: 'kpi' },
+            { id: 'retired', label: tm('kpiRetired'), kind: 'kpi' },
         ],
-        [],
+        [tm],
     );
     const { visibleCards: visibleKpiCards, dropdown: filtersDropdown } =
         useFilterCardVisibility({
@@ -265,15 +269,15 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             // First-column rule (Risk/Controls parity) — the
             // per-tenant `AST-N` Code leads the column DEFS, but is off by
             // default — toggle it on via the gear. Name is the default lead.
-            { id: 'code', label: 'Code', defaultVisible: false },
-            { id: 'name', label: 'Name' },
-            { id: 'type', label: 'Type' },
-            { id: 'manufacturer', label: 'Manufacturer' },
-            { id: 'owner', label: 'Owner' },
-            { id: 'controls', label: 'Controls' },
-            { id: 'tasks', label: 'Tasks' },
+            { id: 'code', label: tm('colCode'), defaultVisible: false },
+            { id: 'name', label: t.name },
+            { id: 'type', label: t.type },
+            { id: 'manufacturer', label: t.manufacturer },
+            { id: 'owner', label: t.owner },
+            { id: 'controls', label: t.controlsCol },
+            { id: 'tasks', label: tm('colTasks') },
         ],
-        [],
+        [t, tm],
     );
     const {
         columnVisibility,
@@ -292,7 +296,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             // tone keeps the canonical-id signal quiet while the
             // Name cell carries the click affordance.
             id: 'code',
-            header: 'Code',
+            header: tm('colCode'),
             // Args are inferred from the column generic — leaving
             // explicit annotations off keeps the type-narrowness
             // ratchet honest.
@@ -344,7 +348,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
         {
             // B7 — unified linked-task count (done/total), matching Controls.
             id: 'tasks',
-            header: 'Tasks',
+            header: tm('colTasks'),
             accessorFn: (a: any) => `${a.taskDone ?? 0}/${a.taskTotal ?? 0}`,
             cell: ({ row }: any) => {
                 const total = row.original.taskTotal ?? 0;
@@ -362,7 +366,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                 );
             },
         },
-    ]), [t]);
+    ]), [t, tm]);
 
     return (
         <ListPageShell className="gap-section">
@@ -371,7 +375,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                     <div>
                         <PageBreadcrumbs
                             items={[
-                                { label: 'Dashboard', href: tenantHref('/dashboard') },
+                                { label: tm('breadcrumbDashboard'), href: tenantHref('/dashboard') },
                                 { label: t.title },
                             ]}
                             className="mb-1"
@@ -382,8 +386,8 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                         )}
                     </div>
                     <div className="flex gap-tight">
-                        <Tooltip content="Coverage">
-                            <Link href={tenantHref('/coverage')} aria-label="Coverage" className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="shield" size={16} /></Link>
+                        <Tooltip content={tm('tooltipCoverage')}>
+                            <Link href={tenantHref('/coverage')} aria-label={tm('tooltipCoverage')} className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="shield" size={16} /></Link>
                         </Tooltip>
                         <Button variant="primary" icon={<Plus className="-ml-0.5 -mr-2.5" />} onClick={() => setIsCreateOpen(true)} id="new-asset-btn">{t.addAsset}</Button>
                     </div>
@@ -447,7 +451,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                 <FilterToolbar
                     filters={liveFilters}
                     searchId="assets-search"
-                    searchPlaceholder="Search assets…"
+                    searchPlaceholder={tm('searchPlaceholder')}
                     actions={<>{columnsDropdown}{filtersDropdown}</>}
                 />
             </ListPageShell.Filters>
@@ -467,10 +471,10 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                             <EmptyState
                                 size="sm"
                                 variant="no-results"
-                                title="No assets match your filters"
-                                description="Try widening your search or clearing one of the active filters."
+                                title={tm('noResultsTitle')}
+                                description={tm('noResultsDescription')}
                                 secondaryAction={{
-                                    label: 'Clear filters',
+                                    label: tm('clearFilters'),
                                     onClick: () => filterCtx.clearAll(),
                                 }}
                             />
@@ -479,11 +483,11 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                                 size="sm"
                                 variant="no-records"
                                 title={t.noAssets}
-                                description="Add the machines, vehicles, buildings, and equipment on the farm to track maintenance and link them to risks."
+                                description={tm('emptyRecordsDescription')}
                                 primaryAction={
                                     permissions.canWrite
                                         ? {
-                                              label: 'Add asset',
+                                              label: tm('addAssetAction'),
                                               onClick: () => setIsCreateOpen(true),
                                           }
                                         : undefined
@@ -491,7 +495,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                             />
                         )
                     }
-                    resourceName={(p) => p ? 'assets' : 'asset'}
+                    resourceName={(p) => p ? tm('assetPlural') : tm('assetSingular')}
                     data-testid="assets-table"
                     className="hover:bg-bg-muted"
                 />

@@ -88,9 +88,7 @@ const LEGACY_LUCIDE_USERS = new Set<string>([
     'src/app/t/[tenantSlug]/(app)/controls/ControlsClient.tsx',
     'src/app/t/[tenantSlug]/(app)/controls/filter-defs.ts',
     'src/app/t/[tenantSlug]/(app)/controls/sankey/ControlsSankeyClient.tsx',
-    'src/app/t/[tenantSlug]/(app)/coverage/CoverageClient.tsx',
     'src/app/t/[tenantSlug]/(app)/evidence/filter-defs.ts',
-    'src/app/t/[tenantSlug]/(app)/frameworks/FrameworksClient.tsx',
     'src/app/t/[tenantSlug]/(app)/policies/filter-defs.ts',
     // Roadmap-2 PR-12 — moved a single `Download` icon import
     // from SoAClient to ReportsClient when lifting the SoA

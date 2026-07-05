@@ -160,8 +160,10 @@ describe('B8 — folders + framework lifecycle', () => {
         });
 
         it('explainer modal documents the today-vs-future split', () => {
-            expect(src).toMatch(/Custom frameworks/);
-            expect(src).toMatch(/Coming soon/);
+            // i18n (T11): the modal copy moved to messages/*.json; the
+            // component now references the keys.
+            expect(src).toMatch(/customModal\.title/);
+            expect(src).toMatch(/customModal\.comingSoonLabel/);
         });
     });
 });

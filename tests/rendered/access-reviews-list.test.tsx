@@ -26,7 +26,11 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('next-intl', () => ({
-    useTranslations: () => (key: string) => key,
+    useTranslations: () => {
+        const t = (key: string) => key;
+        (t as unknown as { rich: (k: string) => string }).rich = (key: string) => key;
+        return t;
+    },
 }));
 
 import { AccessReviewsClient } from '@/app/t/[tenantSlug]/(app)/access-reviews/AccessReviewsClient';
@@ -126,7 +130,9 @@ describe('AccessReviewsClient', () => {
 
         // Clicking the LABEL (htmlFor → id) must switch the selection —
         // the previous label-wrapped form didn't associate the control.
-        fireEvent.click(screen.getByText('Owners + admins only'));
+        // i18n: useTranslations is mocked to echo the key, so the scope
+        // label renders as its message key.
+        fireEvent.click(screen.getByText('scopeAdminOnly'));
         expect(adminOnly.getAttribute('data-state')).toBe('checked');
         expect(allUsers.getAttribute('data-state')).toBe('unchecked');
     });

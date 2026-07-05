@@ -22,6 +22,17 @@ jest.mock('next/navigation', () => ({
     useParams: () => ({ tenantSlug: 'acme' }),
 }));
 
+// NewAssetFields / EditAssetFields use `useTranslations('assets')` for
+// their non-prop labels + placeholders. Echo the key so assertions can
+// match the message key.
+jest.mock('next-intl', () => ({
+    useTranslations: () => {
+        const t = (key: string) => key;
+        (t as unknown as { rich: (k: string) => string }).rich = (key: string) => key;
+        return t;
+    },
+}));
+
 import { NewAssetFields } from '@/app/t/[tenantSlug]/(app)/assets/_form/NewAssetFields';
 import { EditAssetFields } from '@/app/t/[tenantSlug]/(app)/assets/_form/EditAssetFields';
 
@@ -95,8 +106,11 @@ describe('EditAssetFields (edit)', () => {
     });
 
     it("labels the people-picker 'Owner' and drops 'Assigned to' + 'External Ref'", () => {
+        // i18n: useTranslations echoes the key, so the Owner label renders
+        // as its message key (`owner`). The dropped fields have no key at
+        // all, so they stay absent.
         withClient(<EditAssetFields form={form} tenantSlug="acme" />);
-        expect(screen.getByText('Owner')).not.toBeNull();
+        expect(screen.getByText('owner')).not.toBeNull();
         expect(screen.queryByText('Assigned to')).toBeNull();
         expect(screen.queryByText('External Ref')).toBeNull();
     });
@@ -106,9 +120,10 @@ describe('EditAssetFields (edit)', () => {
         const labels = [...container.querySelectorAll('label.input-label')].map(
             (l) => l.textContent,
         );
-        expect(labels).toContain('Criticality');
-        expect(labels).toContain('Manufacturer');
-        expect(labels).toContain('Status');
+        // i18n keys (mock echoes the key). Name label renders "name *".
+        expect(labels).toContain('criticality');
+        expect(labels).toContain('manufacturer');
+        expect(labels).toContain('status');
         expect(labels).not.toContain('Classification');
         expect(labels).not.toContain('Data Residency');
     });
@@ -130,8 +145,9 @@ describe('asset detail page source', () => {
         expect(src).not.toMatch(/Suggest Risks/);
     });
     it('shows agricultural attributes and no information-security fields', () => {
-        expect(src).toMatch(/Manufacturer/);
-        expect(src).toMatch(/Serial number/);
+        // Labels are now i18n keys (`t('manufacturer')` / `t('serialNumber')`).
+        expect(src).toMatch(/manufacturer/);
+        expect(src).toMatch(/serialNumber/);
         expect(src).not.toMatch(/AssetCriticalityBadge/);
         expect(src).not.toMatch(/Data Residency/);
         expect(src).not.toMatch(/>Classification</);

@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -16,6 +17,7 @@ import { cn } from '@/lib/cn';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function InstallWizardPage() {
+    const t = useTranslations('frameworks');
     const params = useParams();
     const searchParams = useSearchParams();
     const tenantSlug = params.tenantSlug as string;
@@ -92,27 +94,27 @@ export default function InstallWizardPage() {
         }
     };
 
-    if (loading) return <div className="p-8 animate-pulse text-content-muted">Loading install wizard...</div>;
-    if (!framework) return <div className="p-8 text-content-error">Framework not found</div>;
+    if (loading) return <div className="p-8 animate-pulse text-content-muted">{t('loadingWizard')}</div>;
+    if (!framework) return <div className="p-8 text-content-error">{t('errorNotFound')}</div>;
 
     return (
         <div className="max-w-2xl mx-auto space-y-section">
             {/* Header */}
             <div>
                 <Link href={tenantHref(`/frameworks/${frameworkKey}`)} className="text-content-muted hover:text-content-emphasis transition-colors text-sm">
-                    ← Back to {framework.name}
+                    ← {t('backToFramework', { name: framework.name })}
                 </Link>
                 <Heading level={1} className="mt-2" id="install-wizard-heading">
-                    Install {framework.name} Pack
+                    {t('installHeading', { name: framework.name })}
                 </Heading>
                 <p className="text-sm text-content-muted mt-1">
-                    This will create controls, tasks, and requirement mappings for your tenant.
+                    {t('installIntro')}
                 </p>
             </div>
 
             {/* Step indicator */}
             <div className="flex items-center gap-tight text-xs">
-                {['Select Pack', 'Preview', 'Install'].map((s, i) => (
+                {[t('stepSelectPack'), t('stepPreview'), t('stepInstall')].map((s, i) => (
                     <div key={s} className="flex items-center gap-tight">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 && step === 'select' ? 'bg-brand-600 text-content-emphasis' :
                                 i === 1 && step === 'preview' ? 'bg-brand-600 text-content-emphasis' :
@@ -129,9 +131,9 @@ export default function InstallWizardPage() {
             {/* Step 1: Select Pack */}
             {step === 'select' && (
                 <div className={cn(cardVariants({ density: 'none' }), 'space-y-default')}>
-                    <Heading level={2}>Select a Pack</Heading>
+                    <Heading level={2}>{t('selectPackHeading')}</Heading>
                     {packs.length === 0 ? (
-                        <p className="text-content-subtle">No packs available for this framework.</p>
+                        <p className="text-content-subtle">{t('packsEmpty')}</p>
                     ) : (
                         <div className="space-y-tight">
                             {packs.map(p => (
@@ -147,7 +149,7 @@ export default function InstallWizardPage() {
                                     />
                                     <div>
                                         <div className="text-sm font-medium text-content-emphasis">{p.name}</div>
-                                        <div className="text-xs text-content-subtle">{p._count?.templateLinks || 0} templates • v{p.version || 'latest'}</div>
+                                        <div className="text-xs text-content-subtle">{t('packTemplatesVersion', { count: p._count?.templateLinks || 0, version: p.version || 'latest' })}</div>
                                     </div>
                                 </label>
                             ))}
@@ -160,28 +162,28 @@ export default function InstallWizardPage() {
             {step === 'preview' && preview && (
                 <div className="space-y-default">
                     <div className={cardVariants({ density: 'none' })}>
-                        <Heading level={2} className="mb-4">Install Preview</Heading>
+                        <Heading level={2} className="mb-4">{t('installPreviewHeading')}</Heading>
                         <div className="grid grid-cols-3 gap-default mb-4">
                             <div className="p-3 rounded-lg bg-bg-default/50">
-                                <KPIStat id="preview-new-controls" value={preview.newControls} label="New Controls" />
+                                <KPIStat id="preview-new-controls" value={preview.newControls} label={t('previewNewControls')} />
                             </div>
                             <div className="p-3 rounded-lg bg-bg-default/50">
-                                <KPIStat value={preview.existingControls} label="Already Exist" tone="attention" />
+                                <KPIStat value={preview.existingControls} label={t('previewAlreadyExist')} tone="attention" />
                             </div>
                             <div className="p-3 rounded-lg bg-bg-default/50">
-                                <KPIStat value={preview.totalTemplates} label="Total Templates" />
+                                <KPIStat value={preview.totalTemplates} label={t('previewTotalTemplates')} />
                             </div>
                         </div>
 
                         {/* Template list */}
                         <div className="max-h-64 overflow-y-auto space-y-1 border-t border-border-default/50 pt-3">
-                            {preview.templates?.map((t: any) => (
-                                <div key={t.code} className="flex items-center gap-compact px-3 py-1.5 rounded-md text-sm">
-                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${t.alreadyInstalled ? 'bg-bg-success-emphasis' : 'bg-[var(--brand-default)]'}`} />
-                                    <code className="text-xs text-content-subtle font-mono w-24 flex-shrink-0">{t.code}</code>
-                                    <span className="text-content-default flex-1">{t.title}</span>
-                                    {t.alreadyInstalled && <span className="text-xs text-content-success">exists</span>}
-                                    {!t.alreadyInstalled && <span className="text-xs text-[var(--brand-default)]">{t.tasks} tasks</span>}
+                            {preview.templates?.map((tpl: any) => (
+                                <div key={tpl.code} className="flex items-center gap-compact px-3 py-1.5 rounded-md text-sm">
+                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${tpl.alreadyInstalled ? 'bg-bg-success-emphasis' : 'bg-[var(--brand-default)]'}`} />
+                                    <code className="text-xs text-content-subtle font-mono w-24 flex-shrink-0">{tpl.code}</code>
+                                    <span className="text-content-default flex-1">{tpl.title}</span>
+                                    {tpl.alreadyInstalled && <span className="text-xs text-content-success">{t('exists')}</span>}
+                                    {!tpl.alreadyInstalled && <span className="text-xs text-[var(--brand-default)]">{t('tasksCount', { count: tpl.tasks })}</span>}
                                 </div>
                             ))}
                         </div>
@@ -193,7 +195,7 @@ export default function InstallWizardPage() {
 
                     <div className="flex gap-compact">
                         <Button variant="secondary" onClick={() => { setStep('select'); setSelectedPack(''); }}>
-                            ← Back
+                            ← {t('back')}
                         </Button>
                         <Button
                             variant="primary"
@@ -204,12 +206,12 @@ export default function InstallWizardPage() {
                         >
                             {installing ? (
                                 <span className="flex items-center gap-tight">
-                                    Installing...
+                                    {t('installing')}
                                 </span>
                             ) : preview.newControls === 0 ? (
-                                'All controls already installed'
+                                t('allControlsInstalled')
                             ) : (
-                                `Install ${preview.newControls} Controls`
+                                t('installNControls', { count: preview.newControls })
                             )}
                         </Button>
                     </div>
@@ -220,24 +222,24 @@ export default function InstallWizardPage() {
             {step === 'done' && result && (
                 <div className={cn(cardVariants({ density: 'none' }), 'text-center space-y-default')} id="install-result">
                     <div className="text-4xl"></div>
-                    <Heading level={1}>Pack Installed Successfully!</Heading>
+                    <Heading level={1}>{t('packInstalledSuccess')}</Heading>
                     <div className="grid grid-cols-3 gap-default">
                         <div className="p-3 rounded-lg bg-bg-success">
-                            <KPIStat id="result-controls" value={result.controlsCreated} label="Controls Created" tone="success" />
+                            <KPIStat id="result-controls" value={result.controlsCreated} label={t('resultControlsCreated')} tone="success" />
                         </div>
                         <div className="p-3 rounded-lg bg-[var(--brand-subtle)]">
-                            <KPIStat id="result-tasks" value={result.tasksCreated} label="Tasks Created" />
+                            <KPIStat id="result-tasks" value={result.tasksCreated} label={t('resultTasksCreated')} />
                         </div>
                         <div className="p-3 rounded-lg bg-bg-info/40">
-                            <KPIStat id="result-mappings" value={result.mappingsCreated} label="Mappings Created" />
+                            <KPIStat id="result-mappings" value={result.mappingsCreated} label={t('resultMappingsCreated')} />
                         </div>
                     </div>
                     <div className="flex gap-compact justify-center">
                         <Link href={tenantHref('/controls')} className={buttonVariants({ variant: 'primary' })} id="go-to-controls">
-                            View Controls →
+                            {t('viewControls')} →
                         </Link>
                         <Link href={tenantHref(`/frameworks/${frameworkKey}`)} className={buttonVariants({ variant: 'secondary' })}>
-                            Back to Framework
+                            {t('backToFrameworkLink')}
                         </Link>
                     </div>
                 </div>

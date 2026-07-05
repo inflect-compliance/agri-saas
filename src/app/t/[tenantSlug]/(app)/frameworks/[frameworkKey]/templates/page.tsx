@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/exhaustive-deps -- Various useEffect/useMemo dep arrays in this file deliberately omit identity-unstable callbacks (handlers recreated each render) or use selector functions whose change-detection happens elsewhere. Adding the deps would either trigger unnecessary re-runs OR cause infinite render loops; the proper structural fix is to wrap parent-level callbacks in useCallback. Tracked as follow-up. */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/cn';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function TemplateLibraryPage() {
+    const tr = useTranslations('frameworks');
     const params = useParams();
     const searchParams = useSearchParams();
     const tenantSlug = params.tenantSlug as string;
@@ -113,20 +115,20 @@ export default function TemplateLibraryPage() {
 
     const categoryOptions = useMemo<ComboboxOption[]>(
         () => [
-            { value: '', label: 'All Categories' },
+            { value: '', label: tr('allCategories') },
             ...categories.map((c) => ({ value: c as string, label: c as string })),
         ],
-        [categories],
+        [categories, tr],
     );
     const sectionOptions = useMemo<ComboboxOption[]>(
         () => [
-            { value: '', label: 'All Sections' },
+            { value: '', label: tr('allSections') },
             ...sections.map((s) => ({ value: s as string, label: s as string })),
         ],
-        [sections],
+        [sections, tr],
     );
 
-    if (loading) return <div className="p-8 animate-pulse text-content-muted">Loading template library...</div>;
+    if (loading) return <div className="p-8 animate-pulse text-content-muted">{tr('loadingLibrary')}</div>;
 
     return (
         <div className="space-y-section animate-fadeIn">
@@ -134,15 +136,15 @@ export default function TemplateLibraryPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <Link href={tenantHref(`/frameworks/${frameworkKey}`)} className="text-content-muted hover:text-content-emphasis transition-colors text-sm">
-                        ← Back to {framework?.name || frameworkKey}
+                        ← {tr('backToFramework', { name: framework?.name || frameworkKey })}
                     </Link>
                     <Heading level={1} className="mt-2" id="template-library-heading">
-                        Template Library — {framework?.name}
+                        {tr('templateLibraryTitle', { name: framework?.name })}
                     </Heading>
                     <div className="flex gap-compact mt-1 text-xs text-content-subtle">
-                        <span>{templates.length} templates</span>
-                        <span className="text-content-success">{installed} installed</span>
-                        <span className="text-[var(--brand-default)]">{available} available</span>
+                        <span>{tr('statsTemplates', { count: templates.length })}</span>
+                        <span className="text-content-success">{tr('statsInstalled', { count: installed })}</span>
+                        <span className="text-[var(--brand-default)]">{tr('statsAvailable', { count: available })}</span>
                     </div>
                 </div>
                 {selected.size > 0 && (
@@ -152,7 +154,7 @@ export default function TemplateLibraryPage() {
                         disabled={bulkInstalling}
                         id="bulk-install-btn"
                     >
-                        {bulkInstalling ? 'Installing...' : `Install ${selected.size} Selected`}
+                        {bulkInstalling ? tr('installing') : tr('installSelected', { count: selected.size })}
                     </Button>
                 )}
             </div>
@@ -167,8 +169,8 @@ export default function TemplateLibraryPage() {
                     options={categoryOptions}
                     selected={categoryOptions.find(o => o.value === category) ?? categoryOptions[0]}
                     setSelected={(opt) => setCategory(opt?.value ?? '')}
-                    placeholder="All Categories"
-                    searchPlaceholder="Search categories…"
+                    placeholder={tr('allCategories')}
+                    searchPlaceholder={tr('searchCategories')}
                     matchTriggerWidth
                     buttonProps={{ className: 'w-40' }}
                     caret
@@ -178,13 +180,13 @@ export default function TemplateLibraryPage() {
                     options={sectionOptions}
                     selected={sectionOptions.find(o => o.value === section) ?? sectionOptions[0]}
                     setSelected={(opt) => setSection(opt?.value ?? '')}
-                    placeholder="All Sections"
-                    searchPlaceholder="Search sections…"
+                    placeholder={tr('allSections')}
+                    searchPlaceholder={tr('searchSections')}
                     matchTriggerWidth
                     buttonProps={{ className: 'w-48' }}
                     caret
                 />
-                <Button variant="secondary" size="xs" onClick={selectAll} id="select-all-btn">Select All Uninstalled</Button>
+                <Button variant="secondary" size="xs" onClick={selectAll} id="select-all-btn">{tr('selectAllUninstalled')}</Button>
             </div>
 
             {/* Template cards */}
@@ -217,9 +219,9 @@ export default function TemplateLibraryPage() {
                                                 <code className="text-xs text-[var(--brand-default)] font-mono">{t.code}</code>
                                                 <span className="text-sm font-medium text-content-emphasis truncate">{t.title}</span>
                                                 {t.installed ? (
-                                                    <StatusBadge variant="success" className="flex-shrink-0">Installed</StatusBadge>
+                                                    <StatusBadge variant="success" className="flex-shrink-0">{tr('installed')}</StatusBadge>
                                                 ) : (
-                                                    <StatusBadge variant="info" className="flex-shrink-0">Available</StatusBadge>
+                                                    <StatusBadge variant="info" className="flex-shrink-0">{tr('available')}</StatusBadge>
                                                 )}
                                             </div>
                                         </button>
@@ -231,7 +233,7 @@ export default function TemplateLibraryPage() {
                                                 disabled={installing === t.code}
                                                 className="flex-shrink-0"
                                             >
-                                                {installing === t.code ? '...' : 'Install'}
+                                                {installing === t.code ? '...' : tr('install')}
                                             </Button>
                                         )}
                                     </div>
@@ -240,8 +242,8 @@ export default function TemplateLibraryPage() {
                                     <div className="flex flex-wrap gap-1.5 mt-1">
                                         {t.category && <span className="text-xs text-content-subtle bg-bg-default px-2 py-0.5 rounded">{t.category}</span>}
                                         {t.defaultFrequency && <span className="text-xs text-content-subtle bg-bg-default px-2 py-0.5 rounded">{t.defaultFrequency}</span>}
-                                        <span className="text-xs text-content-subtle">{t.tasks.length} tasks</span>
-                                        <span className="text-xs text-content-subtle">{t.requirements.length} requirements</span>
+                                        <span className="text-xs text-content-subtle">{tr('tasksCount', { count: t.tasks.length })}</span>
+                                        <span className="text-xs text-content-subtle">{tr('requirementsCount', { count: t.requirements.length })}</span>
                                     </div>
 
                                     {/* Expanded detail */}
@@ -253,7 +255,7 @@ export default function TemplateLibraryPage() {
 
                                             {/* Requirements */}
                                             <div>
-                                                <Eyebrow>Mapped Requirements</Eyebrow>
+                                                <Eyebrow>{tr('mappedRequirements')}</Eyebrow>
                                                 <div className="space-y-1">
                                                     {t.requirements.map((r: any, i: number) => (
                                                         <div key={i} className="flex items-center gap-tight text-xs">
@@ -267,7 +269,7 @@ export default function TemplateLibraryPage() {
 
                                             {/* Tasks */}
                                             <div>
-                                                <Eyebrow>Default Tasks</Eyebrow>
+                                                <Eyebrow>{tr('defaultTasks')}</Eyebrow>
                                                 <div className="space-y-1">
                                                     {t.tasks.map((task: any, i: number) => (
                                                         <div key={i} className="flex items-center gap-tight text-xs">
@@ -280,7 +282,7 @@ export default function TemplateLibraryPage() {
 
                                             {/* Suggested evidence */}
                                             <div>
-                                                <Eyebrow>Suggested Evidence Types</Eyebrow>
+                                                <Eyebrow>{tr('suggestedEvidenceTypes')}</Eyebrow>
                                                 <div className="flex flex-wrap gap-1">
                                                     {['DOCUMENT', 'SCREENSHOT', 'LOG'].map(type => (
                                                         <span key={type} className="text-xs bg-bg-default text-content-muted px-2 py-0.5 rounded">{type}</span>
@@ -296,7 +298,7 @@ export default function TemplateLibraryPage() {
                 })}
 
                 {templates.length === 0 && (
-                    <div className={cn(cardVariants({ density: 'none' }), 'text-center py-8 text-content-subtle')}>No templates match your filters.</div>
+                    <div className={cn(cardVariants({ density: 'none' }), 'text-center py-8 text-content-subtle')}>{tr('templatesEmpty')}</div>
                 )}
             </div>
         </div>

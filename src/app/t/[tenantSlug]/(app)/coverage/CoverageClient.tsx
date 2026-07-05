@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { ShieldCheck, AlertTriangle, Cpu, Flame } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { ShieldCheck, TriangleWarning, Cube, Bolt } from '@/components/ui/icons/nucleo';
 import DonutChart from '@/components/ui/DonutChart';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -76,6 +77,7 @@ function critBadge(crit: string): StatusBadgeVariant {
 // ─── Component ──────────────────────────────────────────────────────
 
 export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
+    const t = useTranslations('coverage');
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
 
     // ── Column definitions ────────────────────────────────────────
@@ -83,14 +85,14 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
     const unmappedRiskCols = useMemo(() => createColumns<any>([
         {
             accessorKey: 'title',
-            header: 'Risk',
+            header: t('colRisk'),
             cell: ({ getValue }: any) => (
                 <span className="font-medium text-content-emphasis">{getValue()}</span>
             ),
         },
         {
             accessorKey: 'score',
-            header: 'Score',
+            header: t('colScore'),
             cell: ({ getValue }: any) => {
                 const score = getValue() as number;
                 return (
@@ -104,51 +106,51 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
         },
         {
             accessorKey: 'status',
-            header: 'Status',
+            header: t('colStatus'),
             cell: ({ getValue }: any) => (
                 <StatusBadge variant={statusBadge(getValue())}>
                     {String(getValue()).replace(/_/g, ' ')}
                 </StatusBadge>
             ),
         },
-    ]), []);
+    ]), [t]);
 
     const uncoveredAssetCols = useMemo(() => createColumns<any>([
         {
             accessorKey: 'name',
-            header: 'Asset',
+            header: t('colAsset'),
             cell: ({ getValue }: any) => (
                 <span className="font-medium text-content-emphasis">{getValue()}</span>
             ),
         },
         {
             accessorKey: 'type',
-            header: 'Type',
+            header: t('colType'),
             cell: ({ getValue }: any) => (
                 <StatusBadge variant="info">{String(getValue()).replace(/_/g, ' ')}</StatusBadge>
             ),
         },
         {
             accessorKey: 'criticality',
-            header: 'Criticality',
+            header: t('colCriticality'),
             cell: ({ getValue }: any) => (
                 <StatusBadge variant={critBadge(getValue())}>{getValue()}</StatusBadge>
             ),
         },
-    ]), []);
+    ]), [t]);
 
     return (
         <DashboardLayout
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Coverage' },
+                    { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                    { label: t('breadcrumbCoverage') },
                 ],
-                title: 'Coverage Dashboard',
-                description: 'How your assets are protected by controls and what risks remain unmitigated',
+                title: t('title'),
+                description: t('description'),
                 back: {
                     href: tenantHref('/assets'),
-                    label: 'Assets',
+                    label: t('backAssets'),
                 },
             }}
         >
@@ -156,51 +158,54 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-default" id="coverage-kpi-strip">
                 <CoverageKpiCard
                     id="kpi-assets-covered"
-                    icon={<Cpu className="w-5 h-5" />}
-                    label="Assets Protected"
+                    icon={<Cube className="w-5 h-5" />}
+                    label={t('kpiAssetsProtected')}
                     pct={data.assetsWithControlsPct}
                     covered={data.assetsWithControlsCount}
                     total={data.totalAssets}
-                    subtitle={`${data.assetsWithControlsCount} of ${data.totalAssets} assets linked to controls`}
+                    subtitle={t('assetsSubtitle', { covered: data.assetsWithControlsCount, total: data.totalAssets })}
                 />
                 <CoverageKpiCard
                     id="kpi-risks-mitigated"
-                    icon={<AlertTriangle className="w-5 h-5" />}
-                    label="Risks Mitigated"
+                    icon={<TriangleWarning className="w-5 h-5" />}
+                    label={t('kpiRisksMitigated')}
                     pct={data.risksWithControlsPct}
                     covered={data.risksWithControlsCount}
                     total={data.totalRisks}
-                    subtitle={`${data.risksWithControlsCount} of ${data.totalRisks} risks linked to controls`}
+                    subtitle={t('risksSubtitle', { covered: data.risksWithControlsCount, total: data.totalRisks })}
                 />
                 <CoverageKpiCard
                     id="kpi-controls-utilized"
                     icon={<ShieldCheck className="w-5 h-5" />}
-                    label="Controls Utilized"
+                    label={t('kpiControlsUtilized')}
                     pct={data.controlsWithRisksPct}
                     covered={data.controlsWithRisksCount}
                     total={data.totalControls}
-                    subtitle={`${data.controlsWithRisksCount} of ${data.totalControls} controls linked to risks`}
+                    subtitle={t('controlsSubtitle', { covered: data.controlsWithRisksCount, total: data.totalControls })}
                 />
             </div>
 
             {/* ── Summary Bar ─────────────────────────────────────── */}
             <Card id="coverage-summary-bar">
-                <Heading level={3} className="mb-4">Overall Coverage</Heading>
+                <Heading level={3} className="mb-4">{t('overallCoverage')}</Heading>
                 <div className="space-y-compact">
                     <CoverageBar
-                        label="Asset Protection"
+                        label={t('barAssetProtection')}
                         pct={data.assetsWithControlsPct}
                         detail={`${data.assetsWithControlsCount}/${data.totalAssets}`}
+                        ariaLabel={t('barCoverageAria', { label: t('barAssetProtection') })}
                     />
                     <CoverageBar
-                        label="Risk Mitigation"
+                        label={t('barRiskMitigation')}
                         pct={data.risksWithControlsPct}
                         detail={`${data.risksWithControlsCount}/${data.totalRisks}`}
+                        ariaLabel={t('barCoverageAria', { label: t('barRiskMitigation') })}
                     />
                     <CoverageBar
-                        label="Control Utilization"
+                        label={t('barControlUtilization')}
                         pct={data.controlsWithRisksPct}
                         detail={`${data.controlsWithRisksCount}/${data.totalControls}`}
+                        ariaLabel={t('barCoverageAria', { label: t('barControlUtilization') })}
                     />
                 </div>
             </Card>
@@ -210,9 +215,9 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                 {/* Uncovered Critical Assets */}
                 <Card id="uncovered-assets-section">
                     <div className="flex items-center gap-tight mb-4">
-                        <Cpu className="w-4 h-4 text-content-error" />
+                        <Cube className="w-4 h-4 text-content-error" />
                         <Heading level={3}>
-                            Uncovered Critical Assets
+                            {t('uncoveredAssetsHeading')}
                         </Heading>
                         {data.uncoveredCriticalAssets.length > 0 && (
                             <StatusBadge variant="error" className="ml-auto">
@@ -225,8 +230,8 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                         columns={uncoveredAssetCols}
                         getRowId={(a: any) => a.id}
                         onRowClick={(row) => window.location.href = tenantHref(`/assets/${row.original.id}`)}
-                        emptyState="All critical assets are covered by controls"
-                        resourceName={(p) => p ? 'assets' : 'asset'}
+                        emptyState={t('allAssetsCovered')}
+                        resourceName={(p) => p ? t('assetPlural') : t('assetSingular')}
                         data-testid="uncovered-assets-table"
                     />
                 </Card>
@@ -234,9 +239,9 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                 {/* Unmapped Risks */}
                 <Card id="unmapped-risks-section">
                     <div className="flex items-center gap-tight mb-4">
-                        <AlertTriangle className="w-4 h-4 text-content-warning" />
+                        <TriangleWarning className="w-4 h-4 text-content-warning" />
                         <Heading level={3}>
-                            Unmapped Risks
+                            {t('unmappedRisksHeading')}
                         </Heading>
                         {data.unmappedRisks.length > 0 && (
                             <StatusBadge variant="warning" className="ml-auto">
@@ -249,8 +254,8 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                         columns={unmappedRiskCols}
                         getRowId={(r: any) => r.id}
                         onRowClick={(row) => window.location.href = tenantHref(`/risks/${row.original.id}`)}
-                        emptyState="All risks are mitigated by controls"
-                        resourceName={(p) => p ? 'risks' : 'risk'}
+                        emptyState={t('allRisksMitigated')}
+                        resourceName={(p) => p ? t('riskPlural') : t('riskSingular')}
                         data-testid="unmapped-risks-table"
                     />
                 </Card>
@@ -260,9 +265,9 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
             {data.hotControls.length > 0 && (
                 <Card id="hot-controls-section">
                     <div className="flex items-center gap-tight mb-4">
-                        <Flame className="w-4 h-4 text-orange-400" />
+                        <Bolt className="w-4 h-4 text-orange-400" />
                         <Heading level={3}>
-                            Top Controls by Risk Coverage
+                            {t('topControlsHeading')}
                         </Heading>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-compact">
@@ -289,7 +294,13 @@ export function CoverageClient({ data, tenantSlug }: CoverageClientProps) {
                                     {ctrl.name}
                                 </p>
                                 <p className="text-xs text-content-muted mt-1">
-                                    Mitigates <span className="text-content-emphasis font-semibold">{ctrl.riskCount}</span> risk{ctrl.riskCount !== 1 ? 's' : ''}
+                                    {t.rich('mitigates', {
+                                        count: ctrl.riskCount,
+                                        noun: ctrl.riskCount === 1 ? t('riskSingular') : t('riskPlural'),
+                                        b: (chunks) => (
+                                            <span className="text-content-emphasis font-semibold">{chunks}</span>
+                                        ),
+                                    })}
                                 </p>
                             </Link>
                         ))}
@@ -360,10 +371,12 @@ function CoverageBar({
     label,
     pct,
     detail,
+    ariaLabel,
 }: {
     label: string;
     pct: number;
     detail: string;
+    ariaLabel: string;
 }) {
     const textClass = pctTextClass(pct);
     // Epic 59 — pick ProgressBar variant by the same score bands the
@@ -384,7 +397,7 @@ function CoverageBar({
                 value={Math.min(pct, 100)}
                 size="sm"
                 variant={variant}
-                aria-label={`${label} coverage`}
+                aria-label={ariaLabel}
             />
         </div>
     );

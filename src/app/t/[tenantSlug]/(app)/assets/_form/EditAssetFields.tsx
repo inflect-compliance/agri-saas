@@ -7,6 +7,7 @@
  * The detail page renders this inline; the P2 `<EditAssetModal>` renders
  * it inside Modal.Body. State + submit live in `useEditAssetForm`.
  */
+import { useTranslations } from 'next-intl';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { UserCombobox } from '@/components/ui/user-combobox';
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
@@ -26,11 +27,12 @@ export function EditAssetFields({
     form: EditAssetFormReturn;
     tenantSlug: string;
 }) {
+    const t = useTranslations('assets');
     return (
         <>
         <div className="grid grid-cols-2 gap-default">
             <div>
-                <label className="input-label">Name *</label>
+                <label className="input-label">{t('name')} *</label>
                 <input
                     className="input"
                     value={form.fields.name}
@@ -38,7 +40,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Type</label>
+                <label className="input-label">{t('type')}</label>
                 <Combobox
                     hideSearch
                     selected={
@@ -55,7 +57,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Status</label>
+                <label className="input-label">{t('status')}</label>
                 <Combobox
                     hideSearch
                     selected={
@@ -73,7 +75,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Criticality</label>
+                <label className="input-label">{t('criticality')}</label>
                 <Combobox
                     hideSearch
                     selected={
@@ -85,14 +87,14 @@ export function EditAssetFields({
                         form.setField('criticality', opt?.value ?? '')
                     }
                     options={ASSET_CRITICALITY_OPTIONS}
-                    placeholder="Select criticality…"
+                    placeholder={t('selectCriticality')}
                     matchTriggerWidth
                     buttonProps={{ className: 'w-full' }}
                     caret
                 />
             </div>
             <div>
-                <label className="input-label">Manufacturer</label>
+                <label className="input-label">{t('manufacturer')}</label>
                 <input
                     className="input"
                     value={form.fields.manufacturer}
@@ -100,7 +102,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Model</label>
+                <label className="input-label">{t('model')}</label>
                 <input
                     className="input"
                     value={form.fields.model}
@@ -108,7 +110,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Serial number</label>
+                <label className="input-label">{t('serialNumber')}</label>
                 <input
                     className="input"
                     value={form.fields.serialNumber}
@@ -116,7 +118,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Year</label>
+                <label className="input-label">{t('year')}</label>
                 <input
                     className="input"
                     inputMode="numeric"
@@ -125,7 +127,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Owner</label>
+                <label className="input-label">{t('owner')}</label>
                 <UserCombobox
                     tenantSlug={tenantSlug}
                     selectedId={form.fields.ownerUserId || null}
@@ -135,11 +137,11 @@ export function EditAssetFields({
                     forceDropdown
                     matchTriggerWidth
                     id="asset-assignee"
-                    placeholder="Unassigned"
+                    placeholder={t('unassigned')}
                 />
             </div>
             <div>
-                <label className="input-label">Location</label>
+                <label className="input-label">{t('location')}</label>
                 <input
                     className="input"
                     value={form.fields.location}
@@ -147,10 +149,10 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Purchase date</label>
+                <label className="input-label">{t('purchaseDate')}</label>
                 <DatePicker
                     id="asset-edit-purchase-date"
-                    placeholder="Select date"
+                    placeholder={t('selectDate')}
                     clearable
                     align="start"
                     value={parseYMD(form.fields.purchaseDate)}
@@ -160,7 +162,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">Purchase cost</label>
+                <label className="input-label">{t('purchaseCost')}</label>
                 <input
                     className="input"
                     inputMode="decimal"

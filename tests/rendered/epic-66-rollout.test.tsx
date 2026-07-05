@@ -82,6 +82,17 @@ jest.mock('next/navigation', () => ({
     useParams: () => ({ tenantSlug: 'acme-corp' }),
 }));
 
+// FrameworksClient uses `useTranslations` (+ `t.rich` in the custom-
+// framework explainer modal, which is always mounted). Echo the key so
+// rendered text is the message key.
+jest.mock('next-intl', () => ({
+    useTranslations: () => {
+        const t = (key: string) => key;
+        (t as unknown as { rich: (k: string) => string }).rich = (key: string) => key;
+        return t;
+    },
+}));
+
 import { TenantCoverageCards } from '@/app/org/[orgSlug]/(app)/dashboard-sections';
 import { FrameworksClient } from '@/app/t/[tenantSlug]/(app)/frameworks/FrameworksClient';
 import {
@@ -316,8 +327,10 @@ describe('FrameworksClient — view toggle rollout', () => {
         );
         const isoCard = getByTestId('fw-card-ISO27001');
         const nisCard = getByTestId('fw-card-NIS2');
-        expect(isoCard.textContent).toContain('Installed');
-        expect(nisCard.textContent).toContain('Available');
+        // i18n: useTranslations is mocked to echo the key, so the status
+        // badges render their message keys (`installed` / `available`).
+        expect(isoCard.textContent).toContain('installed');
+        expect(nisCard.textContent).toContain('available');
     });
 
     it('switches to a DataTable when the user picks the Table view', () => {

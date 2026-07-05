@@ -35,7 +35,8 @@ describe('B5 — entity prev/next nav', () => {
         expect(ASSET).toMatch(/<EntityPrevNextNav/);
         expect(ASSET).toMatch(/ids=\{assetIds\}/);
         expect(ASSET).toMatch(/currentId=\{assetId\}/);
-        expect(ASSET).toMatch(/labelSingular="asset"/);
+        // i18n (T11): labelSingular now resolves through useTranslations.
+        expect(ASSET).toMatch(/labelSingular=\{t\('assetLabelSingular'\)\}/);
         // the ordered id list is fetched from the list endpoint
         expect(ASSET).toMatch(/setAssetIds/);
     });

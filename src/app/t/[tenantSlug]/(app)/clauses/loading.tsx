@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { getTranslations } from 'next-intl/server';
 
 /**
  * Clauses loading skeleton — shown via Next.js Suspense while
@@ -6,13 +7,14 @@ import { Skeleton } from '@/components/ui/skeleton';
  * `<Skeleton>` primitive so the shimmer-sweep (R11-PR2) applies
  * uniformly with every other loading surface.
  */
-export default function ClausesLoading() {
+export default async function ClausesLoading() {
+    const t = await getTranslations('clauses');
     return (
         <div
             role="status"
             aria-live="polite"
             aria-busy="true"
-            aria-label="Loading clauses"
+            aria-label={t('loadingAria')}
             className="space-y-section p-6 animate-fadeIn"
         >
             {/* Page title */}

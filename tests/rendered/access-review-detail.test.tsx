@@ -27,7 +27,11 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('next-intl', () => ({
-    useTranslations: () => (key: string) => key,
+    useTranslations: () => {
+        const t = (key: string) => key;
+        (t as unknown as { rich: (k: string) => string }).rich = (key: string) => key;
+        return t;
+    },
 }));
 
 import { AccessReviewDetailClient } from '@/app/t/[tenantSlug]/(app)/access-reviews/[reviewId]/AccessReviewDetailClient';
