@@ -68,7 +68,12 @@ describe('RQ2-3 — score chips explain themselves', () => {
     });
 
     test('MIGRATION provenance is labelled honestly in the popover', () => {
-        expect(component).toMatch(/case 'MIGRATION':\s*\n\s*return 'pre-provenance backfill'/);
+        // T04 i18n — the label moved behind t('provMigration'); assert both
+        // the source branch and the en.json copy so the honest-labelling
+        // contract still holds ("pre-provenance backfill", not "migrated").
+        expect(component).toMatch(/case 'MIGRATION':\s*\n\s*return t\(['"]provMigration['"]\)/);
+        const messages = JSON.parse(read('messages/en.json'));
+        expect(messages.riskScore.provMigration).toBe('pre-provenance backfill');
     });
 
     test('the aggregator stays read-bounded (events take-5, breaches unresolved + bounded)', () => {

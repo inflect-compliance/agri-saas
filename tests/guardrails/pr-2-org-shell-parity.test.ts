@@ -39,11 +39,14 @@ describe('PR-2 — org shell parity', () => {
         });
 
         it('renders BOTH Organizations and Workspaces sections', () => {
-            // The labels live inside `<p>...</p>` headers; match
-            // the literal text rather than the trailing tag so we
-            // don't depend on whitespace shape.
-            expect(src).toMatch(/>\s*Organizations\s*</);
-            expect(src).toMatch(/>\s*Workspaces\s*</);
+            // T04 i18n — the section headers moved behind t('organizations')
+            // / t('workspaces'); match the t() references and cross-check the
+            // en.json copy so the two-section contract still holds.
+            expect(src).toMatch(/t\(['"]organizations['"]\)/);
+            expect(src).toMatch(/t\(['"]workspaces['"]\)/);
+            const messages = JSON.parse(read('messages/en.json'));
+            expect(messages.switcher.organizations).toBe('Organizations');
+            expect(messages.switcher.workspaces).toBe('Workspaces');
         });
 
         it('trigger pill carries the canonical testid + chevron', () => {
