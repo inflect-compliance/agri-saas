@@ -41,7 +41,9 @@ describe('GAP O4-2 — org members page structural contract', () => {
     it('sidebar nav still routes Members to /members (no drift)', () => {
         const src = read(SIDEBAR_PATH);
         expect(src).toMatch(/orgHref\(['"]\/members['"]\)/);
-        expect(src).toContain("label: 'Members'");
+        // T04 i18n — the label moved from a literal to `t('members')`;
+        // the English copy lives in messages/en.json under orgSidebar.members.
+        expect(src).toMatch(/label:\s*t\(['"]members['"]\)/);
     });
 
     it('server page declares dynamic = "force-dynamic"', () => {

@@ -74,39 +74,46 @@ describe('Epic O-4 — org shell structural contract', () => {
 
     it('OrgSidebarNav declares all 7 spec nav entries', () => {
         const src = read(NAV_PATH);
-        // Order matches the Epic O-4 spec.
-        for (const label of [
-            'Portfolio Overview',
-            'All Tenants',
-            'Non-Performing Controls',
-            'Critical Risks',
-            'Overdue Evidence',
-            'Members',
-            'Settings',
-        ]) {
-            expect(src).toContain(label);
+        // T04 i18n — labels moved to `t('<key>')`; the English copy lives
+        // in messages/en.json under orgSidebar.*. Assert both the source
+        // t() reference (order matches the Epic O-4 spec) AND the English
+        // value, so the rendered label contract is still locked.
+        const messages = JSON.parse(read('messages/en.json'));
+        const entries: [string, string][] = [
+            ['portfolioOverview', 'Portfolio Overview'],
+            ['allTenants', 'All Tenants'],
+            ['nonPerformingControls', 'Non-Performing Controls'],
+            ['criticalRisks', 'Critical Risks'],
+            ['overdueEvidence', 'Overdue Evidence'],
+            ['members', 'Members'],
+            ['settings', 'Settings'],
+        ];
+        for (const [key, english] of entries) {
+            expect(src).toMatch(new RegExp(`label:\\s*t\\(['"]${key}['"]\\)`));
+            expect(messages.orgSidebar[key]).toBe(english);
         }
     });
 
     it('drill-down nav entries are gated by canDrillDown', () => {
         const src = read(NAV_PATH);
-        // The three drill-down items must carry `requiresDrillDown: true`.
-        expect(src).toMatch(/label:\s*['"]Non-Performing Controls['"][\s\S]+?requiresDrillDown:\s*true/);
-        expect(src).toMatch(/label:\s*['"]Critical Risks['"][\s\S]+?requiresDrillDown:\s*true/);
-        expect(src).toMatch(/label:\s*['"]Overdue Evidence['"][\s\S]+?requiresDrillDown:\s*true/);
+        // The three drill-down items must carry `requiresDrillDown: true`
+        // (labels now `t('<key>')` per the T04 i18n migration).
+        expect(src).toMatch(/label:\s*t\(['"]nonPerformingControls['"]\)[\s\S]+?requiresDrillDown:\s*true/);
+        expect(src).toMatch(/label:\s*t\(['"]criticalRisks['"]\)[\s\S]+?requiresDrillDown:\s*true/);
+        expect(src).toMatch(/label:\s*t\(['"]overdueEvidence['"]\)[\s\S]+?requiresDrillDown:\s*true/);
         // And the filter must check `perms.canDrillDown` for those rows.
         expect(src).toMatch(/canDrillDown/);
     });
 
     it('Members nav entry is gated by canManageMembers', () => {
         const src = read(NAV_PATH);
-        expect(src).toMatch(/label:\s*['"]Members['"][\s\S]+?requiresManageMembers:\s*true/);
+        expect(src).toMatch(/label:\s*t\(['"]members['"]\)[\s\S]+?requiresManageMembers:\s*true/);
         expect(src).toMatch(/canManageMembers/);
     });
 
     it('Settings nav entry is gated by canManageTenants', () => {
         const src = read(NAV_PATH);
-        expect(src).toMatch(/label:\s*['"]Settings['"][\s\S]+?requiresManageTenants:\s*true/);
+        expect(src).toMatch(/label:\s*t\(['"]settings['"]\)[\s\S]+?requiresManageTenants:\s*true/);
         expect(src).toMatch(/canManageTenants/);
     });
 

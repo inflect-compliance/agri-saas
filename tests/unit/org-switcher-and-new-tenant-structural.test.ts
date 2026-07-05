@@ -71,7 +71,12 @@ describe('Epic O-4 — OrgSwitcher structural contract', () => {
 
     it('renders an aria-label on the trigger and role="status" on the loading region', () => {
         const src = read(SWITCHER);
-        expect(src).toMatch(/aria-label="Switch organization context"/);
+        // T04 i18n — the aria-label moved from a literal to
+        // `t('switchOrgContext')`; the English copy is asserted below to
+        // stay exactly "Switch organization context" (a11y-stable label).
+        expect(src).toMatch(/aria-label=\{\w+\(['"]switchOrgContext['"]\)\}/);
+        const messages = JSON.parse(read('messages/en.json'));
+        expect(messages.orgSwitcher.switchOrgContext).toBe('Switch organization context');
         expect(src).toMatch(/role="status"/);
     });
 
