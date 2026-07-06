@@ -18,6 +18,7 @@
  */
 import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import prisma from '@/lib/prisma';
 import { Heading } from '@/components/ui/typography';
 
@@ -27,6 +28,8 @@ export default async function TenantsPage() {
     if (!session?.user?.id) {
         redirect('/login');
     }
+
+    const t = await getTranslations('tenants');
 
     // Complete, authoritative membership list — see the file header.
     const rows = await prisma.tenantMembership.findMany({
@@ -55,10 +58,10 @@ export default async function TenantsPage() {
             <div className="max-w-lg w-full">
                 <div className="mb-8 text-center">
                     <Heading level={1} className="mb-2">
-                        Choose a workspace
+                        {t('title')}
                     </Heading>
                     <p className="text-content-muted">
-                        You are a member of multiple workspaces. Select one to continue.
+                        {t('subtitle')}
                     </p>
                 </div>
                 <div className="flex flex-col gap-compact">
@@ -99,7 +102,7 @@ export default async function TenantsPage() {
                             type="submit"
                             className="text-sm text-content-muted hover:text-content-default transition-colors"
                         >
-                            Sign out
+                            {t('signOut')}
                         </button>
                     </form>
                 </div>

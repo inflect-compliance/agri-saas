@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 
 import { auth } from '@/auth';
 import { Heading } from '@/components/ui/typography';
@@ -8,6 +9,8 @@ import { ChangePasswordForm } from './ChangePasswordForm';
 export default async function AccountSecurityPage() {
     const session = await auth();
     if (!session?.user) redirect('/login?next=/account/security');
+
+    const t = await getTranslations('account.security');
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-bg-page p-4">
@@ -27,7 +30,7 @@ export default async function AccountSecurityPage() {
                             </svg>
                         </div>
                     </div>
-                    <Heading level={1}>Account security</Heading>
+                    <Heading level={1}>{t('title')}</Heading>
                 </div>
 
                 <ChangePasswordForm />

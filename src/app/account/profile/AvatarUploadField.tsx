@@ -12,6 +12,7 @@
  * then only has to validate + store the bytes.
  */
 import { useRef, useState, type ChangeEvent } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 
 import { InitialsAvatar } from '@/components/ui/initials-avatar';
@@ -68,6 +69,7 @@ export function AvatarUploadField({
     email,
     initialImage,
 }: AvatarUploadFieldProps) {
+    const t = useTranslations('account.profile');
     const fileRef = useRef<HTMLInputElement>(null);
     const [image, setImage] = useState<string | null>(initialImage);
     const [busy, setBusy] = useState(false);
@@ -150,9 +152,7 @@ export function AvatarUploadField({
             </div>
 
             <p className="text-xs text-content-muted">
-                Upload a square image — it is resized to 256×256 and stored
-                as WebP. Photo metadata, including location, is stripped in
-                your browser before upload.
+                {t('avatarNote')}
             </p>
 
             <div className="flex gap-tight">
@@ -172,10 +172,10 @@ export function AvatarUploadField({
                     onClick={() => fileRef.current?.click()}
                 >
                     {busy
-                        ? 'Working…'
+                        ? t('working')
                         : image
-                          ? 'Change photo'
-                          : 'Upload photo'}
+                          ? t('changePhoto')
+                          : t('uploadPhoto')}
                 </Button>
                 {image && (
                     <Button
@@ -185,7 +185,7 @@ export function AvatarUploadField({
                         disabled={busy}
                         onClick={handleRemove}
                     >
-                        Remove
+                        {t('remove')}
                     </Button>
                 )}
             </div>

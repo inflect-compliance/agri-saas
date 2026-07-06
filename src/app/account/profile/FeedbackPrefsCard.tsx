@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Heading } from '@/components/ui/typography';
 import { Switch } from '@/components/ui/switch';
 import { useLocalStorage } from '@/components/ui/hooks';
@@ -14,6 +15,7 @@ import { SOUND_PREF_KEY, HAPTICS_PREF_KEY } from '@/lib/feedback-prefs';
  * a device without the Vibration / Web Audio API stays silent regardless.
  */
 export function FeedbackPrefsCard() {
+    const t = useTranslations('account.feedback');
     const [sound, setSound] = useLocalStorage<boolean>(SOUND_PREF_KEY, true);
     const [haptics, setHaptics] = useLocalStorage<boolean>(HAPTICS_PREF_KEY, true);
 
@@ -21,27 +23,26 @@ export function FeedbackPrefsCard() {
         <div className="mt-6 space-y-default rounded-lg border border-border-subtle bg-bg-default p-default">
             <div className="space-y-1">
                 <Heading level={2} className="text-sm">
-                    Sound &amp; haptics
+                    {t('title')}
                 </Heading>
                 <p className="text-xs text-content-secondary">
-                    Confirmation when you mark field work done. Stays silent on devices that
-                    don&rsquo;t support it.
+                    {t('description')}
                 </p>
             </div>
             <div className="flex items-center justify-between gap-default">
-                <span className="text-sm text-content-default">Success sound</span>
+                <span className="text-sm text-content-default">{t('successSound')}</span>
                 <Switch
                     checked={sound}
                     onCheckedChange={setSound}
-                    aria-label="Success sound on marking work done"
+                    aria-label={t('successSoundAria')}
                 />
             </div>
             <div className="flex items-center justify-between gap-default">
-                <span className="text-sm text-content-default">Haptic feedback</span>
+                <span className="text-sm text-content-default">{t('hapticFeedback')}</span>
                 <Switch
                     checked={haptics}
                     onCheckedChange={setHaptics}
-                    aria-label="Haptic feedback on marking work done"
+                    aria-label={t('hapticFeedbackAria')}
                 />
             </div>
         </div>

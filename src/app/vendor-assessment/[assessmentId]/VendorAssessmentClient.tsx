@@ -21,6 +21,7 @@
  * see only what they need.
  */
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Heading } from '@/components/ui/typography';
 import { RequiredMarker } from '@/components/ui/required-marker';
 
@@ -70,6 +71,7 @@ export function VendorAssessmentClient({
     assessmentId: string;
     initialToken: string;
 }) {
+    const t = useTranslations('vendorAssessment');
     const [phase, setPhase] = useState<Phase>('loading');
     const [errorReason, setErrorReason] = useState<string | null>(null);
     const [data, setData] = useState<LoadResponse | null>(null);
@@ -116,7 +118,7 @@ export function VendorAssessmentClient({
     if (phase === 'loading') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <p className="text-sm text-gray-500">Loading questionnaire…</p>
+                <p className="text-sm text-gray-500">{t('loading')}</p>
             </div>
         );
     }
@@ -129,14 +131,14 @@ export function VendorAssessmentClient({
                     data-testid="vendor-assessment-error"
                 >
                     <h1 className="text-xl font-semibold text-gray-900 mb-2">
-                        This link is no longer active
+                        {t('errorTitle')}
                     </h1>
                     <p className="text-sm text-gray-600">
                         {errorReason === 'expired'
-                            ? 'The questionnaire has expired. Please contact the requester for a new invitation.'
+                            ? t('errorExpired')
                             : errorReason === 'wrong_status'
-                                ? 'This questionnaire has already been submitted or closed.'
-                                : 'We could not open the questionnaire. Please double-check the link in your invitation email.'}
+                                ? t('errorWrongStatus')
+                                : t('errorGeneric')}
                     </p>
                 </div>
             </div>
@@ -151,11 +153,10 @@ export function VendorAssessmentClient({
                     data-testid="vendor-assessment-submitted"
                 >
                     <h1 className="text-xl font-semibold text-gray-900 mb-2">
-                        Response submitted
+                        {t('submittedTitle')}
                     </h1>
                     <p className="text-sm text-gray-600">
-                        Thank you. Your responses have been delivered to the
-                        requester for review.
+                        {t('submittedBody')}
                     </p>
                 </div>
             </div>
@@ -202,8 +203,7 @@ export function VendorAssessmentClient({
                 setSubmitErrors([
                     {
                         questionId: null,
-                        message:
-                            'Submission failed. Please try again in a moment.',
+                        message: t('submitFailed'),
                     },
                 ]);
                 return;
@@ -222,7 +222,7 @@ export function VendorAssessmentClient({
             >
                 <header className="border-b pb-4 mb-6">
                     <p className="text-xs uppercase tracking-wide text-gray-500">
-                        Vendor assessment for {data.vendor.name}
+                        {t('headerLabel', { name: data.vendor.name })}
                     </p>
                     <Heading level={1} className="text-gray-900 mt-1">
                         {data.template.name}
@@ -240,7 +240,7 @@ export function VendorAssessmentClient({
                         role="alert"
                         data-testid="vendor-assessment-submit-errors"
                     >
-                        <strong>Please fix the following:</strong>
+                        <strong>{t('fixFollowing')}</strong>
                         <ul className="mt-2 list-disc list-inside">
                             {submitErrors.map((e, i) => (
                                 <li key={`${e.questionId ?? 'global'}:${i}`}>
@@ -293,7 +293,7 @@ export function VendorAssessmentClient({
                             data-testid="vendor-assessment-submit-btn"
                             className="bg-indigo-600 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50"
                         >
-                            {submitting ? 'Submitting…' : 'Submit responses'}
+                            {submitting ? t('submitting') : t('submitResponses')}
                         </button>
                     </div>
                 </form>
@@ -311,6 +311,8 @@ function QuestionField({
     value: unknown;
     onChange: (v: unknown) => void;
 }) {
+    const t = useTranslations('vendorAssessment');
+    const tc = useTranslations('common');
     const baseLabel = (
         <label className="block text-sm font-medium text-gray-900 mb-1">
             {question.prompt}
@@ -337,7 +339,7 @@ function QuestionField({
                                     onChange={() => onChange(opt)}
                                     className="mr-2"
                                 />
-                                {opt === 'yes' ? 'Yes' : 'No'}
+                                {opt === 'yes' ? tc('yes') : tc('no')}
                             </label>
                         ))}
                     </div>
@@ -475,15 +477,13 @@ function QuestionField({
                 <div data-testid={`q-${question.id}`}>
                     {baseLabel}
                     <p className="text-xs text-gray-500 italic">
-                        File-upload responses are coordinated through your
-                        contact at this stage. Please add a note here describing
-                        the file you intend to share.
+                        {t('fileUploadNote')}
                     </p>
                     <textarea
                         value={typeof value === 'string' ? value : ''}
                         onChange={(e) => onChange(e.target.value)}
                         rows={2}
-                        placeholder="e.g. Will send DPA via secure email"
+                        placeholder={t('fileUploadPlaceholder')}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm mt-1"
                     />
                 </div>

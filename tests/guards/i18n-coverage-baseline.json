@@ -1,17 +1,3 @@
 [
-  "src/app/account/profile/AvatarUploadField.tsx",
-  "src/app/account/profile/FeedbackPrefsCard.tsx",
-  "src/app/account/profile/NameEditField.tsx",
-  "src/app/account/profile/page.tsx",
-  "src/app/account/security/ChangePasswordForm.tsx",
-  "src/app/account/security/page.tsx",
-  "src/app/audit/shared/[token]/page.tsx",
-  "src/app/forgot-password/page.tsx",
-  "src/app/global-error.tsx",
-  "src/app/invite/[token]/page.tsx",
-  "src/app/no-tenant/page.tsx",
-  "src/app/not-found.tsx",
-  "src/app/reset-password/page.tsx",
-  "src/app/tenants/page.tsx",
-  "src/app/vendor-assessment/[assessmentId]/VendorAssessmentClient.tsx"
+  "src/app/global-error.tsx"
 ]

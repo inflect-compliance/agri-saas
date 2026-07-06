@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 
 import { auth } from '@/auth';
 import { Heading } from '@/components/ui/typography';
@@ -16,6 +17,8 @@ export default async function AccountProfilePage() {
     const session = await auth();
     if (!session?.user) redirect('/login?next=/account/profile');
 
+    const t = await getTranslations('account.profile');
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-bg-page p-4">
             {/* Background effects — matches /account/security. */}
@@ -26,7 +29,7 @@ export default async function AccountProfilePage() {
 
             <div className="relative w-full max-w-md">
                 <div className="text-center mb-8 animate-fadeIn">
-                    <Heading level={1}>Your profile</Heading>
+                    <Heading level={1}>{t('pageTitle')}</Heading>
                 </div>
 
                 <AvatarUploadField

@@ -12,6 +12,28 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 
+jest.mock('next-intl', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const en = require('../../messages/en.json');
+    const get = (p: string): unknown =>
+        p.split('.').reduce<unknown>(
+            (o, k) => (o == null ? undefined : (o as Record<string, unknown>)[k]),
+            en,
+        );
+    return {
+        useTranslations:
+            (ns?: string) =>
+            (key: string, values?: Record<string, unknown>) => {
+                const full = ns ? `${ns}.${key}` : key;
+                const msg = get(full);
+                if (typeof msg !== 'string') return full;
+                return msg.replace(/\{(\w+)\}/g, (_, k) =>
+                    values?.[k] != null ? String(values[k]) : `{${k}}`,
+                );
+            },
+    };
+});
+
 import { AvatarUploadField } from '@/app/account/profile/AvatarUploadField';
 
 const originalFetch = global.fetch;
