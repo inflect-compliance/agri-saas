@@ -5,6 +5,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -81,6 +82,7 @@ function toProgressVariant(color: string): ProgressBarVariant {
 }
 
 export default function TestDashboardPage() {
+    const t = useTranslations('controlTests.dashboard');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
 
@@ -111,14 +113,14 @@ export default function TestDashboardPage() {
     return (
         <DashboardLayout
             header={{
-                title: 'Test Dashboard',
+                title: t('title'),
                 titleId: 'dashboard-title',
-                description: 'Testing health and framework readiness',
+                description: t('description'),
                 actions: (
                     <>
-                        <Link href={tenantHref('/tests')} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>Tests</Link>
-                        <Tooltip content="Due queue">
-                            <Link href={tenantHref('/tests/due')} aria-label="Due queue" className={buttonVariants({ variant: 'secondary', size: 'icon' })}>
+                        <Link href={tenantHref('/tests')} className={buttonVariants({ variant: 'ghost', size: 'sm' })}>{t('tests')}</Link>
+                        <Tooltip content={t('dueQueue')}>
+                            <Link href={tenantHref('/tests/due')} aria-label={t('dueQueue')} className={buttonVariants({ variant: 'secondary', size: 'icon' })}>
                                 <AppIcon name="clock" size={16} />
                             </Link>
                         </Tooltip>
@@ -130,7 +132,7 @@ export default function TestDashboardPage() {
                                     className={`px-3 py-1 rounded text-xs font-medium transition-colors duration-150 ease-out ${period === d ? 'bg-[var(--brand-default)] text-content-emphasis' : 'text-content-muted hover:text-content-emphasis'}`}
                                     id={`period-${d}-btn`}
                                 >
-                                    {d}d
+                                    {t('dayWindow', { days: d })}
                                 </button>
                             ))}
                         </div>
@@ -141,20 +143,20 @@ export default function TestDashboardPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-default">
-                <MetricCard label="Completion Rate" value={`${metrics.completionRate}%`} sub={`${metrics.completedRuns}/${metrics.totalRuns} runs`} color={metrics.completionRate >= 80 ? 'green' : metrics.completionRate >= 50 ? 'amber' : 'red'} />
-                <MetricCard label="Pass Rate" value={`${metrics.passRate}%`} sub={`${metrics.passRuns} passed`} color={metrics.passRate >= 80 ? 'green' : metrics.passRate >= 50 ? 'amber' : 'red'} />
-                <MetricCard label="Fail Rate" value={`${metrics.failRate}%`} sub={`${metrics.failRuns} failed`} color={metrics.failRate <= 10 ? 'green' : metrics.failRate <= 30 ? 'amber' : 'red'} />
-                <MetricCard label="Evidence Rate" value={`${metrics.evidenceRate}%`} sub={`${metrics.runsWithEvidence} with evidence`} color={metrics.evidenceRate >= 80 ? 'green' : metrics.evidenceRate >= 50 ? 'amber' : 'red'} />
-                <MetricCard label="Overdue Plans" value={String(metrics.overduePlans)} sub="need attention" color={metrics.overduePlans === 0 ? 'green' : 'red'} />
-                <MetricCard label="Active Plans" value={String(metrics.totalPlans)} sub="total" color="brand" />
+                <MetricCard label={t('completionRate')} value={`${metrics.completionRate}%`} sub={t('runsSub', { completed: metrics.completedRuns, total: metrics.totalRuns })} color={metrics.completionRate >= 80 ? 'green' : metrics.completionRate >= 50 ? 'amber' : 'red'} />
+                <MetricCard label={t('passRate')} value={`${metrics.passRate}%`} sub={t('passedSub', { count: metrics.passRuns })} color={metrics.passRate >= 80 ? 'green' : metrics.passRate >= 50 ? 'amber' : 'red'} />
+                <MetricCard label={t('failRate')} value={`${metrics.failRate}%`} sub={t('failedSub', { count: metrics.failRuns })} color={metrics.failRate <= 10 ? 'green' : metrics.failRate <= 30 ? 'amber' : 'red'} />
+                <MetricCard label={t('evidenceRate')} value={`${metrics.evidenceRate}%`} sub={t('withEvidenceSub', { count: metrics.runsWithEvidence })} color={metrics.evidenceRate >= 80 ? 'green' : metrics.evidenceRate >= 50 ? 'amber' : 'red'} />
+                <MetricCard label={t('overduePlans')} value={String(metrics.overduePlans)} sub={t('needAttention')} color={metrics.overduePlans === 0 ? 'green' : 'red'} />
+                <MetricCard label={t('activePlans')} value={String(metrics.totalPlans)} sub={t('total')} color="brand" />
             </div>
 
             {/* Result Distribution */}
             <div className="grid md:grid-cols-2 gap-section">
                 <div className={cardVariants()}>
-                    <Heading level={2} className="mb-4">Result Distribution ({period}d)</Heading>
+                    <Heading level={2} className="mb-4">{t('resultDistribution', { period })}</Heading>
                     {metrics.completedRuns === 0 ? (
-                        <p className="text-content-subtle text-sm">No completed runs in this period</p>
+                        <p className="text-content-subtle text-sm">{t('noCompletedRuns')}</p>
                     ) : (
                         <div className="flex gap-section items-center">
                             {/* Headline gauge — overall pass rate at a glance */}
@@ -163,32 +165,32 @@ export default function TestDashboardPage() {
                                 label={`${metrics.passRate}%`}
                                 variant={metrics.passRate >= 80 ? 'success' : metrics.passRate >= 50 ? 'warning' : 'error'}
                                 size="sm"
-                                aria-label="Overall pass rate"
+                                aria-label={t('overallPassRateAria')}
                             />
                             <div className="flex-1 space-y-compact">
                             <div>
                                 <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-content-success">Pass</span>
-                                    <span className="text-content-muted">{metrics.passRuns} ({metrics.passRate}%)</span>
+                                    <span className="text-content-success">{t('pass')}</span>
+                                    <span className="text-content-muted">{t('passLine', { count: metrics.passRuns, rate: metrics.passRate })}</span>
                                 </div>
-                                <ProgressBar value={metrics.passRate} variant="success" aria-label="Pass rate" />
+                                <ProgressBar value={metrics.passRate} variant="success" aria-label={t('passRateAria')} />
                             </div>
                             <div>
                                 <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-content-error">Fail</span>
-                                    <span className="text-content-muted">{metrics.failRuns} ({metrics.failRate}%)</span>
+                                    <span className="text-content-error">{t('fail')}</span>
+                                    <span className="text-content-muted">{t('passLine', { count: metrics.failRuns, rate: metrics.failRate })}</span>
                                 </div>
-                                <ProgressBar value={metrics.failRate} variant="error" aria-label="Fail rate" />
+                                <ProgressBar value={metrics.failRate} variant="error" aria-label={t('failRateAria')} />
                             </div>
                             <div>
                                 <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-content-warning">Inconclusive</span>
+                                    <span className="text-content-warning">{t('inconclusive')}</span>
                                     <span className="text-content-muted">{metrics.inconclusiveRuns}</span>
                                 </div>
                                 <ProgressBar
                                     value={metrics.completedRuns > 0 ? (metrics.inconclusiveRuns / metrics.completedRuns) * 100 : 0}
                                     variant="warning"
-                                    aria-label="Inconclusive rate"
+                                    aria-label={t('inconclusiveRateAria')}
                                 />
                             </div>
                             </div>
@@ -197,9 +199,9 @@ export default function TestDashboardPage() {
                 </div>
 
                 <div className={cardVariants()}>
-                    <Heading level={2} className="mb-4">Repeated Failures</Heading>
+                    <Heading level={2} className="mb-4">{t('repeatedFailures')}</Heading>
                     {metrics.repeatedFailures.length === 0 ? (
-                        <p className="text-content-subtle text-sm">No controls with repeated failures</p>
+                        <p className="text-content-subtle text-sm">{t('noRepeatedFailures')}</p>
                     ) : (
                         <div className="space-y-tight">
                             {metrics.repeatedFailures.map(f => (
@@ -212,7 +214,7 @@ export default function TestDashboardPage() {
                                         <span className="text-content-emphasis text-sm font-medium">{f.controlCode || f.controlName}</span>
                                         {f.controlCode && <span className="text-content-muted text-xs ml-2">{f.controlName}</span>}
                                     </div>
-                                    <StatusBadge variant="error" size="sm">{f.failCount} failures</StatusBadge>
+                                    <StatusBadge variant="error" size="sm">{t('failuresCount', { count: f.failCount })}</StatusBadge>
                                 </Link>
                             ))}
                         </div>
@@ -236,53 +238,53 @@ export default function TestDashboardPage() {
             {/* Framework Test Readiness */}
             {readiness.length > 0 && (
                 <div className={cardVariants()}>
-                    <Heading level={2} className="mb-4" id="framework-readiness-title">Framework Test Coverage</Heading>
+                    <Heading level={2} className="mb-4" id="framework-readiness-title">{t('frameworkCoverage')}</Heading>
                     <p className="text-sm text-content-muted mb-4">
-                        How well your mapped controls are covered by active test plans and recent test runs
+                        {t('frameworkCoverageDesc')}
                     </p>
                     <div className="space-y-section animate-fadeIn">
                         {readiness.map(fw => (
                             <div key={fw.frameworkKey} className="border border-border-default/30 rounded-lg p-4">
                                 <div className="flex items-center justify-between mb-3">
                                     <Heading level={3}>{fw.frameworkName}</Heading>
-                                    <span className="text-xs text-content-muted">{fw.totalMappedControls} mapped controls</span>
+                                    <span className="text-xs text-content-muted">{t('mappedControls', { count: fw.totalMappedControls })}</span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-default">
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-content-muted">Test Plan Coverage</span>
+                                            <span className="text-content-muted">{t('testPlanCoverage')}</span>
                                             <span className="text-content-emphasis">{fw.testPlanCoverage}%</span>
                                         </div>
                                         <ProgressBar
                                             value={fw.testPlanCoverage}
                                             variant={toProgressVariant(fw.testPlanCoverage >= 80 ? 'green' : fw.testPlanCoverage >= 50 ? 'amber' : 'red')}
-                                            aria-label={`${fw.frameworkName} test plan coverage`}
+                                            aria-label={t('testPlanCoverageAria', { name: fw.frameworkName })}
                                         />
-                                        <p className="text-xs text-content-subtle mt-1">{fw.withTestPlan}/{fw.totalMappedControls} with plans</p>
+                                        <p className="text-xs text-content-subtle mt-1">{t('withPlans', { withPlan: fw.withTestPlan, total: fw.totalMappedControls })}</p>
                                     </div>
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-content-muted">Recent Run Coverage (90d)</span>
+                                            <span className="text-content-muted">{t('recentRunCoverage')}</span>
                                             <span className="text-content-emphasis">{fw.testRunCoverage}%</span>
                                         </div>
                                         <ProgressBar
                                             value={fw.testRunCoverage}
                                             variant={toProgressVariant(fw.testRunCoverage >= 80 ? 'green' : fw.testRunCoverage >= 50 ? 'amber' : 'red')}
-                                            aria-label={`${fw.frameworkName} recent run coverage`}
+                                            aria-label={t('recentRunCoverageAria', { name: fw.frameworkName })}
                                         />
-                                        <p className="text-xs text-content-subtle mt-1">{fw.withRecentRun}/{fw.totalMappedControls} tested</p>
+                                        <p className="text-xs text-content-subtle mt-1">{t('tested', { withRun: fw.withRecentRun, total: fw.totalMappedControls })}</p>
                                     </div>
                                     <div>
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-content-muted">Pass Rate</span>
+                                            <span className="text-content-muted">{t('passRate')}</span>
                                             <span className="text-content-emphasis">{fw.passRate}%</span>
                                         </div>
                                         <ProgressBar
                                             value={fw.passRate}
                                             variant={toProgressVariant(fw.passRate >= 80 ? 'green' : fw.passRate >= 50 ? 'amber' : 'red')}
-                                            aria-label={`${fw.frameworkName} pass rate`}
+                                            aria-label={t('passRateFwAria', { name: fw.frameworkName })}
                                         />
-                                        <p className="text-xs text-content-subtle mt-1">{fw.recentPasses}/{fw.recentRuns} passed</p>
+                                        <p className="text-xs text-content-subtle mt-1">{t('passed', { passes: fw.recentPasses, runs: fw.recentRuns })}</p>
                                     </div>
                                 </div>
                             </div>

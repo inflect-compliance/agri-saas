@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { cn } from '@/lib/cn';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck, QrCode, Copy, CheckCircle, XCircle, Trash2, AlertTriangle, X } from 'lucide-react';
@@ -36,6 +37,8 @@ interface EnrollmentResult {
 type Step = 'status' | 'enrolling' | 'verifying';
 
 export default function UserMfaPage() {
+    const t = useTranslations('mfa');
+    const te = useTranslations('mfa.enroll');
     const apiUrl = useTenantApiUrl();
     const [status, setStatus] = useState<MfaStatus | null>(null);
     const [step, setStep] = useState<Step>('status');
@@ -56,7 +59,7 @@ export default function UserMfaPage() {
                 setStatus(await res.json());
             }
         } catch {
-            setError('Failed to load MFA status');
+            setError(te('loadFailed'));
         } finally {
             setLoading(false);
         }
@@ -86,7 +89,7 @@ export default function UserMfaPage() {
 
     const verifyCode = async () => {
         if (code.length !== 6 || !/^\d{6}$/.test(code)) {
-            setError('Please enter a valid 6-digit code');
+            setError(t('invalidCode'));
             return;
         }
         setSubmitting(true);
@@ -99,13 +102,13 @@ export default function UserMfaPage() {
             });
             const data = await res.json();
             if (data.success) {
-                setSuccess('MFA enrolled successfully! Your account is now protected.');
+                setSuccess(te('enrolledSuccess'));
                 setStep('status');
                 setEnrollment(null);
                 setCode('');
                 await fetchStatus();
             } else {
-                setError(data.error || 'Invalid code. Please try again.');
+                setError(data.error || te('invalidCodeRetry'));
             }
         } catch {
             setError('Verification failed');
@@ -122,7 +125,7 @@ export default function UserMfaPage() {
         try {
             const res = await fetch(apiUrl('/security/mfa/enroll'), { method: 'DELETE' });
             if (res.ok) {
-                setSuccess('MFA removed.');
+                setSuccess(te('mfaRemoved'));
                 await fetchStatus();
                 setTimeout(() => setSuccess(null), 3000);
             }
@@ -137,9 +140,9 @@ export default function UserMfaPage() {
         if (!enrollment) return;
         const ok = await copy(enrollment.secret);
         if (ok) {
-            toast.success('Setup key copied — paste it into your authenticator app.');
+            toast.success(te('setupKeyCopied'));
         } else {
-            toast.error('Copy failed — select the key and copy manually.');
+            toast.error(te('copyFailed'));
         }
     };
 
@@ -148,7 +151,7 @@ export default function UserMfaPage() {
             <div className="space-y-section animate-fadeIn">
                 <Heading level={2} className="flex items-center gap-tight">
                     <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
-                    Loading Multi-Factor Authentication…
+                    {t('loadingTitle')}
                 </Heading>
                 <Card>
                     <div className="animate-pulse space-y-default">
@@ -164,7 +167,7 @@ export default function UserMfaPage() {
         <div className="space-y-section animate-fadeIn max-w-2xl">
             <Heading level={1} className="flex items-center gap-tight">
                 <ShieldCheck className="w-6 h-6 text-[var(--brand-default)]" />
-                Multi-Factor Authentication
+                {t('title')}
             </Heading>
 
             {error && (
@@ -189,9 +192,9 @@ export default function UserMfaPage() {
                 <div className={cn(cardVariants(), 'space-y-default')}>
                     <div className="flex items-center justify-between">
                         <div>
-                            <Heading level={2}>MFA Status</Heading>
+                            <Heading level={2}>{te('statusTitle')}</Heading>
                             <p className="text-sm text-content-muted mt-1">
-                                Tenant policy: <span className="font-medium text-content-default">{status.tenantMfaPolicy}</span>
+                                {te('tenantPolicy')} <span className="font-medium text-content-default">{status.tenantMfaPolicy}</span>
                             </p>
                         </div>
                         <div>
@@ -205,11 +208,11 @@ export default function UserMfaPage() {
                             {status.isVerified ? (
                                 <StatusBadge variant="success">
                                     <CheckCircle className="w-3.5 h-3.5" aria-hidden="true" />
-                                    Enrolled
+                                    {te('enrolled')}
                                 </StatusBadge>
                             ) : (
                                 <StatusBadge variant="neutral">
-                                    Not Enrolled
+                                    {te('notEnrolled')}
                                 </StatusBadge>
                             )}
                         </div>
@@ -217,7 +220,7 @@ export default function UserMfaPage() {
 
                     {status.isVerified && status.verifiedAt && (
                         <p className="text-xs text-content-subtle">
-                            Enrolled since {formatDate(status.verifiedAt)}
+                            {te('enrolledSince', { date: formatDate(status.verifiedAt) })}
                         </p>
                     )}
 
@@ -225,7 +228,7 @@ export default function UserMfaPage() {
                         <div className="p-3 rounded-lg border border-border-warning bg-bg-warning flex items-start gap-tight">
                             <AlertTriangle className="w-4 h-4 text-content-warning mt-0.5 shrink-0" />
                             <p className="text-sm text-content-warning">
-                                Your organization requires MFA. You must enroll to continue using the application.
+                                {te('orgRequires')}
                             </p>
                         </div>
                     )}
@@ -239,7 +242,7 @@ export default function UserMfaPage() {
                                 id="mfa-enroll-btn"
                                 icon={<QrCode className="w-4 h-4" />}
                             >
-                                {submitting ? 'Starting...' : 'Set Up MFA'}
+                                {submitting ? te('starting') : t('setUpMfa')}
                             </Button>
                         )}
                         {status.isVerified && status.tenantMfaPolicy !== 'REQUIRED' && (
@@ -250,7 +253,7 @@ export default function UserMfaPage() {
                                 id="mfa-remove-btn"
                                 icon={<Trash2 className="w-4 h-4" />}
                             >
-                                Remove MFA
+                                {t('removeMfa')}
                             </Button>
                         )}
                     </div>
@@ -261,12 +264,12 @@ export default function UserMfaPage() {
             {step === 'enrolling' && enrollment && (
                 <div className={cn(cardVariants(), 'space-y-default')}>
                     <div>
-                        <Heading level={2} className="mb-1">Set Up Authenticator App</Heading>
+                        <Heading level={2} className="mb-1">{te('setupTitle')}</Heading>
                         <p className="text-sm text-content-muted">
-                            1. Open your authenticator app (Google Authenticator, Authy, 1Password, etc.)
+                            {te('setupStep1')}
                         </p>
                         <p className="text-sm text-content-muted">
-                            2. Scan this QR code or manually enter the setup key
+                            {te('setupStep2')}
                         </p>
                     </div>
 
@@ -279,13 +282,13 @@ export default function UserMfaPage() {
                             </div>
                         </div>
                         <p className="text-xs text-content-subtle">
-                            If you cannot scan, use the setup key below
+                            {te('cannotScan')}
                         </p>
                     </div>
 
                     {/* Setup Key */}
                     <div className="p-4 rounded-lg border border-border-default bg-bg-default/50">
-                        <label className="text-xs text-content-muted block mb-1">Setup Key</label>
+                        <label className="text-xs text-content-muted block mb-1">{te('setupKey')}</label>
                         <div className="flex items-center gap-tight">
                             <code className="text-sm font-mono text-[var(--brand-muted)] tracking-wider break-all flex-1">
                                 {enrollment.secret}
@@ -297,7 +300,7 @@ export default function UserMfaPage() {
                                 onClick={copySecret}
                                 icon={copied ? <CheckCircle className="w-3.5 h-3.5 text-content-success" /> : <Copy className="w-3.5 h-3.5" />}
                             >
-                                {copied ? 'Copied!' : 'Copy'}
+                                {copied ? te('copied') : te('copy')}
                             </Button>
                         </div>
                     </div>
@@ -305,7 +308,7 @@ export default function UserMfaPage() {
                     {/* Verification */}
                     <div>
                         <Heading level={3} className="mb-2">
-                            3. Enter the 6-digit code from your authenticator app
+                            {te('setupStep3')}
                         </Heading>
                         <div className="flex gap-tight">
                             <input
@@ -325,7 +328,7 @@ export default function UserMfaPage() {
                                 disabled={submitting || code.length !== 6}
                                 id="mfa-verify-btn"
                             >
-                                {submitting ? 'Verifying...' : 'Verify & Enable'}
+                                {submitting ? t('verifying') : te('verifyEnable')}
                             </Button>
                         </div>
                     </div>
@@ -334,7 +337,7 @@ export default function UserMfaPage() {
                         onClick={() => { setStep('status'); setEnrollment(null); setCode(''); }}
                         className="text-xs text-content-subtle hover:text-content-default transition"
                     >
-                        Cancel enrollment
+                        {te('cancelEnrollment')}
                     </button>
                 </div>
             )}
@@ -342,9 +345,9 @@ export default function UserMfaPage() {
                 showModal={showRemoveConfirm}
                 setShowModal={setShowRemoveConfirm}
                 tone="danger"
-                title="Remove multi-factor authentication?"
-                description="Your account will be less secure. You can re-enroll at any time."
-                confirmLabel="Remove MFA"
+                title={te('removeConfirmTitle')}
+                description={te('removeConfirmDesc')}
+                confirmLabel={t('removeMfa')}
                 onConfirm={performRemoveMfa}
             />
         </div>

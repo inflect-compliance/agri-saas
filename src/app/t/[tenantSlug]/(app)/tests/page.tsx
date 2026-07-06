@@ -6,6 +6,7 @@
 
 import { formatDate } from '@/lib/format-date';
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { DataTable, createColumns, useColumnsDropdown } from '@/components/ui/table';
 import { ListPageShell } from '@/components/layout/ListPageShell';
@@ -42,9 +43,9 @@ interface TestPlanSummary {
     }>;
 }
 
-const FREQ_LABELS: Record<string, string> = {
-    AD_HOC: 'Ad Hoc', DAILY: 'Daily', WEEKLY: 'Weekly',
-    MONTHLY: 'Monthly', QUARTERLY: 'Quarterly', ANNUALLY: 'Annually',
+const FREQ_KEY: Record<string, string> = {
+    AD_HOC: 'adHoc', DAILY: 'daily', WEEKLY: 'weekly',
+    MONTHLY: 'monthly', QUARTERLY: 'quarterly', ANNUALLY: 'annually',
 };
 const RESULT_BADGE: Record<string, StatusBadgeVariant> = {
     PASS: 'success', FAIL: 'error', INCONCLUSIVE: 'warning',
@@ -81,6 +82,9 @@ export default function TestsRollupPage() {
 }
 
 function TestsRollupContent() {
+    const t = useTranslations('controlTests.rollup');
+    const tf = useTranslations('controlTests.freq');
+    const freqLabel = (f: string) => (FREQ_KEY[f] ? tf(FREQ_KEY[f]) : f);
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const router = useRouter();
@@ -111,13 +115,13 @@ function TestsRollupContent() {
     } = useColumnsDropdown({
         storageKey: 'inflect:col-vis:tests',
         columns: [
-            { id: 'name', label: 'Name' },
-            { id: 'status', label: 'Status' },
-            { id: 'control', label: 'Control' },
-            { id: 'frequency', label: 'Frequency' },
-            { id: 'nextDue', label: 'Next Due' },
-            { id: 'lastResult', label: 'Last Result' },
-            { id: 'runs', label: 'Runs' },
+            { id: 'name', label: t('colName') },
+            { id: 'status', label: t('colStatus') },
+            { id: 'control', label: t('colControl') },
+            { id: 'frequency', label: t('colFrequency') },
+            { id: 'nextDue', label: t('colNextDue') },
+            { id: 'lastResult', label: t('colLastResult') },
+            { id: 'runs', label: t('colRuns') },
         ],
     });
 
@@ -165,7 +169,7 @@ function TestsRollupContent() {
         () =>
             orderColumns(createColumns<TestPlanSummary>([
                 {
-                    id: 'name', header: 'Name', accessorKey: 'name',
+                    id: 'name', header: t('colName'), accessorKey: 'name',
                     cell: ({ row }) => (
                         <Link
                             href={tenantHref(`/controls/${row.original.control.id}/tests/${row.original.id}`)}
@@ -176,7 +180,7 @@ function TestsRollupContent() {
                     ),
                 },
                 {
-                    id: 'status', header: 'Status', accessorKey: 'status',
+                    id: 'status', header: t('colStatus'), accessorKey: 'status',
                     cell: ({ row }) => (
                         <StatusBadge variant={PLAN_STATUS_BADGE[row.original.status] ?? 'neutral'} size="sm">
                             {row.original.status}
@@ -184,16 +188,16 @@ function TestsRollupContent() {
                     ),
                 },
                 {
-                    id: 'control', header: 'Control', accessorFn: (p) => p.control?.code || p.control?.name || '—',
+                    id: 'control', header: t('colControl'), accessorFn: (p) => p.control?.code || p.control?.name || '—',
                     cell: ({ row }) => (
                         <Link href={tenantHref(`/controls/${row.original.control.id}`)} className="text-content-muted hover:text-content-emphasis text-xs transition">
                             {row.original.control?.code || row.original.control?.name || '—'}
                         </Link>
                     ),
                 },
-                { id: 'frequency', header: 'Frequency', accessorFn: (p) => FREQ_LABELS[p.frequency] || p.frequency },
+                { id: 'frequency', header: t('colFrequency'), accessorFn: (p) => freqLabel(p.frequency) },
                 {
-                    id: 'nextDue', header: 'Next Due', accessorKey: 'nextDueAt',
+                    id: 'nextDue', header: t('colNextDue'), accessorKey: 'nextDueAt',
                     cell: ({ row }) => row.original.nextDueAt ? (
                         <span className={isOverdue(row.original.nextDueAt) ? 'text-content-error font-semibold' : 'text-content-muted'}>
                             {formatDate(row.original.nextDueAt)}
@@ -201,25 +205,26 @@ function TestsRollupContent() {
                     ) : <span className="text-content-subtle">—</span>,
                 },
                 {
-                    id: 'lastResult', header: 'Last Result',
+                    id: 'lastResult', header: t('colLastResult'),
                     accessorFn: (p) => getLastResult(p) || '',
                     cell: ({ row }) => {
                         const result = getLastResult(row.original);
                         return result ? (
                             <StatusBadge variant={RESULT_BADGE[result] || 'neutral'} size="sm">{result}</StatusBadge>
-                        ) : <span className="text-content-subtle text-xs">No runs</span>;
+                        ) : <span className="text-content-subtle text-xs">{t('noRuns')}</span>;
                     },
                 },
                 {
-                    id: 'runs', header: 'Runs',
+                    id: 'runs', header: t('colRuns'),
                     accessorFn: (p) => p._count?.runs ?? 0,
                     cell: ({ getValue }) => <span className="text-content-subtle">{getValue() as number}</span>,
                 },
             ])),
-        [tenantHref, orderColumns],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tenantHref, orderColumns, t, tf],
     );
 
-    if (loading) return <div className="p-12 text-center text-content-subtle animate-pulse">Loading tests overview...</div>;
+    if (loading) return <div className="p-12 text-center text-content-subtle animate-pulse">{t('loading')}</div>;
 
     return (
         <ListPageShell className="animate-fadeIn gap-section">
@@ -228,27 +233,27 @@ function TestsRollupContent() {
                     <div>
                         <PageBreadcrumbs
                             items={[
-                                { label: 'Dashboard', href: tenantHref('/dashboard') },
-                                { label: 'Tests' },
+                                { label: t('bcDashboard'), href: tenantHref('/dashboard') },
+                                { label: t('bcTests') },
                             ]}
                             className="mb-1"
                         />
-                        <Heading level={1} id="tests-page-title">Tests</Heading>
-                        <p className="text-sm text-content-muted mt-1">Test plans and recent results across all controls</p>
+                        <Heading level={1} id="tests-page-title">{t('title')}</Heading>
+                        <p className="text-sm text-content-muted mt-1">{t('subtitle')}</p>
                     </div>
                     <div className="flex gap-tight">
-                        <Tooltip content="Due queue">
-                            <Link href={tenantHref('/tests/due')} aria-label="Due queue" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-due-btn">
+                        <Tooltip content={t('dueQueue')}>
+                            <Link href={tenantHref('/tests/due')} aria-label={t('dueQueue')} className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-due-btn">
                                 <AppIcon name="clock" size={16} />
                             </Link>
                         </Tooltip>
-                        <Tooltip content="Dashboard">
-                            <Link href={tenantHref('/tests/dashboard')} aria-label="Dashboard" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-dashboard-btn">
+                        <Tooltip content={t('dashboard')}>
+                            <Link href={tenantHref('/tests/dashboard')} aria-label={t('dashboard')} className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-dashboard-btn">
                                 <AppIcon name="dashboard" size={16} />
                             </Link>
                         </Tooltip>
-                        <Tooltip content="Access reviews">
-                            <Link href={tenantHref('/access-reviews')} aria-label="Access reviews" className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-uar-btn">
+                        <Tooltip content={t('accessReviews')}>
+                            <Link href={tenantHref('/access-reviews')} aria-label={t('accessReviews')} className={buttonVariants({ variant: 'secondary', size: 'icon' })} id="tests-uar-btn">
                                 <AppIcon name="userCheck" size={16} />
                             </Link>
                         </Tooltip>
@@ -260,16 +265,16 @@ function TestsRollupContent() {
                 {/* Headline stats (display-only). */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
                     <div className={cardVariants({ density: 'compact' })}>
-                        <KPIStat value={plans.length} label="Total Plans" />
+                        <KPIStat value={plans.length} label={t('totalPlans')} />
                     </div>
                     <div className={cardVariants({ density: 'compact' })}>
-                        <KPIStat value={dueCount} label="Overdue" tone={dueCount > 0 ? 'critical' : 'success'} />
+                        <KPIStat value={dueCount} label={t('overdue')} tone={dueCount > 0 ? 'critical' : 'success'} />
                     </div>
                     <div className={cardVariants({ density: 'compact' })}>
-                        <KPIStat value={failedCount} label="Last Failed" tone={failedCount > 0 ? 'critical' : 'success'} />
+                        <KPIStat value={failedCount} label={t('lastFailed')} tone={failedCount > 0 ? 'critical' : 'success'} />
                     </div>
                     <div className={cardVariants({ density: 'compact' })}>
-                        <KPIStat value={passedCount} label="Last Passed" tone="success" />
+                        <KPIStat value={passedCount} label={t('lastPassed')} tone="success" />
                     </div>
                 </div>
 
@@ -279,7 +284,7 @@ function TestsRollupContent() {
                 <FilterToolbar
                     filters={visibleFilterDefs}
                     searchId="tests-search"
-                    searchPlaceholder="Search test plans…"
+                    searchPlaceholder={t('searchPlaceholder')}
                     actions={<>{columnsDropdown}{filtersDropdown}</>}
                 />
             </ListPageShell.Filters>
@@ -294,10 +299,10 @@ function TestsRollupContent() {
                     onColumnVisibilityChange={setColumnVisibility}
                     emptyState={
                         hasActive
-                            ? 'No test plans match your filters.'
-                            : 'No test plans found. Create test plans from the Control detail page.'
+                            ? t('emptyFiltered')
+                            : t('empty')
                     }
-                    resourceName={(p) => p ? 'test plans' : 'test plan'}
+                    resourceName={(p) => p ? t('resourceOther') : t('resourceOne')}
                     data-testid="tests-rollup-table"
                     // Row hover band + brand left-band (and double-click →
                     // open the plan), matching every other list table.

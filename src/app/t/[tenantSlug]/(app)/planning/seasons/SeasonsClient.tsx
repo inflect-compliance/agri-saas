@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
@@ -34,13 +35,9 @@ interface SeasonsClientProps {
     permissions: { canWrite: boolean };
 }
 
-const STATUS_OPTIONS: ComboboxOption[] = [
-    { value: 'PLANNING', label: 'Planning' },
-    { value: 'ACTIVE', label: 'Active' },
-    { value: 'CLOSED', label: 'Closed' },
-];
-
 export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: SeasonsClientProps) {
+    const t = useTranslations('planning.seasons');
+    const tp = useTranslations('planning');
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const buildUrl = useTenantApiUrl();
     const toast = useToast();
@@ -66,10 +63,10 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             } catch {
-                toast.error('Неуспешно генериране на дневника за сезона.');
+                toast.error(t('diaryFailed'));
             }
         },
-        [buildUrl, toast],
+        [buildUrl, toast, t],
     );
 
     const seasonsSWR = useTenantSWR<SeasonRow[]>('/planning/seasons', {
@@ -83,14 +80,14 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
             createColumns<SeasonRow>([
                 {
                     accessorKey: 'name',
-                    header: 'Season',
+                    header: t('colSeason'),
                     cell: ({ getValue }) => (
                         <span className="text-sm text-content-emphasis">{getValue() as string}</span>
                     ),
                 },
                 {
                     id: 'window',
-                    header: 'Window',
+                    header: t('colWindow'),
                     accessorFn: (s) => s.startDate,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted">
@@ -101,7 +98,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                 },
                 {
                     id: 'plans',
-                    header: 'Plans',
+                    header: t('colPlans'),
                     accessorFn: (s) => s._count?.cropPlans ?? 0,
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted tabular-nums">{getValue() as number}</span>
@@ -109,7 +106,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                 },
                 {
                     accessorKey: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => (
                         <AgStatusBadge entity="season" status={row.original.status} />
                     ),
@@ -120,10 +117,10 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                     enableHiding: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-tight">
-                            <Tooltip content="Дневник (PDF) за сезона">
+                            <Tooltip content={t('diaryTooltip')}>
                                 <button
                                     type="button"
-                                    aria-label="Дневник (PDF)"
+                                    aria-label={t('diaryAria')}
                                     className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted hover:bg-bg-muted hover:text-content-emphasis"
                                     data-testid={`season-diary-${row.original.id}`}
                                     onClick={(e) => {
@@ -138,7 +135,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                     ),
                 },
             ]),
-        [downloadSeasonDiary],
+        [downloadSeasonDiary, t],
     );
 
     return (
@@ -146,12 +143,12 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Planting', href: tenantHref('/planning') },
-                    { label: 'Seasons' },
+                    { label: tp('bcDashboard'), href: tenantHref('/dashboard') },
+                    { label: tp('bcPlanting'), href: tenantHref('/planning') },
+                    { label: tp('bcSeasons') },
                 ],
-                title: 'Seasons',
-                description: 'Planting season windows — each crop plan belongs to a season.',
+                title: t('title'),
+                description: t('description'),
                 actions: permissions.canWrite ? (
                     <Button
                         variant="primary"
@@ -159,7 +156,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                         onClick={() => setIsCreateOpen(true)}
                         id="new-season-btn"
                     >
-                        Season
+                        {t('newSeason')}
                     </Button>
                 ) : null,
             }}
@@ -172,16 +169,16 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No seasons yet"
-                        description="Create a season window to start planning crop successions."
+                        title={t('emptyTitle')}
+                        description={t('emptyDesc')}
                         primaryAction={
                             permissions.canWrite
-                                ? { label: 'Add season', onClick: () => setIsCreateOpen(true) }
+                                ? { label: t('addSeason'), onClick: () => setIsCreateOpen(true) }
                                 : undefined
                         }
                     />
                 ),
-                resourceName: (p) => (p ? 'seasons' : 'season'),
+                resourceName: (p) => (p ? t('resourcePlural') : t('resourceSingular')),
                 'data-testid': 'seasons-table',
                 className: 'hover:bg-bg-muted',
             }}
@@ -206,7 +203,16 @@ function NewSeasonModal({
     setOpen: Dispatch<SetStateAction<boolean>>;
     onSaved?: () => void;
 }) {
+    const t = useTranslations('planning.seasons');
     const buildUrl = useTenantApiUrl();
+    const STATUS_OPTIONS: ComboboxOption[] = useMemo(
+        () => [
+            { value: 'PLANNING', label: t('statusPlanning') },
+            { value: 'ACTIVE', label: t('statusActive') },
+            { value: 'CLOSED', label: t('statusClosed') },
+        ],
+        [t],
+    );
     const [name, setName] = useState('');
     const [status, setStatus] = useState('PLANNING');
     const [startDate, setStartDate] = useState<Date | null>(new Date());
@@ -235,14 +241,14 @@ function NewSeasonModal({
             setOpen(false);
             onSaved?.();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create season');
+            setError(err instanceof Error ? err.message : t('createFailed'));
         } finally {
             setSubmitting(false);
         }
     };
 
-    const heading = 'New season';
-    const description = 'Define a planting season window.';
+    const heading = t('modalHeading');
+    const description = t('modalDescription');
 
     return (
         <Modal
@@ -272,27 +278,27 @@ function NewSeasonModal({
                         </div>
                     )}
                     <fieldset disabled={submitting} className="m-0 p-0 border-0 space-y-default">
-                        <FormField label="Name" required>
+                        <FormField label={t('name')} required>
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="e.g. 2026 Main Season"
+                                placeholder={t('namePlaceholder')}
                                 id="season-name"
                             />
                         </FormField>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-default">
-                            <FormField label="Start" required>
-                                <DatePicker value={startDate} onChange={setStartDate} placeholder="Start date" />
+                            <FormField label={t('start')} required>
+                                <DatePicker value={startDate} onChange={setStartDate} placeholder={t('startPlaceholder')} />
                             </FormField>
-                            <FormField label="End" required>
-                                <DatePicker value={endDate} onChange={setEndDate} placeholder="End date" />
+                            <FormField label={t('end')} required>
+                                <DatePicker value={endDate} onChange={setEndDate} placeholder={t('endPlaceholder')} />
                             </FormField>
-                            <FormField label="Status">
+                            <FormField label={t('status')}>
                                 <Combobox
                                     options={STATUS_OPTIONS}
                                     selected={STATUS_OPTIONS.find((o) => o.value === status) ?? null}
                                     setSelected={(o) => setStatus(o?.value ?? 'PLANNING')}
-                                    aria-label="Season status"
+                                    aria-label={t('seasonStatus')}
                                     matchTriggerWidth
                                 />
                             </FormField>
@@ -308,7 +314,7 @@ function NewSeasonModal({
                         disabled={submitting}
                         id="season-cancel"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -318,7 +324,7 @@ function NewSeasonModal({
                         loading={submitting}
                         id="season-submit"
                     >
-                        Create season
+                        {t('createSeason')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

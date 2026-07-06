@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
@@ -24,6 +25,8 @@ interface LocationItem {
 }
 
 export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: string; canAdmin?: boolean }) {
+    const t = useTranslations('locations');
+    const tCommon = useTranslations('common');
     const buildUrl = useTenantApiUrl();
     const prefetchData = usePrefetchTenant();
     const { data, mutate, isLoading } = useTenantSWR<LocationItem[]>('/locations');
@@ -67,7 +70,7 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
         () => createColumns<LocationItem>([
             {
                 accessorKey: 'name',
-                header: 'Name',
+                header: t('colName'),
                 cell: ({ row }) => (
                     <Link
                         href={`/t/${tenantSlug}/locations/${row.original.id}`}
@@ -77,14 +80,14 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
                     </Link>
                 ),
             },
-            { accessorKey: 'status', header: 'Status' },
+            { accessorKey: 'status', header: t('colStatus') },
             {
                 id: 'parcels',
-                header: 'Parcels',
+                header: t('colParcels'),
                 cell: ({ row }) => row.original._count?.parcels ?? 0,
             },
         ]),
-        [tenantSlug],
+        [tenantSlug, t],
     );
 
     const rows = data ?? [];
@@ -96,15 +99,15 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
                     <div>
                         <PageBreadcrumbs
                             items={[
-                                { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                                { label: 'Locations' },
+                                { label: t('bcDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                                { label: t('bcLocations') },
                             ]}
                             className="mb-1"
                         />
-                        <Heading level={1}>Locations</Heading>
-                        <p className="text-sm text-content-secondary">Field blocks and their parcels.</p>
+                        <Heading level={1}>{t('title')}</Heading>
+                        <p className="text-sm text-content-secondary">{t('description')}</p>
                     </div>
-                    <Button variant="primary" size="sm" onClick={() => setShowNew(true)}>New location</Button>
+                    <Button variant="primary" size="sm" onClick={() => setShowNew(true)}>{t('newLocation')}</Button>
                 </div>
             </ListPageShell.Header>
             <ListPageShell.Body>
@@ -123,16 +126,16 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
                         <EmptyState
                             size="sm"
                             variant="no-records"
-                            title="No locations yet"
-                            description="Map your first field — every journal entry, spray job, and traceability claim hangs off a location."
-                            primaryAction={{ label: 'New location', onClick: () => setShowNew(true) }}
+                            title={t('emptyTitle')}
+                            description={t('emptyDesc')}
+                            primaryAction={{ label: t('newLocation'), onClick: () => setShowNew(true) }}
                         />
                     )}
                 />
             </ListPageShell.Body>
 
-            <Modal showModal={showNew} setShowModal={setShowNew} size="md" title="New location" description="Create a field block.">
-                <Modal.Header title="New location" description="Create a field block; import parcels next." />
+            <Modal showModal={showNew} setShowModal={setShowNew} size="md" title={t('modalTitle')} description={t('modalDescription')}>
+                <Modal.Header title={t('modalTitle')} description={t('modalHeaderDescription')} />
                 <Modal.Form id="new-location-form" onSubmit={create}>
                     <Modal.Body>
                         {error && (
@@ -140,13 +143,13 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
                                 {error}
                             </div>
                         )}
-                        <FormField label="Name" required>
-                            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Home Farm" />
+                        <FormField label={t('fieldName')} required>
+                            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('fieldNamePlaceholder')} />
                         </FormField>
                     </Modal.Body>
                     <Modal.Actions>
-                        <Button variant="secondary" size="sm" type="button" onClick={() => setShowNew(false)}>Cancel</Button>
-                        <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!name || busy}>Create</Button>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => setShowNew(false)}>{tCommon('cancel')}</Button>
+                        <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!name || busy}>{tCommon('create')}</Button>
                     </Modal.Actions>
                 </Modal.Form>
             </Modal>

@@ -13,6 +13,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -61,16 +62,18 @@ const STATUS_VARIANT: Record<string, 'neutral' | 'info' | 'success' | 'warning'>
     COMPLETED: 'success',
     CANCELLED: 'warning',
 };
-const METHOD_LABELS: Record<string, string> = {
-    DIRECT_SOW: 'Direct sow',
-    TRANSPLANT: 'Transplant',
-};
-
 export default function CropPlanDetailPage() {
+    const t = useTranslations('planning.detail');
+    const tp = useTranslations('planning');
     const params = useParams();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const { permissions, tenantSlug } = useTenantContext();
+
+    const METHOD_LABELS: Record<string, string> = {
+        DIRECT_SOW: t('methodDirectSow'),
+        TRANSPLANT: t('methodTransplant'),
+    };
     const cropPlanId = params?.cropPlanId as string;
 
     const [tab, setTab] = useState<Tab>('overview');
@@ -95,7 +98,7 @@ export default function CropPlanDetailPage() {
             await apiPost(apiUrl(`/planning/crop-plans/${cropPlanId}/generate`), {});
             await planSWR.mutate();
         } catch (err) {
-            setGenError(err instanceof Error ? err.message : 'Failed to generate plantings');
+            setGenError(err instanceof Error ? err.message : t('genFailed'));
         } finally {
             setGenerating(false);
         }
@@ -110,23 +113,23 @@ export default function CropPlanDetailPage() {
     }
     if (planSWR.error) {
         return (
-            <EntityDetailLayout error={planSWR.error.message || 'Crop plan not found'} title="">
+            <EntityDetailLayout error={planSWR.error.message || t('notFound')} title="">
                 {null}
             </EntityDetailLayout>
         );
     }
     if (!plan) {
         return (
-            <EntityDetailLayout empty={{ message: 'Crop plan not found.' }} title="">
+            <EntityDetailLayout empty={{ message: t('notFoundMessage') }} title="">
                 {null}
             </EntityDetailLayout>
         );
     }
 
     const tabs: { key: Tab; label: string; count?: number }[] = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'plantings', label: 'Plantings', count: plan._count?.plantings ?? 0 },
-        { key: 'journal', label: 'Journal' },
+        { key: 'overview', label: t('tabOverview') },
+        { key: 'plantings', label: t('tabPlantings'), count: plan._count?.plantings ?? 0 },
+        { key: 'journal', label: t('tabJournal') },
     ];
 
     const headerMeta = (
@@ -135,12 +138,12 @@ export default function CropPlanDetailPage() {
                 {
                     kind: 'status' as const,
                     id: 'crop-plan-status',
-                    label: 'Status',
+                    label: t('statusLabel'),
                     value: plan.status,
                     variant: STATUS_VARIANT[plan.status] ?? 'neutral',
                 },
-                { label: 'Season', value: plan.season?.name ?? '—' },
-                { label: 'Crop', value: plan.variety?.name ?? plan.cropType?.name ?? '—' },
+                { label: t('season'), value: plan.season?.name ?? '—' },
+                { label: t('crop'), value: plan.variety?.name ?? plan.cropType?.name ?? '—' },
             ]}
         />
     );
@@ -152,7 +155,7 @@ export default function CropPlanDetailPage() {
             loading={generating}
             id="crop-plan-generate-btn"
         >
-            Generate
+            {t('generate')}
         </Button>
     ) : null;
 
@@ -160,8 +163,8 @@ export default function CropPlanDetailPage() {
         <EntityDetailLayout
             id="crop-plan-detail-page"
             breadcrumbs={[
-                { label: 'Dashboard', href: tenantHref('/dashboard') },
-                { label: 'Planting', href: tenantHref('/planning') },
+                { label: tp('bcDashboard'), href: tenantHref('/dashboard') },
+                { label: tp('bcPlanting'), href: tenantHref('/planning') },
                 { label: plan.name },
             ]}
             title={<span id="crop-plan-title">{plan.name}</span>}
@@ -185,36 +188,36 @@ export default function CropPlanDetailPage() {
                 <div className={cn(cardVariants(), 'space-y-default')}>
                     <div className="grid grid-cols-2 gap-section">
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Method</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('method')}</span>
                             <p className="text-sm text-content-default mt-1">
                                 {METHOD_LABELS[plan.method] ?? plan.method}
                             </p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">First sow date</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('firstSowDate')}</span>
                             <p className="text-sm text-content-default mt-1">{formatDate(plan.firstSowDate)}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Successions</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('successions')}</span>
                             <p className="text-sm text-content-default mt-1">{plan.successions}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Interval (days)</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('intervalDays')}</span>
                             <p className="text-sm text-content-default mt-1">{plan.intervalDays}</p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Plants / succession</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('plantsPerSuccession')}</span>
                             <p className="text-sm text-content-default mt-1">
                                 {plan.plantsPerSuccession ?? '—'}
                             </p>
                         </div>
                         <div>
-                            <span className="text-xs text-content-subtle uppercase">Variety</span>
+                            <span className="text-xs text-content-subtle uppercase">{t('variety')}</span>
                             <p className="text-sm text-content-default mt-1">{plan.variety?.name ?? '—'}</p>
                         </div>
                         {plan.notes && (
                             <div className="col-span-2">
-                                <span className="text-xs text-content-subtle uppercase">Notes</span>
+                                <span className="text-xs text-content-subtle uppercase">{t('notes')}</span>
                                 <p className="text-sm text-content-default mt-1">{plan.notes}</p>
                             </div>
                         )}
@@ -227,11 +230,10 @@ export default function CropPlanDetailPage() {
             {tab === 'journal' && (
                 <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                     {journalSWR.isLoading && !journalSWR.data ? (
-                        <div className="p-8 text-center text-content-subtle animate-pulse">Loading journal…</div>
+                        <div className="p-8 text-center text-content-subtle animate-pulse">{t('loadingJournal')}</div>
                     ) : (journalSWR.data?.length ?? 0) === 0 ? (
                         <div className="p-8 text-center text-sm text-content-subtle">
-                            No journal entries yet. Record a sow / transplant / harvest against a planting to track the
-                            actual date.
+                            {t('journalEmpty')}
                         </div>
                     ) : (
                         <div className="divide-y divide-border-default/50" id="crop-plan-journal-feed">

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { formatDate } from '@/lib/format-date';
 import { Card } from '@/components/ui/card';
@@ -19,14 +20,15 @@ interface MyFarmTasksCardProps {
  * (Tasks is not module-gated). Mirrors RecentActivityCard's chassis.
  */
 export default function MyFarmTasksCard({ href, items }: MyFarmTasksCardProps) {
+    const t = useTranslations('dashboard.myFarmTasks');
     return (
         <Card>
             <div className="flex items-baseline justify-between mb-3 gap-tight">
                 <Heading level={3} id="my-farm-tasks-heading">
-                    My Farm Tasks
+                    {t('title')}
                 </Heading>
                 <TextLink href={href} tone="muted" className="text-xs">
-                    View all
+                    {t('viewAll')}
                 </TextLink>
             </div>
             <div
@@ -48,7 +50,7 @@ export default function MyFarmTasksCard({ href, items }: MyFarmTasksCardProps) {
                     </Link>
                 ))}
                 {items.length === 0 && (
-                    <p className="text-content-subtle text-xs">No farm tasks assigned to you</p>
+                    <p className="text-content-subtle text-xs">{t('empty')}</p>
                 )}
             </div>
         </Card>

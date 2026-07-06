@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
@@ -47,11 +48,6 @@ export interface NewCropPlanModalProps {
     onSaved?: (plan: { id: string }) => void;
 }
 
-const METHOD_OPTIONS: ComboboxOption[] = [
-    { value: 'DIRECT_SOW', label: 'Direct sow' },
-    { value: 'TRANSPLANT', label: 'Transplant' },
-];
-
 export function NewCropPlanModal({
     open,
     setOpen,
@@ -60,7 +56,16 @@ export function NewCropPlanModal({
     varieties,
     onSaved,
 }: NewCropPlanModalProps) {
+    const t = useTranslations('planning.newPlan');
     const buildUrl = useTenantApiUrl();
+
+    const METHOD_OPTIONS: ComboboxOption[] = useMemo(
+        () => [
+            { value: 'DIRECT_SOW', label: t('methodDirectSow') },
+            { value: 'TRANSPLANT', label: t('methodTransplant') },
+        ],
+        [t],
+    );
 
     const [name, setName] = useState('');
     const [seasonId, setSeasonId] = useState('');
@@ -152,8 +157,8 @@ export function NewCropPlanModal({
                 } catch (genErr) {
                     setError(
                         genErr instanceof Error
-                            ? `Plan created, but plantings could not be generated: ${genErr.message}`
-                            : 'Plan created, but plantings could not be generated.',
+                            ? t('genFailedWithMsg', { msg: genErr.message })
+                            : t('genFailed'),
                     );
                     setOpen(false);
                     onSaved?.(plan);
@@ -163,14 +168,14 @@ export function NewCropPlanModal({
             setOpen(false);
             onSaved?.(plan);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create crop plan');
+            setError(err instanceof Error ? err.message : t('createFailed'));
         } finally {
             setSubmitting(false);
         }
     };
 
-    const heading = 'New crop plan';
-    const description = 'Define the succession schedule — the engine expands it into plantings.';
+    const heading = t('heading');
+    const description = t('description');
 
     return (
         <Modal
@@ -200,27 +205,27 @@ export function NewCropPlanModal({
                         </div>
                     )}
                     <fieldset disabled={submitting} className="m-0 p-0 border-0 space-y-default">
-                        <FormField label="Plan name" required>
+                        <FormField label={t('planName')} required>
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="e.g. Summer lettuce successions"
+                                placeholder={t('planNamePlaceholder')}
                                 id="crop-plan-name"
                             />
                         </FormField>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
-                            <FormField label="Season" required>
+                            <FormField label={t('season')} required>
                                 <Combobox
                                     options={seasonOptions}
                                     selected={seasonOptions.find((o) => o.value === seasonId) ?? null}
                                     setSelected={(o) => setSeasonId(o?.value ?? '')}
-                                    placeholder={seasonOptions.length ? 'Select season' : 'No seasons yet'}
-                                    aria-label="Season"
+                                    placeholder={seasonOptions.length ? t('selectSeason') : t('noSeasons')}
+                                    aria-label={t('season')}
                                     matchTriggerWidth
                                 />
                             </FormField>
-                            <FormField label="Crop type" required>
+                            <FormField label={t('cropType')} required>
                                 <Combobox
                                     options={cropTypeOptions}
                                     selected={cropTypeOptions.find((o) => o.value === cropTypeId) ?? null}
@@ -229,44 +234,44 @@ export function NewCropPlanModal({
                                         // Clear a variety that no longer matches.
                                         setCropVarietyId('');
                                     }}
-                                    placeholder={cropTypeOptions.length ? 'Select crop' : 'No crops yet'}
-                                    aria-label="Crop type"
+                                    placeholder={cropTypeOptions.length ? t('selectCrop') : t('noCrops')}
+                                    aria-label={t('cropType')}
                                     matchTriggerWidth
                                 />
                             </FormField>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
-                            <FormField label="Variety" hint="Carries the days-to-maturity + spacing the engine reads.">
+                            <FormField label={t('variety')} hint={t('varietyHint')}>
                                 <Combobox
                                     options={varietyOptions}
                                     selected={varietyOptions.find((o) => o.value === cropVarietyId) ?? null}
                                     setSelected={(o) => onVarietyChange(o?.value ?? '')}
-                                    placeholder={varietyOptions.length ? 'Select variety' : 'No varieties yet'}
-                                    aria-label="Variety"
+                                    placeholder={varietyOptions.length ? t('selectVariety') : t('noVarieties')}
+                                    aria-label={t('variety')}
                                     matchTriggerWidth
                                 />
                             </FormField>
-                            <FormField label="Method">
+                            <FormField label={t('method')}>
                                 <Combobox
                                     options={METHOD_OPTIONS}
                                     selected={METHOD_OPTIONS.find((o) => o.value === method) ?? null}
                                     setSelected={(o) => setMethod(o?.value ?? 'DIRECT_SOW')}
-                                    aria-label="Planting method"
+                                    aria-label={t('plantingMethod')}
                                     matchTriggerWidth
                                 />
                             </FormField>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-default">
-                            <FormField label="First sow date" required>
+                            <FormField label={t('firstSowDate')} required>
                                 <DatePicker
                                     value={firstSowDate}
                                     onChange={(d) => setFirstSowDate(d)}
-                                    placeholder="Select date"
+                                    placeholder={t('selectDate')}
                                 />
                             </FormField>
-                            <FormField label="Successions" hint="How many sowings.">
+                            <FormField label={t('successions')} hint={t('successionsHint')}>
                                 <Input
                                     inputMode="numeric"
                                     value={successions}
@@ -275,7 +280,7 @@ export function NewCropPlanModal({
                                     id="crop-plan-successions"
                                 />
                             </FormField>
-                            <FormField label="Interval (days)" hint="Days between sowings.">
+                            <FormField label={t('intervalDays')} hint={t('intervalHint')}>
                                 <Input
                                     inputMode="numeric"
                                     value={intervalDays}
@@ -287,14 +292,14 @@ export function NewCropPlanModal({
                         </div>
 
                         <FormField
-                            label="Plants per succession"
-                            hint="Optional — drives plant count + seed quantity. Leave blank to derive from bed/area later."
+                            label={t('plantsPerSuccession')}
+                            hint={t('plantsHint')}
                         >
                             <Input
                                 inputMode="numeric"
                                 value={plantsPerSuccession}
                                 onChange={(e) => setPlantsPerSuccession(e.target.value.replace(/[^0-9]/g, ''))}
-                                placeholder="e.g. 60"
+                                placeholder={t('plantsPlaceholder')}
                                 id="crop-plan-plants"
                             />
                         </FormField>
@@ -306,7 +311,7 @@ export function NewCropPlanModal({
                                 onChange={(e) => setGenerateNow(e.target.checked)}
                                 id="crop-plan-generate-now"
                             />
-                            Generate plantings + field tasks now
+                            {t('generateNow')}
                         </label>
                     </fieldset>
                 </Modal.Body>
@@ -319,7 +324,7 @@ export function NewCropPlanModal({
                         disabled={submitting}
                         id="crop-plan-cancel"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -329,7 +334,7 @@ export function NewCropPlanModal({
                         loading={submitting}
                         id="crop-plan-submit"
                     >
-                        Create plan
+                        {t('createPlan')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

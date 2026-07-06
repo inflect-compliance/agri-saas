@@ -43,7 +43,6 @@ describe('icon-only action discipline', () => {
     // wired — and a revert to a text `<Button>Freeze Pack</Button>` would
     // drop the `label=`/`aria-label=` and fail here.
     const ICON_ACTION_SITES: Array<{ file: string; label: string }> = [
-        { file: `${APP}/tests/due/page.tsx`, label: 'Run due planning' },
         // UI-18: the evidence "Upload file" + "Import ZIP" icon buttons were
         // removed — the +Evidence button opens the upload modal directly.
         { file: `${APP}/tasks/TasksClient.tsx`, label: 'Apply' },
@@ -79,6 +78,18 @@ describe('icon-only action discipline', () => {
             expect(require('../../messages/en.json').audits.packDetail[key]).toBe(en);
         });
     }
+
+    // i18n batch T13 — the due-queue "Run due planning" IconAction label now
+    // routes through next-intl (`t('runDuePlanning')` on the
+    // `controlTests.due` namespace). Assert the icon-only wiring is preserved
+    // AND the en.json value keeps the copy so the a11y contract holds.
+    it('IconAction site stays icon-only (i18n): "Run due planning"', () => {
+        const src = read(`${APP}/tests/due/page.tsx`);
+        expect(src).toMatch(/import \{ IconAction \} from '@\/components\/ui\/icon-action'/);
+        expect(src).toMatch(/<IconAction[\s\S]*?label=\{t\('runDuePlanning'\)\}/);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        expect(require('../../messages/en.json').controlTests.due.runDuePlanning).toBe('Run due planning');
+    });
 
     // i18n batch T07 — the controls-dashboard "Consistency check" IconAction
     // label now routes through next-intl (`t('dashboard.consistencyCheck')`).

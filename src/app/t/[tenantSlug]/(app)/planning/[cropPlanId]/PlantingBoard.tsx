@@ -17,6 +17,7 @@
  */
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { createColumns, DataTable } from '@/components/ui/table';
 import { GanttTimeline } from '@/components/ui/GanttTimeline';
@@ -66,6 +67,7 @@ interface ProgressPayload {
  * SWR's per-key dedup keeps this cheap. Renders "—" until weather exists.
  */
 function GddCell({ plantingId }: { plantingId: string }) {
+    const t = useTranslations('planning.board');
     const { data, isLoading } = useTenantSWR<{ totalGdd: number; baseTempC: number; days: unknown[] }>(
         `/planning/plantings/${plantingId}/gdd`,
     );
@@ -77,7 +79,7 @@ function GddCell({ plantingId }: { plantingId: string }) {
         return <span className="text-xs text-content-subtle">—</span>;
     }
     return (
-        <Tooltip content={`Base ${data.baseTempC}°C, sow → today`}>
+        <Tooltip content={t('gddTooltip', { temp: data.baseTempC })}>
             <span className="text-xs text-content-muted tabular-nums">{total.toLocaleString()}</span>
         </Tooltip>
     );
@@ -85,12 +87,13 @@ function GddCell({ plantingId }: { plantingId: string }) {
 
 /** A planned date beside its actual realisation (or an em-dash). */
 function PlannedActual({ planned, actual }: { planned: string | null; actual: string | null }) {
+    const t = useTranslations('planning.board');
     if (!planned && !actual) return <span className="text-content-subtle">—</span>;
     return (
         <span className="flex flex-col leading-tight">
             <span className="text-xs text-content-default">{planned ? formatDate(planned) : '—'}</span>
             {actual ? (
-                <Tooltip content="Actual date recorded from the journal">
+                <Tooltip content={t('actualTooltip')}>
                     <span className="inline-flex items-center gap-0.5 text-[10px] text-content-success">
                         <CircleCheck className="h-2.5 w-2.5" aria-hidden />
                         {formatDate(actual)}
@@ -108,6 +111,7 @@ export function PlantingBoard({
     tenantSlug: string;
     cropPlanId: string;
 }) {
+    const t = useTranslations('planning.board');
     // Plan-vs-actual progress + the planting rows (for seed/plant-count).
     const progressSWR = useTenantSWR<ProgressPayload>(
         `/planning/crop-plans/${cropPlanId}?include=progress`,
@@ -162,7 +166,7 @@ export function PlantingBoard({
             createColumns<PlantingProgressRow>([
                 {
                     id: 'succession',
-                    header: '#',
+                    header: t('colNum'),
                     accessorFn: (r) => r.successionNumber,
                     cell: ({ row }) => (
                         <span className="text-xs font-medium text-content-emphasis tabular-nums">
@@ -172,7 +176,7 @@ export function PlantingBoard({
                 },
                 {
                     id: 'sow',
-                    header: 'Sow',
+                    header: t('colSow'),
                     accessorFn: (r) => r.planned.sowDate ?? '',
                     cell: ({ row }) => (
                         <PlannedActual planned={row.original.planned.sowDate} actual={row.original.actual.SOW} />
@@ -181,7 +185,7 @@ export function PlantingBoard({
                 },
                 {
                     id: 'transplant',
-                    header: 'Transplant',
+                    header: t('colTransplant'),
                     accessorFn: (r) => r.planned.transplantDate ?? '',
                     cell: ({ row }) => (
                         <PlannedActual
@@ -193,7 +197,7 @@ export function PlantingBoard({
                 },
                 {
                     id: 'harvest',
-                    header: 'Harvest',
+                    header: t('colHarvest'),
                     accessorFn: (r) => r.planned.harvestStartDate ?? '',
                     cell: ({ row }) => (
                         <PlannedActual
@@ -205,7 +209,7 @@ export function PlantingBoard({
                 },
                 {
                     id: 'seed',
-                    header: 'Seed (g)',
+                    header: t('colSeed'),
                     accessorFn: (r) => plantingById.get(r.plantingId)?.seedQuantityGrams ?? '',
                     cell: ({ row }) => {
                         const g = plantingById.get(row.original.plantingId)?.seedQuantityGrams;
@@ -218,7 +222,7 @@ export function PlantingBoard({
                 },
                 {
                     id: 'plants',
-                    header: 'Plants',
+                    header: t('colPlants'),
                     accessorFn: (r) => plantingById.get(r.plantingId)?.plantCount ?? '',
                     cell: ({ row }) => {
                         const n = plantingById.get(row.original.plantingId)?.plantCount;
@@ -231,19 +235,19 @@ export function PlantingBoard({
                 },
                 {
                     id: 'gdd',
-                    header: 'GDD',
+                    header: t('colGdd'),
                     enableSorting: false,
                     cell: ({ row }) => <GddCell plantingId={row.original.plantingId} />,
                 },
                 {
                     accessorKey: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => (
                         <AgStatusBadge entity="planting" status={row.original.status} />
                     ),
                 },
             ]),
-        [plantingById],
+        [plantingById, t],
     );
 
     if (progressSWR.isLoading && !progressSWR.data) {
@@ -252,16 +256,16 @@ export function PlantingBoard({
     if (progressSWR.error) {
         return (
             <InlineEmptyState
-                title="Couldn't load plantings"
-                description="Something went wrong fetching this plan's plantings. Reload the page to try again."
+                title={t('loadErrorTitle')}
+                description={t('loadErrorDesc')}
             />
         );
     }
     if (progress.length === 0) {
         return (
             <InlineEmptyState
-                title="No plantings yet"
-                description="Generate this plan's plantings to populate the succession board with dated sow / transplant / harvest rows."
+                title={t('emptyTitle')}
+                description={t('emptyDesc')}
             />
         );
     }
@@ -270,7 +274,7 @@ export function PlantingBoard({
         <div className="space-y-section" data-testid="planting-board">
             {/* Succession timeline */}
             <div className={cn(cardVariants({ density: 'compact' }), 'space-y-default')}>
-                <Heading level={3}>Succession timeline</Heading>
+                <Heading level={3}>{t('successionTimeline')}</Heading>
                 <GanttTimeline from={from} to={to} events={events} data-testid="planting-gantt" />
             </div>
 
