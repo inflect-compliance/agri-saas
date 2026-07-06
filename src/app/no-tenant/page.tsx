@@ -10,6 +10,7 @@
  */
 import { auth, signOut } from '@/auth';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { Heading } from '@/components/ui/typography';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,22 +21,28 @@ export default async function NoTenantPage() {
         redirect('/login');
     }
 
-    const email = session.user.email ?? 'your account';
+    const t = await getTranslations('noTenant');
+    const email = session.user.email ?? t('yourAccount');
 
     return (
         <main className="min-h-screen bg-bg-page flex items-center justify-center p-4">
             <Card elevation="floating" className="max-w-md w-full text-center">
                 <div className="text-4xl mb-4">&#x1F512;</div>
                 <Heading level={1} className="mb-2">
-                    No access yet
+                    {t('title')}
                 </Heading>
                 <p className="text-content-muted mb-2">
-                    You are signed in as{' '}
-                    <span className="font-medium text-content-default">{email}</span>.
+                    {t.rich('signedInAs', {
+                        email,
+                        b: (chunks) => (
+                            <span className="font-medium text-content-default">
+                                {chunks}
+                            </span>
+                        ),
+                    })}
                 </p>
                 <p className="text-content-muted mb-6">
-                    You do not have access to any workspace yet. Ask your admin to
-                    invite you, then follow the link in the invitation email.
+                    {t('body')}
                 </p>
                 <form
                     action={async () => {
@@ -44,7 +51,7 @@ export default async function NoTenantPage() {
                     }}
                 >
                     <Button type="submit" variant="secondary" className="w-full">
-                        Sign out
+                        {t('signOut')}
                     </Button>
                 </form>
             </Card>

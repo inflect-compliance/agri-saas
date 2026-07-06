@@ -10,6 +10,8 @@
  * when their JWT carry an invite token. This page is the canonical place
  * for invite UX — do not inline invite acceptance anywhere else.
  */
+import { getTranslations } from 'next-intl/server';
+
 import { auth } from '@/auth';
 import { previewInviteByToken } from '@/app-layer/usecases/tenant-invites';
 import { formatDateLong } from '@/lib/format-date';
@@ -26,6 +28,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
     const { error: errorParam } = await searchParams;
     const session = await auth();
     const sessionEmail = session?.user?.email ?? null;
+    const t = await getTranslations('invite');
 
     const preview = await previewInviteByToken(token, sessionEmail);
 
@@ -35,11 +38,10 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
                 <div className="max-w-md w-full bg-bg-default rounded-lg border border-border-subtle p-8 text-center">
                     <div className="text-4xl mb-4">&#x26A0;&#xFE0F;</div>
                     <Heading level={1} className="mb-2">
-                        Invite not available
+                        {t('notAvailableTitle')}
                     </Heading>
                     <p className="text-content-muted">
-                        This invite link has expired, been revoked, or already been used.
-                        Ask your admin to send a new invite.
+                        {t('notAvailableBody')}
                     </p>
                 </div>
             </main>
@@ -62,15 +64,21 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
         <main className="min-h-screen bg-bg-default flex items-center justify-center p-4">
             <div className="max-w-md w-full bg-bg-default rounded-lg border border-border-subtle p-8">
                 <Heading level={1} className="mb-2 text-center">
-                    You have been invited
+                    {t('invitedTitle')}
                 </Heading>
                 <p className="text-content-muted text-center mb-6">
-                    Join <span className="font-semibold text-content-default">{preview.tenantName}</span>{' '}
-                    as a{' '}
-                    <span className="font-semibold text-content-default">{roleLabel}</span>.
+                    {t.rich('invitedBody', {
+                        tenantName: preview.tenantName,
+                        roleLabel,
+                        b: (chunks) => (
+                            <span className="font-semibold text-content-default">
+                                {chunks}
+                            </span>
+                        ),
+                    })}
                 </p>
                 <p className="text-xs text-content-muted text-center mb-6">
-                    Expires {expiryLabel}
+                    {t('expires', { date: expiryLabel })}
                 </p>
 
                 {errorParam && (
@@ -90,15 +98,18 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
                         href={loginUrl}
                         className="block w-full text-center rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
                     >
-                        Sign in to accept
+                        {t('signInToAccept')}
                     </a>
                 )}
 
                 {session && !preview.matchesSession && (
                     <p className="mt-4 text-xs text-content-muted text-center">
-                        You are signed in as <span className="font-medium">{session.user?.email}</span>,
-                        but this invite was sent to a different email address.
-                        Sign in with the correct account to accept it.
+                        {t.rich('mismatchBody', {
+                            email: session.user?.email ?? '',
+                            b: (chunks) => (
+                                <span className="font-medium">{chunks}</span>
+                            ),
+                        })}
                     </p>
                 )}
             </div>
@@ -110,7 +121,8 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
  * Thin client component that POSTs to the redeem endpoint and redirects.
  * Kept minimal — no heavy UI library imports needed.
  */
-function InviteAcceptForm({ token }: { token: string }) {
+async function InviteAcceptForm({ token }: { token: string }) {
+    const t = await getTranslations('invite');
     return (
         <form
             action={`/api/invites/${token}`}
@@ -121,7 +133,7 @@ function InviteAcceptForm({ token }: { token: string }) {
                 type="submit"
                 className="w-full rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
             >
-                Accept invitation
+                {t('acceptInvitation')}
             </button>
         </form>
     );

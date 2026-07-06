@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { Heading } from '@/components/ui/typography';
 
@@ -7,7 +8,8 @@ import { Heading } from '@/components/ui/typography';
  * Polish PR-4 / PR-9 — uses semantic tokens + Button-variant Link
  * instead of hand-rolled gray utility classes / `transition-all`.
  */
-export default function NotFound() {
+export default async function NotFound() {
+    const t = await getTranslations('notFound');
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-bg-page p-6">
             <div className="max-w-md w-full text-center space-y-section">
@@ -17,10 +19,10 @@ export default function NotFound() {
 
                 <div>
                     <Heading level={1} className="mb-3">
-                        Page not found
+                        {t('title')}
                     </Heading>
                     <p className="text-sm text-content-muted">
-                        Sorry, we couldn&apos;t find the page you&apos;re looking for. It might have been removed or the link is incorrect.
+                        {t('body')}
                     </p>
                 </div>
 
@@ -29,7 +31,7 @@ export default function NotFound() {
                         href="/dashboard"
                         className={buttonVariants({ variant: 'primary' })}
                     >
-                        Return to Dashboard
+                        {t('returnToDashboard')}
                     </Link>
                 </div>
             </div>

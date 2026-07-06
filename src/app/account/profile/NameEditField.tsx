@@ -9,6 +9,7 @@
  */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -27,6 +28,7 @@ function splitName(name: string | null): { first: string; last: string } {
 }
 
 export function NameEditField({ initialName }: { initialName: string | null }) {
+    const t = useTranslations('account.profile');
     const initial = splitName(initialName);
     const [firstName, setFirstName] = useState(initial.first);
     const [lastName, setLastName] = useState(initial.last);
@@ -40,7 +42,7 @@ export function NameEditField({ initialName }: { initialName: string | null }) {
         setError('');
         setSuccess(false);
         if (!firstName.trim() && !lastName.trim()) {
-            setError('Enter at least a first or last name.');
+            setError(t('nameValidation'));
             return;
         }
         setLoading(true);
@@ -72,11 +74,11 @@ export function NameEditField({ initialName }: { initialName: string | null }) {
     return (
         <Card className="animate-fadeIn mt-6">
             <Heading level={2} className="mb-6">
-                Your name
+                {t('nameTitle')}
             </Heading>
             {success && (
                 <InlineNotice variant="success" className="mb-4" icon={null}>
-                    Saved — your name now shows on owner and assignee columns.
+                    {t('nameSaved')}
                 </InlineNotice>
             )}
             {error && (
@@ -85,7 +87,7 @@ export function NameEditField({ initialName }: { initialName: string | null }) {
                 </InlineNotice>
             )}
             <form onSubmit={handleSubmit} className="space-y-default">
-                <FormField label="First name">
+                <FormField label={t('firstNameLabel')}>
                     <Input
                         id="profile-first-name"
                         value={firstName}
@@ -94,7 +96,7 @@ export function NameEditField({ initialName }: { initialName: string | null }) {
                         maxLength={100}
                     />
                 </FormField>
-                <FormField label="Last name">
+                <FormField label={t('lastNameLabel')}>
                     <Input
                         id="profile-last-name"
                         value={lastName}
@@ -104,7 +106,7 @@ export function NameEditField({ initialName }: { initialName: string | null }) {
                     />
                 </FormField>
                 <Button type="submit" variant="primary" disabled={loading}>
-                    {loading ? 'Saving…' : 'Save name'}
+                    {loading ? t('saving') : t('saveName')}
                 </Button>
             </form>
         </Card>

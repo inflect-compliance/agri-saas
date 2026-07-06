@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Heading } from '@/components/ui/typography';
 
 export default function ForgotPasswordPage() {
+    const t = useTranslations('auth');
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -54,44 +56,44 @@ export default function ForgotPasswordPage() {
                 {/* Form */}
                 <Card className="animate-fadeIn">
                     <Heading level={2} className="mb-6">
-                        Reset your password
+                        {t('forgot.title')}
                     </Heading>
 
                     {submitted ? (
                         <>
                             <InlineNotice variant="success" className="mb-4" icon={null}>
-                                If an account exists for that email, we&apos;ve sent a password reset link. The link expires in 1 hour.
+                                {t('forgot.submittedNotice')}
                             </InlineNotice>
                             <div className="mt-6 text-center text-sm text-content-muted">
                                 <a href="/login" className="text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)]">
-                                    Back to sign in
+                                    {t('backToSignIn')}
                                 </a>
                             </div>
                         </>
                     ) : (
                         <>
                             <p className="text-content-muted text-sm mb-4">
-                                Enter the email address for your account and we&apos;ll send you a link to reset your password.
+                                {t('forgot.intro')}
                             </p>
                             <form onSubmit={handleSubmit} className="space-y-default">
-                                <FormField label="Email" required>
+                                <FormField label={t('emailLabel')} required>
                                     <Input
                                         type="email"
                                         name="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
-                                        placeholder="you@company.com"
+                                        placeholder={t('emailPlaceholder')}
                                     />
                                 </FormField>
                                 <Button type="submit" variant="primary" size="sm" className="w-full" disabled={loading}>
-                                    {loading ? 'Sending…' : 'Send reset link'}
+                                    {loading ? t('forgot.submitting') : t('forgot.submit')}
                                 </Button>
                             </form>
 
                             <div className="mt-6 text-center text-sm text-content-muted">
                                 <a href="/login" className="text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)]">
-                                    Back to sign in
+                                    {t('backToSignIn')}
                                 </a>
                             </div>
                         </>

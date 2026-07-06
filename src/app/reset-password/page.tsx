@@ -1,6 +1,7 @@
 'use client';
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Heading } from '@/components/ui/typography';
 
 function ResetPasswordForm() {
+    const t = useTranslations('auth');
     const searchParams = useSearchParams();
     const token = searchParams?.get('token') ?? '';
 
@@ -23,15 +25,15 @@ function ResetPasswordForm() {
         setError('');
 
         if (!newPassword || !confirmPassword) {
-            setError('Please fill in both password fields.');
+            setError(t('reset.errFillAll'));
             return;
         }
         if (newPassword !== confirmPassword) {
-            setError('The two passwords do not match.');
+            setError(t('reset.errMismatch'));
             return;
         }
         if (newPassword.length < 8) {
-            setError('Your new password must be at least 8 characters long.');
+            setError(t('reset.errTooShort'));
             return;
         }
 
@@ -77,17 +79,17 @@ function ResetPasswordForm() {
                 {/* Form */}
                 <Card className="animate-fadeIn">
                     <Heading level={2} className="mb-6">
-                        Choose a new password
+                        {t('reset.title')}
                     </Heading>
 
                     {!token ? (
                         <>
                             <InlineNotice variant="warning" className="mb-4" icon={null}>
-                                This password reset link is invalid. Request a new one from the sign-in page.
+                                {t('reset.invalidLink')}
                             </InlineNotice>
                             <div className="mt-6 text-center text-sm text-content-muted">
                                 <a href="/forgot-password" className="text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)]">
-                                    Request a new reset link
+                                    {t('reset.requestNew')}
                                 </a>
                             </div>
                         </>
@@ -100,34 +102,34 @@ function ResetPasswordForm() {
                             )}
 
                             <form onSubmit={handleSubmit} className="space-y-default">
-                                <FormField label="New password" required>
+                                <FormField label={t('reset.newLabel')} required>
                                     <Input
                                         type="password"
                                         name="newPassword"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         required
-                                        placeholder="At least 8 characters"
+                                        placeholder={t('reset.newPlaceholder')}
                                     />
                                 </FormField>
-                                <FormField label="Confirm new password" required>
+                                <FormField label={t('reset.confirmLabel')} required>
                                     <Input
                                         type="password"
                                         name="confirmPassword"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         required
-                                        placeholder="Re-enter your new password"
+                                        placeholder={t('reset.confirmPlaceholder')}
                                     />
                                 </FormField>
                                 <Button type="submit" variant="primary" size="sm" className="w-full" disabled={loading}>
-                                    {loading ? 'Resetting…' : 'Reset password'}
+                                    {loading ? t('reset.submitting') : t('reset.submit')}
                                 </Button>
                             </form>
 
                             <div className="mt-6 text-center text-sm text-content-muted">
                                 <a href="/login" className="text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)]">
-                                    Back to sign in
+                                    {t('backToSignIn')}
                                 </a>
                             </div>
                         </>
@@ -139,10 +141,11 @@ function ResetPasswordForm() {
 }
 
 export default function ResetPasswordPage() {
+    const tc = useTranslations('common');
     return (
         <Suspense fallback={
             <div className="min-h-screen flex items-center justify-center bg-bg-page">
-                <div className="text-content-muted">Loading...</div>
+                <div className="text-content-muted">{tc('loading')}</div>
             </div>
         }>
             <ResetPasswordForm />
