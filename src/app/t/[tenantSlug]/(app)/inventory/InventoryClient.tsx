@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
@@ -78,6 +79,7 @@ interface TraceLotResult {
 const CATEGORIES = ['SEED', 'PESTICIDE', 'FERTILIZER', 'AMENDMENT', 'FUEL', 'HARVESTED_PRODUCE', 'OTHER'] as const;
 
 export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
+    const t = useTranslations('inventory');
     const buildUrl = useTenantApiUrl();
     const { data: lots, mutate, isLoading } = useTenantSWR<Lot[]>('/inventory/lots');
     const { data: items, mutate: mutateItems } = useTenantSWR<ItemRow[]>('/items');
@@ -226,39 +228,39 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
             createColumns<Lot>([
                 {
                     accessorKey: 'lotCode',
-                    header: 'Lot',
+                    header: t('colLot'),
                     cell: ({ row }) => <span className="font-medium">{row.original.lotCode}</span>,
                     // Mobile (<sm) card heading.
                     meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'product',
-                    header: 'Product',
+                    header: t('colProduct'),
                     cell: ({ row }) => row.original.item.name,
                     // Mobile card secondary line — the product the lot is a batch of.
                     meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     id: 'onHand',
-                    header: 'On hand',
+                    header: t('colOnHand'),
                     cell: ({ row }) => (
                         <span className="flex items-center gap-tight">
                             {row.original.quantityOnHand} {row.original.unit.symbol}
-                            {row.original.lowStock && <StatusBadge variant="warning">Low</StatusBadge>}
+                            {row.original.lowStock && <StatusBadge variant="warning">{t('low')}</StatusBadge>}
                         </span>
                     ),
                     // Mobile card key/value row — on-hand qty (carries the Low pill).
-                    meta: { mobileCard: { slot: 'meta', label: 'On hand' } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colOnHand') } },
                 },
                 {
                     id: 'expires',
-                    header: 'Expires',
+                    header: t('colExpires'),
                     cell: ({ row }) => (row.original.expiresAt ? formatDate(row.original.expiresAt) : '—'),
                     // Mobile card key/value row — expiry date.
-                    meta: { mobileCard: { slot: 'meta', label: 'Expires' } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colExpires') } },
                 },
             ]),
-        [],
+        [t],
     );
 
     const rows = lots ?? [];
@@ -269,15 +271,15 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                 <div className="flex items-center justify-between">
                     <div>
                         <PageBreadcrumbs
-                            items={[{ label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` }, { label: 'Inventory' }]}
+                            items={[{ label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` }, { label: t('breadcrumbInventory') }]}
                             className="mb-1"
                         />
-                        <Heading level={1}>Inventory</Heading>
-                        <p className="text-sm text-content-secondary">Input stock, lots, and the movement ledger.</p>
+                        <Heading level={1}>{t('title')}</Heading>
+                        <p className="text-sm text-content-secondary">{t('subtitle')}</p>
                     </div>
                     <div className="flex items-center gap-compact">
-                        <Button variant="secondary" size="sm" onClick={() => setShowProduct(true)}>New product</Button>
-                        <Button variant="primary" size="sm" onClick={() => setShowLot(true)} disabled={!items?.length}>New lot</Button>
+                        <Button variant="secondary" size="sm" onClick={() => setShowProduct(true)}>{t('newProduct')}</Button>
+                        <Button variant="primary" size="sm" onClick={() => setShowLot(true)} disabled={!items?.length}>{t('newLot')}</Button>
                     </div>
                 </div>
             </ListPageShell.Header>
@@ -300,44 +302,44 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                         <EmptyState
                             size="sm"
                             variant="no-records"
-                            title="No stock yet"
-                            description="Create a product, then add a lot to start tracking stock. Completing a spray job deducts from the matching lot automatically."
-                            primaryAction={{ label: 'New product', onClick: () => setShowProduct(true) }}
+                            title={t('emptyTitle')}
+                            description={t('emptyDescription')}
+                            primaryAction={{ label: t('newProduct'), onClick: () => setShowProduct(true) }}
                         />
                     }
                 />
             </ListPageShell.Body>
 
             {/* New product */}
-            <Modal showModal={showProduct} setShowModal={setShowProduct} size="md" title="New product" description="Add an input product.">
-                <Modal.Header title="New product" description="A product is the thing lots are batches of." />
+            <Modal showModal={showProduct} setShowModal={setShowProduct} size="md" title={t('productModalTitle')} description={t('productModalDescription')}>
+                <Modal.Header title={t('productModalTitle')} description={t('productModalHeaderDescription')} />
                 <Modal.Form id="new-product-form" onSubmit={createProduct}>
                     <Modal.Body>
                         {error && showProduct && (
                             <div role="alert" className="mb-4 rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error">{error}</div>
                         )}
                         <div className="space-y-default">
-                            <FormField label="Name" required>
-                                <Input value={pName} onChange={(e) => setPName(e.target.value)} placeholder="e.g. Roundup PowerMAX" />
+                            <FormField label={t('name')} required>
+                                <Input value={pName} onChange={(e) => setPName(e.target.value)} placeholder={t('namePlaceholder')} />
                             </FormField>
-                            <FormField label="Category" required>
+                            <FormField label={t('category')} required>
                                 <Combobox
                                     options={categoryOptions}
                                     selected={categoryOptions.find((o) => o.value === pCategory) ?? null}
                                     setSelected={(o) => setPCategory(o?.value ?? 'PESTICIDE')}
-                                    placeholder="Select category"
+                                    placeholder={t('categoryPlaceholder')}
                                 />
                             </FormField>
-                            <FormField label="Default unit" required>
+                            <FormField label={t('defaultUnit')} required>
                                 <Combobox
                                     options={unitOptions}
                                     selected={unitOptions.find((o) => o.value === pUnitId) ?? null}
                                     setSelected={(o) => setPUnitId(o?.value ?? '')}
-                                    placeholder="Select unit"
+                                    placeholder={t('unitPlaceholder')}
                                 />
                             </FormField>
                             {/* БАБХ farm-record — regulatory fields (optional). */}
-                            <FormField label="Карантинен срок (дни)" description="Карантинен срок на ПРЗ.">
+                            <FormField label={t('quarantineDays')} description={t('quarantineDaysHint')}>
                                 <Input
                                     inputMode="numeric"
                                     pattern="[0-9]*"
@@ -345,17 +347,17 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                                     onChange={(e) =>
                                         setPQuarantineDays(e.target.value.replace(/[^0-9]/g, ''))
                                     }
-                                    placeholder="напр. 30"
+                                    placeholder={t('quarantineDaysPlaceholder')}
                                 />
                             </FormField>
-                            <FormField label="Активно вещество">
+                            <FormField label={t('activeIngredient')}>
                                 <Input
                                     value={pActiveIngredient}
                                     onChange={(e) => setPActiveIngredient(e.target.value)}
-                                    placeholder="напр. глифозат 480 g/l"
+                                    placeholder={t('activeIngredientPlaceholder')}
                                 />
                             </FormField>
-                            <FormField label="№ на регистрация на ПРЗ">
+                            <FormField label={t('pppRegNo')}>
                                 <Input
                                     value={pPppRegNo}
                                     onChange={(e) => setPPppRegNo(e.target.value)}
@@ -364,8 +366,8 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                         </div>
                     </Modal.Body>
                     <Modal.Actions>
-                        <Button variant="secondary" size="sm" type="button" onClick={() => setShowProduct(false)}>Cancel</Button>
-                        <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!pName || !pUnitId || busy}>Create product</Button>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => setShowProduct(false)}>{t('cancel')}</Button>
+                        <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!pName || !pUnitId || busy}>{t('createProduct')}</Button>
                     </Modal.Actions>
                 </Modal.Form>
             </Modal>
@@ -375,8 +377,8 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                 showModal={showLot}
                 setShowModal={setShowLot}
                 size="md"
-                title="New lot"
-                description="Add a stock batch."
+                title={t('lotModalTitle')}
+                description={t('lotModalDescription')}
                 isDirty={
                     lItemId.length > 0 ||
                     lCode.trim().length > 0 ||
@@ -384,44 +386,44 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                     lExpires !== null
                 }
             >
-                <Modal.Header title="New lot" description="A lot is a physical batch of a product." />
+                <Modal.Header title={t('lotModalTitle')} description={t('lotModalHeaderDescription')} />
                 <Modal.Form id="new-lot-form" onSubmit={createLot}>
                     <Modal.Body>
                         {error && showLot && (
                             <div role="alert" className="mb-4 rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error">{error}</div>
                         )}
                         <div className="space-y-default">
-                            <FormField label="Product" required>
+                            <FormField label={t('product')} required>
                                 <Combobox
                                     options={itemOptions}
                                     selected={itemOptions.find((o) => o.value === lItemId) ?? null}
                                     setSelected={(o) => setLItemId(o?.value ?? '')}
-                                    placeholder="Select product"
+                                    placeholder={t('productPlaceholder')}
                                 />
                             </FormField>
-                            <FormField label="Lot code" required>
-                                <Input value={lCode} onChange={(e) => setLCode(e.target.value)} placeholder="e.g. BATCH-2027-04" />
+                            <FormField label={t('lotCode')} required>
+                                <Input value={lCode} onChange={(e) => setLCode(e.target.value)} placeholder={t('lotCodePlaceholder')} />
                             </FormField>
-                            <FormField label="Initial quantity" hint="Optional — posts an opening RECEIPT.">
+                            <FormField label={t('initialQuantity')} hint={t('initialQuantityHint')}>
                                 <Input inputMode="decimal" value={lQty} onChange={(e) => setLQty(e.target.value)} placeholder="0" />
                             </FormField>
-                            <FormField label="Expires" hint="Optional.">
-                                <DatePicker value={lExpires} onChange={setLExpires} clearable placeholder="Select date" />
+                            <FormField label={t('expires')} hint={t('expiresHint')}>
+                                <DatePicker value={lExpires} onChange={setLExpires} clearable placeholder={t('datePlaceholder')} />
                             </FormField>
                         </div>
                     </Modal.Body>
                     <Modal.Actions>
-                        <Button variant="secondary" size="sm" type="button" onClick={() => setShowLot(false)}>Cancel</Button>
-                        <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!lItemId || !lCode || busy}>Create lot</Button>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => setShowLot(false)}>{t('cancel')}</Button>
+                        <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!lItemId || !lCode || busy}>{t('createLot')}</Button>
                     </Modal.Actions>
                 </Modal.Form>
             </Modal>
 
             {/* Lot detail + movement */}
-            <Modal showModal={!!activeLotId} setShowModal={(v) => !v && setActiveLotId(null)} size="lg" title="Lot" description="Stock movements for this lot.">
+            <Modal showModal={!!activeLotId} setShowModal={(v) => !v && setActiveLotId(null)} size="lg" title={t('lotTitle')} description={t('lotDescriptionTop')}>
                 <Modal.Header
-                    title={lotDetail ? `${lotDetail.item.name} — ${lotDetail.lotCode}` : 'Lot'}
-                    description={lotDetail ? `On hand: ${lotDetail.quantityOnHand} ${lotDetail.unit.symbol}` : undefined}
+                    title={lotDetail ? `${lotDetail.item.name} — ${lotDetail.lotCode}` : t('lotTitle')}
+                    description={lotDetail ? t('onHandLabel', { qty: lotDetail.quantityOnHand, unit: lotDetail.unit.symbol }) : undefined}
                 />
                 <Modal.Body>
                     {error && activeLotId && (
@@ -432,41 +434,41 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                             <QrCode
                                 value={`${window.location.origin}/t/${tenantSlug}/inventory?lotId=${activeLotId}`}
                                 size={84}
-                                title={`QR code for lot ${lotDetail?.lotCode ?? ''}`}
+                                title={t('qrTitle', { code: lotDetail?.lotCode ?? '' })}
                                 className="shrink-0 rounded-md bg-white p-1"
                             />
                             <p className="text-xs text-content-secondary">
-                                Scan to open this lot — print it on the bin or pallet label for traceability.
+                                {t('qrHint')}
                             </p>
                         </div>
                     )}
                     <form id="movement-form" onSubmit={postMovement} className="space-y-default border-b border-border-subtle pb-default">
                         <ToggleGroup
-                            ariaLabel="Movement type"
+                            ariaLabel={t('movementTypeAria')}
                             options={[
-                                { value: 'receive', label: 'Receive' },
-                                { value: 'adjust', label: 'Adjust' },
+                                { value: 'receive', label: t('receive') },
+                                { value: 'adjust', label: t('adjust') },
                             ]}
                             selected={mvMode}
                             selectAction={(v) => setMvMode(v as 'receive' | 'adjust')}
                         />
                         <div className="flex items-end gap-compact">
-                            <FormField label={mvMode === 'receive' ? 'Quantity in' : 'Signed delta'} className="flex-1">
-                                <Input inputMode="decimal" value={mvQty} onChange={(e) => setMvQty(e.target.value)} placeholder={mvMode === 'receive' ? '0' : 'e.g. -2.5'} />
+                            <FormField label={mvMode === 'receive' ? t('quantityIn') : t('signedDelta')} className="flex-1">
+                                <Input inputMode="decimal" value={mvQty} onChange={(e) => setMvQty(e.target.value)} placeholder={mvMode === 'receive' ? '0' : t('deltaPlaceholder')} />
                             </FormField>
                             <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!mvQty || (mvMode === 'adjust' && !mvReason) || busy}>
-                                Post
+                                {t('post')}
                             </Button>
                         </div>
                         {mvMode === 'adjust' && (
-                            <FormField label="Reason" required>
-                                <Input value={mvReason} onChange={(e) => setMvReason(e.target.value)} placeholder="e.g. stock count correction" />
+                            <FormField label={t('reason')} required>
+                                <Input value={mvReason} onChange={(e) => setMvReason(e.target.value)} placeholder={t('reasonPlaceholder')} />
                             </FormField>
                         )}
                     </form>
 
                     <div className="mt-default">
-                        <Heading level={3}>Ledger</Heading>
+                        <Heading level={3}>{t('ledger')}</Heading>
                         {lotDetail?.ledger?.length ? (
                             <ul className="mt-2 space-y-tight text-sm">
                                 {lotDetail.ledger.map((t) => (
@@ -484,14 +486,14 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                                 ))}
                             </ul>
                         ) : (
-                            <p className="mt-2 text-sm text-content-subtle">No movements yet.</p>
+                            <p className="mt-2 text-sm text-content-subtle">{t('movementsEmpty')}</p>
                         )}
                     </div>
 
                     {/* Traceability — lot genealogy both ways (recall query). */}
                     <div className="mt-default border-t border-border-subtle pt-default">
                         <div className="flex items-center justify-between">
-                            <Heading level={3}>Traceability</Heading>
+                            <Heading level={3}>{t('traceability')}</Heading>
                             <Button
                                 variant="secondary"
                                 size="sm"
@@ -499,32 +501,32 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                                 onClick={() => setShowTrace((v) => !v)}
                                 aria-expanded={showTrace}
                             >
-                                {showTrace ? 'Hide genealogy' : 'Show genealogy'}
+                                {showTrace ? t('hideGenealogy') : t('showGenealogy')}
                             </Button>
                         </div>
                         {showTrace && (
                             <div className="mt-default">
                                 {traceLoading && !trace ? (
-                                    <p className="text-sm text-content-subtle">Loading genealogy…</p>
+                                    <p className="text-sm text-content-subtle">{t('loadingGenealogy')}</p>
                                 ) : trace ? (
                                     trace.ancestors.length === 0 && trace.descendants.length === 0 ? (
-                                        <p className="text-sm text-content-subtle">No genealogy recorded for this lot yet.</p>
+                                        <p className="text-sm text-content-subtle">{t('genealogyEmpty')}</p>
                                     ) : (
                                         <div className="space-y-default">
-                                            <TraceGroup title="Derived from" tone="muted" nodes={trace.ancestors} />
-                                            <TraceGroup title="This lot" tone="emphasis" nodes={[trace.root]} />
-                                            <TraceGroup title="Produced" tone="muted" nodes={trace.descendants} />
+                                            <TraceGroup title={t('derivedFrom')} tone="muted" nodes={trace.ancestors} />
+                                            <TraceGroup title={t('thisLot')} tone="emphasis" nodes={[trace.root]} />
+                                            <TraceGroup title={t('produced')} tone="muted" nodes={trace.descendants} />
                                         </div>
                                     )
                                 ) : (
-                                    <p className="text-sm text-content-subtle">No genealogy recorded for this lot yet.</p>
+                                    <p className="text-sm text-content-subtle">{t('genealogyEmpty')}</p>
                                 )}
                             </div>
                         )}
                     </div>
                 </Modal.Body>
                 <Modal.Actions>
-                    <Button variant="secondary" size="sm" type="button" onClick={() => setActiveLotId(null)}>Close</Button>
+                    <Button variant="secondary" size="sm" type="button" onClick={() => setActiveLotId(null)}>{t('close')}</Button>
                 </Modal.Actions>
             </Modal>
         </ListPageShell>
@@ -545,11 +547,12 @@ function TraceGroup({
     tone: 'muted' | 'emphasis';
     nodes: TraceLotNode[];
 }) {
+    const t = useTranslations('inventory');
     return (
         <section className="space-y-tight">
             <Eyebrow>{title}</Eyebrow>
             {nodes.length === 0 ? (
-                <p className="text-sm text-content-subtle">None.</p>
+                <p className="text-sm text-content-subtle">{t('groupNone')}</p>
             ) : (
                 <ul className="space-y-tight">
                     {nodes.map((n) => (
@@ -569,7 +572,7 @@ function TraceGroup({
                             <p className="mt-1 text-sm text-content-secondary">{n.item.name}</p>
                             {n.fields.length > 0 && (
                                 <p className="mt-1 text-xs text-content-subtle">
-                                    Fields: {n.fields.map((f) => f.name).join(', ')}
+                                    {t('fields', { fields: n.fields.map((f) => f.name).join(', ') })}
                                 </p>
                             )}
                         </li>

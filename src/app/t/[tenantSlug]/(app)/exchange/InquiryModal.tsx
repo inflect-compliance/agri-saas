@@ -9,6 +9,7 @@
  * (the caller hides it on your own).
  */
 import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ interface InquiryModalProps {
 }
 
 export function InquiryModal({ open, setOpen, listing, onSent }: InquiryModalProps) {
+    const t = useTranslations('exchange.inquiry');
     const buildUrl = useTenantApiUrl();
     const [message, setMessage] = useState('');
     const [quantity, setQuantity] = useState('');
@@ -55,7 +57,7 @@ export function InquiryModal({ open, setOpen, listing, onSent }: InquiryModalPro
         }
     }
 
-    const title = listing ? `Express interest — ${listing.commodity}` : 'Express interest';
+    const title = listing ? t('titleWithCommodity', { commodity: listing.commodity }) : t('title');
 
     return (
         <Modal
@@ -63,11 +65,11 @@ export function InquiryModal({ open, setOpen, listing, onSent }: InquiryModalPro
             setShowModal={setOpen}
             size="md"
             title={title}
-            description="Send a message to the seller. They'll be notified and can respond."
+            description={t('description')}
             preventDefaultClose={submitting}
             isDirty={message !== '' || quantity !== ''}
         >
-            <Modal.Header title={title} description="The seller is notified and chooses whether to respond." />
+            <Modal.Header title={title} description={t('headerDescription')} />
             <Modal.Form id="exchange-inquiry-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
                 <Modal.Body>
                     {error && (
@@ -76,20 +78,20 @@ export function InquiryModal({ open, setOpen, listing, onSent }: InquiryModalPro
                         </div>
                     )}
                     <fieldset disabled={submitting} className="m-0 space-y-default border-0 p-0">
-                        <FormField label="Quantity of interest (t)" hint="Optional.">
-                            <Input id="inquiry-qty" inputMode="decimal" autoComplete="off" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="e.g. 100" />
+                        <FormField label={t('quantity')} hint={t('quantityHint')}>
+                            <Input id="inquiry-qty" inputMode="decimal" autoComplete="off" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder={t('quantityPlaceholder')} />
                         </FormField>
-                        <FormField label="Message" required>
-                            <Textarea id="inquiry-message" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Introduce yourself and what you're after…" />
+                        <FormField label={t('message')} required>
+                            <Textarea id="inquiry-message" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t('messagePlaceholder')} />
                         </FormField>
                     </fieldset>
                 </Modal.Body>
                 <Modal.Actions>
                     <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)} disabled={submitting}>
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button variant="primary" size="sm" type="submit" loading={submitting} disabled={!canSubmit}>
-                        Express interest
+                        {t('submit')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

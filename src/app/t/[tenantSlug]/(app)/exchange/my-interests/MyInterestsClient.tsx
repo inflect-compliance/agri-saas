@@ -4,6 +4,7 @@
  * "My interests" — the buyer's outbox: inquiries this tenant has sent, with
  * the target listing and the seller's response status. Read-only.
  */
+import { useTranslations } from 'next-intl';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { Heading } from '@/components/ui/typography';
@@ -22,6 +23,7 @@ function statusVariant(status: string): 'success' | 'neutral' | 'warning' {
 }
 
 export function MyInterestsClient() {
+    const t = useTranslations('exchange.myInterests');
     const tenantHref = useTenantHref();
     const { data, isLoading, error, mutate } = useTenantSWR<ExchangePublicInquiry[]>('/exchange/inquiries');
     const inquiries = data ?? [];
@@ -31,20 +33,20 @@ export function MyInterestsClient() {
             <ListPageShell.Header>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Exchange', href: tenantHref('/exchange') },
-                        { label: 'My interests' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbExchange'), href: tenantHref('/exchange') },
+                        { label: t('breadcrumbCurrent') },
                     ]}
                     className="mb-1"
                 />
-                <Heading level={1}>My interests</Heading>
+                <Heading level={1}>{t('heading')}</Heading>
                 <ExchangeNav />
             </ListPageShell.Header>
             <ListPageShell.Body>
                 <div className="min-h-0 flex-1 space-y-default overflow-y-auto pr-1">
                     {error ? (
                         <ErrorState
-                            description="We couldn't load your interests."
+                            description={t('loadError')}
                             onRetry={() => { void mutate(); }}
                         />
                     ) : isLoading ? (
@@ -55,7 +57,7 @@ export function MyInterestsClient() {
                         </div>
                     ) : inquiries.length === 0 ? (
                         <div className="rounded-lg border border-border-subtle p-4 text-sm text-content-muted">
-                            You haven&apos;t expressed interest in any offers yet.
+                            {t('empty')}
                         </div>
                     ) : (
                     inquiries.map((iq) => (
@@ -66,14 +68,14 @@ export function MyInterestsClient() {
                                 )}
                                 {iq.listing && (
                                     <span className="text-xs text-content-muted">
-                                        {iq.listing.side === 'SELL' ? 'Selling' : 'Buying'} · {iq.listing.regionName}
+                                        {iq.listing.side === 'SELL' ? t('selling') : t('buying')} · {iq.listing.regionName}
                                     </span>
                                 )}
                                 <StatusBadge variant={statusVariant(iq.status)}>{iq.status}</StatusBadge>
                             </div>
                             <p className="text-sm text-content-secondary">{iq.message}</p>
                             {iq.quantityTonnes && (
-                                <p className="text-xs text-content-muted">Quantity of interest: {iq.quantityTonnes} t</p>
+                                <p className="text-xs text-content-muted">{t('quantityOfInterest', { qty: iq.quantityTonnes })}</p>
                             )}
                         </div>
                     )))}

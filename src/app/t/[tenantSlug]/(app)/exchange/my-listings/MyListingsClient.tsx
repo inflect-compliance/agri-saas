@@ -6,6 +6,7 @@
  * listing; accept / decline (Reject) each PENDING inquiry.
  */
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { Heading } from '@/components/ui/typography';
@@ -38,6 +39,7 @@ function statusVariant(status: string): 'success' | 'neutral' | 'info' | 'warnin
 }
 
 export function MyListingsClient() {
+    const t = useTranslations('exchange.myListings');
     const buildUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const triggerUndoToast = useToastWithUndo();
@@ -57,8 +59,8 @@ export function MyListingsClient() {
             { revalidate: false },
         );
         triggerUndoToast({
-            message: 'Listing withdrawn',
-            undoMessage: 'Undo',
+            message: t('withdrawnToast'),
+            undoMessage: t('undo'),
             action: async () => {
                 await apiPatch(buildUrl(`/exchange/listings/${listing.id}`), { action: 'WITHDRAWN' });
                 await mutate();
@@ -94,20 +96,20 @@ export function MyListingsClient() {
             <ListPageShell.Header>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Exchange', href: tenantHref('/exchange') },
-                        { label: 'My listings' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbExchange'), href: tenantHref('/exchange') },
+                        { label: t('breadcrumbCurrent') },
                     ]}
                     className="mb-1"
                 />
-                <Heading level={1}>My listings</Heading>
+                <Heading level={1}>{t('heading')}</Heading>
                 <ExchangeNav />
             </ListPageShell.Header>
             <ListPageShell.Body>
                 <div className="min-h-0 flex-1 space-y-default overflow-y-auto pr-1">
                     {error ? (
                         <ErrorState
-                            description="We couldn't load your listings."
+                            description={t('loadError')}
                             onRetry={() => { void mutate(); }}
                         />
                     ) : isLoading ? (
@@ -118,7 +120,7 @@ export function MyListingsClient() {
                         </div>
                     ) : listings.length === 0 ? (
                         <div className="rounded-lg border border-border-subtle p-4 text-sm text-content-muted">
-                            You haven&apos;t posted any offers yet.
+                            {t('empty')}
                         </div>
                     ) : (
                     listings.map((l) => (
@@ -129,7 +131,7 @@ export function MyListingsClient() {
                         >
                             <div className="flex flex-wrap items-center gap-compact">
                                 <span className="font-medium text-content-emphasis">{l.commodity}</span>
-                                <span className="text-xs text-content-muted">{l.side === 'SELL' ? 'Selling' : 'Buying'}</span>
+                                <span className="text-xs text-content-muted">{l.side === 'SELL' ? t('selling') : t('buying')}</span>
                                 <StatusBadge variant={statusVariant(l.status)}>{l.status}</StatusBadge>
                                 <span className="text-sm text-content-secondary">
                                     {l.quantityTonnes} t{l.pricePerTonne ? ` · ${l.pricePerTonne} ${l.priceCurrency}/t` : ''} · {l.regionName}
@@ -141,17 +143,17 @@ export function MyListingsClient() {
                                             size="sm"
                                             loading={busy === l.id}
                                             onClick={() => setConfirm({
-                                                title: 'Mark this listing fulfilled?',
-                                                description: 'This hides the listing from the marketplace. Existing inquiries stay visible.',
+                                                title: t('fulfillTitle'),
+                                                description: t('fulfillDescription'),
                                                 tone: 'warning',
-                                                confirmLabel: 'Mark fulfilled',
+                                                confirmLabel: t('markFulfilled'),
                                                 action: () => fulfillListing(l.id),
                                             })}
                                         >
-                                            Mark fulfilled
+                                            {t('markFulfilled')}
                                         </Button>
                                         <Button variant="secondary" size="sm" onClick={() => withdrawListing(l)}>
-                                            Withdraw
+                                            {t('withdraw')}
                                         </Button>
                                     </span>
                                 )}
@@ -167,21 +169,21 @@ export function MyListingsClient() {
                                             {iq.status === 'PENDING' && (
                                                 <span className="ml-auto flex gap-compact">
                                                     <Button variant="secondary" size="sm" onClick={() => respond(iq.id, 'ACCEPTED')} loading={busy === iq.id}>
-                                                        Accept
+                                                        {t('accept')}
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
                                                         loading={busy === iq.id}
                                                         onClick={() => setConfirm({
-                                                            title: 'Reject this inquiry?',
-                                                            description: 'The buyer will be notified their inquiry was declined.',
+                                                            title: t('rejectTitle'),
+                                                            description: t('rejectDescription'),
                                                             tone: 'danger',
-                                                            confirmLabel: 'Reject',
+                                                            confirmLabel: t('reject'),
                                                             action: () => respond(iq.id, 'DECLINED'),
                                                         })}
                                                     >
-                                                        Reject
+                                                        {t('reject')}
                                                     </Button>
                                                 </span>
                                             )}
@@ -189,7 +191,7 @@ export function MyListingsClient() {
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="border-t border-border-subtle pt-default text-xs text-content-muted">No inquiries yet.</p>
+                                <p className="border-t border-border-subtle pt-default text-xs text-content-muted">{t('inquiriesEmpty')}</p>
                             )}
                         </div>
                     )))}

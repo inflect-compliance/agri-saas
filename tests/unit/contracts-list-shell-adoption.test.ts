@@ -50,7 +50,7 @@ describe('ContractsClient — EntityListPage adoption', () => {
         expect(source).toMatch(/filters\s*=\s*\{\{/);
         expect(source).toContain('defs: liveFilterDefs');
         expect(source).toContain("searchId: 'grain-contracts-search'");
-        expect(source).toMatch(/searchPlaceholder:\s*['"]Search contracts/);
+        expect(source).toMatch(/searchPlaceholder:\s*\w+\(/);
     });
 
     it('threads the table config through the shell', () => {

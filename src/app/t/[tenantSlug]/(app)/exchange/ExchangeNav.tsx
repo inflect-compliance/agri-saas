@@ -8,21 +8,23 @@
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useTenantHref } from '@/lib/tenant-context-provider';
 import { cn } from '@/lib/cn';
 
 const ITEMS = [
-    { path: '/exchange', label: 'Browse', exact: true },
-    { path: '/exchange/my-listings', label: 'My listings', exact: false },
-    { path: '/exchange/my-interests', label: 'My interests', exact: false },
+    { path: '/exchange', labelKey: 'browse', exact: true },
+    { path: '/exchange/my-listings', labelKey: 'myListings', exact: false },
+    { path: '/exchange/my-interests', labelKey: 'myInterests', exact: false },
 ] as const;
 
 export function ExchangeNav() {
+    const t = useTranslations('exchange.nav');
     const tenantHref = useTenantHref();
     const pathname = usePathname() ?? '';
 
     return (
-        <nav className="flex gap-1 border-b border-border-subtle overflow-x-auto" aria-label="Exchange sections">
+        <nav className="flex gap-1 border-b border-border-subtle overflow-x-auto" aria-label={t('ariaSections')}>
             {ITEMS.map((it) => {
                 const href = tenantHref(it.path);
                 const active = it.exact ? pathname.endsWith(it.path) : pathname.includes(it.path);
@@ -38,7 +40,7 @@ export function ExchangeNav() {
                                 : 'border-transparent text-content-muted hover:text-content-emphasis',
                         )}
                     >
-                        {it.label}
+                        {t(it.labelKey)}
                     </Link>
                 );
             })}

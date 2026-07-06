@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
     FilterX, Link2, FileText, AlertTriangle,
     CheckCircle2, XCircle, HelpCircle,
@@ -36,9 +37,10 @@ interface SoAClientProps {
 // ─── Badge helpers ───
 
 function ApplicabilityBadge({ value }: { value: boolean | null }) {
-    if (value === true)  return <StatusBadgePrimitive variant="success">Applicable</StatusBadgePrimitive>;
-    if (value === false) return <StatusBadgePrimitive variant="neutral">Not Applicable</StatusBadgePrimitive>;
-    return <StatusBadgePrimitive variant="error">Unmapped</StatusBadgePrimitive>;
+    const t = useTranslations('reports.soaReport');
+    if (value === true)  return <StatusBadgePrimitive variant="success">{t('applicable')}</StatusBadgePrimitive>;
+    if (value === false) return <StatusBadgePrimitive variant="neutral">{t('notApplicable')}</StatusBadgePrimitive>;
+    return <StatusBadgePrimitive variant="error">{t('unmapped')}</StatusBadgePrimitive>;
 }
 
 function StatusBadge({ value }: { value: string | null }) {
@@ -56,11 +58,12 @@ function GapBadges({ entry }: { entry: SoAEntryDTO }) {
     // Roadmap-2 PR-7 — gap badges flow through the canonical
     // `<StatusBadgePrimitive>` so the pill shape, size, and tone-
     // mapping match every other status across the product.
+    const t = useTranslations('reports.soaReport');
     const gaps: React.JSX.Element[] = [];
     if (entry.applicable === null) {
         gaps.push(
             <StatusBadgePrimitive key="unmapped" variant="error">
-                <AlertTriangle className="w-3.5 h-3.5" /> Unmapped
+                <AlertTriangle className="w-3.5 h-3.5" /> {t('unmapped')}
             </StatusBadgePrimitive>
         );
     }
@@ -69,7 +72,7 @@ function GapBadges({ entry }: { entry: SoAEntryDTO }) {
         if (hasMissing) {
             gaps.push(
                 <StatusBadgePrimitive key="justification" variant="warning">
-                    <MessageSquare className="w-3.5 h-3.5" /> Justification missing
+                    <MessageSquare className="w-3.5 h-3.5" /> {t('justificationMissing')}
                 </StatusBadgePrimitive>
             );
         }
@@ -80,6 +83,7 @@ function GapBadges({ entry }: { entry: SoAEntryDTO }) {
 // ─── Main Component ───
 
 export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientProps) {
+    const t = useTranslations('reports.soaReport');
     const router = useRouter();
     // R14-PR7 — standalone main-page search retired. The "Show gaps
     // only" toggle remains as the primary in-page filter; users
@@ -184,12 +188,12 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-compact">
-                <SummaryCard label="Total" value={summary.total} icon={<FileText className="w-4 h-4 text-content-muted" />} />
-                <SummaryCard label="Applicable" value={summary.applicable} icon={<CheckCircle2 className="w-4 h-4 text-content-success" />} />
-                <SummaryCard label="Not Applicable" value={summary.notApplicable} icon={<XCircle className="w-4 h-4 text-content-muted" />} />
-                <SummaryCard label="Unmapped" value={summary.unmapped} icon={<HelpCircle className="w-4 h-4 text-content-error" />} accent={summary.unmapped > 0 ? 'danger' : undefined} />
-                <SummaryCard label="Implemented" value={summary.implemented} icon={<CheckCircle2 className="w-4 h-4 text-content-success" />} />
-                <SummaryCard label="Missing Justification" value={summary.missingJustification} icon={<AlertTriangle className="w-4 h-4 text-content-warning" />} accent={summary.missingJustification > 0 ? 'warning' : undefined} />
+                <SummaryCard label={t('total')} value={summary.total} icon={<FileText className="w-4 h-4 text-content-muted" />} />
+                <SummaryCard label={t('applicable')} value={summary.applicable} icon={<CheckCircle2 className="w-4 h-4 text-content-success" />} />
+                <SummaryCard label={t('notApplicable')} value={summary.notApplicable} icon={<XCircle className="w-4 h-4 text-content-muted" />} />
+                <SummaryCard label={t('unmapped')} value={summary.unmapped} icon={<HelpCircle className="w-4 h-4 text-content-error" />} accent={summary.unmapped > 0 ? 'danger' : undefined} />
+                <SummaryCard label={t('implemented')} value={summary.implemented} icon={<CheckCircle2 className="w-4 h-4 text-content-success" />} />
+                <SummaryCard label={t('missingJustification')} value={summary.missingJustification} icon={<AlertTriangle className="w-4 h-4 text-content-warning" />} accent={summary.missingJustification > 0 ? 'warning' : undefined} />
             </div>
 
             {/* Readiness banner */}
@@ -198,10 +202,10 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                     <div className="flex items-center gap-tight">
                         <AlertTriangle className="w-4 h-4 text-content-error flex-shrink-0" />
                         <div className="text-xs text-content-error">
-                            <span className="font-semibold">SoA not audit-ready:</span>
-                            {summary.unmapped > 0 && <span className="ml-1">{summary.unmapped} unmapped requirement{summary.unmapped > 1 ? 's' : ''}</span>}
+                            <span className="font-semibold">{t('notAuditReady')}</span>
+                            {summary.unmapped > 0 && <span className="ml-1">{t('unmappedRequirements', { count: summary.unmapped })}</span>}
                             {summary.unmapped > 0 && summary.missingJustification > 0 && <span>, </span>}
-                            {summary.missingJustification > 0 && <span>{summary.missingJustification} missing justification{summary.missingJustification > 1 ? 's' : ''}</span>}
+                            {summary.missingJustification > 0 && <span>{t('missingJustifications', { count: summary.missingJustification })}</span>}
                         </div>
                     </div>
                     <Button
@@ -209,7 +213,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                         size="xs"
                         onClick={() => setGapsOnly(true)}
                     >
-                        Fix now
+                        {t('fixNow')}
                     </Button>
                 </div>
             )}
@@ -224,7 +228,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                     id="soa-gaps-only"
                 >
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    {gapsOnly ? 'Showing gaps only' : 'Show gaps only'}
+                    {gapsOnly ? t('showingGapsOnly') : t('showGapsOnly')}
                 </Button>
 
                 {gapsOnly && (
@@ -232,12 +236,12 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                         variant="ghost"
                         onClick={() => setGapsOnly(false)}
                     >
-                        <FilterX className="w-3.5 h-3.5" /> Clear
+                        <FilterX className="w-3.5 h-3.5" /> {t('clear')}
                     </Button>
                 )}
 
                 <span className="text-xs text-content-subtle ml-auto">
-                    {filteredEntries.length} of {report.entries.length} requirements
+                    {t('filteredCount', { count: filteredEntries.length, total: report.entries.length })}
                 </span>
             </div>
 
@@ -256,13 +260,13 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                 <table className="data-table" id="soa-table">
                     <thead>
                         <tr>
-                            <th className="w-24">Code</th>
-                            <th>Requirement</th>
-                            <th>Applicability</th>
-                            <th>Status</th>
-                            <th>Controls</th>
-                            <th>Gaps</th>
-                            {canEdit && <th className="w-20">Actions</th>}
+                            <th className="w-24">{t('colCode')}</th>
+                            <th>{t('colRequirement')}</th>
+                            <th>{t('colApplicability')}</th>
+                            <th>{t('colStatus')}</th>
+                            <th>{t('colControls')}</th>
+                            <th>{t('colGaps')}</th>
+                            {canEdit && <th className="w-20">{t('colActions')}</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -284,7 +288,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                         {filteredEntries.length === 0 && (
                             <tr>
                                 <td colSpan={canEdit ? 7 : 6} className="text-center text-content-subtle py-8">
-                                    {gapsOnly ? 'No gaps found — all requirements are mapped with justifications!' : 'No matching requirements'}
+                                    {gapsOnly ? t('noGaps') : t('noMatching')}
                                 </td>
                             </tr>
                         )}
@@ -300,10 +304,10 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                     if (!next && !saving) setMapModal(null);
                 }}
                 size="md"
-                title="Map control"
+                title={t('mapControl')}
                 description={
                     mapModal
-                        ? `Map a tenant control to requirement ${mapModal.requirementCode}.`
+                        ? t('mapControlToRequirement', { code: mapModal.requirementCode })
                         : undefined
                 }
                 preventDefaultClose={saving}
@@ -311,10 +315,10 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                 <Modal.Header
                     title={
                         mapModal
-                            ? `Map control to ${mapModal.requirementCode}`
-                            : 'Map control'
+                            ? t('mapControlTo', { code: mapModal.requirementCode })
+                            : t('mapControl')
                     }
-                    description="Select a tenant control to map to this Annex A requirement."
+                    description={t('mapControlHeaderDescription')}
                 />
                 <Modal.Body>
                     <div className="max-h-60 space-y-1 overflow-y-auto">
@@ -340,7 +344,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                             </button>
                         ))}
                         {mapFilteredControls.length === 0 && (
-                            <InlineEmptyState title="No controls match" />
+                            <InlineEmptyState title={t('noControls')} />
                         )}
                     </div>
                 </Modal.Body>
@@ -351,7 +355,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                         onClick={() => setMapModal(null)}
                         disabled={saving}
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                 </Modal.Actions>
             </Modal>
@@ -364,25 +368,24 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                     if (!next && !saving) setJustModal(null);
                 }}
                 size="sm"
-                title="Add justification"
+                title={t('addJustification')}
                 description={
                     justModal
-                        ? `Justify why ${justModal.controlCode} is not applicable for ${justModal.requirementCode}.`
+                        ? t('justifyModalDescription', { controlCode: justModal.controlCode, requirementCode: justModal.requirementCode })
                         : undefined
                 }
                 preventDefaultClose={saving}
             >
                 <Modal.Header
-                    title="Add justification"
+                    title={t('addJustification')}
                     description={
                         justModal ? (
                             <>
-                                Justify why control{' '}
+                                {t('justifyHeaderPrefix')}{' '}
                                 <span className="font-mono text-brand-emphasis">
                                     {justModal.controlCode}
                                 </span>{' '}
-                                is not applicable for requirement{' '}
-                                {justModal.requirementCode}.
+                                {t('justifyHeaderSuffix', { requirementCode: justModal.requirementCode })}
                             </>
                         ) : null
                     }
@@ -390,7 +393,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                 <Modal.Body>
                     <textarea
                         className="input min-h-[100px] w-full"
-                        placeholder="e.g. Fully remote company — no physical premises to secure."
+                        placeholder={t('justificationPlaceholder')}
                         value={justText}
                         onChange={(e) => setJustText(e.target.value)}
                         autoFocus
@@ -404,7 +407,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                         onClick={() => setJustModal(null)}
                         disabled={saving}
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         variant="primary"
@@ -412,7 +415,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
                         onClick={handleSaveJustification}
                         disabled={saving || !justText.trim()}
                     >
-                        {saving ? 'Saving…' : 'Save justification'}
+                        {saving ? t('saving') : t('saveJustification')}
                     </Button>
                 </Modal.Actions>
             </Modal>
@@ -433,6 +436,7 @@ function SoARow({
     onJustify: (controlId: string, controlCode: string) => void;
     tenantSlug: string;
 }) {
+    const t = useTranslations('reports.soaReport');
     const hasGap = entry.applicable === null || (
         entry.applicable === false &&
         entry.mappedControls.some(c => c.applicability === 'NOT_APPLICABLE' && !c.justification)
@@ -460,12 +464,12 @@ function SoARow({
                     <td>
                         <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                             {entry.applicable === null && (
-                                <Tooltip content="Map control">
+                                <Tooltip content={t('mapControl')}>
                                     <Button
                                         variant="primary"
                                         size="xs"
                                         onClick={onMap}
-                                        aria-label="Map control"
+                                        aria-label={t('mapControl')}
                                     >
                                         <Plus className="w-3.5 h-3.5" />
                                     </Button>
@@ -479,7 +483,7 @@ function SoARow({
                 <tr className="bg-bg-default/40">
                     <td colSpan={canEdit ? 7 : 6} className="p-0">
                         <div className="px-6 py-3 space-y-tight">
-                            <div className="text-[10px] uppercase tracking-wider text-content-subtle font-semibold">Mapped Controls</div>
+                            <div className="text-[10px] uppercase tracking-wider text-content-subtle font-semibold">{t('mappedControls')}</div>
                             {entry.mappedControls.map(c => (
                                 <div key={c.controlId} className="flex items-center justify-between text-xs bg-bg-page/40 rounded-lg px-3 py-2">
                                     <div className="flex items-center gap-compact">
@@ -508,21 +512,21 @@ function SoARow({
                                                 size="xs"
                                                 onClick={(e) => { e.stopPropagation(); onJustify(c.controlId, c.code || c.controlId.slice(0, 8)); }}
                                             >
-                                                <MessageSquare className="w-3.5 h-3.5" /> Justify
+                                                <MessageSquare className="w-3.5 h-3.5" /> {t('justify')}
                                             </Button>
                                         )}
                                     </div>
                                 </div>
                             ))}
                             {entry.evidenceCount > 0 && (
-                                <div className="text-[10px] text-content-subtle">Evidence: {entry.evidenceCount} items</div>
+                                <div className="text-[10px] text-content-subtle">{t('evidenceItems', { count: entry.evidenceCount })}</div>
                             )}
                             {entry.openTaskCount > 0 && (
-                                <div className="text-[10px] text-content-warning">Open tasks: {entry.openTaskCount}</div>
+                                <div className="text-[10px] text-content-warning">{t('openTasks', { count: entry.openTaskCount })}</div>
                             )}
                             {entry.lastTestResult && (
                                 <div className="text-[10px] text-content-subtle">
-                                    Last test: <span className={entry.lastTestResult === 'PASS' ? 'text-content-success' : 'text-content-error'}>{entry.lastTestResult}</span>
+                                    {t('lastTest')} <span className={entry.lastTestResult === 'PASS' ? 'text-content-success' : 'text-content-error'}>{entry.lastTestResult}</span>
                                 </div>
                             )}
                         </div>

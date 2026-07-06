@@ -21,6 +21,7 @@ import {
     type SetStateAction,
 } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -31,10 +32,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import type { BinRow } from './BinsClient';
 
-const KIND_OPTIONS: ReadonlyArray<readonly [string, string]> = [
-    ['BIN', 'Bin'],
-    ['STORAGE', 'Storage'],
-] as const;
+const KIND_OPTIONS = ['BIN', 'STORAGE'] as const;
 
 const numericText = z
     .string()
@@ -84,6 +82,7 @@ export function BinFormModal({
     bin,
     onSaved,
 }: BinFormModalProps) {
+    const t = useTranslations('grain.bins.form');
     const apiUrl = useTenantApiUrl();
     const queryClient = useQueryClient();
     const isEdit = Boolean(bin);
@@ -161,10 +160,8 @@ export function BinFormModal({
     };
 
     const apiError = errors.root?.api?.message;
-    const heading = isEdit ? 'Edit bin' : 'New bin';
-    const description = isEdit
-        ? 'Update this grain storage bin.'
-        : 'Add a bin or storage location that holds harvested produce.';
+    const heading = isEdit ? t('editTitle') : t('newTitle');
+    const description = isEdit ? t('editDescription') : t('newDescription');
 
     return (
         <Modal
@@ -190,20 +187,20 @@ export function BinFormModal({
 
                     <div className="space-y-default">
                         <FormField
-                            label="Name"
+                            label={t('name')}
                             required
                             error={errors.name?.message}
                         >
                             <Input
                                 id="bin-name-input"
                                 type="text"
-                                placeholder="e.g. Silo 3"
+                                placeholder={t('namePlaceholder')}
                                 autoComplete="off"
                                 {...register('name')}
                             />
                         </FormField>
 
-                        <FormField label="Kind" error={errors.kind?.message}>
+                        <FormField label={t('kind')} error={errors.kind?.message}>
                             <Controller
                                 control={control}
                                 name="kind"
@@ -213,7 +210,7 @@ export function BinFormModal({
                                         onValueChange={(v) => field.onChange(v)}
                                         className="flex gap-default"
                                     >
-                                        {KIND_OPTIONS.map(([value, labelText]) => (
+                                        {KIND_OPTIONS.map((value) => (
                                             <label
                                                 key={value}
                                                 htmlFor={`bin-kind-${value}`}
@@ -224,7 +221,7 @@ export function BinFormModal({
                                                     value={value}
                                                     size="sm"
                                                 />
-                                                {labelText}
+                                                {value === 'BIN' ? t('kindBin') : t('kindStorage')}
                                             </label>
                                         ))}
                                     </RadioGroup>
@@ -234,22 +231,22 @@ export function BinFormModal({
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                             <FormField
-                                label="Capacity (t)"
+                                label={t('capacity')}
                                 error={errors.capacityTonnes?.message}
                             >
                                 <Input
                                     id="bin-capacity-input"
                                     inputMode="decimal"
-                                    placeholder="e.g. 1200"
+                                    placeholder={t('capacityPlaceholder')}
                                     autoComplete="off"
                                     {...register('capacityTonnes')}
                                 />
                             </FormField>
-                            <FormField label="Key" error={errors.key?.message}>
+                            <FormField label={t('key')} error={errors.key?.message}>
                                 <Input
                                     id="bin-key-input"
                                     type="text"
-                                    placeholder="Optional short code"
+                                    placeholder={t('keyPlaceholder')}
                                     autoComplete="off"
                                     {...register('key')}
                                 />
@@ -257,13 +254,13 @@ export function BinFormModal({
                         </div>
 
                         <FormField
-                            label="Description"
+                            label={t('description')}
                             error={errors.description?.message}
                         >
                             <Textarea
                                 id="bin-description-input"
                                 rows={2}
-                                placeholder="Location, type, or handling notes"
+                                placeholder={t('descriptionPlaceholder')}
                                 {...register('description')}
                             />
                         </FormField>
@@ -279,7 +276,7 @@ export function BinFormModal({
                         }}
                         disabled={isSubmitting}
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -288,7 +285,7 @@ export function BinFormModal({
                         id="save-bin-btn"
                         loading={isSubmitting}
                     >
-                        {isEdit ? 'Save bin' : 'Create bin'}
+                        {isEdit ? t('saveBin') : t('createBin')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

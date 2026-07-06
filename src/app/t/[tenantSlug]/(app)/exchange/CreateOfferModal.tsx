@@ -10,6 +10,7 @@
  * parent optimistically adds the new listing to the map + list.
  */
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ interface CreateOfferModalProps {
 }
 
 export function CreateOfferModal({ open, setOpen, defaultSellerName, onCreated }: CreateOfferModalProps) {
+    const t = useTranslations('exchange.offer');
     const buildUrl = useTenantApiUrl();
 
     const [side, setSide] = useState<'SELL' | 'BUY'>('SELL');
@@ -107,12 +109,12 @@ export function CreateOfferModal({ open, setOpen, defaultSellerName, onCreated }
             showModal={open}
             setShowModal={setOpen}
             size="lg"
-            title="New offer"
-            description="Publish a sell or buy offer to the cross-tenant marketplace."
+            title={t('title')}
+            description={t('description')}
             preventDefaultClose={submitting}
             isDirty={isDirty}
         >
-            <Modal.Header title="New offer" description="Publish a sell or buy offer to the marketplace." />
+            <Modal.Header title={t('title')} description={t('headerDescription')} />
             <Modal.Form id="exchange-offer-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
                 <Modal.Body>
                     {error && (
@@ -121,29 +123,29 @@ export function CreateOfferModal({ open, setOpen, defaultSellerName, onCreated }
                         </div>
                     )}
                     <fieldset disabled={submitting} className="m-0 space-y-default border-0 p-0">
-                        <FormField label="Side" required>
+                        <FormField label={t('side')} required>
                             <RadioGroup
                                 value={side}
                                 onValueChange={(v) => setSide(v as 'SELL' | 'BUY')}
                                 className="flex gap-section"
                             >
                                 <label className="flex items-center gap-compact text-sm">
-                                    <RadioGroupItem value="SELL" /> Selling
+                                    <RadioGroupItem value="SELL" /> {t('selling')}
                                 </label>
                                 <label className="flex items-center gap-compact text-sm">
-                                    <RadioGroupItem value="BUY" /> Buying
+                                    <RadioGroupItem value="BUY" /> {t('buying')}
                                 </label>
                             </RadioGroup>
                         </FormField>
 
-                        <FormField label="Commodity" required>
+                        <FormField label={t('commodity')} required>
                             <Combobox
                                 id="exchange-commodity"
                                 options={commodityOptions}
                                 selected={commodityOptions.find((o) => o.value === commodity) ?? null}
                                 setSelected={(o) => setCommodity(o?.value ?? '')}
-                                placeholder="Select or type a commodity"
-                                searchPlaceholder="Search commodities…"
+                                placeholder={t('commodityPlaceholder')}
+                                searchPlaceholder={t('searchPlaceholder')}
                                 matchTriggerWidth
                                 onCreate={async (search) => {
                                     const v = search.trim();
@@ -152,54 +154,54 @@ export function CreateOfferModal({ open, setOpen, defaultSellerName, onCreated }
                                     setCommodity(v);
                                     return true;
                                 }}
-                                createLabel={(search) => `Use "${search.trim()}"`}
+                                createLabel={(search) => t('commodityCreate', { search: search.trim() })}
                             />
                         </FormField>
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-3">
-                            <FormField label="Quantity (t)" required>
-                                <Input id="exchange-qty" inputMode="decimal" autoComplete="off" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="e.g. 250" />
+                            <FormField label={t('quantity')} required>
+                                <Input id="exchange-qty" inputMode="decimal" autoComplete="off" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder={t('quantityPlaceholder')} />
                             </FormField>
-                            <FormField label="Price / tonne" hint={side === 'BUY' ? 'Optional — leave blank for market' : 'Optional'}>
+                            <FormField label={t('price')} hint={side === 'BUY' ? t('priceHintBuy') : t('priceHint')}>
                                 <Input id="exchange-price" inputMode="decimal" autoComplete="off" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. 320" />
                             </FormField>
-                            <FormField label="Currency">
-                                <Input id="exchange-currency" value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} placeholder="BGN" maxLength={8} />
+                            <FormField label={t('currency')}>
+                                <Input id="exchange-currency" value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} placeholder={t('currencyPlaceholder')} maxLength={8} />
                             </FormField>
                         </div>
 
-                        <FormField label="Region" required description="Bulgarian oblast — the map pin is placed at its centre.">
+                        <FormField label={t('region')} required description={t('regionDescription')}>
                             <Combobox
                                 id="exchange-region"
                                 options={regionOptions}
                                 selected={regionOptions.find((o) => o.value === regionCode) ?? null}
                                 setSelected={(o) => setRegionCode(o?.value ?? '')}
-                                placeholder="Select a region"
-                                searchPlaceholder="Search regions…"
+                                placeholder={t('regionPlaceholder')}
+                                searchPlaceholder={t('regionSearchPlaceholder')}
                                 matchTriggerWidth
                             />
                         </FormField>
 
-                        <FormField label="Description" hint="Shown publicly to every tenant.">
-                            <Textarea id="exchange-description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Grade, moisture, delivery terms…" />
+                        <FormField label={t('descriptionLabel')} hint={t('descriptionHint')}>
+                            <Textarea id="exchange-description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('descriptionPlaceholder')} />
                         </FormField>
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
-                            <FormField label="Expires" hint="Optional — auto-hides after this date.">
-                                <DatePicker id="exchange-expires" className="w-full" value={expiresAt} onChange={setExpiresAt} clearable placeholder="Select date" disabledDays={{ before: new Date() }} />
+                            <FormField label={t('expires')} hint={t('expiresHint')}>
+                                <DatePicker id="exchange-expires" className="w-full" value={expiresAt} onChange={setExpiresAt} clearable placeholder={t('datePlaceholder')} disabledDays={{ before: new Date() }} />
                             </FormField>
-                            <FormField label="Public seller name" hint={`Optional. Shown publicly. Blank = ${defaultSellerName || 'your tenant name'}.`}>
-                                <Input id="exchange-seller-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={defaultSellerName || 'Your farm name'} maxLength={120} />
+                            <FormField label={t('sellerName')} hint={t('sellerNameHint', { name: defaultSellerName || t('yourTenantName') })}>
+                                <Input id="exchange-seller-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={defaultSellerName || t('yourFarmName')} maxLength={120} />
                             </FormField>
                         </div>
                     </fieldset>
                 </Modal.Body>
                 <Modal.Actions>
                     <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)} disabled={submitting}>
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button variant="primary" size="sm" type="submit" loading={submitting} disabled={!canSubmit}>
-                        Create offer
+                        {t('submit')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

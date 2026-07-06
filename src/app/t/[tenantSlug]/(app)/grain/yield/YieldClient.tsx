@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import type { Row } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
@@ -67,6 +68,7 @@ function YieldPageInner({
     tenantSlug,
     permissions,
 }: YieldClientProps) {
+    const t = useTranslations('grain.yield');
     const apiUrl = useCallback(
         (path: string) => `/api/t/${tenantSlug}${path}`,
         [tenantSlug],
@@ -148,8 +150,8 @@ function YieldPageInner({
                 (old ?? []).filter((r) => r.id !== rec.id),
             );
             triggerUndoToast({
-                message: 'Yield record deleted',
-                undoMessage: 'Undo',
+                message: t('deletedToast'),
+                undoMessage: t('undo'),
                 action: async () => {
                     const res = await fetch(
                         apiUrl(`/grain/yield-records/${rec.id}`),
@@ -166,7 +168,7 @@ function YieldPageInner({
                 onCommit: () => refetch(),
             });
         },
-        [apiUrl, queryClient, queryKeyFilters, refetch, tenantSlug, triggerUndoToast],
+        [apiUrl, queryClient, queryKeyFilters, refetch, tenantSlug, triggerUndoToast, t],
     );
 
     const handleRowClick = useCallback(
@@ -184,17 +186,17 @@ function YieldPageInner({
             createColumns<YieldRow>([
                 {
                     id: 'commodity',
-                    header: 'Commodity',
+                    header: t('colCommodity'),
                     accessorFn: (r) => r.commodity ?? '—',
                     cell: ({ row }) => (
                         <TableTitleCell id={`yield-link-${row.original.id}`}>
-                            {row.original.commodity ?? 'Untitled harvest'}
+                            {row.original.commodity ?? t('untitledHarvest')}
                         </TableTitleCell>
                     ),
                 },
                 {
                     id: 'harvestedAt',
-                    header: 'Harvested',
+                    header: t('colHarvested'),
                     accessorFn: (r) => r.harvestedAt ?? '',
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted">
@@ -204,7 +206,7 @@ function YieldPageInner({
                 },
                 {
                     id: 'grossTonnes',
-                    header: 'Gross (t)',
+                    header: t('colGross'),
                     accessorFn: (r) => r.grossTonnes ?? -1,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-default tabular-nums block text-right">
@@ -214,7 +216,7 @@ function YieldPageInner({
                 },
                 {
                     id: 'moisturePct',
-                    header: 'Moisture (%)',
+                    header: t('colMoisture'),
                     accessorFn: (r) => r.moisturePct ?? -1,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums block text-right">
@@ -224,7 +226,7 @@ function YieldPageInner({
                 },
                 {
                     id: 'areaHa',
-                    header: 'Area (ha)',
+                    header: t('colArea'),
                     accessorFn: (r) => r.areaHa ?? -1,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums block text-right">
@@ -234,7 +236,7 @@ function YieldPageInner({
                 },
                 {
                     id: 'tPerHa',
-                    header: 't / ha',
+                    header: t('colTPerHa'),
                     accessorFn: (r) => r.tPerHa ?? -1,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-emphasis tabular-nums block text-right">
@@ -244,7 +246,7 @@ function YieldPageInner({
                 },
                 {
                     id: 'location',
-                    header: 'Field',
+                    header: t('colField'),
                     accessorFn: (r) => r.location?.name ?? '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">
@@ -254,7 +256,7 @@ function YieldPageInner({
                 },
                 {
                     id: 'season',
-                    header: 'Season',
+                    header: t('colSeason'),
                     accessorFn: (r) => r.season?.name ?? '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">
@@ -269,10 +271,10 @@ function YieldPageInner({
                     cell: ({ row }) =>
                         permissions.canWrite ? (
                             <div className="flex items-center justify-end gap-tight">
-                                <Tooltip content="Edit yield record">
+                                <Tooltip content={t('editYield')}>
                                     <button
                                         type="button"
-                                        aria-label="Edit yield record"
+                                        aria-label={t('editYield')}
                                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                         data-testid={`yield-edit-${row.original.id}`}
                                         onClick={(e) => {
@@ -284,10 +286,10 @@ function YieldPageInner({
                                         <Pen2 className="h-3.5 w-3.5" aria-hidden />
                                     </button>
                                 </Tooltip>
-                                <Tooltip content="Delete yield record">
+                                <Tooltip content={t('deleteYield')}>
                                     <button
                                         type="button"
-                                        aria-label="Delete yield record"
+                                        aria-label={t('deleteYield')}
                                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-bg-error hover:text-content-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                         data-testid={`yield-delete-${row.original.id}`}
                                         onClick={(e) => {
@@ -302,7 +304,7 @@ function YieldPageInner({
                         ) : null,
                 },
             ]),
-        [permissions.canWrite, handleDelete],
+        [permissions.canWrite, handleDelete, t],
     );
 
     return (
@@ -310,12 +312,11 @@ function YieldPageInner({
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                    { label: 'Yield' },
+                    { label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                    { label: t('breadcrumbYield') },
                 ],
-                title: 'Yield',
-                description:
-                    'Actual harvest production — gross tonnes, moisture, and t/ha against each planting and field.',
+                title: t('title'),
+                description: t('description'),
                 actions: permissions.canWrite ? (
                     <Button
                         variant="primary"
@@ -326,14 +327,14 @@ function YieldPageInner({
                             setIsCreateOpen(true);
                         }}
                     >
-                        Yield
+                        {t('newYield')}
                     </Button>
                 ) : null,
             }}
             filters={{
                 defs: liveFilterDefs,
                 searchId: 'grain-yield-search',
-                searchPlaceholder: 'Search yield records…',
+                searchPlaceholder: t('searchPlaceholder'),
             }}
             table={{
                 data: records,
@@ -345,20 +346,20 @@ function YieldPageInner({
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No yield records match your filters"
-                        description="Try widening your search or clearing one of the active filters."
-                        secondaryAction={{ label: 'Clear filters', onClick: () => clearAll() }}
+                        title={t('emptyNoResultsTitle')}
+                        description={t('emptyNoResultsDesc')}
+                        secondaryAction={{ label: t('clearFilters'), onClick: () => clearAll() }}
                     />
                 ) : (
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No yield records yet"
-                        description="Record the actual tonnes harvested against a planting, field, or season."
+                        title={t('emptyTitle')}
+                        description={t('emptyDescription')}
                         primaryAction={
                             permissions.canWrite
                                 ? {
-                                      label: 'Add yield record',
+                                      label: t('addYield'),
                                       onClick: () => {
                                           setEditing(null);
                                           setIsCreateOpen(true);
@@ -368,7 +369,7 @@ function YieldPageInner({
                         }
                     />
                 ),
-                resourceName: (p) => (p ? 'yield records' : 'yield record'),
+                resourceName: (p) => (p ? t('yieldRecords') : t('yieldRecord')),
                 'data-testid': 'grain-yield-table',
                 className: 'hover:bg-bg-muted',
             }}

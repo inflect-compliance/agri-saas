@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any -- Client component receiving server-rendered domain data; tanstack column callbacks; or library-boundary callbacks. Per-site narrowing requires generated DTOs / per-cell CellContext imports — out of scope for the lint cleanup PR. */
 import { useState, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Download } from 'lucide-react';
 import { SoAClient } from './soa/SoAClient';
 import { PdfExportButton } from '@/components/PdfExportButton';
@@ -36,6 +37,7 @@ interface ReportsClientProps {
  * Client island for reports — tab toggle between full SoA and risk register.
  */
 export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, translations: t }: ReportsClientProps) {
+    const tt = useTranslations('reports');
     const [tab, setTab] = useState<'soa' | 'risk'>('soa');
 
 
@@ -114,7 +116,7 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                     <div>
                         <PageBreadcrumbs
                             items={[
-                                { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                                { label: tt('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
                                 { label: t.title },
                             ]}
                             className="mb-1"
@@ -140,13 +142,13 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                                         download
                                         id="export-soa-btn"
                                     >
-                                        <Download className="w-3.5 h-3.5" /> Export CSV
+                                        <Download className="w-3.5 h-3.5" /> {tt('exportCsv')}
                                     </a>
                                     <UpgradeGate feature="PDF_EXPORTS">
                                         <PdfExportButton
                                             tenantSlug={tenantSlug}
                                             reportType="AUDIT_READINESS"
-                                            label="Audit Readiness"
+                                            label={tt('auditReadiness')}
                                             allowSave={canEdit}
                                         />
                                     </UpgradeGate>
@@ -154,7 +156,7 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                                         <PdfExportButton
                                             tenantSlug={tenantSlug}
                                             reportType="GAP_ANALYSIS"
-                                            label="Gap Analysis"
+                                            label={tt('gapAnalysis')}
                                             allowSave={canEdit}
                                         />
                                     </UpgradeGate>
@@ -166,7 +168,7 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                                         <PdfExportButton
                                             tenantSlug={tenantSlug}
                                             reportType="RISK_REGISTER"
-                                            label="Risk Register"
+                                            label={tt('riskRegister')}
                                             allowSave={canEdit}
                                         />
                                     </UpgradeGate>
@@ -182,7 +184,7 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                     preserve `#soa-tab-btn` / `#risk-tab-btn` E2E selectors
                     used by tests/e2e/reporting.spec.ts. */}
                 <ToggleGroup
-                    ariaLabel="Report"
+                    ariaLabel={tt('reportAria')}
                     options={[
                         { value: 'soa', label: t.soa, id: 'soa-tab-btn' },
                         { value: 'risk', label: t.riskRegister, id: 'risk-tab-btn' },
@@ -206,8 +208,8 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                         data={data.riskRegister}
                         columns={riskColumns}
                         getRowId={(r: any) => r.id}
-                        emptyState="No risks in the register"
-                        resourceName={(p) => p ? 'risks' : 'risk'}
+                        emptyState={tt('riskEmpty')}
+                        resourceName={(p) => p ? tt('resourceRisks') : tt('resourceRisk')}
                         data-testid="risk-table"
                     />
                 )}

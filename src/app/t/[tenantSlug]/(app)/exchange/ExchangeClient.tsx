@@ -14,6 +14,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import {
     FilterProvider,
@@ -68,6 +69,7 @@ function SideDot({ side }: { side: 'SELL' | 'BUY' }) {
 }
 
 function ExchangeInner() {
+    const t = useTranslations('exchange.client');
     const tenantHref = useTenantHref();
     const buildApiUrl = useTenantApiUrl();
     const searchParams = useSearchParams();
@@ -142,21 +144,21 @@ function ExchangeInner() {
             <ListPageShell.Header>
                 <PageBreadcrumbs
                     items={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Exchange' },
+                        { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                        { label: t('breadcrumbExchange') },
                     ]}
                     className="mb-1"
                 />
                 <div className="flex flex-wrap items-center justify-between gap-default">
                     <div className="flex flex-wrap items-center gap-section">
-                        <Heading level={1}>Борса / Exchange</Heading>
+                        <Heading level={1}>{t('heading')}</Heading>
                         {/* SELL/BUY colour legend — matches the map markers. */}
                         <div className="flex items-center gap-default text-xs text-content-muted">
                             <span className="flex items-center gap-compact">
-                                <SideDot side="SELL" /> Selling
+                                <SideDot side="SELL" /> {t('legendSelling')}
                             </span>
                             <span className="flex items-center gap-compact">
-                                <SideDot side="BUY" /> Buying
+                                <SideDot side="BUY" /> {t('legendBuying')}
                             </span>
                         </div>
                     </div>
@@ -166,7 +168,7 @@ function ExchangeInner() {
                         id="new-offer-btn"
                         onClick={() => setCreateOpen(true)}
                     >
-                        Offer
+                        {t('newOffer')}
                     </Button>
                 </div>
                 <ExchangeNav />
@@ -176,7 +178,7 @@ function ExchangeInner() {
                 <FilterToolbar
                     filters={liveFilters}
                     searchId="exchange-search"
-                    searchPlaceholder="Search offers…"
+                    searchPlaceholder={t('searchPlaceholder')}
                 />
             </ListPageShell.Filters>
 
@@ -202,15 +204,15 @@ function ExchangeInner() {
                     <div className="flex min-h-0 w-full flex-col md:w-[380px]">
                         <p className="mb-default flex-shrink-0 text-xs text-content-muted">
                             {error
-                                ? "Couldn't load offers"
+                                ? t('couldntLoad')
                                 : isLoading
-                                  ? 'Loading offers…'
-                                  : `${filtered.length} offer${filtered.length === 1 ? '' : 's'}`}
+                                  ? t('loadingOffers')
+                                  : t('offerCount', { count: filtered.length })}
                         </p>
                         <div className="min-h-0 flex-1 space-y-default overflow-y-auto pr-1">
                             {error ? (
                                 <ErrorState
-                                    description="We couldn't load the marketplace offers."
+                                    description={t('loadError')}
                                     onRetry={() => { void mutate(); }}
                                 />
                             ) : isLoading ? (
@@ -221,7 +223,7 @@ function ExchangeInner() {
                                 </div>
                             ) : filtered.length === 0 ? (
                                 <div className="rounded-lg border border-border-subtle p-4 text-sm text-content-muted">
-                                    No offers match your filters.
+                                    {t('emptyFiltered')}
                                 </div>
                             ) : (
                             filtered.map((o) => (
@@ -242,11 +244,11 @@ function ExchangeInner() {
                                         <SideDot side={o.side} />
                                         <span className="font-medium text-content-emphasis">{o.commodity}</span>
                                         <span className="text-xs text-content-muted">
-                                            {o.side === 'SELL' ? 'Selling' : 'Buying'}
+                                            {o.side === 'SELL' ? t('selling') : t('buying')}
                                         </span>
                                         {o.isOwn && (
                                             <span className="ml-auto rounded bg-bg-subtle px-1.5 py-0.5 text-[10px] font-medium text-content-secondary">
-                                                Your offer
+                                                {t('yourOffer')}
                                             </span>
                                         )}
                                     </div>
@@ -272,43 +274,43 @@ function ExchangeInner() {
                     if (!o) setSelectedId(null);
                 }}
                 direction="right"
-                title={selectedOffer?.commodity ?? 'Offer'}
-                description="Offer detail"
+                title={selectedOffer?.commodity ?? t('sheetOffer')}
+                description={t('sheetDescription')}
             >
-                <Sheet.Header title={selectedOffer?.commodity ?? 'Offer'} />
+                <Sheet.Header title={selectedOffer?.commodity ?? t('sheetOffer')} />
                 <Sheet.Body className="space-y-section">
                     {selectedOffer && (
                         <div className="space-y-default text-sm">
                             <div className="flex items-center gap-compact">
                                 <SideDot side={selectedOffer.side} />
                                 <span className="font-medium text-content-emphasis">
-                                    {selectedOffer.side === 'SELL' ? 'Selling' : 'Buying'}
+                                    {selectedOffer.side === 'SELL' ? t('selling') : t('buying')}
                                 </span>
                                 {selectedOffer.isOwn && (
                                     <span className="rounded bg-bg-subtle px-1.5 py-0.5 text-[10px] font-medium text-content-secondary">
-                                        Your offer
+                                        {t('yourOffer')}
                                     </span>
                                 )}
                             </div>
                             <dl className="grid grid-cols-[auto_1fr] gap-x-section gap-y-tight text-content-secondary">
-                                <dt className="text-content-muted">Quantity</dt>
+                                <dt className="text-content-muted">{t('detailQuantity')}</dt>
                                 <dd>{selectedOffer.quantityTonnes} t</dd>
-                                <dt className="text-content-muted">Price</dt>
+                                <dt className="text-content-muted">{t('detailPrice')}</dt>
                                 <dd>
                                     {selectedOffer.pricePerTonne
                                         ? `${selectedOffer.pricePerTonne} ${selectedOffer.priceCurrency}/t`
-                                        : 'Market / negotiable'}
+                                        : t('marketNegotiable')}
                                 </dd>
-                                <dt className="text-content-muted">Region</dt>
+                                <dt className="text-content-muted">{t('detailRegion')}</dt>
                                 <dd>{selectedOffer.regionName}</dd>
                                 {selectedOffer.expiresAt && (
                                     <>
-                                        <dt className="text-content-muted">Expires</dt>
+                                        <dt className="text-content-muted">{t('detailExpires')}</dt>
                                         <dd>{formatDate(selectedOffer.expiresAt)}</dd>
                                     </>
                                 )}
-                                <dt className="text-content-muted">Seller</dt>
-                                <dd>{selectedOffer.sellerDisplayName || 'Anonymous farm'}</dd>
+                                <dt className="text-content-muted">{t('detailSeller')}</dt>
+                                <dd>{selectedOffer.sellerDisplayName || t('anonymousFarm')}</dd>
                             </dl>
                             {selectedOffer.description && (
                                 <p className="whitespace-pre-wrap text-content-muted">{selectedOffer.description}</p>
@@ -317,7 +319,7 @@ function ExchangeInner() {
                                 on your own listing. */}
                             {!selectedOffer.isOwn && (
                                 <Button variant="primary" size="sm" className="w-full" onClick={() => setInquiryOpen(true)}>
-                                    Express interest
+                                    {t('expressInterest')}
                                 </Button>
                             )}
                         </div>
