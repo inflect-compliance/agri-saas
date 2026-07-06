@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ScrollText } from 'lucide-react';
 
 import { ListPageShell } from '@/components/layout/ListPageShell';
@@ -41,12 +42,12 @@ interface Props {
     initialNextCursor: string | null;
 }
 
-const ACTION_LABEL: Record<AuditRow['action'], string> = {
-    ORG_MEMBER_ADDED: 'Member added',
-    ORG_MEMBER_REMOVED: 'Member removed',
-    ORG_MEMBER_ROLE_CHANGED: 'Role changed',
-    ORG_ADMIN_PROVISIONED_TO_TENANTS: 'Provisioned to tenants',
-    ORG_ADMIN_DEPROVISIONED_FROM_TENANTS: 'Deprovisioned from tenants',
+const ACTION_LABEL_KEY: Record<AuditRow['action'], string> = {
+    ORG_MEMBER_ADDED: 'actionMemberAdded',
+    ORG_MEMBER_REMOVED: 'actionMemberRemoved',
+    ORG_MEMBER_ROLE_CHANGED: 'actionRoleChanged',
+    ORG_ADMIN_PROVISIONED_TO_TENANTS: 'actionProvisioned',
+    ORG_ADMIN_DEPROVISIONED_FROM_TENANTS: 'actionDeprovisioned',
 };
 
 const ACTION_VARIANT: Record<AuditRow['action'], 'success' | 'error' | 'info' | 'warning'> = {
@@ -84,26 +85,36 @@ function userLabel(u: UserRef | null): string {
  * action shape carries different fields — the details payload is
  * authoritative; this is just a glance-friendly projection.
  */
-function summarize(row: AuditRow): string {
+function summarize(
+    row: AuditRow,
+    t: ReturnType<typeof useTranslations>,
+): string {
     const d = row.detailsJson as Record<string, unknown> | null;
     if (!d) return '';
     switch (row.action) {
         case 'ORG_MEMBER_ADDED':
-            return `Role: ${d.role ?? '—'}` +
+            return (
+                t('summaryRole', { role: String(d.role ?? '—') }) +
                 (typeof d.provisionedTenantCount === 'number' && d.provisionedTenantCount > 0
-                    ? ` · ${d.provisionedTenantCount} tenant${d.provisionedTenantCount === 1 ? '' : 's'} provisioned`
-                    : '');
+                    ? ` · ${t('summaryProvisioned', { count: d.provisionedTenantCount })}`
+                    : '')
+            );
         case 'ORG_MEMBER_REMOVED':
-            return `Was: ${d.previousRole ?? '—'}` +
+            return (
+                t('summaryWas', { role: String(d.previousRole ?? '—') }) +
                 (typeof d.deprovisionedTenantCount === 'number' && d.deprovisionedTenantCount > 0
-                    ? ` · ${d.deprovisionedTenantCount} tenant${d.deprovisionedTenantCount === 1 ? '' : 's'} deprovisioned`
-                    : '');
+                    ? ` · ${t('summaryDeprovisioned', { count: d.deprovisionedTenantCount })}`
+                    : '')
+            );
         case 'ORG_MEMBER_ROLE_CHANGED':
             return `${d.previousRole ?? '—'} → ${d.newRole ?? '—'}`;
         case 'ORG_ADMIN_PROVISIONED_TO_TENANTS':
         case 'ORG_ADMIN_DEPROVISIONED_FROM_TENANTS':
             return typeof d.tenantCount === 'number'
-                ? `${d.tenantCount} tenant${d.tenantCount === 1 ? '' : 's'} (${d.role ?? 'AUDITOR'})`
+                ? t('summaryFanout', {
+                      count: d.tenantCount,
+                      role: String(d.role ?? 'AUDITOR'),
+                  })
                 : '';
         default:
             return '';
@@ -111,6 +122,7 @@ function summarize(row: AuditRow): string {
 }
 
 export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props) {
+    const t = useTranslations('org.audit');
     const [rows, setRows] = useState<AuditRow[]>(initialRows);
     const [cursor, setCursor] = useState<string | null>(initialNextCursor);
     const [loading, setLoading] = useState(false);
@@ -141,7 +153,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
             createColumns<AuditRow>([
                 {
                     id: 'occurredAt',
-                    header: 'Time',
+                    header: t('colTime'),
                     cell: ({ row }) => (
                         <span
                             className="font-mono text-xs text-content-muted"
@@ -153,16 +165,16 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                 },
                 {
                     id: 'action',
-                    header: 'Action',
+                    header: t('colAction'),
                     cell: ({ row }) => (
                         <StatusBadge variant={ACTION_VARIANT[row.original.action]}>
-                            {ACTION_LABEL[row.original.action]}
+                            {t(ACTION_LABEL_KEY[row.original.action])}
                         </StatusBadge>
                     ),
                 },
                 {
                     id: 'actor',
-                    header: 'Actor',
+                    header: t('colActor'),
                     cell: ({ row }) => (
                         <span className="text-sm text-content-default">
                             {userLabel(row.original.actor)}
@@ -171,7 +183,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                 },
                 {
                     id: 'target',
-                    header: 'Target',
+                    header: t('colTarget'),
                     cell: ({ row }) => (
                         <span className="text-sm text-content-default">
                             {userLabel(row.original.target)}
@@ -180,15 +192,15 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                 },
                 {
                     id: 'summary',
-                    header: 'Summary',
+                    header: t('colSummary'),
                     cell: ({ row }) => (
                         <span className="text-sm text-content-muted">
-                            {summarize(row.original)}
+                            {summarize(row.original, t)}
                         </span>
                     ),
                 },
             ]),
-        [],
+        [t],
     );
 
     return (
@@ -198,11 +210,10 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                     <div>
                         <Heading level={1} className="flex items-center gap-tight">
                             <ScrollText className="w-5 h-5" aria-hidden="true" />
-                            Audit Log
+                            {t('title')}
                         </Heading>
                         <p className="text-sm text-content-muted mt-1">
-                            Immutable, hash-chained record of org-level privilege changes.
-                            Append-only — entries cannot be modified or removed.
+                            {t('description')}
                         </p>
                     </div>
                 </div>
@@ -210,8 +221,8 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
             <ListPageShell.Body>
                 {rows.length === 0 ? (
                     <TableEmptyState
-                        title="No audit events yet"
-                        description="Member additions, removals, role changes, and provisioning fan-out will appear here as they happen."
+                        title={t('emptyTitle')}
+                        description={t('emptyDesc')}
                     />
                 ) : (
                     <DataTable
@@ -238,7 +249,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                             disabled={loading}
                             data-testid="org-audit-load-more"
                         >
-                            {loading ? 'Loading…' : 'Load older entries'}
+                            {loading ? t('loading') : t('loadMore')}
                         </Button>
                     </div>
                 )}

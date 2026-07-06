@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Building2, Plus, Trash2 } from 'lucide-react';
 
 import { ListPageShell } from '@/components/layout/ListPageShell';
@@ -35,8 +36,9 @@ function formatPercent(value: number | null): string {
 }
 
 function RagPill({ rag }: { rag: RagBadge | null }) {
+    const t = useTranslations('org.tenants');
     if (rag === null) {
-        return <StatusBadge variant="neutral">Pending</StatusBadge>;
+        return <StatusBadge variant="neutral">{t('pending')}</StatusBadge>;
     }
     const variant = rag === 'GREEN' ? 'success' : rag === 'AMBER' ? 'warning' : 'error';
     return <StatusBadge variant={variant}>{rag}</StatusBadge>;
@@ -45,6 +47,7 @@ function RagPill({ rag }: { rag: RagBadge | null }) {
 export function TenantsTable({ rows, orgSlug }: Props) {
     const perms = useOrgPermissions();
     const router = useRouter();
+    const t = useTranslations('org.tenants');
     const [sortBy, setSortBy] = useState<string>('rag');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -76,7 +79,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                 { method: 'DELETE', credentials: 'same-origin' },
             );
             if (!res.ok) {
-                let message = `Failed to remove tenant (${res.status}).`;
+                let message = t('removeFailed', { status: res.status });
                 try {
                     const body = (await res.json()) as {
                         error?: { message?: string };
@@ -135,7 +138,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
             createColumns<TenantHealthRow>([
                 {
                     id: 'name',
-                    header: 'Tenant',
+                    header: t('colTenant'),
                     cell: ({ row }) => (
                         <Link
                             href={row.original.drillDownUrl}
@@ -148,12 +151,12 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                 },
                 {
                     id: 'rag',
-                    header: 'Health',
+                    header: t('colHealth'),
                     cell: ({ row }) => <RagPill rag={row.original.rag} />,
                 },
                 {
                     id: 'coverage',
-                    header: 'Coverage',
+                    header: t('colCoverage'),
                     cell: ({ row }) => (
                         <span className="tabular-nums text-content-emphasis">
                             {formatPercent(row.original.coveragePercent)}
@@ -162,7 +165,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                 },
                 {
                     id: 'openRisks',
-                    header: 'Open risks',
+                    header: t('colOpenRisks'),
                     cell: ({ row }) => (
                         <span className="tabular-nums text-content-muted">
                             {row.original.openRisks ?? '—'}
@@ -171,7 +174,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                 },
                 {
                     id: 'criticalRisks',
-                    header: 'Critical',
+                    header: t('colCritical'),
                     cell: ({ row }) => (
                         <span className="tabular-nums text-content-muted">
                             {row.original.criticalRisks ?? '—'}
@@ -180,7 +183,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                 },
                 {
                     id: 'overdueEvidence',
-                    header: 'Overdue evidence',
+                    header: t('colOverdueEvidence'),
                     cell: ({ row }) => (
                         <span className="tabular-nums text-content-muted">
                             {row.original.overdueEvidence ?? '—'}
@@ -189,10 +192,10 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                 },
                 {
                     id: 'snapshotDate',
-                    header: 'Latest snapshot',
+                    header: t('colLatestSnapshot'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-subtle">
-                            {row.original.snapshotDate ?? 'Pending'}
+                            {row.original.snapshotDate ?? t('pending')}
                         </span>
                     ),
                 },
@@ -211,7 +214,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                                           icon={<Trash2 className="size-3.5" aria-hidden="true" />}
                                           onClick={() => setDeleteTarget(row.original)}
                                           data-testid={`org-tenant-delete-${row.original.slug}`}
-                                          text="Remove"
+                                          text={t('remove')}
                                       />
                                   </div>
                               ),
@@ -219,7 +222,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                       ]
                     : []),
             ]),
-        [perms.canManageTenants],
+        [perms.canManageTenants, t],
     );
 
     return (
@@ -228,10 +231,10 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                 <div className="flex items-end justify-between gap-default flex-wrap">
                     <div>
                         <Heading level={1}>
-                            Tenant Health
+                            {t('title')}
                         </Heading>
                         <p className="text-sm text-content-muted mt-1">
-                            {rows.length} tenant{rows.length === 1 ? '' : 's'} linked to this organization
+                            {t('tenantsSummary', { count: rows.length })}
                         </p>
                     </div>
                     {perms.canManageTenants && (
@@ -241,7 +244,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                             data-testid="org-tenants-new-link"
                         >
                             <Plus className="w-4 h-4" aria-hidden="true" />
-                            New tenant
+                            {t('newTenant')}
                         </Link>
                     )}
                 </div>
@@ -266,11 +269,13 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                         if (p.sortBy) setSortBy(p.sortBy);
                         if (p.sortOrder) setSortOrder(p.sortOrder);
                     }}
-                    resourceName={(plural) => (plural ? 'tenants' : 'tenant')}
+                    resourceName={(plural) =>
+                        plural ? t('resourcePlural') : t('resourceSingular')
+                    }
                     emptyState={
                         <TableEmptyState
-                            title="No tenants linked"
-                            description="Add tenants to this organization to populate the portfolio view."
+                            title={t('emptyTitle')}
+                            description={t('emptyDesc')}
                             icon={<Building2 className="size-10" />}
                         />
                     }
@@ -285,22 +290,22 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                 showModal={deleteTarget !== null}
                 setShowModal={(o) => (o ? null : closeDelete())}
             >
-                <Modal.Header title="Remove tenant" />
+                <Modal.Header title={t('removeModalTitle')} />
                 <Modal.Body>
                     {deleteTarget && (
                         <div className="space-y-default" data-testid="org-tenant-delete-modal">
                             <p className="text-sm text-content-default">
-                                This removes{' '}
-                                <span className="font-medium text-content-emphasis">
-                                    {deleteTarget.name}
-                                </span>{' '}
-                                from the organization. Its members lose access
-                                immediately and it disappears from the portfolio.
-                                The workspace data is retained (not erased), so it
-                                can be restored by an administrator.
+                                {t.rich('removeBody', {
+                                    name: deleteTarget.name,
+                                    b: (chunks) => (
+                                        <span className="font-medium text-content-emphasis">
+                                            {chunks}
+                                        </span>
+                                    ),
+                                })}
                             </p>
                             <FormField
-                                label={`Type "${deleteTarget.slug}" to confirm`}
+                                label={t('confirmLabel', { slug: deleteTarget.slug })}
                                 required
                             >
                                 <Input
@@ -326,7 +331,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                         variant="ghost"
                         size="sm"
                         onClick={closeDelete}
-                        text="Cancel"
+                        text={t('cancel')}
                     />
                     <Button
                         type="button"
@@ -338,7 +343,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                         }
                         onClick={confirmDelete}
                         data-testid="org-tenant-delete-confirm"
-                        text="Delete tenant"
+                        text={t('deleteTenant')}
                     />
                 </Modal.Footer>
             </Modal>

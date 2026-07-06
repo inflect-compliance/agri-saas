@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Plus, Mail, UserMinus, Shield, AlertTriangle, X } from 'lucide-react';
 
 import { ListPageShell } from '@/components/layout/ListPageShell';
@@ -49,15 +50,21 @@ const ROLE_VARIANT: Record<MemberRow['role'], 'error' | 'info'> = {
     ORG_READER: 'info',
 };
 
-const ROLE_LABEL: Record<MemberRow['role'], string> = {
-    ORG_ADMIN: 'Org admin',
-    ORG_READER: 'Org reader',
+const ROLE_LABEL_KEY: Record<MemberRow['role'], string> = {
+    ORG_ADMIN: 'roleAdmin',
+    ORG_READER: 'roleReader',
+};
+
+const ROLE_DESC_KEY: Record<MemberRow['role'], string> = {
+    ORG_ADMIN: 'roleAdminDesc',
+    ORG_READER: 'roleReaderDesc',
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
     const router = useRouter();
+    const t = useTranslations('org.members');
 
     const [addOpen, setAddOpen] = useState(false);
     const [inviteOpen, setInviteOpen] = useState(false);
@@ -69,7 +76,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
             createColumns<MemberRow>([
                 {
                     id: 'user',
-                    header: 'Member',
+                    header: t('colMember'),
                     cell: ({ row }) => (
                         <div className="flex flex-col">
                             <span
@@ -88,16 +95,16 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                 },
                 {
                     id: 'role',
-                    header: 'Role',
+                    header: t('colRole'),
                     cell: ({ row }) => (
                         <StatusBadge variant={ROLE_VARIANT[row.original.role]}>
-                            {ROLE_LABEL[row.original.role]}
+                            {t(ROLE_LABEL_KEY[row.original.role])}
                         </StatusBadge>
                     ),
                 },
                 {
                     id: 'joinedAt',
-                    header: 'Joined',
+                    header: t('colJoined'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-subtle tabular-nums">
                             {formatDate(row.original.joinedAt)}
@@ -114,8 +121,10 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                                 <Tooltip
                                     content={
                                         isSelf
-                                            ? 'You cannot change your own role'
-                                            : `Change role for ${row.original.user.email}`
+                                            ? t('tooltipCannotChangeOwnRole')
+                                            : t('tooltipChangeRoleFor', {
+                                                  email: row.original.user.email,
+                                              })
                                     }
                                 >
                                     <Button
@@ -127,14 +136,16 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                                         data-testid={`org-member-role-${row.original.userId}`}
                                     >
                                         <Shield className="size-3.5" aria-hidden="true" />
-                                        Change role
+                                        {t('changeRole')}
                                     </Button>
                                 </Tooltip>
                                 <Tooltip
                                     content={
                                         isSelf
-                                            ? 'You cannot remove yourself from the organization'
-                                            : `Remove ${row.original.user.email}`
+                                            ? t('tooltipCannotRemoveSelf')
+                                            : t('tooltipRemove', {
+                                                  email: row.original.user.email,
+                                              })
                                     }
                                 >
                                     <Button
@@ -150,7 +161,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                                             className="size-3.5"
                                             aria-hidden="true"
                                         />
-                                        Remove
+                                        {t('remove')}
                                     </Button>
                                 </Tooltip>
                             </div>
@@ -158,7 +169,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                     },
                 },
             ]),
-        [currentUserId],
+        [currentUserId, t],
     );
 
     return (
@@ -167,13 +178,10 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                 <div className="flex items-end justify-between gap-default flex-wrap">
                     <div>
                         <Heading level={1}>
-                            Org Members
+                            {t('title')}
                         </Heading>
                         <p className="text-sm text-content-muted mt-1">
-                            {rows.length} member{rows.length === 1 ? '' : 's'}
-                            {' '}across this organization. ORG_ADMINs are auto-
-                            provisioned as AUDITORs in every linked tenant; ORG_READERs
-                            see the portfolio summary only.
+                            {t('membersSummary', { count: rows.length })}
                         </p>
                     </div>
                     <div className="flex gap-tight">
@@ -185,7 +193,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                             data-testid="org-members-invite-button"
                         >
                             <Mail className="size-4" aria-hidden="true" />
-                            Invite by email
+                            {t('inviteByEmail')}
                         </Button>
                         <Button
                             type="button"
@@ -195,7 +203,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                             data-testid="org-members-add-button"
                         >
                             <Plus className="size-4" aria-hidden="true" />
-                            Add member
+                            {t('addMember')}
                         </Button>
                     </div>
                 </div>
@@ -206,14 +214,16 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                     data={rows}
                     columns={columns}
                     getRowId={(r) => r.membershipId}
-                    resourceName={(plural) => (plural ? 'members' : 'member')}
+                    resourceName={(plural) =>
+                        plural ? t('resourcePlural') : t('resourceSingular')
+                    }
                     emptyState={
                         <TableEmptyState
-                            title="No members yet"
-                            description="Invite your first member to start managing this organization."
+                            title={t('emptyTitle')}
+                            description={t('emptyDesc')}
                             icon={<Shield className="size-10" />}
                             action={{
-                                label: 'Add member',
+                                label: t('addMember'),
                                 onClick: () => setAddOpen(true),
                                 variant: 'primary',
                             }}
@@ -284,6 +294,7 @@ interface AddMemberModalProps {
 }
 
 function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalProps) {
+    const t = useTranslations('org.members');
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<MemberRow['role']>('ORG_READER');
     const [submitting, setSubmitting] = useState(false);
@@ -305,7 +316,7 @@ function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalPro
         e.preventDefault();
         const trimmed = email.trim().toLowerCase();
         if (!EMAIL_RE.test(trimmed)) {
-            setError('Enter a valid email address.');
+            setError(t('invalidEmail'));
             return;
         }
         setSubmitting(true);
@@ -318,7 +329,7 @@ function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalPro
                 body: JSON.stringify({ userEmail: trimmed, role }),
             });
             if (!res.ok) {
-                let message = `Failed to add member (${res.status}).`;
+                let message = t('addFailed', { status: res.status });
                 try {
                     const body = (await res.json()) as { error?: { message?: string } };
                     if (body?.error?.message) message = body.error.message;
@@ -343,7 +354,7 @@ function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalPro
 
     return (
         <Modal showModal={open} setShowModal={(o) => (o ? null : close())}>
-            <Modal.Header title="Add org member" />
+            <Modal.Header title={t('addModalTitle')} />
             <Modal.Body>
                 <form
                     id="org-add-member-form"
@@ -353,8 +364,8 @@ function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalPro
                     data-testid="org-add-member-form"
                 >
                     <FormField
-                        label="Email"
-                        description="The user is created as a placeholder if they have not signed in yet."
+                        label={t('emailLabel')}
+                        description={t('addEmailDesc')}
                         required
                     >
                         <Input
@@ -364,14 +375,14 @@ function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalPro
                             onChange={(e) => setEmail(e.target.value)}
                             autoComplete="off"
                             autoFocus
-                            placeholder="alice@example.com"
+                            placeholder={t('emailPlaceholder')}
                             data-testid="org-add-member-email"
                         />
                     </FormField>
 
                     <fieldset className="space-y-tight" data-testid="org-add-member-role-group">
                         <legend className="text-sm font-medium text-content-emphasis">
-                            Role
+                            {t('roleLegend')}
                         </legend>
                         {(['ORG_READER', 'ORG_ADMIN'] as const).map((opt) => {
                             const id = `org-add-member-role-${opt}`;
@@ -398,12 +409,10 @@ function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalPro
                                     />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-content-emphasis">
-                                            {ROLE_LABEL[opt]}
+                                            {t(ROLE_LABEL_KEY[opt])}
                                         </p>
                                         <p className="text-xs text-content-muted">
-                                            {opt === 'ORG_ADMIN'
-                                                ? 'Manages tenants + members. Auto-provisioned as AUDITOR in every child tenant.'
-                                                : 'Sees the portfolio summary. No tenant drill-down access.'}
+                                            {t(ROLE_DESC_KEY[opt])}
                                         </p>
                                     </div>
                                 </label>
@@ -431,7 +440,7 @@ function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalPro
                         onClick={close}
                         data-testid="org-add-member-cancel"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -440,7 +449,7 @@ function AddMemberModal({ orgSlug, open, onClose, onSuccess }: AddMemberModalPro
                         loading={submitting}
                         disabled={submitting}
                         data-testid="org-add-member-submit"
-                        text={submitting ? 'Adding…' : 'Add member'}
+                        text={submitting ? t('adding') : t('addMember')}
                     />
                 </Modal.Actions>
             </Modal.Footer>
@@ -463,6 +472,7 @@ function RemoveMemberModal({
     onClose,
     onSuccess,
 }: RemoveMemberModalProps) {
+    const t = useTranslations('org.members');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -485,7 +495,7 @@ function RemoveMemberModal({
                 credentials: 'same-origin',
             });
             if (!res.ok) {
-                let message = `Failed to remove member (${res.status}).`;
+                let message = t('removeFailed', { status: res.status });
                 try {
                     const body = (await res.json()) as { error?: { message?: string } };
                     if (body?.error?.message) message = body.error.message;
@@ -509,7 +519,7 @@ function RemoveMemberModal({
 
     return (
         <Modal showModal={open} setShowModal={(o) => (o ? null : close())}>
-            <Modal.Header title="Remove org member" />
+            <Modal.Header title={t('removeModalTitle')} />
             <Modal.Body>
                 <div
                     className="space-y-compact text-sm"
@@ -518,11 +528,14 @@ function RemoveMemberModal({
                     {target && (
                         <>
                             <p className="text-content-default">
-                                Remove{' '}
-                                <span className="font-medium text-content-emphasis">
-                                    {target.user.name ?? target.user.email}
-                                </span>
-                                {' '}from this organization?
+                                {t.rich('removeConfirm', {
+                                    name: target.user.name ?? target.user.email,
+                                    b: (chunks) => (
+                                        <span className="font-medium text-content-emphasis">
+                                            {chunks}
+                                        </span>
+                                    ),
+                                })}
                             </p>
                             {target.role === 'ORG_ADMIN' && (
                                 <div
@@ -533,13 +546,7 @@ function RemoveMemberModal({
                                         className="size-4 mt-0.5 flex-shrink-0"
                                         aria-hidden="true"
                                     />
-                                    <p>
-                                        This member is an ORG_ADMIN. Their auto-
-                                        provisioned AUDITOR memberships will be
-                                        removed from every child tenant.
-                                        Manually-granted memberships are
-                                        preserved.
-                                    </p>
+                                    <p>{t('removeAdminWarning')}</p>
                                 </div>
                             )}
                             {error && (
@@ -564,7 +571,7 @@ function RemoveMemberModal({
                         onClick={close}
                         data-testid="org-remove-member-cancel"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="button"
@@ -573,7 +580,7 @@ function RemoveMemberModal({
                         disabled={submitting}
                         onClick={onConfirm}
                         data-testid="org-remove-member-confirm"
-                        text={submitting ? 'Removing…' : 'Remove'}
+                        text={submitting ? t('removing') : t('remove')}
                     />
                 </Modal.Actions>
             </Modal.Footer>
@@ -596,6 +603,7 @@ function ChangeRoleModal({
     onClose,
     onSuccess,
 }: ChangeRoleModalProps) {
+    const t = useTranslations('org.members');
     // Cache the chosen role independently of the target prop so the
     // radio's controlled state survives re-renders while the modal
     // is open. Defaults to "the OTHER role" so the obvious action
@@ -632,7 +640,7 @@ function ChangeRoleModal({
                 body: JSON.stringify({ userId: target.userId, role: chosen }),
             });
             if (!res.ok) {
-                let message = `Failed to change role (${res.status}).`;
+                let message = t('changeRoleFailed', { status: res.status });
                 try {
                     const body = (await res.json()) as { error?: { message?: string } };
                     if (body?.error?.message) message = body.error.message;
@@ -663,7 +671,7 @@ function ChangeRoleModal({
 
     return (
         <Modal showModal={open} setShowModal={(o) => (o ? null : close())}>
-            <Modal.Header title="Change member role" />
+            <Modal.Header title={t('changeRoleModalTitle')} />
             <Modal.Body>
                 <form
                     id="org-change-role-form"
@@ -674,17 +682,20 @@ function ChangeRoleModal({
                 >
                     {target && (
                         <p className="text-sm text-content-default">
-                            Change role for{' '}
-                            <span className="font-medium text-content-emphasis">
-                                {target.user.name ?? target.user.email}
-                            </span>
-                            .
+                            {t.rich('changeRoleFor', {
+                                name: target.user.name ?? target.user.email,
+                                b: (chunks) => (
+                                    <span className="font-medium text-content-emphasis">
+                                        {chunks}
+                                    </span>
+                                ),
+                            })}
                         </p>
                     )}
 
                     <fieldset className="space-y-tight">
                         <legend className="text-sm font-medium text-content-emphasis">
-                            New role
+                            {t('newRoleLegend')}
                         </legend>
                         {(['ORG_ADMIN', 'ORG_READER'] as const).map((opt) => {
                             const id = `org-change-role-${opt}`;
@@ -711,12 +722,10 @@ function ChangeRoleModal({
                                     />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-content-emphasis">
-                                            {ROLE_LABEL[opt]}
+                                            {t(ROLE_LABEL_KEY[opt])}
                                         </p>
                                         <p className="text-xs text-content-muted">
-                                            {opt === 'ORG_ADMIN'
-                                                ? 'Manages tenants + members. Auto-provisioned as AUDITOR in every child tenant.'
-                                                : 'Sees the portfolio summary. No tenant drill-down access.'}
+                                            {t(ROLE_DESC_KEY[opt])}
                                         </p>
                                     </div>
                                 </label>
@@ -739,11 +748,7 @@ function ChangeRoleModal({
                             data-testid="org-change-role-promotion-callout"
                         >
                             <Shield className="size-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                            <p>
-                                Promoting to ORG_ADMIN will also create an
-                                AUDITOR membership for this user in every
-                                child tenant of the organization.
-                            </p>
+                            <p>{t('promotionCallout')}</p>
                         </div>
                     )}
                     {isDemotion && (
@@ -753,12 +758,7 @@ function ChangeRoleModal({
                             data-testid="org-change-role-demotion-callout"
                         >
                             <AlertTriangle className="size-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                            <p>
-                                Demoting to ORG_READER will remove the
-                                auto-provisioned AUDITOR membership from
-                                every child tenant. Manually-granted
-                                tenant memberships are preserved.
-                            </p>
+                            <p>{t('demotionCallout')}</p>
                         </div>
                     )}
 
@@ -782,7 +782,7 @@ function ChangeRoleModal({
                         onClick={close}
                         data-testid="org-change-role-cancel"
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -791,7 +791,7 @@ function ChangeRoleModal({
                         loading={submitting}
                         disabled={submitting || isNoOp || chosen === null}
                         data-testid="org-change-role-submit"
-                        text={submitting ? 'Saving…' : 'Save role'}
+                        text={submitting ? t('saving') : t('saveRole')}
                     />
                 </Modal.Actions>
             </Modal.Footer>
@@ -809,6 +809,7 @@ interface InviteMemberModalProps {
 }
 
 function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberModalProps) {
+    const t = useTranslations('org.members');
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<MemberRow['role']>('ORG_READER');
     const [submitting, setSubmitting] = useState(false);
@@ -836,7 +837,7 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
         e.preventDefault();
         const trimmed = email.trim().toLowerCase();
         if (!EMAIL_RE.test(trimmed)) {
-            setError('Enter a valid email address.');
+            setError(t('invalidEmail'));
             return;
         }
         setSubmitting(true);
@@ -849,7 +850,7 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                 body: JSON.stringify({ email: trimmed, role }),
             });
             if (!res.ok) {
-                let message = `Failed to create invite (${res.status}).`;
+                let message = t('inviteFailed', { status: res.status });
                 try {
                     const body = (await res.json()) as { error?: { message?: string } };
                     if (body?.error?.message) message = body.error.message;
@@ -893,9 +894,9 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                 title={
                     issued
                         ? emailSent
-                            ? 'Invitation sent'
-                            : 'Invite created'
-                        : 'Invite by email'
+                            ? t('invitationSentTitle')
+                            : t('inviteCreatedTitle')
+                        : t('inviteByEmail')
                 }
             />
             <Modal.Body>
@@ -903,34 +904,35 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                     <div className="space-y-compact text-sm" data-testid="org-invite-issued">
                         {emailSent ? (
                             <p className="text-content-default" data-testid="org-invite-emailed">
-                                Invitation emailed to{' '}
-                                <span className="font-medium text-content-emphasis">
-                                    {issuedEmail}
-                                </span>
-                                . The link expires in 7 days and is single-use.
+                                {t.rich('invitationEmailed', {
+                                    email: issuedEmail,
+                                    b: (chunks) => (
+                                        <span className="font-medium text-content-emphasis">
+                                            {chunks}
+                                        </span>
+                                    ),
+                                })}
                             </p>
                         ) : (
                             <p className="text-content-default">
-                                The invite was created but the email could not be
-                                sent — share this acceptance link with{' '}
-                                <span className="font-medium text-content-emphasis">
-                                    {issuedEmail}
-                                </span>{' '}
-                                directly. It expires in 7 days and is single-use.
+                                {t.rich('inviteCreatedNoEmail', {
+                                    email: issuedEmail,
+                                    b: (chunks) => (
+                                        <span className="font-medium text-content-emphasis">
+                                            {chunks}
+                                        </span>
+                                    ),
+                                })}
                             </p>
                         )}
                         <p className="text-xs text-content-muted">
-                            {emailSent
-                                ? 'You can also copy the link below to share it another way.'
-                                : 'Copy the link below.'}
+                            {emailSent ? t('copyLinkAlso') : t('copyLinkBelow')}
                         </p>
                         <div className="rounded-lg border border-border-subtle bg-bg-subtle p-3 break-all font-mono text-xs">
                             {issuedUrl}
                         </div>
                         <p className="text-xs text-content-muted">
-                            Tip: bookmark this — closing the dialog won&#39;t
-                            re-display the URL. The pending invite is also
-                            visible in the list below.
+                            {t('inviteTip')}
                         </p>
                     </div>
                 ) : (
@@ -942,8 +944,8 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                         data-testid="org-invite-member-form"
                     >
                         <FormField
-                            label="Email"
-                            description="The recipient receives a single-use acceptance link valid for 7 days."
+                            label={t('emailLabel')}
+                            description={t('inviteEmailDesc')}
                             required
                         >
                             <Input
@@ -953,14 +955,14 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                                 onChange={(e) => setEmail(e.target.value)}
                                 autoComplete="off"
                                 autoFocus
-                                placeholder="alice@example.com"
+                                placeholder={t('emailPlaceholder')}
                                 data-testid="org-invite-member-email"
                             />
                         </FormField>
 
                         <fieldset className="space-y-tight" data-testid="org-invite-member-role-group">
                             <legend className="text-sm font-medium text-content-emphasis">
-                                Role
+                                {t('roleLegend')}
                             </legend>
                             {(['ORG_READER', 'ORG_ADMIN'] as const).map((opt) => {
                                 const id = `org-invite-member-role-${opt}`;
@@ -987,12 +989,12 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                                         />
                                         <div className="min-w-0">
                                             <p className="text-sm font-medium text-content-emphasis">
-                                                {ROLE_LABEL[opt]}
+                                                {t(ROLE_LABEL_KEY[opt])}
                                             </p>
                                             <p className="text-xs text-content-muted">
                                                 {opt === 'ORG_ADMIN'
-                                                    ? 'Manages tenants + members. Auto-provisioned as AUDITOR in every child tenant on accept.'
-                                                    : 'Sees the portfolio summary. No tenant drill-down access.'}
+                                                    ? t('roleAdminDescAccept')
+                                                    : t('roleReaderDesc')}
                                             </p>
                                         </div>
                                     </label>
@@ -1022,7 +1024,7 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                                 onSuccess();
                             }}
                             data-testid="org-invite-issued-done"
-                            text="Done"
+                            text={t('doneBtn')}
                         />
                     ) : (
                         <>
@@ -1033,7 +1035,7 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                                 onClick={close}
                                 data-testid="org-invite-member-cancel"
                             >
-                                Cancel
+                                {t('cancel')}
                             </Button>
                             <Button
                                 type="submit"
@@ -1042,7 +1044,7 @@ function InviteMemberModal({ orgSlug, open, onClose, onSuccess }: InviteMemberMo
                                 loading={submitting}
                                 disabled={submitting}
                                 data-testid="org-invite-member-submit"
-                                text={submitting ? 'Creating…' : 'Send invite'}
+                                text={submitting ? t('creating') : t('sendInvite')}
                             />
                         </>
                     )}
@@ -1061,6 +1063,7 @@ interface PendingInvitesSectionProps {
 }
 
 function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSectionProps) {
+    const t = useTranslations('org.members');
     const [revokingId, setRevokingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -1074,7 +1077,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                     { method: 'DELETE', credentials: 'same-origin' },
                 );
                 if (!res.ok) {
-                    let message = `Failed to revoke invite (${res.status}).`;
+                    let message = t('revokeFailed', { status: res.status });
                     try {
                         const body = (await res.json()) as {
                             error?: { message?: string };
@@ -1105,7 +1108,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
             createColumns<PendingInviteRow>([
                 {
                     id: 'email',
-                    header: 'Email',
+                    header: t('colEmail'),
                     cell: ({ row }) => (
                         <span className="text-sm text-content-default">
                             {row.original.email}
@@ -1114,16 +1117,16 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                 },
                 {
                     id: 'role',
-                    header: 'Role',
+                    header: t('colRole'),
                     cell: ({ row }) => (
                         <StatusBadge variant={ROLE_VARIANT[row.original.role]}>
-                            {ROLE_LABEL[row.original.role]}
+                            {t(ROLE_LABEL_KEY[row.original.role])}
                         </StatusBadge>
                     ),
                 },
                 {
                     id: 'invitedBy',
-                    header: 'Invited by',
+                    header: t('colInvitedBy'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted">
                             {row.original.invitedBy?.name ??
@@ -1134,7 +1137,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                 },
                 {
                     id: 'expiresAt',
-                    header: 'Expires',
+                    header: t('colExpires'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-subtle tabular-nums">
                             {formatDate(row.original.expiresAt)}
@@ -1146,7 +1149,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                     header: '',
                     cell: ({ row }) => (
                         <div className="flex justify-end">
-                            <Tooltip content={`Revoke invite for ${row.original.email}`}>
+                            <Tooltip content={t('tooltipRevokeInvite', { email: row.original.email })}>
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -1157,20 +1160,20 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                                     data-testid={`org-invite-revoke-${row.original.id}`}
                                 >
                                     <X className="size-3.5" aria-hidden="true" />
-                                    {revokingId === row.original.id ? 'Revoking…' : 'Revoke'}
+                                    {revokingId === row.original.id ? t('revoking') : t('revoke')}
                                 </Button>
                             </Tooltip>
                         </div>
                     ),
                 },
             ]),
-        [revokingId, revoke],
+        [revokingId, revoke, t],
     );
 
     return (
         <div className="mt-8" data-testid="org-pending-invites-section">
             <Heading level={2} className="mb-2">
-                Pending invitations
+                {t('pendingInvitations')}
                 <span className="ml-2 text-sm font-normal text-content-muted">
                     ({invites.length})
                 </span>
@@ -1188,7 +1191,9 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                 data={invites}
                 columns={inviteColumns}
                 getRowId={(r) => r.id}
-                resourceName={(plural) => (plural ? 'invitations' : 'invitation')}
+                resourceName={(plural) =>
+                    plural ? t('inviteResourcePlural') : t('inviteResourceSingular')
+                }
                 data-testid="org-pending-invites-table"
             />
         </div>

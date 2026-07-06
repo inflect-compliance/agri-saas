@@ -234,7 +234,12 @@ describe('TenantCoverageCards — Epic 66 rollout', () => {
         expect(
             container.querySelector('[data-testid="org-tenant-coverage-cards"]'),
         ).toBeNull();
-        expect(container.textContent).toContain('No tenants linked');
+        // T14 i18n — the empty-state title moved to a next-intl key
+        // (org.sections.emptyTenantsTitle = "No tenants linked"). This
+        // file's next-intl mock echoes keys (see the installed/available
+        // badge assertions above), so the rendered EmptyState carries the
+        // key. The English copy is asserted in messages/en.json elsewhere.
+        expect(container.textContent).toContain('emptyTenantsTitle');
     });
 
     it('exposes a navigable Link in the card header pointing at drillDownUrl', () => {
