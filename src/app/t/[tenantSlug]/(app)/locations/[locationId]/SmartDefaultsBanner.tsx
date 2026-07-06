@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/format-date';
@@ -21,19 +22,20 @@ const SPRAY_TONE: Record<'GOOD' | 'CAUTION' | 'UNSUITABLE', string> = {
     UNSUITABLE: 'text-content-error',
 };
 
-const SPRAY_LABEL: Record<'GOOD' | 'CAUTION' | 'UNSUITABLE', string> = {
-    GOOD: 'Good to spray',
-    CAUTION: 'Spray with caution',
-    UNSUITABLE: 'Not a good spray day',
+const SPRAY_LABEL_KEY: Record<'GOOD' | 'CAUTION' | 'UNSUITABLE', string> = {
+    GOOD: 'sprayGood',
+    CAUTION: 'sprayCaution',
+    UNSUITABLE: 'sprayUnsuitable',
 };
 
-const STAGE_LABEL: Record<'sow' | 'transplant' | 'harvest', string> = {
-    sow: 'Sow',
-    transplant: 'Transplant',
-    harvest: 'Harvest',
+const STAGE_LABEL_KEY: Record<'sow' | 'transplant' | 'harvest', string> = {
+    sow: 'stageSow',
+    transplant: 'stageTransplant',
+    harvest: 'stageHarvest',
 };
 
 export function SmartDefaultsBanner({ data }: { data?: LocationSmartDefaults | null }) {
+    const t = useTranslations('locations.smart');
     const sprayWindow = data?.sprayWindow ?? null;
     const nextPlanting = data?.nextPlanting ?? null;
     if (!sprayWindow && !nextPlanting) return null;
@@ -42,9 +44,9 @@ export function SmartDefaultsBanner({ data }: { data?: LocationSmartDefaults | n
         <Card density="compact" className="flex flex-wrap items-center gap-x-section gap-y-tight">
             {sprayWindow && (
                 <div className="min-w-0">
-                    <p className="text-xs text-content-secondary">Spray window today</p>
+                    <p className="text-xs text-content-secondary">{t('sprayWindowToday')}</p>
                     <p className={cn('text-sm font-medium', SPRAY_TONE[sprayWindow.status])}>
-                        {SPRAY_LABEL[sprayWindow.status]}
+                        {t(SPRAY_LABEL_KEY[sprayWindow.status])}
                     </p>
                     {sprayWindow.reasons.length > 0 && (
                         <p className="text-xs text-content-muted">{sprayWindow.reasons.join(' · ')}</p>
@@ -53,9 +55,9 @@ export function SmartDefaultsBanner({ data }: { data?: LocationSmartDefaults | n
             )}
             {nextPlanting && (
                 <div className="min-w-0">
-                    <p className="text-xs text-content-secondary">Next crop-plan task</p>
+                    <p className="text-xs text-content-secondary">{t('nextCropPlanTask')}</p>
                     <p className="text-sm font-medium">
-                        {STAGE_LABEL[nextPlanting.stage]} {nextPlanting.label}
+                        {t(STAGE_LABEL_KEY[nextPlanting.stage])} {nextPlanting.label}
                     </p>
                     <p className="text-xs text-content-muted">{formatDate(new Date(nextPlanting.date))}</p>
                 </div>

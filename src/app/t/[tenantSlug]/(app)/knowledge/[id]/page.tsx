@@ -7,6 +7,7 @@
 
 import { formatDate } from '@/lib/format-date';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import {
@@ -31,19 +32,24 @@ import { cn } from '@/lib/cn';
 // gzipped; deferring the import keeps the static parts of the detail
 // page (current view, versions) light unless the Editor tab opens.
 // Mirrors the Policy detail page.
+function EditorLoading() {
+    const t = useTranslations('knowledge.detail');
+    return (
+        <Card
+            elevation="inset"
+            density="compact"
+            className="text-center text-sm text-content-muted"
+        >
+            {t('loadingEditor')}
+        </Card>
+    );
+}
+
 const RichTextEditor = dynamic(
     () => import('@/components/ui/RichTextEditor').then((m) => m.RichTextEditor),
     {
         ssr: false,
-        loading: () => (
-            <Card
-                elevation="inset"
-                density="compact"
-                className="text-center text-sm text-content-muted"
-            >
-                Loading editor…
-            </Card>
-        ),
+        loading: () => <EditorLoading />,
     },
 );
 
@@ -85,6 +91,8 @@ interface ArticleDetail {
 type KnowledgeTab = 'current' | 'versions' | 'editor';
 
 export default function KnowledgeArticleDetailPage() {
+    const t = useTranslations('knowledge.detail');
+    const tk = useTranslations('knowledge');
     const params = useParams();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
@@ -231,7 +239,7 @@ export default function KnowledgeArticleDetailPage() {
             const safe = sanitizeRichTextHtml(v.contentText ?? '');
             if (!safe.trim()) {
                 return (
-                    <span className="text-content-subtle italic">No content</span>
+                    <span className="text-content-subtle italic">{t('noContent')}</span>
                 );
             }
             return (
@@ -245,7 +253,7 @@ export default function KnowledgeArticleDetailPage() {
         return (
             <div className="prose prose-sm prose-invert max-w-none text-content-default whitespace-pre-wrap text-sm">
                 {v.contentText || (
-                    <span className="text-content-subtle italic">No content</span>
+                    <span className="text-content-subtle italic">{t('noContent')}</span>
                 )}
             </div>
         );
@@ -254,9 +262,9 @@ export default function KnowledgeArticleDetailPage() {
     // ── Render ──
 
     const breadcrumbs = [
-        { label: 'Dashboard', href: tenantHref('/dashboard') },
-        { label: 'Knowledge', href: tenantHref('/knowledge') },
-        { label: article?.title ?? 'Article' },
+        { label: tk('bcDashboard'), href: tenantHref('/dashboard') },
+        { label: tk('bcKnowledge'), href: tenantHref('/knowledge') },
+        { label: article?.title ?? t('bcArticle') },
     ];
 
     if (loading) {
@@ -276,7 +284,7 @@ export default function KnowledgeArticleDetailPage() {
     if (!article) {
         return (
             <EntityDetailLayout
-                empty={{ message: 'Article not found.' }}
+                empty={{ message: t('notFound') }}
                 title=""
                 breadcrumbs={breadcrumbs}
             >
@@ -292,9 +300,9 @@ export default function KnowledgeArticleDetailPage() {
     const isPublished = article.status === 'PUBLISHED';
 
     const tabs: ReadonlyArray<{ key: KnowledgeTab; label: string }> = [
-        { key: 'current', label: 'Current' },
-        { key: 'versions', label: 'Versions' },
-        ...(canWrite ? ([{ key: 'editor' as const, label: 'Editor' }]) : []),
+        { key: 'current', label: t('tabCurrent') },
+        { key: 'versions', label: t('tabVersions') },
+        ...(canWrite ? ([{ key: 'editor' as const, label: t('tabEditor') }]) : []),
     ];
 
     return (
@@ -315,14 +323,14 @@ export default function KnowledgeArticleDetailPage() {
                         {
                             kind: 'status',
                             id: 'knowledge-status',
-                            label: 'Status',
+                            label: t('metaStatus'),
                             value: article.status,
                             variant: STATUS_VARIANT[article.status] ?? 'neutral',
                         },
                         ...(article.category
                             ? [
                                   {
-                                      label: 'Category',
+                                      label: t('metaCategory'),
                                       value: article.category,
                                   } as const,
                               ]
@@ -330,7 +338,7 @@ export default function KnowledgeArticleDetailPage() {
                         ...(article.source
                             ? [
                                   {
-                                      label: 'Source',
+                                      label: t('metaSource'),
                                       value: article.source,
                                   } as const,
                               ]
@@ -338,7 +346,7 @@ export default function KnowledgeArticleDetailPage() {
                         ...(article.owner
                             ? [
                                   {
-                                      label: 'Owner',
+                                      label: t('metaOwner'),
                                       value: article.owner.name ?? '—',
                                   } as const,
                               ]
@@ -363,7 +371,7 @@ export default function KnowledgeArticleDetailPage() {
                             }}
                             id="new-version-btn"
                         >
-                            New version
+                            {t('newVersion')}
                         </Button>
                     )}
                     {canAdmin && article.status !== 'ARCHIVED' && (
@@ -375,7 +383,7 @@ export default function KnowledgeArticleDetailPage() {
                             disabled={actionLoading === 'archive'}
                             id="archive-btn"
                         >
-                            {actionLoading === 'archive' ? '…' : 'Archive'}
+                            {actionLoading === 'archive' ? '…' : t('archive')}
                         </Button>
                     )}
                 </>
@@ -400,8 +408,7 @@ export default function KnowledgeArticleDetailPage() {
                     <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-content-subtle">
                         {article.language && <span>{article.language}</span>}
                         <span>
-                            {versions.length} version
-                            {versions.length !== 1 ? 's' : ''}
+                            {t('versionsCount', { count: versions.length })}
                         </span>
                     </div>
                     {/* Acknowledge — readership receipt. Only meaningful on a
@@ -415,7 +422,7 @@ export default function KnowledgeArticleDetailPage() {
                             data-testid="knowledge-acknowledged"
                         >
                             <StatusBadge variant="success">
-                                You acknowledged this
+                                {t('acknowledgedBadge')}
                             </StatusBadge>
                         </span>
                     ) : (
@@ -429,13 +436,13 @@ export default function KnowledgeArticleDetailPage() {
                         >
                             {actionLoading === 'acknowledge'
                                 ? '…'
-                                : 'Acknowledge'}
+                                : t('acknowledge')}
                         </Button>
                     )}
                 </div>
                 {!isPublished && !article.acknowledged && (
                     <p className="text-xs text-content-subtle">
-                        Acknowledgement opens once this article is published.
+                        {t('ackOpensWhenPublished')}
                     </p>
                 )}
             </div>
@@ -447,19 +454,21 @@ export default function KnowledgeArticleDetailPage() {
                         <>
                             <div className="flex items-center justify-between">
                                 <div className="text-sm text-content-muted">
-                                    Version {currentVersion.versionNumber} ·{' '}
-                                    {currentVersion.createdBy?.name ?? 'Unknown'}{' '}
-                                    · {formatDate(currentVersion.createdAt)}
+                                    {t('versionLine', {
+                                        number: currentVersion.versionNumber,
+                                        author: currentVersion.createdBy?.name ?? t('unknownAuthor'),
+                                        date: formatDate(currentVersion.createdAt),
+                                    })}
                                 </div>
                             </div>
                             {renderVersionContent(currentVersion)}
                         </>
                     ) : (
                         <div className="text-center text-content-subtle py-8">
-                            <p>No version published yet.</p>
+                            <p>{t('noVersionPublished')}</p>
                             {canWrite && (
                                 <p className="text-sm mt-1">
-                                    Create a version in the Editor tab.
+                                    {t('createInEditor')}
                                 </p>
                             )}
                         </div>
@@ -472,7 +481,7 @@ export default function KnowledgeArticleDetailPage() {
                 <div className="space-y-compact" id="version-history">
                     {versions.length === 0 ? (
                         <Card className="text-center text-content-subtle">
-                            No versions yet.
+                            {t('noVersionsYet')}
                         </Card>
                     ) : (
                         versions.map((v) => {
@@ -494,16 +503,15 @@ export default function KnowledgeArticleDetailPage() {
                                             </span>
                                             {isCurrentPublished && (
                                                 <StatusBadge variant="success">
-                                                    Published
+                                                    {t('publishedBadge')}
                                                 </StatusBadge>
                                             )}
                                             <span className="text-xs text-content-subtle">
-                                                {v.createdBy?.name ?? 'Unknown'} ·{' '}
+                                                {v.createdBy?.name ?? t('unknownAuthor')} ·{' '}
                                                 {formatDate(v.createdAt)}
                                             </span>
                                             <span className="text-xs text-content-subtle">
-                                                {ackCount} ack
-                                                {ackCount !== 1 ? 's' : ''}
+                                                {t('acksCount', { count: ackCount })}
                                             </span>
                                         </div>
                                         <div className="flex gap-tight">
@@ -520,7 +528,7 @@ export default function KnowledgeArticleDetailPage() {
                                                     {actionLoading ===
                                                     'publish-' + v.id
                                                         ? '…'
-                                                        : 'Publish'}
+                                                        : t('publish')}
                                                 </Button>
                                             )}
                                         </div>
@@ -532,7 +540,7 @@ export default function KnowledgeArticleDetailPage() {
                                     )}
                                     <details className="group">
                                         <summary className="text-xs text-[var(--brand-default)] cursor-pointer hover:text-[var(--brand-muted)]">
-                                            Show content
+                                            {t('showContent')}
                                         </summary>
                                         <div className="mt-2 border-t border-border-subtle pt-2">
                                             {renderVersionContent(v)}
@@ -549,25 +557,25 @@ export default function KnowledgeArticleDetailPage() {
             {tab === 'editor' && canWrite && (
                 <div className={cn(cardVariants(), 'space-y-default')}>
                     <div className="flex items-center justify-between">
-                        <Heading level={3}>Create New Version</Heading>
+                        <Heading level={3}>{t('createNewVersion')}</Heading>
                     </div>
 
                     <RichTextEditor
                         id="version-editor"
                         value={editorContent}
                         contentType={editorContentType}
-                        placeholder="Write the article content…"
+                        placeholder={t('editorPlaceholder')}
                         onChange={(value, nextType) => {
                             setEditorContent(value);
                             setEditorContentType(nextType);
                         }}
                     />
 
-                    <FormField label="Change Summary" hint="Optional.">
+                    <FormField label={t('changeSummary')} hint={t('changeSummaryHint')}>
                         <Input
                             value={changeSummary}
                             onChange={(e) => setChangeSummary(e.target.value)}
-                            placeholder="What changed in this version?"
+                            placeholder={t('changeSummaryPlaceholder')}
                             id="change-summary-input"
                         />
                     </FormField>
@@ -578,7 +586,7 @@ export default function KnowledgeArticleDetailPage() {
                         disabled={saving || !editorContent.trim()}
                         id="save-version-btn"
                     >
-                        {saving ? 'Saving…' : 'Save version'}
+                        {saving ? t('saving') : t('saveVersion')}
                     </Button>
                 </div>
             )}

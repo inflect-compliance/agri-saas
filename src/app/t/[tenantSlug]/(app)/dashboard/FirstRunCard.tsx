@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import { Card } from '@/components/ui/card';
@@ -51,6 +52,7 @@ export default function FirstRunCard({
     payload: AgDashboardPayload;
     onChanged?: () => void;
 }) {
+    const t = useTranslations('dashboard.firstRun');
     const router = useRouter();
     const href = useTenantHref();
     const buildUrl = useTenantApiUrl();
@@ -93,11 +95,11 @@ export default function FirstRunCard({
             const res = await apiPost<{ created: boolean }>(buildUrl('/sample-data'), {});
             await refresh();
             toast.success(
-                res.created ? 'Sample data added' : 'Sample data is already loaded',
-                { description: 'Explore freely — clear it anytime from here.' },
+                res.created ? t('sampleAdded') : t('sampleAlreadyLoaded'),
+                { description: t('sampleAddedDesc') },
             );
         } catch {
-            toast.error("Couldn't add sample data", { description: 'Please try again.' });
+            toast.error(t('sampleAddError'), { description: t('tryAgain') });
         } finally {
             setBusy(false);
         }
@@ -108,9 +110,9 @@ export default function FirstRunCard({
         try {
             await apiDelete(buildUrl('/sample-data'));
             await refresh();
-            toast.success('Sample data cleared');
+            toast.success(t('sampleCleared'));
         } catch {
-            toast.error("Couldn't clear sample data", { description: 'Please try again.' });
+            toast.error(t('sampleClearError'), { description: t('tryAgain') });
         } finally {
             setBusy(false);
         }
@@ -123,11 +125,10 @@ export default function FirstRunCard({
                 <div className="flex items-start justify-between gap-default">
                     <div className="min-w-0 space-y-1">
                         <Heading level={2} className="text-base">
-                            You&rsquo;re exploring with sample data
+                            {t('sampleTitle')}
                         </Heading>
                         <p className="text-sm text-content-secondary">
-                            These demo fields, jobs, and stock let you try the app risk-free.
-                            Clear them whenever you&rsquo;re ready to track your real operation.
+                            {t('sampleDesc')}
                         </p>
                     </div>
                     <Button
@@ -137,7 +138,7 @@ export default function FirstRunCard({
                         onClick={clearSample}
                         className="shrink-0"
                     >
-                        Clear sample data
+                        {t('clearSample')}
                     </Button>
                 </div>
             </Card>
@@ -153,17 +154,17 @@ export default function FirstRunCard({
                     label={`${progress.completedCount}/${progress.total}`}
                     size="lg"
                     variant="brand"
-                    aria-label={`Farm setup — ${progress.completedCount} of ${progress.total} steps done`}
+                    aria-label={t('setupProgress', { completed: progress.completedCount, total: progress.total })}
                     className="shrink-0"
                 />
                 <div className="min-w-0 flex-1 space-y-default">
                     <div className="flex items-start justify-between gap-compact">
                         <div className="min-w-0">
                             <Heading level={2} className="text-base">
-                                Get your farm set up
+                                {t('onboardingTitle')}
                             </Heading>
                             <p className="text-sm text-content-secondary">
-                                Two quick steps and your records start working for you.
+                                {t('onboardingDesc')}
                             </p>
                         </div>
                         <Button
@@ -172,7 +173,7 @@ export default function FirstRunCard({
                             onClick={() => setDismissed(true)}
                             className="shrink-0"
                         >
-                            Dismiss
+                            {t('dismiss')}
                         </Button>
                     </div>
                     <ul className="space-y-compact">
@@ -217,7 +218,7 @@ export default function FirstRunCard({
                     </ul>
                     <div className="flex items-center gap-compact border-t border-border-subtle pt-default">
                         <p className="flex-1 text-xs text-content-muted">
-                            Not ready to enter real data? Explore with a sample farm first.
+                            {t('sampleHint')}
                         </p>
                         <Button
                             variant="ghost"
@@ -226,7 +227,7 @@ export default function FirstRunCard({
                             onClick={loadSample}
                             className="shrink-0"
                         >
-                            Try it with sample data
+                            {t('trySample')}
                         </Button>
                     </div>
                 </div>

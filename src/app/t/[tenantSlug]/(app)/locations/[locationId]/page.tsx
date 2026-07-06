@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
 import type { Geometry } from 'geojson';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
@@ -105,6 +106,7 @@ function ParcelCropSelect({
     value: string | null;
     onChange: (cropType: string) => Promise<void> | void;
 }) {
+    const t = useTranslations('locations.detail');
     const [saving, setSaving] = useState(false);
     const selected =
         CROP_OPTIONS.find((o) => o.value === value) ??
@@ -125,7 +127,7 @@ function ParcelCropSelect({
                         <span className="text-xs text-content-subtle">{o.meta.season}</span>
                     ) : null
                 }
-                placeholder="Set crop…"
+                placeholder={t('setCropPlaceholder')}
                 hideSearch
                 matchTriggerWidth
                 caret
@@ -136,6 +138,9 @@ function ParcelCropSelect({
 }
 
 export default function LocationDetailPage() {
+    const t = useTranslations('locations.detail');
+    const tl = useTranslations('locations');
+    const tCommon = useTranslations('common');
     const { tenantSlug, locationId } = useParams<{ tenantSlug: string; locationId: string }>();
     const buildUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
@@ -199,11 +204,11 @@ export default function LocationDetailPage() {
             URL.revokeObjectURL(url);
             setShowDnevnik(false);
         } catch {
-            toast.error('Неуспешно генериране на дневника.');
+            toast.error(t('dnevnikGenerateFail'));
         } finally {
             setDnevnikBusy(false);
         }
-    }, [buildUrl, locationId, dnevnikFrom, dnevnikTo, toast]);
+    }, [buildUrl, locationId, dnevnikFrom, dnevnikTo, toast, t]);
     // Satellite vegetation-index overlay (Google Earth Engine). At most one
     // index (NDVI / NDMI / NDRE / GNDVI / EVI) is active at a time — they are
     // mutually exclusive. `null` = off (the default). The single inspection
@@ -242,7 +247,7 @@ export default function LocationDetailPage() {
     // date-utils UTC-midnight contract (no tz drift).
     const imageryShort = imageryDate
         ? `${imageryDate.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][imageryDate.getUTCMonth()]}`
-        : 'Date';
+        : t('dateFallback');
     const indexQ = useTenantSWR<{ configured: boolean; tileUrl: string; date?: string; error?: string }>(
         tab === 'map' && activeSpec
             ? `/agro/${activeSpec.route}?locationId=${locationId}${imageryYmd ? `&date=${imageryYmd}` : ''}`
@@ -307,14 +312,14 @@ export default function LocationDetailPage() {
             createColumns<ParcelRow>([
                 {
                     accessorKey: 'name',
-                    header: 'Name',
+                    header: t('colName'),
                     cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
                     // Mobile (<sm) card heading.
                     meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'crop',
-                    header: 'Crop',
+                    header: t('colCrop'),
                     cell: ({ row }) => (
                         <ParcelCropSelect
                             value={row.original.cropType ?? null}
@@ -322,17 +327,17 @@ export default function LocationDetailPage() {
                         />
                     ),
                     // Mobile card key/value row — the parcel's crop.
-                    meta: { mobileCard: { slot: 'meta', label: 'Crop' } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colCrop') } },
                 },
                 {
                     id: 'areaHa',
-                    header: 'Area (ha)',
+                    header: t('colAreaHa'),
                     cell: ({ row }) => row.original.areaHa ?? '—',
                     // Mobile card key/value row — parcel area.
-                    meta: { mobileCard: { slot: 'meta', label: 'Area (ha)' } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colAreaHa') } },
                 },
             ]),
-        [setParcelCrop],
+        [setParcelCrop, t],
     );
 
     const downloadRecord = useCallback(
@@ -350,10 +355,10 @@ export default function LocationDetailPage() {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             } catch {
-                toast.error('Неуспешно изтегляне на дневника.');
+                toast.error(t('dnevnikDownloadFail'));
             }
         },
-        [buildUrl, toast],
+        [buildUrl, toast, t],
     );
 
     const recordColumns = useMemo(
@@ -361,33 +366,33 @@ export default function LocationDetailPage() {
             createColumns<FarmRecordRow>([
                 {
                     accessorKey: 'generatedAt',
-                    header: 'Генериран на',
+                    header: t('colGeneratedAt'),
                     cell: ({ row }) => (
                         <span className="flex items-center gap-tight">
                             {formatDateTime(row.original.generatedAt)}
-                            {row.index === 0 && <StatusBadge variant="success">текущ</StatusBadge>}
+                            {row.index === 0 && <StatusBadge variant="success">{t('badgeCurrent')}</StatusBadge>}
                         </span>
                     ),
                     meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'period',
-                    header: 'Период',
+                    header: t('colPeriod'),
                     cell: ({ row }) => `${row.original.from} – ${row.original.to}`,
-                    meta: { mobileCard: { slot: 'meta', label: 'Период' } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colPeriod') } },
                 },
                 {
                     id: 'by',
-                    header: 'От',
+                    header: t('colBy'),
                     cell: ({ row }) =>
-                        row.original.auto ? 'автоматично' : (row.original.generatedByName ?? '—'),
-                    meta: { mobileCard: { slot: 'meta', label: 'От' } },
+                        row.original.auto ? t('byAuto') : (row.original.generatedByName ?? '—'),
+                    meta: { mobileCard: { slot: 'meta', label: t('colBy') } },
                 },
                 {
                     accessorKey: 'sizeBytes',
-                    header: 'Размер',
+                    header: t('colSize'),
                     cell: ({ row }) => `${(row.original.sizeBytes / 1024).toFixed(1)} KB`,
-                    meta: { mobileCard: { slot: 'meta', label: 'Размер' } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colSize') } },
                 },
                 {
                     id: 'download',
@@ -398,12 +403,12 @@ export default function LocationDetailPage() {
                             size="sm"
                             onClick={() => void downloadRecord(row.original.fileRecordId, row.original.fileName)}
                         >
-                            Изтегли
+                            {t('download')}
                         </Button>
                     ),
                 },
             ]),
-        [downloadRecord],
+        [downloadRecord, t],
     );
 
     const mergeParcels = async () => {
@@ -428,27 +433,27 @@ export default function LocationDetailPage() {
     };
 
     const tabs = [
-        { key: 'overview' as const, label: 'Overview' },
-        { key: 'map' as const, label: 'Map' },
-        { key: 'operations' as const, label: 'Operations' },
-        { key: 'records' as const, label: 'Farm records' },
+        { key: 'overview' as const, label: t('tabOverview') },
+        { key: 'map' as const, label: t('tabMap') },
+        { key: 'operations' as const, label: t('tabOperations') },
+        { key: 'records' as const, label: t('tabRecords') },
     ];
 
     const breadcrumbs: { label: string; href?: string }[] = [
-        { label: 'Locations', href: `/t/${tenantSlug}/locations` },
-        { label: loc?.name ?? 'Location' },
+        { label: tl('bcLocations'), href: `/t/${tenantSlug}/locations` },
+        { label: loc?.name ?? t('fallbackTitle') },
     ];
 
     return (
         <EntityDetailLayout<Tab>
             breadcrumbs={breadcrumbs}
             back={{ smart: true }}
-            title={loc?.name ?? 'Location'}
+            title={loc?.name ?? t('fallbackTitle')}
             loading={locQ.isLoading && !loc}
-            error={locQ.error ? 'Failed to load location.' : null}
+            error={locQ.error ? t('loadError') : null}
             actions={
                 <div className="flex items-center gap-compact">
-                    <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>Import parcels</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>{t('importParcels')}</Button>
                     <Button
                         variant="secondary"
                         size="sm"
@@ -456,12 +461,12 @@ export default function LocationDetailPage() {
                         onClick={() => setShowDnevnik(true)}
                         id="dnevnik-pdf-btn"
                     >
-                        Дневник (PDF)
+                        {t('dnevnikBtn')}
                     </Button>
                     <CoachMark
                         id="field-op-wizard"
-                        title="Plan a field job"
-                        body="Start here to record a spray or other operation — pick the parcels, the product, and the rate, and it becomes a tracked job."
+                        title={t('coachTitle')}
+                        body={t('coachBody')}
                         placement="bottom"
                     >
                         <Button
@@ -472,7 +477,7 @@ export default function LocationDetailPage() {
                             disabled={parcels.length === 0}
                             data-testid="new-spray-job"
                         >
-                            Spray job
+                            {t('sprayJob')}
                         </Button>
                     </CoachMark>
                 </div>
@@ -487,13 +492,13 @@ export default function LocationDetailPage() {
                     {/* Compact info row below the tabs — just the two headline
                         figures (parcel count + total area). */}
                     <dl className="grid grid-cols-2 gap-default text-sm">
-                        <div><dt className="text-content-secondary">Parcels</dt><dd className="font-medium">{loc?._count?.parcels ?? parcels.length}</dd></div>
-                        <div><dt className="text-content-secondary">Total area</dt><dd className="font-medium">{Math.round(totalAreaHa * 10) / 10} ha</dd></div>
+                        <div><dt className="text-content-secondary">{t('overviewParcels')}</dt><dd className="font-medium">{loc?._count?.parcels ?? parcels.length}</dd></div>
+                        <div><dt className="text-content-secondary">{t('overviewTotalArea')}</dt><dd className="font-medium">{Math.round(totalAreaHa * 10) / 10} ha</dd></div>
                     </dl>
                     {loc?.description && <p className="text-sm">{loc.description}</p>}
                     {parcels.length === 0 && (
                         <div className="rounded-lg border border-border-subtle p-6 text-sm text-content-secondary">
-                            No parcels yet — use “Import parcels” to upload a shapefile, KML, or GeoJSON.
+                            {t('noParcelsHint')}
                         </div>
                     )}
                     {/* Parcels list — collapsible dropdown under the
@@ -507,7 +512,7 @@ export default function LocationDetailPage() {
                             <AccordionItem value="parcels" density="compact">
                                 <AccordionTrigger size="sm" className="px-4">
                                     <span className="flex items-center gap-tight">
-                                        <span className="font-medium">Parcels</span>
+                                        <span className="font-medium">{t('parcelsAccordion')}</span>
                                         <span className="text-xs text-content-secondary">
                                             {loc?._count?.parcels ?? parcels.length}
                                         </span>
@@ -569,7 +574,7 @@ export default function LocationDetailPage() {
                                     id="imagery-date-input"
                                     value={imageryDate}
                                     onChange={(d) => setImageryDate(d)}
-                                    placeholder="Date"
+                                    placeholder={t('dateFallback')}
                                     // The indices need a past satellite pass —
                                     // future dates have no imagery.
                                     disabledDays={{ after: new Date() }}
@@ -584,7 +589,7 @@ export default function LocationDetailPage() {
                                             icon={<CalendarIcon className="size-4" aria-hidden="true" />}
                                             aria-haspopup="dialog"
                                             aria-expanded={open}
-                                            aria-label={`Imagery inspection date: ${imageryShort}`}
+                                            aria-label={t('imageryAriaLabel', { date: imageryShort })}
                                         >
                                             {imageryShort}
                                         </Button>
@@ -598,7 +603,7 @@ export default function LocationDetailPage() {
                                 size="sm"
                                 onClick={() => { setMergeError(null); setMergeName(''); setMergeOpen(true); }}
                             >
-                                Merge
+                                {t('merge')}
                             </Button>
                         )}
                     </div>
@@ -608,9 +613,9 @@ export default function LocationDetailPage() {
                     {activeSpec && (
                         <div className="flex items-center gap-compact text-xs text-content-subtle">
                             {indexLoading ? (
-                                <span>Loading {activeSpec.label} imagery…</span>
+                                <span>{t('loadingImagery', { index: activeSpec.label })}</span>
                             ) : indexConfigured === false ? (
-                                <span>{activeSpec.label} imagery isn&apos;t configured for this deployment.</span>
+                                <span>{t('imageryNotConfigured', { index: activeSpec.label })}</span>
                             ) : indexTileUrl ? (
                                 <>
                                     <span className="font-medium text-content-secondary">{activeSpec.label}</span>
@@ -622,9 +627,9 @@ export default function LocationDetailPage() {
                                     <span>{activeSpec.highLabel}</span>
                                 </>
                             ) : indexQ.data?.error ? (
-                                <span>Couldn&apos;t load {activeSpec.label} imagery for this date — try another.</span>
+                                <span>{t('imageryLoadError', { index: activeSpec.label })}</span>
                             ) : (
-                                <span>No cloud-free {activeSpec.label} imagery for this field around that date.</span>
+                                <span>{t('imageryNone', { index: activeSpec.label })}</span>
                             )}
                         </div>
                     )}
@@ -665,7 +670,7 @@ export default function LocationDetailPage() {
                             bottom-sheet replaces it. */}
                         {!isMobile && (
                             <div className="rounded-lg border border-border-subtle p-4">
-                                <Heading level={3} className="mb-3">New spray job</Heading>
+                                <Heading level={3} className="mb-3">{t('newSprayJob')}</Heading>
                                 <PrescriptionPanel
                                     locationId={locationId}
                                     tenantSlug={tenantSlug}
@@ -674,7 +679,7 @@ export default function LocationDetailPage() {
                                 />
                                 {selected.length >= 2 && (
                                     <p className="mt-3 text-xs text-content-subtle">
-                                        {selected.length} parcels selected — use “Merge” above to combine them into one.
+                                        {t('parcelsSelectedMerge', { count: selected.length })}
                                     </p>
                                 )}
                             </div>
@@ -687,7 +692,7 @@ export default function LocationDetailPage() {
                 <div className="space-y-section">
                     {(opsQ.data ?? []).length === 0 ? (
                         <div className="rounded-lg border border-border-subtle p-6 text-sm text-content-secondary">
-                            No spray jobs yet. Select parcels on the Map tab to create one.
+                            {t('noSprayJobs')}
                         </div>
                     ) : (
                         <ul className="divide-y divide-border-subtle rounded-lg border border-border-subtle">
@@ -699,7 +704,7 @@ export default function LocationDetailPage() {
                                         className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-bg-muted/50"
                                     >
                                         <span className="text-sm font-medium">{op.key ? `${op.key} · ` : ''}{op.title}</span>
-                                        <span className="text-xs text-content-secondary">{op.status} · {op._count?.operationParcels ?? 0} parcels</span>
+                                        <span className="text-xs text-content-secondary">{op.status} · {t('opParcels', { count: op._count?.operationParcels ?? 0 })}</span>
                                     </button>
                                     {activeJob === op.id && (
                                         <div className="border-t border-border-subtle p-4">
@@ -717,8 +722,7 @@ export default function LocationDetailPage() {
                 <div className="space-y-section">
                     {(recordsQ.data?.records ?? []).length === 0 ? (
                         <div className="rounded-lg border border-border-subtle p-6 text-sm text-content-secondary">
-                            Все още няма генерирани дневници. Използвайте „Дневник (PDF)“, за да
-                            генерирате дневник за период.
+                            {t('recordsNone')}
                         </div>
                     ) : (
                         <DataTable<FarmRecordRow>
@@ -738,10 +742,8 @@ export default function LocationDetailPage() {
                 setOpen={setShowImport}
                 onImported={({ parcelCount, skipped }) => {
                     toast.success(
-                        `Imported ${parcelCount} parcel${parcelCount === 1 ? '' : 's'}` +
-                            (skipped > 0
-                                ? ` — ${skipped} non-polygon feature${skipped === 1 ? '' : 's'} skipped`
-                                : '') +
+                        t('importedToast', { count: parcelCount }) +
+                            (skipped > 0 ? t('importedSkipped', { count: skipped }) : '') +
                             '.',
                     );
                     locQ.mutate();
@@ -777,14 +779,14 @@ export default function LocationDetailPage() {
                 showModal={mergeOpen}
                 setShowModal={(v) => { if (!v) { setMergeOpen(false); setMergeName(''); setMergeError(null); } }}
                 size="sm"
-                title="Merge parcels"
-                description="Name the parcel formed by merging the selected parcels."
+                title={t('mergeTitle')}
+                description={t('mergeDescription')}
             >
-                <Modal.Header title="Merge parcels" description={`Combine ${selected.length} selected parcels into one. The originals are replaced.`} />
+                <Modal.Header title={t('mergeTitle')} description={t('mergeHeaderDescription', { count: selected.length })} />
                 <Modal.Form id="merge-parcels-form" onSubmit={(e) => { e.preventDefault(); void mergeParcels(); }}>
                     <Modal.Body>
-                        <FormField label="Name" required>
-                            <Input value={mergeName} onChange={(e) => setMergeName(e.target.value)} placeholder="e.g. North block" />
+                        <FormField label={t('mergeFieldName')} required>
+                            <Input value={mergeName} onChange={(e) => setMergeName(e.target.value)} placeholder={t('mergeNamePlaceholder')} />
                         </FormField>
                         {mergeError && (
                             <div role="alert" className="mt-3 rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error">
@@ -793,8 +795,8 @@ export default function LocationDetailPage() {
                         )}
                     </Modal.Body>
                     <Modal.Actions>
-                        <Button variant="secondary" size="sm" type="button" onClick={() => { setMergeOpen(false); setMergeName(''); setMergeError(null); }}>Cancel</Button>
-                        <Button variant="primary" size="sm" type="submit" loading={merging} disabled={selected.length < 2 || !mergeName.trim() || merging}>Merge parcels</Button>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => { setMergeOpen(false); setMergeName(''); setMergeError(null); }}>{tCommon('cancel')}</Button>
+                        <Button variant="primary" size="sm" type="submit" loading={merging} disabled={selected.length < 2 || !mergeName.trim() || merging}>{t('mergeTitle')}</Button>
                     </Modal.Actions>
                 </Modal.Form>
             </Modal>
@@ -804,38 +806,37 @@ export default function LocationDetailPage() {
                 showModal={showDnevnik}
                 setShowModal={(v) => { if (!v) setShowDnevnik(false); }}
                 size="sm"
-                title="Дневник (PDF)"
-                description="Изтегли попълнения дневник за растителнозащитните мероприятия и торене за избрания период."
+                title={t('dnevnikTitle')}
+                description={t('dnevnikDescription')}
             >
                 <Modal.Header
-                    title="Дневник (PDF)"
-                    description="Изтегли попълнения дневник за избрания период."
+                    title={t('dnevnikTitle')}
+                    description={t('dnevnikHeaderDescription')}
                 />
                 <Modal.Body>
                     <div className="space-y-default">
                         {(recordsQ.data?.completeness.missingLabels.length ?? 0) > 0 && (
                             <InlineNotice variant="warning">
-                                Липсват данни: {recordsQ.data!.completeness.missingLabels.join(', ')} — полетата
-                                ще останат празни.{' '}
+                                {t('dnevnikMissing', { labels: recordsQ.data!.completeness.missingLabels.join(', ') })}{' '}
                                 <a className="underline" href={tenantHref('/admin/farm-profile')}>
-                                    Попълни фермерския профил
+                                    {t('dnevnikFillProfile')}
                                 </a>
                                 .
                             </InlineNotice>
                         )}
                         <div className="flex flex-col gap-default sm:flex-row">
-                            <FormField label="От">
+                            <FormField label={t('dnevnikFrom')}>
                                 <DatePicker value={dnevnikFrom} onChange={(d) => d && setDnevnikFrom(d)} />
                             </FormField>
-                            <FormField label="До">
+                            <FormField label={t('dnevnikTo')}>
                                 <DatePicker value={dnevnikTo} onChange={(d) => d && setDnevnikTo(d)} />
                             </FormField>
                         </div>
                     </div>
                 </Modal.Body>
                 <Modal.Actions>
-                    <Button variant="secondary" size="sm" type="button" onClick={() => setShowDnevnik(false)}>Отказ</Button>
-                    <Button variant="primary" size="sm" type="button" loading={dnevnikBusy} disabled={dnevnikBusy} onClick={() => void generateDnevnik()}>Изтегли</Button>
+                    <Button variant="secondary" size="sm" type="button" onClick={() => setShowDnevnik(false)}>{t('dnevnikCancel')}</Button>
+                    <Button variant="primary" size="sm" type="button" loading={dnevnikBusy} disabled={dnevnikBusy} onClick={() => void generateDnevnik()}>{t('dnevnikDownload')}</Button>
                 </Modal.Actions>
             </Modal>
         </EntityDetailLayout>

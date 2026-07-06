@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/typography';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -11,12 +12,6 @@ const PRIORITY_DOT: Record<BriefingAction['priority'], string> = {
     high: 'bg-content-error',
     medium: 'bg-content-warning',
     low: 'bg-content-subtle',
-};
-
-const PRIORITY_LABEL: Record<BriefingAction['priority'], string> = {
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
 };
 
 /**
@@ -31,15 +26,22 @@ const PRIORITY_LABEL: Record<BriefingAction['priority'], string> = {
  * live satellite imagery or the farm's records.
  */
 export function FieldBriefingCard() {
+    const t = useTranslations('dashboard.fieldBriefing');
     const { data } = useTenantSWR<FieldBriefingPayload>('/reports/field-briefing');
 
     // Loading, not configured, or generation failed → show nothing.
     if (!data || !data.briefing) return null;
 
+    const priorityLabel: Record<BriefingAction['priority'], string> = {
+        high: t('priorityHigh'),
+        medium: t('priorityMedium'),
+        low: t('priorityLow'),
+    };
+
     const { briefing } = data;
     const basis = data.satelliteAvailable
-        ? 'Based on today’s satellite imagery'
-        : 'Based on your farm records';
+        ? t('basisSatellite')
+        : t('basisRecords');
 
     return (
         <Card>
@@ -50,10 +52,10 @@ export function FieldBriefingCard() {
                         className="inline-block h-1.5 w-1.5 rounded-full bg-content-success"
                     />
                     <Heading level={3} id="field-briefing-heading">
-                        Field briefing
+                        {t('title')}
                     </Heading>
                 </div>
-                <span className="text-xs text-content-subtle whitespace-nowrap">AI · Haiku</span>
+                <span className="text-xs text-content-subtle whitespace-nowrap">{t('aiBadge')}</span>
             </div>
 
             <div
@@ -82,7 +84,7 @@ export function FieldBriefingCard() {
                                     {a.action}
                                 </span>
                                 <span className="ml-auto shrink-0 text-xs text-content-subtle whitespace-nowrap">
-                                    {PRIORITY_LABEL[a.priority]}
+                                    {priorityLabel[a.priority]}
                                 </span>
                             </li>
                         ))}

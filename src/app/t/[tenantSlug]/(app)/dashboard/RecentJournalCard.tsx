@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { formatDate } from '@/lib/format-date';
 import { Card } from '@/components/ui/card';
@@ -20,14 +21,15 @@ interface RecentJournalCardProps {
  * Each row links to the journal section; the heading is a section link.
  */
 export default function RecentJournalCard({ href, items }: RecentJournalCardProps) {
+    const t = useTranslations('dashboard.recentJournal');
     return (
         <Card>
             <div className="flex items-baseline justify-between mb-3 gap-tight">
                 <Heading level={3} id="recent-journal-heading">
-                    Recent Journal
+                    {t('title')}
                 </Heading>
                 <TextLink href={href} tone="muted" className="text-xs">
-                    View all
+                    {t('viewAll')}
                 </TextLink>
             </div>
             <div
@@ -52,7 +54,7 @@ export default function RecentJournalCard({ href, items }: RecentJournalCardProp
                     </Link>
                 ))}
                 {items.length === 0 && (
-                    <p className="text-content-subtle text-xs">No journal entries logged</p>
+                    <p className="text-content-subtle text-xs">{t('empty')}</p>
                 )}
             </div>
         </Card>

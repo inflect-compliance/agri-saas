@@ -26,6 +26,7 @@ import {
     type SetStateAction,
 } from 'react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,8 @@ export interface NewArticleModalProps {
 }
 
 export function NewArticleModal({ trigger, onCreated }: NewArticleModalProps) {
+    const t = useTranslations('knowledge.modal');
+    const tCommon = useTranslations('common');
     const buildUrl = useTenantApiUrl();
     const [open, setOpen] = useState(false);
 
@@ -119,9 +122,7 @@ export function NewArticleModal({ trigger, onCreated }: NewArticleModalProps) {
                 if (submitting) return;
                 if (
                     dirty &&
-                    !window.confirm(
-                        'Discard article? Any details you entered will be lost.',
-                    )
+                    !window.confirm(t('discardConfirm'))
                 ) {
                     return;
                 }
@@ -150,13 +151,13 @@ export function NewArticleModal({ trigger, onCreated }: NewArticleModalProps) {
                 showModal={open}
                 setShowModal={guardedSetOpen}
                 size="lg"
-                title="New article"
-                description="Capture operating knowledge your team can reference and acknowledge."
+                title={t('title')}
+                description={t('description')}
                 preventDefaultClose={submitting}
             >
                 <Modal.Header
-                    title="New article"
-                    description="Capture operating knowledge your team can reference and acknowledge."
+                    title={t('title')}
+                    description={t('description')}
                 />
                 <Modal.Form id="new-article-form" onSubmit={handleSubmit}>
                     <Modal.Body>
@@ -173,33 +174,33 @@ export function NewArticleModal({ trigger, onCreated }: NewArticleModalProps) {
                             disabled={submitting}
                             className="m-0 p-0 border-0 space-y-default"
                         >
-                            <FormField label="Title" required>
+                            <FormField label={t('fieldTitle')} required>
                                 <Input
                                     value={title}
                                     onChange={(e) => {
                                         setTitle(e.target.value);
                                         markDirty();
                                     }}
-                                    placeholder="e.g. Tractor pre-start inspection SOP"
+                                    placeholder={t('titlePlaceholder')}
                                     id="article-title-input"
                                 />
                             </FormField>
 
-                            <FormField label="Category">
+                            <FormField label={t('fieldCategory')}>
                                 <Input
                                     value={category}
                                     onChange={(e) => {
                                         setCategory(e.target.value);
                                         markDirty();
                                     }}
-                                    placeholder="e.g. Equipment, Safety, Compliance"
+                                    placeholder={t('categoryPlaceholder')}
                                     id="article-category-input"
                                 />
                             </FormField>
 
                             <FormField
-                                label="Summary"
-                                hint="A one-line description shown in the article list."
+                                label={t('fieldSummary')}
+                                hint={t('summaryHint')}
                             >
                                 <Input
                                     value={summary}
@@ -207,17 +208,17 @@ export function NewArticleModal({ trigger, onCreated }: NewArticleModalProps) {
                                         setSummary(e.target.value);
                                         markDirty();
                                     }}
-                                    placeholder="What does this article cover?"
+                                    placeholder={t('summaryPlaceholder')}
                                     id="article-summary-input"
                                 />
                             </FormField>
 
-                            <FormField label="Content">
+                            <FormField label={t('fieldContent')}>
                                 <RichTextEditor
                                     id="article-content-editor"
                                     value={content}
                                     contentType={contentType}
-                                    placeholder="Write the article content…"
+                                    placeholder={t('contentPlaceholder')}
                                     onChange={(value, nextType) => {
                                         setContent(value);
                                         setContentType(nextType);
@@ -237,7 +238,7 @@ export function NewArticleModal({ trigger, onCreated }: NewArticleModalProps) {
                             disabled={submitting}
                             id="new-article-cancel-btn"
                         >
-                            Cancel
+                            {tCommon('cancel')}
                         </Button>
                         <Button
                             type="submit"
@@ -247,7 +248,7 @@ export function NewArticleModal({ trigger, onCreated }: NewArticleModalProps) {
                             loading={submitting}
                             id="create-article-btn"
                         >
-                            Create article
+                            {t('create')}
                         </Button>
                     </Modal.Actions>
                 </Modal.Form>

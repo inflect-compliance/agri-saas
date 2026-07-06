@@ -5,9 +5,10 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { formatDate } from '@/lib/format-date';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
-import { Paperclip } from 'lucide-react';
+import { Paperclip } from '@/components/ui/icons/nucleo';
 import { textLinkVariants } from '@/components/ui/typography';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
@@ -20,12 +21,6 @@ import { Heading } from '@/components/ui/typography';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import { Card, cardVariants } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
-
-const EV_KIND_OPTIONS: ComboboxOption[] = [
-    { value: 'FILE_UPLOAD', label: 'Upload File' },
-    { value: 'LINK', label: 'URL / Link' },
-    { value: 'EVIDENCE', label: 'Existing Evidence Record' },
-];
 
 interface EvidenceLink {
     id: string;
@@ -60,12 +55,22 @@ const RESULT_BADGE: Record<string, StatusBadgeVariant> = {
 };
 
 export default function TestRunPage() {
+    const t = useTranslations('controlTests.run');
     const params = useParams();
     const router = useRouter();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const { permissions } = useTenantContext();
     const runId = params?.runId as string;
+
+    const EV_KIND_OPTIONS: ComboboxOption[] = useMemo(
+        () => [
+            { value: 'FILE_UPLOAD', label: t('evUploadFile') },
+            { value: 'LINK', label: t('evLink') },
+            { value: 'EVIDENCE', label: t('evEvidence') },
+        ],
+        [t],
+    );
 
     const [run, setRun] = useState<TestRunDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -111,7 +116,7 @@ export default function TestRunPage() {
             if (!res.ok) throw new Error('Run not found');
             setRun(await res.json());
         } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'Unknown error');
+            setError(e instanceof Error ? e.message : t('unknownError'));
         } finally {
             setLoading(false);
         }
@@ -204,7 +209,7 @@ export default function TestRunPage() {
             setEvFileTitle('');
             await fetchRun();
         } catch (err) {
-            setEvError(err instanceof Error ? err.message : 'Failed to add evidence');
+            setEvError(err instanceof Error ? err.message : t('addEvidenceFailed'));
         } finally {
             setLinkingEv(false);
         }
@@ -221,9 +226,9 @@ export default function TestRunPage() {
     };
 
     const fallbackBreadcrumbs = [
-        { label: 'Dashboard', href: tenantHref('/dashboard') },
-        { label: 'Tests', href: tenantHref('/tests') },
-        { label: run?.testPlan?.name ?? 'Run' },
+        { label: t('bcDashboard'), href: tenantHref('/dashboard') },
+        { label: t('bcTests'), href: tenantHref('/tests') },
+        { label: run?.testPlan?.name ?? t('fallbackRun') },
     ];
     if (loading) {
         return (
@@ -241,7 +246,7 @@ export default function TestRunPage() {
     }
     if (!run) {
         return (
-            <EntityDetailLayout empty={{ message: 'Run not found.' }} title="" breadcrumbs={fallbackBreadcrumbs}>
+            <EntityDetailLayout empty={{ message: t('runNotFound') }} title="" breadcrumbs={fallbackBreadcrumbs}>
                 <></>
             </EntityDetailLayout>
         );
@@ -254,10 +259,10 @@ export default function TestRunPage() {
 
     const breadcrumbs = run.testPlan
         ? [
-            { label: 'Dashboard', href: tenantHref('/dashboard') },
-            { label: 'Controls', href: tenantHref('/controls') },
+            { label: t('bcDashboard'), href: tenantHref('/dashboard') },
+            { label: t('bcControls'), href: tenantHref('/controls') },
             { label: run.testPlan.name, href: tenantHref(`/controls/${run.testPlan.controlId}/tests/${run.testPlanId}`) },
-            { label: 'Run' },
+            { label: t('bcRun') },
         ]
         : fallbackBreadcrumbs;
 
@@ -268,7 +273,7 @@ export default function TestRunPage() {
 
             title={
                 <span id="test-run-title">
-                    Test Run {run.testPlan ? `— ${run.testPlan.name}` : ''}
+                    {run.testPlan ? t('titleWithPlan', { name: run.testPlan.name }) : t('title')}
                 </span>
             }
             meta={
@@ -277,7 +282,7 @@ export default function TestRunPage() {
                         {
                             kind: 'status',
                             id: 'test-run-status',
-                            label: 'Status',
+                            label: t('statusLabel'),
                             value: run.status,
                             variant:
                                 run.status === 'COMPLETED'
@@ -291,7 +296,7 @@ export default function TestRunPage() {
                                   {
                                       kind: 'status' as const,
                                       id: 'test-run-result',
-                                      label: 'Result',
+                                      label: t('resultLabel'),
                                       value: run.result,
                                       variant:
                                           RESULT_BADGE[run.result] ?? 'neutral',
@@ -301,7 +306,7 @@ export default function TestRunPage() {
                         ...(run.executedAt
                             ? [
                                   {
-                                      label: 'Executed',
+                                      label: t('executedLabel'),
                                       value: formatDate(run.executedAt),
                                   } as const,
                               ]
@@ -313,10 +318,10 @@ export default function TestRunPage() {
             {/* Complete Form — only if not completed */}
             {!isCompleted && permissions.canWrite && (
                 <Card className="space-y-default border-l-4 border-[var(--brand-default)]">
-                    <Heading level={3}>Complete This Test Run</Heading>
+                    <Heading level={3}>{t('completeHeading')}</Heading>
 
                     <div>
-                        <label className="text-xs text-content-muted block mb-1">Result *</label>
+                        <label className="text-xs text-content-muted block mb-1">{t('resultRequired')}</label>
                         <div className="flex gap-compact">
                             {(['PASS', 'FAIL', 'INCONCLUSIVE'] as const).map(r => (
                                 <button
@@ -332,24 +337,24 @@ export default function TestRunPage() {
                     </div>
 
                     <div>
-                        <label className="text-xs text-content-muted block mb-1">Notes</label>
+                        <label className="text-xs text-content-muted block mb-1">{t('notes')}</label>
                         <textarea
                             className="input w-full h-20"
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
-                            placeholder="Observation notes..."
+                            placeholder={t('notesPlaceholder')}
                             id="test-run-notes"
                         />
                     </div>
 
                     {result === 'FAIL' && (
                         <div className="animate-fadeIn">
-                            <label className="text-xs text-content-muted block mb-1">Finding Summary (for auto-created task)</label>
+                            <label className="text-xs text-content-muted block mb-1">{t('findingSummary')}</label>
                             <textarea
                                 className="input w-full h-16"
                                 value={findingSummary}
                                 onChange={e => setFindingSummary(e.target.value)}
-                                placeholder="Summarize the issue found..."
+                                placeholder={t('findingPlaceholder')}
                                 id="test-run-finding-summary"
                             />
                         </div>
@@ -362,7 +367,7 @@ export default function TestRunPage() {
                         disabled={completing}
                         id="complete-test-run-btn"
                     >
-                        {completing ? 'Completing...' : `Complete as ${result}`}
+                        {completing ? t('completing') : t('completeAs', { result })}
                     </Button>
                 </Card>
             )}
@@ -372,19 +377,19 @@ export default function TestRunPage() {
                 <div className={cn(cardVariants({ density: 'compact' }), 'space-y-tight')}>
                     {run.notes && (
                         <div>
-                            <span className="text-xs text-content-muted">Notes:</span>
+                            <span className="text-xs text-content-muted">{t('notesLabel')}</span>
                             <p className="text-sm text-content-default whitespace-pre-wrap mt-1">{run.notes}</p>
                         </div>
                     )}
                     {run.findingSummary && (
                         <div>
-                            <span className="text-xs text-content-error">Finding Summary:</span>
+                            <span className="text-xs text-content-error">{t('findingSummaryLabel')}</span>
                             <p className="text-sm text-content-error whitespace-pre-wrap mt-1">{run.findingSummary}</p>
                         </div>
                     )}
                     {run.executedBy && (
                         <div className="text-xs text-content-subtle mt-2">
-                            Executed by {run.executedBy.name || run.executedBy.email} at {formatDate(run.executedAt)}
+                            {t('executedByAt', { who: run.executedBy.name || run.executedBy.email, date: formatDate(run.executedAt) })}
                         </div>
                     )}
 
@@ -398,9 +403,9 @@ export default function TestRunPage() {
                                 disabled={retesting}
                                 id="retest-btn"
                             >
-                                {retesting ? 'Creating...' : 'Retest'}
+                                {retesting ? t('creating') : t('retest')}
                             </Button>
-                            <span className="text-xs text-content-subtle ml-2">Create a new run for this test plan</span>
+                            <span className="text-xs text-content-subtle ml-2">{t('retestHint')}</span>
                         </div>
                     )}
                 </div>
@@ -409,14 +414,14 @@ export default function TestRunPage() {
             {/* Evidence Section */}
             <div className={cardVariants({ density: 'compact' })}>
                 <div className="flex items-center justify-between mb-3">
-                    <Heading level={3}>Evidence ({run.evidence?.length ?? 0})</Heading>
+                    <Heading level={3}>{t('evidenceCount', { count: run.evidence?.length ?? 0 })}</Heading>
                     {permissions.canWrite && (
                         <Button
                             variant="primary"
                             onClick={() => { setShowEvForm(!showEvForm); setEvError(''); }}
                             id="link-evidence-btn"
                         >
-                            {showEvForm ? 'Cancel' : '+ Evidence'}
+                            {showEvForm ? t('cancel') : '+ Evidence'}
                         </Button>
                     )}
                 </div>
@@ -429,7 +434,7 @@ export default function TestRunPage() {
                             </div>
                         )}
                         <div>
-                            <label className="text-xs text-content-muted block mb-1">Evidence Type</label>
+                            <label className="text-xs text-content-muted block mb-1">{t('evidenceType')}</label>
                             <Combobox
                                 hideSearch
                                 id="evidence-kind-select"
@@ -442,7 +447,7 @@ export default function TestRunPage() {
                         {evKind === 'FILE_UPLOAD' && (
                             <>
                                 <div>
-                                    <label className="text-xs text-content-muted block mb-1">File</label>
+                                    <label className="text-xs text-content-muted block mb-1">{t('file')}</label>
                                     <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-border-emphasis rounded-lg cursor-pointer hover:border-[var(--brand-default)]/50 transition-colors bg-bg-page/30">
                                         <input
                                             type="file"
@@ -462,8 +467,8 @@ export default function TestRunPage() {
                                             </div>
                                         ) : (
                                             <div className="text-center">
-                                                <p className="text-sm text-content-muted">Click to select a file</p>
-                                                <p className="text-xs text-content-subtle mt-1">PDF, images, documents, logs, etc.</p>
+                                                <p className="text-sm text-content-muted">{t('clickToSelect')}</p>
+                                                <p className="text-xs text-content-subtle mt-1">{t('fileHint')}</p>
                                             </div>
                                         )}
                                     </label>
@@ -472,25 +477,25 @@ export default function TestRunPage() {
                         )}
                         {evKind === 'LINK' && (
                             <div>
-                                <label className="text-xs text-content-muted block mb-1">URL</label>
-                                <input className="input w-full" value={evUrl} onChange={e => setEvUrl(e.target.value)} placeholder="https://..." id="evidence-url-input" />
+                                <label className="text-xs text-content-muted block mb-1">{t('url')}</label>
+                                <input className="input w-full" value={evUrl} onChange={e => setEvUrl(e.target.value)} placeholder={t('urlPlaceholder')} id="evidence-url-input" />
                             </div>
                         )}
                         {evKind === 'EVIDENCE' && (
                             <div>
-                                <label className="text-xs text-content-muted block mb-1">Evidence ID</label>
-                                <input className="input w-full" value={evEvidenceId} onChange={e => setEvEvidenceId(e.target.value)} placeholder="Evidence record ID" id="evidence-id-input" />
+                                <label className="text-xs text-content-muted block mb-1">{t('evidenceId')}</label>
+                                <input className="input w-full" value={evEvidenceId} onChange={e => setEvEvidenceId(e.target.value)} placeholder={t('evidenceIdPlaceholder')} id="evidence-id-input" />
                             </div>
                         )}
                         {(evKind === 'FILE_UPLOAD' || evKind === 'LINK') && (
                             <div>
-                                <label className="text-xs text-content-muted block mb-1">Title</label>
-                                <input className="input w-full" value={evFileTitle} onChange={e => setEvFileTitle(e.target.value)} placeholder="Evidence title..." id="evidence-file-title-input" />
+                                <label className="text-xs text-content-muted block mb-1">{t('titleField')}</label>
+                                <input className="input w-full" value={evFileTitle} onChange={e => setEvFileTitle(e.target.value)} placeholder={t('titlePlaceholder')} id="evidence-file-title-input" />
                             </div>
                         )}
                         <div>
-                            <label className="text-xs text-content-muted block mb-1">Note</label>
-                            <input className="input w-full" value={evNote} onChange={e => setEvNote(e.target.value)} placeholder="Optional note..." id="evidence-note-input" />
+                            <label className="text-xs text-content-muted block mb-1">{t('note')}</label>
+                            <input className="input w-full" value={evNote} onChange={e => setEvNote(e.target.value)} placeholder={t('notePlaceholder')} id="evidence-note-input" />
                         </div>
                         <Button
                             variant="primary"
@@ -499,13 +504,13 @@ export default function TestRunPage() {
                             disabled={linkingEv || !canSubmitEvidence}
                             id="save-evidence-link-btn"
                         >
-                            {linkingEv ? (evKind === 'FILE_UPLOAD' ? 'Uploading...' : 'Linking...') : (evKind === 'FILE_UPLOAD' ? 'Upload & Link' : 'Link')}
+                            {linkingEv ? (evKind === 'FILE_UPLOAD' ? t('uploading') : t('linking')) : (evKind === 'FILE_UPLOAD' ? t('uploadAndLink') : t('link'))}
                         </Button>
                     </div>
                 )}
 
                 {run.evidence.length === 0 ? (
-                    <p className="text-sm text-content-subtle">No evidence linked yet.</p>
+                    <p className="text-sm text-content-subtle">{t('evidenceEmpty')}</p>
                 ) : (
                     <div className="divide-y divide-border-default/50">
                         {run.evidence.map(ev => (
@@ -528,14 +533,14 @@ export default function TestRunPage() {
                                     </p>
                                 </div>
                                 {permissions.canWrite && (
-                                    <Tooltip content="Unlink evidence from this test">
+                                    <Tooltip content={t('unlinkTooltip')}>
                                         <Button
                                             variant="ghost"
                                             size="xs"
                                             className="text-content-error opacity-0 group-hover:opacity-100 transition"
                                             onClick={() => unlinkEvidence(ev.id)}
                                             disabled={unlinkingId === ev.id}
-                                            aria-label="Unlink evidence"
+                                            aria-label={t('unlinkAria')}
                                         >
                                             {unlinkingId === ev.id ? '...' : <span aria-hidden="true">×</span>}
                                         </Button>
@@ -549,7 +554,7 @@ export default function TestRunPage() {
 
             {/* Meta */}
             <div className="text-xs text-content-subtle">
-                Created {formatDate(run.createdAt)} by {run.createdBy?.name || run.createdBy?.email || 'Unknown'}
+                {t('createdByLine', { date: formatDate(run.createdAt), who: run.createdBy?.name || run.createdBy?.email || t('unknown') })}
             </div>
         </EntityDetailLayout>
     );

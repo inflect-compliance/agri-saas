@@ -11,6 +11,7 @@
  * remaining UI enhancement — the builder + API already return xyflow-ready
  * `{ nodes, edges }`.
  */
+import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantHref } from '@/lib/tenant-context-provider';
 import { CACHE_KEYS } from '@/lib/swr-keys';
@@ -44,6 +45,7 @@ const HEALTH_RING: Record<Health, string> = {
 };
 
 export default function GovernanceGraphPage() {
+    const t = useTranslations('processes.governance');
     const { data, isLoading } = useTenantSWR<{
         nodes: GovernanceNode[];
         edges: GovernanceEdge[];
@@ -58,24 +60,23 @@ export default function GovernanceGraphPage() {
         <div className="space-y-section p-default" data-testid="governance-graph-page">
             <PageBreadcrumbs
                 items={[
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Processes', href: tenantHref('/processes') },
-                    { label: 'Governance graph' },
+                    { label: t('bcDashboard'), href: tenantHref('/dashboard') },
+                    { label: t('bcProcesses'), href: tenantHref('/processes') },
+                    { label: t('bcGovernance') },
                 ]}
             />
             <div>
-                <Heading level={1}>Governance graph</Heading>
+                <Heading level={1}>{t('title')}</Heading>
                 <p className="text-sm text-content-muted">
-                    Every automation map, sized by rule volume and ringed by 30-day
-                    execution health, with the sub-flow calls between them.
+                    {t('intro')}
                 </p>
             </div>
 
-            {isLoading && <p className="text-sm text-content-subtle">Building the topology…</p>}
+            {isLoading && <p className="text-sm text-content-subtle">{t('building')}</p>}
 
             {!isLoading && nodes.length === 0 && (
                 <p className="text-sm text-content-subtle">
-                    No process maps yet — create an automation workflow to populate the graph.
+                    {t('emptyNodes')}
                 </p>
             )}
 
@@ -94,11 +95,11 @@ export default function GovernanceGraphPage() {
                             </StatusBadge>
                         </div>
                         <div className="mt-2 flex items-center gap-default text-xs text-content-muted tabular-nums">
-                            <span>{n.ruleCount} rule{n.ruleCount === 1 ? '' : 's'}</span>
+                            <span>{t('ruleCount', { count: n.ruleCount })}</span>
                             <span>
                                 {n.successRate === null
-                                    ? 'no runs'
-                                    : `${Math.round(n.successRate * 100)}% success`}
+                                    ? t('noRuns')
+                                    : t('successPct', { pct: Math.round(n.successRate * 100) })}
                             </span>
                         </div>
                     </div>
@@ -107,7 +108,7 @@ export default function GovernanceGraphPage() {
 
             {edges.length > 0 && (
                 <div className="space-y-default">
-                    <Heading level={3}>Sub-flow calls</Heading>
+                    <Heading level={3}>{t('subFlowCalls')}</Heading>
                     <ul className="space-y-tight text-sm text-content-muted" data-testid="governance-edges">
                         {edges.map((e) => (
                             <li key={e.id} data-governance-edge={e.id}>

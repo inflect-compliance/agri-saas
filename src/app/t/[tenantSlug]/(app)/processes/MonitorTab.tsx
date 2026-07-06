@@ -8,6 +8,7 @@
  * trigger panel. The Dynamic-Workflow-Tracker equivalent.
  */
 import useSWR from 'swr';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -34,6 +35,7 @@ const STATUS_VARIANT: Record<string, StatusBadgeVariant> = {
 };
 
 export function MonitorTab() {
+    const t = useTranslations('processes.monitor');
     const apiUrl = useTenantApiUrl();
     const key = apiUrl(CACHE_KEYS.automation.executions.live());
     const { data, mutate } = useSWR<{ running: ExecRow[]; recent: ExecRow[] }>(
@@ -59,20 +61,20 @@ export function MonitorTab() {
             <div className="space-y-section lg:col-span-2">
                 <Card>
                     <p className="mb-default text-[11px] uppercase tracking-wide text-content-subtle">
-                        In flight ({running.length})
+                        {t('inFlight', { count: running.length })}
                     </p>
                     {running.length === 0 ? (
-                        <p className="text-sm text-content-muted">Nothing running right now.</p>
+                        <p className="text-sm text-content-muted">{t('nothingRunning')}</p>
                     ) : (
                         <ul className="space-y-tight" data-testid="inflight-list">
                             {running.map((e) => (
                                 <li key={e.id} className="flex items-center justify-between gap-default">
                                     <span className="flex items-center gap-compact text-sm">
-                                        <StatusBadge variant="info">RUNNING</StatusBadge>
+                                        <StatusBadge variant="info">{t('running')}</StatusBadge>
                                         <span className="text-content-default">{e.ruleName}</span>
                                     </span>
                                     <Button variant="ghost" size="sm" onClick={() => cancel(e.id)}>
-                                        Cancel
+                                        {t('cancel')}
                                     </Button>
                                 </li>
                             ))}
@@ -82,10 +84,10 @@ export function MonitorTab() {
 
                 <Card>
                     <p className="mb-default text-[11px] uppercase tracking-wide text-content-subtle">
-                        Recent activity
+                        {t('recentActivity')}
                     </p>
                     {recent.length === 0 ? (
-                        <p className="text-sm text-content-muted">No recent executions.</p>
+                        <p className="text-sm text-content-muted">{t('recentEmpty')}</p>
                     ) : (
                         <ul className="space-y-tight" data-testid="recent-feed">
                             {recent.map((e) => (

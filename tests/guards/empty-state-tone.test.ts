@@ -181,6 +181,20 @@ describe('Empty-state copy tone (Roadmap-3 PR-6)', () => {
                 // and pass the ratchet unaided.
                 'assets.noResultsDescription',
                 'schemes.noResultsDescription',
+                // T13 i18n migration (knowledge/locations batch) —
+                // pre-existing inline empty-state MESSAGES migrated verbatim
+                // from the hardcoded JSX: knowledge-detail version fallbacks
+                // ("No version published yet.", "No versions yet.") and the
+                // location-detail inline `<p>` fallbacks ("No parcels yet —
+                // use …", "No spray jobs yet. …", spray-wizard "This location
+                // has no parcels yet."). Full sentences with legitimate
+                // terminal punctuation, not terse EmptyState titles — same
+                // rationale as the T04–T11 exemptions above.
+                'knowledge.detail.noVersionPublished',
+                'knowledge.detail.noVersionsYet',
+                'locations.detail.noParcelsHint',
+                'locations.detail.noSprayJobs',
+                'locations.spray.noParcels',
             ]);
             if (SANCTIONED.has(key)) continue;
             // Sanctioned namespace: `riskManager.*` keys are the

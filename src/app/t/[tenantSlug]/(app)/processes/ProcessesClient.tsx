@@ -27,6 +27,7 @@
  *     own its xyflow state without prop-drilling.
  */
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { cn } from "@/lib/cn";
 import { WorkspaceShell } from "@/components/layout/WorkspaceShell";
@@ -76,6 +77,7 @@ export function ProcessesClient({
     tenantSlug,
     initialProcesses,
 }: ProcessesClientProps) {
+    const t = useTranslations('processes');
     // The full list is owned here so a save can refresh the
     // selected map's metadata (version, updatedAt) without a full
     // page reload. Selection itself drives the canvas's load
@@ -98,10 +100,10 @@ export function ProcessesClient({
         key: "canvas" | "rules" | "analytics" | "monitor";
         label: string;
     }> = [
-        { key: "canvas", label: "Canvas" },
-        { key: "rules", label: "Rules" },
-        { key: "analytics", label: "Analytics" },
-        { key: "monitor", label: "Monitor" },
+        { key: "canvas", label: t('tabCanvas') },
+        { key: "rules", label: t('tabRules') },
+        { key: "analytics", label: t('tabAnalytics') },
+        { key: "monitor", label: t('tabMonitor') },
     ];
 
     return (
@@ -109,7 +111,7 @@ export function ProcessesClient({
             <nav
                 className="flex gap-1 border-b border-border-default overflow-x-auto"
                 role="tablist"
-                aria-label="Process page sections"
+                aria-label={t('sectionsAria')}
             >
                 {TABS.map((t) => {
                     const isActive = tab === t.key;
@@ -139,7 +141,7 @@ export function ProcessesClient({
                     className="ml-auto self-center px-5 py-2.5 text-base font-medium text-content-muted hover:text-content-emphasis whitespace-nowrap"
                     data-testid="governance-graph-link"
                 >
-                    Governance graph →
+                    {t('governanceLink')}
                 </a>
             </nav>
             <div className="min-h-0 flex-1 pt-3">

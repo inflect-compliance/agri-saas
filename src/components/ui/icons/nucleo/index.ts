@@ -186,6 +186,7 @@ export * from "./page2";
 export * from "./paintbrush";
 export * from "./palette-2";
 export * from "./paper-plane";
+export * from "./paperclip";
 export * from "./pen-writing";
 export * from "./pen2";
 export * from "./percentage-arrow-down";

@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import useSWR from 'swr';
 import { StepWizard, type StepWizardStep } from '@/components/ui/step-wizard';
@@ -89,6 +90,7 @@ export function SprayJobWizard({
     onCreated,
     smartDefaults,
 }: SprayJobWizardProps) {
+    const t = useTranslations('locations.spray');
     const buildUrl = useTenantApiUrl();
     // Route slug for the assignee picker's member fetch — read from the URL
     // params (same source the parent page uses), so it needs no extra
@@ -297,7 +299,7 @@ export function SprayJobWizard({
         return (
             <div className="rounded-lg border border-border-subtle bg-bg-muted/40 p-3 text-sm">
                 <p className="mb-1 text-xs font-medium uppercase tracking-wide text-content-muted">
-                    Needed for {areaSummary}
+                    {t('neededFor', { area: areaSummary ?? '' })}
                 </p>
                 <dl className="space-y-tight">{rows}</dl>
             </div>
@@ -307,11 +309,11 @@ export function SprayJobWizard({
     const steps: StepWizardStep[] = [
         {
             id: 'parcels',
-            title: 'Which parcels?',
-            description: 'Pick the parcels this spray job covers.',
+            title: t('stepParcelsTitle'),
+            description: t('stepParcelsDesc'),
             canAdvance: selectedParcelIds.length > 0,
             content: (
-                <div role="group" aria-label="Parcels" className="space-y-tight">
+                <div role="group" aria-label={t('ariaParcels')} className="space-y-tight">
                     {repeatLast && (
                         <button
                             type="button"
@@ -319,7 +321,7 @@ export function SprayJobWizard({
                             className="flex min-h-[44px] w-full items-center gap-default rounded-lg border border-border-emphasis bg-bg-muted/40 px-3 py-2 text-left hover:bg-bg-muted"
                         >
                             <span className="flex-1">
-                                <span className="block text-sm font-medium">Repeat last job</span>
+                                <span className="block text-sm font-medium">{t('repeatLastJob')}</span>
                                 {repeatLabel && (
                                     <span className="block text-xs text-content-secondary">
                                         {repeatLabel}
@@ -330,7 +332,7 @@ export function SprayJobWizard({
                     )}
                     {parcels.length === 0 ? (
                         <p className="py-6 text-center text-sm text-content-muted">
-                            This location has no parcels yet.
+                            {t('noParcels')}
                         </p>
                     ) : (
                         parcels.map((p) => {
@@ -365,18 +367,18 @@ export function SprayJobWizard({
         },
         {
             id: 'fertilizer',
-            title: 'Soil Nurturing',
-            description: 'Choose the fertilizer to apply.',
+            title: t('stepFertTitle'),
+            description: t('stepFertDesc'),
             canAdvance: Boolean(fertilizerItemId),
             content: (
-                <FormField label="Fertilizer" required>
+                <FormField label={t('fieldFertilizer')} required>
                     <Combobox<false, ItemDTO>
                         options={fertilizerOptions}
                         selected={selectedFertilizer}
                         setSelected={(opt) => setFertilizerItemId(opt?.value ?? '')}
-                        placeholder="Select a fertilizer…"
-                        searchPlaceholder="Search fertilizers…"
-                        emptyState="No fertilizers in inventory"
+                        placeholder={t('fertPlaceholder')}
+                        searchPlaceholder={t('fertSearchPlaceholder')}
+                        emptyState={t('fertEmpty')}
                         forceDropdown
                         matchTriggerWidth
                         buttonProps={{ className: 'w-full' }}
@@ -387,28 +389,28 @@ export function SprayJobWizard({
         },
         {
             id: 'fertilizer-rate',
-            title: 'What rate?',
-            description: 'Set the fertilizer dose and unit.',
+            title: t('stepFertRateTitle'),
+            description: t('stepFertRateDesc'),
             canAdvance: fertDoseValid && Boolean(fertDoseUnitId),
             content: (
                 <div className="space-y-default">
                     <div className="grid grid-cols-2 gap-default">
-                        <FormField label="Dose" required>
+                        <FormField label={t('fieldDose')} required>
                             <Input
                                 inputMode="decimal"
                                 value={fertDose}
                                 onChange={(e) => setFertDose(e.target.value)}
-                                placeholder="e.g. 150"
+                                placeholder={t('fertDosePlaceholder')}
                             />
                         </FormField>
-                        <FormField label="Unit" required>
+                        <FormField label={t('fieldUnit')} required>
                             <Combobox<false, UnitDTO>
                                 options={unitOptions}
                                 selected={selectedFertUnit}
                                 setSelected={(opt) => setFertDoseUnitId(opt?.value ?? '')}
-                                placeholder="Unit…"
-                                searchPlaceholder="Search units…"
-                                emptyState="No units match"
+                                placeholder={t('unitPlaceholder')}
+                                searchPlaceholder={t('unitSearchPlaceholder')}
+                                emptyState={t('unitEmpty')}
                                 forceDropdown
                                 matchTriggerWidth
                                 buttonProps={{ className: 'w-full' }}
@@ -416,24 +418,24 @@ export function SprayJobWizard({
                             />
                         </FormField>
                     </div>
-                    {totalsPanel(totalRow('Fertilizer', fertDose, selectedFertUnit?.meta?.symbol))}
+                    {totalsPanel(totalRow(t('totalFertilizer'), fertDose, selectedFertUnit?.meta?.symbol))}
                 </div>
             ),
         },
         {
             id: 'product',
-            title: 'Treatment',
-            description: 'Choose the product to apply.',
+            title: t('stepProductTitle'),
+            description: t('stepProductDesc'),
             canAdvance: Boolean(productItemId),
             content: (
-                <FormField label="Product" required>
+                <FormField label={t('fieldProduct')} required>
                     <Combobox<false, ItemDTO>
                         options={treatmentOptions}
                         selected={selectedProduct}
                         setSelected={(opt) => setProductItemId(opt?.value ?? '')}
-                        placeholder="Select a product…"
-                        searchPlaceholder="Search products…"
-                        emptyState="No products match"
+                        placeholder={t('productPlaceholder')}
+                        searchPlaceholder={t('productSearchPlaceholder')}
+                        emptyState={t('productEmpty')}
                         forceDropdown
                         matchTriggerWidth
                         buttonProps={{ className: 'w-full' }}
@@ -444,13 +446,13 @@ export function SprayJobWizard({
         },
         {
             id: 'rate',
-            title: 'What rate?',
-            description: 'Set the dose and unit.',
+            title: t('stepRateTitle'),
+            description: t('stepRateDesc'),
             canAdvance: doseValid && Boolean(doseUnitId),
             content: (
                 <div className="space-y-tight">
                 <div className="grid grid-cols-2 gap-default">
-                    <FormField label="Dose" required>
+                    <FormField label={t('fieldDose')} required>
                         {/* inputMode decimal → mobile number pad (with decimal
                             point), without the native numeric-input wheel-scroll
                             / locale-separator footguns. Validated in JS (doseValid). */}
@@ -458,17 +460,17 @@ export function SprayJobWizard({
                             inputMode="decimal"
                             value={dose}
                             onChange={(e) => setDose(e.target.value)}
-                            placeholder="e.g. 2.5"
+                            placeholder={t('dosePlaceholder')}
                         />
                     </FormField>
-                    <FormField label="Unit" required>
+                    <FormField label={t('fieldUnit')} required>
                         <Combobox<false, UnitDTO>
                             options={unitOptions}
                             selected={selectedUnit}
                             setSelected={(opt) => setDoseUnitId(opt?.value ?? '')}
-                            placeholder="Unit…"
-                            searchPlaceholder="Search units…"
-                            emptyState="No units match"
+                            placeholder={t('unitPlaceholder')}
+                            searchPlaceholder={t('unitSearchPlaceholder')}
+                            emptyState={t('unitEmpty')}
                             forceDropdown
                             matchTriggerWidth
                             buttonProps={{ className: 'w-full' }}
@@ -478,28 +480,28 @@ export function SprayJobWizard({
                 </div>
                 {recalledForProduct && (
                     <p className="text-xs text-content-secondary">
-                        Last time: {recalledForProduct.doseValue} {recalledUnitSymbol} — edit if it&rsquo;s changed.
+                        {t('lastTime', { dose: recalledForProduct.doseValue, unit: recalledUnitSymbol })}
                     </p>
                 )}
                 {/* Water carrier — the tank-mix volume rate. Optional; drives
                     the total-water figure in the calculator below. */}
                 <div className="grid grid-cols-2 gap-default">
-                    <FormField label="Water (carrier)">
+                    <FormField label={t('fieldWater')}>
                         <Input
                             inputMode="decimal"
                             value={waterRate}
                             onChange={(e) => setWaterRate(e.target.value)}
-                            placeholder="e.g. 14"
+                            placeholder={t('waterPlaceholder')}
                         />
                     </FormField>
-                    <FormField label="Unit">
+                    <FormField label={t('fieldUnit')}>
                         <Combobox<false, UnitDTO>
                             options={unitOptions}
                             selected={selectedWaterUnit}
                             setSelected={(opt) => setWaterRateUnitId(opt?.value ?? '')}
-                            placeholder="Unit…"
-                            searchPlaceholder="Search units…"
-                            emptyState="No units match"
+                            placeholder={t('unitPlaceholder')}
+                            searchPlaceholder={t('unitSearchPlaceholder')}
+                            emptyState={t('unitEmpty')}
                             forceDropdown
                             matchTriggerWidth
                             buttonProps={{ className: 'w-full' }}
@@ -509,8 +511,8 @@ export function SprayJobWizard({
                 </div>
                 {totalsPanel(
                     <>
-                        {totalRow('Water', waterRate, selectedWaterUnit?.meta?.symbol)}
-                        {totalRow('Product', dose, selectedUnit?.meta?.symbol)}
+                        {totalRow(t('totalWater'), waterRate, selectedWaterUnit?.meta?.symbol)}
+                        {totalRow(t('totalProduct'), dose, selectedUnit?.meta?.symbol)}
                     </>,
                 )}
                 </div>
@@ -518,8 +520,8 @@ export function SprayJobWizard({
         },
         {
             id: 'confirm',
-            title: 'Confirm Spray Job',
-            description: 'Review before creating.',
+            title: t('stepConfirmTitle'),
+            description: t('stepConfirmDesc'),
             // Final guard: the schema requires an assignee — block finish
             // until /api/auth/me has resolved the current user.
             canAdvance: Boolean(assigneeUserId),
@@ -527,7 +529,7 @@ export function SprayJobWizard({
                 <div className="space-y-default">
                     <dl className="space-y-default text-sm">
                         <div>
-                            <dt className="text-content-secondary">Parcels</dt>
+                            <dt className="text-content-secondary">{t('sumParcels')}</dt>
                             <dd className="font-medium">
                                 {selectedParcelIds
                                     .map((id) => parcels.find((p) => p.id === id)?.name ?? id)
@@ -535,28 +537,28 @@ export function SprayJobWizard({
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-content-secondary">Fertilizer</dt>
+                            <dt className="text-content-secondary">{t('sumFertilizer')}</dt>
                             <dd className="font-medium">{selectedFertilizer?.label ?? '—'}</dd>
                         </div>
                         <div>
-                            <dt className="text-content-secondary">Fertilizer rate</dt>
+                            <dt className="text-content-secondary">{t('sumFertRate')}</dt>
                             <dd className="font-medium">
                                 {fertDoseValid ? fertDoseNumber : '—'} {selectedFertUnit?.meta?.symbol ?? ''}
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-content-secondary">Product</dt>
+                            <dt className="text-content-secondary">{t('sumProduct')}</dt>
                             <dd className="font-medium">{selectedProduct?.label ?? '—'}</dd>
                         </div>
                         <div>
-                            <dt className="text-content-secondary">Rate</dt>
+                            <dt className="text-content-secondary">{t('sumRate')}</dt>
                             <dd className="font-medium">
                                 {doseValid ? doseNumber : '—'} {selectedUnit?.meta?.symbol ?? ''}
                             </dd>
                         </div>
                         {waterRateValid && (
                             <div>
-                                <dt className="text-content-secondary">Water (carrier)</dt>
+                                <dt className="text-content-secondary">{t('sumWater')}</dt>
                                 <dd className="font-medium">
                                     {waterRateNumber} {selectedWaterUnit?.meta?.symbol ?? ''}
                                 </dd>
@@ -565,36 +567,36 @@ export function SprayJobWizard({
                     </dl>
                     {totalsPanel(
                         <>
-                            {totalRow('Water', waterRate, selectedWaterUnit?.meta?.symbol)}
-                            {totalRow('Product', dose, selectedUnit?.meta?.symbol)}
-                            {totalRow('Fertilizer', fertDose, selectedFertUnit?.meta?.symbol)}
+                            {totalRow(t('totalWater'), waterRate, selectedWaterUnit?.meta?.symbol)}
+                            {totalRow(t('totalProduct'), dose, selectedUnit?.meta?.symbol)}
+                            {totalRow(t('totalFertilizer'), fertDose, selectedFertUnit?.meta?.symbol)}
                         </>,
                     )}
                     {/* БАБХ farm-record — optional application technique / rig,
                         printed in the "Техника за приложение" column of the ДНЕВНИК. */}
                     <FormField
-                        label="Техника за приложение / Equipment"
-                        description="Незадължително — техниката, с която е извършено третирането."
+                        label={t('techniqueLabel')}
+                        description={t('techniqueDesc')}
                     >
                         <Input
                             id="spray-technique-input"
                             value={applicationTechnique}
                             onChange={(e) => setApplicationTechnique(e.target.value)}
-                            placeholder="напр. пръскачка, дрон…"
+                            placeholder={t('techniquePlaceholder')}
                         />
                     </FormField>
                     {/* Assignee — the LAST field before creating. Defaults to
                         the current operator; reassignable to any active member
                         so a manager can dispatch the job. Required (the create
                         schema rejects an unassigned spray job). */}
-                    <FormField label="Assign to" required>
+                    <FormField label={t('assignTo')} required>
                         <UserCombobox
                             id="spray-assignee-input"
                             name="assigneeUserId"
                             tenantSlug={tenantSlug}
                             selectedId={assigneeUserId}
                             onChange={(userId) => setAssigneeUserId(userId)}
-                            placeholder="Select an operator…"
+                            placeholder={t('assignPlaceholder')}
                             matchTriggerWidth
                         />
                     </FormField>
@@ -636,7 +638,7 @@ export function SprayJobWizard({
                 // БАБХ farm-record — optional application technique.
                 applicationTechnique: applicationTechnique.trim() || null,
             },
-            label: 'Create spray job',
+            label: t('createSprayJob'),
         });
         const queued = result === 'queued';
         onCreated?.({ queued });
@@ -648,10 +650,10 @@ export function SprayJobWizard({
         <StepWizard
             open={open}
             onOpenChange={handleOpenChange}
-            title="New spray job"
+            title={t('title')}
             steps={steps}
             onFinish={onFinish}
-            finishLabel="Create spray job"
+            finishLabel={t('createSprayJob')}
             isDirty={isDirty}
         />
     );

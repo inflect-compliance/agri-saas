@@ -1,5 +1,6 @@
 'use client';
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { TimestampTooltip } from '@/components/ui/timestamp-tooltip';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,7 @@ function KnowledgePageInner({
     tenantSlug,
     permissions,
 }: KnowledgeClientProps) {
+    const t = useTranslations('knowledge');
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
 
@@ -157,7 +159,7 @@ function KnowledgePageInner({
             createColumns<ArticleRow>([
                 {
                     accessorKey: 'title',
-                    header: 'Title',
+                    header: t('colTitle'),
                     cell: ({ row }) => (
                         <TableTitleCell
                             href={tenantHref(`/knowledge/${row.original.id}`)}
@@ -168,7 +170,7 @@ function KnowledgePageInner({
                 },
                 {
                     id: 'category',
-                    header: 'Category',
+                    header: t('colCategory'),
                     accessorFn: (a) => a.category || '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">
@@ -178,7 +180,7 @@ function KnowledgePageInner({
                 },
                 {
                     accessorKey: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => {
                         const status = row.original.status;
                         const variant = STATUS_BADGE[status] ?? 'neutral';
@@ -198,7 +200,7 @@ function KnowledgePageInner({
                 },
                 {
                     id: 'source',
-                    header: 'Source',
+                    header: t('colSource'),
                     accessorFn: (a) => a.source || '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-subtle">
@@ -208,7 +210,7 @@ function KnowledgePageInner({
                 },
                 {
                     id: 'updatedAt',
-                    header: 'Updated',
+                    header: t('colUpdated'),
                     accessorFn: (a) => a.updatedAt,
                     cell: ({ getValue }) => (
                         <TimestampTooltip
@@ -218,7 +220,7 @@ function KnowledgePageInner({
                     ),
                 },
             ]),
-        [tenantHref],
+        [tenantHref, t],
     );
 
     return (
@@ -226,12 +228,11 @@ function KnowledgePageInner({
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Knowledge' },
+                    { label: t('bcDashboard'), href: tenantHref('/dashboard') },
+                    { label: t('bcKnowledge') },
                 ],
-                title: 'Knowledge',
-                description:
-                    'Author the SOPs, guides, and reference articles your operators rely on — versioned, published, and acknowledged.',
+                title: t('title'),
+                description: t('description'),
                 actions: permissions.canWrite ? (
                     <NewArticleModal
                         trigger={
@@ -240,7 +241,7 @@ function KnowledgePageInner({
                                 icon={<Plus className="-ml-0.5 -mr-2.5" />}
                                 id="new-article-btn"
                             >
-                                Article
+                                {t('newArticle')}
                             </Button>
                         }
                         onCreated={(article) =>
@@ -254,7 +255,7 @@ function KnowledgePageInner({
             filters={{
                 defs: visibleFilterDefs,
                 searchId: 'knowledge-search',
-                searchPlaceholder: 'Search articles…',
+                searchPlaceholder: t('searchPlaceholder'),
                 toolbarActions: filtersDropdown,
             }}
             table={{
@@ -268,10 +269,10 @@ function KnowledgePageInner({
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No articles match your filters"
-                        description="Try widening your search or clearing one of the active filters."
+                        title={t('emptyFilteredTitle')}
+                        description={t('emptyFilteredDesc')}
                         secondaryAction={{
-                            label: 'Clear filters',
+                            label: t('clearFilters'),
                             onClick: () => filterCtx.clearAll(),
                         }}
                     />
@@ -279,8 +280,8 @@ function KnowledgePageInner({
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No articles yet"
-                        description="Capture the operating knowledge your team depends on — field SOPs, equipment guides, compliance how-tos."
+                        title={t('emptyTitle')}
+                        description={t('emptyDesc')}
                     />
                 ),
                 resourceName: (a) => (a ? 'articles' : 'article'),

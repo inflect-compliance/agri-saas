@@ -6,6 +6,7 @@
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,8 @@ import { Card } from '@/components/ui/card';
  * (or tenant home if no target is specified).
  */
 export default function MfaChallengePage() {
+    const t = useTranslations('mfa');
+    const tc = useTranslations('mfa.challenge');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const searchParams = useSearchParams();
@@ -54,7 +57,7 @@ export default function MfaChallengePage() {
 
     const handleVerify = async () => {
         if (code.length !== 6 || !/^\d{6}$/.test(code)) {
-            setError('Please enter a valid 6-digit code');
+            setError(t('invalidCode'));
             return;
         }
         setSubmitting(true);
@@ -76,12 +79,12 @@ export default function MfaChallengePage() {
                 setCode('');
                 setError(
                     attempts >= 4
-                        ? 'Too many failed attempts. Please wait a moment and try again.'
-                        : 'Invalid code. Please check your authenticator app and try again.'
+                        ? tc('errTooMany')
+                        : tc('errInvalid')
                 );
             }
         } catch {
-            setError('Verification failed. Please try again.');
+            setError(tc('errFailed'));
         } finally {
             setSubmitting(false);
         }
@@ -103,10 +106,9 @@ export default function MfaChallengePage() {
                             <AlertTriangle className="w-8 h-8 text-content-warning" />
                         </div>
                     </div>
-                    <Heading level={1}>MFA Enrollment Required</Heading>
+                    <Heading level={1}>{tc('enrollRequiredTitle')}</Heading>
                     <p className="text-sm text-content-muted">
-                        Your organization requires multi-factor authentication.
-                        Please set up MFA to continue.
+                        {tc('enrollRequiredDesc')}
                     </p>
                     <a
                         href={tenantHref('/security/mfa')}
@@ -114,7 +116,7 @@ export default function MfaChallengePage() {
                         id="mfa-go-enroll-btn"
                     >
                         <KeyRound className="w-4 h-4" />
-                        Set Up MFA
+                        {t('setUpMfa')}
                     </a>
                 </Card>
             </div>
@@ -131,9 +133,9 @@ export default function MfaChallengePage() {
                 </div>
 
                 <div className="text-center">
-                    <Heading level={1}>Verify Your Identity</Heading>
+                    <Heading level={1}>{tc('verifyTitle')}</Heading>
                     <p className="text-sm text-content-muted mt-2">
-                        Enter the 6-digit code from your authenticator app to continue.
+                        {tc('verifyDesc')}
                     </p>
                 </div>
 
@@ -165,12 +167,12 @@ export default function MfaChallengePage() {
                         className="w-full justify-center"
                         id="mfa-challenge-submit"
                     >
-                        {submitting ? 'Verifying...' : 'Continue'}
+                        {submitting ? t('verifying') : tc('continue')}
                     </Button>
                 </div>
 
                 <p className="text-xs text-content-subtle text-center">
-                    Can&apos;t access your authenticator? Contact your organization administrator.
+                    {tc('cantAccess')}
                 </p>
             </Card>
         </div>

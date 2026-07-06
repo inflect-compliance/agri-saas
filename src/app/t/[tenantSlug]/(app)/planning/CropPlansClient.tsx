@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,8 @@ function CropPlansPageInner({
     tenantSlug,
     permissions,
 }: CropPlansClientProps) {
+    const t = useTranslations('planning.list');
+    const tp = useTranslations('planning');
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -92,7 +95,7 @@ function CropPlansPageInner({
             createColumns<CropPlanRow>([
                 {
                     accessorKey: 'name',
-                    header: 'Plan',
+                    header: t('colPlan'),
                     cell: ({ row, getValue }) => (
                         <TableTitleCell
                             href={tenantHref(`/planning/${row.original.id}`)}
@@ -104,7 +107,7 @@ function CropPlansPageInner({
                 },
                 {
                     id: 'season',
-                    header: 'Season',
+                    header: t('colSeason'),
                     accessorFn: (p) => p.season?.name ?? '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">{getValue() as string}</span>
@@ -112,7 +115,7 @@ function CropPlansPageInner({
                 },
                 {
                     id: 'crop',
-                    header: 'Crop',
+                    header: t('colCrop'),
                     accessorFn: (p) => p.variety?.name ?? p.cropType?.name ?? '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-default">{getValue() as string}</span>
@@ -120,7 +123,7 @@ function CropPlansPageInner({
                 },
                 {
                     id: 'successions',
-                    header: 'Successions',
+                    header: t('colSuccessions'),
                     accessorFn: (p) => p.successions,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums">
@@ -131,7 +134,7 @@ function CropPlansPageInner({
                 },
                 {
                     id: 'plantings',
-                    header: 'Plantings',
+                    header: t('colPlantings'),
                     accessorFn: (p) => p._count?.plantings ?? 0,
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted tabular-nums">{getValue() as number}</span>
@@ -139,14 +142,14 @@ function CropPlansPageInner({
                 },
                 {
                     accessorKey: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => (
                         <AgStatusBadge entity="cropPlan" status={row.original.status} />
                     ),
                 },
             ]),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [tenantSlug],
+        [tenantSlug, t],
     );
 
     return (
@@ -154,11 +157,11 @@ function CropPlansPageInner({
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Planting' },
+                    { label: tp('bcDashboard'), href: tenantHref('/dashboard') },
+                    { label: tp('bcPlanting') },
                 ],
-                title: 'Crop Planning',
-                description: 'Season succession plans — the schedule behind every sowing, transplant, and harvest.',
+                title: t('title'),
+                description: t('description'),
                 actions: permissions.canWrite ? (
                     <Button
                         variant="primary"
@@ -166,14 +169,14 @@ function CropPlansPageInner({
                         onClick={() => setIsCreateOpen(true)}
                         id="new-crop-plan-btn"
                     >
-                        Plan
+                        {t('newPlan')}
                     </Button>
                 ) : null,
             }}
             filters={{
                 defs: liveFilters,
                 searchId: 'crop-plans-search',
-                searchPlaceholder: 'Search plans…',
+                searchPlaceholder: t('searchPlaceholder'),
             }}
             table={{
                 data: plans,
@@ -185,24 +188,24 @@ function CropPlansPageInner({
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No plans match your filters"
-                        description="Try widening your search or clearing one of the active filters."
-                        secondaryAction={{ label: 'Clear filters', onClick: () => filterCtx.clearAll() }}
+                        title={t('emptyFilteredTitle')}
+                        description={t('emptyFilteredDesc')}
+                        secondaryAction={{ label: t('clearFilters'), onClick: () => filterCtx.clearAll() }}
                     />
                 ) : (
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No crop plans yet"
-                        description="Define a season succession plan — the engine expands it into dated plantings and field tasks."
+                        title={t('emptyTitle')}
+                        description={t('emptyDesc')}
                         primaryAction={
                             permissions.canWrite
-                                ? { label: 'Add plan', onClick: () => setIsCreateOpen(true) }
+                                ? { label: t('addPlan'), onClick: () => setIsCreateOpen(true) }
                                 : undefined
                         }
                     />
                 ),
-                resourceName: (p) => (p ? 'plans' : 'plan'),
+                resourceName: (p) => (p ? t('resourcePlural') : t('resourceSingular')),
                 'data-testid': 'crop-plans-table',
                 className: 'hover:bg-bg-muted',
             }}

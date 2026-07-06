@@ -100,7 +100,9 @@ const LEGACY_LUCIDE_USERS = new Set<string>([
     'src/app/t/[tenantSlug]/(app)/security/mfa/page.tsx',
     'src/app/t/[tenantSlug]/(app)/tasks/dashboard/page.tsx',
     'src/app/t/[tenantSlug]/(app)/tasks/filter-defs.ts',
-    'src/app/t/[tenantSlug]/(app)/tests/runs/[runId]/page.tsx',
+    // T13 i18n migration — the sole lucide import (Paperclip) migrated to
+    // the Nucleo `paperclip` icon; the file no longer imports lucide, so
+    // it is removed from the allowlist in the same diff (stale-entry rule).
     'src/app/t/[tenantSlug]/(app)/vendors/filter-defs.ts',
     'src/components/command-palette/command-palette.tsx',
     'src/components/command-palette/use-palette-commands.ts',

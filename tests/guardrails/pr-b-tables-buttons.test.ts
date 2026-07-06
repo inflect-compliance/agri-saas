@@ -40,9 +40,14 @@ describe('PR-B — table & button hygiene', () => {
         });
 
         it('Status is its own column with `id: "status"`', () => {
+            // i18n batch T13 — the header copy now routes through next-intl
+            // (`header: t('colStatus')` on the `controlTests.rollup`
+            // namespace). Accept either the legacy literal or the t() form.
             expect(src).toMatch(
-                /id:\s*['"]status['"],\s*header:\s*['"]Status['"]/,
+                /id:\s*['"]status['"],\s*header:\s*(?:['"]Status['"]|t\('colStatus'\))/,
             );
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            expect(require('../../messages/en.json').controlTests.rollup.colStatus).toBe('Status');
         });
 
         it('Status is positioned immediately after Name (not at end)', () => {

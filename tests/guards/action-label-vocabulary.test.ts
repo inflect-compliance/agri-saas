@@ -113,7 +113,11 @@ const BASELINE_PLUS_LITERAL_SITES = new Set<string>([
     // `× Remove` 1072→1075). The literals themselves are unchanged.
     'src/app/t/[tenantSlug]/(app)/tasks/[taskId]/page.tsx:784',
     'src/app/t/[tenantSlug]/(app)/tasks/[taskId]/page.tsx:1075',
-    'src/app/t/[tenantSlug]/(app)/tests/runs/[runId]/page.tsx:419',
+    // T13 i18n — the `+ Evidence` literal stays inline (moving it into a
+    // message value would trip no-plus-prefix-labels). Its line shifted
+    // 419 → 424 when the useTranslations import/hook + useMemo import
+    // landed above it.
+    'src/app/t/[tenantSlug]/(app)/tests/runs/[runId]/page.tsx:424',
     'src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx:369',
     'src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx:393',
     'src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx:470',
