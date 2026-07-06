@@ -110,6 +110,9 @@ const DYNAMIC_LABEL_EXEMPT: Record<string, string> = {
     // (`confirmLabel={t('deleteConfirmLabel')}`), resolved en+bg both
     // begin with the canonical "Delete" verb → "Delete task".
     'src/app/t/[tenantSlug]/(app)/tasks/TaskDetailSheet.tsx': 'confirmLabel i18n key t(deleteConfirmLabel) → "Delete task"',
+    // T13 i18n migration — confirmLabel is now `t('removeMfa')`, resolved
+    // en+bg both begin with the canonical "Remove" verb → "Remove MFA".
+    'src/app/t/[tenantSlug]/(app)/security/mfa/page.tsx': 'confirmLabel i18n key t(removeMfa) → "Remove MFA"',
 };
 
 describe('Destructive-action vocabulary (Roadmap-4 PR-9)', () => {
