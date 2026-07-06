@@ -49,7 +49,13 @@ describe('PR-3 — org dashboard → tenant dashboard parity', () => {
         expect(jsxIdx).toBeGreaterThan(0);
         const block = src.slice(jsxIdx, jsxIdx + 800);
         expect(block).toMatch(/header=\{\{/);
-        expect(block).toMatch(/title:\s*['"]Portfolio Overview['"]/);
+        // T14 i18n — the title moved from a literal to `t('title')`
+        // (the copy lives in messages/en.json under org.portfolio.title).
+        // Accept either the literal OR the next-intl call, and cross-check
+        // the English value so the rendered header contract still holds.
+        expect(block).toMatch(/title:\s*(['"]Portfolio Overview['"]|t\(['"]title['"]\))/);
+        const messages = JSON.parse(read('messages/en.json'));
+        expect(messages.org.portfolio.title).toBe('Portfolio Overview');
         expect(block).toMatch(/description:\s*headerDescription/);
         expect(block).toMatch(/actions:\s*headerActions/);
     });

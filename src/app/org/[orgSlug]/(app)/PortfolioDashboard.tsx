@@ -27,6 +27,7 @@
  */
 
 import { useCallback, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
 
 import {
@@ -112,6 +113,7 @@ export function PortfolioDashboard({
     data,
     canEdit,
 }: PortfolioDashboardProps) {
+    const t = useTranslations('org.portfolio');
     const [widgets, setWidgets] = useState<OrgDashboardWidgetDto[]>(
         () => [...initialWidgets],
     );
@@ -195,7 +197,10 @@ export function PortfolioDashboard({
                 value={data.summary.tenants.total}
                 format={{ kind: 'integer' }}
             />
-            {' '}tenant{data.summary.tenants.total === 1 ? '' : 's'}
+            {' '}
+            {data.summary.tenants.total === 1
+                ? t('tenantSingular')
+                : t('tenantPlural')}
             {data.summary.tenants.pending > 0 && (
                 <>
                     {' · '}
@@ -203,7 +208,8 @@ export function PortfolioDashboard({
                         value={data.summary.tenants.pending}
                         format={{ kind: 'integer' }}
                     />
-                    {' pending first snapshot'}
+                    {' '}
+                    {t('pendingFirstSnapshot')}
                 </>
             )}
         </span>
@@ -220,7 +226,7 @@ export function PortfolioDashboard({
                     data-testid="dashboard-edit-toggle"
                 >
                     <Pencil className="size-3.5" aria-hidden="true" />
-                    Edit dashboard
+                    {t('editDashboard')}
                 </Button>
             )}
             {canEdit && editMode && (
@@ -233,7 +239,7 @@ export function PortfolioDashboard({
                         data-testid="dashboard-add-widget"
                     >
                         <Plus className="size-3.5" aria-hidden="true" />
-                        Add widget
+                        {t('addWidget')}
                     </Button>
                     <Button
                         type="button"
@@ -243,7 +249,7 @@ export function PortfolioDashboard({
                         data-testid="dashboard-edit-done"
                     >
                         <X className="size-3.5" aria-hidden="true" />
-                        Done
+                        {t('done')}
                     </Button>
                 </>
             )}
@@ -255,7 +261,7 @@ export function PortfolioDashboard({
             data-testid="org-dashboard"
             className="space-y-default"
             header={{
-                title: 'Portfolio Overview',
+                title: t('title'),
                 description: headerDescription,
                 actions: headerActions,
             }}
@@ -282,12 +288,10 @@ export function PortfolioDashboard({
                     className="rounded-md border border-border-subtle bg-bg-muted/20 px-4 py-6 text-center"
                 >
                     <p className="text-sm font-medium text-content-emphasis">
-                        Dashboard is empty
+                        {t('emptyTitle')}
                     </p>
                     <p className="text-xs text-content-muted mt-1">
-                        {canEdit
-                            ? 'Run the backfill script (`npm run db:backfill-org-widgets -- --execute`) or add widgets via the picker.'
-                            : 'No widgets configured. Contact an org admin.'}
+                        {canEdit ? t('emptyDescEdit') : t('emptyDescReader')}
                     </p>
                 </div>
             )}
@@ -310,7 +314,9 @@ export function PortfolioDashboard({
                                             void handleDelete(w.id);
                                         }}
                                         disabled={busy}
-                                        aria-label={`Delete ${w.title ?? w.chartType} widget`}
+                                        aria-label={t('deleteWidgetAria', {
+                                            name: w.title ?? w.chartType,
+                                        })}
                                         data-testid={`dashboard-delete-widget-${w.id}`}
                                         className="text-content-subtle hover:text-content-error transition-colors p-1 rounded"
                                     >

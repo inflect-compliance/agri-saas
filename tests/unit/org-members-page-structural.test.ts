@@ -103,8 +103,16 @@ describe('GAP O4-2 — org members page structural contract', () => {
         const src = read(CLIENT_PATH);
         expect(src).toMatch(/org-change-role-promotion-callout/);
         expect(src).toMatch(/org-change-role-demotion-callout/);
-        // Promotion callout names the AUDITOR fan-out.
-        expect(src).toMatch(/AUDITOR\s+membership[\s\S]*?every[\s\S]*?child\s+tenant/i);
+        // Promotion callout names the AUDITOR fan-out. T14 i18n — the
+        // callout copy moved from inline JSX to messages/en.json under
+        // org.members.promotionCallout; assert the source renders that key
+        // AND that the English value still names the AUDITOR / child-tenant
+        // fan-out so the operator-warning contract holds.
+        expect(src).toMatch(/t\(['"]promotionCallout['"]\)/);
+        const messages = JSON.parse(read('messages/en.json'));
+        expect(messages.org.members.promotionCallout).toMatch(
+            /AUDITOR\s+membership[\s\S]*?every[\s\S]*?child\s+tenant/i,
+        );
     });
 
     it('role-change submit is disabled on no-op transitions', () => {
