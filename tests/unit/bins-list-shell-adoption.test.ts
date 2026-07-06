@@ -45,7 +45,7 @@ describe('BinsClient — EntityListPage adoption', () => {
     it('threads the live search box through the shell', () => {
         expect(source).toMatch(/filters\s*=\s*\{\{/);
         expect(source).toContain("searchId: 'grain-bins-search'");
-        expect(source).toMatch(/searchPlaceholder:\s*['"]Search bins/);
+        expect(source).toMatch(/searchPlaceholder:\s*\w+\(/);
     });
 
     it('threads the table config through the shell', () => {

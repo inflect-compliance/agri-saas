@@ -29,6 +29,7 @@ import {
     type SetStateAction,
 } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -141,6 +142,7 @@ export function ContractFormModal({
     contract,
     onSaved,
 }: ContractFormModalProps) {
+    const t = useTranslations('grain.contracts.form');
     const apiUrl = useTenantApiUrl();
     const queryClient = useQueryClient();
     const isEdit = Boolean(contract);
@@ -160,7 +162,7 @@ export function ContractFormModal({
     // Prepend a "No season" sentinel so the optional relation is
     // clearable (the Combobox has no built-in clear affordance).
     const seasonOptions: ComboboxOption[] = [
-        { value: '', label: 'No season' },
+        { value: '', label: t('noSeason') },
         ...(seasonsQuery.data ?? []).map((s) => ({
             value: s.id,
             label: s.name,
@@ -263,10 +265,8 @@ export function ContractFormModal({
     };
 
     const apiError = errors.root?.api?.message;
-    const heading = isEdit ? 'Edit contract' : 'New contract';
-    const description = isEdit
-        ? 'Update this grain marketing or supply contract.'
-        : 'Record a forward sale of produce or purchase of inputs.';
+    const heading = isEdit ? t('editTitle') : t('newTitle');
+    const description = isEdit ? t('editDescription') : t('newDescription');
 
     return (
         <Modal
@@ -292,21 +292,21 @@ export function ContractFormModal({
 
                     <div className="space-y-default">
                         <FormField
-                            label="Counterparty"
+                            label={t('counterparty')}
                             required
                             error={errors.counterparty?.message}
                         >
                             <Input
                                 id="contract-counterparty-input"
                                 type="text"
-                                placeholder="e.g. Cargill Grain"
+                                placeholder={t('counterpartyPlaceholder')}
                                 autoComplete="off"
                                 {...register('counterparty')}
                             />
                         </FormField>
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
-                            <FormField label="Type" error={errors.type?.message}>
+                            <FormField label={t('type')} error={errors.type?.message}>
                                 <Controller
                                     control={control}
                                     name="type"
@@ -323,7 +323,7 @@ export function ContractFormModal({
                                             setSelected={(o) =>
                                                 field.onChange(o?.value ?? 'SALE')
                                             }
-                                            placeholder="Select type…"
+                                            placeholder={t('typePlaceholder')}
                                             hideSearch
                                             matchTriggerWidth
                                             forceDropdown
@@ -334,7 +334,7 @@ export function ContractFormModal({
                                 />
                             </FormField>
                             <FormField
-                                label="Status"
+                                label={t('status')}
                                 error={errors.status?.message}
                             >
                                 <Controller
@@ -353,7 +353,7 @@ export function ContractFormModal({
                                             setSelected={(o) =>
                                                 field.onChange(o?.value ?? 'DRAFT')
                                             }
-                                            placeholder="Select status…"
+                                            placeholder={t('statusPlaceholder')}
                                             hideSearch
                                             matchTriggerWidth
                                             forceDropdown
@@ -366,13 +366,13 @@ export function ContractFormModal({
                         </div>
 
                         <FormField
-                            label="Commodity"
+                            label={t('commodity')}
                             error={errors.commodity?.message}
                         >
                             <Input
                                 id="contract-commodity-input"
                                 type="text"
-                                placeholder="e.g. Milling wheat"
+                                placeholder={t('commodityPlaceholder')}
                                 autoComplete="off"
                                 {...register('commodity')}
                             />
@@ -380,37 +380,37 @@ export function ContractFormModal({
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-3">
                             <FormField
-                                label="Volume (t)"
+                                label={t('volume')}
                                 error={errors.volumeTonnes?.message}
                             >
                                 <Input
                                     id="contract-volume-input"
                                     inputMode="decimal"
-                                    placeholder="e.g. 500"
+                                    placeholder={t('volumePlaceholder')}
                                     autoComplete="off"
                                     {...register('volumeTonnes')}
                                 />
                             </FormField>
                             <FormField
-                                label="Price / tonne"
+                                label={t('price')}
                                 error={errors.pricePerTonne?.message}
                             >
                                 <Input
                                     id="contract-price-input"
                                     inputMode="decimal"
-                                    placeholder="e.g. 210"
+                                    placeholder={t('pricePlaceholder')}
                                     autoComplete="off"
                                     {...register('pricePerTonne')}
                                 />
                             </FormField>
                             <FormField
-                                label="Currency"
+                                label={t('currency')}
                                 error={errors.priceCurrency?.message}
                             >
                                 <Input
                                     id="contract-currency-input"
                                     type="text"
-                                    placeholder="e.g. EUR"
+                                    placeholder={t('currencyPlaceholder')}
                                     autoComplete="off"
                                     {...register('priceCurrency')}
                                 />
@@ -419,7 +419,7 @@ export function ContractFormModal({
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                             <FormField
-                                label="Delivery start"
+                                label={t('deliveryStart')}
                                 error={errors.deliveryStart?.message}
                             >
                                 <Controller
@@ -430,13 +430,13 @@ export function ContractFormModal({
                                             id="contract-delivery-start-input"
                                             value={field.value}
                                             onChange={(d) => field.onChange(d)}
-                                            placeholder="Select date"
+                                            placeholder={t('datePlaceholder')}
                                         />
                                     )}
                                 />
                             </FormField>
                             <FormField
-                                label="Delivery end"
+                                label={t('deliveryEnd')}
                                 error={errors.deliveryEnd?.message}
                             >
                                 <Controller
@@ -447,7 +447,7 @@ export function ContractFormModal({
                                             id="contract-delivery-end-input"
                                             value={field.value}
                                             onChange={(d) => field.onChange(d)}
-                                            placeholder="Select date"
+                                            placeholder={t('datePlaceholder')}
                                         />
                                     )}
                                 />
@@ -455,8 +455,8 @@ export function ContractFormModal({
                         </div>
 
                         <FormField
-                            label="Season"
-                            hint="Optional — ties the contract to a planning season."
+                            label={t('season')}
+                            hint={t('seasonHint')}
                             error={errors.seasonId?.message}
                         >
                             <Controller
@@ -475,7 +475,7 @@ export function ContractFormModal({
                                         setSelected={(o) =>
                                             field.onChange(o?.value ?? '')
                                         }
-                                        placeholder="Select season…"
+                                        placeholder={t('seasonPlaceholder')}
                                         matchTriggerWidth
                                         forceDropdown
                                         buttonProps={{ className: 'w-full' }}
@@ -485,23 +485,23 @@ export function ContractFormModal({
                             />
                         </FormField>
 
-                        <FormField label="Terms" error={errors.terms?.message}>
+                        <FormField label={t('terms')} error={errors.terms?.message}>
                             <Textarea
                                 id="contract-terms-input"
                                 rows={2}
-                                placeholder="Delivery, quality, and payment terms"
+                                placeholder={t('termsPlaceholder')}
                                 {...register('terms')}
                             />
                         </FormField>
 
                         <FormField
-                            label="Pricing notes"
+                            label={t('pricingNotes')}
                             error={errors.pricingNotes?.message}
                         >
                             <Textarea
                                 id="contract-pricing-notes-input"
                                 rows={2}
-                                placeholder="Basis, premiums, hedging notes"
+                                placeholder={t('pricingNotesPlaceholder')}
                                 {...register('pricingNotes')}
                             />
                         </FormField>
@@ -517,7 +517,7 @@ export function ContractFormModal({
                         }}
                         disabled={isSubmitting}
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -526,7 +526,7 @@ export function ContractFormModal({
                         id="save-contract-btn"
                         loading={isSubmitting}
                     >
-                        {isEdit ? 'Save contract' : 'Create contract'}
+                        {isEdit ? t('saveContract') : t('createContract')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

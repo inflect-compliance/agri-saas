@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { StackY3 } from '@/components/ui/icons/nucleo/stack-y-3';
 import { ArrowTrendUp } from '@/components/ui/icons/nucleo/arrow-trend-up';
 import { MoneyBill } from '@/components/ui/icons/nucleo/money-bill';
@@ -63,6 +64,7 @@ function formatCost(n: number, currency: string | null): string {
 }
 
 export function PortfolioGrainClient({ summary }: Props) {
+    const t = useTranslations('grain.portfolio');
     const { totals, perTenant } = summary;
     const sym = currencySymbol(totals.currency);
 
@@ -113,7 +115,7 @@ export function PortfolioGrainClient({ summary }: Props) {
             createColumns<PortfolioGrainTenantRow>([
                 {
                     id: 'tenantName',
-                    header: 'Farm',
+                    header: t('colFarm'),
                     cell: ({ row }) => (
                         <span className="font-medium text-content-emphasis">
                             {row.original.tenantName}
@@ -122,7 +124,7 @@ export function PortfolioGrainClient({ summary }: Props) {
                 },
                 {
                     id: 'contractedSaleTonnes',
-                    header: 'Contracted (sale / purchase)',
+                    header: t('colContracted'),
                     cell: ({ row }) => (
                         <span className="tabular-nums text-content-default">
                             {formatTonnes(row.original.contractedSaleTonnes)}
@@ -135,7 +137,7 @@ export function PortfolioGrainClient({ summary }: Props) {
                 },
                 {
                     id: 'totalYieldTonnes',
-                    header: 'Yield',
+                    header: t('colYield'),
                     cell: ({ row }) => (
                         <span className="tabular-nums text-content-default">
                             {formatTonnes(row.original.totalYieldTonnes)}
@@ -144,7 +146,7 @@ export function PortfolioGrainClient({ summary }: Props) {
                 },
                 {
                     id: 'totalActivityCost',
-                    header: 'Activity cost',
+                    header: t('colActivityCost'),
                     cell: ({ row }) => (
                         <span className="tabular-nums text-content-default">
                             {formatCost(row.original.totalActivityCost, row.original.currency)}
@@ -153,7 +155,7 @@ export function PortfolioGrainClient({ summary }: Props) {
                 },
                 {
                     id: 'binStoredTonnes',
-                    header: 'Bin fill',
+                    header: t('colBinFill'),
                     cell: ({ row }) => {
                         const { binStoredTonnes, binCapacityTonnes, binCount } = row.original;
                         if (binCount === 0) {
@@ -178,22 +180,22 @@ export function PortfolioGrainClient({ summary }: Props) {
                     },
                 },
             ]),
-        [],
+        [t],
     );
 
     return (
         <ListPageShell>
             <ListPageShell.Header>
                 <div>
-                    <Heading level={1}>Grain Portfolio</Heading>
+                    <Heading level={1}>{t('title')}</Heading>
                     <p className="text-sm text-content-muted mt-1">
-                        Contracted volume, harvested yield, activity cost and storage
-                        aggregated across {totals.tenantsTotal} farm
-                        {totals.tenantsTotal === 1 ? '' : 's'}
-                        {totals.tenantsWithGrain < totals.tenantsTotal
-                            ? ` (${totals.tenantsWithGrain} with grain data)`
-                            : ''}
-                        .
+                        {t('subtitle', {
+                            count: totals.tenantsTotal,
+                            withGrain:
+                                totals.tenantsWithGrain < totals.tenantsTotal
+                                    ? t('withGrainData', { count: totals.tenantsWithGrain })
+                                    : '',
+                        })}
                     </p>
                 </div>
             </ListPageShell.Header>
@@ -202,8 +204,8 @@ export function PortfolioGrainClient({ summary }: Props) {
                 <ListPageShell.Body>
                     <EmptyState
                         icon={StackY3}
-                        title="No grain data across the portfolio"
-                        description="None of this organization's farms have grain contracts, yield records or bins yet. Grain figures appear here once a farm with the GRAIN module records them."
+                        title={t('emptyTitle')}
+                        description={t('emptyDescription')}
                         variant="no-records"
                         data-testid="org-grain-empty"
                     />
@@ -217,43 +219,43 @@ export function PortfolioGrainClient({ summary }: Props) {
                             data-testid="org-grain-kpis"
                         >
                             <KpiCard
-                                label="Contracted (sale)"
+                                label={t('kpiContractedSale')}
                                 value={totals.contractedSaleTonnes}
                                 format="compact"
                                 icon={StackY3}
-                                subtitle={`${formatTonnes(totals.contractedPurchaseTonnes)} purchase`}
+                                subtitle={t('kpiPurchaseSubtitle', { amount: formatTonnes(totals.contractedPurchaseTonnes) })}
                                 trendPolarity="neutral"
                             />
                             <KpiCard
-                                label="Harvested yield"
+                                label={t('kpiHarvestedYield')}
                                 value={totals.totalYieldTonnes}
                                 format="compact"
                                 icon={ArrowTrendUp}
                                 gradient="from-emerald-500 to-teal-500"
                                 trendVariant="success"
-                                subtitle="across all farms"
+                                subtitle={t('kpiAcrossFarms')}
                                 trendPolarity="neutral"
                             />
                             <KpiCard
-                                label="Activity cost"
+                                label={t('kpiActivityCost')}
                                 value={totals.totalActivityCost}
                                 format="compact"
                                 icon={MoneyBill}
                                 gradient="from-amber-500 to-orange-500"
                                 subtitle={
                                     totals.currency
-                                        ? `total (${totals.currency})`
-                                        : 'total'
+                                        ? t('kpiTotalCurrency', { currency: totals.currency })
+                                        : t('kpiTotal')
                                 }
                                 trendPolarity="neutral"
                             />
                             <KpiCard
-                                label="Bin utilisation"
+                                label={t('kpiBinUtilisation')}
                                 value={totals.binUtilisationPct}
                                 format="percent"
                                 icon={BoxArchive}
                                 gradient="from-sky-500 to-indigo-500"
-                                subtitle={`${formatTonnes(totals.binStoredTonnes)} of ${formatTonnes(totals.binCapacityTonnes)}`}
+                                subtitle={t('kpiBinSubtitle', { stored: formatTonnes(totals.binStoredTonnes), capacity: formatTonnes(totals.binCapacityTonnes) })}
                                 trendPolarity="neutral"
                             />
                         </div>
@@ -264,14 +266,14 @@ export function PortfolioGrainClient({ summary }: Props) {
                                 className="rounded-lg border border-border-default bg-bg-default p-4"
                                 data-testid="org-grain-yield-by-farm"
                             >
-                                <Heading level={3}>Yield by farm</Heading>
+                                <Heading level={3}>{t('yieldByFarm')}</Heading>
                                 <p className="text-xs text-content-muted mt-1 mb-3">
-                                    Harvested tonnes per farm ({sym}-priced contracts).
+                                    {t('yieldByFarmNote', { sym })}
                                 </p>
                                 <StatusBreakdown
                                     items={yieldByFarm}
                                     showPercent
-                                    ariaLabel="Harvested yield by farm"
+                                    ariaLabel={t('yieldByFarmAria')}
                                 />
                             </section>
                         )}
@@ -294,11 +296,11 @@ export function PortfolioGrainClient({ summary }: Props) {
                                 if (p.sortBy) setSortBy(p.sortBy);
                                 if (p.sortOrder) setSortOrder(p.sortOrder);
                             }}
-                            resourceName={(plural) => (plural ? 'farms' : 'farm')}
+                            resourceName={(plural) => (plural ? t('farms') : t('farm'))}
                             emptyState={
                                 <TableEmptyState
-                                    title="No farms"
-                                    description="This organization has no linked farm tenants."
+                                    title={t('tableEmptyTitle')}
+                                    description={t('tableEmptyDescription')}
                                     icon={<StackY3 className="size-10" />}
                                 />
                             }

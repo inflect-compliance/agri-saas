@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import type { Row } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
@@ -56,6 +57,7 @@ export function BinsClient(props: BinsClientProps) {
 }
 
 function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps) {
+    const t = useTranslations('grain.bins');
     const apiUrl = useCallback(
         (path: string) => `/api/t/${tenantSlug}${path}`,
         [tenantSlug],
@@ -115,7 +117,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
             createColumns<BinRow>([
                 {
                     accessorKey: 'name',
-                    header: 'Name',
+                    header: t('colName'),
                     cell: ({ row }) => (
                         <TableTitleCell id={`bin-link-${row.original.id}`}>
                             {row.original.name}
@@ -124,14 +126,14 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                 },
                 {
                     accessorKey: 'kind',
-                    header: 'Kind',
+                    header: t('colKind'),
                     cell: ({ row }) => (
                         <AgStatusBadge entity="bin" status={row.original.kind} />
                     ),
                 },
                 {
                     id: 'capacityTonnes',
-                    header: 'Capacity (t)',
+                    header: t('colCapacity'),
                     accessorFn: (b) => b.capacityTonnes ?? -1,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-default tabular-nums block text-right">
@@ -141,7 +143,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                 },
                 {
                     id: 'storedQuantity',
-                    header: 'Stored (t)',
+                    header: t('colStored'),
                     accessorFn: (b) => b.storedQuantity,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-default tabular-nums block text-right">
@@ -151,7 +153,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                 },
                 {
                     id: 'fillPct',
-                    header: 'Fill',
+                    header: t('colFill'),
                     accessorFn: (b) => b.fillPct ?? -1,
                     cell: ({ row }) => {
                         const ratio = row.original.fillPct;
@@ -168,14 +170,14 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                                 size="sm"
                                 showValue
                                 className="w-24"
-                                aria-label={`Bin fill ${pct}%`}
+                                aria-label={t('fillAria', { pct })}
                             />
                         );
                     },
                 },
                 {
                     id: 'lotCount',
-                    header: 'Lots',
+                    header: t('colLots'),
                     accessorFn: (b) => b.lotCount,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums">
@@ -184,7 +186,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                     ),
                 },
             ]),
-        [],
+        [t],
     );
 
     return (
@@ -192,12 +194,11 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                    { label: 'Bins' },
+                    { label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                    { label: t('breadcrumbBins') },
                 ],
-                title: 'Bins',
-                description:
-                    'Storage bins and silos holding harvested produce — capacity, fill, and lot counts.',
+                title: t('title'),
+                description: t('description'),
                 actions: permissions.canWrite ? (
                     <Button
                         variant="primary"
@@ -208,14 +209,14 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                             setIsCreateOpen(true);
                         }}
                     >
-                        Bin
+                        {t('newBin')}
                     </Button>
                 ) : null,
             }}
             filters={{
                 defs: [],
                 searchId: 'grain-bins-search',
-                searchPlaceholder: 'Search bins…',
+                searchPlaceholder: t('searchPlaceholder'),
             }}
             table={{
                 data: bins,
@@ -227,19 +228,19 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No bins match your search"
-                        description="Try a different name or clear the search."
+                        title={t('emptyNoResultsTitle')}
+                        description={t('emptyNoResultsDesc')}
                     />
                 ) : (
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No bins yet"
-                        description="Add a bin or storage location to track stored produce against its capacity."
+                        title={t('emptyTitle')}
+                        description={t('emptyDescription')}
                         primaryAction={
                             permissions.canWrite
                                 ? {
-                                      label: 'Add bin',
+                                      label: t('addBin'),
                                       onClick: () => {
                                           setEditing(null);
                                           setIsCreateOpen(true);
@@ -249,7 +250,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                         }
                     />
                 ),
-                resourceName: (p) => (p ? 'bins' : 'bin'),
+                resourceName: (p) => (p ? t('bins') : t('bin')),
                 'data-testid': 'grain-bins-table',
                 className: 'hover:bg-bg-muted',
             }}

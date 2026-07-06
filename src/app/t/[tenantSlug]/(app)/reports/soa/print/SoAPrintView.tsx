@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import type { SoAReportDTO, SoAEntryDTO } from '@/lib/dto/soa';
 import { formatDate } from '@/lib/format-date';
 import { Heading } from '@/components/ui/typography';
@@ -16,6 +17,8 @@ interface SoAPrintViewProps {
  * Print styles are in globals.css (moved there for CSP compliance — no inline <style> tags).
  */
 export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
+    const t = useTranslations('reports.soaReport.print');
+    const tRoot = useTranslations('reports');
     const { summary, entries } = report;
     // Epic 58 — canonical app-wide formatter so the printed SoA's
     // "Generated on" line reads identically to every other date in
@@ -23,10 +26,10 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
     const generatedDate = formatDate(report.generatedAt);
 
     // Group entries by section
-    const sections = [...new Set(entries.map(e => e.section || 'Other'))];
+    const sections = [...new Set(entries.map(e => e.section || t('otherSection')))];
     const bySection = sections.map(s => ({
         name: s,
-        entries: entries.filter(e => (e.section || 'Other') === s),
+        entries: entries.filter(e => (e.section || t('otherSection')) === s),
     }));
 
     return (
@@ -34,21 +37,21 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
             {/* ─── Print toolbar (screen only) ─── */}
             <div className="no-print flex items-center justify-between mb-6 p-4 bg-bg-muted rounded-lg">
                 <div>
-                    <Heading level={2}>SoA Print Preview</Heading>
-                    <p className="text-xs text-content-muted">Use Ctrl+P (or Cmd+P) to print or save as PDF</p>
+                    <Heading level={2}>{t('previewTitle')}</Heading>
+                    <p className="text-xs text-content-muted">{t('previewHint')}</p>
                 </div>
                 <div className="flex gap-tight">
                     <button
                         onClick={() => window.print()}
                         className="px-4 py-2 bg-bg-info-emphasis text-content-emphasis rounded-lg text-sm font-medium hover:bg-bg-info-emphasis transition-colors"
                     >
-                        Print / Save as PDF
+                        {t('printButton')}
                     </button>
                     <button
                         onClick={() => window.history.back()}
                         className="px-4 py-2 bg-bg-default text-content-default rounded-lg text-sm font-medium hover:bg-bg-muted transition-colors"
                     >
-                        Back
+                        {t('back')}
                     </button>
                 </div>
             </div>
@@ -56,27 +59,27 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
             {/* ─── Cover section ─── */}
             <div className="print-page">
                 <div className="border-b-2 border-border-emphasis pb-4 mb-6">
-                    <Heading level={1} className="text-content-emphasis">Statement of Applicability</Heading>
+                    <Heading level={1} className="text-content-emphasis">{tRoot('soa')}</Heading>
                     <p className="text-sm text-content-muted mt-1">{report.frameworkName}</p>
                 </div>
 
                 <table className="w-full text-sm mb-8">
                     <tbody>
-                        <tr><td className="py-1 pr-4 font-semibold text-content-default w-48">Organization</td><td className="py-1">{tenantName}</td></tr>
-                        <tr><td className="py-1 pr-4 font-semibold text-content-default">Framework</td><td className="py-1">{report.frameworkName}</td></tr>
-                        <tr><td className="py-1 pr-4 font-semibold text-content-default">Generated</td><td className="py-1">{generatedDate}</td></tr>
-                        <tr><td className="py-1 pr-4 font-semibold text-content-default">Total Controls</td><td className="py-1">{summary.total}</td></tr>
+                        <tr><td className="py-1 pr-4 font-semibold text-content-default w-48">{t('organization')}</td><td className="py-1">{tenantName}</td></tr>
+                        <tr><td className="py-1 pr-4 font-semibold text-content-default">{t('framework')}</td><td className="py-1">{report.frameworkName}</td></tr>
+                        <tr><td className="py-1 pr-4 font-semibold text-content-default">{t('generated')}</td><td className="py-1">{generatedDate}</td></tr>
+                        <tr><td className="py-1 pr-4 font-semibold text-content-default">{t('totalControls')}</td><td className="py-1">{summary.total}</td></tr>
                     </tbody>
                 </table>
 
                 {/* Summary */}
-                <Heading level={2} className="mb-3 border-b border-border-default pb-1">Summary</Heading>
+                <Heading level={2} className="mb-3 border-b border-border-default pb-1">{t('summary')}</Heading>
                 <div className="grid grid-cols-3 gap-default mb-8">
-                    <SummaryBox label="Applicable" value={summary.applicable} total={summary.total} color="green" />
-                    <SummaryBox label="Not Applicable" value={summary.notApplicable} total={summary.total} color="gray" />
-                    <SummaryBox label="Unmapped" value={summary.unmapped} total={summary.total} color="red" />
-                    <SummaryBox label="Implemented" value={summary.implemented} total={summary.total} color="green" />
-                    <SummaryBox label="Missing Justification" value={summary.missingJustification} total={summary.total} color="amber" />
+                    <SummaryBox label={t('applicable')} value={summary.applicable} total={summary.total} color="green" />
+                    <SummaryBox label={t('notApplicable')} value={summary.notApplicable} total={summary.total} color="gray" />
+                    <SummaryBox label={t('unmapped')} value={summary.unmapped} total={summary.total} color="red" />
+                    <SummaryBox label={t('implemented')} value={summary.implemented} total={summary.total} color="green" />
+                    <SummaryBox label={t('missingJustification')} value={summary.missingJustification} total={summary.total} color="amber" />
                 </div>
             </div>
 
@@ -84,19 +87,19 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
             {bySection.map(section => (
                 <div key={section.name} className="print-page">
                     <Heading level={2} className="mb-3 border-b border-border-default pb-1">
-                        {section.name} Controls
+                        {t('sectionControls', { section: section.name })}
                         <span className="text-sm font-normal text-content-muted ml-2">({section.entries.length})</span>
                     </Heading>
 
                     <table className="print-table w-full text-xs border-collapse mb-6">
                         <thead>
                             <tr className="bg-bg-muted">
-                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold w-16">Code</th>
-                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold">Requirement</th>
-                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold w-20">Applicable</th>
-                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold w-28">Status</th>
-                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold">Control References</th>
-                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold">Justification</th>
+                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold w-16">{t('colCode')}</th>
+                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold">{t('colRequirement')}</th>
+                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold w-20">{t('colApplicable')}</th>
+                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold w-28">{t('colStatus')}</th>
+                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold">{t('colControlReferences')}</th>
+                                <th className="border border-border-default px-2 py-1.5 text-left font-semibold">{t('colJustification')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -110,7 +113,7 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
 
             {/* ─── Footer ─── */}
             <div className="text-xs text-content-subtle border-t border-border-subtle pt-4 mt-8">
-                <p>Generated by Agrent on {generatedDate}. This document is a point-in-time snapshot and should be verified against current controls.</p>
+                <p>{t('footer', { date: generatedDate })}</p>
             </div>
         </div>
     );
@@ -119,9 +122,10 @@ export function SoAPrintView({ report, tenantName }: SoAPrintViewProps) {
 // ─── Print Row ───
 
 function PrintRow({ entry }: { entry: SoAEntryDTO }) {
-    const applicable = entry.applicable === true ? 'Yes'
-        : entry.applicable === false ? 'No'
-        : 'Unmapped';
+    const t = useTranslations('reports.soaReport.print');
+    const applicable = entry.applicable === true ? t('yes')
+        : entry.applicable === false ? t('no')
+        : t('unmappedValue');
 
     const applicableClass = entry.applicable === true ? 'text-content-success'
         : entry.applicable === false ? 'text-content-muted'

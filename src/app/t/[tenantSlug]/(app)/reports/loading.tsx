@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import {
     Skeleton,
     SkeletonHeading,
@@ -13,9 +14,10 @@ import {
  * transition from skeleton → real DataTable doesn't flash a
  * different shell.
  */
-export default function ReportsLoading() {
+export default async function ReportsLoading() {
+    const t = await getTranslations('reports');
     return (
-        <div className="space-y-section animate-fadeIn" aria-busy="true" aria-label="Loading reports">
+        <div className="space-y-section animate-fadeIn" aria-busy="true" aria-label={t('loadingReports')}>
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-compact">
                 <SkeletonHeading className="w-48" />

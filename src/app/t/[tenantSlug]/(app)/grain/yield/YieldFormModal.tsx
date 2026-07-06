@@ -22,6 +22,7 @@ import {
     type SetStateAction,
 } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -112,6 +113,7 @@ export function YieldFormModal({
     record,
     onSaved,
 }: YieldFormModalProps) {
+    const t = useTranslations('grain.yield.form');
     const apiUrl = useTenantApiUrl();
     const queryClient = useQueryClient();
     const isEdit = Boolean(record);
@@ -151,20 +153,20 @@ export function YieldFormModal({
     // "No X" sentinels make the optional relations clearable (the Combobox
     // has no built-in clear affordance).
     const plantingOptions: ComboboxOption[] = [
-        { value: '', label: 'No planting' },
+        { value: '', label: t('noPlanting') },
         ...(plantingsQuery.data ?? []).map((p) => ({
             value: p.id,
-            label: `Succession ${p.successionNumber}${
+            label: `${t('successionLabel', { n: p.successionNumber })}${
                 p.variety?.name ? ` · ${p.variety.name}` : ''
             }`,
         })),
     ];
     const locationOptions: ComboboxOption[] = [
-        { value: '', label: 'No field' },
+        { value: '', label: t('noField') },
         ...(locationsQuery.data ?? []).map((l) => ({ value: l.id, label: l.name })),
     ];
     const seasonOptions: ComboboxOption[] = [
-        { value: '', label: 'No season' },
+        { value: '', label: t('noSeason') },
         ...(seasonsQuery.data ?? []).map((s) => ({ value: s.id, label: s.name })),
     ];
 
@@ -254,10 +256,8 @@ export function YieldFormModal({
     };
 
     const apiError = errors.root?.api?.message;
-    const heading = isEdit ? 'Edit yield record' : 'New yield record';
-    const description = isEdit
-        ? 'Update this harvest production record.'
-        : 'Record actual harvest tonnes against a planting, field, or season.';
+    const heading = isEdit ? t('editTitle') : t('newTitle');
+    const description = isEdit ? t('editDescription') : t('newDescription');
 
     return (
         <Modal
@@ -283,13 +283,13 @@ export function YieldFormModal({
 
                     <div className="space-y-default">
                         <FormField
-                            label="Commodity"
+                            label={t('commodity')}
                             error={errors.commodity?.message}
                         >
                             <Input
                                 id="yield-commodity-input"
                                 type="text"
-                                placeholder="e.g. Milling wheat"
+                                placeholder={t('commodityPlaceholder')}
                                 autoComplete="off"
                                 {...register('commodity')}
                             />
@@ -297,7 +297,7 @@ export function YieldFormModal({
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                             <FormField
-                                label="Harvested at"
+                                label={t('harvestedAt')}
                                 error={errors.harvestedAt?.message}
                             >
                                 <Controller
@@ -308,19 +308,19 @@ export function YieldFormModal({
                                             id="yield-harvested-at-input"
                                             value={field.value}
                                             onChange={(d) => field.onChange(d)}
-                                            placeholder="Select date"
+                                            placeholder={t('datePlaceholder')}
                                         />
                                     )}
                                 />
                             </FormField>
                             <FormField
-                                label="Gross tonnes"
+                                label={t('grossTonnes')}
                                 error={errors.grossTonnes?.message}
                             >
                                 <Input
                                     id="yield-gross-tonnes-input"
                                     inputMode="decimal"
-                                    placeholder="e.g. 420"
+                                    placeholder={t('grossPlaceholder')}
                                     autoComplete="off"
                                     {...register('grossTonnes')}
                                 />
@@ -329,25 +329,25 @@ export function YieldFormModal({
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                             <FormField
-                                label="Moisture (%)"
+                                label={t('moisture')}
                                 error={errors.moisturePct?.message}
                             >
                                 <Input
                                     id="yield-moisture-input"
                                     inputMode="decimal"
-                                    placeholder="e.g. 13.5"
+                                    placeholder={t('moisturePlaceholder')}
                                     autoComplete="off"
                                     {...register('moisturePct')}
                                 />
                             </FormField>
                             <FormField
-                                label="Area (ha)"
+                                label={t('area')}
                                 error={errors.areaHa?.message}
                             >
                                 <Input
                                     id="yield-area-input"
                                     inputMode="decimal"
-                                    placeholder="e.g. 50"
+                                    placeholder={t('areaPlaceholder')}
                                     autoComplete="off"
                                     {...register('areaHa')}
                                 />
@@ -355,8 +355,8 @@ export function YieldFormModal({
                         </div>
 
                         <FormField
-                            label="Planting"
-                            hint="Optional — the succession this harvest came from."
+                            label={t('planting')}
+                            hint={t('plantingHint')}
                             error={errors.plantingId?.message}
                         >
                             <Controller
@@ -375,7 +375,7 @@ export function YieldFormModal({
                                         setSelected={(o) =>
                                             field.onChange(o?.value ?? '')
                                         }
-                                        placeholder="Select planting…"
+                                        placeholder={t('plantingPlaceholder')}
                                         matchTriggerWidth
                                         forceDropdown
                                         buttonProps={{ className: 'w-full' }}
@@ -387,7 +387,7 @@ export function YieldFormModal({
 
                         <div className="grid grid-cols-1 gap-default sm:grid-cols-2">
                             <FormField
-                                label="Field"
+                                label={t('field')}
                                 error={errors.locationId?.message}
                             >
                                 <Controller
@@ -406,7 +406,7 @@ export function YieldFormModal({
                                             setSelected={(o) =>
                                                 field.onChange(o?.value ?? '')
                                             }
-                                            placeholder="Select field…"
+                                            placeholder={t('fieldPlaceholder')}
                                             matchTriggerWidth
                                             forceDropdown
                                             buttonProps={{ className: 'w-full' }}
@@ -416,7 +416,7 @@ export function YieldFormModal({
                                 />
                             </FormField>
                             <FormField
-                                label="Season"
+                                label={t('season')}
                                 error={errors.seasonId?.message}
                             >
                                 <Controller
@@ -435,7 +435,7 @@ export function YieldFormModal({
                                             setSelected={(o) =>
                                                 field.onChange(o?.value ?? '')
                                             }
-                                            placeholder="Select season…"
+                                            placeholder={t('seasonPlaceholder')}
                                             matchTriggerWidth
                                             forceDropdown
                                             buttonProps={{ className: 'w-full' }}
@@ -447,13 +447,13 @@ export function YieldFormModal({
                         </div>
 
                         <FormField
-                            label="Valuation notes"
+                            label={t('valuationNotes')}
                             error={errors.valuationNotes?.message}
                         >
                             <Textarea
                                 id="yield-valuation-notes-input"
                                 rows={2}
-                                placeholder="Grading, price basis, or valuation notes"
+                                placeholder={t('valuationPlaceholder')}
                                 {...register('valuationNotes')}
                             />
                         </FormField>
@@ -469,7 +469,7 @@ export function YieldFormModal({
                         }}
                         disabled={isSubmitting}
                     >
-                        Cancel
+                        {t('cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -478,7 +478,7 @@ export function YieldFormModal({
                         id="save-yield-btn"
                         loading={isSubmitting}
                     >
-                        {isEdit ? 'Save yield record' : 'Create yield record'}
+                        {isEdit ? t('saveYield') : t('createYield')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

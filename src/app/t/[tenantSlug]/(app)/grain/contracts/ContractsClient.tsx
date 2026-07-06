@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import type { Row } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
@@ -80,6 +81,7 @@ function ContractsPageInner({
     tenantSlug,
     permissions,
 }: ContractsClientProps) {
+    const t = useTranslations('grain.contracts');
     const apiUrl = useCallback(
         (path: string) => `/api/t/${tenantSlug}${path}`,
         [tenantSlug],
@@ -169,8 +171,8 @@ function ContractsPageInner({
                 (old ?? []).filter((c) => c.id !== contract.id),
             );
             triggerUndoToast({
-                message: `Contract with ${contract.counterparty} deleted`,
-                undoMessage: 'Undo',
+                message: t('deletedToast', { counterparty: contract.counterparty }),
+                undoMessage: t('undo'),
                 action: async () => {
                     const res = await fetch(
                         apiUrl(`/grain/contracts/${contract.id}`),
@@ -187,7 +189,7 @@ function ContractsPageInner({
                 onCommit: () => refetch(),
             });
         },
-        [apiUrl, queryClient, queryKeyFilters, refetch, tenantSlug, triggerUndoToast],
+        [apiUrl, queryClient, queryKeyFilters, refetch, tenantSlug, triggerUndoToast, t],
     );
 
     const handleRowClick = useCallback(
@@ -205,7 +207,7 @@ function ContractsPageInner({
             createColumns<ContractRow>([
                 {
                     accessorKey: 'counterparty',
-                    header: 'Counterparty',
+                    header: t('colCounterparty'),
                     cell: ({ row }) => (
                         <TableTitleCell id={`contract-link-${row.original.id}`}>
                             {row.original.counterparty}
@@ -214,7 +216,7 @@ function ContractsPageInner({
                 },
                 {
                     id: 'commodity',
-                    header: 'Commodity',
+                    header: t('colCommodity'),
                     accessorFn: (c) => c.commodity ?? '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">
@@ -224,21 +226,21 @@ function ContractsPageInner({
                 },
                 {
                     accessorKey: 'type',
-                    header: 'Type',
+                    header: t('colType'),
                     cell: ({ row }) => (
                         <AgStatusBadge entity="contractType" status={row.original.type} />
                     ),
                 },
                 {
                     accessorKey: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => (
                         <AgStatusBadge entity="contract" status={row.original.status} />
                     ),
                 },
                 {
                     id: 'volumeTonnes',
-                    header: 'Volume (t)',
+                    header: t('colVolume'),
                     accessorFn: (c) => c.volumeTonnes ?? '',
                     cell: ({ row }) => (
                         <span className="text-xs text-content-default tabular-nums tracking-tight block text-right">
@@ -248,7 +250,7 @@ function ContractsPageInner({
                 },
                 {
                     id: 'pricePerTonne',
-                    header: 'Price / t',
+                    header: t('colPrice'),
                     accessorFn: (c) => c.pricePerTonne ?? '',
                     cell: ({ row }) => (
                         <span className="text-xs text-content-default tabular-nums tracking-tight block text-right">
@@ -261,7 +263,7 @@ function ContractsPageInner({
                 },
                 {
                     id: 'deliveryStart',
-                    header: 'Delivery',
+                    header: t('colDelivery'),
                     accessorFn: (c) => c.deliveryStart ?? '',
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted">
@@ -276,10 +278,10 @@ function ContractsPageInner({
                     cell: ({ row }) =>
                         permissions.canWrite ? (
                             <div className="flex items-center justify-end gap-tight">
-                                <Tooltip content="Edit contract">
+                                <Tooltip content={t('editContract')}>
                                     <button
                                         type="button"
-                                        aria-label="Edit contract"
+                                        aria-label={t('editContract')}
                                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                         data-testid={`contract-edit-${row.original.id}`}
                                         onClick={(e) => {
@@ -291,10 +293,10 @@ function ContractsPageInner({
                                         <Pen2 className="h-3.5 w-3.5" aria-hidden />
                                     </button>
                                 </Tooltip>
-                                <Tooltip content="Delete contract">
+                                <Tooltip content={t('deleteContract')}>
                                     <button
                                         type="button"
-                                        aria-label="Delete contract"
+                                        aria-label={t('deleteContract')}
                                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted transition-colors hover:bg-bg-error hover:text-content-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                         data-testid={`contract-delete-${row.original.id}`}
                                         onClick={(e) => {
@@ -309,7 +311,7 @@ function ContractsPageInner({
                         ) : null,
                 },
             ]),
-        [permissions.canWrite, handleDelete],
+        [permissions.canWrite, handleDelete, t],
     );
 
     return (
@@ -317,12 +319,11 @@ function ContractsPageInner({
             className="animate-fadeIn gap-section"
             header={{
                 breadcrumbs: [
-                    { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
-                    { label: 'Contracts' },
+                    { label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                    { label: t('breadcrumbContracts') },
                 ],
-                title: 'Contracts',
-                description:
-                    'Forward sales of produce and purchases of inputs against your counterparties.',
+                title: t('title'),
+                description: t('description'),
                 actions: permissions.canWrite ? (
                     <Button
                         variant="primary"
@@ -333,14 +334,14 @@ function ContractsPageInner({
                             setIsCreateOpen(true);
                         }}
                     >
-                        Contract
+                        {t('newContract')}
                     </Button>
                 ) : null,
             }}
             filters={{
                 defs: liveFilterDefs,
                 searchId: 'grain-contracts-search',
-                searchPlaceholder: 'Search contracts…',
+                searchPlaceholder: t('searchPlaceholder'),
             }}
             table={{
                 data: contracts,
@@ -352,20 +353,20 @@ function ContractsPageInner({
                     <EmptyState
                         size="sm"
                         variant="no-results"
-                        title="No contracts match your filters"
-                        description="Try widening your search or clearing one of the active filters."
-                        secondaryAction={{ label: 'Clear filters', onClick: () => clearAll() }}
+                        title={t('emptyNoResultsTitle')}
+                        description={t('emptyNoResultsDesc')}
+                        secondaryAction={{ label: t('clearFilters'), onClick: () => clearAll() }}
                     />
                 ) : (
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No contracts yet"
-                        description="Record a forward sale or input purchase against a counterparty."
+                        title={t('emptyTitle')}
+                        description={t('emptyDescription')}
                         primaryAction={
                             permissions.canWrite
                                 ? {
-                                      label: 'Add contract',
+                                      label: t('addContract'),
                                       onClick: () => {
                                           setEditing(null);
                                           setIsCreateOpen(true);
@@ -375,7 +376,7 @@ function ContractsPageInner({
                         }
                     />
                 ),
-                resourceName: (p) => (p ? 'contracts' : 'contract'),
+                resourceName: (p) => (p ? t('contracts') : t('contract')),
                 'data-testid': 'grain-contracts-table',
                 className: 'hover:bg-bg-muted',
             }}

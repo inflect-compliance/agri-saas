@@ -46,7 +46,7 @@ describe('YieldClient — EntityListPage adoption', () => {
         expect(source).toMatch(/filters\s*=\s*\{\{/);
         expect(source).toContain('defs: liveFilterDefs');
         expect(source).toContain("searchId: 'grain-yield-search'");
-        expect(source).toMatch(/searchPlaceholder:\s*['"]Search yield records/);
+        expect(source).toMatch(/searchPlaceholder:\s*\w+\(/);
     });
 
     it('derives season/field facet options from the loaded rows', () => {
