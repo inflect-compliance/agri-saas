@@ -29,7 +29,7 @@ prisma/generated/
 dist/
 build/
 build-output.txt
-tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Test outputs
 # `/coverage/` root-anchored so it only matches Jest's coverage output
