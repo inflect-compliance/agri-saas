@@ -2951,7 +2951,7 @@
       "bulkDensity": "Bulk density",
       "depth": "Depth",
       "uncertainty": "± uncertainty",
-      "noSoilYet": "Soil data is still being fetched for this field.",
+      "noSoilYet": "Soil data is still being fetched for this field",
       "advisory": "Verify with a soil test or your agronomist.",
       "suitabilityTitle": "Crop suitability",
       "suitabilityGood": "Good match",

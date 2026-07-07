@@ -22,7 +22,7 @@ export interface SoilProfileCardProps {
 
 function Row({ label, value }: { label: string; value: string }) {
     return (
-        <div className="flex items-baseline justify-between gap-4">
+        <div className="flex items-baseline justify-between gap-default">
             <span className="text-content-muted">{label}</span>
             <span className="text-content-default">{value}</span>
         </div>

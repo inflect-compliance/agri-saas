@@ -34,7 +34,7 @@ export function SoilLegend({ classes, hasPending }: SoilLegendProps) {
             <p className="mb-2 font-medium text-content-emphasis">{t('legendTitle')}</p>
             <ul className="space-y-1">
                 {classes.map((cls) => (
-                    <li key={cls} className="flex items-center gap-2">
+                    <li key={cls} className="flex items-center gap-tight">
                         <span
                             className="inline-block h-3 w-3 flex-shrink-0 rounded-sm"
                             style={{ backgroundColor: SOIL_TEXTURE_COLORS[cls] }}
@@ -44,7 +44,7 @@ export function SoilLegend({ classes, hasPending }: SoilLegendProps) {
                     </li>
                 ))}
                 {hasPending && (
-                    <li className="flex items-center gap-2">
+                    <li className="flex items-center gap-tight">
                         <span
                             className="inline-block h-3 w-3 flex-shrink-0 rounded-sm border border-dashed border-content-muted"
                             style={{ backgroundColor: SOIL_PENDING_COLOR }}
