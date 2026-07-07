@@ -232,7 +232,10 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // CTA on the task detail page (the reviewer's one earned approval moment;
 // "Request changes" is intentionally secondary). Measured = 163; ceiling at
 // 163 (no headroom slot).
-const MAX_PRIMARY_COUNT = 163;
+// #14 (climate): +1 primary — the Meteobot station "Save" CTA on the Climate
+// settings card (one earned page primary; "Clear" is secondary). Measured =
+// 164; ceiling at 164 (no headroom slot).
+const MAX_PRIMARY_COUNT = 164;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

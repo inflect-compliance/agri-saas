@@ -2947,6 +2947,24 @@
       "catWebinar": "Webinar",
       "catSubsidy": "Subsidy deadline"
     },
+    "climate": {
+      "title": "Climate",
+      "description": "Live weather for your farm from your Meteobot station.",
+      "stationTitle": "Meteobot station",
+      "attribution": "Powered by Meteobot",
+      "openInNewTab": "Open in a new tab",
+      "noStation": "No Meteobot station is configured yet",
+      "fallbackHint": "In the meantime, the built-in Open-Meteo weather layer on the field map covers spray windows and disease risk.",
+      "openWeather": "Open field weather",
+      "settingsTitle": "Meteobot station",
+      "settingsHint": "Paste your Meteobot station's embed or share URL. Leave empty to use the weather fallback.",
+      "stationUrlLabel": "Station URL",
+      "urlPlaceholder": "Paste your station embed URL",
+      "breadcrumbDashboard": "Dashboard",
+      "save": "Save",
+      "clear": "Clear",
+      "saveFailed": "Could not save the station URL."
+    },
     "soil": {
       "title": "Soil",
       "viewToggle": "Soil view",
