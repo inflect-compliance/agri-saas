@@ -206,7 +206,7 @@ function ExchangeInner() {
                 <div className="mb-default flex shrink-0 items-center gap-compact overflow-x-auto rounded-lg border border-border-subtle bg-bg-default/60 px-3 py-2 text-xs backdrop-blur-sm">
                     <span className="flex shrink-0 items-center gap-1.5">
                         <span
-                            className="h-2 w-2 animate-pulse rounded-full"
+                            className="h-2 w-2 rounded-full"
                             style={{ backgroundColor: EXCHANGE_ACCENT_GOLD }}
                         />
                         <span className="tracking-wide text-content-muted">{t('tickerLive')}</span>
