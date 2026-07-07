@@ -180,13 +180,17 @@ describe('Roadmap-14 PR-3 — NavBar brand mark discipline', () => {
             expect(NAV_BAR_SRC).toMatch(/aria-label=\{ariaLabel\}/);
         });
 
-        it('the initials text is `aria-hidden`', () => {
-            // The visual "IC" is a signature, not the accessible
-            // name. Screen readers should announce the aria-label
-            // ("Agrent — go to dashboard"), not "AG".
-            expect(NAV_BAR_SRC).toMatch(
-                /<span\s+aria-hidden="true">\{initials\}<\/span>/,
-            );
+        it('renders the decorative Agrent mark, not text initials', () => {
+            // #16: the placeholder "AG" initials were replaced by the
+            // Agrent seedling logo. The mark is a SIGNATURE, not the
+            // accessible name — screen readers announce the Link's
+            // aria-label ("Agrent — go to dashboard"). `<AgrentMark>` is
+            // aria-hidden by default, so it adds no a11y noise. This
+            // assertion replaces the former `{initials}` span lock.
+            expect(NAV_BAR_SRC).toMatch(/from ['"]\.\/AgrentLogo['"]/);
+            expect(NAV_BAR_SRC).toMatch(/<AgrentMark\b/);
+            // The old initials span must be gone — no text mark left behind.
+            expect(NAV_BAR_SRC).not.toMatch(/>\{initials\}</);
         });
     });
 

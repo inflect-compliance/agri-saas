@@ -110,7 +110,11 @@ describe('<NavBar>', () => {
             expect(link.getAttribute('href')).toBe('/t/foo/dashboard');
         });
 
-        it('shows the "AG" initials as aria-hidden decoration', () => {
+        it('shows the Agrent mark as aria-hidden decoration', () => {
+            // #16: the "AG" text initials were replaced by the Agrent
+            // seedling SVG mark. The accessible name stays on the <Link>
+            // (aria-label "Agrent — go to dashboard"); the mark itself is
+            // decorative (aria-hidden), so it adds no a11y noise.
             render(
                 <NavBar
                     left={<NavBarBrand href="/t/foo/dashboard" />}
@@ -119,8 +123,8 @@ describe('<NavBar>', () => {
             const link = screen.getByRole('link', {
                 name: /Agrent/i,
             });
-            const initials = link.querySelector('span[aria-hidden="true"]');
-            expect(initials?.textContent).toBe('AG');
+            const mark = link.querySelector('svg[aria-hidden="true"]');
+            expect(mark).not.toBeNull();
         });
     });
 
