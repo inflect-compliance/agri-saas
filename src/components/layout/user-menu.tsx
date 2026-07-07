@@ -41,6 +41,7 @@ import { LogOut, ShieldCheck } from 'lucide-react';
 import { Popover } from '@/components/ui/popover';
 import { InitialsAvatar } from '@/components/ui/initials-avatar';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { UserMenuLanguageToggle } from './UserMenuLanguageToggle';
 import { NAV_BAR_SLOT_PRESS } from './nav-bar';
 
 // ─── Props ────────────────────────────────────────────────────────
@@ -139,6 +140,18 @@ export function UserMenu({
                     >
                         <span>{t('theme')}</span>
                         <ThemeToggle id="user-menu-theme-toggle" />
+                    </div>
+
+                    {/* UI language — the per-user locale switch, paired
+                        directly beneath Theme (both are personal, not
+                        tenant-scoped). Persists to User.uiLanguage +
+                        refreshes the server tree in the new locale. */}
+                    <div
+                        className="px-2.5 py-1.5 flex items-center justify-between text-sm text-content-default"
+                        data-testid="user-menu-language-row"
+                    >
+                        <span>{t('language')}</span>
+                        <UserMenuLanguageToggle />
                     </div>
 
                     <Popover.Separator />
