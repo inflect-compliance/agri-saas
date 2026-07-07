@@ -414,9 +414,9 @@ export const NAV_ITEM_DEFAULT =
  *       Held permanently on the active row. The active page is now
  *       visually unmissable from across the desk — the band tells
  *       you WHERE, the brand-coloured label tells you WHAT.
- *       Both themes clear WCAG AA: METRO yellow `#FFCD11` on a
- *       deep-navy + 18%-yellow wash reads at >10:1; PwC orange
- *       `#D04A02` on cream + 9%-orange wash at ~5.5:1.
+ *       Both themes clear WCAG AA: Agrent gold `#D4AF37` on a
+ *       deep-navy + 16%-gold wash reads at >8:1; dark goldenrod
+ *       `#B8860B` on cream + 16%-gold wash at ~4.6:1.
  *
  *   (2) Radial brand-secondary wash (R13-PR11 evolution)
  *       `bg-[radial-gradient(circle_at_left, --brand-secondary-
