@@ -325,7 +325,12 @@ describe('New page token discipline', () => {
         //     tokens only + Modal/FormField/Combobox/RadioGroup/DatePicker/
         //     Textarea/StatusBadge/Button/Heading/ListPageShell); new
         //     surfaces, not yet promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(140);
+        //   - 141 (+1, #15 Agriculture events): events/page.tsx — the global
+        //     upcoming-events feed. Token-clean (semantic tokens only +
+        //     Heading/PageBreadcrumbs); new surface, not yet promoted to
+        //     MIGRATED_PAGES. (Merges alongside #14 Climate's +2; the second
+        //     PR to land rebases this baseline to the combined total.)
+        expect(unmigrated.length).toBeLessThanOrEqual(141);
     });
 
     it('migrated page count is at least 4', () => {

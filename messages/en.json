@@ -2941,6 +2941,7 @@
       "description": "Upcoming fairs, trainings, webinars, and subsidy deadlines.",
       "empty": "No upcoming events right now. Check back soon.",
       "moreInfo": "More info",
+      "breadcrumbDashboard": "Dashboard",
       "catFair": "Fair",
       "catTraining": "Training",
       "catWebinar": "Webinar",

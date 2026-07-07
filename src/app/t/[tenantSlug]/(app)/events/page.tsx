@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { listUpcomingAgriEvents } from '@/app-layer/usecases/agri-events';
 import { Heading } from '@/components/ui/typography';
+import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { formatDate } from '@/lib/format-date';
 
 /**
@@ -29,6 +30,13 @@ export default async function AgriEventsPage({ params }: { params: Promise<{ ten
     return (
         <div className="space-y-section p-4">
             <div>
+                <PageBreadcrumbs
+                    items={[
+                        { label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                        { label: t('title') },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1}>{t('title')}</Heading>
                 <p className="text-sm text-content-secondary">{t('description')}</p>
             </div>
