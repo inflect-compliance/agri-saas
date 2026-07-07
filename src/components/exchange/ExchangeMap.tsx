@@ -84,6 +84,12 @@ const REGION_ACCENT = '#22c55e';
 const LAND_FILL = '#0f1826';
 const LAND_OPACITY = 0.94;
 
+/** The flat land fill is opaque for the clean overview, then fades out as you
+ *  zoom in so the dataviz-dark basemap (cities, villages, roads, labels) shows
+ *  through for locating offers precisely. Fully gone by LAND_FADE_END_ZOOM. */
+const LAND_FADE_START_ZOOM = 7;
+const LAND_FADE_END_ZOOM = 9.5;
+
 const EMPTY_FC: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 const DEMO_STYLE = 'https://demotiles.maplibre.org/style.json';
@@ -332,9 +338,10 @@ export function ExchangeMap({
                         id="oblast-fill"
                         type="fill"
                         paint={{
-                            // Near-opaque flat fill hides the basemap detail so
-                            // the country is a clean lifted shape; selected
-                            // regions glow brand-emerald over that flat ground.
+                            // Flat fill for a clean overview; selected regions
+                            // glow brand-emerald. Opacity is zoom-driven — opaque
+                            // when zoomed out, fading to reveal the basemap's
+                            // cities/villages as you zoom in.
                             'fill-color': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
@@ -344,8 +351,12 @@ export function ExchangeMap({
                             'fill-opacity': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                0.55,
-                                LAND_OPACITY,
+                                // Selected: a highlight that thins on zoom so the
+                                // basemap still reads under the chosen province.
+                                ['interpolate', ['linear'], ['zoom'], LAND_FADE_START_ZOOM, 0.5, LAND_FADE_END_ZOOM, 0.28],
+                                // Unselected land: opaque overview → fully clear
+                                // (cities/villages visible) as you zoom in.
+                                ['interpolate', ['linear'], ['zoom'], LAND_FADE_START_ZOOM, LAND_OPACITY, LAND_FADE_END_ZOOM, 0],
                             ],
                         }}
                     />
