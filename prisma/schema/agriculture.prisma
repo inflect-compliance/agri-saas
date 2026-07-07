@@ -261,6 +261,10 @@ model TenantModuleSettings {
   id             String      @id @default(cuid())
   tenantId       String      @unique
   enabledModules ModuleKey[]
+  /// Per-tenant Meteobot station embed/link URL (#14). Null → the Climate
+  /// page falls back to the built-in Open-Meteo weather layer. A placeholder
+  /// seam for the real Meteobot API later.
+  meteobotStationUrl String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
