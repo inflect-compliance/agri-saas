@@ -103,7 +103,10 @@ const ROOT = path.resolve(__dirname, '../..');
 // B4 (2026-06-20): +1 — two delight features landed discrete-surface cards
 // that legitimately use the `border-border-default` "discrete surface" tone:
 // the shareables ShareableStatCard and the onboarding CoachMark popover.
-const BORDER_DEFAULT_BUDGET = 115;
+// B5 (2026-07-07): +1 — the Climate (Meteobot) page's embedded-station iframe
+// wrapper is a discrete external-content surface (same register as a card /
+// table outer border), so it legitimately uses `border-border-default`.
+const BORDER_DEFAULT_BUDGET = 116;
 
 function countMatches(re: RegExp): number {
     let total = 0;
