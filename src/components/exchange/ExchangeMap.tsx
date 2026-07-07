@@ -42,7 +42,12 @@ import { featureToMapListing, type ExchangeMapListing } from './exchange-map-uti
 /** Side colours — shared by the marker paint AND the page's legend so they
  *  always match. Green = selling, blue = buying (mirrors MapCanvas's
  *  done/selected palette). */
-export const EXCHANGE_SIDE_COLORS = { SELL: '#16a34a', BUY: '#2563eb' } as const;
+export const EXCHANGE_SIDE_COLORS = { SELL: '#16a34a', BUY: '#5b8def' } as const;
+
+/** Grain-gold — the brand accent (wheat + value/money). Used for liveness,
+ *  best-price emphasis, and the map chrome, so the map reads as "money on the
+ *  land" rather than the generic green-on-black dot map. */
+export const EXCHANGE_ACCENT_GOLD = '#e3b341';
 
 /** Bulgaria bounding box [[west, south], [east, north]] — fit on load. */
 const BULGARIA_BOUNDS: [[number, number], [number, number]] = [
@@ -423,11 +428,18 @@ export function ExchangeMap({
                             'circle-radius': [
                                 'case',
                                 ['==', ['get', 'id'], highlightedId ?? '__none__'],
-                                20,
-                                14,
+                                22,
+                                16,
                             ],
                             'circle-blur': 1,
-                            'circle-opacity': 0.15,
+                            // Restored bloom — the markers read as live "orders",
+                            // not flat dots. Highlighted offer glows brighter.
+                            'circle-opacity': [
+                                'case',
+                                ['==', ['get', 'id'], highlightedId ?? '__none__'],
+                                0.7,
+                                0.5,
+                            ],
                         }}
                     />
                     <Layer
@@ -593,7 +605,7 @@ export function ExchangeMap({
                     <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
                         <span
                             className="inline-flex h-2 w-2 animate-pulse rounded-full"
-                            style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }}
+                            style={{ backgroundColor: EXCHANGE_ACCENT_GOLD }}
                         />
                         <span className="text-xs font-semibold tracking-wide text-content-emphasis">БОРСА</span>
                         <span className="text-xs text-content-muted">· {t('exchangeSuffix')}</span>
