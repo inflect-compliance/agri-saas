@@ -61,6 +61,7 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { AgrentMark } from './AgrentLogo';
 import { Menu } from 'lucide-react';
 
 // ─── Geometry tokens (R14-PR2) ─────────────────────────────────────
@@ -383,15 +384,12 @@ export const NAV_BAR_BRAND_CLASS = [
 export interface NavBarBrandProps {
     /** Destination href — usually the dashboard root for the current variant. */
     href: string;
-    /** Two-letter initials. Defaults to `AG` (Agrent). */
-    initials?: string;
     /** Accessible name. */
     ariaLabel?: string;
 }
 
 export function NavBarBrand({
     href,
-    initials = 'AG',
     ariaLabel = 'Agrent — go to dashboard',
 }: NavBarBrandProps) {
     return (
@@ -401,7 +399,10 @@ export function NavBarBrand({
             className={NAV_BAR_BRAND_CLASS}
             data-testid="nav-bar-brand"
         >
-            <span aria-hidden="true">{initials}</span>
+            {/* The seedling mark inherits the box's `text-content-inverted`
+                (navy) via currentColor; it's decorative — the accessible name
+                is the Link's aria-label. */}
+            <AgrentMark className="h-[15px] w-[15px]" />
         </Link>
     );
 }

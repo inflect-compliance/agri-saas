@@ -2936,6 +2936,17 @@
     }
   },
   "ag": {
+    "events": {
+      "title": "Agriculture events",
+      "description": "Upcoming fairs, trainings, webinars, and subsidy deadlines.",
+      "empty": "No upcoming events right now. Check back soon.",
+      "moreInfo": "More info",
+      "breadcrumbDashboard": "Dashboard",
+      "catFair": "Fair",
+      "catTraining": "Training",
+      "catWebinar": "Webinar",
+      "catSubsidy": "Subsidy deadline"
+    },
     "soil": {
       "title": "Soil",
       "viewToggle": "Soil view",
@@ -4376,6 +4387,14 @@
     "colDate": "Date",
     "colStatus": "Status",
     "colLocation": "Location",
+    "colParcelCulture": "Parcel / Culture",
+    "colOperation": "Operation",
+    "colProduct": "Product",
+    "colDose": "Dose",
+    "colTreatedArea": "Area (dka)",
+    "colPhi": "PHI (days)",
+    "colOperator": "Operator",
+    "colNotes": "Notes",
     "filteredEmptyTitle": "No entries match your filters",
     "filteredEmptyDescription": "Try widening your search or clearing one of the active filters.",
     "clearFilters": "Clear filters",
@@ -4643,6 +4662,14 @@
       "saving": "Saving...",
       "assign": "Assign",
       "fieldOperation": "Field operation",
+      "review": {
+        "title": "Review required",
+        "hint": "This field operation is complete and awaiting approval. Approve to finalise it, or request changes to reopen it for the operator.",
+        "commentLabel": "Comment (optional)",
+        "commentPlaceholder": "Add a note for the operator…",
+        "approve": "Approve",
+        "requestChanges": "Request changes"
+      },
       "editTask": "Edit task",
       "description": "Description",
       "noDescription": "No description.",

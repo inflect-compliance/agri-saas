@@ -8,6 +8,7 @@ import * as location from '@/app-layer/usecases/location';
 import * as spatialImport from '@/app-layer/usecases/spatial-import';
 import * as fieldOperation from '@/app-layer/usecases/field-operation';
 import * as catalog from '@/app-layer/usecases/catalog';
+import * as agriEvents from '@/app-layer/usecases/agri-events';
 
 describe('agriculture usecases — exported surface', () => {
     it('location usecase exports CRUD + parcel reads', () => {
@@ -23,6 +24,10 @@ describe('agriculture usecases — exported surface', () => {
 
     it('spatial-import exposes stageLocationSpatialImport', () => {
         expect(typeof spatialImport.stageLocationSpatialImport).toBe('function');
+    });
+
+    it('agri-events exposes listUpcomingAgriEvents', () => {
+        expect(typeof agriEvents.listUpcomingAgriEvents).toBe('function');
     });
 
     it('field-operation exposes create / get / mark / list', () => {
