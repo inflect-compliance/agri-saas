@@ -84,17 +84,17 @@ const MASK_OPACITY = 0.92;
 /** Selected-region brand accent (emerald), matching the SELL marker family. */
 const REGION_ACCENT = '#22c55e';
 
-/** Flat land fill — a near-opaque cool dark that covers the basemap roads/
- *  labels inside Bulgaria, so the country reads as one clean lifted shape
- *  (the mockup look) instead of a busy street map. Slightly lighter than the
- *  scrimmed surroundings so the country lifts off the dimmed neighbours. */
-const LAND_FILL = '#0f1826';
-const LAND_OPACITY = 0.94;
+/** Land base fill (heat = 0). WARM dark loam, not cool dark: gold is the
+ *  aesthetic of the whole country ("grain floor"), so even a province with no
+ *  offers is a warm bronze — liquidity only BRIGHTENS it. Near-opaque so it
+ *  covers the busy street basemap for a clean gold overview. */
+const LAND_FILL = '#2a2113';
+const LAND_OPACITY = 0.97;
 
-/** Liquidity choropleth — provinces glow from the cool land fill toward a warm
- *  bronze-gold as their share of the offered tonnage rises, so the overview
- *  reads as a live "grain floor" (where the trade is) rather than a flat map. */
-const LAND_HEAT = '#6b501a';
+/** Land heat fill (heat = 1) — bright wheat gold. Provinces lerp LAND_FILL →
+ *  LAND_HEAT by their share of the offered tonnage, so the busiest region is
+ *  the brightest gold and the whole country reads as a warm grain floor. */
+const LAND_HEAT = '#9c7a34';
 
 /** The flat land fill is opaque for the clean overview, then fades out as you
  *  zoom in so the dataviz-dark basemap (cities, villages, roads, labels) shows
@@ -214,27 +214,30 @@ export function ExchangeMap({
     // not tear down a working map.
     const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
-    // Oblast geometry, fetched once and reused for the region layer + the mask.
-    // On failure the basemap still renders (just without the spotlight).
+    // Oblast geometry (per-province choropleth) + a dissolved Bulgaria outline
+    // (the spotlight-mask hole). The outline is ONE clean polygon, so the mask
+    // has a single hole — the old per-oblast holes overlapped once the geojson
+    // was simplified, breaking the fill triangulation (a black gash on the map).
     const [oblasti, setOblasti] = useState<FeatureCollection | null>(null);
+    const [outline, setOutline] = useState<FeatureCollection | null>(null);
     useEffect(() => {
         let alive = true;
-        fetch('/geo/bg-oblasti.geojson')
-            .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-            .then((data: FeatureCollection) => {
-                if (alive) setOblasti(data);
-            })
-            .catch(() => {
-                /* no spotlight/regions — the basemap + markers still work */
-            });
+        const load = (path: string) =>
+            fetch(path).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))));
+        load('/geo/bg-oblasti.geojson')
+            .then((d: FeatureCollection) => alive && setOblasti(d))
+            .catch(() => { /* no regions — basemap + markers still work */ });
+        load('/geo/bg-outline.geojson')
+            .then((d: FeatureCollection) => alive && setOutline(d))
+            .catch(() => { /* no spotlight — basemap still renders */ });
         return () => {
             alive = false;
         };
     }, []);
 
     const maskGeojson = useMemo<FeatureCollection>(
-        () => (oblasti ? buildMask(oblasti) : EMPTY_FC),
-        [oblasti],
+        () => (outline ? buildMask(outline) : EMPTY_FC),
+        [outline],
     );
 
     // Per-province market activity → a `heat` property (0..1 share of the
@@ -338,6 +341,25 @@ export function ExchangeMap({
     const handleLoad = useCallback(() => {
         setStatus('ready');
         fitToBulgaria();
+        // Clean gold overview: fade the basemap's own labels/icons OUT at low
+        // zoom (the gold country stands alone) and IN as you zoom to street
+        // level — same handoff as the land-fill fade. Our own labels
+        // (offers / ports / clusters) are excluded so they always show.
+        const map = mapRef.current?.getMap();
+        if (map) {
+            const fade = ['interpolate', ['linear'], ['zoom'], LAND_FADE_START_ZOOM, 0, LAND_FADE_END_ZOOM, 1];
+            const ours = new Set(['cluster-count', 'offer-label', 'port-label']);
+            for (const layer of map.getStyle().layers ?? []) {
+                if (layer.type === 'symbol' && !ours.has(layer.id)) {
+                    try {
+                        map.setPaintProperty(layer.id, 'text-opacity', fade);
+                        map.setPaintProperty(layer.id, 'icon-opacity', fade);
+                    } catch {
+                        /* layer may not carry that paint prop — ignore */
+                    }
+                }
+            }
+        }
     }, [fitToBulgaria]);
 
     // The fatal error card must appear ONLY when the map genuinely never
