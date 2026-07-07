@@ -3510,6 +3510,7 @@
     "accountMenu": "Account menu",
     "accountFallback": "Account",
     "theme": "Theme",
+    "language": "Language",
     "accountSecurity": "Account security",
     "signOut": "Sign out",
     "accountMenuFor": "Account menu for {name}"

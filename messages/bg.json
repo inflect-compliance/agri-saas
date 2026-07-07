@@ -3510,6 +3510,7 @@
     "accountMenu": "Меню на профила",
     "accountFallback": "Профил",
     "theme": "Тема",
+    "language": "Език",
     "accountSecurity": "Сигурност на профила",
     "signOut": "Изход",
     "accountMenuFor": "Меню на профила за {name}"
