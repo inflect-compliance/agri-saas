@@ -65,6 +65,37 @@ export async function setEnabledModules(ctx: RequestContext, enabledModules: Mod
     });
 }
 
+/** Read the tenant's Meteobot station URL (#14) — null when unset. */
+export async function getMeteobotStationUrl(ctx: RequestContext): Promise<string | null> {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const row = await ModuleSettingsRepository.get(db, ctx);
+        return row?.meteobotStationUrl ?? null;
+    });
+}
+
+/** Set (or clear) the tenant's Meteobot station URL (#14). ADMIN-gated. */
+export async function setMeteobotStationUrl(ctx: RequestContext, url: string | null) {
+    assertCanAdmin(ctx);
+    const trimmed = url && url.trim().length > 0 ? url.trim() : null;
+    return runInTenantContext(ctx, async (db) => {
+        const row = await ModuleSettingsRepository.setMeteobotUrl(db, ctx, trimmed);
+        await logEvent(db, ctx, {
+            action: 'TENANT_MODULES_UPDATED',
+            entityType: 'TenantModuleSettings',
+            entityId: row.id,
+            details: trimmed ? 'Meteobot station URL set' : 'Meteobot station URL cleared',
+            detailsJson: {
+                category: 'entity_lifecycle',
+                entityName: 'TenantModuleSettings',
+                operation: 'updated',
+                summary: 'Meteobot station URL updated',
+            },
+        });
+        return { meteobotStationUrl: row.meteobotStationUrl };
+    });
+}
+
 export async function isModuleEnabled(ctx: RequestContext, key: ModuleKey): Promise<boolean> {
     return (await getEnabledModules(ctx)).includes(key);
 }

@@ -32,6 +32,7 @@ import {
     LineChart,
     Coins,
     ArrowLeftRight,
+    CloudSun,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -138,6 +139,9 @@ export function useNavSections(): NavSectionDef[] {
                 { href: tenantHref('/assets'), label: 'Asset', icon: Building2 },
                 { href: tenantHref('/locations'), label: 'Location', icon: MapPin },
                 { href: tenantHref('/journal'), label: 'Journal', icon: NotebookPen },
+                // Climate (#14) — the tenant's Meteobot station embed, with an
+                // Open-Meteo weather fallback. Sits with the field surfaces.
+                { href: tenantHref('/climate'), label: 'Climate', icon: CloudSun },
                 // Crop Planning — season succession plans (PLANNING
                 // module). A simple-mode farm surface (NOT cert-gated), so
                 // it's always visible. Reuses the already-imported
