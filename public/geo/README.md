@@ -33,3 +33,13 @@ geoBoundaries stores its geojson via Git LFS, so a plain
 `raw.githubusercontent.com` URL returns an LFS pointer. Use the API's
 `gjDownloadURL`, or the `media.githubusercontent.com/media/...` LFS
 resolver shown above.
+
+**The bundled file is SIMPLIFIED for map performance.** The raw
+geoBoundaries ADM1 is ~408 KB / 9,193 points with ~15-decimal
+coordinates — far more than the Exchange map (overview → city zoom) or
+the spotlight mask needs, and it was blocking load (fetch + a
+main-thread rebuild of a 28-hole mask polygon). It is Douglas-Peucker
+simplified (ε ≈ 0.003° ≈ 330 m) with coordinates rounded to 5 decimals
+(≈1 m): ~66 KB / 3,090 points (20 KB gzipped). **After re-downloading a
+fresh copy, re-apply the same simplification** before committing, or the
+map slows down again.
