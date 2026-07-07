@@ -232,7 +232,11 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // CTA on the task detail page (the reviewer's one earned approval moment;
 // "Request changes" is intentionally secondary). Measured = 163; ceiling at
 // 163 (no headroom slot).
-const MAX_PRIMARY_COUNT = 163;
+// #12 (Offers): +1 primary — the "Ask for offer" lead-modal confirm (Send
+// request) on the promotions feed. The modal's trigger + Cancel are both
+// secondary, so the secondary:primary ratio stays healthy. Measured = 164;
+// ceiling at 164 (no headroom slot).
+const MAX_PRIMARY_COUNT = 164;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

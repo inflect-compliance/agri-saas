@@ -142,6 +142,11 @@ export function useNavSections(): NavSectionDef[] {
                 // Agriculture events (#15) — global feed of fairs / trainings /
                 // webinars / subsidy deadlines, visible to every tenant.
                 { href: tenantHref('/events'), label: 'Events', icon: CalendarClock },
+                // Offers (#12) — global feed of supplier promotions with an
+                // "Ask for offer" lead form, visible to every tenant. Reuses
+                // the already-imported Coins glyph (deals/pricing) — no new
+                // lucide import.
+                { href: tenantHref('/offers'), label: 'Offers', icon: Coins },
                 // Crop Planning — season succession plans (PLANNING
                 // module). A simple-mode farm surface (NOT cert-gated), so
                 // it's always visible. Reuses the already-imported

@@ -330,7 +330,11 @@ describe('New page token discipline', () => {
         //     Heading/PageBreadcrumbs); new surface, not yet promoted to
         //     MIGRATED_PAGES. (Merges alongside #14 Climate's +2; the second
         //     PR to land rebases this baseline to the combined total.)
-        expect(unmigrated.length).toBeLessThanOrEqual(141);
+        //   - 142 (+1, #12 Offers): offers/page.tsx — the global company-
+        //     promotions feed. Token-clean (semantic tokens only +
+        //     Heading/PageBreadcrumbs/Button/Modal via AskForOfferModal);
+        //     new surface, not yet promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(142);
     });
 
     it('migrated page count is at least 4', () => {
