@@ -16,6 +16,8 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
+import { Combobox } from '@/components/ui/combobox';
+import { CROP_OPTIONS } from '@/lib/agriculture/crop-options';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 
 export interface SpatialImportModalProps {
@@ -41,6 +43,8 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
     const tc = useTranslations('common');
     const buildUrl = useTenantApiUrl();
     const [file, setFile] = useState<File | null>(null);
+    // Default crop stamped on every imported parcel (#7); '' = mixed/set later.
+    const [crop, setCrop] = useState<string>('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +77,7 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
         try {
             const fd = new FormData();
             fd.append('file', file);
+            if (crop) fd.append('cropType', crop);
             const res = await fetch(buildUrl(`/locations/${locationId}/spatial-import`), { method: 'POST', body: fd });
             if (!res.ok) {
                 const body = await res.json().catch(() => null);
@@ -89,6 +94,7 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
             });
             setOpen(false);
             setFile(null);
+            setCrop('');
         } catch (err) {
             setError(err instanceof Error ? err.message : t('importFailed'));
         } finally {
@@ -119,6 +125,25 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
                             accept=".zip,.kml,.kmz,.geojson,.json"
                             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                             className="block w-full text-sm text-content-secondary file:mr-3 file:rounded-md file:border file:border-border-subtle file:bg-bg-subtle file:px-3 file:py-1.5 file:text-sm"
+                        />
+                    </FormField>
+                    {/* Optional default crop stamped on every imported parcel
+                        (#7). Leaving it unset means "mixed / set later". */}
+                    <FormField label={t('cropLabel')} description={t('cropDescription')}>
+                        <Combobox
+                            options={CROP_OPTIONS}
+                            selected={CROP_OPTIONS.find((o) => o.value === crop) ?? null}
+                            setSelected={(o) => setCrop(o?.value ?? '')}
+                            optionRight={(o) =>
+                                o.meta?.season ? (
+                                    <span className="text-xs text-content-subtle">{o.meta.season}</span>
+                                ) : null
+                            }
+                            placeholder={t('cropPlaceholder')}
+                            hideSearch
+                            matchTriggerWidth
+                            caret
+                            buttonProps={{ className: 'w-full' }}
                         />
                     </FormField>
                 </Modal.Body>

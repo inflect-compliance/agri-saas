@@ -32,12 +32,15 @@ import {
     LineChart,
     Coins,
     ArrowLeftRight,
+    CloudSun,
+    CalendarClock,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useCalendarBadge } from './use-calendar-badge';
 import { NavItem } from './nav-item';
 import { NavSection } from './nav-section';
+import { AgrentMark } from './AgrentLogo';
 import { useSidebarCollapsed } from './sidebar-collapse-context';
 
 // ─── Types ───
@@ -137,6 +140,17 @@ export function useNavSections(): NavSectionDef[] {
                 { href: tenantHref('/assets'), label: 'Asset', icon: Building2 },
                 { href: tenantHref('/locations'), label: 'Location', icon: MapPin },
                 { href: tenantHref('/journal'), label: 'Journal', icon: NotebookPen },
+                // Agriculture events (#15) — global feed of fairs / trainings /
+                // webinars / subsidy deadlines, visible to every tenant.
+                { href: tenantHref('/events'), label: 'Events', icon: CalendarClock },
+                // Offers (#12) — global feed of supplier promotions with an
+                // "Ask for offer" lead form, visible to every tenant. Reuses
+                // the already-imported Coins glyph (deals/pricing) — no new
+                // lucide import.
+                { href: tenantHref('/offers'), label: 'Offers', icon: Coins },
+                // Climate (#14) — the tenant's Meteobot station embed, with an
+                // Open-Meteo weather fallback. Sits with the field surfaces.
+                { href: tenantHref('/climate'), label: 'Climate', icon: CloudSun },
                 // Crop Planning — season succession plans (PLANNING
                 // module). A simple-mode farm surface (NOT cert-gated), so
                 // it's always visible. Reuses the already-imported
@@ -258,8 +272,8 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
             {/* Logo */}
             <div className="p-4 border-b border-border-subtle">
                 <div className={collapsed ? 'flex items-center justify-center' : 'flex items-center gap-tight'}>
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-emphasis)] to-[var(--brand-default)] flex items-center justify-center flex-shrink-0">
-                        <span className="text-content-inverted text-sm font-bold">IC</span>
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-emphasis)] to-[var(--brand-default)] flex items-center justify-center flex-shrink-0 text-content-inverted">
+                        <AgrentMark className="h-5 w-5" />
                     </div>
                     {!collapsed && (
                         <span className="text-sm font-semibold text-content-emphasis truncate">{tc('appName')}</span>

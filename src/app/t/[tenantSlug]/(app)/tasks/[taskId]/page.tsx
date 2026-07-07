@@ -49,7 +49,8 @@ import { useTranslations } from 'next-intl';
 // Labels stay local because they're presentation copy.
 const STATUS_LABELS: Record<string, string> = {
     OPEN: 'Open', TRIAGED: 'Triaged', IN_PROGRESS: 'In Progress',
-    BLOCKED: 'Blocked', RESOLVED: 'Resolved', CLOSED: 'Closed', CANCELED: 'Canceled',
+    BLOCKED: 'Blocked', PENDING_REVIEW: 'Pending review',
+    RESOLVED: 'Resolved', CLOSED: 'Closed', CANCELED: 'Canceled',
 };
 const PRIORITY_LABELS: Record<string, string> = {
     P0: 'P0 — Critical', P1: 'P1 — High', P2: 'P2 — Medium', P3: 'P3 — Low',
@@ -193,6 +194,30 @@ export default function TaskDetailPage() {
             return;
         }
         void commitStatus(status, null);
+    };
+
+    // Review gate (#6) — approve/request-changes a PENDING_REVIEW field op.
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewing, setReviewing] = useState(false);
+    const submitReview = async (action: 'APPROVE' | 'REQUEST_CHANGES') => {
+        setReviewing(true);
+        setStatusError('');
+        try {
+            const res = await fetch(apiUrl(`/field-operations/${taskId}/review`), {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, comment: reviewComment.trim() || undefined }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error((typeof data?.error === 'string' && data.error) || data?.message || 'Review failed');
+            }
+            setReviewComment('');
+            await taskQuery.mutate();
+        } catch (e) {
+            setStatusError(e instanceof Error ? e.message : 'Review failed');
+        } finally {
+            setReviewing(false);
+        }
     };
 
     const commitStatus = async (status: string, resolution: string | null) => {
@@ -618,6 +643,43 @@ export default function TaskDetailPage() {
                         <div className="border-b border-border-subtle pb-section">
                             <Heading level={3} className="mb-3">{t('fieldOperation')}</Heading>
                             <FieldOperationPanel taskId={task.id} />
+                            {/* Review gate (#6): a completed field op awaits an
+                                ADMIN reviewer's approval before it's final. */}
+                            {task.status === 'PENDING_REVIEW' && permissions.canAdmin && (
+                                <div className="mt-default space-y-default rounded-lg border border-border-emphasis bg-bg-subtle p-4">
+                                    <p className="text-sm font-medium text-content-emphasis">{t('review.title')}</p>
+                                    <p className="text-xs text-content-muted">{t('review.hint')}</p>
+                                    <FormField label={t('review.commentLabel')}>
+                                        <textarea
+                                            value={reviewComment}
+                                            onChange={(e) => setReviewComment(e.target.value)}
+                                            rows={2}
+                                            className="block w-full rounded-md border border-border-subtle bg-bg-default px-3 py-1.5 text-sm"
+                                            placeholder={t('review.commentPlaceholder')}
+                                        />
+                                    </FormField>
+                                    <div className="flex gap-compact">
+                                        <Button
+                                            variant="primary"
+                                            size="sm"
+                                            loading={reviewing}
+                                            onClick={() => submitReview('APPROVE')}
+                                            id="review-approve-btn"
+                                        >
+                                            {t('review.approve')}
+                                        </Button>
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            disabled={reviewing}
+                                            onClick={() => submitReview('REQUEST_CHANGES')}
+                                            id="review-request-changes-btn"
+                                        >
+                                            {t('review.requestChanges')}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     {/* Overview header with Edit button — mirrors the

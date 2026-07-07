@@ -78,6 +78,10 @@ export interface LogEntryFilters {
     occurredFrom?: string;
     /** ISO date — entries with occurredAt <= this. */
     occurredTo?: string;
+    /** Filter to entries whose operation line is on a parcel of this crop (#10). */
+    crop?: string;
+    /** Filter to entries logged against this location (#10). */
+    locationId?: string;
 }
 
 export interface LogEntryListParams {
@@ -97,9 +101,27 @@ const ENTRY_DETAIL_INCLUDE = {
     equipment: { include: { equipment: { select: { id: true, name: true, category: true } } } },
 } satisfies Prisma.LogEntryInclude;
 
-/** Lightweight include shape for list rows (counts + first location label). */
+/**
+ * List include shape (dnevnik #10). Beyond the first-location label + counts,
+ * it hydrates the linked `OperationParcel` prescription line so the on-screen
+ * journal can render the regulated Bulgarian field-logbook columns — parcel +
+ * culture, product + active ingredient, dose, treated area, PHI (карантинен
+ * срок), and the БАБХ operation type — sourced from the SAME data the ДНЕВНИК
+ * PDF (`farm-record-diary.ts`) prints. Free-hand entries with no operation
+ * line simply leave those columns blank. `notes` + `conditionsJson` come back
+ * as plain LogEntry scalars (this is an `include`, not a `select`).
+ */
 const ENTRY_LIST_INCLUDE = {
     locations: { include: { location: { select: { id: true, name: true } } } },
+    operationParcel: {
+        select: {
+            doseValue: true,
+            parcel: { select: { name: true, cropType: true, areaHa: true } },
+            product: { select: { name: true, activeIngredient: true, quarantinePeriodDays: true } },
+            doseUnit: { select: { symbol: true } },
+            task: { select: { operationType: true, applicationTechnique: true } },
+        },
+    },
     _count: { select: { quantities: true, files: true } },
 } satisfies Prisma.LogEntryInclude;
 
@@ -166,6 +188,20 @@ export class JournalRepository {
                 { title: { contains: filters.q, mode: 'insensitive' } },
                 { notes: { contains: filters.q, mode: 'insensitive' } },
             ];
+        }
+        // Culture (crop) — matches entries whose operation line sits on a
+        // parcel of that crop. Free-hand entries (no operation line) don't
+        // match, which is the intended agronomic-only scope. Accepts a
+        // comma-separated multi-select.
+        if (filters?.crop) {
+            const crops = filters.crop.split(',').map((c) => c.trim()).filter(Boolean);
+            if (crops.length > 0) {
+                where.operationParcel = { is: { parcel: { is: { cropType: { in: crops } } } } };
+            }
+        }
+        // Location — entries logged against a location (LogLocation join).
+        if (filters?.locationId) {
+            where.locations = { some: { locationId: filters.locationId } };
         }
 
         return where;

@@ -133,6 +133,9 @@ model CropPlan {
   cropTypeId          String
   cropVarietyId       String?
   locationId          String?
+  // #9 — a plan can target a specific parcel within its location. Nullable:
+  // a plan may still be location-level (or unscoped) when no parcel is picked.
+  parcelId            String?
   name                String
   method              PlantingMethod @default(DIRECT_SOW)
   firstSowDate        DateTime
@@ -156,6 +159,7 @@ model CropPlan {
   cropType  CropType     @relation(fields: [cropTypeId, tenantId], references: [id, tenantId])
   variety   CropVariety? @relation(fields: [cropVarietyId, tenantId], references: [id, tenantId])
   location  Location?    @relation(fields: [locationId, tenantId], references: [id, tenantId])
+  parcel    Parcel?      @relation(fields: [parcelId, tenantId], references: [id, tenantId])
   plantings Planting[]
 
   @@unique([id, tenantId])
@@ -163,6 +167,7 @@ model CropPlan {
   @@index([tenantId, cropTypeId])
   @@index([tenantId, cropVarietyId])
   @@index([tenantId, locationId])
+  @@index([tenantId, parcelId])
   @@index([tenantId, status])
 }
 

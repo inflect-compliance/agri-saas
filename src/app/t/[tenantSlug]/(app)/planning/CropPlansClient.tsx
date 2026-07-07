@@ -40,11 +40,17 @@ interface CatalogOption {
     defaultMethod?: string | null;
 }
 
+interface LocationOption {
+    id: string;
+    name: string;
+}
+
 interface CropPlansClientProps {
     initialPlans: CropPlanRow[];
     seasons: CatalogOption[];
     cropTypes: CatalogOption[];
     varieties: CatalogOption[];
+    locations: LocationOption[];
     tenantSlug: string;
     permissions: { canWrite: boolean };
 }
@@ -63,6 +69,7 @@ function CropPlansPageInner({
     seasons,
     cropTypes,
     varieties,
+    locations,
     tenantSlug,
     permissions,
 }: CropPlansClientProps) {
@@ -218,6 +225,7 @@ function CropPlansPageInner({
                     seasons={seasons}
                     cropTypes={cropTypes}
                     varieties={varieties}
+                    locations={locations}
                     onSaved={(plan) => {
                         void plansQuery.mutate();
                         router.push(tenantHref(`/planning/${plan.id}`));

@@ -224,6 +224,7 @@ export async function runLocationSpatialImport(
                 ctx,
                 payload.locationId,
                 parsed.parcels,
+                payload.cropType,
             );
             await db.location.update({
                 where: { id: payload.locationId },

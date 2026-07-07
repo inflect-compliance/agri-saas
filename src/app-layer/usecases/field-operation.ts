@@ -1,5 +1,5 @@
 import { RequestContext } from '../types';
-import { assertCanRead, assertCanWrite } from '../policies/common';
+import { assertCanRead, assertCanWrite, assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { notFound, badRequest, forbidden } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
@@ -455,18 +455,24 @@ async function markOperationParcelImpl(
                 where: { taskId, tenantId: ctx.tenantId, status: 'PENDING' },
             });
             if (pending === 0) {
-                await WorkItemRepository.setStatus(db, ctx, taskId, 'RESOLVED', 'All parcels completed');
+                // Review gate (#6): completing the last parcel sends the job
+                // to PENDING_REVIEW (not straight to RESOLVED). A reviewer
+                // (ADMIN) approves → RESOLVED, or requests changes → IN_PROGRESS
+                // (see reviewFieldOperation). The ДНЕВНИК register + automation
+                // signal still fire here — the field work IS done; review gates
+                // only the task's finalisation.
+                await WorkItemRepository.setStatus(db, ctx, taskId, 'PENDING_REVIEW', null);
                 await logEvent(db, ctx, {
                     action: 'TASK_STATUS_CHANGED',
                     entityType: 'Task',
                     entityId: taskId,
-                    details: 'Field operation auto-resolved (all parcels completed)',
+                    details: 'Field operation completed — awaiting review',
                     detailsJson: {
                         category: 'status_change',
                         entityName: 'Task',
                         fromStatus: line.task.status,
-                        toStatus: 'RESOLVED',
-                        reason: 'All parcels completed',
+                        toStatus: 'PENDING_REVIEW',
+                        reason: 'All parcels completed — awaiting review',
                     },
                 });
                 resolved = true;
@@ -519,6 +525,90 @@ async function markOperationParcelImpl(
     }
 
     return result;
+}
+
+/**
+ * Review a completed field operation (#6).
+ *
+ * Separation of duties: the operator (EDITOR / canWrite) marks the parcels;
+ * a distinct reviewer (ADMIN / canAdmin) approves or rejects — the ADMIN
+ * gate is how "not the executing operator" is enforced by role tier
+ * (mirroring `reviewEvidence`). Task-review and Evidence-review are DELIBERATELY
+ * two separate actions: this gates the field-operation Task's finalisation,
+ * while `reviewEvidence` governs the evidence artifact's lifecycle.
+ *
+ * State machine (only from PENDING_REVIEW):
+ *   APPROVE          → RESOLVED   (finalise the job)
+ *   REQUEST_CHANGES  → IN_PROGRESS (reopen for the operator to rework)
+ */
+export async function reviewFieldOperation(
+    ctx: RequestContext,
+    taskId: string,
+    data: { action: 'APPROVE' | 'REQUEST_CHANGES'; comment?: string | null },
+) {
+    assertCanAdmin(ctx);
+    const { action, comment } = data;
+    if (action !== 'APPROVE' && action !== 'REQUEST_CHANGES') {
+        throw badRequest('Invalid review action.');
+    }
+
+    return runInTenantContext(ctx, async (db) => {
+        const task = await db.task.findFirst({
+            where: { id: taskId, tenantId: ctx.tenantId },
+            select: { id: true, status: true, type: true, title: true, assigneeUserId: true },
+        });
+        if (!task) throw notFound('Task not found');
+        if (task.type !== 'FIELD_OPERATION') {
+            throw badRequest('Only field-operation tasks can be reviewed here.');
+        }
+        if (task.status !== 'PENDING_REVIEW') {
+            throw badRequest(
+                `Task is ${task.status}, not awaiting review — only a PENDING_REVIEW task can be approved or sent back.`,
+            );
+        }
+
+        const newStatus = action === 'APPROVE' ? 'RESOLVED' : 'IN_PROGRESS';
+        const resolution = action === 'APPROVE' ? (comment || 'Approved') : null;
+        await WorkItemRepository.setStatus(db, ctx, taskId, newStatus, resolution);
+
+        await logEvent(db, ctx, {
+            action: 'TASK_STATUS_CHANGED',
+            entityType: 'Task',
+            entityId: taskId,
+            details: action === 'APPROVE'
+                ? `Field operation approved${comment ? `: ${comment}` : ''}`
+                : `Field operation sent back for changes${comment ? `: ${comment}` : ''}`,
+            detailsJson: {
+                category: 'status_change',
+                entityName: 'Task',
+                fromStatus: 'PENDING_REVIEW',
+                toStatus: newStatus,
+                reason: comment || undefined,
+            },
+        });
+
+        // Notify the operator who was assigned the job (graceful degrade when
+        // unassigned — mirrors the Evidence review notification).
+        if (task.assigneeUserId) {
+            await db.notification.create({
+                data: {
+                    tenantId: ctx.tenantId,
+                    userId: task.assigneeUserId,
+                    type: 'TASK_ASSIGNED',
+                    title: action === 'APPROVE'
+                        ? `Field operation approved: ${task.title}`
+                        : `Changes requested: ${task.title}`,
+                    message: comment
+                        || (action === 'APPROVE'
+                            ? `Your field operation "${task.title}" was approved.`
+                            : `Your field operation "${task.title}" needs changes.`),
+                    linkUrl: `/tasks/${taskId}`,
+                },
+            });
+        }
+
+        return { success: true, status: newStatus };
+    });
 }
 
 /**

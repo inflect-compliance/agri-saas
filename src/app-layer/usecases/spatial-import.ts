@@ -15,6 +15,11 @@ export interface SpatialImportInput {
     filename: string;
     buffer: Buffer;
     mimeType?: string;
+    /**
+     * Default crop stamped on every imported parcel (#7). Optional — the
+     * import UI allows "mixed / set later", which submits nothing.
+     */
+    cropType?: string | null;
 }
 
 export interface SpatialImportStageResult {
@@ -107,6 +112,7 @@ export async function stageLocationSpatialImport(
         stagingFileRecordId: fileRecord.id,
         filename: file.filename,
         mimeType: file.mimeType,
+        cropType: file.cropType ?? undefined,
         requestId: ctx.requestId,
     });
 

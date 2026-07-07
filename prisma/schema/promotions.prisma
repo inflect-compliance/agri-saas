@@ -1,0 +1,51 @@
+/// Company promotions ("Offers" / Промоции) — #12.
+///
+/// `Promotion` is a GLOBAL catalogue (NO tenantId, like `Unit` / `AgriEvent`)
+/// → not tenant-scoped, no RLS: every tenant reads the same shared feed of
+/// supplier promotions. Seeded / admin-posted; lead-gen only (no billing).
+/// `category` is a curated String from culture/fertilizer/seeds/products/service.
+model Promotion {
+  id        String    @id @default(cuid())
+  company   String
+  title     String
+  body      String?
+  mediaUrl  String?
+  /// Curated category: "culture" | "fertilizer" | "seeds" | "products" | "service".
+  category  String    @default("service")
+  ctaUrl    String?
+  validFrom DateTime?
+  validTo   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  leads PromotionLead[]
+
+  @@index([createdAt])
+}
+
+/// A lead captured when a user clicks "Ask for offer" on a promotion.
+///
+/// Mirrors `ExchangeInquiry`: `inquirerTenantId` is a PLAIN FK to Tenant.id
+/// (NOT a tenantId RLS column) — the row is not tenant-scoped, so no RLS. The
+/// @@unique dedup caps a tenant to one lead per promotion. Lead-gen only:
+/// storing the row + a confirmation notification is the whole flow (no
+/// provider portal / payment yet).
+model PromotionLead {
+  id               String   @id @default(cuid())
+  promotionId      String
+  /// Inquiring tenant — plain FK to Tenant.id (NOT a tenantId RLS column).
+  inquirerTenantId String
+  inquirerUserId   String
+  message          String
+  /// Optional parcel/context the request is about (free-form id, no FK).
+  contextParcelId  String?
+  /// Curated status: "PENDING" | "CONTACTED" | "CLOSED".
+  status           String   @default("PENDING")
+  createdAt        DateTime @default(now())
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, inquirerTenantId])
+  @@index([promotionId])
+  @@index([inquirerTenantId])
+}

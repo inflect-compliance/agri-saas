@@ -228,7 +228,18 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // interest"), and the "Express interest" CTA on the offer detail Sheet. Each
 // is the single earned primary of its surface (modal confirm + the one
 // contact affordance). Measured = 162; ceiling at 162 (no headroom slot).
-const MAX_PRIMARY_COUNT = 162;
+// #6 (task review gate): +1 primary — the field-operation review "Approve"
+// CTA on the task detail page (the reviewer's one earned approval moment;
+// "Request changes" is intentionally secondary). Measured = 163; ceiling at
+// 163 (no headroom slot).
+// #14 (climate): +1 primary — the Meteobot station "Save" CTA on the Climate
+// settings card (one earned page primary; "Clear" is secondary). Measured =
+// 164 (165 with #12 below).
+// #12 (Offers): +1 primary — the "Ask for offer" lead-modal confirm (Send
+// request) on the promotions feed. The modal's trigger + Cancel are both
+// secondary, so the secondary:primary ratio stays healthy. Measured = 165;
+// ceiling at 165 (no headroom slot).
+const MAX_PRIMARY_COUNT = 165;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

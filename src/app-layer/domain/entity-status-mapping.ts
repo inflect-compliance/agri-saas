@@ -73,6 +73,7 @@ export const TASK_STATUS_VARIANT: Record<string, StatusBadgeVariant> = {
     TRIAGED: 'info',
     IN_PROGRESS: 'info',
     BLOCKED: 'error',
+    PENDING_REVIEW: 'warning',
     RESOLVED: 'success',
     CLOSED: 'neutral',
     CANCELED: 'neutral',

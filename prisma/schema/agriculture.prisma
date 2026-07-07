@@ -55,6 +55,27 @@ model Unit {
   logQuantities     LogQuantity[]      @relation("LogQuantityUnit")
 }
 
+/// GLOBAL agriculture-events catalogue (#15) — fairs, trainings, webinars,
+/// subsidy deadlines. NO tenantId (like `Unit`) → not tenant-scoped, no RLS:
+/// every tenant reads the same shared list. Seeded (scripts) / admin-posted.
+/// `category` is a free String from the curated set fair/training/webinar/
+/// subsidy-deadline. A per-tenant event dimension is a future extension.
+model AgriEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  /// Curated category: "fair" | "training" | "webinar" | "subsidy-deadline".
+  category    String    @default("fair")
+  startsAt    DateTime
+  endsAt      DateTime?
+  place       String?
+  url         String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([startsAt])
+}
+
 /// Tenant-scoped input-product catalog (the structured spray product).
 /// Feature 1 exercises PESTICIDE/FERTILIZER; other categories are the
 /// seed of the full inventory module. attributesJson carries
@@ -179,6 +200,7 @@ model Parcel {
   location       Location          @relation(fields: [locationId, tenantId], references: [id, tenantId], onDelete: Cascade)
   operationLines OperationParcel[]
   plantings      Planting[]
+  cropPlans      CropPlan[]
 
   @@unique([id, tenantId])
   @@index([tenantId, locationId])
@@ -239,6 +261,10 @@ model TenantModuleSettings {
   id             String      @id @default(cuid())
   tenantId       String      @unique
   enabledModules ModuleKey[]
+  /// Per-tenant Meteobot station embed/link URL (#14). Null → the Climate
+  /// page falls back to the built-in Open-Meteo weather layer. A placeholder
+  /// seam for the real Meteobot API later.
+  meteobotStationUrl String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
