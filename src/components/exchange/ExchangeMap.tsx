@@ -243,13 +243,17 @@ export function ExchangeMap({
         fitToBulgaria();
     }, [fitToBulgaria]);
 
-    const handleError = useCallback(() => {
-        // A bad/missing MapTiler key or a blocked style fetch lands here.
-        // MapLibre GL already logs the underlying error to the console, so we
-        // only translate it into UI state: escalate to the fatal overlay when
-        // the map never reached `ready` (the basemap style itself failed) — a
-        // transient tile error after load must NOT tear down a working map.
-        setStatus((s) => (s === 'ready' ? s : 'error'));
+    // The fatal error card must appear ONLY when the map genuinely never
+    // loads. MapLibre fires transient `error` events during a NORMAL load (a
+    // tile 404, a glyph miss) — escalating on those flashed a false "Map
+    // couldn't load" card before the map finished loading. So we no longer
+    // react to `error` at all (MapLibre logs it); instead, if the map hasn't
+    // reached `ready` within a budget, the basemap style itself failed → card.
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setStatus((s) => (s === 'loading' ? 'error' : s));
+        }, 12_000);
+        return () => clearTimeout(timer);
     }, []);
 
     const handleClick = useCallback(
@@ -304,7 +308,6 @@ export function ExchangeMap({
                 initialViewState={{ longitude: 25.48, latitude: 42.73, zoom: 6.4 }}
                 mapStyle={mapStyle}
                 onLoad={handleLoad}
-                onError={handleError}
                 onResize={fitToBulgaria}
                 onClick={handleClick}
                 interactiveLayerIds={['oblast-fill', 'clusters', 'unclustered-point']}
