@@ -32,6 +32,7 @@ import {
     LineChart,
     Coins,
     ArrowLeftRight,
+    CalendarClock,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -138,6 +139,9 @@ export function useNavSections(): NavSectionDef[] {
                 { href: tenantHref('/assets'), label: 'Asset', icon: Building2 },
                 { href: tenantHref('/locations'), label: 'Location', icon: MapPin },
                 { href: tenantHref('/journal'), label: 'Journal', icon: NotebookPen },
+                // Agriculture events (#15) — global feed of fairs / trainings /
+                // webinars / subsidy deadlines, visible to every tenant.
+                { href: tenantHref('/events'), label: 'Events', icon: CalendarClock },
                 // Crop Planning — season succession plans (PLANNING
                 // module). A simple-mode farm surface (NOT cert-gated), so
                 // it's always visible. Reuses the already-imported
