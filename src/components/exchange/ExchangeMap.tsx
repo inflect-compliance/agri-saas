@@ -137,6 +137,41 @@ function buildMask(oblasti: FeatureCollection): FeatureCollection {
     };
 }
 
+/** Grain export corridors — the Danube (Vidin → Silistra) and the Black Sea
+ *  coast, tracing how Bulgarian grain actually reaches its export ports. Faint
+ *  gold routes ground the map in real logistics, not just dots on land. */
+const CORRIDORS: FeatureCollection = {
+    type: 'FeatureCollection',
+    features: [
+        {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+                type: 'LineString',
+                coordinates: [
+                    [22.88, 43.99], [23.24, 43.82], [23.72, 43.78], [24.9, 43.7],
+                    [25.35, 43.62], [25.95, 43.85], [26.6, 44.05], [27.26, 44.12],
+                ],
+            },
+        },
+        {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'LineString', coordinates: [[27.91, 43.2], [27.7, 42.9], [27.47, 42.5]] },
+        },
+    ],
+};
+
+/** The grain export ports (place names — locale-neutral). */
+const PORTS: FeatureCollection = {
+    type: 'FeatureCollection',
+    features: [
+        { type: 'Feature', properties: { name: 'Ruse' }, geometry: { type: 'Point', coordinates: [25.95, 43.85] } },
+        { type: 'Feature', properties: { name: 'Varna' }, geometry: { type: 'Point', coordinates: [27.91, 43.2] } },
+        { type: 'Feature', properties: { name: 'Burgas' }, geometry: { type: 'Point', coordinates: [27.47, 42.5] } },
+    ],
+};
+
 export type { ExchangeMapListing };
 
 interface ExchangeMapProps {
@@ -448,6 +483,52 @@ export function ExchangeMap({
                                 0.9,
                                 0.35,
                             ],
+                        }}
+                    />
+                </Source>
+
+                {/* Export corridors — Danube + Black Sea routes to the grain
+                    ports, drawn over the land but under the offer markers. Faint
+                    gold dashes = "this is a trade route", grounding the map in
+                    real logistics (static — no motion, mobile-battery-friendly). */}
+                <Source id="corridors" type="geojson" data={CORRIDORS}>
+                    <Layer
+                        id="corridor-line"
+                        type="line"
+                        layout={{ 'line-cap': 'round' }}
+                        paint={{
+                            'line-color': EXCHANGE_ACCENT_GOLD,
+                            'line-width': 1.3,
+                            'line-opacity': 0.4,
+                            'line-dasharray': [1, 3],
+                        }}
+                    />
+                </Source>
+                <Source id="ports" type="geojson" data={PORTS}>
+                    <Layer
+                        id="port-node"
+                        type="circle"
+                        paint={{
+                            'circle-radius': 3.5,
+                            'circle-color': EXCHANGE_ACCENT_GOLD,
+                            'circle-stroke-color': '#0b0f18',
+                            'circle-stroke-width': 1,
+                        }}
+                    />
+                    <Layer
+                        id="port-label"
+                        type="symbol"
+                        layout={{
+                            'text-field': ['get', 'name'],
+                            'text-size': 10,
+                            'text-anchor': 'left',
+                            'text-offset': [0.7, 0],
+                            'text-optional': true,
+                        }}
+                        paint={{
+                            'text-color': EXCHANGE_ACCENT_GOLD,
+                            'text-halo-color': '#0b0f18',
+                            'text-halo-width': 1.2,
                         }}
                     />
                 </Source>
