@@ -24,6 +24,7 @@ import Redis from 'ioredis';
 import pino from 'pino';
 import {
     QUEUE_NAME,
+    SOIL_QUEUE_NAME,
     type JobName,
 } from '../src/app-layer/jobs/types';
 
@@ -128,60 +129,80 @@ log.info({ queueName: QUEUE_NAME, redisUrl: REDIS_URL.replace(/\/\/.*@/, '//***@
 
 const connection = createWorkerConnection();
 
-const worker = new Worker(
-    QUEUE_NAME,
-    async (job: Job) => {
-        const jobName = job.name as JobName;
+// Shared processor — dispatches to the executor registry. Reused by both the
+// main worker and the dedicated soil worker (they differ only in the queue
+// they drain and their rate limiter).
+async function processJob(job: Job) {
+    const jobName = job.name as JobName;
 
-        // Lazy-import the executor registry on first job
-        const { executorRegistry } = await import('../src/app-layer/jobs/executor-registry');
+    // Lazy-import the executor registry on first job
+    const { executorRegistry } = await import('../src/app-layer/jobs/executor-registry');
 
-        if (!executorRegistry.has(jobName)) {
-            log.warn({ jobName, jobId: job.id }, 'no executor registered for job — skipping');
-            return { skipped: true, reason: `no executor for "${jobName}"` };
-        }
+    if (!executorRegistry.has(jobName)) {
+        log.warn({ jobName, jobId: job.id }, 'no executor registered for job — skipping');
+        return { skipped: true, reason: `no executor for "${jobName}"` };
+    }
 
-        const startTime = performance.now();
+    const startTime = performance.now();
 
-        log.info({ jobName, jobId: job.id, payload: job.data }, 'processing job');
+    log.info({ jobName, jobId: job.id, payload: job.data }, 'processing job');
 
-        // GAP-22: forward the BullMQ Job's progress channel so
-        // executors that report mid-run progress (currently
-        // tenant-dek-rotation) surface it via `GET .../?jobId=…`
-        // without depending on bullmq from the executor side.
-        const result = await executorRegistry.execute(jobName, job.data, {
-            updateProgress: (p) => job.updateProgress(p as object | number),
-        });
-        const durationMs = Math.round(performance.now() - startTime);
+    // GAP-22: forward the BullMQ Job's progress channel so
+    // executors that report mid-run progress (currently
+    // tenant-dek-rotation) surface it via `GET .../?jobId=…`
+    // without depending on bullmq from the executor side.
+    const result = await executorRegistry.execute(jobName, job.data, {
+        updateProgress: (p) => job.updateProgress(p as object | number),
+    });
+    const durationMs = Math.round(performance.now() - startTime);
 
-        if (!result.success) {
-            log.error({
-                jobName,
-                jobId: job.id,
-                attemptsMade: job.attemptsMade,
-                durationMs,
-                errorMessage: result.errorMessage,
-            }, 'job processing failed');
-
-            throw new Error(result.errorMessage || `Job "${jobName}" failed`);
-        }
-
-        log.info({
+    if (!result.success) {
+        log.error({
             jobName,
             jobId: job.id,
             attemptsMade: job.attemptsMade,
             durationMs,
-            itemsScanned: result.itemsScanned,
-            itemsActioned: result.itemsActioned,
-        }, 'job processed successfully');
+            errorMessage: result.errorMessage,
+        }, 'job processing failed');
 
-        return result;
-    },
+        throw new Error(result.errorMessage || `Job "${jobName}" failed`);
+    }
+
+    log.info({
+        jobName,
+        jobId: job.id,
+        attemptsMade: job.attemptsMade,
+        durationMs,
+        itemsScanned: result.itemsScanned,
+        itemsActioned: result.itemsActioned,
+    }, 'job processed successfully');
+
+    return result;
+}
+
+const worker = new Worker(
+    QUEUE_NAME,
+    processJob,
     {
         connection,
         concurrency: 5,
         limiter: {
             max: 50,
+            duration: 60000,
+        },
+    },
+);
+
+// Dedicated soil-fetch worker — its own queue + a 5/min limiter so we honour
+// the SoilGrids beta REST fair-use budget without throttling other jobs.
+const soilWorker = new Worker(
+    SOIL_QUEUE_NAME,
+    processJob,
+    {
+        connection: createWorkerConnection(),
+        concurrency: 2,
+        limiter: {
+            max: 5,
             duration: 60000,
         },
     },
@@ -194,6 +215,16 @@ worker.on('ready', () => {
         queueName: QUEUE_NAME,
         note: 'Dispatch via executor-registry (lazy-loaded on first job)',
     }, 'worker ready — listening for jobs');
+});
+
+soilWorker.on('ready', () => {
+    log.info({ queueName: SOIL_QUEUE_NAME, note: 'rate-limited 5/min' }, 'soil worker ready');
+});
+soilWorker.on('failed', (job, error) => {
+    log.error({ jobName: job?.name, jobId: job?.id, err: error }, 'soil job failed');
+});
+soilWorker.on('error', (error) => {
+    log.error({ err: error }, 'soil worker error');
 });
 
 worker.on('failed', (job, error) => {
@@ -221,7 +252,7 @@ async function shutdown(signal: string) {
     log.info({ signal }, 'shutdown signal received — closing worker');
 
     try {
-        await worker.close();
+        await Promise.all([worker.close(), soilWorker.close()]);
         await connection.quit();
         log.info('worker shut down gracefully');
         process.exit(0);

@@ -167,6 +167,15 @@ model Parcel {
   geometry        Unsupported("geometry(MultiPolygon, 4326)")?
   areaHa          Decimal?                                     @db.Decimal(12, 4)
   propertiesJson  Json?
+  /// Human-readable soil label (USDA texture class, e.g. "Silty clay
+  /// loam", or a WRB group) derived from the modelled soil profile.
+  /// A MODELLED ESTIMATE from open data (SoilGrids), never a lab result.
+  soilType        String?
+  /// Structured soil profile — the SoilGrids-derived reading + provenance:
+  /// { wrbClass?, textureClass, sandPct, siltPct, clayPct, phH2o, socGkg,
+  ///   bulkDensity, depth, uncertainty?, provider, fetchedAt }.
+  /// Null until the async soil-fetch job populates it ("soil pending").
+  soilJson        Json?
   /// "Try it with sample data" tag — see Location.isSampleData.
   isSampleData    Boolean                                      @default(false)
   createdAt       DateTime                                     @default(now())
@@ -186,6 +195,33 @@ model Parcel {
   // deletedAt IS NULL — folding deletedAt into the index lets a 5k-parcel
   // field scan only live rows. (The GiST index on `geometry` is separate.)
   @@index([tenantId, locationId, deletedAt])
+}
+
+/// GLOBAL soil-sample cache (NO tenantId — a shared catalog of open,
+/// non-tenant soil data, like `Unit`). Keyed by a rounded lat/lon grid
+/// cell (~100 m at Bulgaria's latitude) so a parcel centroid resolves to
+/// the same cell as its neighbours and we NEVER refetch a nearby point —
+/// this cache is the primary way we respect the SoilGrids fair-use budget.
+/// Soil is effectively static, so the TTL is unbounded (no expiry).
+///
+/// `latE3`/`lonE3` are the WGS84 lat/lon rounded to 3 decimals then
+/// stored as integer milli-degrees (e.g. 42.6975 → 42698), which gives an
+/// exact, index-friendly equality key without Decimal-precision snags.
+model SoilSample {
+  id        String   @id @default(cuid())
+  /// Rounded latitude  × 1000 (integer milli-degrees, 3-decimal grid).
+  latE3     Int
+  /// Rounded longitude × 1000 (integer milli-degrees, 3-decimal grid).
+  lonE3     Int
+  /// Provider key — "soilgrids" today (matches SOIL_PROVIDER).
+  provider  String
+  /// Structured soil profile — same shape as `Parcel.soilJson`.
+  dataJson  Json
+  /// When the provider response was captured (provenance / re-fetch audit).
+  fetchedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([latE3, lonE3])
 }
 
 /// The per-parcel prescription line — the heart of the feature. The

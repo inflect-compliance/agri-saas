@@ -499,6 +499,18 @@ executorRegistry.register('exchange-expiry-sweep', async (payload) => {
     );
 });
 
+executorRegistry.register('soil-fetch', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runSoilFetch } = await import('./soil-fetch');
+    const r = await runSoilFetch(payload);
+    return makeResult(
+        'soil-fetch', startedAt, startMs,
+        r.scanned, r.populated, r.skipped,
+        { scanned: r.scanned, populated: r.populated, skipped: r.skipped },
+    );
+});
+
 // ── task-due-notification ───────────────────────────────────────────
 
 executorRegistry.register('task-due-notification', async (payload) => {

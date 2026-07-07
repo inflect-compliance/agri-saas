@@ -28,6 +28,9 @@ import { SpatialImportModal } from '@/components/ui/map/SpatialImportModal';
 import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
 import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
+import { SoilLegend } from '@/components/soil/SoilLegend';
+import { soilColorForTexture, type SoilProfile } from '@/lib/soil/types';
+import type { UsdaTextureClass } from '@/lib/soil/texture';
 import { SprayJobWizard } from './SprayJobWizard';
 import { SmartDefaultsBanner } from './SmartDefaultsBanner';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
@@ -71,7 +74,15 @@ interface LocationDetail {
 interface ParcelsResp {
     locationId: string;
     bounds: [number, number, number, number] | null;
-    parcels: Array<{ id: string; name: string; areaHa?: number | null; cropType?: string | null; geometry: unknown }>;
+    parcels: Array<{
+        id: string;
+        name: string;
+        areaHa?: number | null;
+        cropType?: string | null;
+        geometry: unknown;
+        soilType?: string | null;
+        soilJson?: SoilProfile | null;
+    }>;
 }
 interface OperationItem {
     id: string;
@@ -134,6 +145,7 @@ export default function LocationDetailPage() {
     const t = useTranslations('locations.detail');
     const tl = useTranslations('locations');
     const tCommon = useTranslations('common');
+    const tSoil = useTranslations('ag.soil');
     const { tenantSlug, locationId } = useParams<{ tenantSlug: string; locationId: string }>();
     const buildUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
@@ -208,6 +220,10 @@ export default function LocationDetailPage() {
     // date below drives whichever is active; it sets the 30-day composite
     // window (UTC-midnight DateValue per the picker contract, default today).
     const [activeIndex, setActiveIndex] = useState<VegetationIndex | null>(null);
+    // Soil view — colour parcels by soil class. Mutually exclusive with the
+    // vegetation-index overlay (turning one on clears the other) so the map
+    // never carries two competing data layers at once.
+    const [soilView, setSoilView] = useState(false);
     const [imageryDate, setImageryDate] = useState<DateValue>(() => {
         const n = new Date();
         return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
@@ -264,8 +280,39 @@ export default function LocationDetailPage() {
 
     const sheetParcel = useMemo<ParcelSheetData | null>(() => {
         const p = parcels.find((x) => x.id === sheetParcelId);
-        return p ? { id: p.id, name: p.name, areaHa: p.areaHa ?? null, cropType: p.cropType ?? null } : null;
+        return p
+            ? {
+                id: p.id,
+                name: p.name,
+                areaHa: p.areaHa ?? null,
+                cropType: p.cropType ?? null,
+                soilJson: p.soilJson ?? null,
+            }
+            : null;
     }, [parcels, sheetParcelId]);
+
+    // Soil-view colouring: parcelId → class colour, plus the set of classes
+    // present (for the legend) and whether any parcel is still "soil pending".
+    const soilColorById = useMemo<Record<string, string>>(() => {
+        const map: Record<string, string> = {};
+        for (const p of parcels) {
+            const texture = p.soilJson?.textureClass ?? null;
+            if (texture) map[p.id] = soilColorForTexture(texture);
+        }
+        return map;
+    }, [parcels]);
+    const soilClasses = useMemo<UsdaTextureClass[]>(() => {
+        const seen = new Set<UsdaTextureClass>();
+        for (const p of parcels) {
+            const texture = p.soilJson?.textureClass ?? null;
+            if (texture) seen.add(texture);
+        }
+        return Array.from(seen);
+    }, [parcels]);
+    const soilHasPending = useMemo(
+        () => parcels.some((p) => !p.soilJson?.textureClass),
+        [parcels],
+    );
 
     // On phones, tapping a parcel both selects it and opens the bottom-sheet
     // for the freshly-tapped parcel; on desktop selection just feeds the
@@ -553,15 +600,33 @@ export default function LocationDetailPage() {
                                         variant={on ? 'primary' : 'secondary'}
                                         size="sm"
                                         className="min-h-[44px] min-w-[44px]"
-                                        onClick={() =>
-                                            setActiveIndex((cur) => (cur === idx.id ? null : idx.id))
-                                        }
+                                        onClick={() => {
+                                            setActiveIndex((cur) => (cur === idx.id ? null : idx.id));
+                                            setSoilView(false);
+                                        }}
                                         aria-pressed={on}
                                     >
                                         {idx.label}
                                     </Button>
                                 );
                             })}
+                            {/* Soil view toggle — colours parcels by soil
+                                class. Clears any active vegetation index so
+                                only one data layer shows at a time. */}
+                            <Button
+                                variant={soilView ? 'primary' : 'secondary'}
+                                size="sm"
+                                className="min-h-[44px] min-w-[44px]"
+                                onClick={() => {
+                                    setSoilView((on) => {
+                                        if (!on) setActiveIndex(null);
+                                        return !on;
+                                    });
+                                }}
+                                aria-pressed={soilView}
+                            >
+                                {tSoil('viewToggle')}
+                            </Button>
                             {activeSpec && (
                                 <DatePicker
                                     id="imagery-date-input"
@@ -658,7 +723,16 @@ export default function LocationDetailPage() {
                             // the prop is exercised + ready for a future
                             // read-only farm view.
                             vectorTileUrl={buildUrl(`/locations/${locationId}/tiles/{z}/{x}/{y}.pbf`)}
+                            soilMode={soilView}
+                            soilColorById={soilColorById}
                         />
+                        {/* Soil legend — only in soil view; sits in the desktop
+                            side column, or stacks under the map on phones. */}
+                        {soilView && (
+                            <div className="md:col-start-2">
+                                <SoilLegend classes={soilClasses} hasPending={soilHasPending} />
+                            </div>
+                        )}
                         {/* Spray-job panel — desktop-only; on phones the parcel
                             bottom-sheet replaces it. */}
                         {!isMobile && (

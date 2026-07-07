@@ -628,6 +628,20 @@ export interface ExchangeExpirySweepPayload {
     batchSize?: number;
 }
 
+/**
+ * soil-fetch — populate modelled soil (SoilGrids) for a batch of parcels.
+ * Enqueued on parcel import / create / geometry edit; runs on the dedicated
+ * soil queue with a 5/min Worker limiter (SoilGrids fair-use).
+ */
+export interface SoilFetchPayload {
+    tenantId: string;
+    /** The user whose membership authorises the tenant-scoped writes. */
+    initiatedByUserId: string;
+    /** Parcels to (re)fetch soil for. */
+    parcelIds: string[];
+    requestId?: string;
+}
+
 export interface JobPayloadMap {
     'health-check': HealthCheckPayload;
     'embed-chunks': EmbedChunksPayload;
@@ -673,6 +687,7 @@ export interface JobPayloadMap {
     'spatial-import': SpatialImportJobPayload;
     'farm-record-pdf': FarmRecordPdfPayload;
     'exchange-expiry-sweep': ExchangeExpirySweepPayload;
+    'soil-fetch': SoilFetchPayload;
 }
 
 /** Union of all valid job names */
@@ -1016,7 +1031,27 @@ export const JOB_DEFAULTS: Record<JobName, {
         removeOnComplete: 100,
         removeOnFail: 200,
     },
+    'soil-fetch': {
+        // Idempotent per parcel (cache-first; a re-run just refreshes from
+        // cache). Retry a provider rate-limit / outage a few times with a
+        // long backoff — the SoilGrids beta REST API is throttled, so give it
+        // room before giving up and leaving the parcel "soil pending".
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 30000 },
+        removeOnComplete: 200,
+        removeOnFail: 500,
+    },
 };
 
 /** The single queue name used for all jobs (BullMQ supports named jobs within a queue) */
 export const QUEUE_NAME = 'inflect-jobs';
+
+/**
+ * Dedicated queue for the soil-fetch job. Separate from the main queue so
+ * its Worker can carry an independent `limiter` (5/min) matching the
+ * SoilGrids beta REST fair-use budget without throttling every other job.
+ */
+export const SOIL_QUEUE_NAME = 'inflect-soil';
+
+/** Job names that run on the dedicated soil queue (rate-limited Worker). */
+export const SOIL_QUEUE_JOBS: ReadonlySet<JobName> = new Set(['soil-fetch']);

@@ -213,6 +213,16 @@ export const env = createEnv({
         OPENROUTER_API_KEY: z.string().optional(),
         OPENROUTER_MODEL: z.string().optional(),
 
+        // ── Soil integration (#37) ──
+        // Per-parcel soil comes from ISRIC SoilGrids (open, CC-BY 4.0).
+        // SOIL_PROVIDER selects the client ("soilgrids" today). SOIL_BASE_URL
+        // overrides the endpoint — point it at a self-hosted SoilGrids/
+        // OpenLandMap mirror (same query shape) as the fallback when the beta
+        // public REST API is rate-limited or down. Both optional; defaults
+        // live in the client so soil "just works" out of the box.
+        SOIL_PROVIDER: z.string().default('soilgrids'),
+        SOIL_BASE_URL: z.string().url().optional(),
+
         // ── Swappable AI provider (feat/ai-provider) ──
         // ONE OpenAI-compatible provider serves local dev (Ollama) and
         // any hosted backend (OpenRouter / Groq / Together) — they differ
@@ -482,6 +492,8 @@ export const env = createEnv({
         AI_RISK_PROVIDER: process.env.AI_RISK_PROVIDER,
         OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
         OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
+        SOIL_PROVIDER: process.env.SOIL_PROVIDER,
+        SOIL_BASE_URL: process.env.SOIL_BASE_URL,
         AI_BACKEND: process.env.AI_BACKEND,
         AI_BASE_URL: process.env.AI_BASE_URL,
         AI_API_KEY: process.env.AI_API_KEY,
