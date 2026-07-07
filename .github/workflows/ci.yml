@@ -91,6 +91,12 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      - name: i18n parity + untranslated check
+        # Fails on MISSING / ORPHAN / PLACEHOLDER-DRIFT / UNTRANSLATED-COPY
+        # between en.json and every locale. Rides the required "Lint" check;
+        # the no-new-hardcoded-string ratchet runs in the Jest test job.
+        run: node scripts/i18n-diff.mjs --check
+
   # ═══════════════════════════════════════════════════════════════
   #  Job 2: Typecheck — TypeScript strict compilation
   #  Fast, no DB needed. Catches type errors early.

@@ -21,5 +21,10 @@ set -e
 # Cheap top-level scan first — fast feedback before we spawn lint-staged.
 bash scripts/detect-secrets.sh
 
+# i18n parity + untranslated-copy — every user-facing string must have a key
+# in BOTH en.json and bg.json, and bg must not be English pasted verbatim.
+# (The no-new-hardcoded-string ratchet is enforced by the Jest guard in CI.)
+node scripts/i18n-diff.mjs --check
+
 # Per-file pipelines (formatters, linters, the per-file secret scan).
 npx --no-install lint-staged

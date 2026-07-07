@@ -73,6 +73,53 @@ function readLocale(name: string): LocaleMap {
     return flatten(JSON.parse(fs.readFileSync(p, 'utf-8')));
 }
 
+// ─── Untranslated-copy detection (English pasted into bg.json) ───
+//
+// Key-parity can't tell a real translation from an English value copied into
+// the locale as a placeholder. A value byte-identical to en is "untranslated
+// copy" — UNLESS it's legitimately identical across locales. Those legit
+// categories (symbols, numbers, ICU-only strings, ALL-CAPS acronyms/enums,
+// short code tokens, brand/product names, email/domain placeholders) are
+// encoded in `looksTranslatable`; the small tail that slips through is listed
+// explicitly in `UNTRANSLATED_ALLOWLIST` with a reason.
+const BRAND =
+    /\b(Agrent|Inflect|Microsoft|Entra|SharePoint|Google|Azure|SAML|OAuth|SCIM|SSO|SOC|NIS2|ISO|GDPR|HIPAA|PCI|Markdown|JSON|CSV|PDF|WYSIWYG|SWR|ALE|ROI|API|URL|Bow-Tie|Esc|IdP)\b/;
+
+/** True when a value is real prose that SHOULD differ between en and bg —
+ *  i.e. NOT a symbol / number / ICU-only / acronym / code token / brand. */
+function looksTranslatable(value: unknown): boolean {
+    if (typeof value !== 'string') return false;
+    const s = value.replace(/\{[^}]*\}/g, '').trim(); // drop ICU placeholders
+    if (s.length < 4) return false;
+    if (!/[a-z]/.test(s)) return false; // symbols, digits, ICU-only, ALL-CAPS enums
+    if (!/\s/.test(s) && s.length < 12) return false; // single short word / token / label
+    if (BRAND.test(value)) return false; // product names / proper nouns
+    if (/@|\b\w+\.(com|io|app|bg|org)\b/.test(value)) return false; // email / domain placeholders
+    return true;
+}
+
+/** Values legitimately identical to English despite reading like prose. Each
+ *  needs a reason; a new entry means "yes, this really is the same in bg". */
+const UNTRANSLATED_ALLOWLIST = new Map<string, string>([
+    // SSO/SAML config field labels — kept in English to match the IdP console.
+    ['admin.entra.directoryIdLabel', 'Entra console field label, kept in English'],
+    ['admin.entra.clientIdLabel', 'Entra console field label, kept in English'],
+    ['admin.sso.clientId', 'IdP field label, kept in English'],
+    ['admin.sso.clientSecret', 'IdP field label, kept in English'],
+    ['admin.sso.idpEntityId', 'IdP field label, kept in English'],
+    // Code / technical example placeholders (not natural-language copy).
+    ['admin.sso.clientIdPlaceholder', 'code-token example placeholder'],
+    ['admin.sso.clientSecretPlaceholder', 'code-token example placeholder'],
+    ['admin.sso.scopesPlaceholder', 'OAuth scope tokens — not translatable'],
+    ['org.newTenant.namePlaceholder', 'proper-noun example placeholder'],
+    // Deliberately bilingual (BG / EN) headings.
+    ['exchange.client.heading', 'deliberately bilingual: "Борса / Exchange"'],
+    ['locations.spray.techniqueLabel', 'deliberately bilingual heading (BG / EN)'],
+    // Units / example content already locale-neutral or in Bulgarian.
+    ['grain.yield.colTPerHa', 'unit "t / ha" — identical across locales'],
+    ['inventory.activeIngredientPlaceholder', 'example text already written in Bulgarian'],
+]);
+
 /**
  * Group dotted keys by their top-level segment ("common", "risks",
  * "ui", ...) for readable error output. Within each group the keys
@@ -211,6 +258,27 @@ describe('GAP-19 — i18n completeness', () => {
                     );
                 }
             });
+
+            it('has no untranslated copy (English value pasted into the locale)', () => {
+                const offenders: string[] = [];
+                for (const k of enKeys) {
+                    if (!localeKeys.has(k)) continue;
+                    const enV = en.get(k);
+                    const lcV = locale.get(k);
+                    if (typeof enV === 'string' && enV === lcV && looksTranslatable(enV) && !UNTRANSLATED_ALLOWLIST.has(k)) {
+                        offenders.push(`    ${k}    "${enV.length > 70 ? enV.slice(0, 70) + '…' : enV}"`);
+                    }
+                }
+                if (offenders.length > 0) {
+                    throw new Error(
+                        `${localeName}.json has ${offenders.length} untranslated value(s) — English copied verbatim ` +
+                            `instead of translated (key-parity is blind to this):\n\n${offenders.join('\n')}\n\n` +
+                            `Translate these in messages/${localeName}.json. If a value is legitimately identical ` +
+                            `across locales (brand, unit, deliberately bilingual), add its key to ` +
+                            `UNTRANSLATED_ALLOWLIST in this file with a written reason.`,
+                    );
+                }
+            });
         });
     }
 });
@@ -264,5 +332,19 @@ describe('GAP-19 — i18n completeness self-test', () => {
         // and intentionally ignored by the comparison.
         const both = '{count, plural, one {# risk} other {# risks}}';
         expect(placeholders(both)).toEqual(['count']);
+    });
+
+    it('untranslated detector flags real prose but not symbols/acronyms/brand', () => {
+        expect(looksTranslatable('Save your changes before leaving')).toBe(true);
+        expect(looksTranslatable('The offer was withdrawn')).toBe(true);
+        // legitimately-identical categories are NOT flagged:
+        expect(looksTranslatable('SOC 2')).toBe(false); // brand/standard
+        expect(looksTranslatable('ALE')).toBe(false); // acronym
+        expect(looksTranslatable('{pct}%')).toBe(false); // ICU-only
+        expect(looksTranslatable('noreply@inflect.app')).toBe(false); // email
+        expect(looksTranslatable('OK')).toBe(false); // short token
+        // Note: prose-like exceptions the heuristic can't classify (units like
+        // "t / ha", deliberately-bilingual headings) are handled by
+        // UNTRANSLATED_ALLOWLIST, not by looksTranslatable.
     });
 });
