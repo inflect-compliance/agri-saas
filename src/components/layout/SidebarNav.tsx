@@ -143,6 +143,11 @@ export function useNavSections(): NavSectionDef[] {
                 // Agriculture events (#15) — global feed of fairs / trainings /
                 // webinars / subsidy deadlines, visible to every tenant.
                 { href: tenantHref('/events'), label: 'Events', icon: CalendarClock },
+                // Offers (#12) — global feed of supplier promotions with an
+                // "Ask for offer" lead form, visible to every tenant. Reuses
+                // the already-imported Coins glyph (deals/pricing) — no new
+                // lucide import.
+                { href: tenantHref('/offers'), label: 'Offers', icon: Coins },
                 // Climate (#14) — the tenant's Meteobot station embed, with an
                 // Open-Meteo weather fallback. Sits with the field surfaces.
                 { href: tenantHref('/climate'), label: 'Climate', icon: CloudSun },
