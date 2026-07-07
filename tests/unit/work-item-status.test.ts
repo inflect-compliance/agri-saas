@@ -28,9 +28,11 @@ describe('Work Item Status Constants', () => {
         );
     });
 
-    test('ACTIVE statuses include OPEN, TRIAGED, IN_PROGRESS, BLOCKED', () => {
+    test('ACTIVE statuses include OPEN, TRIAGED, IN_PROGRESS, BLOCKED, PENDING_REVIEW', () => {
         const active = [...ACTIVE_WORK_ITEM_STATUSES].sort();
-        expect(active).toEqual(['BLOCKED', 'IN_PROGRESS', 'OPEN', 'TRIAGED']);
+        // #6 added PENDING_REVIEW (a completed field op awaiting approval) as a
+        // non-terminal ACTIVE status, so ALL = ACTIVE ∪ TERMINAL still holds.
+        expect(active).toEqual(['BLOCKED', 'IN_PROGRESS', 'OPEN', 'PENDING_REVIEW', 'TRIAGED']);
     });
 
     test('TRIAGED is in ACTIVE statuses (the bug fix)', () => {

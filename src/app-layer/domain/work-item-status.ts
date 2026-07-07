@@ -32,13 +32,15 @@ export const TERMINAL_WORK_ITEM_STATUSES = ['RESOLVED', 'CLOSED', 'CANCELED'] as
  * This is the inverse of TERMINAL_WORK_ITEM_STATUSES.
  * Includes: OPEN, TRIAGED, IN_PROGRESS, BLOCKED
  */
-export const ACTIVE_WORK_ITEM_STATUSES = ['OPEN', 'TRIAGED', 'IN_PROGRESS', 'BLOCKED'] as const;
+export const ACTIVE_WORK_ITEM_STATUSES = ['OPEN', 'TRIAGED', 'IN_PROGRESS', 'BLOCKED', 'PENDING_REVIEW'] as const;
 
 /**
- * All valid work item statuses.
+ * All valid work item statuses. Kept in sync with the Prisma WorkItemStatus
+ * enum. PENDING_REVIEW (#6) is an ACTIVE (non-terminal) gate: a completed
+ * field operation awaiting a reviewer's approval before it is RESOLVED.
  */
 export const ALL_WORK_ITEM_STATUSES = [
-    'OPEN', 'TRIAGED', 'IN_PROGRESS', 'BLOCKED',
+    'OPEN', 'TRIAGED', 'IN_PROGRESS', 'BLOCKED', 'PENDING_REVIEW',
     'RESOLVED', 'CLOSED', 'CANCELED',
 ] as const;
 
@@ -109,10 +111,13 @@ export const WORK_ITEM_TRANSITIONS: Record<
     // UI retired RESOLVED as a redundant intermediate (it stays in the
     // enum + the graph for legacy RESOLVED rows, which can still
     // advance to CLOSED), so an active task closes in one step.
-    OPEN: new Set(['TRIAGED', 'IN_PROGRESS', 'BLOCKED', 'RESOLVED', 'CLOSED', 'CANCELED']),
-    TRIAGED: new Set(['IN_PROGRESS', 'BLOCKED', 'RESOLVED', 'CLOSED', 'CANCELED']),
-    IN_PROGRESS: new Set(['BLOCKED', 'RESOLVED', 'CLOSED', 'CANCELED', 'TRIAGED']),
-    BLOCKED: new Set(['IN_PROGRESS', 'TRIAGED', 'CLOSED', 'CANCELED']),
+    OPEN: new Set(['TRIAGED', 'IN_PROGRESS', 'BLOCKED', 'PENDING_REVIEW', 'RESOLVED', 'CLOSED', 'CANCELED']),
+    TRIAGED: new Set(['IN_PROGRESS', 'BLOCKED', 'PENDING_REVIEW', 'RESOLVED', 'CLOSED', 'CANCELED']),
+    IN_PROGRESS: new Set(['BLOCKED', 'PENDING_REVIEW', 'RESOLVED', 'CLOSED', 'CANCELED', 'TRIAGED']),
+    BLOCKED: new Set(['IN_PROGRESS', 'TRIAGED', 'PENDING_REVIEW', 'CLOSED', 'CANCELED']),
+    // #6 review gate: a completed field op awaits approval here. Approve →
+    // RESOLVED; request changes → IN_PROGRESS. Can also be closed/canceled.
+    PENDING_REVIEW: new Set(['RESOLVED', 'IN_PROGRESS', 'CLOSED', 'CANCELED']),
     RESOLVED: new Set(['CLOSED', 'IN_PROGRESS']),
     CLOSED: new Set(),
     CANCELED: new Set(),
