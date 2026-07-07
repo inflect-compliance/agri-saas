@@ -33,6 +33,7 @@ import {
     Coins,
     ArrowLeftRight,
     CloudSun,
+    CalendarClock,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -139,6 +140,9 @@ export function useNavSections(): NavSectionDef[] {
                 { href: tenantHref('/assets'), label: 'Asset', icon: Building2 },
                 { href: tenantHref('/locations'), label: 'Location', icon: MapPin },
                 { href: tenantHref('/journal'), label: 'Journal', icon: NotebookPen },
+                // Agriculture events (#15) — global feed of fairs / trainings /
+                // webinars / subsidy deadlines, visible to every tenant.
+                { href: tenantHref('/events'), label: 'Events', icon: CalendarClock },
                 // Climate (#14) — the tenant's Meteobot station embed, with an
                 // Open-Meteo weather fallback. Sits with the field surfaces.
                 { href: tenantHref('/climate'), label: 'Climate', icon: CloudSun },
