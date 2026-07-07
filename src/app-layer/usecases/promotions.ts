@@ -12,7 +12,7 @@
 import type { RequestContext } from '../types';
 import { assertCanRead, assertCanWrite } from '../policies/common';
 import { logEvent } from '../events/audit';
-import { runInTenantContext, withTenantDb } from '@/lib/db-context';
+import { runInTenantContext } from '@/lib/db-context';
 import { notFound, conflict } from '@/lib/errors/types';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { logger } from '@/lib/observability/logger';
@@ -143,7 +143,7 @@ export async function createPromotionLead(ctx: RequestContext, input: CreateProm
  */
 async function notifyRequesterOfLead(ctx: RequestContext, company: string) {
     try {
-        await withTenantDb(ctx.tenantId, async (db) => {
+        await runInTenantContext(ctx, async (db) => {
             await db.notification.create({
                 data: {
                     tenantId: ctx.tenantId,
