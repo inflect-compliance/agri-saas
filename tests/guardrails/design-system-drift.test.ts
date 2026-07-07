@@ -333,7 +333,11 @@ describe('New page token discipline', () => {
         //     surface. Token-clean (semantic tokens only + Heading/
         //     PageBreadcrumbs/Button/FormField/Input); new surfaces, not yet
         //     promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(143);
+        //   - 144 (+1, #12 Offers): offers/page.tsx — the global company-
+        //     promotions feed. Token-clean (semantic tokens only +
+        //     Heading/PageBreadcrumbs/Button/Modal via AskForOfferModal);
+        //     new surface, not yet promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(144);
     });
 
     it('migrated page count is at least 4', () => {

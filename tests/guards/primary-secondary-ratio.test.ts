@@ -234,8 +234,12 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // 163 (no headroom slot).
 // #14 (climate): +1 primary — the Meteobot station "Save" CTA on the Climate
 // settings card (one earned page primary; "Clear" is secondary). Measured =
-// 164; ceiling at 164 (no headroom slot).
-const MAX_PRIMARY_COUNT = 164;
+// 164 (165 with #12 below).
+// #12 (Offers): +1 primary — the "Ask for offer" lead-modal confirm (Send
+// request) on the promotions feed. The modal's trigger + Cancel are both
+// secondary, so the secondary:primary ratio stays healthy. Measured = 165;
+// ceiling at 165 (no headroom slot).
+const MAX_PRIMARY_COUNT = 165;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

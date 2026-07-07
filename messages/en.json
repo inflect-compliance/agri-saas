@@ -2965,6 +2965,30 @@
       "clear": "Clear",
       "saveFailed": "Could not save the station URL."
     },
+    "offers": {
+      "title": "Offers",
+      "description": "Promotions and deals from agricultural suppliers.",
+      "empty": "No offers available right now. Check back soon.",
+      "breadcrumbDashboard": "Dashboard",
+      "validUntil": "Valid until {date}",
+      "learnMore": "Learn more",
+      "catCulture": "Culture",
+      "catFertilizer": "Fertilizer",
+      "catSeeds": "Seeds",
+      "catProducts": "Products",
+      "catService": "Service",
+      "ask": {
+        "open": "Ask for offer",
+        "sent": "Request sent",
+        "titleWithCompany": "Ask {company} for an offer",
+        "description": "Send your interest and the supplier will get back to you.",
+        "message": "Message",
+        "messagePlaceholder": "Describe what you need…",
+        "cancel": "Cancel",
+        "submit": "Send request",
+        "error": "Could not send your request. Please try again."
+      }
+    },
     "ai": {
       "disclaimer": "AI suggestion — verify with an agronomist.",
       "copilotTitle": "Agronomy copilot",
