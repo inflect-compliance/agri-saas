@@ -3394,7 +3394,8 @@
     "mapLoadErrorDetail": "The basemap failed to load. The offer list still works — try reloading the page.",
     "noOffers": "No offers to show on the map",
     "exchangeSuffix": "Exchange",
-    "liquidity": "Liquidity"
+    "liquidity": "Liquidity",
+    "bestPrice": "Best price"
   },
   "frameworkExplorer": {
     "empty": "This framework has no requirements yet.",
