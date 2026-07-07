@@ -48,8 +48,13 @@ export class ParcelRepository {
         ctx: RequestContext,
         locationId: string,
         parcels: ParsedParcel[],
+        cropType?: string | null,
     ): Promise<number> {
         await db.parcel.deleteMany({ where: { locationId, tenantId: ctx.tenantId } });
+
+        // A blank / whitespace-only default means "mixed — set later": leave
+        // cropType null so it isn't stamped on every imported parcel (#7).
+        const importCrop = cropType && cropType.trim().length > 0 ? cropType.trim() : null;
 
         for (const p of parcels) {
             // Create the row through Prisma so id/defaults are minted,
@@ -59,6 +64,7 @@ export class ParcelRepository {
                     tenantId: ctx.tenantId,
                     locationId,
                     name: p.name,
+                    cropType: importCrop,
                     propertiesJson: (p.properties ?? {}) as Prisma.InputJsonValue,
                 },
                 select: { id: true },

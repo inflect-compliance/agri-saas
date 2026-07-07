@@ -13,7 +13,8 @@ import { Heading } from '@/components/ui/typography';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import { Combobox } from '@/components/ui/combobox';
+import { CROP_OPTIONS } from '@/lib/agriculture/crop-options';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { DatePicker, type DateValue } from '@/components/ui/date-picker';
@@ -81,17 +82,9 @@ interface OperationItem {
     _count?: { operationParcels?: number };
 }
 
-// Crop options for the parcel Crop dropdown, grouped by season. Each crop
-// carries its season as `meta`, surfaced as a right-aligned tag; a separator
-// after the last autumn crop divides the two groups visually.
-const CROP_OPTIONS: ComboboxOption<{ season: string }>[] = [
-    { value: 'Wheat', label: 'Wheat', meta: { season: 'Autumn crop' } },
-    { value: 'Barley', label: 'Barley', meta: { season: 'Autumn crop' } },
-    { value: 'Canola', label: 'Canola', meta: { season: 'Autumn crop' }, separatorAfter: true },
-    { value: 'Maize', label: 'Maize', meta: { season: 'Spring crop' } },
-    { value: 'Sunflower', label: 'Sunflower', meta: { season: 'Spring crop' } },
-    { value: 'Peas', label: 'Peas', meta: { season: 'Spring crop' } },
-];
+// Crop options for the parcel Crop dropdown live in the shared catalogue
+// (src/lib/agriculture/crop-options.ts) so the import crop-step (#7), map
+// crop icons (#1), and crop planning (#9) all pick from the same list.
 
 /**
  * Inline crop picker for a parcel row in the Parcels dropdown. Choosing a
