@@ -4614,6 +4614,14 @@
       "saving": "Saving...",
       "assign": "Assign",
       "fieldOperation": "Field operation",
+      "review": {
+        "title": "Review required",
+        "hint": "This field operation is complete and awaiting approval. Approve to finalise it, or request changes to reopen it for the operator.",
+        "commentLabel": "Comment (optional)",
+        "commentPlaceholder": "Add a note for the operator…",
+        "approve": "Approve",
+        "requestChanges": "Request changes"
+      },
       "editTask": "Edit task",
       "description": "Description",
       "noDescription": "No description.",

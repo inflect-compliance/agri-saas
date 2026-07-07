@@ -325,6 +325,11 @@ enum WorkItemStatus {
   TRIAGED
   IN_PROGRESS
   BLOCKED
+  // Awaiting reviewer approval before a completed field operation is final
+  // (#6). A FIELD_OPERATION task whose parcels are all marked DONE lands here
+  // instead of RESOLVED; a reviewer (ADMIN) approves → RESOLVED, or requests
+  // changes → IN_PROGRESS.
+  PENDING_REVIEW
   RESOLVED
   CLOSED
   CANCELED
