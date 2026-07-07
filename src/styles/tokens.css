@@ -31,7 +31,7 @@
   --bg-muted:     #002F5F;                  /* darker navy — hover surfaces, pressed/active states */
   --bg-subtle:    rgba(0, 83, 140, 0.30);   /* navy @ 30% — selection bg, disabled surfaces, faint tints */
   --bg-elevated:  #004B96;                  /* medium navy — tooltips, dropdowns sitting above default */
-  --bg-inverted:  #FFCD11;                  /* METRO yellow — inverted surface (primary button bg) */
+  --bg-inverted:  #D4AF37;                  /* Agrent metallic gold — inverted surface (primary button bg) */
   --bg-overlay:   rgba(0, 12, 26, 0.70);    /* dark navy backdrop behind modals/drawers */
 
   /* ── Content / Text ────────────────────────────────────────────── */
@@ -73,10 +73,10 @@
   --canvas-recess:     inset 0 11px 20px -16px rgba(0, 0, 0, 0.90); /* top inner shadow — plane reads sunk below the chrome */
 
   /* ── Brand / Primary (METRO yellow) ────────────────────────────── */
-  --brand-default:  #FFCD11;                /* METRO signature yellow — brand accent, links */
-  --brand-emphasis: #E6B800;                /* darker yellow — primary buttons, active brand */
-  --brand-muted:    #FFE066;                /* lighter yellow — hover accent */
-  --brand-subtle:   rgba(255, 205, 17, 0.18); /* yellow @ 18% — brand tint backgrounds */
+  --brand-default:  #D4AF37;                /* Agrent metallic gold — brand accent, links */
+  --brand-emphasis: #B8860B;                /* dark goldenrod — primary buttons, active brand */
+  --brand-muted:    #E4C55C;                /* lighter gold — hover accent */
+  --brand-subtle:   rgba(212, 175, 55, 0.16); /* gold @ 16% — brand tint backgrounds */
 
   /* ── Brand / Secondary (electric blue — complementary cool counterpoint) ──
    *
@@ -131,13 +131,13 @@
   --border-attention:  rgba(251, 191, 36, 0.30); /* amber-400 @ 30% */
 
   /* ── Interactive / Focus ───────────────────────────────────────── */
-  --ring-default: rgba(255, 205, 17, 0.55);  /* METRO yellow focus ring */
+  --ring-default: rgba(212, 175, 55, 0.55);  /* Agrent gold focus ring */
   --focus-ring:   rgba(255, 205, 17, 0.55);  /* alias for components that use a different name */
 
   /* shadcn / Radix compatibility tokens */
   --ring:                   rgba(255, 205, 17, 0.55);
   --ring-offset-background: #001830;
-  --primary:                #FFCD11;
+  --primary:                #D4AF37;
 
   /* ── Glass ─────────────────────────────────────────────────────── */
   --glass-bg:     rgba(0, 47, 95, 0.82);     /* navy glass-card background */
@@ -494,8 +494,8 @@
    * ─────────────────────────────────────────────────────────── */
 
   /* Series 1 — primary brand (yellow). */
-  --chart-series-1-start: #FFCD11;
-  --chart-series-1-end:   #E0A800;
+  --chart-series-1-start: #D4AF37;
+  --chart-series-1-end:   #B8860B;
 
   /* Series 2 — cyan / electric blue. Pairs with series-1 across
    * a warm→cool transition. */
@@ -628,10 +628,10 @@
   --canvas-recess:     inset 0 11px 20px -16px rgba(60, 50, 40, 0.22);
 
   /* ── Brand / Primary (PwC-inspired orange) ──────────────────────── */
-  --brand-default:  #D04A02;                /* PwC signature orange — links, accents */
-  --brand-emphasis: #B83D00;                /* burnt orange — primary buttons, active (5.8:1) */
-  --brand-muted:    #E06520;                /* lighter orange — hover accent */
-  --brand-subtle:   rgba(208, 74, 2, 0.09); /* orange @ 9% — brand tint backgrounds */
+  --brand-default:  #8A6200;                /* Agrent gold — deep goldenrod; ≥4.5:1 (WCAG AA) as link/accent text on the cream page AND on --brand-subtle gold tiles */
+  --brand-emphasis: #7A5800;                /* deep bronze-gold — active brand + text on --brand-subtle tiles; ≥4.5:1 (WCAG AA), one rung darker than default */
+  --brand-muted:    #D4AF37;                /* metallic gold — hover accent */
+  --brand-subtle:   rgba(212, 175, 55, 0.16); /* gold @ 16% — brand tint backgrounds */
 
   /* ── Brand / Secondary (deep navy — complementary cool counterpoint) ──
    *
@@ -689,11 +689,11 @@
   --border-attention:  rgba(180, 83, 9, 0.20);
 
   /* ── Interactive / Focus ───────────────────────────────────────── */
-  --ring-default: rgba(208, 74, 2, 0.40);   /* brand-orange focus ring */
+  --ring-default: rgba(184, 134, 11, 0.45);   /* Agrent gold focus ring (light) */
   --focus-ring:   rgba(208, 74, 2, 0.40);
   --ring:                   rgba(208, 74, 2, 0.40);
   --ring-offset-background: #F8F6F3;
-  --primary:                #D04A02;
+  --primary:                #8A6200;
 
   /* ── Glass (warm light variant) ─────────────────────────────────── */
   --glass-bg:     rgba(248, 246, 243, 0.85); /* tinted to --bg-default so .glass-card matches solid card surfaces */
@@ -879,8 +879,8 @@
 
   /* Series 1 — primary brand (PwC orange, slightly muted for
    * cream contrast). */
-  --chart-series-1-start: #D04A02;
-  --chart-series-1-end:   #A03A00;
+  --chart-series-1-start: #D4AF37;
+  --chart-series-1-end:   #B8860B;
 
   /* Series 2 — navy. Direct counterpart to METRO series-2 cyan;
    * navy keeps the cool weight on cream. */
