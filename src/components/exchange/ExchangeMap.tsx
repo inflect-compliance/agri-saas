@@ -4,7 +4,9 @@
  * ExchangeMap — the cross-tenant marketplace map of Bulgaria.
  *
  * A deliberately Bulgaria-ONLY, dark, commercial map:
- *   • Dark minimal basemap (MapTiler `dataviz-dark`) so the app's dark UI and
+ *   • Dark basemap (MapTiler `streets-v2-dark`) — hidden under the flat land
+ *     fill at overview zoom, then revealed on zoom-in for town/village detail —
+ *     so the app's dark UI and
  *     the SELL/BUY markers read as one system.
  *   • A spotlight MASK — everything outside Bulgaria is dimmed by a dark scrim
  *     (a world polygon with the oblast footprints punched out as holes), so the
@@ -137,7 +139,8 @@ interface ExchangeMapProps {
     onListingSelect: (id: string) => void;
     /** Highlight a listing's marker (row hover in the list). */
     highlightedId?: string | null;
-    /** Basemap style id — default a dark, minimal, label-light canvas. */
+    /** Basemap style id — default a dark streets style (town/village labels
+     *  on zoom-in); hidden under the flat land fill at overview zoom. */
     basemapStyle?: 'dataviz-dark' | 'streets-v2-dark' | 'basic-v2-dark' | 'streets-v2';
     className?: string;
 }
@@ -154,7 +157,7 @@ export function ExchangeMap({
     onRegionClick,
     onListingSelect,
     highlightedId,
-    basemapStyle = 'dataviz-dark',
+    basemapStyle = 'streets-v2-dark',
     className,
 }: ExchangeMapProps) {
     const t = useTranslations('exchangeMap');
