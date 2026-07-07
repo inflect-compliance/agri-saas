@@ -812,7 +812,26 @@ stands for that PR only — not as a precedent.
 - **Zod schemas** for all API input validation live in `src/app-layer/schemas/` (backend) and `src/lib/schemas/` (shared).
 - **Audit trail**: Call `logEvent()` from `src/app-layer/events/audit.ts` after mutating state. Entries are hash-chained — never write directly to the `AuditLog` table.
 - **Error classes**: Use typed errors from `src/lib/errors/` rather than throwing raw `Error`.
-- **i18n**: UI strings go through `next-intl`. Message files are in `messages/`. Server components use `getTranslations()`, client components use `useTranslations()`.
+- **i18n**: UI strings go through `next-intl`. Message files are in
+  `messages/`. Server components use `getTranslations()`, client components
+  use `useTranslations()`. **Every user-facing string is added to BOTH
+  `en.json` AND `bg.json` in the same PR** — with a real Bulgarian
+  translation, not the English value pasted in. Three guards enforce this so
+  Bulgarian can't silently fall behind:
+    - **No-new-hardcoded-string ratchet**
+      (`tests/guards/no-hardcoded-ui-strings.test.ts`) — an AST scan of
+      `src/app` + `src/components` caps hard-coded JSX text + user-facing
+      string attributes at `CURRENT_BASELINE`; a new raw string fails CI.
+      Every extraction PR lowers the baseline in the same diff. Error
+      boundaries (`error`/`global-error`/`not-found.tsx`) are allowlisted.
+    - **Key parity** (`tests/guardrails/i18n-completeness.test.ts` +
+      `node scripts/i18n-diff.mjs --check`) — MISSING / ORPHAN /
+      PLACEHOLDER-DRIFT between locales.
+    - **Untranslated-copy** (same two files) — a `bg` value byte-identical
+      to `en` that reads like prose is flagged; legitimately-identical values
+      (brand, unit, deliberately bilingual) go in `UNTRANSLATED_ALLOWLIST`
+      with a reason.
+  `i18n-diff.mjs --check` runs in CI (the `Lint` job) and `.husky/pre-commit`.
 - **Path alias**: `@/` maps to `src/`. Always use this alias — never relative paths crossing layer boundaries.
 - **Two `DATABASE_URL` vars**: `DATABASE_URL` points to PgBouncer (transaction-mode, used at runtime). `DIRECT_DATABASE_URL` points directly to Postgres (used for Prisma migrations).
 - **Page-section rhythm** (Roadmap-5 PR-9): the spacing scale
