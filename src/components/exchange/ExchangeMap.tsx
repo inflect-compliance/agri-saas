@@ -26,7 +26,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus } from '@/components/ui/icons/nucleo';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/button';
 import { type ExchangeMapListing } from './exchange-map-utils';
@@ -464,8 +464,9 @@ export function ExchangeMap({
         // Chip metrics/box.
         const measure = (it: Item): { bx: number; w: number } => {
             ctx.font = '10px ui-monospace,monospace';
-            const pre = it.best ? '★ ' : '';
-            return { bx: it.sx + 5, w: ctx.measureText(pre + (it.text ?? '')).width + 7 };
+            // Best gets a drawn gold dot (no glyph — keeps the file emoji-free).
+            const badge = it.best ? 9 : 0;
+            return { bx: it.sx + 5, w: ctx.measureText(it.text ?? '').width + badge + 7 };
         };
         const rectOf = (it: Item): Rect => {
             const mm = measure(it);
@@ -486,9 +487,10 @@ export function ExchangeMap({
             let cx = mm.bx + 4;
             if (it.best) {
                 ctx.fillStyle = BEST_GOLD;
-                ctx.font = '700 10px ui-monospace,monospace';
-                ctx.fillText('★', cx, by);
-                cx += ctx.measureText('★ ').width;
+                ctx.beginPath();
+                ctx.arc(mm.bx + 7, by, 2.6, 0, Math.PI * 2);
+                ctx.fill();
+                cx = mm.bx + 13;
             }
             ctx.font = '10px ui-monospace,monospace';
             ctx.fillStyle = '#ede7d8';
@@ -685,7 +687,7 @@ export function ExchangeMap({
             {popupListing && (
                 <div
                     ref={popupRef}
-                    className="pointer-events-auto absolute left-0 top-0 z-10 w-52 space-y-tight rounded-lg border border-border-default bg-bg-elevated p-default shadow-lg"
+                    className="pointer-events-auto absolute left-0 top-0 z-10 w-52 space-y-tight rounded-lg border border-border-emphasis bg-bg-elevated p-default"
                 >
                     <div className="flex items-center gap-compact">
                         <span
