@@ -37,7 +37,7 @@ import { apiGet } from '@/lib/api-client';
 import { formatDate } from '@/lib/format-date';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import type { ExchangePublicListing } from '@/lib/exchange/public-listing';
-import { EXCHANGE_SIDE_COLORS } from '@/components/exchange/ExchangeMap';
+import { EXCHANGE_SIDE_COLORS, EXCHANGE_ACCENT_GOLD } from '@/components/exchange/ExchangeMap';
 import { buildExchangeFilters, EXCHANGE_FILTER_KEYS } from './filter-defs';
 import { CreateOfferModal } from './CreateOfferModal';
 import { InquiryModal } from './InquiryModal';
@@ -106,6 +106,24 @@ function ExchangeInner() {
             return true;
         });
     }, [offers, search, state]);
+
+    // Market-pulse stats over the currently-shown offers — the ticker's liveness
+    // + trust signal (volume, breadth, price level).
+    const ticker = useMemo(() => {
+        const tonnes = filtered.reduce((a, o) => a + (Number(o.quantityTonnes) || 0), 0);
+        const provinces = new Set(filtered.map((o) => o.regionCode)).size;
+        const priced = filtered.filter((o) => Number(o.pricePerTonne) > 0);
+        const avg = priced.length
+            ? Math.round(priced.reduce((a, o) => a + Number(o.pricePerTonne), 0) / priced.length)
+            : null;
+        return {
+            offers: filtered.length,
+            tonnes: Math.round(tonnes),
+            provinces,
+            avg,
+            cur: priced[0]?.priceCurrency ?? 'BGN',
+        };
+    }, [filtered]);
 
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     // Seed the selection from the deep link (`?listing=<id>`) at mount so a
@@ -183,6 +201,30 @@ function ExchangeInner() {
             </ListPageShell.Filters>
 
             <ListPageShell.Body>
+                {/* Market-pulse ticker — liveness + trust. Mobile-first: a single
+                    strip that scrolls horizontally on a narrow pane. */}
+                <div className="mb-default flex shrink-0 items-center gap-compact overflow-x-auto rounded-lg border border-border-subtle bg-bg-default/60 px-3 py-2 text-xs backdrop-blur-sm">
+                    <span className="flex shrink-0 items-center gap-1.5">
+                        <span
+                            className="h-2 w-2 animate-pulse rounded-full"
+                            style={{ backgroundColor: EXCHANGE_ACCENT_GOLD }}
+                        />
+                        <span className="tracking-wide text-content-muted">{t('tickerLive')}</span>
+                    </span>
+                    {ticker.offers > 0 ? (
+                        <span className="whitespace-nowrap font-mono tabular-nums text-content-secondary">
+                            {t('tickerSummary', {
+                                tonnes: ticker.tonnes.toLocaleString(),
+                                offers: ticker.offers,
+                                provinces: ticker.provinces,
+                                price: ticker.avg ?? '—',
+                                cur: ticker.cur,
+                            })}
+                        </span>
+                    ) : (
+                        <span className="whitespace-nowrap text-content-muted">{t('tickerEmpty')}</span>
+                    )}
+                </div>
                 <div className="flex min-h-0 flex-1 gap-default overflow-hidden max-md:flex-col">
                     {/* Map — fills the pane. On desktop it flexes to fill the row
                         (definite height from the ListPageShell chain). Below md the

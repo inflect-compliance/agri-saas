@@ -4945,7 +4945,10 @@
       "detailExpires": "Изтича",
       "detailSeller": "Продавач",
       "anonymousFarm": "Анонимна ферма",
-      "expressInterest": "Заяви интерес"
+      "expressInterest": "Заяви интерес",
+      "tickerLive": "На живо",
+      "tickerSummary": "{tonnes} т · {offers} оферти · {provinces} области · ср. {price} {cur}/т",
+      "tickerEmpty": "Все още няма активни оферти"
     },
     "offer": {
       "title": "Нова оферта",

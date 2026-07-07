@@ -4945,7 +4945,10 @@
       "detailExpires": "Expires",
       "detailSeller": "Seller",
       "anonymousFarm": "Anonymous farm",
-      "expressInterest": "Express interest"
+      "expressInterest": "Express interest",
+      "tickerLive": "Live",
+      "tickerSummary": "{tonnes} t offered · {offers} offers · {provinces} provinces · avg {price} {cur}/t",
+      "tickerEmpty": "No live offers yet"
     },
     "offer": {
       "title": "New offer",
