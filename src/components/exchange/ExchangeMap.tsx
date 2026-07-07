@@ -230,30 +230,55 @@ export function ExchangeMap({
 
     // Offer markers as a GeoJSON point FeatureCollection (clustered source).
     const offerGeojson = useMemo<FeatureCollection>(
-        () => ({
-            type: 'FeatureCollection',
-            features: listings.map((l) => ({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [l.lon, l.lat] },
-                properties: {
-                    id: l.id,
-                    side: l.side,
-                    commodity: l.commodity,
-                    quantityTonnes: l.quantityTonnes,
-                    pricePerTonne: l.pricePerTonne ?? '',
-                    priceCurrency: l.priceCurrency,
-                    regionCode: l.regionCode,
-                    regionName: l.regionName,
-                    lon: l.lon,
-                    lat: l.lat,
-                    // Pinned map label — same shape as the popup line. Units are
-                    // symbols (mirrors the popup), so no new translatable copy.
-                    chipLabel:
-                        `${l.commodity} · ${l.quantityTonnes} t` +
-                        (l.pricePerTonne ? ` · ${l.pricePerTonne} ${l.priceCurrency}/t` : ''),
-                },
-            })),
-        }),
+        () => {
+            // Price competitiveness within each (commodity, side): 1 = best.
+            // SELL → the LOWEST ask is best (cheapest to buy); BUY → the HIGHEST
+            // bid is best (most someone will pay). Offers without a price → 0.
+            // (Plain record — `Map` is the react-map-gl component in this file.)
+            const groups: Record<string, { id: string; price: number }[]> = {};
+            for (const l of listings) {
+                const price = Number(l.pricePerTonne);
+                if (!Number.isFinite(price) || price <= 0) continue;
+                (groups[`${l.commodity}|${l.side}`] ??= []).push({ id: l.id, price });
+            }
+            const pricePctById: Record<string, number> = {};
+            for (const [key, arr] of Object.entries(groups)) {
+                const isSell = key.endsWith('|SELL');
+                const min = Math.min(...arr.map((a) => a.price));
+                const max = Math.max(...arr.map((a) => a.price));
+                for (const a of arr) {
+                    pricePctById[a.id] =
+                        max === min ? 1 : isSell ? (max - a.price) / (max - min) : (a.price - min) / (max - min);
+                }
+            }
+            return {
+                type: 'FeatureCollection',
+                features: listings.map((l) => ({
+                    type: 'Feature',
+                    geometry: { type: 'Point', coordinates: [l.lon, l.lat] },
+                    properties: {
+                        id: l.id,
+                        side: l.side,
+                        commodity: l.commodity,
+                        quantityTonnes: l.quantityTonnes,
+                        pricePerTonne: l.pricePerTonne ?? '',
+                        priceCurrency: l.priceCurrency,
+                        regionCode: l.regionCode,
+                        regionName: l.regionName,
+                        lon: l.lon,
+                        lat: l.lat,
+                        // Price competitiveness (1 = best ask/bid for this
+                        // commodity+side) — drives marker size, glow and the ring.
+                        pricePct: pricePctById[l.id] ?? 0,
+                        // Pinned map label — same shape as the popup line. Units are
+                        // symbols (mirrors the popup), so no new translatable copy.
+                        chipLabel:
+                            `${l.commodity} · ${l.quantityTonnes} t` +
+                            (l.pricePerTonne ? ` · ${l.pricePerTonne} ${l.priceCurrency}/t` : ''),
+                    },
+                })),
+            };
+        },
         [listings],
     );
 
@@ -455,20 +480,20 @@ export function ExchangeMap({
                                 'BUY', EXCHANGE_SIDE_COLORS.BUY,
                                 '#6b7280',
                             ],
+                            // Bloom scales with price competitiveness — the best
+                            // ask/bid in each commodity blooms largest; hover wins.
                             'circle-radius': [
                                 'case',
                                 ['==', ['get', 'id'], highlightedId ?? '__none__'],
                                 22,
-                                16,
+                                ['interpolate', ['linear'], ['get', 'pricePct'], 0, 14, 1, 20],
                             ],
                             'circle-blur': 1,
-                            // Restored bloom — the markers read as live "orders",
-                            // not flat dots. Highlighted offer glows brighter.
                             'circle-opacity': [
                                 'case',
                                 ['==', ['get', 'id'], highlightedId ?? '__none__'],
                                 0.7,
-                                0.5,
+                                ['interpolate', ['linear'], ['get', 'pricePct'], 0, 0.4, 1, 0.62],
                             ],
                         }}
                     />
@@ -514,11 +539,32 @@ export function ExchangeMap({
                             'circle-radius': [
                                 'case',
                                 ['==', ['get', 'id'], highlightedId ?? '__none__'],
-                                10,
-                                7,
+                                11,
+                                ['interpolate', ['linear'], ['get', 'pricePct'], 0, 6.5, 1, 9],
                             ],
                             'circle-stroke-width': 2,
                             'circle-stroke-color': '#ffffff',
+                        }}
+                    />
+                    {/* Best-price ring — a grain-gold hoop around the most
+                        competitive ask/bid in each commodity, so a trader spots
+                        the top offer without reading the list. */}
+                    <Layer
+                        id="unclustered-best-ring"
+                        type="circle"
+                        filter={['all', ['!', ['has', 'point_count']], ['>=', ['get', 'pricePct'], 0.999]]}
+                        paint={{
+                            'circle-radius': [
+                                'case',
+                                ['==', ['get', 'id'], highlightedId ?? '__none__'],
+                                15,
+                                13,
+                            ],
+                            'circle-color': EXCHANGE_ACCENT_GOLD,
+                            'circle-opacity': 0,
+                            'circle-stroke-color': EXCHANGE_ACCENT_GOLD,
+                            'circle-stroke-width': 1.6,
+                            'circle-stroke-opacity': 0.9,
                         }}
                     />
                     {/* Pinned price chip on each UNCLUSTERED offer — commodity ·
@@ -648,6 +694,13 @@ export function ExchangeMap({
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.BUY }} />
                             {t('buying')}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-content-muted">
+                            <span
+                                className="h-2.5 w-2.5 rounded-full border"
+                                style={{ borderColor: EXCHANGE_ACCENT_GOLD }}
+                            />
+                            {t('bestPrice')}
                         </span>
                         <span className="ml-auto flex items-center gap-1.5 text-xs text-content-muted">
                             {t('liquidity')}
