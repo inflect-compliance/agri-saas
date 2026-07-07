@@ -91,6 +91,11 @@ const REGION_ACCENT = '#22c55e';
 const LAND_FILL = '#0f1826';
 const LAND_OPACITY = 0.94;
 
+/** Liquidity choropleth — provinces glow from the cool land fill toward a warm
+ *  bronze-gold as their share of the offered tonnage rises, so the overview
+ *  reads as a live "grain floor" (where the trade is) rather than a flat map. */
+const LAND_HEAT = '#6b501a';
+
 /** The flat land fill is opaque for the clean overview, then fades out as you
  *  zoom in so the dataviz-dark basemap (cities, villages, roads, labels) shows
  *  through for locating offers precisely. Fully gone by LAND_FADE_END_ZOOM. */
@@ -196,6 +201,30 @@ export function ExchangeMap({
         () => (oblasti ? buildMask(oblasti) : EMPTY_FC),
         [oblasti],
     );
+
+    // Per-province market activity → a `heat` property (0..1 share of the
+    // busiest province's offered tonnage) written onto each oblast feature, so
+    // the choropleth is a plain MapLibre interpolate on `['get','heat']`.
+    // Reflects the currently-shown (filtered) listings; empty provinces = 0.
+    const oblastiWithHeat = useMemo<FeatureCollection>(() => {
+        if (!oblasti) return EMPTY_FC;
+        // NB: `Map` is the react-map-gl component in this file, so use a plain
+        // record for the per-region tally, not the JS Map constructor.
+        const tonnesByRegion: Record<string, number> = {};
+        for (const l of listings) {
+            const t = Number(l.quantityTonnes) || 0;
+            tonnesByRegion[l.regionCode] = (tonnesByRegion[l.regionCode] ?? 0) + t;
+        }
+        const max = Math.max(1, ...Object.values(tonnesByRegion));
+        return {
+            type: 'FeatureCollection',
+            features: oblasti.features.map((f) => {
+                const iso = (f.properties?.shapeISO as string | undefined) ?? '';
+                const heat = (tonnesByRegion[iso] ?? 0) / max;
+                return { ...f, properties: { ...f.properties, heat } };
+            }),
+        };
+    }, [oblasti, listings]);
 
     const mapStyle = useMemo(() => styleUrl(basemapStyle), [basemapStyle]);
 
@@ -344,20 +373,21 @@ export function ExchangeMap({
                     country reads as one lit body; brand-green when filter-selected.
                     Borders are drawn on top of the mask, hiding any hole seams.
                     (geoBoundaries CC-BY-4.0.) */}
-                <Source id="oblasti" type="geojson" data={oblasti ?? EMPTY_FC}>
+                <Source id="oblasti" type="geojson" data={oblastiWithHeat}>
                     <Layer
                         id="oblast-fill"
                         type="fill"
                         paint={{
-                            // Flat fill for a clean overview; selected regions
-                            // glow brand-emerald. Opacity is zoom-driven — opaque
-                            // when zoomed out, fading to reveal the basemap's
-                            // cities/villages as you zoom in.
+                            // Liquidity choropleth: unselected provinces lerp from
+                            // the cool land fill toward warm bronze-gold by their
+                            // `heat` (share of offered tonnage). Selected regions
+                            // override to brand-emerald. Opacity is zoom-driven —
+                            // opaque overview → clear as you zoom in to the basemap.
                             'fill-color': [
                                 'case',
                                 ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
                                 REGION_ACCENT,
-                                LAND_FILL,
+                                ['interpolate', ['linear'], ['get', 'heat'], 0, LAND_FILL, 1, LAND_HEAT],
                             ],
                             'fill-opacity': [
                                 'case',
@@ -610,7 +640,7 @@ export function ExchangeMap({
                         <span className="text-xs font-semibold tracking-wide text-content-emphasis">БОРСА</span>
                         <span className="text-xs text-content-muted">· {t('exchangeSuffix')}</span>
                     </div>
-                    <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-compact rounded-lg border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
+                    <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-compact rounded-lg border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }} />
                             {t('selling')}
@@ -618,6 +648,13 @@ export function ExchangeMap({
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.BUY }} />
                             {t('buying')}
+                        </span>
+                        <span className="ml-auto flex items-center gap-1.5 text-xs text-content-muted">
+                            {t('liquidity')}
+                            <span
+                                className="h-2 w-9 rounded-sm"
+                                style={{ background: `linear-gradient(90deg, ${LAND_FILL}, ${LAND_HEAT}, ${EXCHANGE_ACCENT_GOLD})` }}
+                            />
                         </span>
                     </div>
                 </>
