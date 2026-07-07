@@ -34,8 +34,19 @@ interface JournalRow {
     title: string;
     status: string;
     occurredAt: string;
+    notes?: string | null;
+    /** БАБХ cert snapshot captured on completion (operator / agronomist). */
+    conditionsJson?: { operatorCertNo?: string; agronomistName?: string; agronomistCertNo?: string } | null;
     locations?: Array<{ location?: { id: string; name: string } | null }>;
     _count?: { quantities?: number; files?: number };
+    /** The linked spray/operation line — the dnevnik agronomic columns (#10). */
+    operationParcel?: {
+        doseValue?: string | number | null;
+        parcel?: { name?: string | null; cropType?: string | null; areaHa?: string | number | null } | null;
+        product?: { name?: string | null; activeIngredient?: string | null; quarantinePeriodDays?: number | null } | null;
+        doseUnit?: { symbol?: string | null } | null;
+        task?: { operationType?: string | null; applicationTechnique?: string | null } | null;
+    } | null;
 }
 
 interface JournalClientProps {
@@ -103,33 +114,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
     const columns = useMemo(
         () =>
             createColumns<JournalRow>([
-                {
-                    accessorKey: 'type',
-                    header: t('colType'),
-                    cell: ({ row }) => (
-                        <StatusBadge variant="info" size="sm">
-                            {(LOG_ENTRY_TYPE_LABELS as Record<string, string>)[row.original.type] ??
-                                String(row.original.type).replace(/_/g, ' ')}
-                        </StatusBadge>
-                    ),
-                    // Mobile card secondary line — the entry kind (pill).
-                    meta: { mobileCard: { slot: 'subtitle' } },
-                },
-                {
-                    accessorKey: 'title',
-                    header: t('colTitle'),
-                    cell: ({ row, getValue }) => (
-                        <TableTitleCell
-                            href={tenantHref(`/journal/${row.original.id}`)}
-                            id={`journal-link-${row.original.id}`}
-                        >
-                            {getValue() as string}
-                        </TableTitleCell>
-                    ),
-                    // Mobile (<sm) card heading. The cell's link points to the
-                    // SAME detail route the card taps through to.
-                    meta: { mobileCard: { slot: 'title' } },
-                },
+                // Date — the regulated ДНЕВНИК leads with when the work happened.
                 {
                     id: 'occurredAt',
                     header: t('colDate'),
@@ -140,9 +125,124 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                             className="text-xs text-content-muted"
                         />
                     ),
-                    // Mobile card key/value row — when the work happened.
                     meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: t('colDate') } },
                 },
+                // Parcel / Culture — the field + its crop. Doubles as the
+                // keyboard-accessible link to the entry detail. Falls back to
+                // the logged location name for free-hand entries.
+                {
+                    id: 'parcelCulture',
+                    header: t('colParcelCulture'),
+                    accessorFn: (e) =>
+                        e.operationParcel?.parcel?.name ??
+                        e.locations?.[0]?.location?.name ??
+                        e.title,
+                    cell: ({ row, getValue }) => {
+                        const culture = row.original.operationParcel?.parcel?.cropType;
+                        return (
+                            <TableTitleCell
+                                href={tenantHref(`/journal/${row.original.id}`)}
+                                id={`journal-link-${row.original.id}`}
+                            >
+                                <span>{getValue() as string}</span>
+                                {culture ? (
+                                    <span className="ml-1 text-xs text-content-muted">· {culture}</span>
+                                ) : null}
+                            </TableTitleCell>
+                        );
+                    },
+                    meta: { mobileCard: { slot: 'title' } },
+                },
+                // Operation — the БАБХ operation type when present, else the
+                // journal entry kind.
+                {
+                    id: 'operation',
+                    header: t('colOperation'),
+                    accessorFn: (e) =>
+                        e.operationParcel?.task?.operationType ??
+                        (LOG_ENTRY_TYPE_LABELS as Record<string, string>)[e.type] ??
+                        String(e.type).replace(/_/g, ' '),
+                    cell: ({ getValue }) => (
+                        <StatusBadge variant="info" size="sm">
+                            {String(getValue()).replace(/_/g, ' ')}
+                        </StatusBadge>
+                    ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
+                },
+                // Product + active ingredient.
+                {
+                    id: 'product',
+                    header: t('colProduct'),
+                    accessorFn: (e) => e.operationParcel?.product?.name ?? '',
+                    cell: ({ row, getValue }) => {
+                        const ai = row.original.operationParcel?.product?.activeIngredient;
+                        const name = getValue() as string;
+                        if (!name) return <span className="text-content-subtle">—</span>;
+                        return (
+                            <span className="text-sm">
+                                {name}
+                                {ai ? <span className="block text-xs text-content-muted">{ai}</span> : null}
+                            </span>
+                        );
+                    },
+                    meta: { mobileCard: { slot: 'meta', label: t('colProduct') } },
+                },
+                // Dose / rate.
+                {
+                    id: 'dose',
+                    header: t('colDose'),
+                    accessorFn: (e) => {
+                        const op = e.operationParcel;
+                        if (op?.doseValue == null) return '—';
+                        return `${Number(op.doseValue)}${op.doseUnit?.symbol ? ` ${op.doseUnit.symbol}` : ''}`;
+                    },
+                    cell: ({ getValue }) => (
+                        <span className="text-xs tabular-nums text-content-muted">{getValue() as string}</span>
+                    ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colDose') } },
+                },
+                // Treated area — Parcel.areaHa in decares (дка = ha × 10), the
+                // regulated Bulgarian unit.
+                {
+                    id: 'areaDka',
+                    header: t('colTreatedArea'),
+                    accessorFn: (e) => {
+                        const ha = e.operationParcel?.parcel?.areaHa;
+                        if (ha == null) return '—';
+                        return (Number(ha) * 10).toFixed(1);
+                    },
+                    cell: ({ getValue }) => (
+                        <span className="text-xs tabular-nums text-content-muted">{getValue() as string}</span>
+                    ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colTreatedArea') } },
+                },
+                // PHI — pre-harvest interval (карантинен срок), days.
+                {
+                    id: 'phi',
+                    header: t('colPhi'),
+                    accessorFn: (e) => {
+                        const d = e.operationParcel?.product?.quarantinePeriodDays;
+                        return d == null ? '—' : String(d);
+                    },
+                    cell: ({ getValue }) => (
+                        <span className="text-xs tabular-nums text-content-muted">{getValue() as string}</span>
+                    ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colPhi') } },
+                },
+                // Operator — the applicator / agronomist captured on completion.
+                {
+                    id: 'operator',
+                    header: t('colOperator'),
+                    accessorFn: (e) =>
+                        e.conditionsJson?.agronomistName ??
+                        e.conditionsJson?.operatorCertNo ??
+                        '—',
+                    cell: ({ getValue }) => (
+                        <span className="text-xs text-content-muted">{getValue() as string}</span>
+                    ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colOperator') } },
+                },
+                // Status.
                 {
                     accessorKey: 'status',
                     header: t('colStatus'),
@@ -154,23 +254,22 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                             </StatusBadge>
                         );
                     },
-                    // Mobile card status pill (top-right).
                     meta: { mobileCard: { slot: 'status' } },
                 },
+                // Notes.
                 {
-                    id: 'location',
-                    header: t('colLocation'),
-                    accessorFn: (e) => {
-                        const locs = e.locations ?? [];
-                        const first = locs[0]?.location?.name;
-                        if (!first) return '—';
-                        return locs.length > 1 ? `${first} +${locs.length - 1}` : first;
+                    id: 'notes',
+                    header: t('colNotes'),
+                    accessorFn: (e) => e.notes ?? '',
+                    cell: ({ getValue }) => {
+                        const n = getValue() as string;
+                        return n ? (
+                            <span className="text-xs text-content-muted">{n}</span>
+                        ) : (
+                            <span className="text-content-subtle">—</span>
+                        );
                     },
-                    cell: ({ getValue }) => (
-                        <span className="text-xs text-content-muted">{getValue() as string}</span>
-                    ),
-                    // Mobile card key/value row — the field/block.
-                    meta: { mobileCard: { slot: 'meta', label: t('colLocation') } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colNotes') } },
                 },
             ]),
         // eslint-disable-next-line react-hooks/exhaustive-deps

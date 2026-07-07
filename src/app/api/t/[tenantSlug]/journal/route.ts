@@ -16,6 +16,9 @@ const JournalQuerySchema = z.object({
     q: z.string().optional().transform(normalizeQ),
     occurredFrom: z.string().optional(),
     occurredTo: z.string().optional(),
+    // dnevnik filters (#10)
+    crop: z.string().optional(),
+    locationId: z.string().optional(),
 }).strip();
 
 export const GET = withApiErrorHandling(async (req: NextRequest, { params: paramsPromise }: { params: Promise<{ tenantSlug: string }> }) => {
@@ -30,6 +33,8 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
         q: query.q,
         occurredFrom: query.occurredFrom,
         occurredTo: query.occurredTo,
+        crop: query.crop,
+        locationId: query.locationId,
     };
 
     const hasPagination = query.limit || query.cursor;

@@ -11,7 +11,21 @@ import {
     createTypedFilterDefs,
     optionsFromEnum,
 } from '@/components/ui/filter/filter-definitions';
-import { CircleDot, Layers } from 'lucide-react';
+import { CircleDot, Layers, Sprout } from 'lucide-react';
+
+/**
+ * Culture (crop) filter options — the values match `Parcel.cropType` (the
+ * same catalogue the parcel crop picker uses). Inlined here so the journal
+ * filter has no build-time coupling to the map crop-picker module.
+ */
+const CROP_FILTER_LABELS = {
+    Wheat: 'Wheat',
+    Barley: 'Barley',
+    Canola: 'Canola',
+    Maize: 'Maize',
+    Sunflower: 'Sunflower',
+    Peas: 'Peas',
+} as const;
 
 export const LOG_ENTRY_TYPE_LABELS = {
     ACTIVITY: 'Activity',
@@ -47,6 +61,16 @@ const STATIC_DEFS = {
         group: 'Attributes',
         icon: CircleDot,
         options: optionsFromEnum(LOG_ENTRY_STATUS_LABELS),
+        multiple: true,
+        resetBehavior: 'clearable',
+    },
+    // Culture (crop) — dnevnik #10. Matches the operation line's parcel crop.
+    crop: {
+        label: 'Culture',
+        description: 'Crop of the treated parcel.',
+        group: 'Attributes',
+        icon: Sprout,
+        options: optionsFromEnum(CROP_FILTER_LABELS),
         multiple: true,
         resetBehavior: 'clearable',
     },
