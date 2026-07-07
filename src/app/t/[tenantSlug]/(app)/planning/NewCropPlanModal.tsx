@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
-import { apiPost } from '@/lib/api-client';
+import { apiGet, apiPost } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
@@ -37,6 +37,16 @@ interface VarietyOption {
     cropType?: { id: string; name: string } | null;
     defaultMethod?: string | null;
 }
+interface LocationOption {
+    id: string;
+    name: string;
+}
+/** A parcel as returned by GET /locations/:id/parcels. */
+interface ParcelRow {
+    id: string;
+    name: string;
+    areaHa: number | null;
+}
 
 export interface NewCropPlanModalProps {
     open: boolean;
@@ -45,6 +55,7 @@ export interface NewCropPlanModalProps {
     seasons: SeasonOption[];
     cropTypes: CropTypeOption[];
     varieties: VarietyOption[];
+    locations: LocationOption[];
     onSaved?: (plan: { id: string }) => void;
 }
 
@@ -54,6 +65,7 @@ export function NewCropPlanModal({
     seasons,
     cropTypes,
     varieties,
+    locations,
     onSaved,
 }: NewCropPlanModalProps) {
     const t = useTranslations('planning.newPlan');
@@ -71,6 +83,10 @@ export function NewCropPlanModal({
     const [seasonId, setSeasonId] = useState('');
     const [cropTypeId, setCropTypeId] = useState('');
     const [cropVarietyId, setCropVarietyId] = useState('');
+    const [locationId, setLocationId] = useState('');
+    const [parcelId, setParcelId] = useState('');
+    const [parcels, setParcels] = useState<ParcelRow[]>([]);
+    const [parcelsLoading, setParcelsLoading] = useState(false);
     const [method, setMethod] = useState('DIRECT_SOW');
     const [firstSowDate, setFirstSowDate] = useState<Date | null>(new Date());
     const [successions, setSuccessions] = useState('1');
@@ -87,6 +103,9 @@ export function NewCropPlanModal({
         setSeasonId(seasons[0]?.id ?? '');
         setCropTypeId('');
         setCropVarietyId('');
+        setLocationId('');
+        setParcelId('');
+        setParcels([]);
         setMethod('DIRECT_SOW');
         setFirstSowDate(new Date());
         setSuccessions('1');
@@ -113,6 +132,49 @@ export function NewCropPlanModal({
             : varieties;
         return filtered.map((v) => ({ value: v.id, label: v.name }));
     }, [varieties, cropTypeId]);
+
+    const locationOptions: ComboboxOption[] = useMemo(
+        () => locations.map((l) => ({ value: l.id, label: l.name })),
+        [locations],
+    );
+
+    // Fetch the chosen location's parcels on demand. Parcels are sorted by
+    // area (largest first, per #2) so the picker leads with the big fields.
+    useEffect(() => {
+        if (!open || !locationId) {
+            setParcels([]);
+            return;
+        }
+        let cancelled = false;
+        setParcelsLoading(true);
+        apiGet<{ parcels: ParcelRow[] }>(buildUrl(`/locations/${locationId}/parcels?simplify=0.01`))
+            .then((res) => {
+                if (cancelled) return;
+                const sorted = [...(res.parcels ?? [])].sort(
+                    (a, b) => (b.areaHa ?? 0) - (a.areaHa ?? 0) || a.name.localeCompare(b.name),
+                );
+                setParcels(sorted);
+            })
+            .catch(() => {
+                if (!cancelled) setParcels([]);
+            })
+            .finally(() => {
+                if (!cancelled) setParcelsLoading(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, locationId]);
+
+    const parcelOptions: ComboboxOption[] = useMemo(
+        () =>
+            parcels.map((p) => ({
+                value: p.id,
+                label: p.areaHa != null ? `${p.name} (${p.areaHa} ha)` : p.name,
+            })),
+        [parcels],
+    );
 
     // Picking a variety auto-fills the crop type + default method when
     // they aren't set yet (the variety is the more specific choice).
@@ -142,6 +204,8 @@ export function NewCropPlanModal({
                 seasonId,
                 cropTypeId,
                 cropVarietyId: cropVarietyId || null,
+                locationId: locationId || null,
+                parcelId: parcelId || null,
                 method,
                 firstSowDate: firstSowDate.toISOString(),
                 successions: Number(successions) || 1,
@@ -258,6 +322,42 @@ export function NewCropPlanModal({
                                     selected={METHOD_OPTIONS.find((o) => o.value === method) ?? null}
                                     setSelected={(o) => setMethod(o?.value ?? 'DIRECT_SOW')}
                                     aria-label={t('plantingMethod')}
+                                    matchTriggerWidth
+                                />
+                            </FormField>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
+                            <FormField label={t('location')} hint={t('locationHint')}>
+                                <Combobox
+                                    options={locationOptions}
+                                    selected={locationOptions.find((o) => o.value === locationId) ?? null}
+                                    setSelected={(o) => {
+                                        setLocationId(o?.value ?? '');
+                                        // Clear a parcel from the previous location.
+                                        setParcelId('');
+                                    }}
+                                    placeholder={locationOptions.length ? t('selectLocation') : t('noLocations')}
+                                    aria-label={t('location')}
+                                    matchTriggerWidth
+                                />
+                            </FormField>
+                            <FormField label={t('parcel')} hint={t('parcelHint')}>
+                                <Combobox
+                                    options={parcelOptions}
+                                    selected={parcelOptions.find((o) => o.value === parcelId) ?? null}
+                                    setSelected={(o) => setParcelId(o?.value ?? '')}
+                                    disabled={!locationId || parcelsLoading}
+                                    placeholder={
+                                        !locationId
+                                            ? t('selectLocationFirst')
+                                            : parcelsLoading
+                                              ? t('loadingParcels')
+                                              : parcelOptions.length
+                                                ? t('selectParcel')
+                                                : t('noParcels')
+                                    }
+                                    aria-label={t('parcel')}
                                     matchTriggerWidth
                                 />
                             </FormField>

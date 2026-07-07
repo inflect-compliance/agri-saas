@@ -46,6 +46,8 @@ interface CropPlanDetail {
     season?: { id: string; name: string; status: string } | null;
     cropType?: { id: string; name: string } | null;
     variety?: { id: string; name: string; defaultMethod: string | null } | null;
+    location?: { id: string; name: string } | null;
+    parcel?: { id: string; name: string } | null;
     _count?: { plantings?: number };
 }
 
@@ -214,6 +216,12 @@ export default function CropPlanDetailPage() {
                         <div>
                             <span className="text-xs text-content-subtle uppercase">{t('variety')}</span>
                             <p className="text-sm text-content-default mt-1">{plan.variety?.name ?? '—'}</p>
+                        </div>
+                        <div>
+                            <span className="text-xs text-content-subtle uppercase">{t('parcel')}</span>
+                            <p className="text-sm text-content-default mt-1">
+                                {plan.parcel?.name ?? plan.location?.name ?? '—'}
+                            </p>
                         </div>
                         {plan.notes && (
                             <div className="col-span-2">

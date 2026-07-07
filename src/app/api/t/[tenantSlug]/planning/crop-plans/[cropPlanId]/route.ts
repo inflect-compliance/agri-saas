@@ -19,6 +19,7 @@ const UpdateCropPlanSchema = z
         name: z.string().min(1).max(200).optional(),
         cropVarietyId: z.string().nullable().optional(),
         locationId: z.string().nullable().optional(),
+        parcelId: z.string().nullable().optional(),
         method: z.enum(['DIRECT_SOW', 'TRANSPLANT']).optional(),
         firstSowDate: z.string().min(8).optional(),
         successions: z.number().int().min(1).max(365).optional(),

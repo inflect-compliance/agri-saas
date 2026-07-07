@@ -95,6 +95,7 @@ const basePlan = {
     cropPlanId: undefined,
     cropVarietyId: 'var-1',
     locationId: 'loc-1',
+    parcelId: 'parcel-1',
     cropType: { id: 'ct-1', name: 'Lettuce' },
     variety: lettuceVariety,
 };
@@ -157,9 +158,10 @@ describe('generatePlantings', () => {
         expect(persisted[1].sowDate).toEqual(expected[1].sowDate);
         expect(persisted[0].plantCount).toBe(expected[0].plantCount);
         expect(persisted[0].seedQuantityGrams).toBe(expected[0].seedQuantityGrams);
-        // Carries the plan's variety + location onto each planting.
+        // Carries the plan's variety + location + parcel onto each planting.
         expect(persisted[0].cropVarietyId).toBe('var-1');
         expect(persisted[0].locationId).toBe('loc-1');
+        expect(persisted[0].parcelId).toBe('parcel-1');
 
         expect(result.plantingsGenerated).toBe(3);
     });
