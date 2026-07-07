@@ -9,10 +9,10 @@
  * path.
  */
 import { enqueueParcelSoilFetch } from '@/app-layer/usecases/soil';
-import { buildRequestContext } from '../../helpers/factories';
+import { makeRequestContext } from '../../helpers/make-context';
 
 describe('enqueueParcelSoilFetch — best-effort guard clause', () => {
-    const ctx = buildRequestContext({ tenantId: 'tenant-soil' });
+    const ctx = makeRequestContext('ADMIN', { tenantId: 'tenant-soil' });
 
     it('resolves without enqueuing when the parcel list is empty', async () => {
         await expect(enqueueParcelSoilFetch(ctx, [])).resolves.toBeUndefined();
