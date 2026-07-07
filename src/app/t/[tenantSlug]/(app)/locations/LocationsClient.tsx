@@ -3,12 +3,13 @@
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
-import { DataTable, createColumns, useBulkDelete } from '@/components/ui/table';
+import { DataTable, createColumns } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
 import { Modal } from '@/components/ui/modal';
@@ -24,27 +25,14 @@ interface LocationItem {
     _count?: { parcels?: number };
 }
 
-export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: string; canAdmin?: boolean }) {
+export function LocationsClient({ tenantSlug }: { tenantSlug: string }) {
     const t = useTranslations('locations');
     const tCommon = useTranslations('common');
     const buildUrl = useTenantApiUrl();
     const prefetchData = usePrefetchTenant();
+    const router = useRouter();
     const { data, mutate, isLoading } = useTenantSWR<LocationItem[]>('/locations');
 
-    const { batchAction: locationBulkDelete, dialog: locationDeleteDialog } =
-        useBulkDelete<LocationItem>({
-            entitySingular: 'location',
-            entityPlural: 'locations',
-            onDelete: async (ids) => {
-                const res = await fetch(`/api/t/${tenantSlug}/locations/bulk/delete`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ locationIds: ids }),
-                });
-                if (!res.ok) throw new Error('Failed to delete locations');
-                await mutate();
-            },
-        });
     const [showNew, setShowNew] = useState(false);
     const [name, setName] = useState('');
     const [busy, setBusy] = useState(false);
@@ -72,9 +60,14 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
                 accessorKey: 'name',
                 header: t('colName'),
                 cell: ({ row }) => (
+                    // The whole row is clickable (onRowClick), but the name
+                    // stays a real <Link> so keyboard/focus users can Tab to it
+                    // and Enter to open. stopPropagation avoids a double-trigger
+                    // when a pointer user clicks the link itself.
                     <Link
                         href={`/t/${tenantSlug}/locations/${row.original.id}`}
                         className="font-medium text-content-link hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         {row.original.name}
                     </Link>
@@ -121,7 +114,10 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
                     // Hover-warm the detail SWR cache (the row's title Link
                     // already prefetches the route) so list→detail is instant.
                     onRowPrefetch={(row) => prefetchData(`/locations/${row.original.id}`)}
-                    batchActions={canAdmin ? [locationBulkDelete] : undefined}
+                    // Single click anywhere on a row opens the location — no
+                    // selection checkboxes. The name cell keeps its own <Link>
+                    // (keyboard path); the row handler is the pointer path.
+                    onRowClick={(row) => router.push(`/t/${tenantSlug}/locations/${row.original.id}`)}
                     emptyState={(
                         <EmptyState
                             size="sm"
@@ -153,8 +149,6 @@ export function LocationsClient({ tenantSlug, canAdmin = false }: { tenantSlug: 
                     </Modal.Actions>
                 </Modal.Form>
             </Modal>
-
-            {locationDeleteDialog}
         </ListPageShell>
     );
 }
