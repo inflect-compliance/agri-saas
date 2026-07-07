@@ -32,6 +32,7 @@ import {
     LineChart,
     Coins,
     ArrowLeftRight,
+    CloudSun,
     CalendarClock,
     type LucideIcon,
 } from 'lucide-react';
@@ -147,6 +148,9 @@ export function useNavSections(): NavSectionDef[] {
                 // the already-imported Coins glyph (deals/pricing) — no new
                 // lucide import.
                 { href: tenantHref('/offers'), label: 'Offers', icon: Coins },
+                // Climate (#14) — the tenant's Meteobot station embed, with an
+                // Open-Meteo weather fallback. Sits with the field surfaces.
+                { href: tenantHref('/climate'), label: 'Climate', icon: CloudSun },
                 // Crop Planning — season succession plans (PLANNING
                 // module). A simple-mode farm surface (NOT cert-gated), so
                 // it's always visible. Reuses the already-imported

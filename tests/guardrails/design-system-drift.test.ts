@@ -327,14 +327,17 @@ describe('New page token discipline', () => {
         //     surfaces, not yet promoted to MIGRATED_PAGES.
         //   - 141 (+1, #15 Agriculture events): events/page.tsx — the global
         //     upcoming-events feed. Token-clean (semantic tokens only +
-        //     Heading/PageBreadcrumbs); new surface, not yet promoted to
-        //     MIGRATED_PAGES. (Merges alongside #14 Climate's +2; the second
-        //     PR to land rebases this baseline to the combined total.)
-        //   - 142 (+1, #12 Offers): offers/page.tsx — the global company-
+        //     Heading/PageBreadcrumbs); new surface, not yet promoted.
+        //   - 143 (+2, #14 Climate/Meteobot): climate/page.tsx shim +
+        //     climate/ClimateClient.tsx — the Meteobot embed / weather-fallback
+        //     surface. Token-clean (semantic tokens only + Heading/
+        //     PageBreadcrumbs/Button/FormField/Input); new surfaces, not yet
+        //     promoted to MIGRATED_PAGES.
+        //   - 144 (+1, #12 Offers): offers/page.tsx — the global company-
         //     promotions feed. Token-clean (semantic tokens only +
         //     Heading/PageBreadcrumbs/Button/Modal via AskForOfferModal);
         //     new surface, not yet promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(142);
+        expect(unmigrated.length).toBeLessThanOrEqual(144);
     });
 
     it('migrated page count is at least 4', () => {
