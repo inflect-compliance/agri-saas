@@ -2947,6 +2947,24 @@
       "catWebinar": "Уебинар",
       "catSubsidy": "Краен срок за субсидия"
     },
+    "climate": {
+      "title": "Климат",
+      "description": "Метеорологични данни на живо за вашата ферма от вашата Meteobot станция.",
+      "stationTitle": "Meteobot станция",
+      "attribution": "С подкрепата на Meteobot",
+      "openInNewTab": "Отвори в нов раздел",
+      "noStation": "Все още няма конфигурирана Meteobot станция",
+      "fallbackHint": "Междувременно вграденият слой Open-Meteo на полската карта покрива прозорци за пръскане и риск от болести.",
+      "openWeather": "Отвори полско време",
+      "settingsTitle": "Meteobot станция",
+      "settingsHint": "Поставете URL за вграждане или споделяне на вашата Meteobot станция. Оставете празно за резервния метео слой.",
+      "stationUrlLabel": "URL на станцията",
+      "urlPlaceholder": "Поставете URL за вграждане на станцията",
+      "breadcrumbDashboard": "Табло",
+      "save": "Запази",
+      "clear": "Изчисти",
+      "saveFailed": "URL адресът на станцията не можа да бъде запазен."
+    },
     "ai": {
       "disclaimer": "Предложение от ИИ — потвърдете с агроном.",
       "copilotTitle": "Агрономски асистент",

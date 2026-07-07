@@ -18,4 +18,13 @@ export class ModuleSettingsRepository {
             update: { enabledModules },
         });
     }
+
+    /** Set (or clear with null) the tenant's Meteobot station URL (#14). */
+    static async setMeteobotUrl(db: PrismaTx, ctx: RequestContext, meteobotStationUrl: string | null) {
+        return db.tenantModuleSettings.upsert({
+            where: { tenantId: ctx.tenantId },
+            create: { tenantId: ctx.tenantId, enabledModules: [], meteobotStationUrl },
+            update: { meteobotStationUrl },
+        });
+    }
 }
