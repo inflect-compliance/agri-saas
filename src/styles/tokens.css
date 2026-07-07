@@ -628,8 +628,8 @@
   --canvas-recess:     inset 0 11px 20px -16px rgba(60, 50, 40, 0.22);
 
   /* ── Brand / Primary (PwC-inspired orange) ──────────────────────── */
-  --brand-default:  #B8860B;                /* Agrent gold (dark goldenrod for light-bg AA on text/links) */
-  --brand-emphasis: #96690A;                /* deeper goldenrod — primary buttons, active (AA on white) */
+  --brand-default:  #8A6200;                /* Agrent gold — deep goldenrod; ≥4.5:1 (WCAG AA) as link/accent text on the cream page AND on --brand-subtle gold tiles */
+  --brand-emphasis: #7A5800;                /* deep bronze-gold — active brand + text on --brand-subtle tiles; ≥4.5:1 (WCAG AA), one rung darker than default */
   --brand-muted:    #D4AF37;                /* metallic gold — hover accent */
   --brand-subtle:   rgba(212, 175, 55, 0.16); /* gold @ 16% — brand tint backgrounds */
 
@@ -693,7 +693,7 @@
   --focus-ring:   rgba(208, 74, 2, 0.40);
   --ring:                   rgba(208, 74, 2, 0.40);
   --ring-offset-background: #F8F6F3;
-  --primary:                #B8860B;
+  --primary:                #8A6200;
 
   /* ── Glass (warm light variant) ─────────────────────────────────── */
   --glass-bg:     rgba(248, 246, 243, 0.85); /* tinted to --bg-default so .glass-card matches solid card surfaces */
