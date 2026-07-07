@@ -587,6 +587,8 @@ export interface SpatialImportJobPayload {
     filename: string;
     /** Upload MIME type, when the browser supplied one. */
     mimeType?: string;
+    /** Default crop stamped on every imported parcel (#7); omitted = "mixed". */
+    cropType?: string;
     /** Upstream request id for log correlation. */
     requestId?: string;
 }

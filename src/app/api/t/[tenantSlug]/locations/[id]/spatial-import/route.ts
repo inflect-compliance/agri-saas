@@ -55,11 +55,17 @@ export const POST = withApiErrorHandling(async (req: NextRequest, { params: para
         throw err;
     }
 
+    // Optional default crop for every imported parcel (#7). A blank value
+    // (the "mixed / set later" choice) is treated as unset by the usecase.
+    const cropRaw = formData.get('cropType');
+    const cropType = typeof cropRaw === 'string' && cropRaw.trim().length > 0 ? cropRaw.trim() : undefined;
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await stageLocationSpatialImport(ctx, params.id, {
         filename: file.name,
         buffer,
         mimeType: file.type || undefined,
+        cropType,
     });
 
     // 202 Accepted — the parse + persist runs off-thread. The client
