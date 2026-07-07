@@ -325,7 +325,12 @@ describe('New page token discipline', () => {
         //     tokens only + Modal/FormField/Combobox/RadioGroup/DatePicker/
         //     Textarea/StatusBadge/Button/Heading/ListPageShell); new
         //     surfaces, not yet promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(140);
+        //   - 142 (+2, #14 Climate/Meteobot): climate/page.tsx shim +
+        //     climate/ClimateClient.tsx — the Meteobot embed / weather-fallback
+        //     surface. Token-clean (semantic tokens only + Heading/
+        //     PageBreadcrumbs/Button/FormField/Input); new surfaces, not yet
+        //     promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(142);
     });
 
     it('migrated page count is at least 4', () => {

@@ -13,6 +13,7 @@ import { Heading } from '@/components/ui/typography';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
+import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 
 export interface ClimateClientProps {
@@ -53,6 +54,13 @@ export function ClimateClient({ tenantSlug, meteobotStationUrl, canAdmin }: Clim
     return (
         <div className="space-y-section p-4">
             <div>
+                <PageBreadcrumbs
+                    items={[
+                        { label: t('breadcrumbDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                        { label: t('title') },
+                    ]}
+                    className="mb-1"
+                />
                 <Heading level={1}>{t('title')}</Heading>
                 <p className="text-sm text-content-secondary">{t('description')}</p>
             </div>
@@ -104,7 +112,7 @@ export function ClimateClient({ tenantSlug, meteobotStationUrl, canAdmin }: Clim
                         <Input
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            placeholder="https://…meteobot…"
+                            placeholder={t('urlPlaceholder')}
                             inputMode="url"
                         />
                     </FormField>

@@ -2948,6 +2948,8 @@
       "settingsTitle": "Meteobot станция",
       "settingsHint": "Поставете URL за вграждане или споделяне на вашата Meteobot станция. Оставете празно за резервния метео слой.",
       "stationUrlLabel": "URL на станцията",
+      "urlPlaceholder": "Поставете URL за вграждане на станцията",
+      "breadcrumbDashboard": "Табло",
       "save": "Запази",
       "clear": "Изчисти",
       "saveFailed": "URL адресът на станцията не можа да бъде запазен."
