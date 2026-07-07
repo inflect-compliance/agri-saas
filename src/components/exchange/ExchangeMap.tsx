@@ -47,10 +47,9 @@ const REGION_ACCENT = '#22c55e';
 const SPLIT_Z = 3.4; // below: aggregate per region·crop; above: individual offers + tonnage
 const LOC_Z = 6.5; //  above: chips also carry the region name
 
-const CURRENCY_SYMBOL: Record<string, string> = {
-    EUR: '€', BGN: 'лв', USD: '$', RON: 'lei', TRY: '₺', GBP: '£',
-};
-const sym = (c: string): string => CURRENCY_SYMBOL[c] ?? c;
+/** The exchange is euro-denominated (Bulgaria adopted the euro) — every price
+ *  renders as €/t regardless of a listing's stored currency code. */
+const PRICE_UNIT = '€/t';
 
 export type { ExchangeMapListing };
 
@@ -447,7 +446,7 @@ export function ExchangeMap({
             if ((showLocAll || pin) && it.loc) parts.push(it.loc);
             parts.push(it.crop);
             if (showTonAll || pin) parts.push(`${it.ton}t`);
-            if (it.priceStr) parts.push(`${it.priceStr}${sym(it.curr)}/t`);
+            if (it.priceStr) parts.push(`${it.priceStr}${PRICE_UNIT}`);
             it.text = parts.join('·');
         }
 
@@ -701,9 +700,7 @@ export function ExchangeMap({
                     </div>
                     <div className="text-xs text-content-secondary">
                         {popupListing.quantityTonnes} t
-                        {popupListing.pricePerTonne
-                            ? ` · ${popupListing.pricePerTonne} ${popupListing.priceCurrency}/t`
-                            : ''}
+                        {popupListing.pricePerTonne ? ` · ${popupListing.pricePerTonne} ${PRICE_UNIT}` : ''}
                     </div>
                     <div className="text-xs text-content-muted">{popupListing.regionName}</div>
                     <Button
