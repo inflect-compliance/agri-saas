@@ -2936,6 +2936,17 @@
     }
   },
   "ag": {
+    "events": {
+      "title": "Agriculture events",
+      "description": "Upcoming fairs, trainings, webinars, and subsidy deadlines.",
+      "empty": "No upcoming events right now. Check back soon.",
+      "moreInfo": "More info",
+      "breadcrumbDashboard": "Dashboard",
+      "catFair": "Fair",
+      "catTraining": "Training",
+      "catWebinar": "Webinar",
+      "catSubsidy": "Subsidy deadline"
+    },
     "ai": {
       "disclaimer": "AI suggestion — verify with an agronomist.",
       "copilotTitle": "Agronomy copilot",
