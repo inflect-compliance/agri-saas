@@ -365,6 +365,8 @@ const CROP_PLAN_INCLUDE = {
     season: { select: { id: true, name: true, status: true } },
     cropType: { select: { id: true, name: true } },
     variety: { select: { id: true, name: true, defaultMethod: true } },
+    location: { select: { id: true, name: true } },
+    parcel: { select: { id: true, name: true } },
     _count: { select: { plantings: true } },
 } satisfies Prisma.CropPlanInclude;
 
@@ -373,6 +375,7 @@ export interface CreateCropPlanInput {
     cropTypeId: string;
     cropVarietyId?: string | null;
     locationId?: string | null;
+    parcelId?: string | null;
     name: string;
     method?: PlantingMethod;
     firstSowDate: string;
@@ -390,6 +393,7 @@ export interface UpdateCropPlanInput {
     name?: string;
     cropVarietyId?: string | null;
     locationId?: string | null;
+    parcelId?: string | null;
     method?: PlantingMethod;
     firstSowDate?: string;
     successions?: number;
@@ -463,6 +467,19 @@ export async function createCropPlan(ctx: RequestContext, input: CreateCropPlanI
             });
             if (!variety) throw badRequest('INVALID_VARIETY', 'Variety not found or belongs to a different tenant');
         }
+        // A plan may target a specific parcel. Validate it belongs to the
+        // tenant and — when a location is also given — that it sits within
+        // that location (a parcel can only belong to one location).
+        if (input.parcelId) {
+            const parcel = await db.parcel.findFirst({
+                where: { id: input.parcelId, tenantId: ctx.tenantId, deletedAt: null },
+                select: { id: true, locationId: true },
+            });
+            if (!parcel) throw badRequest('INVALID_PARCEL', 'Parcel not found or belongs to a different tenant');
+            if (input.locationId && parcel.locationId !== input.locationId) {
+                throw badRequest('PARCEL_LOCATION_MISMATCH', 'Parcel does not belong to the selected location');
+            }
+        }
 
         const plan = await db.cropPlan.create({
             data: {
@@ -471,6 +488,7 @@ export async function createCropPlan(ctx: RequestContext, input: CreateCropPlanI
                 cropTypeId: input.cropTypeId,
                 cropVarietyId: input.cropVarietyId ?? null,
                 locationId: input.locationId ?? null,
+                parcelId: input.parcelId ?? null,
                 name,
                 method: input.method ?? 'DIRECT_SOW',
                 firstSowDate: firstSow,
@@ -512,6 +530,7 @@ export async function updateCropPlan(ctx: RequestContext, id: string, input: Upd
     }
     if (input.cropVarietyId !== undefined) data.cropVarietyId = input.cropVarietyId;
     if (input.locationId !== undefined) data.locationId = input.locationId;
+    if (input.parcelId !== undefined) data.parcelId = input.parcelId;
     if (input.method !== undefined) data.method = input.method;
     if (input.firstSowDate !== undefined) {
         const d = new Date(input.firstSowDate);
@@ -539,6 +558,16 @@ export async function updateCropPlan(ctx: RequestContext, id: string, input: Upd
                 select: { id: true },
             });
             if (!variety) throw badRequest('INVALID_VARIETY', 'Variety not found or belongs to a different tenant');
+        }
+        if (input.parcelId) {
+            const parcel = await db.parcel.findFirst({
+                where: { id: input.parcelId, tenantId: ctx.tenantId, deletedAt: null },
+                select: { id: true, locationId: true },
+            });
+            if (!parcel) throw badRequest('INVALID_PARCEL', 'Parcel not found or belongs to a different tenant');
+            if (input.locationId && parcel.locationId !== input.locationId) {
+                throw badRequest('PARCEL_LOCATION_MISMATCH', 'Parcel does not belong to the selected location');
+            }
         }
 
         const plan = await db.cropPlan.update({ where: { id }, data, include: CROP_PLAN_INCLUDE });
@@ -722,6 +751,9 @@ async function generatePlantingsImpl(ctx: RequestContext, cropPlanId: string) {
                 cropPlanId: plan.id,
                 cropVarietyId: plan.cropVarietyId ?? null,
                 locationId: plan.locationId ?? null,
+                // #9 — every generated planting inherits the plan's parcel so
+                // per-parcel signals (AgroSignal.plantingId → parcel) resolve.
+                parcelId: plan.parcelId ?? null,
                 successionNumber: c.successionNumber,
                 method: timing.method,
                 sowDate: c.sowDate,
@@ -877,6 +909,7 @@ export async function listPlantings(
             include: {
                 variety: { select: { id: true, name: true } },
                 location: { select: { id: true, name: true } },
+                parcel: { select: { id: true, name: true } },
             },
             take: opts.take ?? LIST_TAKE,
         }),
@@ -895,6 +928,7 @@ export interface PlantingProgressRow {
     successionNumber: number;
     method: PlantingMethod;
     status: string;
+    parcel: { id: string; name: string } | null;
     planned: {
         sowDate: string | null;
         transplantDate: string | null;
@@ -936,6 +970,7 @@ export async function getCropPlanProgress(ctx: RequestContext, cropPlanId: strin
                 transplantDate: true,
                 harvestStartDate: true,
                 harvestEndDate: true,
+                parcel: { select: { id: true, name: true } },
             },
             take: LIST_TAKE,
         });
@@ -977,6 +1012,7 @@ export async function getCropPlanProgress(ctx: RequestContext, cropPlanId: strin
             successionNumber: p.successionNumber,
             method: p.method,
             status: p.status,
+            parcel: p.parcel ? { id: p.parcel.id, name: p.parcel.name } : null,
             planned: {
                 sowDate: p.sowDate?.toISOString() ?? null,
                 transplantDate: p.transplantDate?.toISOString() ?? null,

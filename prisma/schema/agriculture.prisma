@@ -200,6 +200,7 @@ model Parcel {
   location       Location          @relation(fields: [locationId, tenantId], references: [id, tenantId], onDelete: Cascade)
   operationLines OperationParcel[]
   plantings      Planting[]
+  cropPlans      CropPlan[]
 
   @@unique([id, tenantId])
   @@index([tenantId, locationId])

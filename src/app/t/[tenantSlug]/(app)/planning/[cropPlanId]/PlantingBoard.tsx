@@ -37,6 +37,7 @@ interface PlantingProgressRow {
     successionNumber: number;
     method: string;
     status: string;
+    parcel: { id: string; name: string } | null;
     planned: {
         sowDate: string | null;
         transplantDate: string | null;
@@ -171,6 +172,16 @@ export function PlantingBoard({
                     cell: ({ row }) => (
                         <span className="text-xs font-medium text-content-emphasis tabular-nums">
                             {row.original.successionNumber}
+                        </span>
+                    ),
+                },
+                {
+                    id: 'parcel',
+                    header: t('colParcel'),
+                    accessorFn: (r) => r.parcel?.name ?? '',
+                    cell: ({ row }) => (
+                        <span className="text-xs text-content-muted">
+                            {row.original.parcel?.name ?? '—'}
                         </span>
                     ),
                 },

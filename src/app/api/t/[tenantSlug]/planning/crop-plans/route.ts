@@ -20,6 +20,7 @@ const CreateCropPlanSchema = z
         cropTypeId: z.string().min(1, 'A crop type is required'),
         cropVarietyId: z.string().nullable().optional(),
         locationId: z.string().nullable().optional(),
+        parcelId: z.string().nullable().optional(),
         name: z.string().min(1, 'Crop plan name is required').max(200),
         method: z.enum(['DIRECT_SOW', 'TRANSPLANT']).optional(),
         firstSowDate: z.string().min(8, 'First sow date is required'),
