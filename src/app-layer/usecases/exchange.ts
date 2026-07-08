@@ -12,6 +12,7 @@ import { assertWithinLimit } from '@/lib/billing/entitlements';
 import {
     Prisma,
     ExchangeSide,
+    ExchangeKind,
     ExchangeListingStatus,
     ExchangeInquiryStatus,
 } from '@prisma/client';
@@ -40,6 +41,7 @@ function sanitizeOptional(v: string | null | undefined): string | null | undefin
 
 export interface CreateListingInput {
     side: ExchangeSide;
+    kind: ExchangeKind;
     commodity: string;
     quantityTonnes: number | string;
     pricePerTonne?: number | string | null;
@@ -112,6 +114,7 @@ export async function createListing(ctx: RequestContext, input: CreateListingInp
             sellerTenantId: ctx.tenantId,
             sellerUserId: ctx.userId,
             side: input.side,
+            kind: input.kind,
             // commodity + description + sellerDisplayName are PUBLIC free text
             // (every tenant reads them) → sanitize before persisting.
             commodity: sanitizePlainText(input.commodity),
@@ -136,7 +139,7 @@ export async function createListing(ctx: RequestContext, input: CreateListingInp
                 category: 'entity_lifecycle',
                 entityName: 'ExchangeListing',
                 operation: 'created',
-                after: { side: listing.side, commodity: listing.commodity, regionCode: listing.regionCode },
+                after: { side: listing.side, kind: listing.kind, commodity: listing.commodity, regionCode: listing.regionCode },
                 summary: `Created ${listing.side} listing: ${listing.commodity}`,
             },
         });

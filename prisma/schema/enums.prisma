@@ -1098,6 +1098,15 @@ enum ExchangeSide {
   BUY
 }
 
+/// What class of good a listing trades (#11) — lets buyers/sellers browse +
+/// filter by product type across the marketplace.
+enum ExchangeKind {
+  CULTURE
+  FERTILIZER
+  SEEDS
+  PRODUCT
+}
+
 /// Lifecycle of a marketplace listing. ACTIVE listings are the only ones
 /// browsable + inquirable; the rest are terminal states.
 enum ExchangeListingStatus {

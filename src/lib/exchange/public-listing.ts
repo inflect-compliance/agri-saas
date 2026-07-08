@@ -14,6 +14,7 @@ export interface ExchangeListingRow {
     id: string;
     sellerTenantId: string;
     side: string;
+    kind: string;
     commodity: string;
     quantityTonnes: { toString(): string };
     pricePerTonne: { toString(): string } | null;
@@ -29,9 +30,12 @@ export interface ExchangeListingRow {
     expiresAt: Date | string | null;
 }
 
+export type ExchangeKindValue = 'CULTURE' | 'FERTILIZER' | 'SEEDS' | 'PRODUCT';
+
 export interface ExchangePublicListing {
     id: string;
     side: 'SELL' | 'BUY';
+    kind: ExchangeKindValue;
     commodity: string;
     /** Tonnes, as a decimal string. */
     quantityTonnes: string;
@@ -105,6 +109,7 @@ export function toPublicListing(
     return {
         id: row.id,
         side: row.side as 'SELL' | 'BUY',
+        kind: row.kind as ExchangeKindValue,
         commodity: row.commodity,
         quantityTonnes: row.quantityTonnes.toString(),
         pricePerTonne: row.pricePerTonne != null ? row.pricePerTonne.toString() : null,

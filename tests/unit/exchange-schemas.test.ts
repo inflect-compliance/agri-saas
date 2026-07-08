@@ -14,6 +14,7 @@ import {
 
 const baseListing = {
     side: 'SELL',
+    kind: 'CULTURE',
     commodity: 'Wheat',
     quantityTonnes: 10,
     regionCode: 'BG-16',

@@ -2,6 +2,7 @@ import { PrismaTx } from '@/lib/db-context';
 import {
     Prisma,
     ExchangeSide,
+    ExchangeKind,
     ExchangeListingStatus,
     ExchangeInquiryStatus,
 } from '@prisma/client';
@@ -28,6 +29,7 @@ const LIST_TAKE = 100;
 
 export interface ListingFilters {
     side?: ExchangeSide;
+    kind?: ExchangeKind;
     commodity?: string;
     regionCode?: string;
     minTonnes?: number;
@@ -47,6 +49,7 @@ export class ExchangeRepository {
             OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         };
         if (filters.side) where.side = filters.side;
+        if (filters.kind) where.kind = filters.kind;
         if (filters.commodity) {
             where.commodity = { contains: filters.commodity, mode: 'insensitive' };
         }

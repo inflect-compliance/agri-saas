@@ -194,6 +194,7 @@ describe('createListing', () => {
         await expect(
             createListing(meCtx, {
                 side: 'SELL',
+                kind: 'CULTURE',
                 commodity: 'Wheat',
                 quantityTonnes: 10,
                 regionCode: 'BG-99',
@@ -206,6 +207,7 @@ describe('createListing', () => {
         repo.createListing.mockResolvedValue(listing() as never);
         await createListing(meCtx, {
             side: 'SELL',
+            kind: 'CULTURE',
             commodity: 'Wheat',
             quantityTonnes: 10,
             regionCode: 'BG-16',
@@ -227,7 +229,7 @@ describe('createListing', () => {
             forbidden('plan_limit_exceeded: FREE plan allows 5 exchange_listing(s); tenant currently has 5.'),
         );
         await expect(
-            createListing(meCtx, { side: 'SELL', commodity: 'Wheat', quantityTonnes: 10, regionCode: 'BG-16' }),
+            createListing(meCtx, { side: 'SELL', kind: 'CULTURE', commodity: 'Wheat', quantityTonnes: 10, regionCode: 'BG-16' }),
         ).rejects.toThrow(/plan_limit_exceeded/);
         expect(assertWithinLimitMock).toHaveBeenCalledWith(meCtx, 'exchange_listing');
         expect(repo.createListing).not.toHaveBeenCalled();

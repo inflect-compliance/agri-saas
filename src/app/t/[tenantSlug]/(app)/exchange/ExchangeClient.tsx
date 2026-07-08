@@ -58,6 +58,14 @@ export function ExchangeClient() {
     );
 }
 
+/** Product-kind → exchange.client i18n key (#11). */
+const KIND_LABEL_KEY: Record<'CULTURE' | 'FERTILIZER' | 'SEEDS' | 'PRODUCT', string> = {
+    CULTURE: 'kindCulture',
+    FERTILIZER: 'kindFertilizer',
+    SEEDS: 'kindSeeds',
+    PRODUCT: 'kindProduct',
+};
+
 function SideDot({ side }: { side: 'SELL' | 'BUY' }) {
     return (
         <span
@@ -90,12 +98,16 @@ function ExchangeInner() {
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
         const sides = state.side ?? [];
+        const kinds = state.kind ?? [];
         const regions = state.region ?? [];
         const commodities = state.commodity ?? [];
         const range = state.quantity?.[0] ? parseRangeToken(state.quantity[0]) : null;
         return offers.filter((o) => {
             if (q && !`${o.commodity} ${o.regionName}`.toLowerCase().includes(q)) return false;
             if (sides.length && !sides.includes(o.side)) return false;
+            // Kind filter (#11) — narrows both the list AND the map (which
+            // renders this same `filtered` array).
+            if (kinds.length && !kinds.includes(o.kind)) return false;
             if (regions.length && !regions.includes(o.regionCode)) return false;
             if (commodities.length && !commodities.includes(o.commodity)) return false;
             if (range) {
@@ -285,6 +297,9 @@ function ExchangeInner() {
                                     <div className="flex items-center gap-compact">
                                         <SideDot side={o.side} />
                                         <span className="font-medium text-content-emphasis">{o.commodity}</span>
+                                        <span className="rounded bg-bg-subtle px-1.5 py-0.5 text-[10px] font-medium text-content-secondary">
+                                            {t(KIND_LABEL_KEY[o.kind])}
+                                        </span>
                                         <span className="text-xs text-content-muted">
                                             {o.side === 'SELL' ? t('selling') : t('buying')}
                                         </span>

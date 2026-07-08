@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ExchangeSide } from '@prisma/client';
+import { ExchangeSide, ExchangeKind } from '@prisma/client';
 
 /**
  * Zod schemas for the Exchange write API. The usecase layer sanitizes all
@@ -57,6 +57,7 @@ const PriceCurrency = z.enum(['BGN', 'EUR', 'USD']);
 export const CreateListingSchema = z
     .object({
         side: z.nativeEnum(ExchangeSide),
+        kind: z.nativeEnum(ExchangeKind),
         commodity: z.string().min(1).max(120),
         quantityTonnes: QuantityTonnes,
         pricePerTonne: PricePerTonne.nullable().optional(),

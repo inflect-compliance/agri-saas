@@ -30,6 +30,9 @@ model ExchangeListing {
   /// User within the seller tenant who created the listing.
   sellerUserId      String
   side              ExchangeSide
+  /// Product class (#11) — CULTURE / FERTILIZER / SEEDS / PRODUCT. Existing
+  /// rows backfill to CULTURE (crops) in the migration.
+  kind              ExchangeKind          @default(CULTURE)
   commodity         String
   quantityTonnes    Decimal               @db.Decimal(14, 3)
   pricePerTonne     Decimal?              @db.Decimal(12, 2)
