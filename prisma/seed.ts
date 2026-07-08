@@ -1035,4 +1035,20 @@ async function main() {
     console.log('\n🎉 Seed complete! Login as admin@acme.com — password set via SEED_PASSWORD (default in prisma/seed.ts)');
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+main()
+    .catch((err) => {
+        console.error(err);
+        process.exitCode = 1;
+    })
+    .finally(async () => {
+        await prisma.$disconnect();
+        // Seeding parcels calls createParcel → enqueueParcelSoilFetch, which
+        // lazily opens a BullMQ (soil) queue whose Redis connection would
+        // otherwise keep this one-shot process alive forever (the CI seed
+        // step hung ~40 min after "Seed complete!" until it was cancelled).
+        // Close the queue, then force-exit as a belt-and-braces guarantee
+        // against any other lingering job-queue handle.
+        const { closeQueue } = await import('@/app-layer/jobs/queue');
+        await closeQueue().catch(() => {});
+        process.exit(process.exitCode ?? 0);
+    });
