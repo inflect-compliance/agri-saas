@@ -33,6 +33,11 @@ import { useReducedMotion } from '@/components/ui/hooks';
 import { cn } from '@/lib/cn';
 import { env } from '@/env';
 import { SOIL_PENDING_COLOR } from '@/lib/soil/types';
+import { CropGlyph } from '@/components/agriculture/CropGlyph';
+
+// Below this zoom the per-parcel crop glyphs are hidden — at a whole-region
+// view they'd overlap into noise; they reappear when inspecting fields.
+const CROP_ICON_MIN_ZOOM = 12;
 
 export interface MapParcel {
     id: string;
@@ -135,6 +140,12 @@ export interface MapCanvasProps {
     soilMode?: boolean;
     /** parcelId → soil fill colour (only read when `soilMode`). */
     soilColorById?: Record<string, string>;
+    /**
+     * parcelId → crop value (e.g. "Wheat"). When present, a small crop glyph
+     * is rendered above each parcel's label, gated by a zoom threshold so it
+     * doesn't clutter a zoomed-out view. Coexists with any fill view.
+     */
+    cropById?: Record<string, string>;
     className?: string;
 }
 
@@ -178,6 +189,7 @@ export function MapCanvas({
     vectorTileUrl,
     soilMode = false,
     soilColorById,
+    cropById,
     className,
 }: MapCanvasProps) {
     const t = useTranslations('ag.map.canvas');
@@ -241,6 +253,18 @@ export function MapCanvas({
         [parcels],
     );
 
+    // Crop-glyph overlay: one marker per parcel that carries a crop, reusing
+    // the label's bbox-centre position. Only built when `cropById` is passed.
+    const cropLabels = useMemo(
+        () =>
+            cropById
+                ? parcelLabels
+                      .map((l) => ({ id: l.id, lon: l.lon, lat: l.lat, crop: cropById[l.id] ?? null }))
+                      .filter((l): l is { id: string; lon: number; lat: number; crop: string } => !!l.crop)
+                : [],
+        [parcelLabels, cropById],
+    );
+
     const initialViewState = useMemo(() => {
         if (bounds) {
             const [w, s, e, n] = bounds;
@@ -248,6 +272,10 @@ export function MapCanvas({
         }
         return { longitude: 0, latitude: 20, zoom: 1 };
     }, [bounds]);
+
+    // Live zoom, so the crop glyphs can hide below a threshold (they'd clutter
+    // a zoomed-out view). Seeded from the initial view; updated on zoom-end.
+    const [zoom, setZoom] = useState<number>(initialViewState.zoom);
 
     const handleClick = useCallback((e: MapLayerMouseEvent) => {
         if (!interactive || !onSelectionChange || drawing) return;
@@ -551,6 +579,7 @@ export function MapCanvas({
                 mapStyle={BASEMAP_STYLE}
                 interactiveLayerIds={interactive && !drawing ? ['parcel-fill'] : []}
                 onClick={handleClick}
+                onZoomEnd={(e) => setZoom(e.viewState.zoom)}
                 style={{ width: '100%', height: '100%' }}
                 cursor={interactive && !drawing ? 'pointer' : 'grab'}
             >
@@ -685,6 +714,28 @@ export function MapCanvas({
                                     {Math.round(lbl.areaHa * 10) / 10} ha
                                 </div>
                             )}
+                        </div>
+                    </Marker>
+                ))}
+
+                {/* Per-parcel crop glyph — floats just above the label. Same
+                    author/vector guards as the labels, plus a zoom threshold
+                    so it doesn't clutter a zoomed-out view. Non-interactive so
+                    clicks still select the parcel fill. */}
+                {!drawing && !vectorActive && zoom >= CROP_ICON_MIN_ZOOM && cropLabels.map((c) => (
+                    <Marker
+                        key={`crop-${c.id}`}
+                        longitude={c.lon}
+                        latitude={c.lat}
+                        anchor="center"
+                        offset={[0, -22]}
+                        style={{ pointerEvents: 'none' }}
+                    >
+                        <div
+                            aria-hidden="true"
+                            className="pointer-events-none select-none rounded-full bg-bg-default/90 p-1 text-content-emphasis shadow-sm ring-1 ring-border-subtle"
+                        >
+                            <CropGlyph crop={c.crop} className="h-3.5 w-3.5" />
                         </div>
                     </Marker>
                 ))}

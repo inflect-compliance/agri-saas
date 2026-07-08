@@ -3015,6 +3015,9 @@
             "unitGcm3": "{value} г/см³",
             "percent": "{value}%"
         },
+        "crop": {
+            "legendTitle": "Култури"
+        },
         "ai": {
             "disclaimer": "Предложение от ИИ — потвърдете с агроном.",
             "copilotTitle": "Агрономски асистент",
