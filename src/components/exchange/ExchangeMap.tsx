@@ -323,10 +323,29 @@ export function ExchangeMap({
 
     // View transform (pan/zoom) lives in a ref so pointer moves never re-render.
     const view = useRef({ k: 1, tx: 0, ty: 0, fit: 1 });
+    // Geometry mirrored into a ref so the (stable) clamp helper reads current
+    // W/H without dep threading.
+    const geomRef = useRef<Geometry | null>(null);
     // Last frame's drawn items, for pointer hit-testing.
     const itemsRef = useRef<Item[]>([]);
     // Latest draw fn, so once-attached pointer handlers always call the current one.
     const drawRef = useRef<() => void>(() => {});
+
+    // Clamp the pan so the country can never drift off the pane: centre it in an
+    // axis where the content is smaller than the viewport, otherwise keep the
+    // content edges flush (no dark gaps, no gold country piling against an edge).
+    const clampView = useCallback(() => {
+        const canvas = canvasRef.current;
+        const g = geomRef.current;
+        if (!canvas || !g) return;
+        const v = view.current;
+        const cw = canvas.clientWidth;
+        const ch = canvas.clientHeight;
+        const contentW = g.W * v.k;
+        const contentH = g.H * v.k;
+        v.tx = contentW <= cw ? (cw - contentW) / 2 : Math.min(0, Math.max(cw - contentW, v.tx));
+        v.ty = contentH <= ch ? (ch - contentH) / 2 : Math.min(0, Math.max(ch - contentH, v.ty));
+    }, []);
 
     useEffect(() => {
         let alive = true;
@@ -532,6 +551,7 @@ export function ExchangeMap({
     // handlers and the ResizeObserver always call the current closure.
     useEffect(() => {
         drawRef.current = draw;
+        geomRef.current = geom;
     });
 
     // Resize / initial fit — the pane settles after mount, so refit on resize.
@@ -544,7 +564,9 @@ export function ExchangeMap({
             const rect = wrap.getBoundingClientRect();
             canvas.width = rect.width * dpr;
             canvas.height = rect.height * dpr;
-            const fit = Math.min(rect.width / geom.W, rect.height / geom.H) * 0.98;
+            // 0.9 (not 0.98) leaves a margin so the gold country never sits
+            // flush against the pane edges (the "dirty yellow border").
+            const fit = Math.min(rect.width / geom.W, rect.height / geom.H) * 0.9;
             const v = view.current;
             // Keep it fit-framed until the user zooms (k tracks fit while untouched).
             if (v.k < 0.5 || Math.abs(v.k - v.fit) < 1e-6) {
@@ -555,13 +577,14 @@ export function ExchangeMap({
             } else {
                 v.fit = fit;
             }
+            clampView();
             drawRef.current();
         };
         resize();
         const ro = new ResizeObserver(resize);
         ro.observe(wrap);
         return () => ro.disconnect();
-    }, [geom]);
+    }, [geom, clampView]);
 
     // Redraw whenever the frame inputs change.
     useEffect(() => {
@@ -574,8 +597,9 @@ export function ExchangeMap({
         v.tx = cx - (cx - v.tx) * (nk / v.k);
         v.ty = cy - (cy - v.ty) * (nk / v.k);
         v.k = nk;
+        clampView();
         drawRef.current();
-    }, []);
+    }, [clampView]);
 
     // Pointer: drag to pan, distinguish a tap, hit-test markers then provinces.
     const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
@@ -608,8 +632,9 @@ export function ExchangeMap({
         if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 5) moved.current = true;
         view.current.tx = d.tx + (e.clientX - d.x);
         view.current.ty = d.ty + (e.clientY - d.y);
+        clampView();
         drawRef.current();
-    }, []);
+    }, [clampView]);
 
     const onPointerUp = useCallback(
         (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -720,12 +745,13 @@ export function ExchangeMap({
                 </div>
             )}
 
-            {/* Zoom controls (bottom-left). */}
+            {/* Zoom controls (bottom-right, compact). */}
             {status === 'ready' && (
-                <div className="absolute bottom-3 left-3 flex flex-col gap-1.5">
+                <div className="absolute bottom-3 right-3 flex flex-col gap-1">
                     <Button
                         variant="secondary"
                         size="icon"
+                        className="h-7 w-7"
                         aria-label={t('zoomIn')}
                         onClick={() => zoomButton(1.5)}
                         icon={<Plus />}
@@ -733,6 +759,7 @@ export function ExchangeMap({
                     <Button
                         variant="secondary"
                         size="icon"
+                        className="h-7 w-7"
                         aria-label={t('zoomOut')}
                         onClick={() => zoomButton(1 / 1.5)}
                         icon={<Minus />}
@@ -771,7 +798,7 @@ export function ExchangeMap({
                         <span className="text-xs font-semibold tracking-wide text-content-emphasis">БОРСА</span>
                         <span className="text-xs text-content-muted">· {t('exchangeSuffix')}</span>
                     </div>
-                    <div className="pointer-events-none absolute bottom-3 left-16 right-3 flex flex-wrap items-center gap-compact rounded-lg border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
+                    <div className="pointer-events-none absolute bottom-3 left-3 right-14 flex flex-wrap items-center gap-compact rounded-lg border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }} />
                             {t('selling')}
@@ -783,13 +810,6 @@ export function ExchangeMap({
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
                             <span className="h-2.5 w-2.5 rounded-full border" style={{ borderColor: BEST_GOLD }} />
                             {t('bestPrice')}
-                        </span>
-                        <span className="ml-auto flex items-center gap-1.5 text-xs text-content-muted">
-                            {t('liquidity')}
-                            <span
-                                className="h-2 w-9 rounded-sm"
-                                style={{ background: `linear-gradient(90deg, ${heatColor(0)}, ${heatColor(1)}, ${EXCHANGE_ACCENT_GOLD})` }}
-                            />
                         </span>
                     </div>
                 </>
