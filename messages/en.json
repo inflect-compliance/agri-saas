@@ -3126,7 +3126,9 @@
                 "stopTracking": "Stop live tracking",
                 "zoomIn": "Zoom in",
                 "zoomOut": "Zoom out",
-                "fieldBoundariesEmpty": "No field boundaries to jump to yet."
+                "fieldBoundariesEmpty": "No field boundaries to jump to yet.",
+                "soilRegions": "Soil regions",
+                "soilLegendAlt": "Soil class legend"
             },
             "parcelSheet": {
                 "description": "Parcel detail and apply-rate calculator",

@@ -39,6 +39,20 @@ import { CropGlyph } from '@/components/agriculture/CropGlyph';
 // view they'd overlap into noise; they reappear when inspecting fields.
 const CROP_ICON_MIN_ZOOM = 12;
 
+// Soil-region area overlay (soil view). ISRIC SoilGrids WRB "most probable
+// soil class" map, served as a WMS raster (CC-BY 4.0, CORS-open, so MapLibre
+// fetches tiles directly — no proxy). Drawn UNDER the parcels so a field's own
+// classified fill + outline still read on top. `{bbox-epsg-3857}` is the
+// MapLibre placeholder MapLibre substitutes per raster tile.
+const SOIL_WRB_WMS_TILE =
+    'https://maps.isric.org/mapserv?map=/map/wrb.map&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap' +
+    '&LAYERS=MostProbable&STYLES=&FORMAT=image/png&TRANSPARENT=true&SRS=EPSG:3857' +
+    '&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}';
+const SOIL_WRB_LEGEND =
+    'https://maps.isric.org/mapserv?map=/map/wrb.map&SERVICE=WMS&VERSION=1.1.1' +
+    '&REQUEST=GetLegendGraphic&LAYER=MostProbable&FORMAT=image/png';
+const SOIL_ATTRIBUTION = 'Soil: ISRIC SoilGrids — WRB (CC-BY 4.0)';
+
 export interface MapParcel {
     id: string;
     name: string;
@@ -598,6 +612,20 @@ export function MapCanvas({
                         <Layer id={`idx-${indexOverlay!.id}-raster`} type="raster" paint={{ 'raster-opacity': 0.7 }} />
                     </Source>
                 )}
+                {/* Soil-region area surface — ISRIC WRB soil-class WMS raster,
+                    shown in Soil view UNDER the parcels so the whole landscape
+                    reads as coloured soil regions with your fields on top. */}
+                {soilMode && (
+                    <Source
+                        id="soil-wrb"
+                        type="raster"
+                        tiles={[SOIL_WRB_WMS_TILE]}
+                        tileSize={256}
+                        attribution={SOIL_ATTRIBUTION}
+                    >
+                        <Layer id="soil-wrb-raster" type="raster" paint={{ 'raster-opacity': 0.55 }} />
+                    </Source>
+                )}
                 {/* Hide the static layer while editing so terra-draw owns
                     the on-map render of the editable polygons. */}
                 {mode !== 'edit' && (
@@ -828,6 +856,21 @@ export function MapCanvas({
                             </button>
                         </div>
                     </div>
+
+                    {/* Soil-region legend — the WRB soil-class colour key for
+                        the area overlay. Scrollable so the ~30-class ISRIC key
+                        never dominates the (short, mobile) map pane. */}
+                    {soilMode && (
+                        <div className="pointer-events-auto absolute bottom-3 left-3 z-10 flex max-h-[45%] w-24 flex-col overflow-hidden rounded-lg border border-border-subtle bg-bg-default/95 shadow-md">
+                            <p className="flex-shrink-0 border-b border-border-subtle px-2 py-1 text-[10px] font-medium text-content-secondary">
+                                {t('soilRegions')}
+                            </p>
+                            <div className="min-h-0 overflow-y-auto p-1">
+                                {/* eslint-disable-next-line @next/next/no-img-element -- external WMS legend, not a local asset */}
+                                <img src={SOIL_WRB_LEGEND} alt={t('soilLegendAlt')} className="w-full" loading="lazy" />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Non-blocking geolocation hint (permission denied /
                         unavailable). aria-live so AT users hear it too. */}
