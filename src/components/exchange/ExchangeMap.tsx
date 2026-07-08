@@ -3,174 +3,53 @@
 /**
  * ExchangeMap — the cross-tenant marketplace map of Bulgaria.
  *
- * A deliberately Bulgaria-ONLY, dark, commercial map:
- *   • Dark basemap (MapTiler `streets-v2-dark`) — hidden under the flat land
- *     fill at overview zoom, then revealed on zoom-in for town/village detail —
- *     so the app's dark UI and
- *     the SELL/BUY markers read as one system.
- *   • A spotlight MASK — everything outside Bulgaria is dimmed by a dark scrim
- *     (a world polygon with the oblast footprints punched out as holes), so the
- *     country is the only lit geography. Neighbours never compete for attention.
- *   • The view is LOCKED to Bulgaria (`maxBounds` + `minZoom`, rotation off) so
- *     a user can't pan off into Romania/Greece/Türkiye or zoom out to Europe.
- *   • Oblast (ADM1) polygons: a quiet wash by default, brand-green when the
- *     region is filter-selected; click toggles the region filter.
- *   • Clustered offer markers with a soft glow; SELL green / BUY blue.
+ * A bespoke Canvas renderer (NOT MapLibre): for a Bulgaria-only commodity
+ * overview a full GL basemap was overkill and hard to make read like the
+ * "grain floor" mockup. Instead we draw our own map on a 2D canvas:
+ *   • Dark canvas = the void outside Bulgaria — no spotlight-mask maths, no
+ *     neighbour geography competing for attention.
+ *   • Oblast (ADM1) polygons filled by a gold liquidity choropleth (share of
+ *     offered tonnage), emerald when filter-selected; click toggles the filter.
+ *   • Offer markers: SELL green / BUY blue, sized by tonnage, with a soft glow.
+ *     At overview zoom offers AGGREGATE per (region · crop · side) into one
+ *     marker labelled with that crop's average price; zoom in and they SPLIT
+ *     into individual listings, revealing tonnage then location as you push in.
+ *   • One national ★ BEST per crop (cheapest ask, or highest bid for buy-only
+ *     crops) gets a gold ring. Price chips de-conflict by priority: a chip that
+ *     would overlap a stronger one fades back; hover or tap lifts it forward.
+ *   • Tap a marker to pin its full line (location · crop · tonnage · price);
+ *     a single offer also opens a detail popup. +/- buttons zoom (bottom-left).
  *
- * The oblast geometry (bundled `/geo/bg-oblasti.geojson`, geoBoundaries
- * CC-BY-4.0) is fetched once and drives BOTH the region layer and the mask.
- * The MapTiler key is read from env exactly as MapCanvas's resolver does.
+ * Geometry (projected province paths + outline + the projection params) is the
+ * bundled `/geo/bg-map-geometry.json`; live offer lon/lat is projected at
+ * runtime with the same params so markers land on the right province.
  */
-import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import Map, {
-    Layer,
-    Marker,
-    Popup,
-    Source,
-    type MapLayerMouseEvent,
-    type MapRef,
-} from 'react-map-gl/maplibre';
-import type { FeatureCollection, Position } from 'geojson';
-import type { GeoJSONSource, LngLatBoundsLike } from 'maplibre-gl';
-import { env } from '@/env';
+import { Plus, Minus } from '@/components/ui/icons/nucleo';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/button';
-import { featureToMapListing, type ExchangeMapListing } from './exchange-map-utils';
+import { type ExchangeMapListing } from './exchange-map-utils';
 
-/** Side colours — shared by the marker paint AND the page's legend so they
- *  always match. Green = selling, blue = buying (mirrors MapCanvas's
- *  done/selected palette). */
-export const EXCHANGE_SIDE_COLORS = { SELL: '#16a34a', BUY: '#5b8def' } as const;
+/** Side colours — shared by the marker paint AND the page's legend/list so they
+ *  always match. Green = selling, blue = buying. */
+export const EXCHANGE_SIDE_COLORS = { SELL: '#34d399', BUY: '#5b8def' } as const;
 
-/** Grain-gold — the brand accent (wheat + value/money). Used for liveness,
- *  best-price emphasis, and the map chrome, so the map reads as "money on the
- *  land" rather than the generic green-on-black dot map. */
+/** Grain-gold — the brand accent (wheat + value/money). Chrome + liquidity. */
 export const EXCHANGE_ACCENT_GOLD = '#e3b341';
 
-/** Bulgaria bounding box [[west, south], [east, north]] — fit on load. */
-const BULGARIA_BOUNDS: [[number, number], [number, number]] = [
-    [22.36, 41.23],
-    [28.61, 44.22],
-];
-
-/** Hard pan/zoom cage — a little breathing room around the country, but not
- *  enough to bring a neighbour's interior into frame (and the mask dims the
- *  slivers that do). Keeps the map unmistakably "Bulgaria". */
-const MAX_BOUNDS: LngLatBoundsLike = [
-    [20.8, 40.4],
-    [30.2, 45.0],
-];
-
-/** Outer ring for the spotlight mask — generous enough to cover the whole
- *  visible frame at min zoom; the oblast footprints are punched out as holes. */
-const MASK_WORLD_RING: Position[] = [
-    [10, 34],
-    [36, 34],
-    [36, 49],
-    [10, 49],
-    [10, 34],
-];
-
-/** Dark scrim that dims everything outside Bulgaria (navy to match the UI).
- *  Near-opaque (0.92): the scrim sits over real dataviz-dark TILES, so it has
- *  to be strong to actually black out neighbouring countries' roads + city
- *  labels — the mockup's lower value looked right only because it had no tiles
- *  beneath it. Slightly darker than the flat land fill so Bulgaria lifts. */
-const MASK_FILL = '#060a14';
-const MASK_OPACITY = 0.92;
-
-/** Selected-region brand accent (emerald), matching the SELL marker family. */
+/** Brighter gold reserved for the best-price ring so it out-punches the chrome. */
+const BEST_GOLD = '#f5c542';
+/** Selected-region fill (emerald, matching the SELL marker family). */
 const REGION_ACCENT = '#22c55e';
 
-/** Land base fill (heat = 0). WARM dark loam, not cool dark: gold is the
- *  aesthetic of the whole country ("grain floor"), so even a province with no
- *  offers is a warm bronze — liquidity only BRIGHTENS it. Near-opaque so it
- *  covers the busy street basemap for a clean gold overview. */
-const LAND_FILL = '#2a2113';
-const LAND_OPACITY = 0.97;
+/** Zoom (= k / fit) thresholds for progressive disclosure. */
+const SPLIT_Z = 3.4; // below: aggregate per region·crop; above: individual offers + tonnage
+const LOC_Z = 6.5; //  above: chips also carry the region name
 
-/** Land heat fill (heat = 1) — bright wheat gold. Provinces lerp LAND_FILL →
- *  LAND_HEAT by their share of the offered tonnage, so the busiest region is
- *  the brightest gold and the whole country reads as a warm grain floor. */
-const LAND_HEAT = '#9c7a34';
-
-/** The flat land fill is opaque for the clean overview, then fades out as you
- *  zoom in so the dataviz-dark basemap (cities, villages, roads, labels) shows
- *  through for locating offers precisely. Fully gone by LAND_FADE_END_ZOOM. */
-const LAND_FADE_START_ZOOM = 7;
-const LAND_FADE_END_ZOOM = 9.5;
-
-const EMPTY_FC: FeatureCollection = { type: 'FeatureCollection', features: [] };
-
-const DEMO_STYLE = 'https://demotiles.maplibre.org/style.json';
-
-function styleUrl(styleId: string): string {
-    const key = env.NEXT_PUBLIC_MAPTILER_KEY;
-    if (!key) return DEMO_STYLE;
-    return `https://api.maptiler.com/maps/${styleId}/style.json?key=${key}`;
-}
-
-/** Build the spotlight mask: one polygon = world ring + every oblast outer
- *  ring as a hole, so the fill covers everything EXCEPT Bulgaria. Oblast
- *  borders are drawn on top, hiding any hairline seams between adjacent holes. */
-function buildMask(oblasti: FeatureCollection): FeatureCollection {
-    const holes: Position[][] = [];
-    for (const f of oblasti.features) {
-        const g = f.geometry;
-        if (g.type === 'Polygon') {
-            holes.push(g.coordinates[0]);
-        } else if (g.type === 'MultiPolygon') {
-            for (const poly of g.coordinates) holes.push(poly[0]);
-        }
-    }
-    return {
-        type: 'FeatureCollection',
-        features: [
-            {
-                type: 'Feature',
-                properties: {},
-                geometry: { type: 'Polygon', coordinates: [MASK_WORLD_RING, ...holes] },
-            },
-        ],
-    };
-}
-
-/** Grain export corridors — the Danube (Vidin → Silistra) and the Black Sea
- *  coast, tracing how Bulgarian grain actually reaches its export ports. Faint
- *  gold routes ground the map in real logistics, not just dots on land. */
-const CORRIDORS: FeatureCollection = {
-    type: 'FeatureCollection',
-    features: [
-        {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-                type: 'LineString',
-                coordinates: [
-                    [22.88, 43.99], [23.24, 43.82], [23.72, 43.78], [24.9, 43.7],
-                    [25.35, 43.62], [25.95, 43.85], [26.6, 44.05], [27.26, 44.12],
-                ],
-            },
-        },
-        {
-            type: 'Feature',
-            properties: {},
-            geometry: { type: 'LineString', coordinates: [[27.91, 43.2], [27.7, 42.9], [27.47, 42.5]] },
-        },
-    ],
-};
-
-/** The grain export ports (place names — locale-neutral). */
-const PORTS: FeatureCollection = {
-    type: 'FeatureCollection',
-    features: [
-        { type: 'Feature', properties: { name: 'Ruse' }, geometry: { type: 'Point', coordinates: [25.95, 43.85] } },
-        { type: 'Feature', properties: { name: 'Varna' }, geometry: { type: 'Point', coordinates: [27.91, 43.2] } },
-        { type: 'Feature', properties: { name: 'Burgas' }, geometry: { type: 'Point', coordinates: [27.47, 42.5] } },
-    ],
-};
+/** The exchange is euro-denominated (Bulgaria adopted the euro) — every price
+ *  renders as €/t regardless of a listing's stored currency code. */
+const PRICE_UNIT = '€/t';
 
 export type { ExchangeMapListing };
 
@@ -184,16 +63,240 @@ interface ExchangeMapProps {
     onListingSelect: (id: string) => void;
     /** Highlight a listing's marker (row hover in the list). */
     highlightedId?: string | null;
-    /** Basemap style id — default a dark streets style (town/village labels
-     *  on zoom-in); hidden under the flat land fill at overview zoom. */
-    basemapStyle?: 'dataviz-dark' | 'streets-v2-dark' | 'basic-v2-dark' | 'streets-v2';
     className?: string;
 }
 
-interface PopupState {
-    lng: number;
-    lat: number;
+interface Geometry {
+    W: number;
+    H: number;
+    proj: { minX: number; maxX: number; minY: number; maxY: number; cos: number; ox: number; oy: number; s: number };
+    oblasti: { d: string; iso: string; name: string }[];
+    outlinePath: string;
+}
+
+/** An offer projected into the geometry's WxH space, plus derived flags. */
+interface POffer {
+    id: string;
     listing: ExchangeMapListing;
+    side: 'SELL' | 'BUY';
+    commodity: string;
+    t: number;
+    price: number;
+    curr: string;
+    regionCode: string;
+    regionName: string;
+    px: number;
+    py: number;
+    best: boolean;
+    // fan-out for offers sharing an exact projected point (revealed on split)
+    fx: number;
+    fy: number;
+    cCount: number;
+}
+
+interface OGroup {
+    key: string;
+    regionCode: string;
+    regionName: string;
+    commodity: string;
+    side: 'SELL' | 'BUY';
+    offers: POffer[];
+    offerIds: string[];
+    cx: number;
+    cy: number;
+    totalT: number;
+    avg: number | null;
+    priceStr: string;
+    curr: string;
+    best: boolean;
+}
+
+/** A drawable marker+chip for the current frame (screen space). */
+interface Item {
+    id: string;
+    sx: number;
+    sy: number;
+    r: number;
+    col: string;
+    best: boolean;
+    glow: number;
+    pri: number;
+    loc: string;
+    crop: string;
+    ton: number;
+    priceStr: string;
+    curr: string;
+    single: boolean;
+    offerId?: string;
+    offerIds?: string[];
+    listing?: ExchangeMapListing;
+    wx: number;
+    wy: number;
+    text?: string;
+}
+
+interface Rect { x: number; y: number; w: number; h: number }
+
+function lerp(a: number, b: number, t: number): number {
+    return Math.round(a + (b - a) * t);
+}
+/** Land base (heat 0, warm loam) → bright wheat gold (heat 1). */
+function heatColor(h: number): string {
+    return `rgb(${lerp(42, 156, h)},${lerp(33, 122, h)},${lerp(19, 52, h)})`;
+}
+function rectsOverlap(a: Rect, b: Rect): boolean {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/** Draw one marker: soft side-coloured glow, gold double-ring when best. */
+function drawMarker(ctx: CanvasRenderingContext2D, it: Item): void {
+    const R = it.best ? it.r * 1.28 : it.r;
+    ctx.save();
+    ctx.shadowColor = it.col;
+    ctx.shadowBlur = 13 + it.glow * 12;
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = it.col;
+    ctx.beginPath();
+    ctx.arc(it.sx, it.sy, R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    if (it.best) {
+        ctx.strokeStyle = 'rgba(245,197,66,.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(it.sx, it.sy, R + 7.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.save();
+        ctx.shadowColor = BEST_GOLD;
+        ctx.shadowBlur = 16;
+        ctx.strokeStyle = BEST_GOLD;
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.arc(it.sx, it.sy, R + 4, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+    ctx.fillStyle = it.col;
+    ctx.strokeStyle = '#0b0f18';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(it.sx, it.sy, R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+}
+
+interface Model {
+    offers: POffer[];
+    groups: OGroup[];
+    heatByIso: Record<string, number>;
+    maxT: number;
+    maxGT: number;
+}
+
+/** Project listings, tag the national best per crop, and pre-aggregate. */
+function buildModel(listings: ExchangeMapListing[], geom: Geometry): Model {
+    const { proj } = geom;
+    const project = (lon: number, lat: number): [number, number] => [
+        proj.ox + (lon - proj.minX) * proj.cos * proj.s,
+        proj.oy + (proj.maxY - lat) * proj.s,
+    ];
+
+    const offers: POffer[] = listings.map((l) => {
+        const [px, py] = project(l.lon, l.lat);
+        return {
+            id: l.id,
+            listing: l,
+            side: l.side,
+            commodity: l.commodity,
+            t: Number(l.quantityTonnes) || 0,
+            price: Number(l.pricePerTonne) || 0,
+            curr: l.priceCurrency,
+            regionCode: l.regionCode,
+            regionName: l.regionName,
+            px,
+            py,
+            best: false,
+            fx: 0,
+            fy: 0,
+            cCount: 1,
+        };
+    });
+
+    // National best per CROP (side-agnostic): cheapest sell ask, or — for a
+    // buy-only crop — the highest bid. Ties broken by larger tonnage.
+    const byCrop: Record<string, POffer[]> = {};
+    for (const o of offers) {
+        if (o.price > 0) (byCrop[o.commodity] ??= []).push(o);
+    }
+    for (const arr of Object.values(byCrop)) {
+        const sells = arr.filter((o) => o.side === 'SELL');
+        const pool = sells.length ? sells : arr;
+        const dir = sells.length ? 1 : -1;
+        const win = pool.reduce((a, b) =>
+            b.price * dir < a.price * dir || (b.price === a.price && b.t > a.t) ? b : a,
+        );
+        win.best = true;
+    }
+
+    // Fan-out dirs for offers sharing an exact projected point (split view).
+    const coincident: Record<string, POffer[]> = {};
+    for (const o of offers) (coincident[`${Math.round(o.px)}|${Math.round(o.py)}`] ??= []).push(o);
+    for (const list of Object.values(coincident)) {
+        list.forEach((o, i) => {
+            o.cCount = list.length;
+            const a = list.length > 1 ? (i / list.length) * Math.PI * 2 - Math.PI / 2 : 0;
+            o.fx = Math.cos(a);
+            o.fy = Math.sin(a);
+        });
+    }
+
+    // Aggregate per region · crop · side.
+    const groupMap: Record<string, OGroup> = {};
+    for (const o of offers) {
+        const key = `${o.regionCode}|${o.commodity}|${o.side}`;
+        (groupMap[key] ??= {
+            key,
+            regionCode: o.regionCode,
+            regionName: o.regionName,
+            commodity: o.commodity,
+            side: o.side,
+            offers: [],
+            offerIds: [],
+            cx: 0,
+            cy: 0,
+            totalT: 0,
+            avg: null,
+            priceStr: '',
+            curr: o.curr,
+            best: false,
+        }).offers.push(o);
+    }
+    const groups = Object.values(groupMap).map((g) => {
+        g.offerIds = g.offers.map((o) => o.id);
+        g.cx = g.offers.reduce((s, o) => s + o.px, 0) / g.offers.length;
+        g.cy = g.offers.reduce((s, o) => s + o.py, 0) / g.offers.length;
+        g.totalT = g.offers.reduce((s, o) => s + o.t, 0);
+        g.best = g.offers.some((o) => o.best);
+        const priced = g.offers.filter((o) => o.price > 0);
+        g.avg = priced.length ? Math.round(priced.reduce((s, o) => s + o.price, 0) / priced.length) : null;
+        g.priceStr = g.avg == null ? '' : priced.length > 1 ? `⌀${g.avg}` : `${priced[0].price}`;
+        return g;
+    });
+
+    // Per-region choropleth heat (share of the busiest region's tonnage).
+    const tonnesByRegion: Record<string, number> = {};
+    for (const o of offers) tonnesByRegion[o.regionCode] = (tonnesByRegion[o.regionCode] ?? 0) + o.t;
+    const maxRegion = Math.max(1, ...Object.values(tonnesByRegion));
+    const heatByIso: Record<string, number> = {};
+    for (const [iso, tonnes] of Object.entries(tonnesByRegion)) heatByIso[iso] = tonnes / maxRegion;
+
+    return {
+        offers,
+        groups,
+        heatByIso,
+        maxT: Math.max(1, ...offers.map((o) => o.t)),
+        maxGT: Math.max(1, ...groups.map((g) => g.totalT)),
+    };
 }
 
 export function ExchangeMap({
@@ -202,583 +305,458 @@ export function ExchangeMap({
     onRegionClick,
     onListingSelect,
     highlightedId,
-    basemapStyle = 'streets-v2-dark',
     className,
 }: ExchangeMapProps) {
     const t = useTranslations('exchangeMap');
-    const mapRef = useRef<MapRef | null>(null);
-    const [popup, setPopup] = useState<PopupState | null>(null);
-    // Surface the map's own lifecycle so a failed style/GL init is visible
-    // instead of a silently-blank bordered box. `error` is only fatal BEFORE
-    // the first successful load — a transient tile error after `ready` must
-    // not tear down a working map.
-    const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const wrapRef = useRef<HTMLDivElement | null>(null);
+    const popupRef = useRef<HTMLDivElement | null>(null);
 
-    // Oblast geometry (per-province choropleth) + a dissolved Bulgaria outline
-    // (the spotlight-mask hole). The outline is ONE clean polygon, so the mask
-    // has a single hole — the old per-oblast holes overlapped once the geojson
-    // was simplified, breaking the fill triangulation (a black gash on the map).
-    const [oblasti, setOblasti] = useState<FeatureCollection | null>(null);
-    const [outline, setOutline] = useState<FeatureCollection | null>(null);
+    const [geom, setGeom] = useState<Geometry | null>(null);
+    const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+    const [pinnedId, setPinnedId] = useState<string | null>(null);
+    const [popup, setPopup] = useState<{ listing: ExchangeMapListing; wx: number; wy: number } | null>(null);
+
+    // View transform (pan/zoom) lives in a ref so pointer moves never re-render.
+    const view = useRef({ k: 1, tx: 0, ty: 0, fit: 1 });
+    // Last frame's drawn items, for pointer hit-testing.
+    const itemsRef = useRef<Item[]>([]);
+    // Latest draw fn, so once-attached pointer handlers always call the current one.
+    const drawRef = useRef<() => void>(() => {});
+
     useEffect(() => {
         let alive = true;
-        const load = (path: string) =>
-            fetch(path).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))));
-        load('/geo/bg-oblasti.geojson')
-            .then((d: FeatureCollection) => alive && setOblasti(d))
-            .catch(() => { /* no regions — basemap + markers still work */ });
-        load('/geo/bg-outline.geojson')
-            .then((d: FeatureCollection) => alive && setOutline(d))
-            .catch(() => { /* no spotlight — basemap still renders */ });
+        fetch('/geo/bg-map-geometry.json')
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+            .then((d: Geometry) => {
+                if (!alive) return;
+                setGeom(d);
+                setStatus('ready');
+            })
+            .catch(() => alive && setStatus('error'));
         return () => {
             alive = false;
         };
     }, []);
 
-    const maskGeojson = useMemo<FeatureCollection>(
-        () => (outline ? buildMask(outline) : EMPTY_FC),
-        [outline],
+    const provincePaths = useMemo(
+        () => (geom ? geom.oblasti.map((o) => ({ path: new Path2D(o.d), iso: o.iso })) : []),
+        [geom],
     );
+    const outlinePath = useMemo(() => (geom ? new Path2D(geom.outlinePath) : null), [geom]);
+    const model = useMemo(() => (geom ? buildModel(listings, geom) : null), [geom, listings]);
 
-    // Per-province market activity → a `heat` property (0..1 share of the
-    // busiest province's offered tonnage) written onto each oblast feature, so
-    // the choropleth is a plain MapLibre interpolate on `['get','heat']`.
-    // Reflects the currently-shown (filtered) listings; empty provinces = 0.
-    const oblastiWithHeat = useMemo<FeatureCollection>(() => {
-        if (!oblasti) return EMPTY_FC;
-        // NB: `Map` is the react-map-gl component in this file, so use a plain
-        // record for the per-region tally, not the JS Map constructor.
-        const tonnesByRegion: Record<string, number> = {};
-        for (const l of listings) {
-            const t = Number(l.quantityTonnes) || 0;
-            tonnesByRegion[l.regionCode] = (tonnesByRegion[l.regionCode] ?? 0) + t;
+    const draw = useCallback(() => {
+        const canvas = canvasRef.current;
+        const g = geom;
+        const m = model;
+        if (!canvas || !g || !m) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const CW = canvas.clientWidth;
+        const CH = canvas.clientHeight;
+        const { k, tx, ty, fit } = view.current;
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = '#060a12';
+        ctx.fillRect(0, 0, CW, CH);
+
+        // Provinces + outline in world (WxH) space.
+        ctx.save();
+        ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * tx, dpr * ty);
+        const selected = new Set(selectedRegionCodes);
+        for (const p of provincePaths) {
+            ctx.fillStyle = selected.has(p.iso) ? REGION_ACCENT : heatColor(m.heatByIso[p.iso] ?? 0);
+            ctx.fill(p.path);
         }
-        const max = Math.max(1, ...Object.values(tonnesByRegion));
-        return {
-            type: 'FeatureCollection',
-            features: oblasti.features.map((f) => {
-                const iso = (f.properties?.shapeISO as string | undefined) ?? '';
-                const heat = (tonnesByRegion[iso] ?? 0) / max;
-                return { ...f, properties: { ...f.properties, heat } };
-            }),
+        ctx.lineWidth = 0.5 / k;
+        for (const p of provincePaths) {
+            ctx.strokeStyle = selected.has(p.iso) ? REGION_ACCENT : 'rgba(90,74,42,.5)';
+            ctx.lineWidth = (selected.has(p.iso) ? 1.6 : 0.5) / k;
+            ctx.stroke(p.path);
+        }
+        if (outlinePath) {
+            ctx.lineWidth = 1.1 / k;
+            ctx.strokeStyle = 'rgba(227,179,65,.35)';
+            ctx.stroke(outlinePath);
+        }
+        ctx.restore();
+
+        // Build this frame's markers (aggregate below SPLIT, individual above).
+        const z = k / fit;
+        const items: Item[] = [];
+        const col = (side: 'SELL' | 'BUY') => EXCHANGE_SIDE_COLORS[side];
+        if (z < SPLIT_Z) {
+            for (const gr of m.groups) {
+                items.push({
+                    id: `g${gr.key}`,
+                    sx: gr.cx * k + tx,
+                    sy: gr.cy * k + ty,
+                    r: 3 + (gr.totalT / m.maxGT) * 3,
+                    col: col(gr.side),
+                    best: gr.best,
+                    glow: gr.totalT / m.maxGT,
+                    pri: (gr.best ? 1e6 : 0) + gr.totalT,
+                    loc: gr.regionName,
+                    crop: gr.commodity,
+                    ton: gr.totalT,
+                    priceStr: gr.priceStr,
+                    curr: gr.curr,
+                    single: false,
+                    offerIds: gr.offerIds,
+                    wx: gr.cx,
+                    wy: gr.cy,
+                });
+            }
+        } else {
+            const spread = Math.min(36, 16 + (z - SPLIT_Z) * 24);
+            for (const o of m.offers) {
+                const off = o.cCount > 1;
+                items.push({
+                    id: `s${o.id}`,
+                    sx: o.px * k + tx + (off ? o.fx * spread : 0),
+                    sy: o.py * k + ty + (off ? o.fy * spread : 0),
+                    r: 2.4 + (o.t / m.maxT) * 3,
+                    col: col(o.side),
+                    best: o.best,
+                    glow: o.t / m.maxT,
+                    pri: (o.best ? 1e6 : 0) + o.t,
+                    loc: o.regionName,
+                    crop: o.commodity,
+                    ton: o.t,
+                    priceStr: o.price > 0 ? `${o.price}` : '',
+                    curr: o.curr,
+                    single: true,
+                    offerId: o.id,
+                    listing: o.listing,
+                    wx: o.px,
+                    wy: o.py,
+                });
+            }
+        }
+
+        // Compose each chip's text: crop always; +tonnage on split/pin; +region
+        // on deep-zoom/pin; price+currency always (when known).
+        const showLocAll = z >= LOC_Z;
+        const showTonAll = z >= SPLIT_Z;
+        for (const it of items) {
+            const pin = it.id === pinnedId;
+            const parts: string[] = [];
+            if ((showLocAll || pin) && it.loc) parts.push(it.loc);
+            parts.push(it.crop);
+            if (showTonAll || pin) parts.push(`${it.ton}t`);
+            if (it.priceStr) parts.push(`${it.priceStr}${PRICE_UNIT}`);
+            it.text = parts.join('·');
+        }
+
+        // Which marker the list-row hover maps to (bring its chip forward).
+        const hovered = highlightedId
+            ? items.find((it) =>
+                  it.single ? it.offerId === highlightedId : it.offerIds?.includes(highlightedId),
+              )
+            : undefined;
+        const hoverId = hovered?.id ?? null;
+
+        // Markers first, then chips (so labels sit above every dot).
+        for (const it of items) drawMarker(ctx, it);
+
+        // Chip metrics/box.
+        const measure = (it: Item): { bx: number; w: number } => {
+            ctx.font = '10px ui-monospace,monospace';
+            // Best gets a drawn gold dot (no glyph — keeps the file emoji-free).
+            const badge = it.best ? 9 : 0;
+            return { bx: it.sx + 5, w: ctx.measureText(it.text ?? '').width + badge + 7 };
         };
-    }, [oblasti, listings]);
-
-    const mapStyle = useMemo(() => styleUrl(basemapStyle), [basemapStyle]);
-
-    // Offer markers as a GeoJSON point FeatureCollection (clustered source).
-    const offerGeojson = useMemo<FeatureCollection>(
-        () => {
-            // Price competitiveness within each (commodity, side): 1 = best.
-            // SELL → the LOWEST ask is best (cheapest to buy); BUY → the HIGHEST
-            // bid is best (most someone will pay). Offers without a price → 0.
-            // (Plain record — `Map` is the react-map-gl component in this file.)
-            const groups: Record<string, { id: string; price: number }[]> = {};
-            for (const l of listings) {
-                const price = Number(l.pricePerTonne);
-                if (!Number.isFinite(price) || price <= 0) continue;
-                (groups[`${l.commodity}|${l.side}`] ??= []).push({ id: l.id, price });
+        const rectOf = (it: Item): Rect => {
+            const mm = measure(it);
+            return { x: mm.bx, y: it.sy - 8, w: mm.w, h: 16 };
+        };
+        const drawChip = (it: Item, alpha: number) => {
+            const mm = measure(it);
+            const by = it.sy;
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#0d1220';
+            ctx.strokeStyle = it.best ? BEST_GOLD : '#2a3648';
+            ctx.lineWidth = it.best ? 1.2 : 1;
+            ctx.beginPath();
+            ctx.roundRect(mm.bx, by - 8, mm.w, 16, 4);
+            ctx.fill();
+            ctx.stroke();
+            ctx.textBaseline = 'middle';
+            let cx = mm.bx + 4;
+            if (it.best) {
+                ctx.fillStyle = BEST_GOLD;
+                ctx.beginPath();
+                ctx.arc(mm.bx + 7, by, 2.6, 0, Math.PI * 2);
+                ctx.fill();
+                cx = mm.bx + 13;
             }
-            const pricePctById: Record<string, number> = {};
-            for (const [key, arr] of Object.entries(groups)) {
-                const isSell = key.endsWith('|SELL');
-                const min = Math.min(...arr.map((a) => a.price));
-                const max = Math.max(...arr.map((a) => a.price));
-                for (const a of arr) {
-                    pricePctById[a.id] =
-                        max === min ? 1 : isSell ? (max - a.price) / (max - min) : (a.price - min) / (max - min);
-                }
-            }
-            return {
-                type: 'FeatureCollection',
-                features: listings.map((l) => ({
-                    type: 'Feature',
-                    geometry: { type: 'Point', coordinates: [l.lon, l.lat] },
-                    properties: {
-                        id: l.id,
-                        side: l.side,
-                        commodity: l.commodity,
-                        quantityTonnes: l.quantityTonnes,
-                        pricePerTonne: l.pricePerTonne ?? '',
-                        priceCurrency: l.priceCurrency,
-                        regionCode: l.regionCode,
-                        regionName: l.regionName,
-                        lon: l.lon,
-                        lat: l.lat,
-                        // Price competitiveness (1 = best ask/bid for this
-                        // commodity+side) — drives marker size, glow and the ring.
-                        pricePct: pricePctById[l.id] ?? 0,
-                        // Pinned map label — same shape as the popup line. Units are
-                        // symbols (mirrors the popup), so no new translatable copy.
-                        chipLabel:
-                            `${l.commodity} · ${l.quantityTonnes} t` +
-                            (l.pricePerTonne ? ` · ${l.pricePerTonne} ${l.priceCurrency}/t` : ''),
-                    },
-                })),
-            };
-        },
-        [listings],
-    );
+            ctx.font = '10px ui-monospace,monospace';
+            ctx.fillStyle = '#ede7d8';
+            ctx.fillText(it.text ?? '', cx, by);
+            ctx.globalAlpha = 1;
+        };
 
-    // The offer under the list's row-hover — gets a live pulse ring on the map.
-    const hovered = useMemo(
-        () => listings.find((l) => l.id === highlightedId) ?? null,
-        [listings, highlightedId],
-    );
-
-    // Re-fit the country to the pane. Called on load AND on every container
-    // resize — the flex/vh pane settles to its final size AFTER the map mounts,
-    // so a load-only fit is stale and clips the country's sides. A touch more
-    // horizontal padding keeps the east/west extremes off the edges on narrow
-    // (mobile) panes.
-    const fitToBulgaria = useCallback(() => {
-        mapRef.current?.fitBounds(BULGARIA_BOUNDS, {
-            padding: { top: 24, bottom: 24, left: 30, right: 30 },
-            duration: 0,
-        });
-    }, []);
-
-    const handleLoad = useCallback(() => {
-        setStatus('ready');
-        fitToBulgaria();
-        // Clean gold overview: fade the basemap's own labels/icons OUT at low
-        // zoom (the gold country stands alone) and IN as you zoom to street
-        // level — same handoff as the land-fill fade. Our own labels
-        // (offers / ports / clusters) are excluded so they always show.
-        const map = mapRef.current?.getMap();
-        if (map) {
-            const fade = ['interpolate', ['linear'], ['zoom'], LAND_FADE_START_ZOOM, 0, LAND_FADE_END_ZOOM, 1];
-            const ours = new Set(['cluster-count', 'offer-label', 'port-label']);
-            for (const layer of map.getStyle().layers ?? []) {
-                if (layer.type === 'symbol' && !ours.has(layer.id)) {
-                    try {
-                        map.setPaintProperty(layer.id, 'text-opacity', fade);
-                        map.setPaintProperty(layer.id, 'icon-opacity', fade);
-                    } catch {
-                        /* layer may not carry that paint prop — ignore */
-                    }
-                }
+        const placed: Rect[] = [];
+        const lift = new Set([hoverId, pinnedId]);
+        for (const it of [...items].sort((a, b) => b.pri - a.pri)) {
+            if (lift.has(it.id)) continue;
+            const rect = rectOf(it);
+            const clip = placed.some((r) => rectsOverlap(r, rect));
+            if (!clip || it.best) {
+                placed.push(rect);
+                drawChip(it, 1);
+            } else {
+                drawChip(it, 0.24);
             }
         }
-    }, [fitToBulgaria]);
+        const pinItem = items.find((i) => i.id === pinnedId);
+        if (pinItem) drawChip(pinItem, 1);
+        const hovItem = items.find((i) => i.id === hoverId && i.id !== pinnedId);
+        if (hovItem) drawChip(hovItem, 1);
 
-    // The fatal error card must appear ONLY when the map genuinely never
-    // loads. MapLibre fires transient `error` events during a NORMAL load (a
-    // tile 404, a glyph miss) — escalating on those flashed a false "Map
-    // couldn't load" card before the map finished loading. So we no longer
-    // react to `error` at all (MapLibre logs it); instead, if the map hasn't
-    // reached `ready` within a budget, the basemap style itself failed → card.
+        itemsRef.current = items;
+
+        // Keep the DOM detail popup pinned to its offer through pan/zoom.
+        if (popup && popupRef.current) {
+            popupRef.current.style.transform = `translate(-50%, -100%) translate(${popup.wx * k + tx}px, ${popup.wy * k + ty - 14}px)`;
+        }
+    }, [geom, model, provincePaths, outlinePath, selectedRegionCodes, highlightedId, pinnedId, popup]);
+
+    // Keep the ref pointing at the latest draw so once-attached pointer
+    // handlers and the ResizeObserver always call the current closure.
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setStatus((s) => (s === 'loading' ? 'error' : s));
-        }, 12_000);
-        return () => clearTimeout(timer);
+        drawRef.current = draw;
+    });
+
+    // Resize / initial fit — the pane settles after mount, so refit on resize.
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const wrap = wrapRef.current;
+        if (!canvas || !wrap || !geom) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const resize = () => {
+            const rect = wrap.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            const fit = Math.min(rect.width / geom.W, rect.height / geom.H) * 0.98;
+            const v = view.current;
+            // Keep it fit-framed until the user zooms (k tracks fit while untouched).
+            if (v.k < 0.5 || Math.abs(v.k - v.fit) < 1e-6) {
+                v.fit = fit;
+                v.k = fit;
+                v.tx = (rect.width - geom.W * fit) / 2;
+                v.ty = (rect.height - geom.H * fit) / 2;
+            } else {
+                v.fit = fit;
+            }
+            drawRef.current();
+        };
+        resize();
+        const ro = new ResizeObserver(resize);
+        ro.observe(wrap);
+        return () => ro.disconnect();
+    }, [geom]);
+
+    // Redraw whenever the frame inputs change.
+    useEffect(() => {
+        drawRef.current();
+    }, [draw]);
+
+    const zoomAt = useCallback((cx: number, cy: number, factor: number) => {
+        const v = view.current;
+        const nk = Math.max(v.fit * 0.9, Math.min(v.fit * 22, v.k * factor));
+        v.tx = cx - (cx - v.tx) * (nk / v.k);
+        v.ty = cy - (cy - v.ty) * (nk / v.k);
+        v.k = nk;
+        drawRef.current();
     }, []);
 
-    const handleClick = useCallback(
-        (e: MapLayerMouseEvent) => {
-            const feature = e.features?.[0];
-            if (!feature) {
-                setPopup(null);
-                return;
-            }
-            const layerId = feature.layer?.id;
+    // Pointer: drag to pan, distinguish a tap, hit-test markers then provinces.
+    const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
+    const moved = useRef(false);
 
-            // Oblast polygon → toggle the region filter.
-            if (layerId === 'oblast-fill') {
-                const code = feature.properties?.shapeISO as string | undefined;
-                if (code) onRegionClick(code);
-                return;
+    const nearest = useCallback((mx: number, my: number): Item | null => {
+        let best: Item | null = null;
+        let bd = 1e9;
+        for (const it of itemsRef.current) {
+            const dx = it.sx - mx;
+            const dy = it.sy - my;
+            const d = dx * dx + dy * dy;
+            if (d < bd) {
+                bd = d;
+                best = it;
             }
+        }
+        return bd < 676 ? best : null;
+    }, []);
 
-            // Cluster → drill in to the exact zoom that breaks it apart
-            // (getClusterExpansionZoom), not a guessed fixed +2.
-            if (layerId === 'clusters') {
-                const geom = feature.geometry;
-                const clusterId = feature.properties?.cluster_id as number | undefined;
-                if (geom.type !== 'Point') return;
-                const [lng, lat] = geom.coordinates as [number, number];
-                const src = mapRef.current?.getMap().getSource('offers') as GeoJSONSource | undefined;
-                if (src && clusterId != null) {
-                    void src.getClusterExpansionZoom(clusterId)
-                        .then((zoom) => mapRef.current?.easeTo({ center: [lng, lat], zoom, duration: 400 }))
-                        .catch(() => {
-                            // Fallback: a bounded step-in if the source can't resolve it.
-                            const cur = mapRef.current?.getZoom() ?? 6;
-                            mapRef.current?.easeTo({ center: [lng, lat], zoom: cur + 2, duration: 400 });
-                        });
+    const onPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+        drag.current = { x: e.clientX, y: e.clientY, tx: view.current.tx, ty: view.current.ty };
+        moved.current = false;
+        e.currentTarget.setPointerCapture(e.pointerId);
+    }, []);
+
+    const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+        const d = drag.current;
+        if (!d) return;
+        if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 5) moved.current = true;
+        view.current.tx = d.tx + (e.clientX - d.x);
+        view.current.ty = d.ty + (e.clientY - d.y);
+        drawRef.current();
+    }, []);
+
+    const onPointerUp = useCallback(
+        (e: React.PointerEvent<HTMLCanvasElement>) => {
+            const wasDrag = moved.current;
+            drag.current = null;
+            if (wasDrag) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            const hit = nearest(mx, my);
+            if (hit) {
+                setPinnedId((cur) => (cur === hit.id ? null : hit.id));
+                if (hit.single && hit.listing) {
+                    setPopup({ listing: hit.listing, wx: hit.wx, wy: hit.wy });
+                } else {
+                    setPopup(null);
                 }
                 return;
             }
-
-            // Unclustered offer point → open a popup (regionCode carried through).
-            if (layerId === 'unclustered-point') {
-                const p = feature.properties as Record<string, unknown>;
-                setPopup({ lng: Number(p.lon), lat: Number(p.lat), listing: featureToMapListing(p) });
+            // Empty space → clear selection, then province hit-test for the filter.
+            setPinnedId(null);
+            setPopup(null);
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d');
+            if (!ctx) return;
+            const v = view.current;
+            const wx = (mx - v.tx) / v.k;
+            const wy = (my - v.ty) / v.k;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            for (const p of provincePaths) {
+                if (ctx.isPointInPath(p.path, wx, wy)) {
+                    onRegionClick(p.iso);
+                    break;
+                }
             }
         },
-        [onRegionClick],
+        [nearest, onRegionClick, provincePaths],
     );
+
+    const onWheel = useCallback(
+        (e: React.WheelEvent<HTMLCanvasElement>) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            zoomAt(e.clientX - rect.left, e.clientY - rect.top, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+        },
+        [zoomAt],
+    );
+
+    const zoomButton = useCallback(
+        (factor: number) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            zoomAt(canvas.clientWidth / 2, canvas.clientHeight / 2, factor);
+        },
+        [zoomAt],
+    );
+
+    const popupListing = popup?.listing ?? null;
 
     return (
-        <div className={cn('relative h-full w-full overflow-hidden rounded-lg border border-border-default', className)}>
-            <Map
-                ref={mapRef}
-                initialViewState={{ longitude: 25.48, latitude: 42.73, zoom: 6.4 }}
-                mapStyle={mapStyle}
-                onLoad={handleLoad}
-                onResize={fitToBulgaria}
-                onClick={handleClick}
-                interactiveLayerIds={['oblast-fill', 'clusters', 'unclustered-point']}
-                style={{ width: '100%', height: '100%' }}
-                cursor="pointer"
-                // Lock the frame to Bulgaria — no rotation, no wandering off to
-                // neighbouring countries, no zooming out to all of Europe. minZoom
-                // is a low floor so a narrow (mobile) pane can zoom out enough to
-                // fit the whole country; maxBounds is the real cage.
-                maxBounds={MAX_BOUNDS}
-                minZoom={4.8}
-                maxZoom={12}
-                dragRotate={false}
-            >
-                {/* Spotlight mask — dark scrim over everything OUTSIDE Bulgaria.
-                    Drawn first so the region + markers sit on top of it. */}
-                <Source id="bg-mask" type="geojson" data={maskGeojson}>
-                    <Layer
-                        id="bg-mask-fill"
-                        type="fill"
-                        paint={{ 'fill-color': MASK_FILL, 'fill-opacity': MASK_OPACITY }}
-                    />
-                </Source>
+        <div
+            ref={wrapRef}
+            className={cn(
+                'relative h-full w-full select-none overflow-hidden rounded-lg border border-border-default',
+                className,
+            )}
+        >
+            <canvas
+                ref={canvasRef}
+                className="block h-full w-full touch-none"
+                style={{ cursor: 'grab' }}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onWheel={onWheel}
+            />
 
-                {/* Region layer — Bulgaria oblasti. A quiet lift by default so the
-                    country reads as one lit body; brand-green when filter-selected.
-                    Borders are drawn on top of the mask, hiding any hole seams.
-                    (geoBoundaries CC-BY-4.0.) */}
-                <Source id="oblasti" type="geojson" data={oblastiWithHeat}>
-                    <Layer
-                        id="oblast-fill"
-                        type="fill"
-                        paint={{
-                            // Liquidity choropleth: unselected provinces lerp from
-                            // the cool land fill toward warm bronze-gold by their
-                            // `heat` (share of offered tonnage). Selected regions
-                            // override to brand-emerald. Opacity is zoom-driven —
-                            // opaque overview → clear as you zoom in to the basemap.
-                            'fill-color': [
-                                'case',
-                                ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                REGION_ACCENT,
-                                ['interpolate', ['linear'], ['get', 'heat'], 0, LAND_FILL, 1, LAND_HEAT],
-                            ],
-                            'fill-opacity': [
-                                'case',
-                                ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                // Selected: a highlight that thins on zoom so the
-                                // basemap still reads under the chosen province.
-                                ['interpolate', ['linear'], ['zoom'], LAND_FADE_START_ZOOM, 0.5, LAND_FADE_END_ZOOM, 0.28],
-                                // Unselected land: opaque overview → fully clear
-                                // (cities/villages visible) as you zoom in.
-                                ['interpolate', ['linear'], ['zoom'], LAND_FADE_START_ZOOM, LAND_OPACITY, LAND_FADE_END_ZOOM, 0],
-                            ],
-                        }}
-                    />
-                    <Layer
-                        id="oblast-line"
-                        type="line"
-                        paint={{
-                            'line-color': [
-                                'case',
-                                ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                REGION_ACCENT,
-                                '#8aa0c0',
-                            ],
-                            'line-width': [
-                                'case',
-                                ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                2.2,
-                                0.6,
-                            ],
-                            'line-opacity': [
-                                'case',
-                                ['in', ['get', 'shapeISO'], ['literal', selectedRegionCodes]],
-                                0.9,
-                                0.35,
-                            ],
-                        }}
-                    />
-                </Source>
-
-                {/* Export corridors — Danube + Black Sea routes to the grain
-                    ports, drawn over the land but under the offer markers. Faint
-                    gold dashes = "this is a trade route", grounding the map in
-                    real logistics (static — no motion, mobile-battery-friendly). */}
-                <Source id="corridors" type="geojson" data={CORRIDORS}>
-                    <Layer
-                        id="corridor-line"
-                        type="line"
-                        layout={{ 'line-cap': 'round' }}
-                        paint={{
-                            'line-color': EXCHANGE_ACCENT_GOLD,
-                            'line-width': 1.3,
-                            'line-opacity': 0.4,
-                            'line-dasharray': [1, 3],
-                        }}
-                    />
-                </Source>
-                <Source id="ports" type="geojson" data={PORTS}>
-                    <Layer
-                        id="port-node"
-                        type="circle"
-                        paint={{
-                            'circle-radius': 3.5,
-                            'circle-color': EXCHANGE_ACCENT_GOLD,
-                            'circle-stroke-color': '#0b0f18',
-                            'circle-stroke-width': 1,
-                        }}
-                    />
-                    <Layer
-                        id="port-label"
-                        type="symbol"
-                        layout={{
-                            'text-field': ['get', 'name'],
-                            'text-size': 10,
-                            'text-anchor': 'left',
-                            'text-offset': [0.7, 0],
-                            'text-optional': true,
-                        }}
-                        paint={{
-                            'text-color': EXCHANGE_ACCENT_GOLD,
-                            'text-halo-color': '#0b0f18',
-                            'text-halo-width': 1.2,
-                        }}
-                    />
-                </Source>
-
-                {/* Offer markers — clustered, with a soft glow halo underneath. */}
-                <Source
-                    id="offers"
-                    type="geojson"
-                    data={offerGeojson}
-                    cluster
-                    clusterRadius={50}
-                    clusterMaxZoom={9}
-                    // Aggregate the SELL/BUY split per cluster so a cluster can
-                    // communicate buy-vs-sell at a glance (coloured by dominant side).
-                    clusterProperties={{
-                        sellCount: ['+', ['case', ['==', ['get', 'side'], 'SELL'], 1, 0]],
-                        buyCount: ['+', ['case', ['==', ['get', 'side'], 'BUY'], 1, 0]],
-                    }}
+            {/* Detail popup for a tapped single offer — tracks the marker via a
+                transform set in draw(). */}
+            {popupListing && (
+                <div
+                    ref={popupRef}
+                    className="pointer-events-auto absolute left-0 top-0 z-10 w-52 space-y-tight rounded-lg border border-border-emphasis bg-bg-elevated p-default"
                 >
-                    {/* Glow halo for single offers — soft, side-coloured. */}
-                    <Layer
-                        id="unclustered-glow"
-                        type="circle"
-                        filter={['!', ['has', 'point_count']]}
-                        paint={{
-                            'circle-color': [
-                                'match',
-                                ['get', 'side'],
-                                'SELL', EXCHANGE_SIDE_COLORS.SELL,
-                                'BUY', EXCHANGE_SIDE_COLORS.BUY,
-                                '#6b7280',
-                            ],
-                            // Bloom scales with price competitiveness — the best
-                            // ask/bid in each commodity blooms largest; hover wins.
-                            'circle-radius': [
-                                'case',
-                                ['==', ['get', 'id'], highlightedId ?? '__none__'],
-                                22,
-                                ['interpolate', ['linear'], ['get', 'pricePct'], 0, 14, 1, 20],
-                            ],
-                            'circle-blur': 1,
-                            'circle-opacity': [
-                                'case',
-                                ['==', ['get', 'id'], highlightedId ?? '__none__'],
-                                0.7,
-                                ['interpolate', ['linear'], ['get', 'pricePct'], 0, 0.4, 1, 0.62],
-                            ],
-                        }}
-                    />
-                    <Layer
-                        id="clusters"
-                        type="circle"
-                        filter={['has', 'point_count']}
-                        paint={{
-                            'circle-color': [
-                                'case',
-                                ['>=', ['get', 'sellCount'], ['get', 'buyCount']],
-                                EXCHANGE_SIDE_COLORS.SELL,
-                                EXCHANGE_SIDE_COLORS.BUY,
-                            ],
-                            'circle-opacity': 0.9,
-                            'circle-radius': ['step', ['get', 'point_count'], 16, 10, 22, 50, 30],
-                            'circle-stroke-width': 2,
-                            'circle-stroke-color': '#ffffff',
-                        }}
-                    />
-                    <Layer
-                        id="cluster-count"
-                        type="symbol"
-                        filter={['has', 'point_count']}
-                        layout={{
-                            'text-field': ['get', 'point_count_abbreviated'],
-                            'text-size': 12,
-                        }}
-                        paint={{ 'text-color': '#ffffff' }}
-                    />
-                    <Layer
-                        id="unclustered-point"
-                        type="circle"
-                        filter={['!', ['has', 'point_count']]}
-                        paint={{
-                            'circle-color': [
-                                'match',
-                                ['get', 'side'],
-                                'SELL', EXCHANGE_SIDE_COLORS.SELL,
-                                'BUY', EXCHANGE_SIDE_COLORS.BUY,
-                                '#6b7280',
-                            ],
-                            'circle-radius': [
-                                'case',
-                                ['==', ['get', 'id'], highlightedId ?? '__none__'],
-                                11,
-                                ['interpolate', ['linear'], ['get', 'pricePct'], 0, 6.5, 1, 9],
-                            ],
-                            'circle-stroke-width': 2,
-                            'circle-stroke-color': '#ffffff',
-                        }}
-                    />
-                    {/* Best-price ring — a grain-gold hoop around the most
-                        competitive ask/bid in each commodity, so a trader spots
-                        the top offer without reading the list. */}
-                    <Layer
-                        id="unclustered-best-ring"
-                        type="circle"
-                        filter={['all', ['!', ['has', 'point_count']], ['>=', ['get', 'pricePct'], 0.999]]}
-                        paint={{
-                            'circle-radius': [
-                                'case',
-                                ['==', ['get', 'id'], highlightedId ?? '__none__'],
-                                15,
-                                13,
-                            ],
-                            'circle-color': EXCHANGE_ACCENT_GOLD,
-                            'circle-opacity': 0,
-                            'circle-stroke-color': EXCHANGE_ACCENT_GOLD,
-                            'circle-stroke-width': 1.6,
-                            'circle-stroke-opacity': 0.9,
-                        }}
-                    />
-                    {/* Pinned price chip on each UNCLUSTERED offer — commodity ·
-                        tonnes · price. Collapses into the cluster count at low
-                        zoom (unclustered filter), and MapLibre collision hides
-                        any that would overlap, so the map never clutters. */}
-                    <Layer
-                        id="offer-label"
-                        type="symbol"
-                        filter={['!', ['has', 'point_count']]}
-                        layout={{
-                            'text-field': ['get', 'chipLabel'],
-                            'text-size': 11,
-                            'text-anchor': 'left',
-                            'text-offset': [0.9, 0],
-                            'text-optional': true,
-                            'text-max-width': 14,
-                        }}
-                        paint={{
-                            'text-color': '#e5e7eb',
-                            'text-halo-color': '#0b0f18',
-                            'text-halo-width': 1.6,
-                            'text-halo-blur': 0.4,
-                        }}
-                    />
-                </Source>
-
-                {/* Soft pulsing ring on the offer the list row is hovering. */}
-                {hovered && (
-                    <Marker longitude={hovered.lon} latitude={hovered.lat}>
+                    <div className="flex items-center gap-compact">
                         <span
-                            className="pointer-events-none block h-5 w-5 animate-pulse rounded-full border-2"
-                            style={{ borderColor: EXCHANGE_SIDE_COLORS[hovered.side], opacity: 0.6 }}
+                            aria-hidden="true"
+                            className="inline-block h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: EXCHANGE_SIDE_COLORS[popupListing.side] }}
                         />
-                    </Marker>
-                )}
-
-                {popup && (
-                    <Popup
-                        longitude={popup.lng}
-                        latitude={popup.lat}
-                        anchor="bottom"
-                        offset={12}
-                        closeOnClick={false}
-                        onClose={() => setPopup(null)}
+                        <span className="text-sm font-medium text-content-emphasis">{popupListing.commodity}</span>
+                        <span className="text-xs text-content-muted">
+                            {popupListing.side === 'SELL' ? t('selling') : t('buying')}
+                        </span>
+                    </div>
+                    <div className="text-xs text-content-secondary">
+                        {popupListing.quantityTonnes} t
+                        {popupListing.pricePerTonne ? ` · ${popupListing.pricePerTonne} ${PRICE_UNIT}` : ''}
+                    </div>
+                    <div className="text-xs text-content-muted">{popupListing.regionName}</div>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        className="mt-1 w-full"
+                        onClick={() => onListingSelect(popupListing.id)}
                     >
-                        <div className="space-y-tight p-1">
-                            <div className="flex items-center gap-compact">
-                                <span
-                                    aria-hidden="true"
-                                    className="inline-block h-2.5 w-2.5 rounded-full"
-                                    style={{ backgroundColor: EXCHANGE_SIDE_COLORS[popup.listing.side] }}
-                                />
-                                <span className="text-sm font-medium text-content-emphasis">
-                                    {popup.listing.commodity}
-                                </span>
-                                <span className="text-xs text-content-muted">
-                                    {popup.listing.side === 'SELL' ? t('selling') : t('buying')}
-                                </span>
-                            </div>
-                            <div className="text-xs text-content-secondary">
-                                {popup.listing.quantityTonnes} t
-                                {popup.listing.pricePerTonne
-                                    ? ` · ${popup.listing.pricePerTonne} ${popup.listing.priceCurrency}/t`
-                                    : ''}
-                            </div>
-                            <div className="text-xs text-content-muted">{popup.listing.regionName}</div>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                className="mt-1 w-full"
-                                onClick={() => onListingSelect(popup.listing.id)}
-                            >
-                                {t('viewDetails')}
-                            </Button>
-                        </div>
-                    </Popup>
-                )}
-            </Map>
+                        {t('viewDetails')}
+                    </Button>
+                </div>
+            )}
 
-            {/* Loading scrim — until the basemap style + first tiles are in. */}
+            {/* Zoom controls (bottom-left). */}
+            {status === 'ready' && (
+                <div className="absolute bottom-3 left-3 flex flex-col gap-1.5">
+                    <Button
+                        variant="secondary"
+                        size="icon"
+                        aria-label={t('zoomIn')}
+                        onClick={() => zoomButton(1.5)}
+                        icon={<Plus />}
+                    />
+                    <Button
+                        variant="secondary"
+                        size="icon"
+                        aria-label={t('zoomOut')}
+                        onClick={() => zoomButton(1 / 1.5)}
+                        icon={<Minus />}
+                    />
+                </div>
+            )}
+
+            {/* Loading / error / empty. */}
             {status === 'loading' && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-bg-default/60">
                     <span className="animate-pulse text-sm text-content-muted">{t('loadingMap')}</span>
                 </div>
             )}
-
-            {/* Fatal error — the basemap style never loaded (bad/missing
-                MapTiler key, blocked style host, or no WebGL). Explains the
-                blank pane instead of leaving a silent void; the offer list
-                beside the map still works. */}
             {status === 'error' && (
                 <div className="absolute inset-0 flex items-center justify-center bg-bg-default/80 p-default">
                     <div className="flex max-w-xs flex-col items-center gap-compact rounded-lg border border-border-subtle bg-bg-elevated p-default text-center">
                         <p className="text-sm font-medium text-content-emphasis">{t('mapLoadError')}</p>
-                        <p className="text-xs text-content-muted">
-                            {t('mapLoadErrorDetail')}
-                        </p>
+                        <p className="text-xs text-content-muted">{t('mapLoadErrorDetail')}</p>
                     </div>
                 </div>
             )}
-
-            {/* Empty hint — map is fine, but nothing matches the filters. */}
             {status === 'ready' && listings.length === 0 && (
                 <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border-subtle bg-bg-elevated/90 px-3 py-1 text-xs text-content-muted">
                     {t('noOffers')}
                 </div>
             )}
 
-            {/* Terminal chrome — a wordmark chip with a live pulse, and the
-                SELL/BUY key, floated on the map like a trading surface. */}
+            {/* Terminal chrome — wordmark chip + SELL/BUY/best/liquidity key. */}
             {status === 'ready' && (
                 <>
                     <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
@@ -789,7 +767,7 @@ export function ExchangeMap({
                         <span className="text-xs font-semibold tracking-wide text-content-emphasis">БОРСА</span>
                         <span className="text-xs text-content-muted">· {t('exchangeSuffix')}</span>
                     </div>
-                    <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-compact rounded-lg border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
+                    <div className="pointer-events-none absolute bottom-3 left-16 right-3 flex flex-wrap items-center gap-compact rounded-lg border border-border-subtle bg-bg-default/70 px-3 py-1.5 backdrop-blur-sm">
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EXCHANGE_SIDE_COLORS.SELL }} />
                             {t('selling')}
@@ -799,17 +777,14 @@ export function ExchangeMap({
                             {t('buying')}
                         </span>
                         <span className="flex items-center gap-1.5 text-xs text-content-muted">
-                            <span
-                                className="h-2.5 w-2.5 rounded-full border"
-                                style={{ borderColor: EXCHANGE_ACCENT_GOLD }}
-                            />
+                            <span className="h-2.5 w-2.5 rounded-full border" style={{ borderColor: BEST_GOLD }} />
                             {t('bestPrice')}
                         </span>
                         <span className="ml-auto flex items-center gap-1.5 text-xs text-content-muted">
                             {t('liquidity')}
                             <span
                                 className="h-2 w-9 rounded-sm"
-                                style={{ background: `linear-gradient(90deg, ${LAND_FILL}, ${LAND_HEAT}, ${EXCHANGE_ACCENT_GOLD})` }}
+                                style={{ background: `linear-gradient(90deg, ${heatColor(0)}, ${heatColor(1)}, ${EXCHANGE_ACCENT_GOLD})` }}
                             />
                         </span>
                     </div>

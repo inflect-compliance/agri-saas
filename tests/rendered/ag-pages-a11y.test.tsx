@@ -299,6 +299,7 @@ describe('Ag pages — WCAG 2.1 AA (jest-axe)', () => {
                 seasons={[]}
                 cropTypes={[]}
                 varieties={[]}
+                locations={[]}
                 tenantSlug="acme"
                 permissions={{ canWrite: true }}
             />,
