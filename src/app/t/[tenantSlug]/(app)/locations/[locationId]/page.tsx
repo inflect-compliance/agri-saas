@@ -29,6 +29,7 @@ import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
 import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
 import { SoilLegend } from '@/components/soil/SoilLegend';
+import { CropLegend } from '@/components/agriculture/CropLegend';
 import { soilColorForTexture, type SoilProfile } from '@/lib/soil/types';
 import type { UsdaTextureClass } from '@/lib/soil/texture';
 import { SprayJobWizard } from './SprayJobWizard';
@@ -277,6 +278,24 @@ export default function LocationDetailPage() {
         () => parcels.map((p) => ({ id: p.id, name: p.name, areaHa: p.areaHa ?? null, geometry: (p.geometry ?? null) as Geometry | null })),
         [parcels],
     );
+
+    // Crop-glyph overlay (#1): parcelId → crop value, plus the distinct set of
+    // crops present (for the legend). cropType already flows from the parcels
+    // API; the map draws a glyph per parcel that has one.
+    const cropById = useMemo<Record<string, string>>(() => {
+        const map: Record<string, string> = {};
+        for (const p of parcels) {
+            if (p.cropType) map[p.id] = p.cropType;
+        }
+        return map;
+    }, [parcels]);
+    const cropsPresent = useMemo<string[]>(() => {
+        const seen = new Set<string>();
+        for (const p of parcels) {
+            if (p.cropType) seen.add(p.cropType);
+        }
+        return Array.from(seen);
+    }, [parcels]);
 
     const sheetParcel = useMemo<ParcelSheetData | null>(() => {
         const p = parcels.find((x) => x.id === sheetParcelId);
@@ -725,12 +744,16 @@ export default function LocationDetailPage() {
                             vectorTileUrl={buildUrl(`/locations/${locationId}/tiles/{z}/{x}/{y}.pbf`)}
                             soilMode={soilView}
                             soilColorById={soilColorById}
+                            cropById={cropById}
                         />
-                        {/* Soil legend — only in soil view; sits in the desktop
-                            side column, or stacks under the map on phones. */}
-                        {soilView && (
-                            <div className="md:col-start-2">
-                                <SoilLegend classes={soilClasses} hasPending={soilHasPending} />
+                        {/* Side column: crop legend (whenever crops are present)
+                            + soil legend (soil view only). Both sit in the
+                            desktop side column, or stack under the map on
+                            phones. */}
+                        {(cropsPresent.length > 0 || soilView) && (
+                            <div className="space-y-default md:col-start-2">
+                                {cropsPresent.length > 0 && <CropLegend crops={cropsPresent} />}
+                                {soilView && <SoilLegend classes={soilClasses} hasPending={soilHasPending} />}
                             </div>
                         )}
                         {/* Spray-job panel — desktop-only; on phones the parcel

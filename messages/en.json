@@ -3015,6 +3015,9 @@
             "unitGcm3": "{value} g/cm³",
             "percent": "{value}%"
         },
+        "crop": {
+            "legendTitle": "Crops"
+        },
         "ai": {
             "disclaimer": "AI suggestion — verify with an agronomist.",
             "copilotTitle": "Agronomy copilot",
