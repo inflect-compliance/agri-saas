@@ -65,7 +65,7 @@ export function FarmRiskClient({ tenantSlug, locations }: { tenantSlug: string; 
 
             {locations.length === 0 ? (
                 <div className="rounded-lg border border-border-subtle bg-bg-default p-6 text-sm text-content-muted">
-                    {t('noLocations')}
+                    {t('emptyLocations')}
                 </div>
             ) : (
                 <>
@@ -82,7 +82,7 @@ export function FarmRiskClient({ tenantSlug, locations }: { tenantSlug: string; 
 
                     {parcels.length === 0 ? (
                         <div className="rounded-lg border border-border-subtle bg-bg-default p-6 text-sm text-content-muted">
-                            {t('noParcels')}
+                            {t('emptyParcels')}
                         </div>
                     ) : (
                         <ul className="space-y-default">
