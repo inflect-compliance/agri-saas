@@ -499,6 +499,23 @@ executorRegistry.register('exchange-expiry-sweep', async (payload) => {
     );
 });
 
+executorRegistry.register('soil-fetch', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    // Tenant-scoped: soil is fetched + persisted under the payload tenant's
+    // RLS context (runSoilFetch builds a tenant ctx from payload.tenantId).
+    if (!payload.tenantId) {
+        throw new Error('soil-fetch requires a tenantId in the payload.');
+    }
+    const { runSoilFetch } = await import('./soil-fetch');
+    const r = await runSoilFetch(payload);
+    return makeResult(
+        'soil-fetch', startedAt, startMs,
+        r.scanned, r.populated, r.skipped,
+        { scanned: r.scanned, populated: r.populated, skipped: r.skipped },
+    );
+});
+
 // ── task-due-notification ───────────────────────────────────────────
 
 executorRegistry.register('task-due-notification', async (payload) => {

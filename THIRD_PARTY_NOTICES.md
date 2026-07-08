@@ -49,6 +49,18 @@ and are not re-listed here.
   domain and may be embedded + redistributed freely; this attribution is
   courtesy. Each seeded article also records `source = "OpenFarm (CC0)"`.
 
+### ISRIC SoilGrids 2.0 — CC-BY 4.0
+- **Project:** https://soilgrids.org (ISRIC — World Soil Information).
+- **Used for:** Per-parcel soil profiles (#37) — texture (sand/silt/clay),
+  pH, organic carbon, bulk density. Fetched at runtime from the SoilGrids
+  REST API (`rest.isric.org`, or a self-hosted mirror via `SOIL_BASE_URL`),
+  cached per ~100 m grid cell in the global `SoilSample` table, and stored on
+  `Parcel.soilJson`. **SoilGrids is a MODEL, not a field survey** — every
+  value is a modelled ESTIMATE with quantified uncertainty and is surfaced to
+  users as such (never a lab result). CC-BY 4.0 requires attribution: the
+  in-app credit "Soil: SoilGrids (ISRIC), CC-BY 4.0" appears on the soil map
+  legend and every soil profile card (`src/components/soil/*`).
+
 ---
 
 ## RAG knowledge corpora (feat/ai-rag — ingested as retrievable text)

@@ -14,9 +14,11 @@ import {
     invalidGeometryIndicesSql,
     unionParcelsGeoJsonSql,
     splitParcelGeoJsonSql,
+    centroidLonLatSql,
 } from '@/lib/db/geo';
 import type { ParsedParcel } from '@/lib/spatial/parse';
 import type { Geometry, Polygon, MultiPolygon, LineString } from 'geojson';
+import type { SoilProfile } from '@/lib/soil/types';
 
 /** A parcel returned to the client — geometry serialized to GeoJSON. */
 export interface ParcelGeo {
@@ -26,6 +28,10 @@ export interface ParcelGeo {
     areaHa: number | null;
     geometry: Geometry | null;
     properties: unknown;
+    /** Human soil label (modelled estimate); null until the fetch job runs. */
+    soilType: string | null;
+    /** Structured modelled soil profile; null while "soil pending". */
+    soilJson: SoilProfile | null;
 }
 
 /**
@@ -41,7 +47,8 @@ export class ParcelRepository {
      * Replace all parcels for a Location with the freshly-parsed set.
      * Hard-deletes the existing parcels (re-import semantics) then
      * inserts each one, writing geometry via ST_GeomFromGeoJSON and
-     * areaHa via ST_Area (geography cast → hectares). Returns the count.
+     * areaHa via ST_Area (geography cast → hectares). Optionally stamps a
+     * default `cropType` on every parcel (#7). Returns the created parcel ids.
      */
     static async replaceForLocation(
         db: PrismaTx,
@@ -49,13 +56,14 @@ export class ParcelRepository {
         locationId: string,
         parcels: ParsedParcel[],
         cropType?: string | null,
-    ): Promise<number> {
+    ): Promise<string[]> {
         await db.parcel.deleteMany({ where: { locationId, tenantId: ctx.tenantId } });
 
         // A blank / whitespace-only default means "mixed — set later": leave
         // cropType null so it isn't stamped on every imported parcel (#7).
         const importCrop = cropType && cropType.trim().length > 0 ? cropType.trim() : null;
 
+        const createdIds: string[] = [];
         for (const p of parcels) {
             // Create the row through Prisma so id/defaults are minted,
             // omitting the Unsupported geometry column…
@@ -78,9 +86,10 @@ export class ParcelRepository {
                         "areaHa" = ${areaHectaresNonNullSql(repairedGeometrySql(p.geometry))}
                     WHERE "id" = ${row.id} AND "tenantId" = ${ctx.tenantId}`,
             );
+            createdIds.push(row.id);
         }
 
-        return parcels.length;
+        return createdIds;
     }
 
     /**
@@ -107,9 +116,11 @@ export class ParcelRepository {
             areaHa: string | null;
             geojson: string | null;
             propertiesJson: unknown;
+            soilType: string | null;
+            soilJson: unknown;
         }>>(
             Prisma.sql`SELECT "id", "name", "cropType", "areaHa"::text AS "areaHa",
-                    ${geojsonSql} AS "geojson", "propertiesJson"
+                    ${geojsonSql} AS "geojson", "propertiesJson", "soilType", "soilJson"
                 FROM "Parcel"
                 WHERE "locationId" = ${locationId}
                   AND "tenantId" = ${ctx.tenantId}
@@ -124,6 +135,8 @@ export class ParcelRepository {
             areaHa: r.areaHa !== null ? Number(r.areaHa) : null,
             geometry: parseGeometry(r.geojson),
             properties: r.propertiesJson ?? null,
+            soilType: r.soilType,
+            soilJson: (r.soilJson ?? null) as SoilProfile | null,
         }));
     }
 
@@ -316,6 +329,27 @@ export class ParcelRepository {
             where: { id: parcelId, tenantId: ctx.tenantId, deletedAt: null },
             select: { id: true, name: true, locationId: true },
         });
+    }
+
+    /**
+     * WGS84 centroid (lon/lat) of a parcel's geometry, for the soil-fetch
+     * lookup. Tenant-scoped; the `ST_Centroid` lives in geo.ts. Returns
+     * null when the parcel is missing or has no geometry (caller treats
+     * that as "no centroid, skip" — never throws / blocks).
+     */
+    static async centroidLonLat(
+        db: PrismaTx,
+        ctx: RequestContext,
+        parcelId: string,
+    ): Promise<{ lon: number; lat: number } | null> {
+        const rows = await db.$queryRaw<Array<{ lon: number | null; lat: number | null }>>(
+            Prisma.sql`SELECT ${centroidLonLatSql(col('geometry'))} FROM "Parcel"
+                WHERE "id" = ${parcelId} AND "tenantId" = ${ctx.tenantId}
+                  AND "deletedAt" IS NULL AND ${col('geometry')} IS NOT NULL`,
+        );
+        const r = rows[0];
+        if (!r || r.lon === null || r.lat === null) return null;
+        return { lon: Number(r.lon), lat: Number(r.lat) };
     }
 
     /** Read back the denormalized areaHa for a parcel (post-write). */

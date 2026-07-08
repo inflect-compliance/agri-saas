@@ -7,6 +7,7 @@ import { runInTenantContext } from '@/lib/db-context';
 import type { PrismaTx } from '@/lib/db-context';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { ParcelRepository } from '../repositories/ParcelRepository';
+import { enqueueParcelSoilFetch } from './soil';
 import type { Polygon, MultiPolygon, LineString } from 'geojson';
 
 /**
@@ -49,7 +50,7 @@ export async function createParcel(ctx: RequestContext, locationId: string, inpu
     const name = sanitizePlainText((input.name ?? '').trim());
     if (!name) throw badRequest('Parcel name is required.');
 
-    return runInTenantContext(ctx, async (db) => {
+    const created = await runInTenantContext(ctx, async (db) => {
         const location = await db.location.findFirst({
             where: { id: locationId, tenantId: ctx.tenantId, deletedAt: null },
             select: { id: true },
@@ -82,11 +83,16 @@ export async function createParcel(ctx: RequestContext, locationId: string, inpu
         });
         return created;
     });
+
+    // Trigger the async soil fetch (best-effort, non-blocking) once the
+    // parcel + its geometry are committed.
+    await enqueueParcelSoilFetch(ctx, [created.id]);
+    return created;
 }
 
 export async function updateParcel(ctx: RequestContext, parcelId: string, input: UpdateParcelInput) {
     assertCanWrite(ctx);
-    return runInTenantContext(ctx, async (db) => {
+    const result = await runInTenantContext(ctx, async (db) => {
         const parcel = await ParcelRepository.getOne(db, ctx, parcelId);
         if (!parcel) throw notFound('Parcel not found');
 
@@ -125,8 +131,12 @@ export async function updateParcel(ctx: RequestContext, parcelId: string, input:
                 summary: reshaped ? `Reshaped parcel ${parcel.name}` : `Edited parcel ${parcel.name}`,
             },
         });
-        return res;
+        return { res, reshaped };
     });
+
+    // A boundary change moves the centroid → re-fetch soil (best-effort).
+    if (result.reshaped) await enqueueParcelSoilFetch(ctx, [parcelId]);
+    return result.res;
 }
 
 export async function deleteParcel(ctx: RequestContext, parcelId: string) {

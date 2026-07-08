@@ -2989,6 +2989,32 @@
                 "error": "Заявката не можа да бъде изпратена. Моля, опитайте отново."
             }
         },
+        "soil": {
+            "title": "Почва",
+            "viewToggle": "Изглед по почва",
+            "legendTitle": "Тип почва",
+            "pending": "Изчаква почвени данни",
+            "estimate": "Моделна оценка — не е лабораторен резултат.",
+            "attribution": "Почва: SoilGrids (ISRIC), CC-BY 4.0",
+            "profileTitle": "Почвен профил",
+            "texture": "Механичен състав",
+            "ph": "pH (вода)",
+            "soc": "Органичен въглерод",
+            "sandSiltClay": "Пясък / Тиня / Глина",
+            "bulkDensity": "Обемна плътност",
+            "depth": "Дълбочина",
+            "uncertainty": "± несигурност",
+            "noSoilYet": "Почвените данни за този парцел все още се зареждат",
+            "advisory": "Потвърдете с почвен анализ или вашия агроном.",
+            "suitabilityTitle": "Пригодност за културата",
+            "suitabilityGood": "Добро съответствие",
+            "suitabilityCaution": "Внимание",
+            "suitabilityPoor": "Слабо съответствие",
+            "suitabilityUnknown": "Недостатъчно данни",
+            "unitGkg": "{value} г/кг",
+            "unitGcm3": "{value} г/см³",
+            "percent": "{value}%"
+        },
         "ai": {
             "disclaimer": "Предложение от ИИ — потвърдете с агроном.",
             "copilotTitle": "Агрономски асистент",

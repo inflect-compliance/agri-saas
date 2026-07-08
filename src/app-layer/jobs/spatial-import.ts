@@ -178,7 +178,7 @@ export async function runLocationSpatialImport(
         assertParcelComplexity(parsed.parcels);
 
         // 4 — validate topology + persist atomically inside the tenant ctx.
-        const { parcelCount } = await runInTenantContext(ctx, async (db) => {
+        const { parcelCount, parcelIds } = await runInTenantContext(ctx, async (db) => {
             const location = await db.location.findFirst({
                 where: { id: payload.locationId, tenantId: ctx.tenantId, deletedAt: null },
                 select: { id: true, name: true },
@@ -219,13 +219,14 @@ export async function runLocationSpatialImport(
             }
 
             // 4b — replace the location's parcels + stamp the file/format/bounds.
-            const count = await ParcelRepository.replaceForLocation(
+            const parcelIds = await ParcelRepository.replaceForLocation(
                 db,
                 ctx,
                 payload.locationId,
                 parsed.parcels,
                 payload.cropType,
             );
+            const count = parcelIds.length;
             await db.location.update({
                 where: { id: payload.locationId },
                 data: {
@@ -251,8 +252,13 @@ export async function runLocationSpatialImport(
                 },
             });
 
-            return { parcelCount: count };
+            return { parcelCount: count, parcelIds };
         });
+
+        // Trigger the async soil fetch for the freshly-imported parcels
+        // (best-effort, rate-limited queue; never blocks the import result).
+        const { enqueueParcelSoilFetch } = await import('@/app-layer/usecases/soil');
+        await enqueueParcelSoilFetch(ctx, parcelIds);
 
         logger.info('spatial-import.completed', {
             component: 'spatial-import',

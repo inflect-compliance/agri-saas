@@ -20,13 +20,21 @@
  */
 import { Queue, type JobsOptions, type ConnectionOptions } from 'bullmq';
 import { createRedisClient } from '@/lib/redis';
-import { QUEUE_NAME, JOB_DEFAULTS, type JobName, type JobPayload } from './types';
+import {
+    QUEUE_NAME,
+    SOIL_QUEUE_NAME,
+    SOIL_QUEUE_JOBS,
+    JOB_DEFAULTS,
+    type JobName,
+    type JobPayload,
+} from './types';
 import { logger } from '@/lib/observability/logger';
 
-// ─── Singleton queue (survives HMR) ───
+// ─── Singleton queues (survive HMR) ───
 
 const globalForQueue = globalThis as unknown as {
     __bullmq_queue?: Queue;
+    __bullmq_soil_queue?: Queue;
 };
 
 /**
@@ -65,6 +73,31 @@ export function getQueue(): Queue {
 }
 
 /**
+ * Returns the shared BullMQ Queue for soil-fetch jobs. Separate queue so the
+ * worker can rate-limit soil provider calls (5/min) independently of every
+ * other job. Same Redis connection lifecycle as `getQueue`.
+ */
+export function getSoilQueue(): Queue {
+    if (!globalForQueue.__bullmq_soil_queue) {
+        const connection = createRedisClient();
+        globalForQueue.__bullmq_soil_queue = new Queue(SOIL_QUEUE_NAME, {
+            connection: connection as ConnectionOptions,
+            defaultJobOptions: {
+                attempts: 3,
+                backoff: { type: 'exponential', delay: 5000 },
+                removeOnComplete: 500,
+                removeOnFail: 1000,
+            },
+        });
+        logger.info('BullMQ soil queue initialized', {
+            component: 'queue',
+            queueName: SOIL_QUEUE_NAME,
+        });
+    }
+    return globalForQueue.__bullmq_soil_queue;
+}
+
+/**
  * Enqueue a typed job.
  *
  * @param name — job name (must be a key of JobPayloadMap)
@@ -81,7 +114,7 @@ export async function enqueue<T extends JobName>(
     payload: JobPayload<T>,
     options?: Partial<JobsOptions>,
 ) {
-    const queue = getQueue();
+    const queue = SOIL_QUEUE_JOBS.has(name) ? getSoilQueue() : getQueue();
     const defaults = JOB_DEFAULTS[name];
 
     const job = await queue.add(name, payload, {
@@ -109,5 +142,10 @@ export async function closeQueue(): Promise<void> {
         await globalForQueue.__bullmq_queue.close();
         globalForQueue.__bullmq_queue = undefined;
         logger.info('BullMQ queue closed', { component: 'queue' });
+    }
+    if (globalForQueue.__bullmq_soil_queue) {
+        await globalForQueue.__bullmq_soil_queue.close();
+        globalForQueue.__bullmq_soil_queue = undefined;
+        logger.info('BullMQ soil queue closed', { component: 'queue' });
     }
 }

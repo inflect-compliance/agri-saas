@@ -25,6 +25,8 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Sheet } from '@/components/ui/sheet';
 import { QrCode } from '@/components/ui/qr-code';
+import { SoilProfileCard } from '@/components/soil/SoilProfileCard';
+import type { SoilProfile } from '@/lib/soil/types';
 
 export interface ParcelSheetData {
     id: string;
@@ -38,6 +40,8 @@ export interface ParcelSheetData {
      * wired (tracked as a follow-up).
      */
     lastApplication?: { label: string; occurredAt?: string | null } | null;
+    /** Modelled soil profile (estimate); null while "soil pending". */
+    soilJson?: SoilProfile | null;
 }
 
 export interface ParcelDetailSheetProps {
@@ -105,6 +109,11 @@ export function ParcelDetailSheet({ open, onOpenChange, parcel, onStartOperation
                         </dd>
                     </div>
                 </dl>
+
+                {/* Soil profile (modelled estimate) for this parcel. */}
+                <div className="rounded-lg border border-border-subtle p-4">
+                    <SoilProfileCard profile={parcel?.soilJson ?? null} />
+                </div>
 
                 {/* Apply-rate calculator — pure client maths, no round-trip. */}
                 <div className="space-y-default rounded-lg border border-border-subtle p-4">

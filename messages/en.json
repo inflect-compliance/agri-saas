@@ -2989,6 +2989,32 @@
                 "error": "Could not send your request. Please try again."
             }
         },
+        "soil": {
+            "title": "Soil",
+            "viewToggle": "Soil view",
+            "legendTitle": "Soil type",
+            "pending": "Soil pending",
+            "estimate": "Modelled estimate — not a lab result.",
+            "attribution": "Soil: SoilGrids (ISRIC), CC-BY 4.0",
+            "profileTitle": "Soil profile",
+            "texture": "Texture",
+            "ph": "pH (water)",
+            "soc": "Organic carbon",
+            "sandSiltClay": "Sand / Silt / Clay",
+            "bulkDensity": "Bulk density",
+            "depth": "Depth",
+            "uncertainty": "± uncertainty",
+            "noSoilYet": "Soil data is still being fetched for this field",
+            "advisory": "Verify with a soil test or your agronomist.",
+            "suitabilityTitle": "Crop suitability",
+            "suitabilityGood": "Good match",
+            "suitabilityCaution": "Caution",
+            "suitabilityPoor": "Poor match",
+            "suitabilityUnknown": "Not enough data",
+            "unitGkg": "{value} g/kg",
+            "unitGcm3": "{value} g/cm³",
+            "percent": "{value}%"
+        },
         "ai": {
             "disclaimer": "AI suggestion — verify with an agronomist.",
             "copilotTitle": "Agronomy copilot",

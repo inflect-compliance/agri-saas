@@ -22,6 +22,8 @@ import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { createColumns, DataTable } from '@/components/ui/table';
 import { GanttTimeline } from '@/components/ui/GanttTimeline';
 import { AgStatusBadge } from '@/components/ag/ag-status';
+import { SoilSuitabilityBadge } from '@/components/soil/SoilSuitabilityBadge';
+import type { SuitabilityFlag } from '@/lib/soil/suitability';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { SkeletonCard, SkeletonLine } from '@/components/ui/skeleton';
 import { Heading } from '@/components/ui/typography';
@@ -86,6 +88,30 @@ function GddCell({ plantingId }: { plantingId: string }) {
     );
 }
 
+/**
+ * Advisory soil-suitability flag for one planting (Soil integration #37).
+ * Lazily fetches the per-planting soil endpoint and renders the suitability
+ * badge; `unknown` when the parcel has no soil yet or the variety carries no
+ * soil preferences. Same lazy-per-row pattern as {@link GddCell}.
+ */
+function SoilCell({ plantingId }: { plantingId: string }) {
+    const { data, isLoading } = useTenantSWR<{
+        suitability: { flag: SuitabilityFlag; reason: string };
+    }>(`/planning/plantings/${plantingId}/soil`);
+    if (isLoading && !data) {
+        return <SkeletonLine className="h-3 w-12" />;
+    }
+    if (!data) {
+        return <span className="text-xs text-content-subtle">—</span>;
+    }
+    return (
+        <SoilSuitabilityBadge
+            flag={data.suitability.flag}
+            reason={data.suitability.reason}
+        />
+    );
+}
+
 /** A planned date beside its actual realisation (or an em-dash). */
 function PlannedActual({ planned, actual }: { planned: string | null; actual: string | null }) {
     const t = useTranslations('planning.board');
@@ -113,6 +139,7 @@ export function PlantingBoard({
     cropPlanId: string;
 }) {
     const t = useTranslations('planning.board');
+    const tSoil = useTranslations('ag.soil');
     // Plan-vs-actual progress + the planting rows (for seed/plant-count).
     const progressSWR = useTenantSWR<ProgressPayload>(
         `/planning/crop-plans/${cropPlanId}?include=progress`,
@@ -251,6 +278,12 @@ export function PlantingBoard({
                     cell: ({ row }) => <GddCell plantingId={row.original.plantingId} />,
                 },
                 {
+                    id: 'soil',
+                    header: tSoil('suitabilityTitle'),
+                    enableSorting: false,
+                    cell: ({ row }) => <SoilCell plantingId={row.original.plantingId} />,
+                },
+                {
                     accessorKey: 'status',
                     header: t('colStatus'),
                     cell: ({ row }) => (
@@ -258,7 +291,7 @@ export function PlantingBoard({
                     ),
                 },
             ]),
-        [plantingById, t],
+        [plantingById, t, tSoil],
     );
 
     if (progressSWR.isLoading && !progressSWR.data) {

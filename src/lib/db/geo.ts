@@ -100,6 +100,20 @@ export function simplifiedGeoJsonSql(column: Prisma.Sql, toleranceDegrees = 0.00
 }
 
 /**
+ * SQL fragment yielding a geometry's centroid as WGS84 lon/lon, aliased
+ * `lon` and `lat` — `ST_X(ST_Centroid(col))` / `ST_Y(ST_Centroid(col))`.
+ * The column SRID is 4326, so the centroid's X is longitude and Y is
+ * latitude directly (no reprojection). `ST_Centroid` returns a POINT even
+ * for a MultiPolygon; on a NULL geometry both coordinates come back NULL,
+ * which the soil-fetch caller treats as "no centroid, skip" (never throws).
+ * Lives here so every `ST_*` call stays inside geo.ts (the containment
+ * guard). Select as: `SELECT ${centroidLonLatSql(col('geometry'))} FROM …`.
+ */
+export function centroidLonLatSql(column: Prisma.Sql): Prisma.Sql {
+    return Prisma.sql`ST_X(ST_Centroid(${column})) AS "lon", ST_Y(ST_Centroid(${column})) AS "lat"`;
+}
+
+/**
  * Full query: a Mapbox Vector Tile (MVT) for the z/x/y tile covering a
  * location's parcels. The geometry is reprojected to Web Mercator (3857),
  * clipped to the tile envelope, and quantised to a 4096-unit extent by

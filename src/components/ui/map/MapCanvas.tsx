@@ -32,6 +32,7 @@ import { Crosshairs3, MapPosition, Minus, Plus } from '@/components/ui/icons/nuc
 import { useReducedMotion } from '@/components/ui/hooks';
 import { cn } from '@/lib/cn';
 import { env } from '@/env';
+import { SOIL_PENDING_COLOR } from '@/lib/soil/types';
 
 export interface MapParcel {
     id: string;
@@ -123,6 +124,17 @@ export interface MapCanvasProps {
      * full GeoJSON source exactly as before.
      */
     vectorTileUrl?: string;
+    /**
+     * Soil view mode — colour each parcel by its soil class instead of the
+     * selection/operator-progress palette. `soilColorById` maps parcelId →
+     * fill colour (from the colour-blind-safe texture palette); a parcel not
+     * in the map renders in the neutral "soil pending" tone with a dashed
+     * outline. Mutually exclusive with the operator (done) colouring — the
+     * host page owns the toggle. Selection still works (for the click panel).
+     */
+    soilMode?: boolean;
+    /** parcelId → soil fill colour (only read when `soilMode`). */
+    soilColorById?: Record<string, string>;
     className?: string;
 }
 
@@ -164,6 +176,8 @@ export function MapCanvas({
     liveTracking = false,
     flyToOnSelect = false,
     vectorTileUrl,
+    soilMode = false,
+    soilColorById,
     className,
 }: MapCanvasProps) {
     const t = useTranslations('ag.map.canvas');
@@ -196,10 +210,14 @@ export function MapCanvas({
                     name: p.name,
                     selected: selected.has(p.id),
                     done: done.has(p.id),
+                    // Soil-view fill: the class colour, or the neutral tone
+                    // when this parcel has no soil yet ("pending").
+                    soilColor: soilColorById?.[p.id] ?? SOIL_PENDING_COLOR,
+                    soilPending: !soilColorById?.[p.id],
                 },
                 geometry: p.geometry,
             })),
-    }), [parcels, selected, done]);
+    }), [parcels, selected, done, soilColorById]);
 
     // On-parcel labels — the cadastral ID (parcel name, e.g. "15655-3")
     // and the size (ha), anchored at each parcel's bbox centre. Rendered as
@@ -563,13 +581,19 @@ export function MapCanvas({
                             // double-draw. Uncapped otherwise (interactive/draw).
                             {...(vectorActive ? { maxzoom: 6 } : {})}
                             paint={{
-                                'fill-color': [
-                                    'case',
-                                    ['boolean', ['get', 'done'], false], '#16a34a',
-                                    ['boolean', ['get', 'selected'], false], '#2563eb',
-                                    '#94a3b8',
-                                ],
-                                'fill-opacity': 0.4,
+                                // Soil view: fill by soil class (per-feature
+                                // colour). Otherwise the operator/selection
+                                // palette. Pending parcels keep the neutral
+                                // tone (set in the feature builder).
+                                'fill-color': soilMode
+                                    ? ['get', 'soilColor']
+                                    : [
+                                        'case',
+                                        ['boolean', ['get', 'done'], false], '#16a34a',
+                                        ['boolean', ['get', 'selected'], false], '#2563eb',
+                                        '#94a3b8',
+                                    ],
+                                'fill-opacity': soilMode ? 0.6 : 0.4,
                             }}
                         />
                         <Layer
@@ -585,6 +609,22 @@ export function MapCanvas({
                                 'line-width': 1.5,
                             }}
                         />
+                        {/* Soil-pending outline — a dashed border on parcels
+                            with no soil yet, drawn as its own filtered layer so
+                            the dash is a static (well-supported) constant, not
+                            a data-driven expression on the main outline. */}
+                        {soilMode && (
+                            <Layer
+                                id="parcel-soil-pending"
+                                type="line"
+                                filter={['==', ['get', 'soilPending'], true]}
+                                paint={{
+                                    'line-color': '#64748b',
+                                    'line-width': 1.5,
+                                    'line-dasharray': [2, 2],
+                                }}
+                            />
+                        )}
                     </Source>
                 )}
 

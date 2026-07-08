@@ -75,6 +75,12 @@ model CropVariety {
   /// Expected germination 0..1 (seed-quantity overage).
   germinationRate     Decimal?        @db.Decimal(4, 3)
   seedsPerCell        Int?
+  /// Agronomic soil preferences for soil-aware SUITABILITY (advisory
+  /// only). Optional JSON so a variety with no curated defaults yields
+  /// an honest "unknown" suitability rather than a fabricated number:
+  /// { phMin?, phMax?, texturePreference?: string[], drainagePreference? }.
+  /// Thresholds come from catalog/import data — never invented at runtime.
+  soilDefaultsJson    Json?
   /// OpenFarm (CC0) or other provenance URN.
   sourceUrn           String?
   notes               String?
