@@ -5926,6 +5926,8 @@
             "overviewParcels": "Парцели",
             "overviewTotalArea": "Обща площ",
             "noParcelsHint": "Все още няма парцели — използвайте „Импортирай парцели“, за да качите shapefile, KML или GeoJSON.",
+            "cropFilterLabel": "Филтър по култура",
+            "cropFilterAll": "Всички",
             "parcelsAccordion": "Парцели",
             "colName": "Име",
             "colCrop": "Култура",
