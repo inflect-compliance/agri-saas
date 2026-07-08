@@ -150,7 +150,11 @@ function rectsOverlap(a: Rect, b: Rect): boolean {
 
 /** Draw one marker: soft side-coloured glow, gold double-ring when best. */
 function drawMarker(ctx: CanvasRenderingContext2D, it: Item): void {
-    const R = it.best ? it.r * 1.28 : it.r;
+    // Best gets a prominence FLOOR: marker size encodes tonnage, so the
+    // cheapest offer (often small tonnage) would otherwise render as a speck
+    // with a tiny gold ring — invisible on a phone. Floor it so the best price
+    // always stands out regardless of how many tonnes it carries.
+    const R = it.best ? Math.max(it.r * 1.28, 6) : it.r;
     ctx.save();
     ctx.shadowColor = it.col;
     ctx.shadowBlur = 13 + it.glow * 12;
