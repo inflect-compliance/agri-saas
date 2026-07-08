@@ -8,7 +8,6 @@ import type { Geometry } from 'geojson';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { CoachMark } from '@/components/ui/coach-mark';
 import { Heading } from '@/components/ui/typography';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
@@ -31,10 +30,9 @@ import { SoilLegend } from '@/components/soil/SoilLegend';
 import { CropLegend } from '@/components/agriculture/CropLegend';
 import { soilColorForTexture, type SoilProfile } from '@/lib/soil/types';
 import type { UsdaTextureClass } from '@/lib/soil/texture';
-import { SprayJobWizard } from './SprayJobWizard';
 import { SmartDefaultsBanner } from './SmartDefaultsBanner';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
-import { Plus, CalendarIcon } from '@/components/ui/icons/nucleo';
+import { CalendarIcon } from '@/components/ui/icons/nucleo';
 import { useMediaQuery, useToast } from '@/components/ui/hooks';
 import { cn } from '@/lib/cn';
 import type { MapParcel } from '@/components/ui/map/MapCanvas';
@@ -173,9 +171,7 @@ export default function LocationDetailPage() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link read on mount only
     }, []);
-    const [wizardParcelIds, setWizardParcelIds] = useState<string[]>([]);
     const [showImport, setShowImport] = useState(false);
-    const [showSprayWizard, setShowSprayWizard] = useState(false);
     const [activeJob, setActiveJob] = useState<string | null>(null);
     // БАБХ ДНЕВНИК (PDF) — minimal trigger: a date range (defaults to the
     // current season, Jan 1 → today) → POST → stream the filled PDF download.
@@ -354,15 +350,6 @@ export default function LocationDetailPage() {
         setSelected(ids);
     };
 
-    // "Start operation here" — seed a single-parcel spray job and open the
-    // wizard at the product step.
-    const startOperationHere = (parcelId: string) => {
-        setSheetParcelId(null);
-        setSelected([parcelId]);
-        setWizardParcelIds([parcelId]);
-        setShowSprayWizard(true);
-    };
-
     type ParcelRow = ParcelsResp['parcels'][number];
 
     // Set a parcel's crop from the Crop dropdown. Empty ⇒ clear (null).
@@ -461,23 +448,6 @@ export default function LocationDetailPage() {
                     >
                         {t('dnevnikBtn')}
                     </Button>
-                    <CoachMark
-                        id="field-op-wizard"
-                        title={t('coachTitle')}
-                        body={t('coachBody')}
-                        placement="bottom"
-                    >
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            icon={<Plus className="size-4" />}
-                            onClick={() => { setWizardParcelIds([]); setShowSprayWizard(true); }}
-                            disabled={parcels.length === 0}
-                            data-testid="new-spray-job"
-                        >
-                            {t('sprayJob')}
-                        </Button>
-                    </CoachMark>
                 </div>
             }
             tabs={tabs}
@@ -777,28 +747,18 @@ export default function LocationDetailPage() {
                 }}
             />
 
-            <SprayJobWizard
-                open={showSprayWizard}
-                onOpenChange={setShowSprayWizard}
-                locationId={locationId}
-                parcels={parcels.map((p) => ({ id: p.id, name: p.name, areaHa: p.areaHa ?? null }))}
-                initialParcelIds={wizardParcelIds}
-                smartDefaults={smartQ.data}
-                onCreated={() => { setTab('operations'); void opsQ.mutate(); }}
-            />
-
-            {/* Phone parcel bottom-sheet — opened by a map tap or a parcel
-                card tap. Desktop uses the inline side panel instead. */}
+            {/* Parcel sheet — the single spray/field-operation screen (#3),
+                opened by a map tap or a parcel card tap. It IS the create
+                form (Fertilizer-XOR-Product + crop + operator), so there is no
+                longer a separate multi-step wizard. */}
             <ParcelDetailSheet
                 open={sheetParcelId !== null}
                 onOpenChange={(o) => { if (!o) setSheetParcelId(null); }}
                 parcel={sheetParcel}
-                onStartOperation={startOperationHere}
-                deepLinkUrl={
-                    sheetParcelId && typeof window !== 'undefined'
-                        ? `${window.location.origin}/t/${tenantSlug}/locations/${locationId}?parcelId=${sheetParcelId}&tab=map`
-                        : undefined
-                }
+                locationId={locationId}
+                smartDefaults={smartQ.data}
+                onCreated={() => { setSheetParcelId(null); setTab('operations'); void opsQ.mutate(); }}
+                onCropChanged={() => { void parcelsQ.mutate(); }}
             />
 
             <Modal

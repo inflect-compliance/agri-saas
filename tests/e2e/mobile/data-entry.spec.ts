@@ -62,38 +62,23 @@ test.describe('mobile data-entry — spray job wizard @mobile', () => {
             { data: { name: 'North 40', geometry: SQUARE } },
         );
         expect(parRes.ok(), `create parcel: ${parRes.status()}`).toBeTruthy();
+        const parcelId = (await parRes.json()).id as string;
 
-        // Open the location detail; the parcels SWR resolves → button enables.
-        await page.goto(`/t/${slug}/locations/${locationId}`);
-        const main = page.getByRole('main');
-        await expect(
-            main.getByRole('heading', { name: 'Home Farm' }).first(),
-        ).toBeVisible({ timeout: 30_000 });
+        // Open the parcel's spray sheet directly via the deep-link a map tap
+        // uses (?parcelId=). The sheet IS the create-operation form now — the
+        // multi-step wizard was retired (#3).
+        await page.goto(`/t/${slug}/locations/${locationId}?parcelId=${parcelId}&tab=map`);
 
-        // Launch the offline-capable spray-job wizard (waits for enable).
-        await page.getByTestId('new-spray-job').click({ timeout: 30_000 });
-        const dialog = page.getByRole('dialog');
-        await expect(dialog).toBeVisible({ timeout: 15_000 });
+        // The sheet shows the parcel + the single-screen create form: the
+        // exclusive Fertilizer-XOR-Product selector and the create action.
+        await expect(page.getByTestId('parcel-sheet-area')).toBeVisible({ timeout: 30_000 });
+        await expect(page.getByText('New operation').first()).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByRole('radio', { name: 'Product' })).toBeVisible();
+        await expect(page.getByRole('radio', { name: 'Fertilizer' })).toBeVisible();
 
-        // Step 1: parcels — heading, progress dots, ≥1 large-tap-target row.
-        await expect(
-            dialog.getByRole('heading', { name: 'Which parcels?' }),
-        ).toBeVisible({ timeout: 10_000 });
-        await expect(dialog.getByTestId('wizard-progress')).toBeVisible();
-        const firstParcel = dialog.locator('label[for^="spray-parcel-"]').first();
-        await expect(firstParcel).toBeVisible({ timeout: 10_000 });
-
-        // Next is gated until a parcel is picked.
-        await expect(dialog.getByTestId('wizard-next')).toBeDisabled();
-        await firstParcel.click();
-        await expect(dialog.getByTestId('wizard-next')).toBeEnabled();
-
-        // Advance → step 2 (Soil Nurturing — the fertilizer step); Back
-        // becomes available.
-        await dialog.getByTestId('wizard-next').click();
-        await expect(
-            dialog.getByRole('heading', { name: 'Soil Nurturing' }),
-        ).toBeVisible({ timeout: 10_000 });
-        await expect(dialog.getByTestId('wizard-back')).toBeEnabled();
+        const createBtn = page.getByTestId('parcel-sheet-start-operation');
+        await expect(createBtn).toBeVisible();
+        // Gated until a product + dose + operator are chosen (nothing filled).
+        await expect(createBtn).toBeDisabled();
     });
 });

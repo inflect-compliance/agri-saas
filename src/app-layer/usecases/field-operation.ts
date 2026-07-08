@@ -25,20 +25,47 @@ export interface CreateFieldOperationInput {
     operationType?: OperationType;
     assigneeUserId: string;
     parcelIds: string[];
-    productItemId: string;
-    doseValue: number;
-    doseUnitId: string;
-    /** Optional soil-nurturing fertilizer — an extra per-parcel line. */
+    // Exactly one input kind is supplied — a product OR a fertilizer (#3).
+    productItemId?: string | null;
+    doseValue?: number | null;
+    doseUnitId?: string | null;
     fertilizerItemId?: string | null;
     fertilizerDoseValue?: number | null;
     fertilizerDoseUnitId?: string | null;
-    /** Optional per-decare water-carrier rate for the spray tank. */
+    /** Optional per-decare water-carrier rate for the spray tank (product only). */
     waterRateValue?: number | null;
     waterRateUnitId?: string | null;
     targetNote?: string | null;
     dueAt?: string | null;
     /** "Техника за приложение / Equipment" — one rig per job (БАБХ record). */
     applicationTechnique?: string | null;
+}
+
+interface ChosenInput {
+    itemId: string;
+    doseValue: number;
+    doseUnitId: string;
+    isFertilizer: boolean;
+}
+
+/**
+ * Resolve the single input a field operation applies — a product XOR a
+ * fertilizer (#3). Rejects both-present and neither-present (defence in depth;
+ * `CreateFieldOperationSchema` already enforces the XOR at the HTTP boundary),
+ * and requires the chosen kind's dose + unit.
+ */
+function resolveChosenInput(input: CreateFieldOperationInput): ChosenInput {
+    const hasProduct = !!input.productItemId;
+    const hasFertilizer = !!input.fertilizerItemId;
+    if (hasProduct === hasFertilizer) {
+        throw badRequest('Choose exactly one input — a product OR a fertilizer.');
+    }
+    if (hasProduct) {
+        if (input.doseValue == null || !input.doseUnitId) throw badRequest('A product dose and unit are required.');
+        return { itemId: input.productItemId!, doseValue: input.doseValue, doseUnitId: input.doseUnitId, isFertilizer: false };
+    }
+    if (input.fertilizerDoseValue == null || !input.fertilizerDoseUnitId) throw badRequest('A fertilizer dose and unit are required.');
+    return { itemId: input.fertilizerItemId!, doseValue: input.fertilizerDoseValue, doseUnitId: input.fertilizerDoseUnitId, isFertilizer: true };
 }
 
 function titleCase(s: string): string {
@@ -64,21 +91,6 @@ export function resolveOperationType(task: {
     return 'OTHER';
 }
 
-/** True when a complete (item + dose + unit) fertilizer was supplied. */
-function hasFertilizer(
-    input: CreateFieldOperationInput,
-): input is CreateFieldOperationInput & {
-    fertilizerItemId: string;
-    fertilizerDoseValue: number;
-    fertilizerDoseUnitId: string;
-} {
-    return (
-        !!input.fertilizerItemId &&
-        input.fertilizerDoseValue != null &&
-        !!input.fertilizerDoseUnitId
-    );
-}
-
 /**
  * Create a spray "job" over selected parcels of a Location:
  *   • one FIELD_OPERATION Task (assignee = operator) — created via
@@ -96,7 +108,13 @@ export async function createFieldOperation(
 ) {
     assertCanWrite(ctx);
 
-    // 1 — validate location, parcels, product and unit
+    // The operation applies exactly one input — a product XOR a fertilizer.
+    const chosen = resolveChosenInput(input);
+    // Water carrier only applies to a product spray (never a fertilizer line).
+    const waterRateValue = chosen.isFertilizer ? null : input.waterRateValue ?? null;
+    const waterRateUnitId = chosen.isFertilizer ? null : input.waterRateUnitId ?? null;
+
+    // 1 — validate location, parcels, the chosen input item, and its unit
     const location = await runInTenantContext(ctx, async (db) => {
         const loc = await db.location.findFirst({
             where: { id: locationId, tenantId: ctx.tenantId, deletedAt: null },
@@ -108,36 +126,20 @@ export async function createFieldOperation(
         const missing = input.parcelIds.filter((id) => !valid.has(id));
         if (missing.length) throw badRequest('Some selected parcels do not belong to this location.');
 
-        const product = await db.item.findFirst({
-            where: { id: input.productItemId, tenantId: ctx.tenantId, deletedAt: null },
+        const item = await db.item.findFirst({
+            where: { id: chosen.itemId, tenantId: ctx.tenantId, deletedAt: null },
             select: { id: true },
         });
-        if (!product) throw badRequest('Product not found.');
+        if (!item) throw badRequest(chosen.isFertilizer ? 'Fertilizer not found.' : 'Product not found.');
 
-        const unit = await db.unit.findUnique({ where: { id: input.doseUnitId }, select: { id: true } });
+        const unit = await db.unit.findUnique({ where: { id: chosen.doseUnitId }, select: { id: true } });
         if (!unit) throw badRequest('Dose unit not found.');
-
-        // Optional soil-nurturing fertilizer: validate the same way when
-        // supplied. It must be a DIFFERENT item from the treatment product
-        // so the two per-parcel lines don't collide on the unique key.
-        if (hasFertilizer(input)) {
-            if (input.fertilizerItemId === input.productItemId) {
-                throw badRequest('The fertilizer and the treatment product must be different items.');
-            }
-            const fert = await db.item.findFirst({
-                where: { id: input.fertilizerItemId!, tenantId: ctx.tenantId, deletedAt: null },
-                select: { id: true },
-            });
-            if (!fert) throw badRequest('Fertilizer not found.');
-            const fertUnit = await db.unit.findUnique({ where: { id: input.fertilizerDoseUnitId! }, select: { id: true } });
-            if (!fertUnit) throw badRequest('Fertilizer dose unit not found.');
-        }
 
         // Optional water-carrier rate: a rate value requires a unit, and the
         // unit must exist in the global catalog (like the dose unit above).
-        if (input.waterRateValue != null) {
-            if (!input.waterRateUnitId) throw badRequest('A water-rate unit is required when a water rate is set.');
-            const waterUnit = await db.unit.findUnique({ where: { id: input.waterRateUnitId }, select: { id: true } });
+        if (waterRateValue != null) {
+            if (!waterRateUnitId) throw badRequest('A water-rate unit is required when a water rate is set.');
+            const waterUnit = await db.unit.findUnique({ where: { id: waterRateUnitId }, select: { id: true } });
             if (!waterUnit) throw badRequest('Water-rate unit not found.');
         }
 
@@ -145,8 +147,9 @@ export async function createFieldOperation(
     });
 
     // 2 — create the FIELD_OPERATION Task (reuses createTask's assignment
-    //     notification path: email + in-app bell)
-    const opType: OperationType = input.operationType ?? 'SPRAY';
+    //     notification path: email + in-app bell). The op type defaults from
+    //     the chosen input kind (fertilizer → FERTILIZE, else SPRAY).
+    const opType: OperationType = input.operationType ?? (chosen.isFertilizer ? 'FERTILIZE' : 'SPRAY');
     const title = input.title?.trim() || `${titleCase(opType)} — ${location.name}`;
     const task = await createTask(ctx, {
         title,
@@ -174,40 +177,22 @@ export async function createFieldOperation(
             },
         });
 
-        // One treatment line per parcel, plus a second fertilizer line per
-        // parcel when a soil-nurturing fertilizer was chosen.
-        const withFertilizer = hasFertilizer(input);
+        // One prescription line per parcel for the single chosen input. The
+        // line's `productItemId` holds the chosen Item (product or fertilizer);
+        // the kind is implicit in the Item's category (there is no separate
+        // input-kind column) and reflected in the Task's operationType.
         await db.operationParcel.createMany({
-            data: input.parcelIds.flatMap((parcelId) => {
-                const lines = [
-                    {
-                        tenantId: ctx.tenantId,
-                        taskId: task.id,
-                        parcelId,
-                        productItemId: input.productItemId,
-                        doseValue: input.doseValue,
-                        doseUnitId: input.doseUnitId,
-                        // Water carrier lives on the treatment line only.
-                        waterRateValue: input.waterRateValue ?? null,
-                        waterRateUnitId: input.waterRateUnitId ?? null,
-                        targetNote: input.targetNote ?? null,
-                    },
-                ];
-                if (withFertilizer) {
-                    lines.push({
-                        tenantId: ctx.tenantId,
-                        taskId: task.id,
-                        parcelId,
-                        productItemId: input.fertilizerItemId,
-                        doseValue: input.fertilizerDoseValue,
-                        doseUnitId: input.fertilizerDoseUnitId,
-                        waterRateValue: null,
-                        waterRateUnitId: null,
-                        targetNote: input.targetNote ?? null,
-                    });
-                }
-                return lines;
-            }),
+            data: input.parcelIds.map((parcelId) => ({
+                tenantId: ctx.tenantId,
+                taskId: task.id,
+                parcelId,
+                productItemId: chosen.itemId,
+                doseValue: chosen.doseValue,
+                doseUnitId: chosen.doseUnitId,
+                waterRateValue,
+                waterRateUnitId,
+                targetNote: input.targetNote ?? null,
+            })),
         });
 
         await logEvent(db, ctx, {
@@ -247,7 +232,7 @@ export async function createFieldOperation(
             locationId,
             operationType: opType,
             parcelCount,
-            productItemId: input.productItemId,
+            productItemId: chosen.itemId,
             assigneeUserId: input.assigneeUserId,
         },
     });

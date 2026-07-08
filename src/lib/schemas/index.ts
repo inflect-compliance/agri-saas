@@ -875,26 +875,44 @@ export const CreateFieldOperationSchema = z.object({
     operationType: z.enum(['SPRAY', 'FERTILIZE', 'SEED', 'OTHER']).optional(),
     assigneeUserId: z.string().min(1, 'An operator must be assigned'),
     parcelIds: z.array(z.string().min(1)).min(1, 'Select at least one parcel'),
-    productItemId: z.string().min(1, 'A product is required'),
-    doseValue: z.coerce.number().positive('Dose must be greater than zero'),
-    doseUnitId: z.string().min(1, 'A dose unit is required'),
-    // Optional soil-nurturing fertilizer applied alongside the treatment
-    // product. When present, all three must be present (an extra
-    // OperationParcel line per parcel is written for it).
+    // A field operation applies EXACTLY ONE input — a product OR a fertilizer,
+    // never both and never neither (#3, the exclusive on-screen selector).
+    // Each kind's fields are individually optional; the superRefine below
+    // enforces the XOR + that the chosen kind's dose + unit are present.
+    productItemId: z.string().min(1).optional(),
+    doseValue: z.coerce.number().positive('Dose must be greater than zero').optional(),
+    doseUnitId: z.string().min(1).optional(),
     fertilizerItemId: z.string().min(1).optional(),
     fertilizerDoseValue: z.coerce.number().positive('Fertilizer dose must be greater than zero').optional(),
     fertilizerDoseUnitId: z.string().min(1).optional(),
-    // Optional water-carrier rate (per-decare) for the spray tank. Persisted
-    // on the treatment line so the per-parcel water total (rate × parcel dca)
-    // can be recomputed anywhere the job is shown.
+    // Optional water-carrier rate (per-decare) for the spray tank — only
+    // meaningful for a product spray. Persisted on the line so the per-parcel
+    // water total (rate × parcel dca) can be recomputed wherever the job shows.
     waterRateValue: z.coerce.number().positive('Water rate must be greater than zero').nullable().optional(),
     waterRateUnitId: z.string().min(1).nullable().optional(),
     targetNote: z.string().max(2000).nullable().optional(),
     dueAt: z.string().nullable().optional(),
     // БАБХ farm-record — "Техника за приложение" (one rig per job).
     applicationTechnique: z.string().max(255).nullable().optional(),
-}).strip().openapi('FieldOperationCreateRequest', {
-    description: 'Create a spray/field-operation job over selected parcels of a location, assigned to an operator. Creates one FIELD_OPERATION Task plus one OperationParcel line per parcel (and, when a fertilizer is supplied, a second per-parcel line for it).',
+}).strip().superRefine((val, ctx) => {
+    const hasProduct = !!val.productItemId;
+    const hasFertilizer = !!val.fertilizerItemId;
+    if (hasProduct === hasFertilizer) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['productItemId'],
+            message: 'Choose exactly one input — a product OR a fertilizer.',
+        });
+        return;
+    }
+    if (hasProduct && (val.doseValue == null || !val.doseUnitId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['doseValue'], message: 'A product dose and unit are required.' });
+    }
+    if (hasFertilizer && (val.fertilizerDoseValue == null || !val.fertilizerDoseUnitId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['fertilizerDoseValue'], message: 'A fertilizer dose and unit are required.' });
+    }
+}).openapi('FieldOperationCreateRequest', {
+    description: 'Create a spray/field-operation job over selected parcels of a location, assigned to an operator. Applies exactly one input — a product OR a fertilizer — writing one FIELD_OPERATION Task plus one OperationParcel line per parcel.',
 });
 
 export const UpdateOperationParcelSchema = z.object({
