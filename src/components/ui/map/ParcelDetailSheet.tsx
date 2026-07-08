@@ -284,8 +284,11 @@ export function ParcelDetailSheet({
                     <SoilProfileCard profile={parcel?.soilJson ?? null} />
                 </div>
 
-                {/* The create-operation form — one exclusive input kind. */}
-                <div className="space-y-default rounded-lg border border-border-default p-4">
+                {/* The create-operation form — one exclusive input kind. Only
+                    mounted with a parcel so the operator picker (react-query)
+                    never renders while the sheet is closed. */}
+                {parcel && (
+                <div className="space-y-default rounded-lg border border-border-subtle p-4">
                     <p className="text-sm font-medium text-content-emphasis">{t('parcelSheet.newOperation')}</p>
 
                     <FormField label={t('parcelSheet.inputKind')}>
@@ -405,6 +408,7 @@ export function ParcelDetailSheet({
                         />
                     </FormField>
                 </div>
+                )}
             </Sheet.Body>
             {parcel && (
                 <Sheet.Actions align="between">
