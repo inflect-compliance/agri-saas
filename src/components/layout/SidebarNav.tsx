@@ -18,7 +18,6 @@ import {
     FileText,
     ClipboardList,
     ClipboardCheck,
-    Truck,
     Settings,
     LogOut,
     Calendar as CalendarIcon,
@@ -199,12 +198,6 @@ export function useNavSections(): NavSectionDef[] {
         {
             title: 'Comply',
             items: filterVisible([
-                // R13-PR16 — Audit moved from "Manage" to the top of
-                // "Comply" because audits are a daily-cadence
-                // workflow (Plan / Schedule / Review / Docs), not
-                // ongoing governance configuration.
-                // GRC surface — gated behind the CERTIFICATION module.
-                { href: tenantHref('/audits'), label: 'Inspection', icon: ClipboardCheck, visible: certAvailable },
                 {
                     href: tenantHref('/calendar'),
                     label: 'Schedule',
@@ -237,8 +230,6 @@ export function useNavSections(): NavSectionDef[] {
                 // farm-operations surface (growing guides / SOPs), useful
                 // to simple-mode tenants on its own.
                 { href: tenantHref('/knowledge'), label: 'Knowledge', icon: FileText },
-                // Vendor is a GRC surface — gated behind CERTIFICATION.
-                { href: tenantHref('/vendors'), label: 'Vendor', icon: Truck, visible: certAvailable },
             ]),
         },
     ];
