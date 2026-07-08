@@ -2498,12 +2498,9 @@ exports[`API contract — per-schema snapshots schema: FieldOperationCreateReque
   },
   "required": [
     "assigneeUserId",
-    "parcelIds",
-    "productItemId",
-    "doseValue",
-    "doseUnitId"
+    "parcelIds"
   ],
-  "description": "Create a spray/field-operation job over selected parcels of a location, assigned to an operator. Creates one FIELD_OPERATION Task plus one OperationParcel line per parcel (and, when a fertilizer is supplied, a second per-parcel line for it)."
+  "description": "Create a spray/field-operation job over selected parcels of a location, assigned to an operator. Applies exactly one input — a product OR a fertilizer — writing one FIELD_OPERATION Task plus one OperationParcel line per parcel."
 }"
 `;
 

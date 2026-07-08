@@ -106,6 +106,10 @@ jest.mock('next/dynamic', () => (loader: () => Promise<{ MapCanvas: React.Compon
 jest.mock('@/components/ui/map/SpatialImportModal', () => ({ SpatialImportModal: () => null }));
 jest.mock('@/components/ui/map/PrescriptionPanel', () => ({ PrescriptionPanel: () => <div data-testid="prescription-panel" /> }));
 jest.mock('@/components/ui/map/FieldOperationPanel', () => ({ FieldOperationPanel: () => null }));
+// The parcel sheet (#3) is now the create-operation form and mounts a
+// react-query UserCombobox; stub it — this test exercises the merge toolbar,
+// not the sheet, and provides no QueryClientProvider.
+jest.mock('@/components/ui/map/ParcelDetailSheet', () => ({ ParcelDetailSheet: () => null }));
 
 import LocationDetailPage from '@/app/t/[tenantSlug]/(app)/locations/[locationId]/page';
 

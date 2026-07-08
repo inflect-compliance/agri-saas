@@ -110,16 +110,15 @@ test.describe('mobile map — phone-native operator map @mobile', () => {
         await expect(area).toContainText('ha');
         await expect(page.getByTestId('parcel-sheet-crop')).toContainText('Wheat');
 
-        // Apply-rate calculator: a rate → a computed total.
-        await page.getByTestId('parcel-sheet-rate').fill('2');
-        await expect(page.getByTestId('parcel-sheet-total')).toContainText('Total for this parcel');
-
-        // "Start operation here" launches the spray wizard with the parcel
-        // pre-selected (Next enabled immediately, no re-pick).
-        await page.getByTestId('parcel-sheet-start-operation').click();
-        await expect(
-            page.getByRole('heading', { name: 'Which parcels?' }),
-        ).toBeVisible({ timeout: 15_000 });
-        await expect(page.getByTestId('wizard-next')).toBeEnabled({ timeout: 10_000 });
+        // The sheet IS the single create-operation form now (#3): the
+        // exclusive Fertilizer-XOR-Product selector + the create action.
+        // (The old apply-rate calculator + multi-step wizard were retired.)
+        await expect(page.getByText('New operation').first()).toBeVisible();
+        await expect(page.getByRole('radio', { name: 'Product' })).toBeVisible();
+        await expect(page.getByRole('radio', { name: 'Fertilizer' })).toBeVisible();
+        const createBtn = page.getByTestId('parcel-sheet-start-operation');
+        await expect(createBtn).toBeVisible();
+        // Gated until an input + dose + operator are chosen.
+        await expect(createBtn).toBeDisabled();
     });
 });
