@@ -5926,6 +5926,8 @@
             "overviewParcels": "Parcels",
             "overviewTotalArea": "Total area",
             "noParcelsHint": "No parcels yet — use “Import parcels” to upload a shapefile, KML, or GeoJSON.",
+            "cropFilterLabel": "Filter by crop",
+            "cropFilterAll": "All",
             "parcelsAccordion": "Parcels",
             "colName": "Name",
             "colCrop": "Crop",

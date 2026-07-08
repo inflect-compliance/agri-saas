@@ -16,13 +16,12 @@ import { Input } from '@/components/ui/input';
 import { Combobox } from '@/components/ui/combobox';
 import { CROP_OPTIONS } from '@/lib/agriculture/crop-options';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ToggleGroup } from '@/components/ui/toggle-group';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { DatePicker, type DateValue } from '@/components/ui/date-picker';
 import { toYMD } from '@/components/ui/date-picker/date-utils';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { InlineNotice } from '@/components/ui/inline-notice';
-import { formatDateTime } from '@/lib/format-date';
 import { apiPost, apiPatch, ApiClientError } from '@/lib/api-client';
 import { SpatialImportModal } from '@/components/ui/map/SpatialImportModal';
 import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
@@ -47,7 +46,7 @@ import {
 
 const MapCanvas = dynamic(() => import('@/components/ui/map/MapCanvas').then((m) => m.MapCanvas), { ssr: false });
 
-type Tab = 'overview' | 'map' | 'operations' | 'records';
+type Tab = 'overview' | 'map' | 'operations';
 
 interface FarmRecordRow {
     fileRecordId: string;
@@ -153,6 +152,9 @@ export default function LocationDetailPage() {
     const { isMobile } = useMediaQuery();
     const toast = useToast();
     const [tab, setTab] = useState<Tab>('overview');
+    // Overview crop filter (#2): null = all crops. Chips are shown only when
+    // more than one crop is present on the location.
+    const [cropFilter, setCropFilter] = useState<string | null>(null);
     const [selected, setSelected] = useState<string[]>([]);
     // Mobile: the tapped parcel surfaced in the bottom-sheet (vaul). The
     // sheet replaces the inline side panel below the map on phones; desktop
@@ -163,7 +165,7 @@ export default function LocationDetailPage() {
     const searchParams = useSearchParams();
     useEffect(() => {
         const t = searchParams.get('tab');
-        if (t === 'overview' || t === 'map' || t === 'operations' || t === 'records') setTab(t);
+        if (t === 'overview' || t === 'map' || t === 'operations') setTab(t);
         const pid = searchParams.get('parcelId');
         if (pid) {
             setSheetParcelId(pid);
@@ -238,10 +240,10 @@ export default function LocationDetailPage() {
     const locQ = useTenantSWR<LocationDetail>(`/locations/${locationId}`);
     const parcelsQ = useTenantSWR<ParcelsResp>(`/locations/${locationId}/parcels`);
     const opsQ = useTenantSWR<OperationItem[]>(tab === 'operations' ? `/locations/${locationId}/operations` : null);
-    // Generated ДНЕВНИК register — fetched on the Farm-records tab AND when the
-    // generate modal is open (the modal shows the completeness affordance).
+    // Generated ДНЕВНИК register — fetched when the generate modal is open
+    // (the modal shows the completeness affordance + drives the БАБХ PDF).
     const recordsQ = useTenantSWR<FarmRecordsResp>(
-        tab === 'records' || showDnevnik ? `/locations/${locationId}/farm-records` : null,
+        showDnevnik ? `/locations/${locationId}/farm-records` : null,
     );
     // Recall + weather + crop-plan suggestions for this field (editable;
     // powers the spray-window/next-task banner + the wizard prefills).
@@ -296,6 +298,14 @@ export default function LocationDetailPage() {
         }
         return Array.from(seen);
     }, [parcels]);
+    // Overview parcels list — sorted by area DESCENDING by default (largest
+    // fields first, #2), then filtered by the selected crop chip.
+    const overviewParcels = useMemo(() => {
+        const sorted = [...parcels].sort(
+            (a, b) => (b.areaHa ?? 0) - (a.areaHa ?? 0) || a.name.localeCompare(b.name),
+        );
+        return cropFilter ? sorted.filter((p) => p.cropType === cropFilter) : sorted;
+    }, [parcels, cropFilter]);
 
     const sheetParcel = useMemo<ParcelSheetData | null>(() => {
         const p = parcels.find((x) => x.id === sheetParcelId);
@@ -399,76 +409,6 @@ export default function LocationDetailPage() {
         [setParcelCrop, t],
     );
 
-    const downloadRecord = useCallback(
-        async (fileRecordId: string, fileName: string) => {
-            try {
-                const res = await fetch(buildUrl(`/files/${fileRecordId}/download`));
-                if (!res.ok) throw new Error('download failed');
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch {
-                toast.error(t('dnevnikDownloadFail'));
-            }
-        },
-        [buildUrl, toast, t],
-    );
-
-    const recordColumns = useMemo(
-        () =>
-            createColumns<FarmRecordRow>([
-                {
-                    accessorKey: 'generatedAt',
-                    header: t('colGeneratedAt'),
-                    cell: ({ row }) => (
-                        <span className="flex items-center gap-tight">
-                            {formatDateTime(row.original.generatedAt)}
-                            {row.index === 0 && <StatusBadge variant="success">{t('badgeCurrent')}</StatusBadge>}
-                        </span>
-                    ),
-                    meta: { mobileCard: { slot: 'title' } },
-                },
-                {
-                    id: 'period',
-                    header: t('colPeriod'),
-                    cell: ({ row }) => `${row.original.from} – ${row.original.to}`,
-                    meta: { mobileCard: { slot: 'meta', label: t('colPeriod') } },
-                },
-                {
-                    id: 'by',
-                    header: t('colBy'),
-                    cell: ({ row }) =>
-                        row.original.auto ? t('byAuto') : (row.original.generatedByName ?? '—'),
-                    meta: { mobileCard: { slot: 'meta', label: t('colBy') } },
-                },
-                {
-                    accessorKey: 'sizeBytes',
-                    header: t('colSize'),
-                    cell: ({ row }) => `${(row.original.sizeBytes / 1024).toFixed(1)} KB`,
-                    meta: { mobileCard: { slot: 'meta', label: t('colSize') } },
-                },
-                {
-                    id: 'download',
-                    header: '',
-                    cell: ({ row }) => (
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => void downloadRecord(row.original.fileRecordId, row.original.fileName)}
-                        >
-                            {t('download')}
-                        </Button>
-                    ),
-                },
-            ]),
-        [downloadRecord, t],
-    );
 
     const mergeParcels = async () => {
         if (selected.length < 2 || !mergeName.trim()) return;
@@ -495,7 +435,6 @@ export default function LocationDetailPage() {
         { key: 'overview' as const, label: t('tabOverview') },
         { key: 'map' as const, label: t('tabMap') },
         { key: 'operations' as const, label: t('tabOperations') },
-        { key: 'records' as const, label: t('tabRecords') },
     ];
 
     const breadcrumbs: { label: string; href?: string }[] = [
@@ -560,8 +499,23 @@ export default function LocationDetailPage() {
                             {t('noParcelsHint')}
                         </div>
                     )}
+                    {/* Per-culture filter chips (#2) — filter the parcels list
+                        by crop. Shown only when the location grows more than
+                        one crop; "All" clears the filter. */}
+                    {cropsPresent.length > 1 && (
+                        <ToggleGroup
+                            size="sm"
+                            ariaLabel={t('cropFilterLabel')}
+                            selected={cropFilter ?? 'all'}
+                            selectAction={(v) => setCropFilter(v === 'all' ? null : v)}
+                            options={[
+                                { value: 'all', label: t('cropFilterAll') },
+                                ...cropsPresent.map((c) => ({ value: c, label: c })),
+                            ]}
+                        />
+                    )}
                     {/* Parcels list — collapsible dropdown under the
-                        Parcels / Total area row. */}
+                        Parcels / Total area row. Sorted largest-first (#2). */}
                     {parcels.length > 0 && (
                         <Accordion
                             type="single"
@@ -573,13 +527,13 @@ export default function LocationDetailPage() {
                                     <span className="flex items-center gap-tight">
                                         <span className="font-medium">{t('parcelsAccordion')}</span>
                                         <span className="text-xs text-content-secondary">
-                                            {loc?._count?.parcels ?? parcels.length}
+                                            {cropFilter ? overviewParcels.length : (loc?._count?.parcels ?? parcels.length)}
                                         </span>
                                     </span>
                                 </AccordionTrigger>
                                 <AccordionContent size="sm">
                                     <DataTable<ParcelRow>
-                                        data={parcels}
+                                        data={overviewParcels}
                                         columns={parcelColumns}
                                         getRowId={(p) => p.id}
                                         // <sm: render each parcel as a card. Tapping a
@@ -804,24 +758,6 @@ export default function LocationDetailPage() {
                                 </li>
                             ))}
                         </ul>
-                    )}
-                </div>
-            )}
-
-            {tab === 'records' && (
-                <div className="space-y-section">
-                    {(recordsQ.data?.records ?? []).length === 0 ? (
-                        <div className="rounded-lg border border-border-subtle p-6 text-sm text-content-secondary">
-                            {t('recordsNone')}
-                        </div>
-                    ) : (
-                        <DataTable<FarmRecordRow>
-                            data={recordsQ.data?.records ?? []}
-                            columns={recordColumns}
-                            getRowId={(r) => r.fileRecordId}
-                            mobileFallback="card"
-                            loading={recordsQ.isLoading && !recordsQ.data}
-                        />
                     )}
                 </div>
             )}

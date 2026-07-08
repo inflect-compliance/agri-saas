@@ -61,11 +61,11 @@ test('farm-record: completing a spray job enables ДНЕВНИК generation + re
         expect(Array.isArray(list.records)).toBeTruthy();
         expect(list.records.length).toBeGreaterThan(0);
 
-        // UI: the Farm-records tab renders the register.
-        await authedPage.goto(`/t/${slug}/locations/${sc.locationId}?tab=records`);
-        await expect(
-            authedPage.getByRole('main').getByText('Изтегли').first(),
-        ).toBeVisible();
+        // UI: the location detail still exposes the ДНЕВНИК (PDF) action. The
+        // Farm-records TAB was removed (#2) — the register is reached via this
+        // generate button + the standalone Journal page, not a per-location tab.
+        await authedPage.goto(`/t/${slug}/locations/${sc.locationId}`);
+        await expect(authedPage.locator('#dnevnik-pdf-btn')).toBeVisible();
     } finally {
         await prisma.$disconnect();
     }
