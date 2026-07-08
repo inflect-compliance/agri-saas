@@ -17,6 +17,7 @@ function row(overrides: Partial<ExchangeListingRow> = {}): ExchangeListingRow {
         id: 'lst-1',
         sellerTenantId: 'tenant-1',
         side: 'SELL',
+        kind: 'CULTURE',
         commodity: 'Wheat',
         quantityTonnes: { toString: () => '10.500' },
         pricePerTonne: { toString: () => '250.00' },
@@ -60,7 +61,7 @@ describe('toPublicListing', () => {
         // (a coarse map pin), never exact parcel geometry.
         expect(Object.keys(dto).sort()).toEqual([
             'commodity', 'createdAt', 'description', 'expiresAt', 'id', 'isOwn',
-            'lat', 'lon', 'priceCurrency', 'pricePerTonne', 'quantityTonnes',
+            'kind', 'lat', 'lon', 'priceCurrency', 'pricePerTonne', 'quantityTonnes',
             'regionCode', 'regionName', 'sellerDisplayName', 'side', 'status',
         ]);
         // None of the private / geometry / contract-term fields ever leak.

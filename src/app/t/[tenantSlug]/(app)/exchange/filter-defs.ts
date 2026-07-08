@@ -9,7 +9,7 @@
 import type { FilterDefInput } from '@/components/ui/filter/filter-definitions';
 import { createTypedFilterDefs } from '@/components/ui/filter/filter-definitions';
 import type { FilterType } from '@/components/ui/filter';
-import { ArrowLeftRight, MapPin, Scale, Wheat } from 'lucide-react';
+import { ArrowLeftRight, MapPin, Scale, Wheat, Tag } from 'lucide-react';
 import { BULGARIA_REGIONS } from '@/lib/geo/bulgaria-regions';
 
 const REGION_OPTIONS = BULGARIA_REGIONS.map((r) => ({
@@ -26,6 +26,20 @@ const STATIC_DEFS = {
         options: [
             { value: 'SELL', label: 'Selling' },
             { value: 'BUY', label: 'Buying' },
+        ],
+        multiple: true,
+        resetBehavior: 'clearable',
+    },
+    kind: {
+        label: 'Type',
+        description: 'Product class — culture, fertilizer, seeds, or product.',
+        group: 'Attributes',
+        icon: Tag,
+        options: [
+            { value: 'CULTURE', label: 'Culture' },
+            { value: 'FERTILIZER', label: 'Fertilizer' },
+            { value: 'SEEDS', label: 'Seeds' },
+            { value: 'PRODUCT', label: 'Product' },
         ],
         multiple: true,
         resetBehavior: 'clearable',

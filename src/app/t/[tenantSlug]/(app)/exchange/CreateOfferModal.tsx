@@ -42,6 +42,7 @@ export function CreateOfferModal({ open, setOpen, defaultSellerName, onCreated }
     const buildUrl = useTenantApiUrl();
 
     const [side, setSide] = useState<'SELL' | 'BUY'>('SELL');
+    const [kind, setKind] = useState<'CULTURE' | 'FERTILIZER' | 'SEEDS' | 'PRODUCT'>('CULTURE');
     const [commodity, setCommodity] = useState('');
     const [commodityExtra, setCommodityExtra] = useState<string[]>([]);
     const [quantity, setQuantity] = useState('');
@@ -74,7 +75,7 @@ export function CreateOfferModal({ open, setOpen, defaultSellerName, onCreated }
         description !== '' || displayName !== '' || expiresAt !== null;
 
     function reset() {
-        setSide('SELL'); setCommodity(''); setCommodityExtra([]); setQuantity('');
+        setSide('SELL'); setKind('CULTURE'); setCommodity(''); setCommodityExtra([]); setQuantity('');
         setPrice(''); setCurrency('BGN'); setRegionCode(''); setDescription('');
         setExpiresAt(null); setDisplayName(''); setError(null);
     }
@@ -85,6 +86,7 @@ export function CreateOfferModal({ open, setOpen, defaultSellerName, onCreated }
         try {
             const created = await apiPost<ExchangePublicListing>(buildUrl('/exchange/listings'), {
                 side,
+                kind,
                 commodity: commodity.trim(),
                 quantityTonnes: quantity.trim(),
                 pricePerTonne: price.trim() === '' ? null : price.trim(),
@@ -134,6 +136,27 @@ export function CreateOfferModal({ open, setOpen, defaultSellerName, onCreated }
                                 </label>
                                 <label className="flex items-center gap-compact text-sm">
                                     <RadioGroupItem value="BUY" /> {t('buying')}
+                                </label>
+                            </RadioGroup>
+                        </FormField>
+
+                        <FormField label={t('kind')} required>
+                            <RadioGroup
+                                value={kind}
+                                onValueChange={(v) => setKind(v as 'CULTURE' | 'FERTILIZER' | 'SEEDS' | 'PRODUCT')}
+                                className="flex flex-wrap gap-section"
+                            >
+                                <label className="flex items-center gap-compact text-sm">
+                                    <RadioGroupItem value="CULTURE" /> {t('kindCulture')}
+                                </label>
+                                <label className="flex items-center gap-compact text-sm">
+                                    <RadioGroupItem value="FERTILIZER" /> {t('kindFertilizer')}
+                                </label>
+                                <label className="flex items-center gap-compact text-sm">
+                                    <RadioGroupItem value="SEEDS" /> {t('kindSeeds')}
+                                </label>
+                                <label className="flex items-center gap-compact text-sm">
+                                    <RadioGroupItem value="PRODUCT" /> {t('kindProduct')}
                                 </label>
                             </RadioGroup>
                         </FormField>

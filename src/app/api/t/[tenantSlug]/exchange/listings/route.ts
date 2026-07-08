@@ -43,6 +43,7 @@ export const POST = withApiErrorHandling(
             await assertModuleEnabled(ctx, 'EXCHANGE');
             const listing = await createListing(ctx, {
                 side: body.side,
+                kind: body.kind,
                 commodity: body.commodity,
                 quantityTonnes: body.quantityTonnes,
                 pricePerTonne: body.pricePerTonne ?? null,
