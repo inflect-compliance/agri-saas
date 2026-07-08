@@ -10,6 +10,8 @@ import * as fieldOperation from '@/app-layer/usecases/field-operation';
 import * as catalog from '@/app-layer/usecases/catalog';
 import * as agriEvents from '@/app-layer/usecases/agri-events';
 import * as promotions from '@/app-layer/usecases/promotions';
+import * as parcelRisk from '@/app-layer/usecases/parcel-risk';
+import * as insurance from '@/app-layer/usecases/insurance';
 
 describe('agriculture usecases — exported surface', () => {
     it('location usecase exports CRUD + parcel reads', () => {
@@ -34,6 +36,11 @@ describe('agriculture usecases — exported surface', () => {
     it('promotions exposes listActivePromotions + createPromotionLead', () => {
         expect(typeof promotions.listActivePromotions).toBe('function');
         expect(typeof promotions.createPromotionLead).toBe('function');
+    });
+
+    it('parcel-risk exposes analyzeParcelRisk + insurance exposes createInsuranceLead', () => {
+        expect(typeof parcelRisk.analyzeParcelRisk).toBe('function');
+        expect(typeof insurance.createInsuranceLead).toBe('function');
     });
 
     it('field-operation exposes create / get / mark / list', () => {

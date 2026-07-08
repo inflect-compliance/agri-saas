@@ -337,7 +337,11 @@ describe('New page token discipline', () => {
         //     promotions feed. Token-clean (semantic tokens only +
         //     Heading/PageBreadcrumbs/Button/Modal via AskForOfferModal);
         //     new surface, not yet promoted to MIGRATED_PAGES.
-        expect(unmigrated.length).toBeLessThanOrEqual(144);
+        //   - 146 (+2, #13 Farm Risk): farm-risk/page.tsx + FarmRiskClient.tsx
+        //     — the per-parcel satellite AI risk page. Token-clean (semantic
+        //     tokens only + Heading/PageBreadcrumbs/Combobox/StatusBadge/Modal
+        //     via AskInsuranceModal); new surfaces, not yet promoted.
+        expect(unmigrated.length).toBeLessThanOrEqual(146);
     });
 
     it('migrated page count is at least 4', () => {
