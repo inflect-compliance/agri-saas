@@ -162,16 +162,9 @@ export function useNavSections(): NavSectionDef[] {
                 // Govern. Reuses the already-imported ClipboardList glyph
                 // (the task affordance) — no new lucide import.
                 { href: tenantHref('/farm-tasks'), label: 'Farm Tasks', icon: ClipboardList },
-                // Risk (#13):
-                //   • The GRC Risk Register ("Risk", /risks) stays gated behind
-                //     CERTIFICATION — hidden for simple-mode farm tenants.
-                //   • The per-parcel satellite AI risk page ("Field Risk",
-                //     /farm-risk) is ALWAYS shown — it's a farm-operations
-                //     surface useful to every tenant. The distinct "Field Risk"
-                //     label avoids clashing with the GRC "Risk" for cert
-                //     tenants (which see both). Both reuse the already-imported
-                //     AlertTriangle glyph.
-                { href: tenantHref('/risks'), label: 'Risk', icon: AlertTriangle, visible: certAvailable },
+                // The per-parcel satellite AI risk page ("Field Risk",
+                // /farm-risk) is a farm-operations surface, always shown. The
+                // GRC Risk Register (/risks) was removed from the sidebar.
                 { href: tenantHref('/farm-risk'), label: 'Field Risk', icon: AlertTriangle },
             ]),
         },
