@@ -1,0 +1,25 @@
+/// Insurance quote requests from the per-parcel Risk page ("Ask for offer", #13).
+///
+/// Lead-gen only — no insurer API. Like `PromotionLead` / `ExchangeInquiry`,
+/// `inquirerTenantId` is a PLAIN FK to Tenant.id (NOT a tenantId RLS column),
+/// so the row is not tenant-scoped and needs no RLS. The `@@unique` caps a
+/// tenant to one open request per parcel.
+model InsuranceLead {
+  id               String   @id @default(cuid())
+  /// Requesting tenant — plain FK to Tenant.id (NOT a tenantId RLS column).
+  inquirerTenantId String
+  inquirerUserId   String
+  /// The parcel the quote is about (free-form id, no FK — mirrors PromotionLead).
+  parcelId         String
+  locationId       String?
+  message          String
+  /// Snapshot of the parcel's satellite risk at request time (level/ndvi/ndmi).
+  riskJson         Json?
+  /// Curated status: "PENDING" | "CONTACTED" | "CLOSED".
+  status           String   @default("PENDING")
+  createdAt        DateTime @default(now())
+
+  @@unique([parcelId, inquirerTenantId])
+  @@index([inquirerTenantId])
+  @@index([parcelId])
+}

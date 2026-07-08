@@ -3018,6 +3018,35 @@
         "crop": {
             "legendTitle": "Crops"
         },
+        "risk": {
+            "title": "Risk",
+            "description": "Per-parcel satellite risk from Sentinel-2 — vegetation stress and moisture.",
+            "breadcrumbDashboard": "Dashboard",
+            "noLocations": "No locations yet. Add a location and its parcels to see per-parcel risk.",
+            "selectLocation": "Select location",
+            "noParcels": "No parcels in this location yet.",
+            "analyzing": "Analysing satellite imagery…",
+            "vegetation": "Vegetation",
+            "moisture": "Moisture",
+            "unavailable": "Satellite analysis is unavailable — verify in the field.",
+            "level": {
+                "good": "Healthy",
+                "watch": "Watch",
+                "stress": "Stress",
+                "unknown": "No data"
+            },
+            "ask": {
+                "open": "Ask for insurance offer",
+                "sent": "Request sent",
+                "title": "Ask for an insurance offer",
+                "description": "Send an insurer a quote request for this parcel; they'll get back to you.",
+                "message": "Message",
+                "messagePlaceholder": "Describe your cover needs…",
+                "cancel": "Cancel",
+                "submit": "Send request",
+                "error": "Could not send your request. Please try again."
+            }
+        },
         "ai": {
             "disclaimer": "AI suggestion — verify with an agronomist.",
             "copilotTitle": "Agronomy copilot",

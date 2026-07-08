@@ -267,6 +267,70 @@ export async function getIndexMeansForBounds(
     return { ndvi: round3(info.NDVI), ndmi: round3(info.NDMI) };
 }
 
+/**
+ * Per-PARCEL variant of {@link getIndexMeansForBounds} (#13). Identical
+ * masked-median-composite reduce, but the region is the parcel's exact
+ * geometry (a GeoJSON Polygon / MultiPolygon) rather than a location bbox — so
+ * the NDVI/NDMI means describe just that field, not the whole location's
+ * bounding box. Throws on an EE failure; the caller degrades to "no reading".
+ */
+export async function getIndexMeansForPolygon(
+    geometry: unknown,
+    win: NdviWindow,
+): Promise<FieldIndexMeans> {
+    await initEarthEngine();
+
+    // `ee.Geometry(geojson)` accepts a GeoJSON geometry object directly.
+    const region = new (ee.Geometry as unknown as { new (g: unknown): EeImage })(geometry);
+
+    const collection = ee
+        .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+        .filterBounds(region)
+        .filterDate(win.start, win.end)
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60));
+
+    const masked = collection.map((img: EeImage) => {
+        const scl = img.select('SCL');
+        const keep = scl.neq(3).and(scl.neq(8)).and(scl.neq(9)).and(scl.neq(10)).and(scl.neq(11));
+        return img.updateMask(keep);
+    });
+
+    const ndviBand = bandFn('ndvi');
+    const ndmiBand = bandFn('ndmi');
+    const ndvi = masked.map((img: EeImage) => ndviBand(img)).median();
+    const ndmi = masked.map((img: EeImage) => ndmiBand(img)).median();
+    const combined = (ndvi as EeImage).addBands(ndmi).clip(region);
+
+    const reduced = (
+        combined as unknown as {
+            reduceRegion: (args: Record<string, unknown>) => {
+                evaluate: (cb: (value: unknown, err?: unknown) => void) => void;
+            };
+        }
+    ).reduceRegion({
+        reducer: ee.Reducer.mean(),
+        geometry: region,
+        scale: 20,
+        maxPixels: 1e9,
+        bestEffort: true,
+    });
+
+    const info = await new Promise<Record<string, unknown>>((resolve, reject) => {
+        reduced.evaluate((value: unknown, err?: unknown) => {
+            if (err) {
+                reject(new Error(`EE reduceRegion failed: ${String(err)}`));
+                return;
+            }
+            resolve((value ?? {}) as Record<string, unknown>);
+        });
+    });
+
+    const round3 = (v: unknown): number | null =>
+        typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 1000) / 1000 : null;
+
+    return { ndvi: round3(info.NDVI), ndmi: round3(info.NDMI) };
+}
+
 // Per-index named exports — one per `/agro/<index>-tiles` route. Each is a
 // thin wrapper over `getIndexTileUrl` so a route (and its unit test) can
 // import + mock a single stable function.

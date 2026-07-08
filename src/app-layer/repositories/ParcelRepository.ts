@@ -352,6 +352,25 @@ export class ParcelRepository {
         return { lon: Number(r.lon), lat: Number(r.lat) };
     }
 
+    /**
+     * A single parcel's geometry as GeoJSON (#13) — the exact polygon fed to
+     * the Earth-Engine per-parcel reduce. Tenant-scoped; returns null when the
+     * parcel is missing or has no geometry (caller degrades to "no reading").
+     */
+    static async geometryForParcel(
+        db: PrismaTx,
+        ctx: RequestContext,
+        parcelId: string,
+    ): Promise<Geometry | null> {
+        const rows = await db.$queryRaw<Array<{ geojson: string | null }>>(
+            Prisma.sql`SELECT ${asGeoJsonSql(col('geometry'))} AS "geojson" FROM "Parcel"
+                WHERE "id" = ${parcelId} AND "tenantId" = ${ctx.tenantId}
+                  AND "deletedAt" IS NULL AND ${col('geometry')} IS NOT NULL`,
+        );
+        const raw = rows[0]?.geojson ?? null;
+        return raw ? (parseGeometry(raw) as Geometry) : null;
+    }
+
     /** Read back the denormalized areaHa for a parcel (post-write). */
     private static async areaHaFor(db: PrismaTx, ctx: RequestContext, parcelId: string): Promise<number | null> {
         const rows = await db.parcel.findMany({

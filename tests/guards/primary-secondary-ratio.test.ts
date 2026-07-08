@@ -239,7 +239,10 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // request) on the promotions feed. The modal's trigger + Cancel are both
 // secondary, so the secondary:primary ratio stays healthy. Measured = 165;
 // ceiling at 165 (no headroom slot).
-const MAX_PRIMARY_COUNT = 165;
+// #13 (Farm Risk): +1 primary — the insurer "Ask for offer" lead-modal
+// confirm (Send request) on the per-parcel risk page. Trigger + Cancel are
+// secondary. Measured = 166; ceiling at 166 (no headroom slot).
+const MAX_PRIMARY_COUNT = 166;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {
