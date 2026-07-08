@@ -29,7 +29,7 @@ test.describe('Exchange — two-sided inquiry', () => {
         // ── A (seller) posts a listing via the authenticated API ──────────
         const createRes = await authedPage.request.post(
             `/api/t/${slugA}/exchange/listings`,
-            { data: { side: 'SELL', commodity, quantityTonnes: '250', regionCode: 'BG-16' } },
+            { data: { side: 'SELL', kind: 'CULTURE', commodity, quantityTonnes: '250', regionCode: 'BG-16' } },
         );
         expect(createRes.ok(), 'A creates a listing').toBeTruthy();
 
