@@ -484,40 +484,53 @@ export function ExchangeMap({
         // Markers first, then chips (so labels sit above every dot).
         for (const it of items) drawMarker(ctx, it);
 
-        // Chip metrics/box.
-        const measure = (it: Item): { bx: number; w: number } => {
+        // Chip placement — anchored to the RIGHT of the marker by default, but
+        // flipped BELOW + centred when a right-anchored chip would clip the east
+        // edge (Black Sea coast markers used to get cut off), then clamped so it
+        // always stays fully on-screen. `cy` is the chip's vertical centre; `x/y`
+        // is the top-left box corner (both the hit rect + the paint use these, so
+        // de-confliction and drawing agree).
+        const CHIP_PAD = 6;
+        const placeChip = (it: Item): { x: number; y: number; w: number; cx0: number; cy: number } => {
             ctx.font = '10px ui-monospace,monospace';
             // Best gets a drawn gold dot (no glyph — keeps the file emoji-free).
             const badge = it.best ? 9 : 0;
-            return { bx: it.sx + 5, w: ctx.measureText(it.text ?? '').width + badge + 7 };
+            const w = ctx.measureText(it.text ?? '').width + badge + 7;
+            let bx = it.sx + 5;
+            let cy = it.sy;
+            if (bx + w > CW - CHIP_PAD) {
+                bx = it.sx - w / 2; // centre the chip under the marker
+                cy = it.sy + 16; // and drop it below the dot
+            }
+            bx = Math.max(CHIP_PAD, Math.min(bx, CW - w - CHIP_PAD));
+            return { x: bx, y: cy - 8, w, cx0: bx, cy };
         };
         const rectOf = (it: Item): Rect => {
-            const mm = measure(it);
-            return { x: mm.bx, y: it.sy - 8, w: mm.w, h: 16 };
+            const p = placeChip(it);
+            return { x: p.x, y: p.y, w: p.w, h: 16 };
         };
         const drawChip = (it: Item, alpha: number) => {
-            const mm = measure(it);
-            const by = it.sy;
+            const p = placeChip(it);
             ctx.globalAlpha = alpha;
             ctx.fillStyle = '#0d1220';
             ctx.strokeStyle = it.best ? BEST_GOLD : '#2a3648';
             ctx.lineWidth = it.best ? 1.2 : 1;
             ctx.beginPath();
-            ctx.roundRect(mm.bx, by - 8, mm.w, 16, 4);
+            ctx.roundRect(p.x, p.y, p.w, 16, 4);
             ctx.fill();
             ctx.stroke();
             ctx.textBaseline = 'middle';
-            let cx = mm.bx + 4;
+            let cx = p.cx0 + 4;
             if (it.best) {
                 ctx.fillStyle = BEST_GOLD;
                 ctx.beginPath();
-                ctx.arc(mm.bx + 7, by, 2.6, 0, Math.PI * 2);
+                ctx.arc(p.cx0 + 7, p.cy, 2.6, 0, Math.PI * 2);
                 ctx.fill();
-                cx = mm.bx + 13;
+                cx = p.cx0 + 13;
             }
             ctx.font = '10px ui-monospace,monospace';
             ctx.fillStyle = '#ede7d8';
-            ctx.fillText(it.text ?? '', cx, by);
+            ctx.fillText(it.text ?? '', cx, p.cy);
             ctx.globalAlpha = 1;
         };
 
@@ -604,6 +617,11 @@ export function ExchangeMap({
     // Pointer: drag to pan, distinguish a tap, hit-test markers then provinces.
     const drag = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
     const moved = useRef(false);
+    // Touch gesture state: pinch (two fingers → zoom + pan the map) and a
+    // pending single-tap (→ select). One-finger drags are left to the browser
+    // so the PAGE scrolls, like an embedded Google map.
+    const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
+    const touchTap = useRef<{ x: number; y: number; moved: boolean } | null>(null);
 
     const nearest = useCallback((mx: number, my: number): Item | null => {
         let best: Item | null = null;
@@ -620,30 +638,16 @@ export function ExchangeMap({
         return bd < 676 ? best : null;
     }, []);
 
-    const onPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-        drag.current = { x: e.clientX, y: e.clientY, tx: view.current.tx, ty: view.current.ty };
-        moved.current = false;
-        e.currentTarget.setPointerCapture(e.pointerId);
-    }, []);
-
-    const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-        const d = drag.current;
-        if (!d) return;
-        if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 5) moved.current = true;
-        view.current.tx = d.tx + (e.clientX - d.x);
-        view.current.ty = d.ty + (e.clientY - d.y);
-        clampView();
-        drawRef.current();
-    }, [clampView]);
-
-    const onPointerUp = useCallback(
-        (e: React.PointerEvent<HTMLCanvasElement>) => {
-            const wasDrag = moved.current;
-            drag.current = null;
-            if (wasDrag) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
+    // Select at a screen point: hit-test markers first (pin / open the detail
+    // popup), else fall back to a province hit-test that drives the region
+    // filter. Shared by the mouse (pointer) path and the touch tap handler.
+    const selectAt = useCallback(
+        (clientX: number, clientY: number) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const mx = clientX - rect.left;
+            const my = clientY - rect.top;
             const hit = nearest(mx, my);
             if (hit) {
                 setPinnedId((cur) => (cur === hit.id ? null : hit.id));
@@ -657,8 +661,7 @@ export function ExchangeMap({
             // Empty space → clear selection, then province hit-test for the filter.
             setPinnedId(null);
             setPopup(null);
-            const canvas = canvasRef.current;
-            const ctx = canvas?.getContext('2d');
+            const ctx = canvas.getContext('2d');
             if (!ctx) return;
             const v = view.current;
             const wx = (mx - v.tx) / v.k;
@@ -673,6 +676,113 @@ export function ExchangeMap({
         },
         [nearest, onRegionClick, provincePaths],
     );
+
+    // Mouse only: press-drag pans, a click (no drag) selects. Touch gestures are
+    // handled by the native listeners below — one finger scrolls the PAGE, two
+    // fingers zoom the MAP — so the pointer handlers deliberately ignore touch.
+    const onPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+        if (e.pointerType !== 'mouse') return;
+        drag.current = { x: e.clientX, y: e.clientY, tx: view.current.tx, ty: view.current.ty };
+        moved.current = false;
+        e.currentTarget.setPointerCapture(e.pointerId);
+    }, []);
+
+    const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+        if (e.pointerType !== 'mouse') return;
+        const d = drag.current;
+        if (!d) return;
+        if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 5) moved.current = true;
+        view.current.tx = d.tx + (e.clientX - d.x);
+        view.current.ty = d.ty + (e.clientY - d.y);
+        clampView();
+        drawRef.current();
+    }, [clampView]);
+
+    const onPointerUp = useCallback(
+        (e: React.PointerEvent<HTMLCanvasElement>) => {
+            if (e.pointerType !== 'mouse') return;
+            const wasDrag = moved.current;
+            drag.current = null;
+            if (wasDrag) return;
+            selectAt(e.clientX, e.clientY);
+        },
+        [selectAt],
+    );
+
+    // Native touch gestures (cooperative, embedded-map style). Attached
+    // imperatively with { passive: false } because React's synthetic onTouch*
+    // handlers are passive and cannot preventDefault. One finger is left to the
+    // browser (the PAGE scrolls); two fingers pinch-zoom + pan the MAP; a
+    // one-finger tap that didn't move selects.
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const spread = (t: TouchList) =>
+            Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+        const midpoint = (t: TouchList, rect: DOMRect) => ({
+            x: (t[0].clientX + t[1].clientX) / 2 - rect.left,
+            y: (t[0].clientY + t[1].clientY) / 2 - rect.top,
+        });
+        const onStart = (e: TouchEvent) => {
+            if (e.touches.length >= 2) {
+                const rect = canvas.getBoundingClientRect();
+                const m = midpoint(e.touches, rect);
+                pinch.current = { dist: spread(e.touches), mx: m.x, my: m.y };
+                touchTap.current = null; // a second finger cancels any pending tap
+                e.preventDefault();
+            } else if (e.touches.length === 1) {
+                touchTap.current = {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY,
+                    moved: false,
+                };
+            }
+        };
+        const onMove = (e: TouchEvent) => {
+            if (e.touches.length >= 2 && pinch.current) {
+                e.preventDefault(); // take the gesture from the page → zoom the map
+                const rect = canvas.getBoundingClientRect();
+                const nd = spread(e.touches);
+                const m = midpoint(e.touches, rect);
+                const p = pinch.current;
+                if (p.dist > 0) zoomAt(m.x, m.y, nd / p.dist);
+                const v = view.current;
+                v.tx += m.x - p.mx;
+                v.ty += m.y - p.my;
+                clampView();
+                drawRef.current();
+                pinch.current = { dist: nd, mx: m.x, my: m.y };
+            } else if (e.touches.length === 1 && touchTap.current) {
+                const t = e.touches[0];
+                if (
+                    Math.abs(t.clientX - touchTap.current.x) +
+                        Math.abs(t.clientY - touchTap.current.y) >
+                    10
+                ) {
+                    touchTap.current.moved = true; // it became a scroll, not a tap
+                }
+                // No preventDefault → the browser scrolls the page.
+            }
+        };
+        const onEnd = (e: TouchEvent) => {
+            if (e.touches.length < 2) pinch.current = null;
+            if (e.touches.length === 0) {
+                const t = touchTap.current;
+                touchTap.current = null;
+                if (t && !t.moved) selectAt(t.x, t.y);
+            }
+        };
+        canvas.addEventListener('touchstart', onStart, { passive: false });
+        canvas.addEventListener('touchmove', onMove, { passive: false });
+        canvas.addEventListener('touchend', onEnd, { passive: false });
+        canvas.addEventListener('touchcancel', onEnd, { passive: false });
+        return () => {
+            canvas.removeEventListener('touchstart', onStart);
+            canvas.removeEventListener('touchmove', onMove);
+            canvas.removeEventListener('touchend', onEnd);
+            canvas.removeEventListener('touchcancel', onEnd);
+        };
+    }, [zoomAt, clampView, selectAt]);
 
     const onWheel = useCallback(
         (e: React.WheelEvent<HTMLCanvasElement>) => {
@@ -703,7 +813,7 @@ export function ExchangeMap({
         >
             <canvas
                 ref={canvasRef}
-                className="block h-full w-full touch-none"
+                className="block h-full w-full touch-pan-y"
                 style={{ cursor: 'grab' }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
