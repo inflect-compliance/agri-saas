@@ -43,6 +43,7 @@ jest.mock('@google/earthengine', () => {
     img.divide = ret;
     img.rename = ret;
     img.clip = ret;
+    img.get = ret;
     img.normalizedDifference = (...a: unknown[]) => {
         mockRec.nd.push(a[0] as string[]);
         return img;
@@ -61,6 +62,10 @@ jest.mock('@google/earthengine', () => {
     collection.filterBounds = () => collection;
     collection.filterDate = () => collection;
     collection.filter = () => collection;
+    // Adaptive-window helper: latest-acquisition anchor + size()>0 conditional.
+    collection.sort = () => collection;
+    collection.first = () => img;
+    collection.size = () => ({ gt: () => ({}) });
     collection.map = (...a: unknown[]) => {
         (a[0] as (i: unknown) => unknown)(img);
         return collection;
@@ -76,6 +81,9 @@ jest.mock('@google/earthengine', () => {
             Geometry: { Rectangle: () => ({}) },
             Filter: { lt: () => ({}) },
             ImageCollection: () => collection,
+            // Adaptive-window helper members (missing from the EE type defs).
+            Date: () => ({ advance: () => ({}) }),
+            Algorithms: { If: (_cond: unknown, whenTrue: unknown) => whenTrue },
         },
     };
 });
