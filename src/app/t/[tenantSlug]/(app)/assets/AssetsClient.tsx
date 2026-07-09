@@ -399,7 +399,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                     Mirrors the Risks-page reference layout exactly:
                     same grid, same gap, same KpiFilterCard primitive,
                     KPIs derived from filter state via useKpiFilter. */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-default">
+                <div className="grid grid-cols-1 gap-default sm:grid-cols-2 md:grid-cols-4">
                     {visibleKpiCards.map((card) => {
                         const cfg: Record<
                             string,

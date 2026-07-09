@@ -124,6 +124,28 @@ function bandFn(index: VegetationIndex): (img: EeImage) => EeImage {
 }
 
 /**
+ * Cloud-filtered S2_SR_HARMONIZED collection for `region`, ADAPTIVE on the
+ * date window: prefer the requested `[win.start, win.end)`, but when that
+ * window holds NO imagery — the common cause of a blank overlay: the wall
+ * clock has run ahead of the published Sentinel-2 archive, or a cloudy stretch
+ * emptied the window — fall back to a same-length window ending on the LATEST
+ * available acquisition. So the composite is never empty while ANY recent
+ * imagery exists, and the date picker still drives the window when data is
+ * there. `ee` is untyped; the fluent chain is `EeImage`.
+ */
+function adaptiveS2Collection(region: EeImage, win: NdviWindow): EeImage {
+    const base = ee
+        .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+        .filterBounds(region)
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60));
+    const windowColl = base.filterDate(win.start, win.end);
+    const windowDays = Math.max(1, Math.round((Date.parse(win.end) - Date.parse(win.start)) / 86_400_000));
+    const latest = ee.Date(base.sort('system:time_start', false).first().get('system:time_start'));
+    const fallback = base.filterDate(latest.advance(-windowDays, 'day'), latest.advance(1, 'day'));
+    return ee.ImageCollection(ee.Algorithms.If(windowColl.size().gt(0), windowColl, fallback)) as EeImage;
+}
+
+/**
  * Build a recent cloud-masked Sentinel-2 composite of `index` for `aoi` over
  * the `[start, end)` window and return its ephemeral XYZ tile-URL template.
  *
@@ -144,11 +166,7 @@ export async function getIndexTileUrl(
     const band = bandFn(index);
     const region = ee.Geometry.Rectangle([aoi.west, aoi.south, aoi.east, aoi.north]);
 
-    const collection = ee
-        .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-        .filterBounds(region)
-        .filterDate(win.start, win.end)
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60));
+    const collection = adaptiveS2Collection(region, win);
 
     // SCL classes to mask: 3 cloud-shadow, 8 cloud-medium, 9 cloud-high,
     // 10 thin-cirrus, 11 snow/ice. `EeImage` keeps the fluent EE chain
@@ -214,11 +232,7 @@ export async function getIndexMeansForBounds(
 
     const region = ee.Geometry.Rectangle([aoi.west, aoi.south, aoi.east, aoi.north]);
 
-    const collection = ee
-        .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-        .filterBounds(region)
-        .filterDate(win.start, win.end)
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60));
+    const collection = adaptiveS2Collection(region, win);
 
     // Same SCL cloud/shadow/snow mask as the tile pipeline.
     const masked = collection.map((img: EeImage) => {
@@ -283,11 +297,7 @@ export async function getIndexMeansForPolygon(
     // `ee.Geometry(geojson)` accepts a GeoJSON geometry object directly.
     const region = new (ee.Geometry as unknown as { new (g: unknown): EeImage })(geometry);
 
-    const collection = ee
-        .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-        .filterBounds(region)
-        .filterDate(win.start, win.end)
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60));
+    const collection = adaptiveS2Collection(region, win);
 
     const masked = collection.map((img: EeImage) => {
         const scl = img.select('SCL');

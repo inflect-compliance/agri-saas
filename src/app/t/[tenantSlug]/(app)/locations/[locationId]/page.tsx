@@ -562,7 +562,7 @@ export default function LocationDetailPage() {
                                         key={idx.id}
                                         variant={on ? 'primary' : 'secondary'}
                                         size="sm"
-                                        className="min-h-[44px] min-w-[44px]"
+                                        className="px-2"
                                         onClick={() => {
                                             setActiveIndex((cur) => (cur === idx.id ? null : idx.id));
                                             setSoilView(false);
@@ -579,7 +579,7 @@ export default function LocationDetailPage() {
                             <Button
                                 variant={soilView ? 'primary' : 'secondary'}
                                 size="sm"
-                                className="min-h-[44px] min-w-[44px]"
+                                className="px-2"
                                 onClick={() => {
                                     setSoilView((on) => {
                                         if (!on) setActiveIndex(null);
@@ -606,7 +606,7 @@ export default function LocationDetailPage() {
                                             type="button"
                                             variant="secondary"
                                             size="sm"
-                                            className="min-h-[44px] shrink-0"
+                                            className="min-h-[32px] shrink-0"
                                             icon={<CalendarIcon className="size-4" aria-hidden="true" />}
                                             aria-haspopup="dialog"
                                             aria-expanded={open}

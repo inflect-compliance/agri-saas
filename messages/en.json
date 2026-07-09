@@ -3027,7 +3027,7 @@
         },
         "soil": {
             "title": "Soil",
-            "viewToggle": "Soil view",
+            "viewToggle": "Soil",
             "legendTitle": "Soil type",
             "pending": "Soil pending",
             "estimate": "Modelled estimate — not a lab result.",
