@@ -77,7 +77,7 @@ export function FieldBriefingCard() {
                                     aria-hidden
                                     className={`mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${PRIORITY_DOT[a.priority]}`}
                                 />
-                                <span className="text-content-default">
+                                <span className="min-w-0 break-words text-content-default">
                                     {a.field ? (
                                         <span className="font-medium text-content-emphasis">{a.field}: </span>
                                     ) : null}

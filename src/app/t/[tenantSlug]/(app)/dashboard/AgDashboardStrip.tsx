@@ -57,7 +57,7 @@ export default function AgDashboardStrip() {
             <FieldBriefingCard />
             <div
                 id="ag-dashboard-strip"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-default"
+                className="grid grid-cols-1 gap-default md:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0"
             >
             {journalOn && (
                 <RecentJournalCard href={href('/journal')} items={data.recentJournal} />

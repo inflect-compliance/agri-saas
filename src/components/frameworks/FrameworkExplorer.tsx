@@ -274,7 +274,7 @@ export function FrameworkExplorer({
                 </div>
                 <div
                     ref={treeScrollRef}
-                    className="flex-1 overflow-y-auto -mx-2 px-1"
+                    className="flex-1 overflow-y-auto overflow-x-hidden -mx-2 px-1"
                     id="framework-explorer-tree-scroll"
                 >
                     <TreeView
