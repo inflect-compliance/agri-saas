@@ -562,7 +562,7 @@ export default function LocationDetailPage() {
                                         key={idx.id}
                                         variant={on ? 'primary' : 'secondary'}
                                         size="sm"
-                                        className="min-h-[44px] min-w-[44px]"
+                                        className="min-h-[44px] px-2"
                                         onClick={() => {
                                             setActiveIndex((cur) => (cur === idx.id ? null : idx.id));
                                             setSoilView(false);
@@ -579,7 +579,7 @@ export default function LocationDetailPage() {
                             <Button
                                 variant={soilView ? 'primary' : 'secondary'}
                                 size="sm"
-                                className="min-h-[44px] min-w-[44px]"
+                                className="min-h-[44px] px-2"
                                 onClick={() => {
                                     setSoilView((on) => {
                                         if (!on) setActiveIndex(null);
