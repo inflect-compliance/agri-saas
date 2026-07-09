@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,17 +31,9 @@ const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     OPEN: 'neutral', TRIAGED: 'info', IN_PROGRESS: 'info',
     BLOCKED: 'error', RESOLVED: 'success', CLOSED: 'neutral', CANCELED: 'neutral',
 };
-const STATUS_LABELS: Record<string, string> = {
-    OPEN: 'Open', TRIAGED: 'Triaged', IN_PROGRESS: 'In Progress',
-    BLOCKED: 'Blocked', RESOLVED: 'Resolved', CLOSED: 'Closed', CANCELED: 'Canceled',
-};
 const SEVERITY_BADGE: Record<string, StatusBadgeVariant> = {
     INFO: 'neutral', LOW: 'neutral', MEDIUM: 'warning',
     HIGH: 'error', CRITICAL: 'error',
-};
-const TYPE_LABELS: Record<string, string> = {
-    AUDIT_FINDING: 'Audit Finding', CONTROL_GAP: 'Control Gap',
-    INCIDENT: 'Incident', IMPROVEMENT: 'Improvement', TASK: 'Task',
 };
 
 interface LinkedTask {
@@ -80,6 +73,10 @@ export default function LinkedTasksPanel({
     canWrite = false,
 }: LinkedTasksPanelProps) {
     const router = useRouter();
+    const te = useTranslations('taskEnums');
+    const statusLabel = (s: string) => (te.has(`status.${s}`) ? te(`status.${s}`) : s);
+    const typeLabel = (ty: string) => (te.has(`type.${ty}`) ? te(`type.${ty}`) : ty);
+    const severityLabel = (s: string) => (te.has(`severity.${s}`) ? te(`severity.${s}`) : s);
     const [tasks, setTasks] = useState<LinkedTask[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -128,7 +125,7 @@ export default function LinkedTasksPanel({
             createColumns<LinkedTask>([
                 {
                     id: 'title',
-                    header: 'Title',
+                    header: te('ui.colTitle'),
                     accessorFn: (t) => t.title,
                     // Title is a link to the task detail page — same UX
                     // as the global Tasks table. Normal truncation so a
@@ -143,24 +140,24 @@ export default function LinkedTasksPanel({
                 },
                 {
                     id: 'type',
-                    header: 'Type',
+                    header: te('ui.colType'),
                     accessorFn: (t) => t.type ?? '',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">
-                            {TYPE_LABELS[getValue<string>()] || getValue<string>() || '—'}
+                            {getValue<string>() ? typeLabel(getValue<string>()) : '—'}
                         </span>
                     ),
                 },
                 {
                     id: 'severity',
-                    header: 'Severity',
+                    header: te('ui.colSeverity'),
                     accessorFn: (t) => t.severity ?? '',
                     cell: ({ row }) =>
                         row.original.severity ? (
                             <StatusBadge
                                 variant={SEVERITY_BADGE[row.original.severity] || 'neutral'}
                             >
-                                {row.original.severity}
+                                {severityLabel(row.original.severity)}
                             </StatusBadge>
                         ) : (
                             <span className="text-content-subtle">—</span>
@@ -168,19 +165,19 @@ export default function LinkedTasksPanel({
                 },
                 {
                     id: 'status',
-                    header: 'Status',
+                    header: te('ui.colStatus'),
                     accessorFn: (t) => t.status,
                     cell: ({ row }) => (
                         <StatusBadge
                             variant={STATUS_BADGE[row.original.status] || 'neutral'}
                         >
-                            {STATUS_LABELS[row.original.status] || row.original.status}
+                            {statusLabel(row.original.status)}
                         </StatusBadge>
                     ),
                 },
                 {
                     id: 'assignee',
-                    header: 'Assignee',
+                    header: te('ui.colAssignee'),
                     accessorFn: (t) => t.assignee?.name || '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">
@@ -190,7 +187,7 @@ export default function LinkedTasksPanel({
                 },
                 {
                     id: 'dueAt',
-                    header: 'Due Date',
+                    header: te('ui.colDueDate'),
                     cell: ({ row }) => (
                         <TimestampTooltip
                             date={row.original.dueAt ?? null}
@@ -199,7 +196,8 @@ export default function LinkedTasksPanel({
                     ),
                 },
             ]),
-        [tenantHref],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tenantHref, te],
     );
 
     return (
@@ -213,7 +211,7 @@ export default function LinkedTasksPanel({
                             onClick={() => setCreating(true)}
                             id="linked-task-create-btn"
                             data-testid="linked-task-create-btn"
-                            text="Task"
+                            text={te('ui.task')}
                             icon={<Plus className="size-4" aria-hidden="true" />}
                         />
                     </div>
@@ -243,7 +241,7 @@ export default function LinkedTasksPanel({
                     router.push(tenantHref(`/tasks/${row.original.id}`))
                 }
                 resourceName={(plural) => (plural ? 'tasks' : 'task')}
-                emptyState="No linked tasks"
+                emptyState={te('ui.noLinkedTasks')}
                 data-testid="linked-tasks-table"
             />
         </div>

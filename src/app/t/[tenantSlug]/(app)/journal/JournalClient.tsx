@@ -24,6 +24,7 @@ import {
     buildJournalFilters,
     JOURNAL_FILTER_KEYS,
     LOG_ENTRY_TYPE_LABELS,
+    CROP_FILTER_LABELS,
 } from './filter-defs';
 import { JournalEntryModal } from './JournalEntryModal';
 
@@ -77,6 +78,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
     const router = useRouter();
     const prefetchData = usePrefetchTenant();
     const t = useTranslations('journal');
+    const te = useTranslations('journalEnums');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     const filterCtx = useFilters();
@@ -109,7 +111,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
     const entries = entriesQuery.data ?? [];
     const loading = entriesQuery.isLoading && !entriesQuery.data;
 
-    const liveFilters = useMemo(() => buildJournalFilters(), []);
+    const liveFilters = useMemo(() => buildJournalFilters(te), [te]);
 
     const columns = useMemo(
         () =>
@@ -139,14 +141,19 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                         e.title,
                     cell: ({ row, getValue }) => {
                         const culture = row.original.operationParcel?.parcel?.cropType;
+                        const cultureLabel = culture
+                            ? culture in CROP_FILTER_LABELS
+                                ? te(`crop.${culture}`)
+                                : culture
+                            : null;
                         return (
                             <TableTitleCell
                                 href={tenantHref(`/journal/${row.original.id}`)}
                                 id={`journal-link-${row.original.id}`}
                             >
                                 <span>{getValue() as string}</span>
-                                {culture ? (
-                                    <span className="ml-1 text-xs text-content-muted">· {culture}</span>
+                                {cultureLabel ? (
+                                    <span className="ml-1 text-xs text-content-muted">· {cultureLabel}</span>
                                 ) : null}
                             </TableTitleCell>
                         );
@@ -160,8 +167,9 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                     header: t('colOperation'),
                     accessorFn: (e) =>
                         e.operationParcel?.task?.operationType ??
-                        (LOG_ENTRY_TYPE_LABELS as Record<string, string>)[e.type] ??
-                        String(e.type).replace(/_/g, ' '),
+                        (e.type in LOG_ENTRY_TYPE_LABELS
+                            ? te(`logType.${e.type}`)
+                            : String(e.type).replace(/_/g, ' ')),
                     cell: ({ getValue }) => (
                         <StatusBadge variant="info" size="sm">
                             {String(getValue()).replace(/_/g, ' ')}
@@ -250,7 +258,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                         const status = row.original.status;
                         return (
                             <StatusBadge variant={STATUS_BADGE[status] ?? 'neutral'} size="sm">
-                                {status}
+                                {status in STATUS_BADGE ? te(`status.${status}`) : status}
                             </StatusBadge>
                         );
                     },
@@ -273,7 +281,7 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                 },
             ]),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [tenantSlug, t],
+        [tenantSlug, t, te],
     );
 
     return (

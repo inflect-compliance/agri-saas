@@ -12,6 +12,9 @@ import type { FilterType } from '@/components/ui/filter';
 import { ArrowLeftRight, MapPin, Scale, Wheat, Tag } from 'lucide-react';
 import { BULGARIA_REGIONS } from '@/lib/geo/bulgaria-regions';
 
+/** A next-intl translator scoped to the `exchangeFilters` namespace. */
+type Translator = (key: string) => string;
+
 const REGION_OPTIONS = BULGARIA_REGIONS.map((r) => ({
     value: r.code,
     label: `${r.nameBg} / ${r.nameEn}`,
@@ -85,12 +88,49 @@ const STATIC_DEFS = {
 export const exchangeFilterDefs = createTypedFilterDefs()(STATIC_DEFS);
 export const EXCHANGE_FILTER_KEYS = exchangeFilterDefs.filterKeys;
 
-/** Inject runtime commodity options (distinct commodities from the feed). */
-export function buildExchangeFilters(commodities: readonly string[]): FilterType[] {
-    const options = Array.from(new Set(commodities))
+/**
+ * Inject runtime commodity options (distinct commodities from the feed)
+ * and translate the static facet + option labels. Takes an
+ * `exchangeFilters` translator so the filter dropdown / pills render in
+ * the active locale.
+ */
+export function buildExchangeFilters(
+    t: Translator,
+    commodities: readonly string[],
+): FilterType[] {
+    const commodityOptions = Array.from(new Set(commodities))
         .sort((a, b) => a.localeCompare(b))
         .map((c) => ({ value: c, label: c }));
-    return exchangeFilterDefs.filters.map((f) =>
-        f.key === 'commodity' ? { ...f, options } : f,
-    );
+    return exchangeFilterDefs.filters.map((f) => {
+        switch (f.key) {
+            case 'side':
+                return {
+                    ...f,
+                    label: t('side'),
+                    options: [
+                        { value: 'SELL', label: t('sideSell') },
+                        { value: 'BUY', label: t('sideBuy') },
+                    ],
+                };
+            case 'kind':
+                return {
+                    ...f,
+                    label: t('type'),
+                    options: [
+                        { value: 'CULTURE', label: t('kindCulture') },
+                        { value: 'FERTILIZER', label: t('kindFertilizer') },
+                        { value: 'SEEDS', label: t('kindSeeds') },
+                        { value: 'PRODUCT', label: t('kindProduct') },
+                    ],
+                };
+            case 'commodity':
+                return { ...f, label: t('commodity'), options: commodityOptions };
+            case 'region':
+                return { ...f, label: t('region') };
+            case 'quantity':
+                return { ...f, label: t('quantity') };
+            default:
+                return f;
+        }
+    });
 }

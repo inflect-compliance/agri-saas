@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useUrlFilters } from '@/lib/hooks/useUrlFilters';
 import { Combobox } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
@@ -42,12 +43,14 @@ interface FilterBarProps {
  */
 export function FilterBar({
     filterKeys,
-    searchPlaceholder = 'Search…',
+    searchPlaceholder,
     selects = [],
     toggles = [],
     className = '',
 }: FilterBarProps) {
+    const t = useTranslations('filtersChrome');
     const { filters, setFilter, clearFilters, hasActiveFilters } = useUrlFilters(filterKeys);
+    const placeholder = searchPlaceholder ?? t('searchEllipsis');
 
     return (
         <div className={cn(cardVariants({ density: 'compact' }), className)}>
@@ -57,7 +60,7 @@ export function FilterBar({
                     <input
                         type="text"
                         className="input w-full"
-                        placeholder={searchPlaceholder}
+                        placeholder={placeholder}
                         value={filters.q || ''}
                         onChange={(e) => setFilter('q', e.target.value)}
                         id="filter-search"
@@ -105,7 +108,7 @@ export function FilterBar({
                         className="text-xs"
                         id="filter-clear"
                     >
-                        × Clear filters
+                        {`× ${t('clearFilters')}`}
                     </Button>
                 )}
             </div>

@@ -78,6 +78,7 @@ function SideDot({ side }: { side: 'SELL' | 'BUY' }) {
 
 function ExchangeInner() {
     const t = useTranslations('exchange.client');
+    const tFilters = useTranslations('exchangeFilters');
     const tenantHref = useTenantHref();
     const buildApiUrl = useTenantApiUrl();
     const searchParams = useSearchParams();
@@ -90,8 +91,8 @@ function ExchangeInner() {
 
     // Runtime commodity options from the feed.
     const liveFilters = useMemo(
-        () => buildExchangeFilters(offers.map((o) => o.commodity)),
-        [offers],
+        () => buildExchangeFilters(tFilters, offers.map((o) => o.commodity)),
+        [tFilters, offers],
     );
 
     // Client-side filter (side / commodity / region / quantity + search).

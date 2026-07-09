@@ -51,6 +51,7 @@ export interface FieldOperationPanelProps {
 
 export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
     const t = useTranslations('ag.map');
+    const te = useTranslations('taskEnums');
     const buildUrl = useTenantApiUrl();
     const { data, mutate, isLoading } = useTenantSWR<FieldOpView>(`/field-operations/${taskId}`);
     const [busyId, setBusyId] = useState<string | null>(null);
@@ -115,7 +116,9 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
                 <div className="text-sm text-content-secondary">
                     {t('fieldOp.parcelsComplete', { done: data.progress.done, total: data.progress.total })}
                 </div>
-                <div className="text-sm font-medium">{data.task.status}</div>
+                <div className="text-sm font-medium">
+                    {te.has(`status.${data.task.status}`) ? te(`status.${data.task.status}`) : data.task.status}
+                </div>
             </div>
             <MapCanvas parcels={mapParcels} bounds={bounds} interactive={false} doneIds={doneIds} className="h-[360px] w-full overflow-hidden rounded-lg border border-border-subtle" />
             <ul className="divide-y divide-border-subtle rounded-lg border border-border-subtle">

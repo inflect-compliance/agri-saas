@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { cn } from '@/lib/cn';
@@ -17,7 +18,6 @@ import { cn } from '@/lib/cn';
 export type AiConfidence = 'low' | 'medium' | 'high';
 
 const CONFIDENCE_VARIANT = { high: 'success', medium: 'info', low: 'warning' } as const;
-const CONFIDENCE_LABEL = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' } as const;
 
 export interface AiSuggestionCardProps {
     title: string;
@@ -29,6 +29,7 @@ export interface AiSuggestionCardProps {
 }
 
 export function AiSuggestionCard({ title, confidence, meta, children, className }: AiSuggestionCardProps) {
+    const t = useTranslations('agStatus');
     return (
         <Card
             className={cn('p-4 space-y-default border-border-emphasis', className)}
@@ -42,7 +43,7 @@ export function AiSuggestionCard({ title, confidence, meta, children, className 
                 </div>
                 {confidence && (
                     <StatusBadge variant={CONFIDENCE_VARIANT[confidence]} size="sm">
-                        {CONFIDENCE_LABEL[confidence]}
+                        {t(`confidence.${confidence}`)}
                     </StatusBadge>
                 )}
             </div>

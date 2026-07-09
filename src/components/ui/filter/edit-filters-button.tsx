@@ -11,6 +11,7 @@
  * Sits FIRST (leftmost) in the toolbar's actions slot — it controls the
  * primary toolbar content. The columns gear (`Columns3`) sits second.
  */
+import { useTranslations } from 'next-intl';
 import { Settings } from 'lucide-react';
 import { ChecklistGearButton } from '@/components/ui/checklist-gear-button';
 import type { ChecklistGearItem } from '@/components/ui/checklist-order';
@@ -26,11 +27,12 @@ export interface EditFiltersButtonProps {
 }
 
 export function EditFiltersButton(props: EditFiltersButtonProps) {
+    const t = useTranslations('filtersChrome');
     return (
         <ChecklistGearButton
             {...props}
             icon={<Settings className="h-4 w-4 shrink-0" />}
-            title="Edit filter cards"
+            title={t('editFilterCards')}
             data-testid="edit-filters-button"
         />
     );

@@ -11,6 +11,8 @@ import {
     createTypedFilterDefs,
     optionsFromEnum,
 } from '@/components/ui/filter/filter-definitions';
+import type { FilterType } from '@/components/ui/filter';
+import type { useTranslations } from 'next-intl';
 import { CircleDot, Layers, Sprout } from 'lucide-react';
 
 /**
@@ -18,7 +20,7 @@ import { CircleDot, Layers, Sprout } from 'lucide-react';
  * same catalogue the parcel crop picker uses). Inlined here so the journal
  * filter has no build-time coupling to the map crop-picker module.
  */
-const CROP_FILTER_LABELS = {
+export const CROP_FILTER_LABELS = {
     Wheat: 'Wheat',
     Barley: 'Barley',
     Canola: 'Canola',
@@ -79,6 +81,29 @@ const STATIC_DEFS = {
 export const journalFilterDefs = createTypedFilterDefs()(STATIC_DEFS);
 export const JOURNAL_FILTER_KEYS = journalFilterDefs.filterKeys;
 
-export function buildJournalFilters() {
-    return journalFilterDefs.filters;
+/**
+ * Localize the journal filter defs. Enum VALUES (the option `value`s, filter
+ * keys, icons) are preserved; only the display labels are swapped for the
+ * `journalEnums` catalogue. `t` is a `useTranslations('journalEnums')`
+ * translator supplied by the consuming client component.
+ */
+export function buildJournalFilters(
+    t: ReturnType<typeof useTranslations>,
+): FilterType[] {
+    const localize = (options: FilterType['options'], prefix: string): FilterType['options'] =>
+        options
+            ? options.map((o) => ({ ...o, label: t(`${prefix}.${o.value}`) }))
+            : options;
+    return journalFilterDefs.filters.map((f) => {
+        switch (f.key) {
+            case 'type':
+                return { ...f, label: t('filter.type'), options: localize(f.options, 'logType') };
+            case 'status':
+                return { ...f, label: t('filter.status'), options: localize(f.options, 'status') };
+            case 'crop':
+                return { ...f, label: t('filter.crop'), options: localize(f.options, 'crop') };
+            default:
+                return f;
+        }
+    });
 }

@@ -45,7 +45,14 @@ import {
 type FilterIcon = FilterDefInput['icon'];
 const asIcon = (c: unknown): FilterIcon => c as FilterIcon;
 
+/** A next-intl translator scoped to the `grainEnums` namespace. */
+type Translator = (key: string) => string;
+
 // ─── Static labels (enum copy lives here, not in the client) ─────────
+//
+// English fallbacks kept as the source of truth for `optionsFromEnum`
+// (used by the create/edit form modal). The Contracts filter toolbar
+// overrides these with translated copy via `buildContractFilters(t)`.
 
 export const CONTRACT_STATUS_LABELS = {
     DRAFT: 'Draft',
@@ -94,8 +101,35 @@ export const contractFilterDefs = createTypedFilterDefs()(STATIC_DEFS);
 export const CONTRACT_FILTER_KEYS = contractFilterDefs.filterKeys;
 
 /** Produce the Filter[] array FilterToolbar consumes. Both facets are
- * static (enum-backed), so this is a thin passthrough — kept as a
- * builder for parity with the other list pages. */
-export function buildContractFilters(): FilterDef[] {
-    return contractFilterDefs.filters;
+ * static (enum-backed); the builder takes a `grainEnums` translator so the
+ * facet labels + enum option labels render in the active locale. */
+export function buildContractFilters(t: Translator): FilterDef[] {
+    return contractFilterDefs.filters.map((f) => {
+        if (f.key === 'status') {
+            return {
+                ...f,
+                label: t('status'),
+                labelPlural: t('statuses'),
+                options: optionsFromEnum({
+                    DRAFT: t('statusDraft'),
+                    ACTIVE: t('statusActive'),
+                    DELIVERED: t('statusDelivered'),
+                    SETTLED: t('statusSettled'),
+                    CANCELLED: t('statusCancelled'),
+                }),
+            };
+        }
+        if (f.key === 'type') {
+            return {
+                ...f,
+                label: t('type'),
+                labelPlural: t('types'),
+                options: optionsFromEnum({
+                    SALE: t('typeSale'),
+                    PURCHASE: t('typePurchase'),
+                }),
+            };
+        }
+        return f;
+    });
 }

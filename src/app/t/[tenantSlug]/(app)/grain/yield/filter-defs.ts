@@ -30,6 +30,9 @@ import { CalendarDays, LocationPin } from '@/components/ui/icons/nucleo';
 type FilterIcon = FilterDefInput['icon'];
 const asIcon = (c: unknown): FilterIcon => c as FilterIcon;
 
+/** A next-intl translator scoped to the `grainEnums` namespace. */
+type Translator = (key: string) => string;
+
 // ─── Static filter definitions ───────────────────────────────────────
 
 const STATIC_DEFS = {
@@ -87,16 +90,30 @@ function dedupeOptions(
 /**
  * Produce the Filter[] array FilterToolbar consumes, with the season /
  * location `options` replaced by the runtime-derived lists from the
- * loaded yield records.
+ * loaded yield records. Takes a `grainEnums` translator so the facet
+ * labels render in the active locale.
  */
 export function buildYieldFilters(
+    t: Translator,
     loaded: ReadonlyArray<YieldLike>,
 ): FilterDef[] {
     const seasonOpts = dedupeOptions(loaded.map((y) => y.season));
     const locationOpts = dedupeOptions(loaded.map((y) => y.location));
     return yieldFilterDefs.filters.map((f) => {
-        if (f.key === 'seasonId') return { ...f, options: seasonOpts };
-        if (f.key === 'locationId') return { ...f, options: locationOpts };
+        if (f.key === 'seasonId')
+            return {
+                ...f,
+                label: t('season'),
+                labelPlural: t('seasons'),
+                options: seasonOpts,
+            };
+        if (f.key === 'locationId')
+            return {
+                ...f,
+                label: t('field'),
+                labelPlural: t('fields'),
+                options: locationOpts,
+            };
         return f;
     });
 }

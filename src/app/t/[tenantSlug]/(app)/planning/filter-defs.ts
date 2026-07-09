@@ -16,6 +16,8 @@ import {
     createTypedFilterDefs,
     optionsFromEnum,
 } from '@/components/ui/filter/filter-definitions';
+import type { FilterType } from '@/components/ui/filter';
+import type { useTranslations } from 'next-intl';
 import { CircleDotted } from '@/components/ui/icons/nucleo';
 
 /** The icon shape the filter contract expects, derived from the
@@ -45,6 +47,24 @@ const STATIC_DEFS = {
 export const cropPlanFilterDefs = createTypedFilterDefs()(STATIC_DEFS);
 export const CROP_PLAN_FILTER_KEYS = cropPlanFilterDefs.filterKeys;
 
-export function buildCropPlanFilters() {
-    return cropPlanFilterDefs.filters;
+/**
+ * Localize the crop-plan filter defs. Enum VALUES (option `value`s, filter
+ * keys, icons) are preserved; only display labels are swapped for the
+ * `planningEnums` catalogue. `t` is a `useTranslations('planningEnums')`
+ * translator supplied by the consuming client component.
+ */
+export function buildPlanningFilters(
+    t: ReturnType<typeof useTranslations>,
+): FilterType[] {
+    return cropPlanFilterDefs.filters.map((f) =>
+        f.key === 'status'
+            ? {
+                  ...f,
+                  label: t('filter.status'),
+                  options: f.options
+                      ? f.options.map((o) => ({ ...o, label: t(`status.${o.value}`) }))
+                      : f.options,
+              }
+            : f,
+    );
 }

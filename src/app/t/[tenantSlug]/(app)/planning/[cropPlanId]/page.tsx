@@ -67,14 +67,15 @@ const STATUS_VARIANT: Record<string, 'neutral' | 'info' | 'success' | 'warning'>
 export default function CropPlanDetailPage() {
     const t = useTranslations('planning.detail');
     const tp = useTranslations('planning');
+    const te = useTranslations('planningEnums');
     const params = useParams();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const { permissions, tenantSlug } = useTenantContext();
 
     const METHOD_LABELS: Record<string, string> = {
-        DIRECT_SOW: t('methodDirectSow'),
-        TRANSPLANT: t('methodTransplant'),
+        DIRECT_SOW: te('method.DIRECT_SOW'),
+        TRANSPLANT: te('method.TRANSPLANT'),
     };
     const cropPlanId = params?.cropPlanId as string;
 

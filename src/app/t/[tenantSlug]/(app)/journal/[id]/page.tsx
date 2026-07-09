@@ -83,6 +83,7 @@ export default function JournalDetailPage() {
     const tenantHref = useTenantHref();
     const { permissions, tenantSlug } = useTenantContext();
     const t = useTranslations('journal.detail');
+    const te = useTranslations('journalEnums');
     const entryId = params.id as string;
 
     const detailKey = CACHE_KEYS.journal.detail(entryId);
@@ -184,13 +185,17 @@ export default function JournalDetailPage() {
                         {
                             label: t('metaType'),
                             value:
-                                (LOG_ENTRY_TYPE_LABELS as Record<string, string>)[entry.type] ??
-                                String(entry.type).replace(/_/g, ' '),
+                                entry.type in LOG_ENTRY_TYPE_LABELS
+                                    ? te(`logType.${entry.type}`)
+                                    : String(entry.type).replace(/_/g, ' '),
                         },
                         {
                             kind: 'status' as const,
                             label: t('metaStatus'),
-                            value: entry.status,
+                            value:
+                                entry.status in STATUS_BADGE
+                                    ? te(`status.${entry.status}`)
+                                    : entry.status,
                             variant: STATUS_BADGE[entry.status] ?? 'neutral',
                         },
                     ]}

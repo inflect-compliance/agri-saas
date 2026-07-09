@@ -88,37 +88,8 @@ const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     CLOSED: 'neutral',
     CANCELED: 'neutral',
 };
-const STATUS_LABELS: Record<string, string> = {
-    OPEN: 'Open',
-    TRIAGED: 'Triaged',
-    IN_PROGRESS: 'In Progress',
-    BLOCKED: 'Blocked',
-    RESOLVED: 'Resolved',
-    CLOSED: 'Closed',
-    CANCELED: 'Canceled',
-};
-
-/** Human label for a farm-task category enum value (TitleCase). */
-const CATEGORY_LABELS: Record<string, string> = {
-    LAND_PREP: 'Land prep',
-    PLANTING: 'Planting',
-    CROP_CARE: 'Crop care',
-    PEST_DISEASE: 'Pest & disease',
-    IRRIGATION: 'Irrigation',
-    HARVEST: 'Harvest',
-    POST_HARVEST: 'Post-harvest',
-    LIVESTOCK: 'Livestock',
-    MAINTENANCE: 'Maintenance',
-    RECORDKEEPING: 'Recordkeeping',
-    OTHER: 'Other',
-};
-
-const PRIORITY_OPTIONS: ComboboxOption[] = [
-    { value: 'P0', label: 'P0 — Critical' },
-    { value: 'P1', label: 'P1 — High' },
-    { value: 'P2', label: 'P2 — Medium' },
-    { value: 'P3', label: 'P3 — Low' },
-];
+/** Priority enum VALUES — labels localised at render via `taskEnums`. */
+const PRIORITY_VALUES = ['P0', 'P1', 'P2', 'P3'];
 
 // Task-type options ordered by category (categories in canonical order), so
 // the list reads grouped; `optionDescription` surfaces each option's category
@@ -132,15 +103,22 @@ const TYPE_OPTIONS: ComboboxOption[] = FARM_TASK_CATEGORIES.flatMap((cat) =>
     })),
 );
 
-/** Resolve a row's farm-task type to its catalog display name. */
-function resolveTaskTypeName(row: FarmTaskRow): string {
+/**
+ * Resolve a row's farm-task type to its catalog display name. Farm-task
+ * catalog names come from `farm-task-types` (already localised there);
+ * the fallback work-item type (e.g. FIELD_OPERATION) is localised via the
+ * `taskEnums` translator passed in by the client component.
+ */
+function resolveTaskTypeName(
+    row: FarmTaskRow,
+    typeLabel: (type: string) => string,
+): string {
     const key = row.metadataJson?.farmTaskType;
     if (key) {
         const def = getFarmTaskType(key);
         if (def) return def.name;
     }
-    // Fall back to the raw work-item type (e.g. FIELD_OPERATION) prettified.
-    return row.type.replace(/_/g, ' ');
+    return typeLabel(row.type);
 }
 
 export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
@@ -148,6 +126,11 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
     const t = useTranslations('farmTasks');
+    const te = useTranslations('taskEnums');
+    const statusLabel = (s: string) => (te.has(`status.${s}`) ? te(`status.${s}`) : s);
+    const typeLabel = (ty: string) => (te.has(`type.${ty}`) ? te(`type.${ty}`) : ty.replace(/_/g, ' '));
+    const categoryLabel = (c: string) => (te.has(`category.${c}`) ? te(`category.${c}`) : c);
+    const PRIORITY_OPTIONS: ComboboxOption[] = PRIORITY_VALUES.map((v) => ({ value: v, label: te(`priority.${v}`) }));
 
     const { data: tasks, mutate, isLoading } = useTenantSWR<FarmTaskRow[]>('/farm-tasks');
 
@@ -248,7 +231,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 {
                     id: 'taskType',
                     header: t('colTaskType'),
-                    accessorFn: (t) => resolveTaskTypeName(t),
+                    accessorFn: (t) => resolveTaskTypeName(t, typeLabel),
                     cell: ({ getValue }) => (
                         <span className="text-content-secondary">{getValue() as string}</span>
                     ),
@@ -275,7 +258,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                     header: t('colStatus'),
                     cell: ({ row }) => (
                         <StatusBadge variant={STATUS_BADGE[row.original.status] ?? 'neutral'} size="sm">
-                            {STATUS_LABELS[row.original.status] ?? row.original.status}
+                            {statusLabel(row.original.status)}
                         </StatusBadge>
                     ),
                     // Mobile card status pill (top-right).
@@ -290,7 +273,8 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                     ),
                 },
             ]),
-        [t],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [t, te],
     );
 
     const rows = tasks ?? [];
@@ -401,7 +385,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                                         setSelected={(o) => setFarmTaskType(o?.value ?? '')}
                                         optionDescription={(o) => {
                                             const def = TYPE_BY_VALUE.get(o.value);
-                                            return def ? CATEGORY_LABELS[def.category] ?? def.category : null;
+                                            return def ? categoryLabel(def.category) : null;
                                         }}
                                         placeholder={t('taskTypePlaceholder')}
                                         searchPlaceholder={t('taskTypeSearch')}
