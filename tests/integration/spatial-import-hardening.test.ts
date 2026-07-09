@@ -228,7 +228,7 @@ describeFn('spatial-import hardening — integration (PostGIS)', () => {
         );
 
         // Seed the location with a known-good parcel first, then prove the
-        // failed import did NOT delete/replace it (replaceForLocation never ran).
+        // failed import did NOT delete/replace it (addParcelsForLocation never ran).
         const before = await testPrisma.parcel.count({
             where: { tenantId: tenantA, locationId: locationA, deletedAt: null },
         });

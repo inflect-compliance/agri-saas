@@ -32,16 +32,17 @@
  *      fails the WHOLE import closed (it would otherwise yield a
  *      meaningless `ST_Area`). (`ParcelRepository.findInvalidGeometryNames`.)
  *
- * Only after all four pass does `replaceForLocation` run.
+ * Only after all four pass does `addParcelsForLocation` run.
  *
- * ## Idempotency
+ * ## Re-trigger behaviour
  *
- * Non-retrying (`attempts: 1`). `replaceForLocation` is itself
- * idempotent (delete-all-then-insert), so a manual re-trigger after a
- * transient failure reproduces the same end state. A hard reject (cap /
- * topology / budget) is surfaced via `failedReason` to the upload modal;
- * the staged file is left in place for the operator to re-trigger or
- * delete.
+ * Non-retrying (`attempts: 1`). Import is ADDITIVE — `addParcelsForLocation`
+ * appends the parsed parcels and KEEPS the location's existing ones — so it
+ * is NOT idempotent: a manual re-trigger after a partial/transient failure
+ * would append the parcels again (there is no name uniqueness). A hard
+ * reject (cap / topology / budget) fails closed BEFORE any parcel is
+ * written and is surfaced via `failedReason` to the upload modal; the staged
+ * file is left in place for the operator to re-trigger or delete.
  */
 import crypto from 'node:crypto';
 import { Prisma } from '@prisma/client';
@@ -218,8 +219,9 @@ export async function runLocationSpatialImport(
                 );
             }
 
-            // 4b — replace the location's parcels + stamp the file/format/bounds.
-            const parcelIds = await ParcelRepository.replaceForLocation(
+            // 4b — ADD the parsed parcels to the location (additive import; the
+            // location's existing parcels are kept) + stamp file/format/bounds.
+            const parcelIds = await ParcelRepository.addParcelsForLocation(
                 db,
                 ctx,
                 payload.locationId,

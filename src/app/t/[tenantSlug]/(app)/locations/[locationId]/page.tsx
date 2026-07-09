@@ -759,6 +759,7 @@ export default function LocationDetailPage() {
                 smartDefaults={smartQ.data}
                 onCreated={() => { setSheetParcelId(null); setTab('operations'); void opsQ.mutate(); }}
                 onCropChanged={() => { void parcelsQ.mutate(); }}
+                onDeleted={() => { setSheetParcelId(null); void parcelsQ.mutate(); void locQ.mutate(); }}
             />
 
             <Modal

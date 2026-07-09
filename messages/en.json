@@ -3173,7 +3173,12 @@
                 "note": "Note",
                 "notePlaceholder": "Optional note for the operator",
                 "createOperation": "Create operation",
-                "createFailed": "Could not create the operation. Please try again."
+                "createFailed": "Could not create the operation. Please try again.",
+                "deleteParcel": "Delete parcel",
+                "deleteConfirmTitle": "Delete this parcel?",
+                "deleteConfirmBody": "The parcel and its field-operation lines will be removed. This cannot be undone.",
+                "deleteConfirmLabel": "Delete parcel",
+                "deleteFailed": "Could not delete the parcel"
             },
             "prescription": {
                 "createFailed": "Failed to create job",
@@ -3193,7 +3198,7 @@
             },
             "spatialImport": {
                 "title": "Import parcels",
-                "description": "Upload a shapefile (.zip), KML, or GeoJSON. Existing parcels are replaced.",
+                "description": "Upload a shapefile (.zip), KML, or GeoJSON. New parcels are added to the location’s existing ones.",
                 "spatialFile": "Spatial file",
                 "accepted": "Accepted: .zip (shapefile), .kml/.kmz, .geojson/.json",
                 "cropLabel": "Crop",

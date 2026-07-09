@@ -29,7 +29,8 @@ import { SoilProfileCard } from '@/components/soil/SoilProfileCard';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
-import { apiGet, apiPatch } from '@/lib/api-client';
+import { apiGet, apiPatch, apiDelete } from '@/lib/api-client';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { haToDca, totalLabel, trimNumber } from '@/lib/agro/rate-calc';
 import { CROP_OPTIONS, CROP_VALUES } from '@/lib/agriculture/crop-options';
 import type { SoilProfile } from '@/lib/soil/types';
@@ -72,6 +73,8 @@ export interface ParcelDetailSheetProps {
     onCreated?: (queued: boolean) => void;
     /** Called after the parcel's crop is changed inline so the host can refresh. */
     onCropChanged?: () => void;
+    /** Called after the parcel is deleted so the host can refresh + close. */
+    onDeleted?: () => void;
 }
 
 type InputKind = 'PRODUCT' | 'FERTILIZER';
@@ -84,6 +87,7 @@ export function ParcelDetailSheet({
     smartDefaults,
     onCreated,
     onCropChanged,
+    onDeleted,
 }: ParcelDetailSheetProps) {
     const t = useTranslations('ag.map');
     const tc = useTranslations('common');
@@ -110,6 +114,21 @@ export function ParcelDetailSheet({
     const [cropValue, setCropValue] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+
+    const doDelete = async () => {
+        if (!parcel) return;
+        setError(null);
+        try {
+            await apiDelete(buildUrl(`/locations/${locationId}/parcels/${parcel.id}`));
+            setConfirmDelete(false);
+            onOpenChange(false);
+            onDeleted?.();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : t('parcelSheet.deleteFailed'));
+            setConfirmDelete(false);
+        }
+    };
 
     // Reset the whole form whenever a different parcel takes the sheet.
     /* eslint-disable react-hooks/set-state-in-effect -- intentional form re-seed. */
@@ -409,6 +428,22 @@ export function ParcelDetailSheet({
                     </FormField>
                 </div>
                 )}
+
+                {/* Per-parcel delete — a guarded destructive action so a farmer
+                    can drop a single field without re-importing the whole set. */}
+                {parcel && (
+                    <div className="flex justify-center">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-content-error"
+                            data-testid="parcel-sheet-delete"
+                            onClick={() => setConfirmDelete(true)}
+                        >
+                            {t('parcelSheet.deleteParcel')}
+                        </Button>
+                    </div>
+                )}
             </Sheet.Body>
             {parcel && (
                 <Sheet.Actions align="between">
@@ -426,6 +461,17 @@ export function ParcelDetailSheet({
                         {t('parcelSheet.createOperation')}
                     </Button>
                 </Sheet.Actions>
+            )}
+            {confirmDelete && parcel && (
+                <ConfirmDialog
+                    showModal
+                    setShowModal={() => setConfirmDelete(false)}
+                    tone="danger"
+                    title={t('parcelSheet.deleteConfirmTitle')}
+                    description={t('parcelSheet.deleteConfirmBody')}
+                    confirmLabel={t('parcelSheet.deleteConfirmLabel')}
+                    onConfirm={doDelete}
+                />
             )}
         </Sheet>
     );

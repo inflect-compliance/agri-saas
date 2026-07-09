@@ -44,21 +44,20 @@ export interface ParcelGeo {
  */
 export class ParcelRepository {
     /**
-     * Replace all parcels for a Location with the freshly-parsed set.
-     * Hard-deletes the existing parcels (re-import semantics) then
-     * inserts each one, writing geometry via ST_GeomFromGeoJSON and
-     * areaHa via ST_Area (geography cast → hectares). Optionally stamps a
-     * default `cropType` on every parcel (#7). Returns the created parcel ids.
+     * Add the freshly-parsed parcels to a Location (ADDITIVE import — the
+     * location's existing parcels are KEPT; a re-import appends). Inserts each
+     * one, writing geometry via ST_GeomFromGeoJSON and areaHa via ST_Area
+     * (geography cast → hectares). Optionally stamps a default `cropType` on
+     * every parcel (#7). Returns the created parcel ids. Per-parcel deletion is
+     * a separate, explicit action (see the `deleteParcel` usecase).
      */
-    static async replaceForLocation(
+    static async addParcelsForLocation(
         db: PrismaTx,
         ctx: RequestContext,
         locationId: string,
         parcels: ParsedParcel[],
         cropType?: string | null,
     ): Promise<string[]> {
-        await db.parcel.deleteMany({ where: { locationId, tenantId: ctx.tenantId } });
-
         // A blank / whitespace-only default means "mixed — set later": leave
         // cropType null so it isn't stamped on every imported parcel (#7).
         const importCrop = cropType && cropType.trim().length > 0 ? cropType.trim() : null;
@@ -171,7 +170,7 @@ export class ParcelRepository {
 
     /**
      * Create ONE parcel from a hand-drawn polygon. Mirrors the inner
-     * loop of `replaceForLocation`: mint the row via Prisma (omitting the
+     * loop of `addParcelsForLocation`: mint the row via Prisma (omitting the
      * Unsupported geometry column), then stamp geometry + denormalized
      * areaHa via the geo fragments. Returns the id + computed areaHa.
      */
@@ -253,7 +252,7 @@ export class ParcelRepository {
      * malformed polygons). Runs ONE batched `ST_IsValid` query (no
      * N+1) over every parcel's geometry. The spatial-import job rejects
      * the whole import when this is non-empty, so a pathological polygon
-     * never reaches `replaceForLocation` — where `ST_GeomFromGeoJSON`
+     * never reaches `addParcelsForLocation` — where `ST_GeomFromGeoJSON`
      * would happily accept it and then yield a meaningless `ST_Area`.
      *
      * No tenant/location scope: the geometries here are the in-memory
