@@ -16,7 +16,7 @@
 import { randomUUID } from 'node:crypto';
 import { test, expect } from './fixtures';
 import type { Page } from '@playwright/test';
-import { loginAndGetTenant } from './e2e-utils';
+import { loginAndGetTenant, safeGoto } from './e2e-utils';
 
 /** Seed-tenant READER — only used by the read-only role-gate test. */
 const READER_USER = { email: 'viewer@acme.com', password: 'password123' };
@@ -133,10 +133,16 @@ test.describe('Control Edit Modal', () => {
     //      instead of polling `not.toBeVisible` — the reader's page
     //      never renders the button at all, and a count assertion can't
     //      be fooled by a transient mid-navigation paint.
+    //   4. (2026-07-09) Open the detail page by full navigation, not a
+    //      row-link CLICK. A client-side SPA nav depends on dynamic
+    //      chunk loading, which flakes under the CI dev server (a
+    //      transient `ChunkLoadError` leaves `#control-title` unrendered
+    //      → `waitForSelector` times out with no retry). `safeGoto`
+    //      does a full document load and retries transient failures.
     test('reader user does not see Edit button', async ({ page }) => {
         const tenantSlug = await loginAndGetTenant(page, READER_USER);
-        await page.goto(`/t/${tenantSlug}/controls`);
-        await page.waitForSelector('h1', { timeout: 10000 });
+        await safeGoto(page, `/t/${tenantSlug}/controls`);
+        await page.waitForSelector('h1', { timeout: 15000 });
 
         // Premise: read-only session (no write affordance on the list).
         const canWrite = await page
@@ -156,8 +162,13 @@ test.describe('Control Edit Modal', () => {
             .catch(() => false);
         test.skip(!hasControl, 'no control row to open on the shared tenant');
 
-        await firstLink.click();
-        await page.waitForSelector('#control-title', { timeout: 10000 });
+        // Navigate by URL (full load, retried) instead of clicking the
+        // link (chunk-dependent client-side nav — the flake source).
+        const href = await firstLink.getAttribute('href');
+        test.skip(!href, 'control row link has no href to open');
+
+        await safeGoto(page, href!);
+        await page.waitForSelector('#control-title', { timeout: 15000 });
         await page.waitForLoadState('networkidle').catch(() => {});
         await expect(
             page
