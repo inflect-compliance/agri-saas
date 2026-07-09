@@ -57,6 +57,17 @@ export class ParcelRepository {
         parcels: ParsedParcel[],
         cropType?: string | null,
     ): Promise<string[]> {
+        // Field-operation product lines point at parcels through a REQUIRED FK
+        // (`OperationParcel.parcel`, ON DELETE RESTRICT), so a re-import that
+        // replaces the land definition must first clear the lines tied to THIS
+        // location's parcels — otherwise the parcel delete below throws
+        // `OperationParcel_parcelId_tenantId_fkey`. Journal `LogEntry` rows that
+        // reference these lines are a nullable FK and SET NULL automatically, as
+        // do the nullable planning parcel refs on the parcel delete itself.
+        await db.operationParcel.deleteMany({
+            where: { tenantId: ctx.tenantId, parcel: { locationId } },
+        });
+
         await db.parcel.deleteMany({ where: { locationId, tenantId: ctx.tenantId } });
 
         // A blank / whitespace-only default means "mixed — set later": leave
