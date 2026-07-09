@@ -28,6 +28,8 @@ export interface CopilotSignalInput {
     gddSum: number | null;
     cropType: string | null;
     growthStage: string | null;
+    /** Owning user's UI locale — pins the explanation's output language. */
+    locale?: string | null;
 }
 
 const CopilotSchema = z.object({
@@ -92,7 +94,7 @@ export async function generateCopilotExplanation(
     input: CopilotSignalInput,
 ): Promise<CopilotExplanation | null> {
     if (!isLlmConfigured()) return null;
-    const raw = await llmCompleteJson(buildMessages(input), { maxTokens: 700, temperature: 0.2, model: MODEL });
+    const raw = await llmCompleteJson(buildMessages(input), { maxTokens: 700, temperature: 0.2, model: MODEL, locale: input.locale });
     if (!raw) return null;
     const parsed = CopilotSchema.safeParse(raw);
     if (!parsed.success) return null;

@@ -20,6 +20,7 @@
  * Haiku pass per tenant per day. Non-success (no key / generation failure)
  * is never cached, so it retries on the next load.
  */
+import { getLocale } from 'next-intl/server';
 import { RequestContext } from '../types';
 import { assertCanRead } from '../policies/common';
 import { listLocations, listLocationParcels } from './location';
@@ -174,8 +175,12 @@ export async function getFieldBriefing(ctx: RequestContext): Promise<FieldBriefi
         listLogEntries(ctx).catch(() => []),
     ]);
 
+    // Pin the briefing's output language to the operator's UI locale (bg → Bulgarian).
+    const locale = await getLocale().catch(() => undefined);
+
     const briefing = await generateFieldBriefing({
         today: date,
+        locale,
         satelliteAvailable,
         fields,
         season: season
