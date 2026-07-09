@@ -54,22 +54,22 @@ describe('canonical-parents', () => {
     it('resolves a farm subpage to its list parent (tenant-expanded)', () => {
         expect(resolveCanonicalParent('/t/acme/locations/loc-1', 'acme')).toEqual({
             href: '/t/acme/locations',
-            label: 'Locations',
+            label: 'locations',
         });
         expect(resolveCanonicalParent('/t/acme/assets/a1', 'acme')).toEqual({
             href: '/t/acme/assets',
-            label: 'Assets',
+            label: 'assets',
         });
     });
 
     it('routes task detail back to the Farm Tasks list', () => {
         expect(resolveCanonicalParent('/t/acme/tasks/t1', 'acme')).toEqual({
             href: '/t/acme/farm-tasks',
-            label: 'Farm Tasks',
+            label: 'farmTasks',
         });
         expect(resolveCanonicalParent('/t/acme/field/t1', 'acme')).toEqual({
             href: '/t/acme/farm-tasks',
-            label: 'Farm Tasks',
+            label: 'farmTasks',
         });
     });
 
@@ -77,7 +77,7 @@ describe('canonical-parents', () => {
         // /vendors/v1/assessment/a1 → the vendor detail (v1), NOT /vendors.
         expect(resolveCanonicalParent('/t/acme/vendors/v1/assessment/a1', 'acme')).toEqual({
             href: '/t/acme/vendors/v1',
-            label: 'Vendor',
+            label: 'vendor',
         });
     });
 
