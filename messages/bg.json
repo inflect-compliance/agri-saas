@@ -3173,7 +3173,12 @@
                 "note": "Бележка",
                 "notePlaceholder": "Незадължителна бележка за оператора",
                 "createOperation": "Създай операция",
-                "createFailed": "Операцията не можа да бъде създадена. Моля, опитайте отново."
+                "createFailed": "Операцията не можа да бъде създадена. Моля, опитайте отново.",
+                "deleteParcel": "Изтрий парцел",
+                "deleteConfirmTitle": "Изтриване на този парцел?",
+                "deleteConfirmBody": "Парцелът и свързаните операции ще бъдат премахнати. Действието е необратимо.",
+                "deleteConfirmLabel": "Изтрий парцел",
+                "deleteFailed": "Парцелът не може да бъде изтрит"
             },
             "prescription": {
                 "createFailed": "Неуспешно създаване на задача",
@@ -3193,7 +3198,7 @@
             },
             "spatialImport": {
                 "title": "Импорт на парцели",
-                "description": "Качете shapefile (.zip), KML или GeoJSON. Съществуващите парцели се заменят.",
+                "description": "Качете shapefile (.zip), KML или GeoJSON. Новите парцели се добавят към съществуващите.",
                 "spatialFile": "Пространствен файл",
                 "accepted": "Приемани: .zip (shapefile), .kml/.kmz, .geojson/.json",
                 "cropLabel": "Култура",
@@ -6036,7 +6041,15 @@
             "dnevnikTo": "До",
             "dnevnikCancel": "Отказ",
             "dnevnikDownload": "Изтегли",
-            "setCropPlaceholder": "Задай култура…"
+            "setCropPlaceholder": "Задай култура…",
+            "manageParcels": "Управление на парцели",
+            "deleteParcels": "Изтриване на парцели",
+            "deleteParcelsHint": "Премахнете парцели от тази локация. Действието е необратимо.",
+            "deleteParcelConfirmTitle": "Изтриване на „{name}“?",
+            "deleteParcelConfirmBody": "Парцелът и свързаните операции ще бъдат премахнати. Действието е необратимо.",
+            "deleteParcelConfirmLabel": "Изтрий парцел",
+            "deleteParcelFailed": "Парцелът не може да бъде изтрит",
+            "deleteParcelsEmpty": "Няма парцели за изтриване."
         },
         "spray": {
             "title": "Нова задача за пръскане",

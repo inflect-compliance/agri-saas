@@ -13,7 +13,7 @@ import type { Polygon, MultiPolygon, LineString } from 'geojson';
 /**
  * In-map parcel authoring — the create / edit / delete write paths behind
  * the terra-draw drawing + vertex-editing UI on the Location map. The
- * spatial-import path (replaceForLocation) stays the bulk channel; these
+ * spatial-import path (addParcelsForLocation) stays the bulk channel; these
  * are the single-parcel hand-drawn operations.
  *
  * Geometry I/O still goes exclusively through the geo helpers (the

@@ -175,7 +175,7 @@ export function isValidGeometrySql(geometry: Polygon | MultiPolygon): Prisma.Sql
  *
  * Mirrors `geometrySql`'s construction
  * (`ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(...), 4326))`) so a geometry
- * that passes here is byte-identical to the one `replaceForLocation`
+ * that passes here is byte-identical to the one `addParcelsForLocation`
  * persists. Run via `$queryRaw`; the caller maps each `idx` back to its
  * parcel. Lives here so the `ST_*` stays contained in geo.ts.
  *
