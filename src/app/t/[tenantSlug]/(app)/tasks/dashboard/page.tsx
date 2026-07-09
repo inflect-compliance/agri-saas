@@ -164,7 +164,7 @@ export default function TaskDashboardPage() {
                                 className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-muted/50 transition text-sm"
                             >
                                 <span className="font-mono text-xs text-content-subtle w-16 truncate">{task.key}</span>
-                                <span className="flex-1 text-content-emphasis truncate">{task.title}</span>
+                                <span className="min-w-0 flex-1 truncate text-content-emphasis">{task.title}</span>
                                 <StatusBadge variant={TASK_STATUS_BADGE[task.status] || 'neutral'}>{task.status}</StatusBadge>
                                 {task.dueAt && (
                                     <span className={`text-xs ${new Date(task.dueAt) < new Date() ? 'text-content-error' : 'text-content-muted'}`}>
@@ -305,7 +305,7 @@ export default function TaskDashboardPage() {
                                 className="flex items-center gap-compact p-2 rounded-lg hover:bg-bg-muted/50 transition text-sm"
                             >
                                 <span className="font-mono text-xs text-content-subtle">{task.key}</span>
-                                <span className="flex-1 text-content-emphasis truncate">{task.title}</span>
+                                <span className="min-w-0 flex-1 truncate text-content-emphasis">{task.title}</span>
                                 <StatusBadge variant="error">{task.severity}</StatusBadge>
                                 <span className="text-xs text-content-error">
                                     {t('due', { date: formatDate(task.dueAt) })}

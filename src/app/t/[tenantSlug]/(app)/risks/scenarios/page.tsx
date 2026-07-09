@@ -99,7 +99,8 @@ export default function RiskScenariosPage() {
             {cmp && (
                 <Card className="space-y-default p-6" data-testid="scenario-comparison">
                     <Heading level={2}>{ts('baselineVsScenario')}</Heading>
-                    <table className="w-full text-sm">
+                    <div className="overflow-x-auto">
+                    <table className="w-full min-w-[20rem] text-sm">
                         <thead><tr className="text-content-muted"><th className="text-left">{ts('metric')}</th><th className="text-right">{ts('baseline')}</th><th className="text-right">{ts('scenario')}</th><th className="text-right">Δ</th></tr></thead>
                         <tbody className="tabular-nums">
                             <tr><td>{ts('meanAle')}</td><td className="text-right">{money(cmp.baseline.portfolioAle.mean)}</td><td className="text-right">{money(cmp.scenario.portfolioAle.mean)}</td><td className="text-right">{signed(cmp.delta.meanAleDelta)}</td></tr>
@@ -108,6 +109,7 @@ export default function RiskScenariosPage() {
                             {cmp.delta.roi != null && <tr><td>{ts('roiRow')}</td><td /><td /><td className="text-right">{cmp.delta.roi.toFixed(1)}×</td></tr>}
                         </tbody>
                     </table>
+                    </div>
                     {cmp.perRiskDeltas.length > 0 && (
                         <div>
                             <Heading level={3} className="mb-2">{ts('perRiskImpact')}</Heading>

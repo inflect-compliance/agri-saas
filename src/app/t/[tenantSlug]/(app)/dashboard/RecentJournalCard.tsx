@@ -33,7 +33,7 @@ export default function RecentJournalCard({ href, items }: RecentJournalCardProp
                 </TextLink>
             </div>
             <div
-                className="space-y-tight max-h-40 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded"
+                className="space-y-tight max-h-40 overflow-y-auto overflow-x-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded"
                 tabIndex={0}
                 role="region"
                 aria-labelledby="recent-journal-heading"
@@ -47,7 +47,7 @@ export default function RecentJournalCard({ href, items }: RecentJournalCardProp
                         <span className="text-content-subtle whitespace-nowrap">
                             {entry.occurredAt ? formatDate(entry.occurredAt) : '—'}
                         </span>
-                        <span className="text-content-default font-medium truncate">{entry.title}</span>
+                        <span className="min-w-0 truncate text-content-default font-medium">{entry.title}</span>
                         <span className="text-content-muted whitespace-nowrap">
                             {entry.type.replace(/_/g, ' ').toLowerCase()}
                         </span>

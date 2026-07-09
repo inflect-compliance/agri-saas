@@ -32,7 +32,7 @@ export default function MyFarmTasksCard({ href, items }: MyFarmTasksCardProps) {
                 </TextLink>
             </div>
             <div
-                className="space-y-tight max-h-40 overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded"
+                className="space-y-tight max-h-40 overflow-y-auto overflow-x-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded"
                 tabIndex={0}
                 role="region"
                 aria-labelledby="my-farm-tasks-heading"
@@ -43,7 +43,7 @@ export default function MyFarmTasksCard({ href, items }: MyFarmTasksCardProps) {
                         href={href}
                         className="flex items-baseline justify-between gap-tight text-xs rounded px-1 -mx-1 py-0.5 hover:bg-bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                     >
-                        <span className="text-content-default font-medium truncate">{task.title}</span>
+                        <span className="min-w-0 truncate text-content-default font-medium">{task.title}</span>
                         <span className="text-content-subtle whitespace-nowrap">
                             {task.dueAt ? formatDate(task.dueAt) : task.status.replace(/_/g, ' ').toLowerCase()}
                         </span>
