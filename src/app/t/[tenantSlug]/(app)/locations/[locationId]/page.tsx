@@ -775,7 +775,7 @@ export default function LocationDetailPage() {
                 <Modal.Header title={t('deleteParcels')} description={t('deleteParcelsHint')} />
                 <Modal.Body>
                     {parcels.length === 0 ? (
-                        <p className="text-sm text-content-subtle">{t('noParcelsToDelete')}</p>
+                        <p className="text-sm text-content-subtle">{t('deleteParcelsEmpty')}</p>
                     ) : (
                         <ul className="space-y-tight">
                             {parcels.map((p) => (

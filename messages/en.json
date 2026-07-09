@@ -6045,11 +6045,11 @@
             "manageParcels": "Manage parcels",
             "deleteParcels": "Delete parcels",
             "deleteParcelsHint": "Remove fields from this location. This cannot be undone.",
-            "noParcelsToDelete": "No parcels to delete.",
             "deleteParcelConfirmTitle": "Delete “{name}”?",
             "deleteParcelConfirmBody": "The parcel and its field-operation lines will be removed. This cannot be undone.",
             "deleteParcelConfirmLabel": "Delete parcel",
-            "deleteParcelFailed": "Could not delete the parcel"
+            "deleteParcelFailed": "Could not delete the parcel",
+            "deleteParcelsEmpty": "No parcels to delete."
         },
         "spray": {
             "title": "New spray job",
