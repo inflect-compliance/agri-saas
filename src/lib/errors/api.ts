@@ -151,7 +151,7 @@ export function withApiErrorHandling<Context = unknown>(
                         // ── Rate-limit check (Epic A.2) ──
                         const rateScope = await resolveRateLimitScope(req, options.rateLimit);
                         if (rateScope) {
-                            const { response: rateBlocked } = enforceRateLimit(
+                            const { response: rateBlocked } = await enforceRateLimit(
                                 req,
                                 rateScope,
                             );

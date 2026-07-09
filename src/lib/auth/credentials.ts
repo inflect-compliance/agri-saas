@@ -209,7 +209,7 @@ export async function authenticateWithPassword(
         env.AUTH_TEST_MODE !== '1' &&
         env.RATE_LIMIT_ENABLED !== '0';
     if (runProgressive && progressiveKey) {
-        const decision = evaluateProgressiveRateLimit(
+        const decision = await evaluateProgressiveRateLimit(
             progressiveKey,
             LOGIN_PROGRESSIVE_POLICY,
         );
@@ -282,7 +282,7 @@ export async function authenticateWithPassword(
         // can't tell the difference.
         await dummyVerify(password);
         if (runProgressive && progressiveKey) {
-            recordProgressiveFailure(progressiveKey, LOGIN_PROGRESSIVE_POLICY);
+            await recordProgressiveFailure(progressiveKey, LOGIN_PROGRESSIVE_POLICY);
         }
         await recordLoginFailure({
             email,
@@ -300,7 +300,7 @@ export async function authenticateWithPassword(
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
         if (runProgressive && progressiveKey) {
-            recordProgressiveFailure(progressiveKey, LOGIN_PROGRESSIVE_POLICY);
+            await recordProgressiveFailure(progressiveKey, LOGIN_PROGRESSIVE_POLICY);
         }
         await recordLoginFailure({
             email,
@@ -351,7 +351,7 @@ export async function authenticateWithPassword(
     // naturally even if this no-ops.
     await resetCredentialsBackoff(email).catch(() => undefined);
     if (progressiveKey) {
-        resetProgressiveFailures(progressiveKey);
+        await resetProgressiveFailures(progressiveKey);
     }
 
     await recordLoginSuccess({
@@ -380,5 +380,5 @@ export async function authenticateWithPassword(
  */
 export async function __resetProgressiveForTests(email: string): Promise<void> {
     const key = await progressiveKeyFor(email);
-    resetProgressiveFailures(key);
+    await resetProgressiveFailures(key);
 }

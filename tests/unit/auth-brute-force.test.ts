@@ -102,7 +102,7 @@ import { clearAllRateLimits } from '@/lib/security/rate-limit';
 
 describe('authenticateWithPassword — Epic A.3 progressive brute-force', () => {
     const email = 'alice@example.com';
-    const password = 'correct-horse-battery-staple';
+    const password = 'correct-horse-battery-staple'; // pragma: allowlist secret -- xkcd test fixture, not a real credential
 
     beforeEach(() => {
         clearAllRateLimits();
@@ -156,7 +156,7 @@ describe('authenticateWithPassword — Epic A.3 progressive brute-force', () => 
         // Emulate 10 failures for this identifier.
         const { progressiveKey } = await getKeyFor(email);
         for (let i = 0; i < 10; i++) {
-            recordProgressiveFailure(progressiveKey, LOGIN_PROGRESSIVE_POLICY);
+            await recordProgressiveFailure(progressiveKey, LOGIN_PROGRESSIVE_POLICY);
         }
 
         const result = await authenticateWithPassword({ email, password });
@@ -177,13 +177,13 @@ describe('authenticateWithPassword — Epic A.3 progressive brute-force', () => 
 
         // Pre-load 2 failures so the identifier is "warm" but not delayed.
         for (let i = 0; i < 2; i++) {
-            recordProgressiveFailure(progressiveKey, LOGIN_PROGRESSIVE_POLICY);
+            await recordProgressiveFailure(progressiveKey, LOGIN_PROGRESSIVE_POLICY);
         }
         expect(
-            evaluateProgressiveRateLimit(
+            (await evaluateProgressiveRateLimit(
                 progressiveKey,
                 LOGIN_PROGRESSIVE_POLICY,
-            ).failureCount,
+            )).failureCount,
         ).toBe(2);
 
         // Successful verify.
@@ -193,10 +193,10 @@ describe('authenticateWithPassword — Epic A.3 progressive brute-force', () => 
 
         // Counter cleared.
         expect(
-            evaluateProgressiveRateLimit(
+            (await evaluateProgressiveRateLimit(
                 progressiveKey,
                 LOGIN_PROGRESSIVE_POLICY,
-            ).failureCount,
+            )).failureCount,
         ).toBe(0);
     });
 
@@ -210,14 +210,14 @@ describe('authenticateWithPassword — Epic A.3 progressive brute-force', () => 
         const bobKey = (await getKeyFor('bob@example.com')).progressiveKey;
 
         for (let i = 0; i < 10; i++) {
-            recordProgressiveFailure(aliceKey, LOGIN_PROGRESSIVE_POLICY);
+            await recordProgressiveFailure(aliceKey, LOGIN_PROGRESSIVE_POLICY);
         }
         expect(
-            evaluateProgressiveRateLimit(aliceKey, LOGIN_PROGRESSIVE_POLICY)
+            (await evaluateProgressiveRateLimit(aliceKey, LOGIN_PROGRESSIVE_POLICY))
                 .allowed,
         ).toBe(false);
         expect(
-            evaluateProgressiveRateLimit(bobKey, LOGIN_PROGRESSIVE_POLICY)
+            (await evaluateProgressiveRateLimit(bobKey, LOGIN_PROGRESSIVE_POLICY))
                 .allowed,
         ).toBe(true);
     });

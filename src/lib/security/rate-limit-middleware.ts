@@ -30,6 +30,10 @@ import {
     type RateLimitConfig,
     type RateLimitResult,
 } from './rate-limit';
+import {
+    checkRateLimitDistributed,
+    resetRateLimitDistributed,
+} from '@/lib/rate-limit/mutationRateLimit';
 import { logger } from '@/lib/observability/logger';
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -116,6 +120,17 @@ export function getClientIp(req: NextRequest | Request): string {
  * Keeping the scope first makes grep/log-filtering easy; keeping the
  * IP before userId means a run of auth failures from a single IP
  * (spraying usernames) clusters under one IP prefix.
+ *
+ * CGNAT rationale — DO NOT "simplify" the authenticated key to IP-only.
+ * This is a mobile-first product: most users arrive over carrier
+ * networks, where carrier-grade NAT puts *thousands* of unrelated
+ * subscribers behind ONE public IPv4. The `u:<userId>` component is
+ * what gives each authenticated mobile user their OWN bucket — drop it
+ * and a single busy user (or one abuser) behind a carrier NAT would
+ * throttle every other subscriber sharing that egress IP. The `anon`
+ * (pre-authentication) bucket is necessarily IP-only, which is correct
+ * there because there is no identity yet; every authenticated preset
+ * MUST keep the userId.
  */
 export function buildRateLimitKey(
     scope: string,
@@ -182,13 +197,15 @@ function buildTooManyRequestsResponse(
  * success and a `warn` on block, so abuse patterns show up in the
  * standard log stream without per-route wiring.
  */
-export function enforceRateLimit(
+export async function enforceRateLimit(
     req: NextRequest | Request,
     scope: RateLimitScope,
-): RateLimitEnforcement {
+): Promise<RateLimitEnforcement> {
     const ip = scope.ip ?? getClientIp(req);
     const key = buildRateLimitKey(scope.scope, ip, scope.userId ?? null);
-    const result = checkRateLimit(key, scope.config);
+    // Distributed by default (Upstash sliding window, ONE round-trip); falls
+    // back to the in-process Map when no Upstash env is configured.
+    const result = await checkRateLimitDistributed(key, scope.config);
 
     if (!result.allowed) {
         logger.warn('rate-limit.blocked', {
@@ -266,7 +283,7 @@ export function withRateLimit<Args extends unknown[]>(
             }
         }
 
-        const { response } = enforceRateLimit(req, {
+        const { response } = await enforceRateLimit(req, {
             scope: options.scope,
             config: options.config,
             userId,
@@ -317,6 +334,10 @@ export function isRateLimitBypassed(): boolean {
 // Convenience re-exports so callers can import everything they need
 // from this one module.
 
+export {
+    checkRateLimitDistributed,
+    resetRateLimitDistributed,
+} from '@/lib/rate-limit/mutationRateLimit';
 export {
     checkRateLimit,
     resetRateLimit,

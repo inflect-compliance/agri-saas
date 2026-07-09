@@ -108,7 +108,10 @@ const REPO_BASELINE: readonly KnownHit[] = [
     { file: 'tests/integration/mfa-enrollment.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'MFA enrollment test fixtures.' },
     { file: 'tests/integration/webhook.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Webhook test fixtures.' },
     { file: 'tests/unit/audit-redact.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Audit redaction test fixtures.' },
-    { file: 'tests/unit/auth-brute-force.test.ts', pattern: 'Hardcoded Password Assignment', reason: 'Brute-force test fixtures.' },
+    // auth-brute-force.test.ts entry removed (Roadmap-5 PR1): touching the file
+    // for the async-progressive migration tripped the local pre-commit scanner,
+    // so the fixture password now carries an inline `// pragma: allowlist secret`
+    // carve-out — the baseline entry became stale.
     // av-webhook + refresh entries removed: PR-A.4 added explicit
     // `// pragma: allowlist secret` carve-outs to those lines, so the
     // scanner no longer flags them and the baseline entries became

@@ -22,7 +22,7 @@ import { jsonResponse } from '@/lib/api-response';
 
 function applyRedeemRateLimit(req: NextRequest): NextResponse | null {
     if (isRateLimitBypassed()) return null;
-    const enforcement = enforceRateLimit(req, {
+    const enforcement = await enforceRateLimit(req, {
         scope: 'invite-redeem',
         config: INVITE_REDEEM_LIMIT,
         ip: getClientIp(req),

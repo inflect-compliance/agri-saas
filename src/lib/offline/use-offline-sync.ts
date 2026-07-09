@@ -56,6 +56,9 @@ export function useOfflineSync(): OfflineSync {
     // a manual "Sync now" / mount flush) — concurrent drains would read
     // the same items and double-send them.
     const flushing = useRef(false);
+    // Honors a 429 Retry-After: schedule the next drain instead of hammering.
+    const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const flushRef = useRef<(() => Promise<FlushSummary>) | null>(null);
 
     const refresh = useCallback(async () => {
         setPending((await getOutboxStore().all()).length);
@@ -64,17 +67,28 @@ export function useOfflineSync(): OfflineSync {
     const flush = useCallback(async (): Promise<FlushSummary> => {
         if (flushing.current) {
             const remaining = (await getOutboxStore().all()).length;
-            return { sent: 0, failed: 0, dropped: 0, remaining };
+            return { sent: 0, failed: 0, dropped: 0, remaining, rateLimited: false };
         }
         flushing.current = true;
         try {
             const res = await flushOutbox(getOutboxStore(), fetchSender());
             setPending(res.remaining);
+            // Rate-limited mid-burst with work still queued → back off for the
+            // server's Retry-After (default one mutation window) and re-drain,
+            // rather than waiting for the next reconnect that may never come.
+            if (res.rateLimited && res.remaining > 0) {
+                const backoffMs = Math.max(1, res.retryAfterSeconds ?? 60) * 1000;
+                if (retryTimer.current) clearTimeout(retryTimer.current);
+                retryTimer.current = setTimeout(() => {
+                    void flushRef.current?.();
+                }, backoffMs);
+            }
             return res;
         } finally {
             flushing.current = false;
         }
     }, []);
+    flushRef.current = flush;
 
     useEffect(() => {
         // Hydration-safe: `online` initialises to true (matching SSR) and
@@ -94,6 +108,7 @@ export function useOfflineSync(): OfflineSync {
         return () => {
             window.removeEventListener('online', onOnline);
             window.removeEventListener('offline', onOffline);
+            if (retryTimer.current) clearTimeout(retryTimer.current);
         };
     }, [flush, refresh]);
 

@@ -4,11 +4,19 @@
  * Simple sliding-window rate limiter for brute-force protection.
  * Uses a Map to track attempt timestamps per key (IP, userId, etc.).
  *
- * DESIGN: In-memory is appropriate for single-instance deployments.
- * For multi-instance, swap to Redis-backed limiter.
+ * DESIGN: the simple `checkRateLimit` sliding window below is the
+ * in-process FALLBACK used when no Upstash env is configured (single-node
+ * self-host + tests). The distributed mutation-tier path lives in
+ * `@/lib/rate-limit/mutationRateLimit` and delegates here on fallback.
  *
- * This module is intentionally simple and dependency-free.
+ * The progressive login policy at the bottom (Epic A.3) is likewise
+ * distributed-first: it stores its failure timestamps in the shared Upstash
+ * client when available (so a rolling deploy / multi-instance fleet enforces
+ * one global lockout) and falls back to the process-wide `store` Map when not.
+ * See docs/rate-limiting.md "horizontal scale checklist".
  */
+import { getUpstashRedis } from '@/lib/rate-limit/upstashClient';
+import { logger } from '@/lib/observability/logger';
 
 interface RateLimitEntry {
     timestamps: number[];
@@ -410,94 +418,166 @@ function pickDelayMs(
     return delay;
 }
 
+const PROGRESSIVE_KEY_PREFIX = 'rl:prog';
+
 /**
- * Evaluate the current state WITHOUT recording a new attempt. Call
- * this BEFORE verifying the password so the caller knows how long
- * to delay (and whether to short-circuit with a lockout response).
- *
- * Reuses the same sliding-window store the other rate-limit functions
- * in this file already use — one process-wide Map, cleanup timer
- * already running.
+ * Pure decision from a list of in-or-out-of-window failure timestamps.
+ * Shared by the Redis and in-memory paths so the two backends can NEVER
+ * drift in lockout / tier semantics. Returns `clear: true` on the
+ * lockout-expiry edge, signalling the caller to wipe the counter (a
+ * legitimate user returning after the lockout should not immediately eat
+ * another delay).
  */
-export function evaluateProgressiveRateLimit(
-    key: string,
+function computeProgressive(
+    timestamps: number[],
     policy: ProgressiveRateLimitPolicy,
-): ProgressiveRateLimitDecision {
-    startCleanup(policy.windowMs);
-
-    const now = Date.now();
-    const entry = store.get(key) || { timestamps: [] };
-
-    // Expire stale failures out of the count but keep the entry
-    // stored; caller may be about to write a new failure.
+    now: number,
+): { decision: ProgressiveRateLimitDecision; clear: boolean } {
     const windowStart = now - policy.windowMs;
-    entry.timestamps = entry.timestamps.filter((t) => t > windowStart);
-    store.set(key, entry);
-
-    const failureCount = entry.timestamps.length;
+    const inWindow = timestamps.filter((t) => t > windowStart);
+    const failureCount = inWindow.length;
 
     if (failureCount >= policy.lockoutAtFailures) {
-        const lastFailure = entry.timestamps[entry.timestamps.length - 1];
+        const lastFailure = inWindow[inWindow.length - 1];
         const lockoutEnd = lastFailure + policy.lockoutMs;
         if (now < lockoutEnd) {
             return {
-                allowed: false,
-                delayMs: 0,
-                retryAfterSeconds: Math.max(
-                    1,
-                    Math.ceil((lockoutEnd - now) / 1000),
-                ),
-                failureCount,
+                decision: {
+                    allowed: false,
+                    delayMs: 0,
+                    retryAfterSeconds: Math.max(1, Math.ceil((lockoutEnd - now) / 1000)),
+                    failureCount,
+                },
+                clear: false,
             };
         }
-        // Lockout expired — counter resets. The attempt proceeds
-        // with zero delay; a legitimate user who came back after
-        // the lockout should not immediately eat another 30s.
-        entry.timestamps = [];
-        store.set(key, entry);
+        // Lockout expired — reset.
         return {
-            allowed: true,
-            delayMs: 0,
-            retryAfterSeconds: 0,
-            failureCount: 0,
+            decision: { allowed: true, delayMs: 0, retryAfterSeconds: 0, failureCount: 0 },
+            clear: true,
         };
     }
 
     return {
-        allowed: true,
-        delayMs: pickDelayMs(failureCount, policy.tiers),
-        retryAfterSeconds: 0,
-        failureCount,
+        decision: {
+            allowed: true,
+            delayMs: pickDelayMs(failureCount, policy.tiers),
+            retryAfterSeconds: 0,
+            failureCount,
+        },
+        clear: false,
     };
 }
 
-/**
- * Record a failure for this identifier. Call AFTER a verify has
- * returned `false`. Returns the post-increment decision so the
- * caller can surface the new lockout state to logging / audit.
- */
-export function recordProgressiveFailure(
-    key: string,
-    policy: ProgressiveRateLimitPolicy,
-): ProgressiveRateLimitDecision {
-    startCleanup(policy.windowMs);
-    const now = Date.now();
-    const entry = store.get(key) || { timestamps: [] };
-    // Trim the window before writing so the count we return is
-    // current.
-    const windowStart = now - policy.windowMs;
-    entry.timestamps = entry.timestamps.filter((t) => t > windowStart);
-    entry.timestamps.push(now);
-    store.set(key, entry);
-
-    return evaluateProgressiveRateLimit(key, policy);
+function normalizeTimestamps(raw: unknown): number[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((t): t is number => typeof t === 'number');
 }
 
 /**
- * Clear the failure list. Call after a SUCCESSFUL verify so a
- * legitimate user who typo'd a few times isn't still throttled on
- * the next login.
+ * Evaluate the current state WITHOUT recording a new attempt. Call this
+ * BEFORE verifying the password so the caller knows how long to delay (and
+ * whether to short-circuit with a lockout response).
+ *
+ * Distributed-first: reads the failure-timestamp blob from the shared Upstash
+ * client (so every instance sees the same lockout), falling back to the
+ * process-wide Map when no Upstash env is configured. A Redis error fails
+ * over to the Map rather than fail-open — a login limiter that still counts
+ * locally beats none.
+ *
+ * Timing note (Epic A.3): both the lockout and non-lockout branches issue the
+ * same single read, so the added Redis latency is equal on every path and
+ * cannot become a timing oracle. The caller equalises the verify cost via
+ * `dummyVerify` as before.
  */
-export function resetProgressiveFailures(key: string): void {
+export async function evaluateProgressiveRateLimit(
+    key: string,
+    policy: ProgressiveRateLimitPolicy,
+): Promise<ProgressiveRateLimitDecision> {
+    const now = Date.now();
+    const redis = getUpstashRedis();
+
+    if (redis) {
+        try {
+            const raw = await redis.get(`${PROGRESSIVE_KEY_PREFIX}:${key}`);
+            const { decision, clear } = computeProgressive(normalizeTimestamps(raw), policy, now);
+            if (clear) {
+                await redis.del(`${PROGRESSIVE_KEY_PREFIX}:${key}`);
+            }
+            return decision;
+        } catch (err) {
+            logger.warn('rate-limit.progressive_redis_error_fallback_memory', {
+                component: 'rate-limit',
+                err: String(err),
+            });
+            // fall through to in-memory
+        }
+    }
+
+    startCleanup(policy.windowMs);
+    const entry = store.get(key) || { timestamps: [] };
+    const windowStart = now - policy.windowMs;
+    entry.timestamps = entry.timestamps.filter((t) => t > windowStart);
+    const { decision, clear } = computeProgressive(entry.timestamps, policy, now);
+    if (clear) entry.timestamps = [];
+    store.set(key, entry);
+    return decision;
+}
+
+/**
+ * Record a failure for this identifier. Call AFTER a verify has returned
+ * `false`. Returns the post-increment decision so the caller can surface the
+ * new lockout state to logging / audit.
+ */
+export async function recordProgressiveFailure(
+    key: string,
+    policy: ProgressiveRateLimitPolicy,
+): Promise<ProgressiveRateLimitDecision> {
+    const now = Date.now();
+    const windowStart = now - policy.windowMs;
+    const redis = getUpstashRedis();
+
+    if (redis) {
+        try {
+            const raw = await redis.get(`${PROGRESSIVE_KEY_PREFIX}:${key}`);
+            const timestamps = normalizeTimestamps(raw).filter((t) => t > windowStart);
+            timestamps.push(now);
+            // TTL == window so the key self-expires once every failure ages out.
+            await redis.set(`${PROGRESSIVE_KEY_PREFIX}:${key}`, timestamps, {
+                px: policy.windowMs,
+            });
+            return computeProgressive(timestamps, policy, now).decision;
+        } catch (err) {
+            logger.warn('rate-limit.progressive_redis_error_fallback_memory', {
+                component: 'rate-limit',
+                err: String(err),
+            });
+            // fall through to in-memory
+        }
+    }
+
+    startCleanup(policy.windowMs);
+    const entry = store.get(key) || { timestamps: [] };
+    entry.timestamps = entry.timestamps.filter((t) => t > windowStart);
+    entry.timestamps.push(now);
+    store.set(key, entry);
+    return computeProgressive(entry.timestamps, policy, now).decision;
+}
+
+/**
+ * Clear the failure list. Call after a SUCCESSFUL verify so a legitimate user
+ * who typo'd a few times isn't still throttled on the next login.
+ */
+export async function resetProgressiveFailures(key: string): Promise<void> {
     store.delete(key);
+    const redis = getUpstashRedis();
+    if (!redis) return;
+    try {
+        await redis.del(`${PROGRESSIVE_KEY_PREFIX}:${key}`);
+    } catch (err) {
+        logger.warn('rate-limit.progressive_reset_del_failed', {
+            component: 'rate-limit',
+            err: String(err),
+        });
+    }
 }
