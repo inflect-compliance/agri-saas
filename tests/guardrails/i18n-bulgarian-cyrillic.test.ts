@@ -75,6 +75,7 @@ const LATIN_KEY_ALLOWLIST = new Map<string, string>([
     ['admin.sso.idpEntityId', 'IdP console field label — kept in English'],
     ['environmentBadge.staging', 'deploy-environment name — canonical English label'],
     ['environmentBadge.dev', 'deploy-environment name — canonical English label'],
+    ['backNav.soa', 'SoA — Statement of Applicability, standard compliance acronym'],
     ['org.newTenant.namePlaceholder', 'proper-noun example placeholder'],
     ['org.newTenant.slugPlaceholder', 'slug example placeholder (url-safe latin by definition)'],
 ]);

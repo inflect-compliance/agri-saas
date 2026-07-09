@@ -19,6 +19,7 @@
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
     usePreviousPath,
     tenantSlugFromPath,
@@ -34,43 +35,43 @@ import {
  * section falls back to capitalising the first segment.
  */
 const SECTION_LABELS: Record<string, string> = {
-    '/access-reviews': 'Access reviews',
-    '/admin': 'Admin',
-    '/assets': 'Assets',
-    '/audits': 'Audits',
-    '/calendar': 'Calendar',
-    '/clauses': 'Clauses',
-    '/controls': 'Controls',
-    '/coverage': 'Coverage',
-    '/dashboard': 'Dashboard',
-    '/evidence': 'Evidence',
-    '/farm-tasks': 'Farm Tasks',
-    '/field': 'Farm Tasks',
-    '/findings': 'Findings',
-    '/frameworks': 'Frameworks',
-    '/grain': 'Grain',
-    '/inventory': 'Inventory',
-    '/issues': 'Issues',
-    '/journal': 'Journal',
-    '/knowledge': 'Knowledge',
-    '/locations': 'Locations',
-    '/mapping': 'Mapping',
-    '/notifications': 'Notifications',
-    '/planning': 'Planning',
-    '/policies': 'Policies',
-    '/processes': 'Processes',
-    '/reports': 'Reports',
-    '/risks': 'Risks',
-    '/schemes': 'Schemes',
-    '/tests': 'Tests',
-    '/vendors': 'Vendors',
+    '/access-reviews': 'accessReviews',
+    '/admin': 'admin',
+    '/assets': 'assets',
+    '/audits': 'audits',
+    '/calendar': 'calendar',
+    '/clauses': 'clauses',
+    '/controls': 'controls',
+    '/coverage': 'coverage',
+    '/dashboard': 'dashboard',
+    '/evidence': 'evidence',
+    '/farm-tasks': 'farmTasks',
+    '/field': 'farmTasks',
+    '/findings': 'findings',
+    '/frameworks': 'frameworks',
+    '/grain': 'grain',
+    '/inventory': 'inventory',
+    '/issues': 'issues',
+    '/journal': 'journal',
+    '/knowledge': 'knowledge',
+    '/locations': 'locations',
+    '/mapping': 'mapping',
+    '/notifications': 'notifications',
+    '/planning': 'planning',
+    '/policies': 'policies',
+    '/processes': 'processes',
+    '/reports': 'reports',
+    '/risks': 'risks',
+    '/schemes': 'schemes',
+    '/tests': 'tests',
+    '/vendors': 'vendors',
 };
 
 /** Derive the "where you came from" label from an in-tenant pathname. */
 function labelFromPathname(pathname: string): string {
     const stripped = pathname.replace(/^\/t\/[^/]+/, '');
     const seg = stripped.split('/').filter(Boolean)[0];
-    if (!seg) return 'previous page';
+    if (!seg) return 'previousPage';
     const sectionKey = `/${seg}`;
     if (SECTION_LABELS[sectionKey]) return SECTION_LABELS[sectionKey];
     return seg.charAt(0).toUpperCase() + seg.slice(1);
@@ -89,6 +90,7 @@ export interface BackAffordanceProps {
 }
 
 export function BackAffordance({ override, noFallback }: BackAffordanceProps) {
+    const t = useTranslations('backNav');
     const pathname = usePathname() ?? '';
     const tenantSlug = tenantSlugFromPath(pathname);
     const referrer = usePreviousPath(tenantSlug);
@@ -118,14 +120,19 @@ export function BackAffordance({ override, noFallback }: BackAffordanceProps) {
 
     if (!destination) return null;
 
+    // `destination.label` is an i18n KEY for known sections (canonical parents +
+    // SECTION_LABELS); resolve it. Dynamic fallbacks (a capitalised unknown
+    // segment) and explicit `override` labels aren't keys — pass them through.
+    const label = t.has(destination.label) ? t(destination.label) : destination.label;
+
     return (
         <Link
             href={destination.href}
             className="text-content-muted text-xs hover:text-content-emphasis transition-colors duration-150 ease-out"
             data-testid="page-header-back"
-            aria-label={`Back to ${destination.label}`}
+            aria-label={t('backTo', { label })}
         >
-            ← {destination.label}
+            ← {label}
         </Link>
     );
 }
