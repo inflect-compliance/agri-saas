@@ -21,7 +21,9 @@ import { DatePicker, type DateValue } from '@/components/ui/date-picker';
 import { toYMD } from '@/components/ui/date-picker/date-utils';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { InlineNotice } from '@/components/ui/inline-notice';
-import { apiPost, apiPatch, ApiClientError } from '@/lib/api-client';
+import { apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/api-client';
+import { Popover } from '@/components/ui/popover';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { SpatialImportModal } from '@/components/ui/map/SpatialImportModal';
 import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
@@ -172,6 +174,9 @@ export default function LocationDetailPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link read on mount only
     }, []);
     const [showImport, setShowImport] = useState(false);
+    const [manageOpen, setManageOpen] = useState(false);
+    const [showDelete, setShowDelete] = useState(false);
+    const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
     const [activeJob, setActiveJob] = useState<string | null>(null);
     // БАБХ ДНЕВНИК (PDF) — minimal trigger: a date range (defaults to the
     // current season, Jan 1 → today) → POST → stream the filled PDF download.
@@ -438,7 +443,22 @@ export default function LocationDetailPage() {
             error={locQ.error ? t('loadError') : null}
             actions={
                 <div className="flex items-center gap-compact">
-                    <Button variant="secondary" size="sm" onClick={() => setShowImport(true)}>{t('importParcels')}</Button>
+                    <Popover
+                        openPopover={manageOpen}
+                        setOpenPopover={setManageOpen}
+                        content={
+                            <Popover.Menu aria-label={t('manageParcels')}>
+                                <Popover.Item onClick={() => { setManageOpen(false); setShowImport(true); }}>
+                                    {t('importParcels')}
+                                </Popover.Item>
+                                <Popover.Item destructive onClick={() => { setManageOpen(false); setShowDelete(true); }}>
+                                    {t('deleteParcels')}
+                                </Popover.Item>
+                            </Popover.Menu>
+                        }
+                    >
+                        <Button variant="secondary" size="sm">{t('manageParcels')}</Button>
+                    </Popover>
                     <Button
                         variant="secondary"
                         size="sm"
@@ -747,6 +767,60 @@ export default function LocationDetailPage() {
                 }}
             />
 
+            {/* Delete parcels — the "Manage parcels → Delete" surface. Lists the
+                location's parcels; each row soft-deletes (confirmed) via the
+                per-parcel DELETE route, so a field can be dropped without
+                re-importing the whole set. */}
+            <Modal showModal={showDelete} setShowModal={setShowDelete}>
+                <Modal.Header title={t('deleteParcels')} description={t('deleteParcelsHint')} />
+                <Modal.Body>
+                    {parcels.length === 0 ? (
+                        <p className="text-sm text-content-subtle">{t('noParcelsToDelete')}</p>
+                    ) : (
+                        <ul className="space-y-tight">
+                            {parcels.map((p) => (
+                                <li
+                                    key={p.id}
+                                    className="flex items-center justify-between gap-default rounded-lg border border-border-subtle px-3 py-2"
+                                >
+                                    <span className="min-w-0 truncate text-sm text-content-default">{p.name}</span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="flex-shrink-0 text-content-error"
+                                        onClick={() => setPendingDelete({ id: p.id, name: p.name })}
+                                    >
+                                        {tCommon('delete')}
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Modal.Body>
+            </Modal>
+            {pendingDelete && (
+                <ConfirmDialog
+                    showModal
+                    setShowModal={() => setPendingDelete(null)}
+                    tone="danger"
+                    title={t('deleteParcelConfirmTitle', { name: pendingDelete.name })}
+                    description={t('deleteParcelConfirmBody')}
+                    confirmLabel={t('deleteParcelConfirmLabel')}
+                    onConfirm={async () => {
+                        const id = pendingDelete.id;
+                        try {
+                            await apiDelete(buildUrl(`/locations/${locationId}/parcels/${id}`));
+                            setPendingDelete(null);
+                            await parcelsQ.mutate();
+                            await locQ.mutate();
+                        } catch {
+                            setPendingDelete(null);
+                            toast.error(t('deleteParcelFailed'));
+                        }
+                    }}
+                />
+            )}
+
             {/* Parcel sheet — the single spray/field-operation screen (#3),
                 opened by a map tap or a parcel card tap. It IS the create
                 form (Fertilizer-XOR-Product + crop + operator), so there is no
@@ -759,7 +833,6 @@ export default function LocationDetailPage() {
                 smartDefaults={smartQ.data}
                 onCreated={() => { setSheetParcelId(null); setTab('operations'); void opsQ.mutate(); }}
                 onCropChanged={() => { void parcelsQ.mutate(); }}
-                onDeleted={() => { setSheetParcelId(null); void parcelsQ.mutate(); void locQ.mutate(); }}
             />
 
             <Modal
