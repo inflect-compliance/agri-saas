@@ -9,7 +9,7 @@ import { formatDate } from '@/lib/format-date';
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
-import { Trash2, CheckCircle, XCircle, Loader2, Link2, Eye, EyeOff } from 'lucide-react';
+import { Trash2, CheckCircle, XCircle, Loader2, Link2, Eye, EyeOff, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox } from '@/components/ui/combobox';
 import { RequiredMarker } from '@/components/ui/required-marker';
@@ -218,7 +218,7 @@ export default function AdminIntegrationsPage() {
                 {webhookBaseUrl && (
                     <div className={cardVariants({ density: 'compact' })}>
                         <p className="text-xs text-content-muted mb-1">{t('webhookBaseUrl')}</p>
-                        <code className="text-sm text-[var(--brand-default)] font-mono">{webhookBaseUrl}/&#123;provider&#125;</code>
+                        <code className="text-sm text-[var(--brand-default)] font-mono">{`${webhookBaseUrl}/{provider}`}</code>
                     </div>
                 )}
 
@@ -233,10 +233,11 @@ export default function AdminIntegrationsPage() {
                         <Heading level={2}>{t('configuredConnections')}</Heading>
                         <Button
                             variant="primary"
+                            icon={<Plus />}
                             onClick={() => { resetForm(); setShowForm(true); }}
                             id="add-integration-btn"
                         >
-                            + Integration
+                            {t('addIntegrationButton')}
                         </Button>
                     </div>
 

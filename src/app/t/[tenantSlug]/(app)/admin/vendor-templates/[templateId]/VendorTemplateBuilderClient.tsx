@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { Plus } from '@/components/ui/icons/nucleo/plus';
 import {
     useTenantApiUrl,
     useTenantHref,
@@ -579,10 +580,11 @@ function AddSectionForm({ onSubmit }: { onSubmit: (title: string) => void }) {
             />
             <Button
                 variant="primary"
+                icon={<Plus />}
                 type="submit"
                 disabled={!title.trim()}
             >
-                + Section
+                {t('addSectionButton')}
             </Button>
         </form>
     );
@@ -682,12 +684,13 @@ function AddQuestionForm({
             <div className="md:col-span-2">
                 <Button
                     variant="primary"
+                    icon={<Plus />}
                     className="w-full"
                     type="submit"
                     disabled={busy || !prompt.trim()}
                     loading={busy}
                 >
-                    {busy ? 'Adding…' : '+ Question'}
+                    {busy ? t('addingEllipsis') : t('addQuestionButton')}
                 </Button>
             </div>
         </form>

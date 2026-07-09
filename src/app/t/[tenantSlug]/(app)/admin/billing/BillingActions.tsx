@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CreditCard, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -17,6 +18,7 @@ export function BillingActions({
     portal?: boolean;
     tenantSlug: string;
 }) {
+    const t = useTranslations('admin.billing');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -32,12 +34,12 @@ export function BillingActions({
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `Failed (${res.status})`);
+                throw new Error(data.error || t('failedStatus', { status: res.status }));
             }
             const { url } = await res.json();
             window.location.href = url;
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong');
+            setError(err instanceof Error ? err.message : t('somethingWentWrong'));
             setLoading(false);
         }
     }
@@ -52,12 +54,12 @@ export function BillingActions({
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `Failed (${res.status})`);
+                throw new Error(data.error || t('failedStatus', { status: res.status }));
             }
             const { url } = await res.json();
             window.location.href = url;
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong');
+            setError(err instanceof Error ? err.message : t('somethingWentWrong'));
             setLoading(false);
         }
     }
@@ -73,7 +75,7 @@ export function BillingActions({
                     id="billing-portal-btn"
                 >
                     {!loading && <ExternalLink className="w-4 h-4" />}
-                    Manage Billing
+                    {t('manageBilling')}
                 </Button>
                 {error && <p className="text-xs text-content-error mt-2">{error}</p>}
             </div>
@@ -90,7 +92,7 @@ export function BillingActions({
                 id={`billing-upgrade-${plan?.toLowerCase()}-btn`}
             >
                 {!loading && <CreditCard className="w-4 h-4" />}
-                Upgrade to {plan}
+                {t('upgradeTo', { plan: plan ?? '' })}
             </Button>
             {error && <p className="text-xs text-content-error mt-2">{error}</p>}
         </div>

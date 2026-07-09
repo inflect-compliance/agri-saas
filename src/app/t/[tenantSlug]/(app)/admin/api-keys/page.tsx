@@ -12,7 +12,7 @@ import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import {
     KeyRound, Trash2, Copy, Check,
-    Clock, AlertTriangle, Eye, EyeOff,
+    Clock, AlertTriangle, Eye, EyeOff, Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
@@ -533,8 +533,8 @@ export default function ApiKeysPage() {
                     </p>
                 </div>
                 {!showCreate && !createdKey && (
-                    <Button variant="primary" onClick={() => setShowCreate(true)} id="create-api-key-btn">
-                        + API Key
+                    <Button variant="primary" icon={<Plus />} onClick={() => setShowCreate(true)} id="create-api-key-btn">
+                        {t('newApiKeyButton')}
                     </Button>
                 )}
             </div>

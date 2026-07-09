@@ -79,7 +79,25 @@
         "namePlaceholder": "Иван Иванов",
         "orgPlaceholder": "Моята Компания",
         "emailPlaceholder": "вие@компания.бг",
-        "passwordPlaceholder": "••••••••"
+        "passwordPlaceholder": "••••••••",
+        "registrationFailed": "Регистрацията е неуспешна",
+        "loginFailed": "Входът е неуспешен",
+        "invalidCredentials": "Невалидни данни за вход",
+        "verifyVerified": "Имейлът е потвърден — вече можете да влезете.",
+        "verifyExpired": "Този линк за потвърждение е изтекъл. Заявете нов по-долу.",
+        "verifyInvalid": "Този линк за потвърждение не е валиден. Заявете нов по-долу.",
+        "passwordReset": "Паролата ви беше нулирана — влезте с новата си парола.",
+        "passwordChanged": "Паролата ви беше променена — моля, влезте отново.",
+        "continueWithGoogle": "Продължи с Google",
+        "continueWithMicrosoft": "Продължи с Microsoft",
+        "orContinueWithEmail": "или продължете с имейл",
+        "forgotPassword": "Забравена парола?",
+        "resendSent": "Ако този имейл е регистриран и все още не е потвърден, нов линк вече е на път.",
+        "resendEmailAria": "Имейл за повторно изпращане на потвърждение",
+        "resendEmailPlaceholder": "Не получихте имейл за потвърждение?",
+        "resendSending": "Изпращане…",
+        "resend": "Изпрати отново",
+        "loading": "Зареждане..."
     },
     "nav": {
         "dashboard": "Бoрд",
@@ -1464,7 +1482,8 @@
             "revokedKeySingular": "отнет ключ",
             "confirmRevokeTitle": "Да се отнеме ли API ключ „{name}“?",
             "confirmRevokeTitleGeneric": "Да се отнеме ли API ключът?",
-            "confirmRevokeDesc": "Ключ с префикс {prefix}… ще спре да работи незабавно. Всяка интеграция, която го използва, ще загуби достъп. Това не може да бъде отменено."
+            "confirmRevokeDesc": "Ключ с префикс {prefix}… ще спре да работи незабавно. Всяка интеграция, която го използва, ще загуби достъп. Това не може да бъде отменено.",
+            "newApiKeyButton": "API ключ"
         },
         "billing": {
             "breadcrumbDashboard": "Табло",
@@ -1500,7 +1519,11 @@
             "entFeature4": "Специален мениджър на акаунта",
             "manageSubscription": "Управление на абонамента",
             "manageSubscriptionBody": "Актуализирайте начина на плащане, вижте фактури или сменете плана си чрез Stripe Customer Portal.",
-            "recentActivity": "Скорошна активност"
+            "recentActivity": "Скорошна активност",
+            "manageBilling": "Управление на плащането",
+            "upgradeTo": "Надграждане до {plan}",
+            "failedStatus": "Неуспешно ({status})",
+            "somethingWentWrong": "Нещо се обърка"
         },
         "rbac": {
             "breadcrumbDashboard": "Табло",
@@ -1536,7 +1559,28 @@
             "saving": "Записване…",
             "save": "Запис",
             "saveFailedGuid": "Записът е неуспешен — проверете дали directory + client ID са валидни GUID-и.",
-            "saveFailedNetwork": "Записът е неуспешен — мрежова грешка."
+            "saveFailedNetwork": "Записът е неуспешен — мрежова грешка.",
+            "mappingExists": "Вече съществува съответствие за тази група.",
+            "mappingAccessDenied": "Достъпът е отказан — само администратори могат да управляват съответствията.",
+            "mappingAddFailedGuid": "Добавянето е неуспешно — ID-то на групата трябва да е валиден GUID.",
+            "mappingAddFailedNetwork": "Добавянето е неуспешно — мрежова грешка.",
+            "mappingRemoved": "Съответствието за {group} е премахнато",
+            "undo": "Отмени",
+            "mappingRemoveFailed": "Премахването на съответствието е неуспешно — то беше възстановено.",
+            "mappingsTitle": "3 · Съответствия група → роля",
+            "mappingsDescription": "Свържете Entra група за сигурност с роля в IC. При вход на потребител ролята му се определя от съвпадащата група с най-висок приоритет. Собствеността никога не се присвоява чрез група — тя остава ръчно предоставена.",
+            "mappingsEmptyTitle": "Все още няма съответствия на групи",
+            "mappingsEmptyDescription": "Добавете съответствие по-долу, за да определяте ролите според членството в Entra групи.",
+            "priorityValue": "приоритет {value}",
+            "removeMappingAria": "Премахни съответствието за {group}",
+            "groupObjectIdLabel": "Обектно ID на групата",
+            "displayNameLabel": "Показвано име (по избор)",
+            "displayNamePlaceholder": "Инженеринг — Сигурност",
+            "roleLabel": "Роля",
+            "roleHint": "OWNER се предоставя ръчно, а не чрез група.",
+            "priorityLabel": "Приоритет",
+            "addingMapping": "Добавяне…",
+            "addMapping": "Добави съответствие"
         },
         "farmProfile": {
             "breadcrumbDashboard": "Табло",
@@ -1628,7 +1672,8 @@
             "stale": "Остарели",
             "policyLinks": "Връзки към политики",
             "recentSyncActivity": "Скорошна активност по синхронизация",
-            "noSpActivity": "Все още няма активност в SharePoint."
+            "noSpActivity": "Все още няма активност в SharePoint.",
+            "addIntegrationButton": "Интеграция"
         },
         "ledgerIntegrity": {
             "colRunAt": "Изпълнено на",
@@ -1656,7 +1701,12 @@
             "unknownSubtitle": "Присъдата за това изпълнение не е налична. Последно изпълнение {when}.",
             "intact": "Непокътнат",
             "drift": "Разминаване",
-            "unknown": "Неизвестно"
+            "unknown": "Неизвестно",
+            "breadcrumbDashboard": "Табло",
+            "breadcrumbAdmin": "Администрация",
+            "breadcrumbLedgerIntegrity": "Цялост на регистъра",
+            "title": "Цялост на складовия регистър",
+            "description": "Проверете хеш веригата на складовия регистър (само за добавяне) и прегледайте предишните равнявания."
         },
         "modules": {
             "breadcrumbDashboard": "Табло",
@@ -1805,7 +1855,8 @@
             "saveChanges": "Запази промените",
             "noRoles": "Все още няма дефинирани персонализирани роли. Натиснете „Create Custom Role“, за да започнете.",
             "customRolesPlural": "персонализирани роли",
-            "customRoleSingular": "персонализирана роля"
+            "customRoleSingular": "персонализирана роля",
+            "newRoleButton": "Роля"
         },
         "scim": {
             "noPermission": "Нямате право да преглеждате SCIM токени.",
@@ -1857,7 +1908,8 @@
             "roleMapping": "<strongMuted>Съответствие на роли:</strongMuted> Провизионираните чрез SCIM потребители получават по подразбиране роля <strong>Reader</strong>. Editors и Auditors могат да бъдат съпоставени чрез групово/ролево присвояване във вашия IdP. Ролята Admin не може да бъде присвоена чрез SCIM — трябва да се зададе ръчно.",
             "confirmRevokeTitle": "Да се отнеме ли SCIM токенът?",
             "confirmRevokeDesc": "Всеки IdP, който използва този токен, ще загуби достъп незабавно. Това не може да бъде отменено.",
-            "confirmRevokeLabel": "Отнеми токена"
+            "confirmRevokeLabel": "Отнеми токена",
+            "newTokenButton": "Токен"
         },
         "security": {
             "loadFailed": "Неуспешно зареждане на настройките за сигурност",
@@ -1979,7 +2031,12 @@
             "howItWorks4": "• Имейл домейните помагат за авто-откриване на SSO на страницата за вход",
             "confirmDeleteTitle": "Да се изтрие ли SSO конфигурацията?",
             "confirmDeleteDesc": "Потребителите ще трябва да използват локален вход, докато SSO не бъде реконфигурирано. Това не може да бъде отменено.",
-            "confirmDeleteLabel": "Изтрий конфигурацията"
+            "confirmDeleteLabel": "Изтрий конфигурацията",
+            "issuerUrlPlaceholder": "https://login.example.com",
+            "idpEntityIdPlaceholder": "https://idp.example.com",
+            "ssoUrlPlaceholder": "https://idp.example.com/saml/sso",
+            "certificatePlaceholder": "MIICzjCCAb...",
+            "nameIdFormatPlaceholder": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
         },
         "vendorTemplates": {
             "breadcrumbDashboard": "Табло",
@@ -2029,7 +2086,10 @@
             "promptPlaceholder": "Криптирате ли данните в покой?",
             "typeLabel": "Тип",
             "weightLabel": "Тегло",
-            "requiredCheckbox": "Задължителен"
+            "requiredCheckbox": "Задължителен",
+            "addSectionButton": "Раздел",
+            "addQuestionButton": "Въпрос",
+            "addingEllipsis": "Добавяне…"
         },
         "vendorReview": {
             "loadFailed": "Неуспешно зареждане ({status})",
@@ -2142,6 +2202,28 @@
             "certificatesForMember": "Сертификати — {name}",
             "certificatesEditableNote": "Редактируеми за всеки член. Празно поле изчиства стойността.",
             "saveCertificates": "Запази сертификатите"
+        },
+        "hub": {
+            "theme": "Тема",
+            "membersAndRoles": "Членове и роли",
+            "rolesAndAccess": "Роли и достъп",
+            "customRoles": "Персонализирани роли",
+            "apiKeys": "API ключове",
+            "billing": "Плащане",
+            "ssoIdentity": "SSO и идентичност",
+            "scimProvisioning": "SCIM осигуряване",
+            "entraAccessMapping": "Съпоставяне на достъп в Entra",
+            "integrations": "Интеграции",
+            "modules": "Модули",
+            "farmProfile": "Профил на стопанството",
+            "securityMfa": "Сигурност и MFA",
+            "riskAppetite": "Склонност към риск",
+            "notifications": "Известия",
+            "ledgerIntegrity": "Цялост на регистъра"
+        },
+        "forbidden": {
+            "title": "Изисква се администраторски достъп",
+            "message": "Нямате разрешение за достъп до администраторските настройки. Свържете се с администратора на работното пространство, за да поискате достъп."
         }
     },
     "riskManager": {
@@ -6740,5 +6822,23 @@
         "vendorTemplates": "Шаблони за доставчици",
         "previousPage": "предишна страница",
         "backTo": "Назад към {label}"
+    },
+    "shortcutHelp": {
+        "title": "Клавишни комбинации",
+        "description": "Натиснете ? по всяко време, за да покажете този списък. Комбинациите се игнорират, докато въвеждате текст.",
+        "showShortcuts": "Показване на клавишните комбинации",
+        "availableNow": "Налични сега",
+        "inDialogsAndSheets": "В диалози и панели",
+        "emptyHint": "Все още няма регистрирани глобални комбинации."
+    },
+    "forbidden": {
+        "title": "Достъпът е отказан",
+        "message": "Нямате права да преглеждате тази страница. Свържете се с администратора на работното пространство, за да поискате достъп.",
+        "backToDashboard": "Обратно към таблото"
+    },
+    "chartFrame": {
+        "errorTitle": "Графиката не можа да се зареди",
+        "emptyTitle": "Все още няма данни",
+        "emptyDescription": "Щом постъпят данни, тази графика ще се попълни."
     }
 }
