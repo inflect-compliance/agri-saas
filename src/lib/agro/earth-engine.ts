@@ -134,15 +134,23 @@ function bandFn(index: VegetationIndex): (img: EeImage) => EeImage {
  * there. `ee` is untyped; the fluent chain is `EeImage`.
  */
 function adaptiveS2Collection(region: EeImage, win: NdviWindow): EeImage {
+    // `ee.Date` / `ee.Algorithms` (and the object-arg ImageCollection ctor) are
+    // real EE members missing from the `EarthEngine` type defs — reach them
+    // through a narrow typed view rather than `any`.
+    const eeX = ee as unknown as {
+        Date: (v: unknown) => EeImage;
+        Algorithms: { If: (cond: unknown, t: unknown, f: unknown) => EeImage };
+        ImageCollection: (v: unknown) => EeImage;
+    };
     const base = ee
         .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
         .filterBounds(region)
         .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60));
     const windowColl = base.filterDate(win.start, win.end);
     const windowDays = Math.max(1, Math.round((Date.parse(win.end) - Date.parse(win.start)) / 86_400_000));
-    const latest = ee.Date(base.sort('system:time_start', false).first().get('system:time_start'));
+    const latest = eeX.Date(base.sort('system:time_start', false).first().get('system:time_start'));
     const fallback = base.filterDate(latest.advance(-windowDays, 'day'), latest.advance(1, 'day'));
-    return ee.ImageCollection(ee.Algorithms.If(windowColl.size().gt(0), windowColl, fallback)) as EeImage;
+    return eeX.ImageCollection(eeX.Algorithms.If(windowColl.size().gt(0), windowColl, fallback));
 }
 
 /**
