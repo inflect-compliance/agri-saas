@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { cropLabel } from '@/lib/agriculture/crop-options';
 import { CropGlyph } from './CropGlyph';
 
 export interface CropLegendProps {
@@ -17,6 +18,7 @@ export interface CropLegendProps {
  */
 export function CropLegend({ crops }: CropLegendProps) {
     const t = useTranslations('ag.crop');
+    const tCrops = useTranslations('crops');
     if (crops.length === 0) return null;
     return (
         <div className="rounded-md border border-border-subtle bg-bg-default p-3 text-sm">
@@ -27,7 +29,7 @@ export function CropLegend({ crops }: CropLegendProps) {
                         <span className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center text-content-emphasis">
                             <CropGlyph crop={crop} className="h-4 w-4" />
                         </span>
-                        <span className="text-content-default">{crop}</span>
+                        <span className="text-content-default">{cropLabel(tCrops, crop)}</span>
                     </li>
                 ))}
             </ul>
