@@ -179,7 +179,7 @@ export async function runLocationSpatialImport(
         assertParcelComplexity(parsed.parcels);
 
         // 4 — validate topology + persist atomically inside the tenant ctx.
-        const { parcelCount, parcelIds } = await runInTenantContext(ctx, async (db) => {
+        const { parcelCount, parcelIds, bounds } = await runInTenantContext(ctx, async (db) => {
             const location = await db.location.findFirst({
                 where: { id: payload.locationId, tenantId: ctx.tenantId, deletedAt: null },
                 select: { id: true, name: true },
@@ -229,13 +229,19 @@ export async function runLocationSpatialImport(
                 payload.cropType,
             );
             const count = parcelIds.length;
+            // Additive import keeps existing parcels, so the location bounds must
+            // be the extent of ALL parcels — NOT just the freshly-imported set
+            // (`parsed.bounds`). Recompute from the DB; otherwise the satellite /
+            // vegetation-index overlay (which clips to the location's boundsJson)
+            // renders on only the last-imported parcels.
+            const fullBounds = await ParcelRepository.boundsForLocation(db, ctx, payload.locationId);
             await db.location.update({
                 where: { id: payload.locationId },
                 data: {
                     spatialFileId: payload.stagingFileRecordId,
                     spatialFormat: parsed.format,
-                    boundsJson: parsed.bounds
-                        ? (parsed.bounds as unknown as Prisma.InputJsonValue)
+                    boundsJson: fullBounds
+                        ? (fullBounds as unknown as Prisma.InputJsonValue)
                         : Prisma.JsonNull,
                 },
             });
@@ -254,7 +260,7 @@ export async function runLocationSpatialImport(
                 },
             });
 
-            return { parcelCount: count, parcelIds };
+            return { parcelCount: count, parcelIds, bounds: fullBounds };
         });
 
         // Trigger the async soil fetch for the freshly-imported parcels
@@ -277,7 +283,7 @@ export async function runLocationSpatialImport(
             fileRecordId: payload.stagingFileRecordId,
             format: parsed.format,
             parcelCount,
-            bounds: parsed.bounds,
+            bounds,
             skipped: parsed.skipped,
             jobRunId,
         };
