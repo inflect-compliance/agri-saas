@@ -49,9 +49,9 @@ const USER_FACING_PROPS = new Set([
     'heading', 'subtitle', 'description',
 ]);
 
-/** Current floor (measured 2026-07-07). Can only go DOWN as strings are
+/** Current floor (measured 2026-07-09). Can only go DOWN as strings are
  *  extracted to the catalog — every extraction PR lowers this in the same diff. */
-const CURRENT_BASELINE = 204;
+const CURRENT_BASELINE = 196;
 
 /** A string counts as user-facing copy if — after stripping HTML entities —
  *  it has a real word (≥2 latin letters) and is not an ALL-CAPS enum/acronym
