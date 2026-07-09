@@ -13,8 +13,7 @@ import {
     createTypedFilterDefs,
     optionsFromEnum,
 } from '@/components/ui/filter/filter-definitions';
-import type { FilterOption } from '@/components/ui/filter/types';
-import type { FilterType } from '@/components/ui/filter';
+import type { FilterOption, Filter as FilterType } from '@/components/ui/filter/types';
 import { AlertCircle, CircleDot, Clock, Flag, Layers, UserCircle2 } from 'lucide-react';
 
 /**
