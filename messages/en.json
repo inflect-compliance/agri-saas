@@ -6655,7 +6655,9 @@
             "high": "High confidence",
             "medium": "Medium confidence",
             "low": "Low confidence"
-        }
+        },
+        "aiSuggestionAria": "AI suggestion: {title}",
+        "disclaimer": "AI suggestion — verify with an agronomist."
     },
     "grainEnums": {
         "status": "Status",

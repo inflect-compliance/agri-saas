@@ -31,7 +31,7 @@ import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
 import { apiGet, apiPatch } from '@/lib/api-client';
 import { haToDca, totalLabel, trimNumber } from '@/lib/agro/rate-calc';
-import { CROP_OPTIONS, CROP_VALUES } from '@/lib/agriculture/crop-options';
+import { CROP_VALUES, cropLabel, localizedCropOptions } from '@/lib/agriculture/crop-options';
 import type { SoilProfile } from '@/lib/soil/types';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
 
@@ -87,6 +87,7 @@ export function ParcelDetailSheet({
 }: ParcelDetailSheetProps) {
     const t = useTranslations('ag.map');
     const tc = useTranslations('common');
+    const tCrops = useTranslations('crops');
     const buildUrl = useTenantApiUrl();
     const { tenantSlug } = useParams<{ tenantSlug: string }>();
     const { submit } = useOfflineSync();
@@ -157,12 +158,13 @@ export function ParcelDetailSheet({
         [units],
     );
     const cropOptions = useMemo<ComboboxOption[]>(() => {
+        const localized = localizedCropOptions(tCrops);
         // Keep an imported off-catalogue crop visible as a synthetic option.
         if (cropValue && !CROP_VALUES.has(cropValue)) {
-            return [{ value: cropValue, label: cropValue }, ...CROP_OPTIONS];
+            return [{ value: cropValue, label: cropLabel(tCrops, cropValue) }, ...localized];
         }
-        return CROP_OPTIONS;
-    }, [cropValue]);
+        return localized;
+    }, [cropValue, tCrops]);
 
     const kindOptions = useMemo<ComboboxOption[]>(
         () => [

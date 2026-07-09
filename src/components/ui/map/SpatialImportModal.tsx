@@ -17,7 +17,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Combobox } from '@/components/ui/combobox';
-import { CROP_OPTIONS } from '@/lib/agriculture/crop-options';
+import { localizedCropOptions } from '@/lib/agriculture/crop-options';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 
 export interface SpatialImportModalProps {
@@ -41,6 +41,8 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export function SpatialImportModal({ locationId, open, setOpen, onImported }: SpatialImportModalProps) {
     const t = useTranslations('ag.map.spatialImport');
     const tc = useTranslations('common');
+    const tCrops = useTranslations('crops');
+    const cropOptions = localizedCropOptions(tCrops);
     const buildUrl = useTenantApiUrl();
     const [file, setFile] = useState<File | null>(null);
     // Default crop stamped on every imported parcel (#7); '' = mixed/set later.
@@ -131,8 +133,8 @@ export function SpatialImportModal({ locationId, open, setOpen, onImported }: Sp
                         (#7). Leaving it unset means "mixed / set later". */}
                     <FormField label={t('cropLabel')} description={t('cropDescription')}>
                         <Combobox
-                            options={CROP_OPTIONS}
-                            selected={CROP_OPTIONS.find((o) => o.value === crop) ?? null}
+                            options={cropOptions}
+                            selected={cropOptions.find((o) => o.value === crop) ?? null}
                             setSelected={(o) => setCrop(o?.value ?? '')}
                             optionRight={(o) =>
                                 o.meta?.season ? (
