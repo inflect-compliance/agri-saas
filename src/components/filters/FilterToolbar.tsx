@@ -29,6 +29,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     Filter as FilterUI,
     filterStateToActiveFilters,
@@ -132,6 +133,7 @@ export function FilterToolbar({
     primary,
     className,
 }: FilterToolbarProps) {
+    const t = useTranslations('filtersChrome');
     const ctx = useFilters();
     const { remove, removeAll, clearAll, search, setSearch, state } = ctx;
 
@@ -176,7 +178,7 @@ export function FilterToolbar({
                     onSearchChange={searchEnabled ? handleSearchChange : undefined}
                     className="h-9"
                 >
-                    {triggerLabel ?? 'Filter'}
+                    {triggerLabel ?? t('filter')}
                 </FilterUI.Select>
             </div>
             <div className="flex-1 min-w-0">

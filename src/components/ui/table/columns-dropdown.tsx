@@ -16,6 +16,7 @@
  * below, secondary to the filter gear.
  */
 
+import { useTranslations } from "next-intl";
 import { Columns3 } from "lucide-react";
 import { ChecklistGearButton } from "../checklist-gear-button";
 import type { ChecklistGearItem } from "../checklist-order";
@@ -40,6 +41,7 @@ export function ColumnsDropdown({
     className,
     id,
 }: ColumnsDropdownProps) {
+    const t = useTranslations("filtersChrome");
     return (
         <ChecklistGearButton
             items={items}
@@ -48,7 +50,7 @@ export function ColumnsDropdown({
             onReorder={onReorder}
             someModified={someModified}
             icon={<Columns3 className="h-4 w-4 shrink-0" />}
-            title="Toggle columns"
+            title={t("toggleColumns")}
             data-testid="toggle-columns-button"
             className={className}
             id={id}

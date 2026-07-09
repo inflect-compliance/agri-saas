@@ -6454,5 +6454,249 @@
         "submitResponses": "Изпращане на отговорите",
         "fileUploadNote": "Отговорите с прикачен файл се координират чрез вашето лице за контакт на този етап. Моля, добавете тук бележка, описваща файла, който възнамерявате да споделите.",
         "fileUploadPlaceholder": "напр. Ще изпратя ДДА чрез защитен имейл"
+    },
+    "taskEnums": {
+        "status": {
+            "OPEN": "Отворена",
+            "TRIAGED": "Приоритизирана",
+            "IN_PROGRESS": "В процес",
+            "IN_REVIEW": "На преглед",
+            "BLOCKED": "Блокирана",
+            "PENDING_REVIEW": "Очаква преглед",
+            "RESOLVED": "Решена",
+            "CLOSED": "Затворена",
+            "CANCELED": "Отказана"
+        },
+        "type": {
+            "TASK": "Задача",
+            "AUDIT_FINDING": "Одиторска находка",
+            "CONTROL_GAP": "Пропуск в контрола",
+            "INCIDENT": "Инцидент",
+            "IMPROVEMENT": "Подобрение",
+            "FIELD_OPERATION": "Полска операция",
+            "FARM_TASK": "Земеделска задача"
+        },
+        "severity": {
+            "INFO": "Информация",
+            "LOW": "Ниска",
+            "MEDIUM": "Средна",
+            "HIGH": "Висока",
+            "CRITICAL": "Критична"
+        },
+        "priority": {
+            "P0": "P0 — Критичен",
+            "P1": "P1 — Висок",
+            "P2": "P2 — Среден",
+            "P3": "P3 — Нисък"
+        },
+        "findingSource": {
+            "INTERNAL": "Вътрешен",
+            "EXTERNAL_AUDITOR": "Външен одитор",
+            "PEN_TEST": "Тест за проникване",
+            "INCIDENT": "Инцидент"
+        },
+        "gapType": {
+            "DESIGN": "Дизайн",
+            "OPERATING_EFFECTIVENESS": "Оперативна ефективност",
+            "DOCUMENTATION": "Документация"
+        },
+        "due": {
+            "overdue": "Просрочени",
+            "next7d": "До 7 дни"
+        },
+        "action": {
+            "TASK_CREATED": "Създадена задача",
+            "TASK_UPDATED": "Обновена задача",
+            "TASK_STATUS_CHANGED": "Променен статус",
+            "TASK_ASSIGNED": "Възложена задача",
+            "TASK_COMMENT_ADDED": "Добавен коментар",
+            "TASK_DELETED": "Изтрита задача",
+            "TASK_DUE": "Краен срок",
+            "TASK_EVIDENCE_LINKED": "Свързано доказателство",
+            "TASK_EVIDENCE_UNLINKED": "Премахнато доказателство",
+            "TASK_LINKED": "Свързана задача",
+            "TASK_UNLINKED": "Прекъсната връзка"
+        },
+        "relation": {
+            "RELATES_TO": "Свързана с",
+            "CAUSED_BY": "Причинена от",
+            "MITIGATED_BY": "Смекчена от",
+            "EVIDENCE_FOR": "Доказателство за"
+        },
+        "entityType": {
+            "CONTROL": "Контрол",
+            "RISK": "Риск",
+            "ASSET": "Актив",
+            "EVIDENCE": "Доказателство",
+            "FRAMEWORK_REQUIREMENT": "Изискване на рамка"
+        },
+        "category": {
+            "LAND_PREP": "Подготовка на земята",
+            "PLANTING": "Засаждане",
+            "CROP_CARE": "Грижа за културите",
+            "PEST_DISEASE": "Вредители и болести",
+            "IRRIGATION": "Напояване",
+            "HARVEST": "Прибиране на реколтата",
+            "POST_HARVEST": "След прибиране",
+            "LIVESTOCK": "Животновъдство",
+            "MAINTENANCE": "Поддръжка",
+            "RECORDKEEPING": "Водене на записи",
+            "OTHER": "Друго"
+        },
+        "ui": {
+            "assign": "Възлагане",
+            "changeStatus": "Смяна на статус",
+            "setDueDate": "Задаване на краен срок",
+            "apply": "Приложи",
+            "unassigned": "Без изпълнител",
+            "noLinkedTasks": "Няма свързани задачи",
+            "link": "Връзка",
+            "remove": "Премахни",
+            "selectEntity": "Изберете обект",
+            "task": "Задача",
+            "unknown": "Неизвестен",
+            "colTitle": "Заглавие",
+            "colType": "Тип",
+            "colSeverity": "Сериозност",
+            "colStatus": "Статус",
+            "colAssignee": "Изпълнител",
+            "colDueDate": "Краен срок",
+            "filterStatus": "Статус",
+            "filterType": "Тип",
+            "filterSeverity": "Сериозност",
+            "filterDue": "Краен срок",
+            "filterAssignee": "Изпълнител",
+            "filterAssigneePlural": "Изпълнители",
+            "filterLinkedControl": "Свързан контрол"
+        },
+        "filterDesc": {
+            "status": "Състояние на задачата в жизнения цикъл.",
+            "type": "Какъв вид задача / находка представлява.",
+            "severity": "Сериозност на въздействието на задачата.",
+            "due": "Бърз филтър за просрочени / предстоящи.",
+            "assignee": "Показва само задачи, възложени на този човек.",
+            "controlId": "Показва само задачи, свързани с този контрол."
+        }
+    },
+    "journalEnums": {
+        "logType": {
+            "ACTIVITY": "Дейност",
+            "OBSERVATION": "Наблюдение",
+            "INPUT_APPLICATION": "Внасяне на препарат",
+            "SEEDING": "Сеитба",
+            "TRANSPLANTING": "Разсаждане",
+            "HARVEST": "Прибиране на реколтата",
+            "IRRIGATION": "Напояване",
+            "MAINTENANCE": "Поддръжка",
+            "LAB_TEST": "Лабораторен анализ",
+            "GRAZING": "Паша"
+        },
+        "status": {
+            "PLANNED": "Планирано",
+            "DONE": "Готово"
+        },
+        "crop": {
+            "Wheat": "Пшеница",
+            "Barley": "Ечемик",
+            "Canola": "Рапица",
+            "Maize": "Царевица",
+            "Sunflower": "Слънчоглед",
+            "Peas": "Грах"
+        },
+        "filter": {
+            "type": "Тип",
+            "status": "Статус",
+            "crop": "Култура"
+        }
+    },
+    "planningEnums": {
+        "status": {
+            "DRAFT": "Чернова",
+            "ACTIVE": "Активен",
+            "COMPLETED": "Завършен",
+            "CANCELLED": "Отказан"
+        },
+        "filter": {
+            "status": "Статус"
+        },
+        "method": {
+            "DIRECT_SOW": "Директна сеитба",
+            "TRANSPLANT": "Разсаждане"
+        }
+    },
+    "crops": {
+        "Wheat": "Пшеница",
+        "Barley": "Ечемик",
+        "Canola": "Рапица",
+        "Maize": "Царевица",
+        "Sunflower": "Слънчоглед",
+        "Peas": "Грах",
+        "seasonAutumn": "Есенна култура",
+        "seasonSpring": "Пролетна култура"
+    },
+    "agStatus": {
+        "operation": {
+            "OPEN": "Отворена",
+            "TRIAGED": "Приоритизирана",
+            "IN_PROGRESS": "В процес",
+            "BLOCKED": "Блокирана",
+            "PENDING_REVIEW": "Очаква преглед",
+            "RESOLVED": "Разрешена",
+            "CLOSED": "Затворена",
+            "CANCELED": "Отменена"
+        },
+        "spray": {
+            "complete": "Пръскането е завършено",
+            "parcelsDone": "Обработени парцели",
+            "areaCovered": "Обработена площ",
+            "product": "Продукт"
+        },
+        "confidence": {
+            "high": "Висока увереност",
+            "medium": "Средна увереност",
+            "low": "Ниска увереност"
+        }
+    },
+    "grainEnums": {
+        "status": "Статус",
+        "statuses": "Статуси",
+        "statusDraft": "Чернова",
+        "statusActive": "Активен",
+        "statusDelivered": "Доставен",
+        "statusSettled": "Уредена",
+        "statusCancelled": "Отказан",
+        "type": "Тип",
+        "types": "Типове",
+        "typeSale": "Продажба",
+        "typePurchase": "Покупка",
+        "season": "Сезон",
+        "seasons": "Сезони",
+        "field": "Поле",
+        "fields": "Полета",
+        "dashboard": "Табло",
+        "costs": "Разходи",
+        "groupByPlanting": "По насаждение",
+        "groupByField": "По поле",
+        "groupBySeason": "По сезон"
+    },
+    "exchangeFilters": {
+        "side": "Страна",
+        "sideSell": "Продава",
+        "sideBuy": "Купува",
+        "type": "Тип",
+        "kindCulture": "Култура",
+        "kindFertilizer": "Тор",
+        "kindSeeds": "Семена",
+        "kindProduct": "Продукт",
+        "commodity": "Стока",
+        "region": "Регион",
+        "quantity": "Количество (т)"
+    },
+    "filtersChrome": {
+        "filter": "Филтър",
+        "searchEllipsis": "Търсене…",
+        "clearFilters": "Изчисти филтрите",
+        "editFilterCards": "Редактиране на филтърните карти",
+        "toggleColumns": "Превключване на колони"
     }
 }

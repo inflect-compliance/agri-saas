@@ -82,6 +82,7 @@ function ContractsPageInner({
     permissions,
 }: ContractsClientProps) {
     const t = useTranslations('grain.contracts');
+    const tEnums = useTranslations('grainEnums');
     const apiUrl = useCallback(
         (path: string) => `/api/t/${tenantSlug}${path}`,
         [tenantSlug],
@@ -150,7 +151,10 @@ function ContractsPageInner({
         );
     }, [rawContracts, search]);
 
-    const liveFilterDefs: FilterType[] = useMemo(() => buildContractFilters(), []);
+    const liveFilterDefs: FilterType[] = useMemo(
+        () => buildContractFilters(tEnums),
+        [tEnums],
+    );
 
     const refetch = useCallback(() => {
         queryClient.invalidateQueries({ queryKey: ['grain-contracts', tenantSlug] });

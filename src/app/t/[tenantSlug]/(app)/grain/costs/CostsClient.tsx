@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ToggleGroup } from '@/components/ui/toggle-group';
@@ -54,12 +55,6 @@ interface CostsClientProps {
     initialData: CostResponse;
 }
 
-const DIMENSION_OPTIONS = [
-    { value: 'planting', label: 'By planting' },
-    { value: 'field', label: 'By field' },
-    { value: 'season', label: 'By season' },
-];
-
 /** Format a cost magnitude with the row's own currency (precise, not compact). */
 function money(v: number | null | undefined, currency: string | null): string {
     if (v == null) return '—';
@@ -74,7 +69,17 @@ export function CostsClient({
 }: CostsClientProps) {
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
+    const t = useTranslations('grainEnums');
     const [by, setBy] = useState<Dimension>(initialBy);
+
+    const dimensionOptions = useMemo(
+        () => [
+            { value: 'planting', label: t('groupByPlanting') },
+            { value: 'field', label: t('groupByField') },
+            { value: 'season', label: t('groupBySeason') },
+        ],
+        [t],
+    );
 
     const costsQuery = useQuery<CostResponse>({
         queryKey: ['grain-costs', tenantSlug, by],
@@ -284,8 +289,8 @@ export function CostsClient({
             <ListPageShell.Header>
                 <PageHeader
                     breadcrumbs={[
-                        { label: 'Dashboard', href: tenantHref('/dashboard') },
-                        { label: 'Costs' },
+                        { label: t('dashboard'), href: tenantHref('/dashboard') },
+                        { label: t('costs') },
                     ]}
                     title="Costs"
                     description="Per-activity cost rollup — field-event and input costs grouped by planting, field, or season."
@@ -294,7 +299,7 @@ export function CostsClient({
             <ListPageShell.Filters className="space-y-section">
                 <ToggleGroup
                     ariaLabel="Cost dimension"
-                    options={DIMENSION_OPTIONS}
+                    options={dimensionOptions}
                     selected={by}
                     selectAction={(v) => setBy(v as Dimension)}
                 />

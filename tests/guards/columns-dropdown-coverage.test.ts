@@ -206,7 +206,8 @@ describe('R-filter-gear — both gears mount the shared ChecklistGearButton', ()
         expect(src).toMatch(/ChecklistGearButton/);
         expect(src).toMatch(/\bColumns3\b/);
         expect(src).toMatch(/data-testid="toggle-columns-button"/);
-        expect(src).toMatch(/title="Toggle columns"/);
+        // Title routes through next-intl (i18n Bulgarian sweep).
+        expect(src).toMatch(/title=\{t\(['"]toggleColumns['"]\)\}/);
     });
 
     it('filter gear delegates to ChecklistGearButton (Settings, edit-filters-button)', () => {
@@ -214,6 +215,7 @@ describe('R-filter-gear — both gears mount the shared ChecklistGearButton', ()
         expect(src).toMatch(/ChecklistGearButton/);
         expect(src).toMatch(/\bSettings\b/);
         expect(src).toMatch(/data-testid="edit-filters-button"/);
-        expect(src).toMatch(/title="Edit filter cards"/);
+        // Title routes through next-intl (i18n Bulgarian sweep).
+        expect(src).toMatch(/title=\{t\(['"]editFilterCards['"]\)\}/);
     });
 });

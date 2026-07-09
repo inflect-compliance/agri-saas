@@ -90,7 +90,7 @@ describe('Tasks filter config', () => {
     });
 
     it('buildTaskFilters swaps entity-ref options without mutating static defs', () => {
-        const live = buildTaskFilters([
+        const live = buildTaskFilters((k) => k, [
             {
                 assigneeUserId: 'u1',
                 assignee: { id: 'u1', name: 'Ada', email: 'a@a' },

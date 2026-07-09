@@ -13,8 +13,17 @@ import {
     createTypedFilterDefs,
     optionsFromEnum,
 } from '@/components/ui/filter/filter-definitions';
-import type { FilterOption } from '@/components/ui/filter/types';
+import type { FilterOption, Filter as FilterType } from '@/components/ui/filter/types';
 import { AlertCircle, CircleDot, Clock, Flag, Layers, UserCircle2 } from 'lucide-react';
+
+/**
+ * Minimal shape of the `taskEnums` translator the consuming client
+ * component passes in (`useTranslations('taskEnums')`). Follows the
+ * repo's `buildXxxFilters(t)` localisation convention — this plain
+ * module can't call `useTranslations`, so the client resolves the
+ * translator and hands it to `buildTaskFilters`.
+ */
+type TaskEnumTranslator = (key: string) => string;
 
 export const TASK_STATUS_LABELS = {
     OPEN: 'Open',
@@ -119,12 +128,13 @@ interface TaskControlLike {
 
 export function assigneeOptionsFromTasks(
     tasks: ReadonlyArray<TaskAssigneeLike>,
+    unknownLabel = 'Unknown',
 ): FilterOption[] {
     const seen = new Map<string, FilterOption>();
     for (const t of tasks) {
         const a = t.assignee;
         if (!a?.id || seen.has(a.id)) continue;
-        const name = a.name?.trim() || a.email?.trim() || 'Unknown';
+        const name = a.name?.trim() || a.email?.trim() || unknownLabel;
         seen.set(a.id, {
             value: a.id,
             label: a.email ? `${name} — ${a.email}` : name,
@@ -151,14 +161,39 @@ export function controlOptionsFromTasks(
     return Array.from(seen.values()).sort((a, b) => a.label.localeCompare(b.label));
 }
 
+// Option VALUES per enum filter — kept in sync with the label consts
+// (order preserved for display). Values are load-bearing (they hit the
+// API); only the DISPLAY label is localised via the `taskEnums`
+// translator at build time.
+const TASK_STATUS_VALUES = Object.keys(TASK_STATUS_LABELS);
+const TASK_TYPE_VALUES = Object.keys(TASK_TYPE_LABELS);
+const TASK_SEVERITY_VALUES = Object.keys(TASK_SEVERITY_LABELS);
+const TASK_DUE_VALUES = Object.keys(TASK_DUE_LABELS);
+
 export function buildTaskFilters(
+    t: TaskEnumTranslator,
     tasks: ReadonlyArray<TaskAssigneeLike & TaskControlLike>,
-) {
-    const assigneeOpts = assigneeOptionsFromTasks(tasks);
+): FilterType[] {
+    const assigneeOpts = assigneeOptionsFromTasks(tasks, t('ui.unknown'));
     const controlOpts = controlOptionsFromTasks(tasks);
-    return taskFilterDefs.filters.map((f) => {
-        if (f.key === 'assigneeUserId') return { ...f, options: assigneeOpts };
-        if (f.key === 'controlId') return { ...f, options: controlOpts };
-        return f;
+    const localizedOptions = (sub: string, values: readonly string[]): FilterOption[] =>
+        values.map((v) => ({ value: v, label: t(`${sub}.${v}`) }));
+    return taskFilterDefs.filters.map((f): FilterType => {
+        switch (f.key) {
+            case 'status':
+                return { ...f, label: t('ui.filterStatus'), description: t('filterDesc.status'), options: localizedOptions('status', TASK_STATUS_VALUES) };
+            case 'type':
+                return { ...f, label: t('ui.filterType'), description: t('filterDesc.type'), options: localizedOptions('type', TASK_TYPE_VALUES) };
+            case 'severity':
+                return { ...f, label: t('ui.filterSeverity'), description: t('filterDesc.severity'), options: localizedOptions('severity', TASK_SEVERITY_VALUES) };
+            case 'due':
+                return { ...f, label: t('ui.filterDue'), description: t('filterDesc.due'), options: localizedOptions('due', TASK_DUE_VALUES) };
+            case 'assigneeUserId':
+                return { ...f, label: t('ui.filterAssignee'), labelPlural: t('ui.filterAssigneePlural'), description: t('filterDesc.assignee'), options: assigneeOpts };
+            case 'controlId':
+                return { ...f, label: t('ui.filterLinkedControl'), description: t('filterDesc.controlId'), options: controlOpts };
+            default:
+                return f;
+        }
     });
 }

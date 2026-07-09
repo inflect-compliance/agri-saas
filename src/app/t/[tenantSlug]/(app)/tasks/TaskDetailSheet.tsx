@@ -48,29 +48,11 @@ import {
 import { UserCombobox } from '@/components/ui/user-combobox';
 import { useTranslations } from 'next-intl';
 
-const SEVERITY_OPTIONS: ComboboxOption[] = [
-    { value: 'INFO', label: 'Info' },
-    { value: 'LOW', label: 'Low' },
-    { value: 'MEDIUM', label: 'Medium' },
-    { value: 'HIGH', label: 'High' },
-    { value: 'CRITICAL', label: 'Critical' },
-];
-const PRIORITY_OPTIONS: ComboboxOption[] = [
-    { value: 'P0', label: 'P0 — Critical' },
-    { value: 'P1', label: 'P1 — High' },
-    { value: 'P2', label: 'P2 — Medium' },
-    { value: 'P3', label: 'P3 — Low' },
-];
-const TYPE_LABELS: Record<string, string> = {
-    TASK: 'Task',
-    AUDIT_FINDING: 'Audit Finding',
-    CONTROL_GAP: 'Control Gap',
-    INCIDENT: 'Incident',
-    IMPROVEMENT: 'Improvement',
-};
-const TYPE_OPTIONS: ComboboxOption[] = Object.entries(TYPE_LABELS).map(
-    ([value, label]) => ({ value, label }),
-);
+// Enum VALUES (load-bearing — hit the PATCH endpoint). Display labels
+// are resolved at render time via the `taskEnums` translator.
+const SEVERITY_VALUES = ['INFO', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const PRIORITY_VALUES = ['P0', 'P1', 'P2', 'P3'];
+const TYPE_VALUES = ['TASK', 'AUDIT_FINDING', 'CONTROL_GAP', 'INCIDENT', 'IMPROVEMENT'];
 const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     OPEN: 'neutral',
     TRIAGED: 'info',
@@ -79,15 +61,6 @@ const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     RESOLVED: 'success',
     CLOSED: 'neutral',
     CANCELED: 'neutral',
-};
-const STATUS_LABELS: Record<string, string> = {
-    OPEN: 'Open',
-    TRIAGED: 'Triaged',
-    IN_PROGRESS: 'In Progress',
-    BLOCKED: 'Blocked',
-    RESOLVED: 'Resolved',
-    CLOSED: 'Closed',
-    CANCELED: 'Canceled',
 };
 
 interface TaskDetail {
@@ -140,6 +113,12 @@ export function TaskDetailSheet({
 }: TaskDetailSheetProps) {
     const open = taskId !== null;
     const t = useTranslations('tasks.sheet');
+    const te = useTranslations('taskEnums');
+    const statusLabel = (s: string) => (te.has(`status.${s}`) ? te(`status.${s}`) : s);
+    const typeLabel = (ty: string) => (te.has(`type.${ty}`) ? te(`type.${ty}`) : ty);
+    const SEVERITY_OPTIONS: ComboboxOption[] = SEVERITY_VALUES.map((v) => ({ value: v, label: te(`severity.${v}`) }));
+    const PRIORITY_OPTIONS: ComboboxOption[] = PRIORITY_VALUES.map((v) => ({ value: v, label: te(`priority.${v}`) }));
+    const TYPE_OPTIONS: ComboboxOption[] = TYPE_VALUES.map((v) => ({ value: v, label: te(`type.${v}`) }));
     const titleRef = useRef<HTMLInputElement>(null);
 
     const [task, setTask] = useState<TaskDetail | null>(null);
@@ -345,7 +324,7 @@ export function TaskDetailSheet({
                                         {t('summaryType')}
                                     </span>
                                     <StatusBadge variant="neutral" className="w-fit">
-                                        {TYPE_LABELS[task.type] || task.type}
+                                        {typeLabel(task.type)}
                                     </StatusBadge>
                                 </div>
                                 <div className="flex flex-col gap-0.5">
@@ -356,7 +335,7 @@ export function TaskDetailSheet({
                                         variant={STATUS_BADGE[task.status] || 'neutral'}
                                         className="w-fit"
                                     >
-                                        {STATUS_LABELS[task.status] || task.status}
+                                        {statusLabel(task.status)}
                                     </StatusBadge>
                                 </div>
                             </section>
@@ -528,7 +507,7 @@ export function TaskDetailSheet({
                                         placeholder={
                                             task.assignee?.name ||
                                             task.assignee?.email ||
-                                            'Unassigned'
+                                            te('ui.unassigned')
                                         }
                                     />
                                 </FormField>

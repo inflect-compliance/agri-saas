@@ -63,28 +63,15 @@ const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     OPEN: 'neutral', TRIAGED: 'info', IN_PROGRESS: 'info',
     BLOCKED: 'error', RESOLVED: 'success', CLOSED: 'neutral', CANCELED: 'neutral',
 };
-const STATUS_LABELS: Record<string, string> = {
-    OPEN: 'Open', TRIAGED: 'Triaged', IN_PROGRESS: 'In Progress',
-    BLOCKED: 'Blocked', RESOLVED: 'Resolved', CLOSED: 'Closed', CANCELED: 'Canceled',
-};
 const SEVERITY_BADGE: Record<string, StatusBadgeVariant> = {
     INFO: 'neutral', LOW: 'neutral', MEDIUM: 'warning',
     HIGH: 'error', CRITICAL: 'error',
-};
-const TYPE_LABELS: Record<string, string> = {
-    AUDIT_FINDING: 'Audit Finding', CONTROL_GAP: 'Control Gap',
-    INCIDENT: 'Incident', IMPROVEMENT: 'Improvement', TASK: 'Task',
 };
 // Bulk status only offers ACTIVE transitions. Terminal statuses
 // (CLOSED / CANCELED) require a per-task resolution note (S8), which
 // the bulk bar can't collect — closing is a deliberate single-task
 // action via the task detail page. RESOLVED is retired everywhere.
-const BULK_STATUS_CB_OPTIONS: ComboboxOption[] = ['OPEN', 'TRIAGED', 'IN_PROGRESS', 'BLOCKED'].map(s => ({ value: s, label: STATUS_LABELS[s] || s }));
-const BULK_ACTION_OPTIONS: ComboboxOption[] = [
-    { value: 'assign', label: 'Assign' },
-    { value: 'status', label: 'Change Status' },
-    { value: 'due', label: 'Set Due Date' },
-];
+const BULK_STATUS_VALUES = ['OPEN', 'TRIAGED', 'IN_PROGRESS', 'BLOCKED'];
 
 interface TaskListItem {
     id: string;
@@ -136,6 +123,18 @@ function TasksPageInner({
     const router = useRouter();
     const prefetchData = usePrefetchTenant();
     const t = useTranslations('tasks.list');
+    const te = useTranslations('taskEnums');
+    // Enum-value → localized label, keyed by value (e.g. `status.OPEN`).
+    // Falls back to the raw value if a key is somehow absent.
+    const statusLabel = (s: string) => (te.has(`status.${s}`) ? te(`status.${s}`) : s);
+    const typeLabel = (ty: string) => (te.has(`type.${ty}`) ? te(`type.${ty}`) : ty);
+    const severityLabel = (s: string) => (te.has(`severity.${s}`) ? te(`severity.${s}`) : s);
+    const bulkStatusOptions: ComboboxOption[] = BULK_STATUS_VALUES.map((s) => ({ value: s, label: statusLabel(s) }));
+    const bulkActionOptions: ComboboxOption[] = [
+        { value: 'assign', label: te('ui.assign') },
+        { value: 'status', label: te('ui.changeStatus') },
+        { value: 'due', label: te('ui.setDueDate') },
+    ];
 
     // Hydration marker — signals to E2E tests that React event handlers are attached
     const [hydrated, setHydrated] = useState(false);
@@ -266,7 +265,7 @@ function TasksPageInner({
                 case 'title':
                     return (t.title || '').toLowerCase();
                 case 'type':
-                    return (TYPE_LABELS[t.type] || t.type || '').toLowerCase();
+                    return (typeLabel(t.type) || t.type || '').toLowerCase();
                 case 'severity':
                     return (t.severity || '').toString();
                 case 'status':
@@ -304,8 +303,8 @@ function TasksPageInner({
         loadMore: loadMoreTasks,
     } = useThresholdLoadMore(sortedTasks);
     const liveFilters = useMemo(
-        () => buildTaskFilters(tasks as unknown as Parameters<typeof buildTaskFilters>[0]),
-        [tasks],
+        () => buildTaskFilters(te, tasks as unknown as Parameters<typeof buildTaskFilters>[1]),
+        [tasks, te],
     );
     const filterCards = useMemo(() => filtersToCards(liveFilters), [liveFilters]);
     const { visibleCards, dropdown: filtersDropdown } = useFilterCardVisibility({
@@ -534,14 +533,14 @@ function TasksPageInner({
             {
                 accessorKey: 'type',
                 header: t('colType'),
-                cell: ({ getValue }) => <span className="text-xs text-content-muted">{TYPE_LABELS[getValue<string>()] || getValue<string>()}</span>,
+                cell: ({ getValue }) => <span className="text-xs text-content-muted">{typeLabel(getValue<string>())}</span>,
             },
             {
                 accessorKey: 'severity',
                 header: t('colSeverity'),
                 cell: ({ row }) => (
                     <StatusBadge variant={SEVERITY_BADGE[row.original.severity] || 'neutral'} size="sm">
-                        {row.original.severity}
+                        {severityLabel(row.original.severity)}
                     </StatusBadge>
                 ),
             },
@@ -550,7 +549,7 @@ function TasksPageInner({
                 header: t('colStatus'),
                 cell: ({ row }) => (
                     <StatusBadge variant={STATUS_BADGE[row.original.status] || 'neutral'} size="sm">
-                        {STATUS_LABELS[row.original.status] || row.original.status}
+                        {statusLabel(row.original.status)}
                     </StatusBadge>
                 ),
                 // Mobile card status pill (top-right).
@@ -616,7 +615,7 @@ function TasksPageInner({
 
         return cols;
 
-    }, [appPermissions.tasks.edit, selected, tasks.length, tenantHref, hydratedNow, t]);
+    }, [appPermissions.tasks.edit, selected, tasks.length, tenantHref, hydratedNow, t, te]);
 
     return (
         <ListPageShell className="animate-fadeIn gap-section" data-hydrated={hydrated || undefined}>
@@ -728,9 +727,9 @@ function TasksPageInner({
                             <Combobox
                                 hideSearch
                                 id="bulk-action-select"
-                                selected={BULK_ACTION_OPTIONS.find(o => o.value === bulkAction) ?? null}
+                                selected={bulkActionOptions.find(o => o.value === bulkAction) ?? null}
                                 setSelected={(opt) => { setBulkAction(opt?.value ?? ''); setBulkValue(''); setBulkValueLabel(''); }}
-                                options={BULK_ACTION_OPTIONS}
+                                options={bulkActionOptions}
                                 placeholder={t('chooseAction')}
                                 matchTriggerWidth
                                 buttonProps={{ className: 'text-sm' }}
@@ -756,9 +755,9 @@ function TasksPageInner({
                                 <Combobox
                                     hideSearch
                                     id="bulk-value-input"
-                                    selected={BULK_STATUS_CB_OPTIONS.find(o => o.value === bulkValue) ?? null}
+                                    selected={bulkStatusOptions.find(o => o.value === bulkValue) ?? null}
                                     setSelected={(opt) => setBulkValue(opt?.value ?? '')}
-                                    options={BULK_STATUS_CB_OPTIONS}
+                                    options={bulkStatusOptions}
                                     placeholder={t('selectStatus')}
                                     matchTriggerWidth
                                     buttonProps={{ className: 'text-sm' }}
@@ -784,7 +783,7 @@ function TasksPageInner({
                                 onClick={handleBulkSubmit}
                                 id="bulk-apply-btn"
                                 icon={<AppIcon name="checkCircle" size={16} />}
-                                label="Apply"
+                                label={te('ui.apply')}
                             />
                             <Button
                                 variant="destructive"

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { ShareableStatCard, type ShareStat } from '@/components/ui/shareable-stat-card';
 
 /**
@@ -17,15 +18,16 @@ export function SprayJobCompletionCard({
     areaCoveredHa: number;
     productName?: string | null;
 }) {
+    const t = useTranslations('agStatus');
     const stats: ShareStat[] = [
-        { label: 'Parcels done', value: String(parcelsDone) },
-        { label: 'Area covered', value: `${Math.round(areaCoveredHa * 10) / 10} ha` },
+        { label: t('spray.parcelsDone'), value: String(parcelsDone) },
+        { label: t('spray.areaCovered'), value: `${Math.round(areaCoveredHa * 10) / 10} ha` },
     ];
-    if (productName) stats.push({ label: 'Product', value: productName });
+    if (productName) stats.push({ label: t('spray.product'), value: productName });
 
     return (
         <ShareableStatCard
-            eyebrow="Spray job complete"
+            eyebrow={t('spray.complete')}
             title={title}
             stats={stats}
             fileName={`spray-job-${title}`}

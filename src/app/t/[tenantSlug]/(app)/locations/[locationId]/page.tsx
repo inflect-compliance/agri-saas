@@ -13,7 +13,7 @@ import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Combobox } from '@/components/ui/combobox';
-import { CROP_OPTIONS } from '@/lib/agriculture/crop-options';
+import { cropLabel, localizedCropOptions } from '@/lib/agriculture/crop-options';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -111,16 +111,18 @@ function ParcelCropSelect({
     onChange: (cropType: string) => Promise<void> | void;
 }) {
     const t = useTranslations('locations.detail');
+    const tCrops = useTranslations('crops');
     const [saving, setSaving] = useState(false);
+    const options = localizedCropOptions(tCrops);
     const selected =
-        CROP_OPTIONS.find((o) => o.value === value) ??
-        (value ? { value, label: value, meta: { season: '' } } : null);
+        options.find((o) => o.value === value) ??
+        (value ? { value, label: cropLabel(tCrops, value), meta: { season: '' } } : null);
     return (
         // Stop the row-click (which opens the parcel sheet) from firing when
         // the operator interacts with the crop dropdown.
         <div onClick={(e) => e.stopPropagation()}>
             <Combobox
-                options={CROP_OPTIONS}
+                options={options}
                 selected={selected}
                 setSelected={(o) => {
                     setSaving(true);
@@ -145,6 +147,8 @@ export default function LocationDetailPage() {
     const t = useTranslations('locations.detail');
     const tl = useTranslations('locations');
     const tCommon = useTranslations('common');
+    const tCrops = useTranslations('crops');
+    const tAgStatus = useTranslations('agStatus');
     const tSoil = useTranslations('ag.soil');
     const { tenantSlug, locationId } = useParams<{ tenantSlug: string; locationId: string }>();
     const buildUrl = useTenantApiUrl();
@@ -500,7 +504,7 @@ export default function LocationDetailPage() {
                             selectAction={(v) => setCropFilter(v === 'all' ? null : v)}
                             options={[
                                 { value: 'all', label: t('cropFilterAll') },
-                                ...cropsPresent.map((c) => ({ value: c, label: c })),
+                                ...cropsPresent.map((c) => ({ value: c, label: cropLabel(tCrops, c) })),
                             ]}
                         />
                     )}
@@ -738,7 +742,7 @@ export default function LocationDetailPage() {
                                         className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-bg-muted/50"
                                     >
                                         <span className="text-sm font-medium">{op.key ? `${op.key} · ` : ''}{op.title}</span>
-                                        <span className="text-xs text-content-secondary">{op.status} · {t('opParcels', { count: op._count?.operationParcels ?? 0 })}</span>
+                                        <span className="text-xs text-content-secondary">{tAgStatus.has(`operation.${op.status}`) ? tAgStatus(`operation.${op.status}`) : op.status} · {t('opParcels', { count: op._count?.operationParcels ?? 0 })}</span>
                                     </button>
                                     {activeJob === op.id && (
                                         <div className="border-t border-border-subtle p-4">

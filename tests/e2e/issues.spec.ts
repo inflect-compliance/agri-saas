@@ -156,7 +156,7 @@ test.describe('Issue Management', () => {
         await expect(authedPage.locator('#task-title')).toContainText(title, {
             timeout: 15000,
         });
-        await expect(authedPage.locator('#task-severity')).toContainText('HIGH', {
+        await expect(authedPage.locator('#task-severity')).toContainText('High', {
             timeout: 5000,
         });
     });
@@ -231,7 +231,7 @@ test.describe('Issue Management', () => {
 
         await authedPage.click('#add-link-btn');
         await authedPage.waitForSelector('#link-entity-type', { timeout: 5000 });
-        await selectComboboxOption(authedPage, 'link-entity-type', 'CONTROL');
+        await selectComboboxOption(authedPage, 'link-entity-type', 'Control');
         // PR-D — pick the seeded control via the EntityPicker.
         // The picker renders controls as `${code}: ${name}`, so
         // a substring regex against the name suffix is the right
@@ -246,7 +246,7 @@ test.describe('Issue Management', () => {
 
         await expect(
             authedPage.locator('[data-testid="task-links-table"]'),
-        ).toContainText('CONTROL', { timeout: 5000 });
+        ).toContainText('Control', { timeout: 5000 });
         // PR-D — TaskLinksTable renders the raw `entityId` (cuid),
         // not the resolved entity name; assert against the seeded
         // control's id rather than its display name.

@@ -6454,5 +6454,249 @@
         "submitResponses": "Submit responses",
         "fileUploadNote": "File-upload responses are coordinated through your contact at this stage. Please add a note here describing the file you intend to share.",
         "fileUploadPlaceholder": "e.g. Will send DPA via secure email"
+    },
+    "taskEnums": {
+        "status": {
+            "OPEN": "Open",
+            "TRIAGED": "Triaged",
+            "IN_PROGRESS": "In Progress",
+            "IN_REVIEW": "In Review",
+            "BLOCKED": "Blocked",
+            "PENDING_REVIEW": "Pending review",
+            "RESOLVED": "Resolved",
+            "CLOSED": "Closed",
+            "CANCELED": "Canceled"
+        },
+        "type": {
+            "TASK": "Task",
+            "AUDIT_FINDING": "Audit Finding",
+            "CONTROL_GAP": "Control Gap",
+            "INCIDENT": "Incident",
+            "IMPROVEMENT": "Improvement",
+            "FIELD_OPERATION": "Field Operation",
+            "FARM_TASK": "Farm Task"
+        },
+        "severity": {
+            "INFO": "Info",
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "CRITICAL": "Critical"
+        },
+        "priority": {
+            "P0": "P0 — Critical",
+            "P1": "P1 — High",
+            "P2": "P2 — Medium",
+            "P3": "P3 — Low"
+        },
+        "findingSource": {
+            "INTERNAL": "Internal",
+            "EXTERNAL_AUDITOR": "External Auditor",
+            "PEN_TEST": "Pen Test",
+            "INCIDENT": "Incident"
+        },
+        "gapType": {
+            "DESIGN": "Design",
+            "OPERATING_EFFECTIVENESS": "Operating Effectiveness",
+            "DOCUMENTATION": "Documentation"
+        },
+        "due": {
+            "overdue": "Overdue",
+            "next7d": "Due in 7 days"
+        },
+        "action": {
+            "TASK_CREATED": "Created",
+            "TASK_UPDATED": "Updated",
+            "TASK_STATUS_CHANGED": "Status changed",
+            "TASK_ASSIGNED": "Assigned",
+            "TASK_COMMENT_ADDED": "Comment added",
+            "TASK_DELETED": "Deleted",
+            "TASK_DUE": "Due",
+            "TASK_EVIDENCE_LINKED": "Evidence linked",
+            "TASK_EVIDENCE_UNLINKED": "Evidence unlinked",
+            "TASK_LINKED": "Linked",
+            "TASK_UNLINKED": "Unlinked"
+        },
+        "relation": {
+            "RELATES_TO": "Relates to",
+            "CAUSED_BY": "Caused by",
+            "MITIGATED_BY": "Mitigated by",
+            "EVIDENCE_FOR": "Evidence for"
+        },
+        "entityType": {
+            "CONTROL": "Control",
+            "RISK": "Risk",
+            "ASSET": "Asset",
+            "EVIDENCE": "Evidence",
+            "FRAMEWORK_REQUIREMENT": "Framework Requirement"
+        },
+        "category": {
+            "LAND_PREP": "Land prep",
+            "PLANTING": "Planting",
+            "CROP_CARE": "Crop care",
+            "PEST_DISEASE": "Pest & disease",
+            "IRRIGATION": "Irrigation",
+            "HARVEST": "Harvest",
+            "POST_HARVEST": "Post-harvest",
+            "LIVESTOCK": "Livestock",
+            "MAINTENANCE": "Maintenance",
+            "RECORDKEEPING": "Recordkeeping",
+            "OTHER": "Other"
+        },
+        "ui": {
+            "assign": "Assign",
+            "changeStatus": "Change Status",
+            "setDueDate": "Set Due Date",
+            "apply": "Apply",
+            "unassigned": "Unassigned",
+            "noLinkedTasks": "No linked tasks",
+            "link": "Link",
+            "remove": "Remove",
+            "selectEntity": "Select entity",
+            "task": "Task",
+            "unknown": "Unknown",
+            "colTitle": "Title",
+            "colType": "Type",
+            "colSeverity": "Severity",
+            "colStatus": "Status",
+            "colAssignee": "Assignee",
+            "colDueDate": "Due Date",
+            "filterStatus": "Status",
+            "filterType": "Type",
+            "filterSeverity": "Severity",
+            "filterDue": "Due",
+            "filterAssignee": "Assignee",
+            "filterAssigneePlural": "Assignees",
+            "filterLinkedControl": "Linked control"
+        },
+        "filterDesc": {
+            "status": "Task lifecycle state.",
+            "type": "What kind of task / finding this represents.",
+            "severity": "Impact severity of the task.",
+            "due": "Shortcut for overdue / due-soon filtering.",
+            "assignee": "Only show tasks assigned to this person.",
+            "controlId": "Only show tasks attached to this control."
+        }
+    },
+    "journalEnums": {
+        "logType": {
+            "ACTIVITY": "Activity",
+            "OBSERVATION": "Observation",
+            "INPUT_APPLICATION": "Input application",
+            "SEEDING": "Seeding",
+            "TRANSPLANTING": "Transplanting",
+            "HARVEST": "Harvest",
+            "IRRIGATION": "Irrigation",
+            "MAINTENANCE": "Maintenance",
+            "LAB_TEST": "Lab test",
+            "GRAZING": "Grazing"
+        },
+        "status": {
+            "PLANNED": "Planned",
+            "DONE": "Done"
+        },
+        "crop": {
+            "Wheat": "Wheat",
+            "Barley": "Barley",
+            "Canola": "Canola",
+            "Maize": "Maize",
+            "Sunflower": "Sunflower",
+            "Peas": "Peas"
+        },
+        "filter": {
+            "type": "Type",
+            "status": "Status",
+            "crop": "Culture"
+        }
+    },
+    "planningEnums": {
+        "status": {
+            "DRAFT": "Draft",
+            "ACTIVE": "Active",
+            "COMPLETED": "Completed",
+            "CANCELLED": "Cancelled"
+        },
+        "filter": {
+            "status": "Status"
+        },
+        "method": {
+            "DIRECT_SOW": "Direct sow",
+            "TRANSPLANT": "Transplant"
+        }
+    },
+    "crops": {
+        "Wheat": "Wheat",
+        "Barley": "Barley",
+        "Canola": "Canola",
+        "Maize": "Maize",
+        "Sunflower": "Sunflower",
+        "Peas": "Peas",
+        "seasonAutumn": "Autumn crop",
+        "seasonSpring": "Spring crop"
+    },
+    "agStatus": {
+        "operation": {
+            "OPEN": "Open",
+            "TRIAGED": "Triaged",
+            "IN_PROGRESS": "In progress",
+            "BLOCKED": "Blocked",
+            "PENDING_REVIEW": "Pending review",
+            "RESOLVED": "Resolved",
+            "CLOSED": "Closed",
+            "CANCELED": "Canceled"
+        },
+        "spray": {
+            "complete": "Spray job complete",
+            "parcelsDone": "Parcels done",
+            "areaCovered": "Area covered",
+            "product": "Product"
+        },
+        "confidence": {
+            "high": "High confidence",
+            "medium": "Medium confidence",
+            "low": "Low confidence"
+        }
+    },
+    "grainEnums": {
+        "status": "Status",
+        "statuses": "Statuses",
+        "statusDraft": "Draft",
+        "statusActive": "Active",
+        "statusDelivered": "Delivered",
+        "statusSettled": "Settled",
+        "statusCancelled": "Cancelled",
+        "type": "Type",
+        "types": "Types",
+        "typeSale": "Sale",
+        "typePurchase": "Purchase",
+        "season": "Season",
+        "seasons": "Seasons",
+        "field": "Field",
+        "fields": "Fields",
+        "dashboard": "Dashboard",
+        "costs": "Costs",
+        "groupByPlanting": "By planting",
+        "groupByField": "By field",
+        "groupBySeason": "By season"
+    },
+    "exchangeFilters": {
+        "side": "Side",
+        "sideSell": "Selling",
+        "sideBuy": "Buying",
+        "type": "Type",
+        "kindCulture": "Culture",
+        "kindFertilizer": "Fertilizer",
+        "kindSeeds": "Seeds",
+        "kindProduct": "Product",
+        "commodity": "Commodity",
+        "region": "Region",
+        "quantity": "Quantity (t)"
+    },
+    "filtersChrome": {
+        "filter": "Filter",
+        "searchEllipsis": "Search…",
+        "clearFilters": "Clear filters",
+        "editFilterCards": "Edit filter cards",
+        "toggleColumns": "Toggle columns"
     }
 }

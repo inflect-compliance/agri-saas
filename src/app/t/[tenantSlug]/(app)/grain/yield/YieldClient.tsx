@@ -69,6 +69,7 @@ function YieldPageInner({
     permissions,
 }: YieldClientProps) {
     const t = useTranslations('grain.yield');
+    const tEnums = useTranslations('grainEnums');
     const apiUrl = useCallback(
         (path: string) => `/api/t/${tenantSlug}${path}`,
         [tenantSlug],
@@ -134,8 +135,8 @@ function YieldPageInner({
 
     // Season / location facet options derived from the loaded rows.
     const liveFilterDefs: FilterType[] = useMemo(
-        () => buildYieldFilters(rawRecords),
-        [rawRecords],
+        () => buildYieldFilters(tEnums, rawRecords),
+        [tEnums, rawRecords],
     );
 
     const refetch = useCallback(() => {

@@ -17,7 +17,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { AgStatusBadge } from '@/components/ag/ag-status';
 import { toApiSearchParams } from '@/lib/filters/url-sync';
-import { buildCropPlanFilters, CROP_PLAN_FILTER_KEYS } from './filter-defs';
+import { buildPlanningFilters, CROP_PLAN_FILTER_KEYS } from './filter-defs';
 import { NewCropPlanModal } from './NewCropPlanModal';
 
 /** List-row shape returned by GET /planning/crop-plans. */
@@ -75,6 +75,7 @@ function CropPlansPageInner({
 }: CropPlansClientProps) {
     const t = useTranslations('planning.list');
     const tp = useTranslations('planning');
+    const te = useTranslations('planningEnums');
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -95,7 +96,7 @@ function CropPlansPageInner({
     const plans = plansQuery.data ?? [];
     const loading = plansQuery.isLoading && !plansQuery.data;
 
-    const liveFilters = useMemo(() => buildCropPlanFilters(), []);
+    const liveFilters = useMemo(() => buildPlanningFilters(te), [te]);
 
     const columns = useMemo(
         () =>

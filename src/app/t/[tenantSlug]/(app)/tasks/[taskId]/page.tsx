@@ -46,38 +46,17 @@ import { useTranslations } from 'next-intl';
 
 // Polish PR-1 — STATUS_BADGE / SEVERITY_BADGE moved to shared
 // domain mapping (TASK_STATUS_VARIANT / TASK_SEVERITY_VARIANT).
-// Labels stay local because they're presentation copy.
-const STATUS_LABELS: Record<string, string> = {
-    OPEN: 'Open', TRIAGED: 'Triaged', IN_PROGRESS: 'In Progress',
-    BLOCKED: 'Blocked', PENDING_REVIEW: 'Pending review',
-    RESOLVED: 'Resolved', CLOSED: 'Closed', CANCELED: 'Canceled',
-};
-const PRIORITY_LABELS: Record<string, string> = {
-    P0: 'P0 — Critical', P1: 'P1 — High', P2: 'P2 — Medium', P3: 'P3 — Low',
-};
-const TYPE_LABELS: Record<string, string> = {
-    AUDIT_FINDING: 'Audit Finding', CONTROL_GAP: 'Control Gap',
-    INCIDENT: 'Incident', IMPROVEMENT: 'Improvement', TASK: 'Task',
-};
+// Enum display labels resolve at render time via the `taskEnums`
+// translator; only the load-bearing VALUES live here.
 const ENTITY_TYPE_OPTIONS = ['CONTROL', 'RISK', 'ASSET', 'EVIDENCE', 'FRAMEWORK_REQUIREMENT'];
-const ENTITY_TYPE_CB_OPTIONS: ComboboxOption[] = ENTITY_TYPE_OPTIONS.map(t => ({ value: t, label: t }));
 const RELATION_OPTIONS = ['RELATES_TO', 'CAUSED_BY', 'MITIGATED_BY', 'EVIDENCE_FOR'];
-const RELATION_CB_OPTIONS: ComboboxOption[] = RELATION_OPTIONS.map(r => ({ value: r, label: r.replace(/_/g, ' ') }));
 // RESOLVED retired from the picker — it was redundant with CLOSED.
-// Kept in STATUS_LABELS so a legacy RESOLVED task still shows the right
-// badge; just not offered as a choice (a RESOLVED task is closed via
-// the CLOSED option). CLOSED + CANCELED prompt for a resolution note.
+// A legacy RESOLVED task still shows the right badge; it just isn't
+// offered as a choice (closed via the CLOSED option). CLOSED +
+// CANCELED prompt for a resolution note.
 const SELECTABLE_STATUSES = ['OPEN', 'TRIAGED', 'IN_PROGRESS', 'BLOCKED', 'CLOSED', 'CANCELED'];
-const TASK_STATUS_CB_OPTIONS: ComboboxOption[] = SELECTABLE_STATUSES.map((val) => ({ value: val, label: STATUS_LABELS[val] }));
 
 type Tab = 'overview' | 'evidence' | 'links' | 'comments' | 'activity';
-
-const FINDING_SOURCE_LABELS: Record<string, string> = {
-    INTERNAL: 'Internal', EXTERNAL_AUDITOR: 'External Auditor', PEN_TEST: 'Pen Test', INCIDENT: 'Incident',
-};
-const GAP_TYPE_LABELS: Record<string, string> = {
-    DESIGN: 'Design', OPERATING_EFFECTIVENESS: 'Operating Effectiveness', DOCUMENTATION: 'Documentation',
-};
 
 
 export default function TaskDetailPage() {
@@ -88,6 +67,20 @@ export default function TaskDetailPage() {
     const taskId = params?.taskId as string;
     const triggerUndoToast = useToastWithUndo();
     const t = useTranslations('tasks.detail');
+    const te = useTranslations('taskEnums');
+    // Enum-value → localized label helpers (keyed by value). The `pretty`
+    // variants fall back to a de-underscored raw value for dynamic
+    // audit-log actions / relations not present in the catalog.
+    const statusLabel = (s: string) => (te.has(`status.${s}`) ? te(`status.${s}`) : s);
+    const typeLabel = (ty: string) => (te.has(`type.${ty}`) ? te(`type.${ty}`) : ty);
+    const severityLabel = (s: string) => (te.has(`severity.${s}`) ? te(`severity.${s}`) : s);
+    const priorityLabel = (p: string) => (te.has(`priority.${p}`) ? te(`priority.${p}`) : p);
+    const actionLabel = (a: string) => (te.has(`action.${a}`) ? te(`action.${a}`) : a.replace(/_/g, ' '));
+    const relationLabel = (r: string) => (te.has(`relation.${r}`) ? te(`relation.${r}`) : r.replace(/_/g, ' '));
+    const entityTypeLabel = (et: string) => (te.has(`entityType.${et}`) ? te(`entityType.${et}`) : et);
+    const ENTITY_TYPE_CB_OPTIONS: ComboboxOption[] = ENTITY_TYPE_OPTIONS.map((et) => ({ value: et, label: entityTypeLabel(et) }));
+    const RELATION_CB_OPTIONS: ComboboxOption[] = RELATION_OPTIONS.map((r) => ({ value: r, label: relationLabel(r) }));
+    const TASK_STATUS_CB_OPTIONS: ComboboxOption[] = SELECTABLE_STATUSES.map((val) => ({ value: val, label: statusLabel(val) }));
 
     const [tab, setTab] = useState<Tab>('overview');
 
@@ -559,7 +552,7 @@ export default function TaskDetailPage() {
                             id: 'task-status',
                             label: t('metaStatus'),
                             value:
-                                STATUS_LABELS[task.status] ?? task.status,
+                                statusLabel(task.status),
                             variant:
                                 TASK_STATUS_VARIANT[task.status] ??
                                 'neutral',
@@ -568,14 +561,14 @@ export default function TaskDetailPage() {
                             kind: 'status' as const,
                             id: 'task-severity',
                             label: t('metaSeverity'),
-                            value: task.severity,
+                            value: severityLabel(task.severity),
                             variant:
                                 TASK_SEVERITY_VARIANT[task.severity] ??
                                 'neutral',
                         },
                         {
                             label: t('metaType'),
-                            value: TYPE_LABELS[task.type] ?? task.type,
+                            value: typeLabel(task.type),
                         },
                         ...(isOverdue
                             ? [
@@ -706,11 +699,11 @@ export default function TaskDetailPage() {
                         </div>
                         <div>
                             <span className="text-xs text-content-subtle uppercase">{t('type')}</span>
-                            <p className="text-sm text-content-default mt-1">{TYPE_LABELS[task.type] || task.type}</p>
+                            <p className="text-sm text-content-default mt-1">{typeLabel(task.type)}</p>
                         </div>
                         <div>
                             <span className="text-xs text-content-subtle uppercase">{t('priority')}</span>
-                            <p className="text-sm text-content-default mt-1">{PRIORITY_LABELS[task.priority] || task.priority}</p>
+                            <p className="text-sm text-content-default mt-1">{priorityLabel(task.priority)}</p>
                         </div>
                         <div>
                             <span className="text-xs text-content-subtle uppercase">{t('assignee')}</span>
@@ -768,13 +761,13 @@ export default function TaskDetailPage() {
                                 {metadata.findingSource && (
                                     <div>
                                         <span className="text-xs text-content-subtle uppercase">{t('findingSource')}</span>
-                                        <p className="text-sm text-content-default mt-1">{FINDING_SOURCE_LABELS[metadata.findingSource] || metadata.findingSource}</p>
+                                        <p className="text-sm text-content-default mt-1">{te.has(`findingSource.${metadata.findingSource}`) ? te(`findingSource.${metadata.findingSource}`) : metadata.findingSource}</p>
                                     </div>
                                 )}
                                 {metadata.controlGapType && (
                                     <div>
                                         <span className="text-xs text-content-subtle uppercase">{t('controlGapType')}</span>
-                                        <p className="text-sm text-content-default mt-1">{GAP_TYPE_LABELS[metadata.controlGapType] || metadata.controlGapType}</p>
+                                        <p className="text-sm text-content-default mt-1">{te.has(`gapType.${metadata.controlGapType}`) ? te(`gapType.${metadata.controlGapType}`) : metadata.controlGapType}</p>
                                     </div>
                                 )}
                             </div>
@@ -843,7 +836,7 @@ export default function TaskDetailPage() {
                     {permissions.canWrite && (
                         <div className="flex justify-end">
                             <Button variant="primary" onClick={() => setShowLinkForm(!showLinkForm)} id="add-link-btn">
-                                + Link
+                                + {te('ui.link')}
                             </Button>
                         </div>
                     )}
@@ -866,7 +859,7 @@ export default function TaskDetailPage() {
                                     onChange={setLinkEntityId}
                                     id="link-entity-id"
                                     testId="task-link-entity-picker"
-                                    placeholder="Select entity"
+                                    placeholder={te('ui.selectEntity')}
                                 />
                                 <Combobox hideSearch id="link-relation" selected={RELATION_CB_OPTIONS.find(o => o.value === linkRelation) ?? null} setSelected={(opt) => setLinkRelation(opt?.value ?? linkRelation)} options={RELATION_CB_OPTIONS} matchTriggerWidth />
                             </div>
@@ -963,7 +956,7 @@ export default function TaskDetailPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-tight mb-0.5">
                                             <span className="text-sm font-medium text-content-emphasis">{evt.user?.name || t('systemUser')}</span>
-                                            <StatusBadge variant="neutral">{evt.action?.replace(/_/g, ' ')}</StatusBadge>
+                                            <StatusBadge variant="neutral">{evt.action ? actionLabel(evt.action) : ''}</StatusBadge>
                                         </div>
                                         <p className="text-xs text-content-muted truncate">{evt.details?.split('\n')[0]}</p>
                                         <span className="text-xs text-content-subtle">{formatDateTime(evt.createdAt)}</span>
@@ -987,12 +980,12 @@ export default function TaskDetailPage() {
                     }
                 }}
                 size="sm"
-                title={`${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? t('closeFallback')} ${t('taskWord')}`}
+                title={`${pendingTerminalStatus ? statusLabel(pendingTerminalStatus) : t('closeFallback')} ${t('taskWord')}`}
                 description={t('resolutionModalDescription')}
                 preventDefaultClose={changingStatus}
             >
                 <Modal.Header
-                    title={`${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? t('closeFallback')} ${t('taskWord')}`}
+                    title={`${pendingTerminalStatus ? statusLabel(pendingTerminalStatus) : t('closeFallback')} ${t('taskWord')}`}
                     description={t('resolutionModalHeaderDescription')}
                 />
                 <Modal.Body>
@@ -1042,7 +1035,7 @@ export default function TaskDetailPage() {
                     >
                         {changingStatus
                             ? t('savingEllipsis')
-                            : `${STATUS_LABELS[pendingTerminalStatus ?? ''] ?? t('closeFallback')} ${t('taskWord')}`}
+                            : `${pendingTerminalStatus ? statusLabel(pendingTerminalStatus) : t('closeFallback')} ${t('taskWord')}`}
                     </Button>
                 </Modal.Actions>
             </Modal>
@@ -1087,6 +1080,9 @@ function TaskLinksTable({
     onRemove: (id: string) => void;
 }) {
     const t = useTranslations('tasks.detail.links');
+    const te = useTranslations('taskEnums');
+    const entityTypeLabel = (et: string) => (te.has(`entityType.${et}`) ? te(`entityType.${et}`) : et);
+    const relationLabel = (r: string) => (te.has(`relation.${r}`) ? te(`relation.${r}`) : r.replace(/_/g, ' '));
     const columns = useMemo(
         () =>
             createColumns<TaskLinkRow>([
@@ -1094,7 +1090,7 @@ function TaskLinksTable({
                     id: 'entityType',
                     header: t('colType'),
                     cell: ({ row }) => (
-                        <StatusBadge variant="info">{row.original.entityType}</StatusBadge>
+                        <StatusBadge variant="info">{entityTypeLabel(row.original.entityType)}</StatusBadge>
                     ),
                 },
                 {
@@ -1111,7 +1107,7 @@ function TaskLinksTable({
                     header: t('colRelation'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted">
-                            {row.original.relation?.replace(/_/g, ' ') || '—'}
+                            {row.original.relation ? relationLabel(row.original.relation) : '—'}
                         </span>
                     ),
                 },
@@ -1134,14 +1130,15 @@ function TaskLinksTable({
                                       className="text-content-error text-xs hover:text-content-error"
                                       onClick={() => onRemove(row.original.id)}
                                   >
-                                      × Remove
+                                      × {te('ui.remove')}
                                   </button>
                               ),
                           } as Parameters<typeof createColumns<TaskLinkRow>>[0][number],
                       ]
                     : []),
             ]),
-        [canWrite, onRemove, t],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [canWrite, onRemove, t, te],
     );
     return (
         <DataTable

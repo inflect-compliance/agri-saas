@@ -77,7 +77,7 @@ describe('toPublicListing', () => {
 
 describe('buildExchangeFilters', () => {
     it('injects distinct, sorted commodity options and leaves other filters intact', () => {
-        const defs = buildExchangeFilters(['Sunflower', 'Wheat', 'Wheat', 'Barley']);
+        const defs = buildExchangeFilters((k) => k, ['Sunflower', 'Wheat', 'Wheat', 'Barley']);
         const commodity = defs.find((f) => f.key === 'commodity');
         expect(commodity?.options?.map((o) => o.value)).toEqual(['Barley', 'Sunflower', 'Wheat']);
 
