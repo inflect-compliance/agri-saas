@@ -17,6 +17,7 @@ import { logger } from '@/lib/observability/logger';
 import { getProviderByName } from '@/lib/storage';
 import { publishNotificationEvent } from '@/lib/notifications/notification-bus';
 import { identifyPhoto } from '@/app-layer/ai/agronomy/photo-id';
+import { isLocale } from '@/lib/i18n/locales';
 import type { StorageProviderType } from '@/lib/storage/types';
 import type { JobRunResult, PhotoPestIdPayload } from './types';
 
@@ -65,6 +66,7 @@ export async function runPhotoPestId(payload: PhotoPestIdPayload): Promise<Photo
                     notes: true,
                     attributesJson: true,
                     createdByUserId: true,
+                    createdBy: { select: { uiLanguage: true } },
                     tenant: { select: { slug: true } },
                 },
             });
@@ -90,6 +92,7 @@ export async function runPhotoPestId(payload: PhotoPestIdPayload): Promise<Photo
                         imageBase64: base64,
                         mimeType: file.mimeType,
                         contextNote: [logEntry.title, logEntry.notes].filter(Boolean).join(' — ') || null,
+                        locale: isLocale(logEntry.createdBy?.uiLanguage) ? logEntry.createdBy.uiLanguage : undefined,
                     });
 
                     if (result) {

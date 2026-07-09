@@ -18,6 +18,7 @@ import {
     type CopilotWeatherDay,
 } from '@/app-layer/ai/agronomy/copilot';
 import { createAgroSignalNotification } from '@/app-layer/notifications/agro';
+import { isLocale } from '@/lib/i18n/locales';
 import type { JobRunResult, AgronomyCopilotPayload } from './types';
 
 export interface AgronomyCopilotResult {
@@ -50,7 +51,12 @@ export async function runAgronomyCopilot(payload: AgronomyCopilotPayload): Promi
             });
             const location = await prisma.location.findFirst({
                 where: { id: locationId, tenantId },
-                select: { name: true, ownerUserId: true, tenant: { select: { slug: true } } },
+                select: {
+                    name: true,
+                    ownerUserId: true,
+                    owner: { select: { uiLanguage: true } },
+                    tenant: { select: { slug: true } },
+                },
             });
 
             if (signal && location) {
@@ -89,6 +95,7 @@ export async function runAgronomyCopilot(payload: AgronomyCopilotPayload): Promi
                     gddSum: computeGddSum(weather),
                     cropType: planting?.cropPlan?.cropType?.name ?? null,
                     growthStage: planting?.status ?? null,
+                    locale: isLocale(location.owner?.uiLanguage) ? location.owner.uiLanguage : undefined,
                 });
 
                 if (explanation) {

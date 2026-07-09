@@ -18,6 +18,7 @@
  */
 import { env } from '@/env';
 import { logger } from '@/lib/observability/logger';
+import { localeOutputInstruction } from './locale-instruction';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = 'anthropic/claude-3.5-sonnet';
@@ -42,6 +43,8 @@ export interface LlmOptions {
     temperature?: number;
     /** Override the model (defaults to OPENROUTER_MODEL / claude-3.5-sonnet). */
     model?: string;
+    /** Owning user's UI locale — pins the model's OUTPUT language (bg → Bulgarian). */
+    locale?: string | null;
 }
 
 /** True when an LLM key is configured — gate UI/enqueue on this. */
@@ -68,6 +71,12 @@ export async function llmCompleteJson(
     if (!apiKey) return null;
 
     const model = opts.model ?? env.OPENROUTER_MODEL ?? DEFAULT_MODEL;
+    // Pin the output language to the owning user's locale by prepending a
+    // system instruction (empty → unchanged for English).
+    const instruction = localeOutputInstruction(opts.locale);
+    const finalMessages: LlmMessage[] = instruction
+        ? [{ role: 'system', content: instruction }, ...messages]
+        : messages;
     try {
         const response = await fetch(OPENROUTER_API_URL, {
             method: 'POST',
@@ -79,7 +88,7 @@ export async function llmCompleteJson(
             },
             body: JSON.stringify({
                 model,
-                messages,
+                messages: finalMessages,
                 temperature: opts.temperature ?? 0.2,
                 max_tokens: opts.maxTokens ?? 1024,
                 response_format: { type: 'json_object' },

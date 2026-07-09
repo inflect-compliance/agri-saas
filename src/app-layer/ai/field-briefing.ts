@@ -24,6 +24,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { env } from '@/env';
 import { logger } from '@/lib/observability/logger';
+import { withLocaleInstruction } from './locale-instruction';
 
 /** Model for the briefing — the caller supplies a Haiku API key. */
 const BRIEFING_MODEL = 'claude-haiku-4-5';
@@ -91,6 +92,8 @@ export interface BriefingInput {
     openTaskCount: number;
     /** Count of recent journal entries (last logged activity signal). */
     recentJournalCount: number;
+    /** UI locale of the viewing operator — pins the briefing's OUTPUT language. */
+    locale?: string | null;
 }
 
 /** True when a Claude key is configured — gate the card / call on this. */
@@ -213,7 +216,7 @@ export async function generateFieldBriefing(input: BriefingInput): Promise<Field
             model: BRIEFING_MODEL,
             max_tokens: MAX_TOKENS,
             temperature: 0.3,
-            system: SYSTEM_PROMPT,
+            system: withLocaleInstruction(SYSTEM_PROMPT, input.locale),
             messages: [{ role: 'user', content: buildUserContent(input) }],
             tools: [
                 {

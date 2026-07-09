@@ -81,10 +81,11 @@ describe('Epic 49 — calendar feature wiring', () => {
         // R13-PR7 — sidebar nav labels were de-i18n-ed for the four-
         // section restructure (Board / Workspace / Comply / Manage).
         // The Calendar entry now lives in the Comply group with the
-        // hard-coded label "Schedule". The load-bearing structural
-        // anchors are unchanged: same `/calendar` href, same
-        // `useCalendarBadge` wiring, same badge prop on the nav item.
-        expect(src).toMatch(/label:\s*['"]Schedule['"]/);
+        // i18n label key `schedule` (nav labels moved to next-intl in the
+        // Bulgarian sweep). The load-bearing structural anchors are
+        // unchanged: same `/calendar` href, same `useCalendarBadge`
+        // wiring, same badge prop on the nav item.
+        expect(src).toMatch(/label:\s*t\(['"]schedule['"]\)/);
         expect(src).toMatch(/tenantHref\(['"]\/calendar['"]\)/);
         // The badge from `useCalendarBadge` must still be threaded
         // onto the Schedule nav entry — that's the load-bearing

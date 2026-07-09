@@ -18,6 +18,8 @@ export interface PhotoIdInput {
     cropType?: string | null;
     /** Optional free-text context from the log entry (title / notes). */
     contextNote?: string | null;
+    /** Owning user's UI locale — pins the recommendation's output language. */
+    locale?: string | null;
 }
 
 const PhotoIdSchema = z.object({
@@ -71,7 +73,7 @@ function buildMessages(input: PhotoIdInput): LlmMessage[] {
 
 export async function identifyPhoto(input: PhotoIdInput): Promise<PhotoIdResult | null> {
     if (!isLlmConfigured()) return null;
-    const raw = await llmCompleteJson(buildMessages(input), { maxTokens: 500, temperature: 0.1, model: MODEL });
+    const raw = await llmCompleteJson(buildMessages(input), { maxTokens: 500, temperature: 0.1, model: MODEL, locale: input.locale });
     if (!raw) return null;
     const parsed = PhotoIdSchema.safeParse(raw);
     if (!parsed.success) return null;

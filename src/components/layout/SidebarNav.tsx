@@ -76,6 +76,7 @@ function filterVisible(items: NavItemDef[]): NavItemDef[] {
 // ─── Navigation configuration ───
 
 export function useNavSections(): NavSectionDef[] {
+    const t = useTranslations('sidebarNav');
     const tenantHref = useTenantHref();
     const tenant = useTenantContext();
     // Live badge — fetched lazily; undefined when count is 0 or load fails.
@@ -125,7 +126,7 @@ export function useNavSections(): NavSectionDef[] {
             // "home" item pattern in Linear / Stripe / Vercel
             // sidebars.
             items: [
-                { href: tenantHref('/dashboard'), label: 'Board', icon: LayoutDashboard },
+                { href: tenantHref('/dashboard'), label: t('board'), icon: LayoutDashboard },
             ],
         },
         {
@@ -134,38 +135,38 @@ export function useNavSections(): NavSectionDef[] {
             // risks, controls) as the surfaces compliance teams
             // govern day-to-day, distinct from the daily-cadence
             // work that sits under "Comply".
-            title: 'Govern',
+            title: t('sectionGovern'),
             items: filterVisible([
-                { href: tenantHref('/assets'), label: 'Asset', icon: Building2 },
-                { href: tenantHref('/locations'), label: 'Location', icon: MapPin },
-                { href: tenantHref('/journal'), label: 'Journal', icon: NotebookPen },
+                { href: tenantHref('/assets'), label: t('asset'), icon: Building2 },
+                { href: tenantHref('/locations'), label: t('location'), icon: MapPin },
+                { href: tenantHref('/journal'), label: t('journal'), icon: NotebookPen },
                 // Agriculture events (#15) — global feed of fairs / trainings /
                 // webinars / subsidy deadlines, visible to every tenant.
-                { href: tenantHref('/events'), label: 'Events', icon: CalendarClock },
+                { href: tenantHref('/events'), label: t('events'), icon: CalendarClock },
                 // Offers (#12) — global feed of supplier promotions with an
                 // "Ask for offer" lead form, visible to every tenant. Reuses
                 // the already-imported Coins glyph (deals/pricing) — no new
                 // lucide import.
-                { href: tenantHref('/offers'), label: 'Offers', icon: Coins },
+                { href: tenantHref('/offers'), label: t('offers'), icon: Coins },
                 // Climate (#14) — the tenant's Meteobot station embed, with an
                 // Open-Meteo weather fallback. Sits with the field surfaces.
-                { href: tenantHref('/climate'), label: 'Climate', icon: CloudSun },
+                { href: tenantHref('/climate'), label: t('climate'), icon: CloudSun },
                 // Crop Planning — season succession plans (PLANNING
                 // module). A simple-mode farm surface (NOT cert-gated), so
                 // it's always visible. Reuses the already-imported
                 // CalendarIcon (crop planning is calendar/season-shaped) —
                 // no new lucide import.
-                { href: tenantHref('/planning'), label: 'Planting', icon: CalendarIcon },
-                { href: tenantHref('/inventory'), label: 'Inventory', icon: Boxes },
+                { href: tenantHref('/planning'), label: t('planting'), icon: CalendarIcon },
+                { href: tenantHref('/inventory'), label: t('inventory'), icon: Boxes },
                 // Farm Tasks — the operator's field-work queue (FARM_TASK /
                 // FIELD_OPERATION). Sits with the agriculture surfaces in
                 // Govern. Reuses the already-imported ClipboardList glyph
                 // (the task affordance) — no new lucide import.
-                { href: tenantHref('/farm-tasks'), label: 'Farm Tasks', icon: ClipboardList },
+                { href: tenantHref('/farm-tasks'), label: t('farmTasks'), icon: ClipboardList },
                 // The per-parcel satellite AI risk page ("Field Risk",
                 // /farm-risk) is a farm-operations surface, always shown. The
                 // GRC Risk Register (/risks) was removed from the sidebar.
-                { href: tenantHref('/farm-risk'), label: 'Field Risk', icon: AlertTriangle },
+                { href: tenantHref('/farm-risk'), label: t('fieldRisk'), icon: AlertTriangle },
             ]),
         },
         {
@@ -174,37 +175,37 @@ export function useNavSections(): NavSectionDef[] {
             // section is dropped for non-grain tenants by the
             // `sections.filter((s) => !s.title || s.items.length > 0)`
             // tail below.
-            title: 'Grain',
+            title: t('sectionGrain'),
             items: filterVisible([
-                { href: tenantHref('/grain/contracts'), label: 'Contracts', icon: Wheat, visible: grainAvailable },
-                { href: tenantHref('/grain/bins'), label: 'Bins', icon: Warehouse, visible: grainAvailable },
-                { href: tenantHref('/grain/yield'), label: 'Yield', icon: LineChart, visible: grainAvailable },
-                { href: tenantHref('/grain/costs'), label: 'Costs', icon: Coins, visible: grainAvailable },
+                { href: tenantHref('/grain/contracts'), label: t('contracts'), icon: Wheat, visible: grainAvailable },
+                { href: tenantHref('/grain/bins'), label: t('bins'), icon: Warehouse, visible: grainAvailable },
+                { href: tenantHref('/grain/yield'), label: t('yield'), icon: LineChart, visible: grainAvailable },
+                { href: tenantHref('/grain/costs'), label: t('costs'), icon: Coins, visible: grainAvailable },
             ]),
         },
         {
             // Exchange — cross-tenant P2P marketplace. Single-item section
             // gated behind EXCHANGE; dropped for non-Exchange tenants by the
             // `sections.filter(...)` tail below.
-            title: 'Exchange',
+            title: t('sectionExchange'),
             items: filterVisible([
-                { href: tenantHref('/exchange'), label: 'Marketplace', icon: ArrowLeftRight, visible: exchangeAvailable },
+                { href: tenantHref('/exchange'), label: t('marketplace'), icon: ArrowLeftRight, visible: exchangeAvailable },
             ]),
         },
         {
-            title: 'Comply',
+            title: t('sectionComply'),
             items: filterVisible([
                 {
                     href: tenantHref('/calendar'),
-                    label: 'Schedule',
+                    label: t('schedule'),
                     icon: CalendarIcon,
                     badge: calendarBadge,
                 },
-                { href: tenantHref('/evidence'), label: 'Docs', icon: Paperclip },
+                { href: tenantHref('/evidence'), label: t('docs'), icon: Paperclip },
             ]),
         },
         {
-            title: 'Manage',
+            title: t('sectionManage'),
             items: filterVisible([
                 // R13-PR12 — Frameworks dropped from the sidebar.
                 // The page stays reachable via the Frameworks pill on
@@ -216,7 +217,7 @@ export function useNavSections(): NavSectionDef[] {
                 // GRC surface — gated behind CERTIFICATION. Reuses the
                 // already-imported ClipboardCheck glyph (a verified-standard
                 // affordance) — no new lucide import.
-                { href: tenantHref('/schemes'), label: 'Schemes', icon: ClipboardCheck, visible: certAvailable },
+                { href: tenantHref('/schemes'), label: t('schemes'), icon: ClipboardCheck, visible: certAvailable },
                 // Knowledge Base — versioned SOPs / guides / reference
                 // articles (the Policy feature's twin). Sits under Manage
                 // alongside Policy. Reuses the already-imported FileText
@@ -225,7 +226,7 @@ export function useNavSections(): NavSectionDef[] {
                 // NOT gated by CERTIFICATION: the knowledge base is a
                 // farm-operations surface (growing guides / SOPs), useful
                 // to simple-mode tenants on its own.
-                { href: tenantHref('/knowledge'), label: 'Knowledge', icon: FileText },
+                { href: tenantHref('/knowledge'), label: t('knowledge'), icon: FileText },
             ]),
         },
     ];
@@ -250,6 +251,7 @@ interface SidebarContentProps {
 export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }: SidebarContentProps) {
     const pathname = usePathname();
     const tc = useTranslations('common');
+    const t = useTranslations('sidebarNav');
     const tenant = useTenantContext();
     const tenantHref = useTenantHref();
     const perms = usePermissions();
@@ -274,7 +276,7 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
             </div>
 
             {/* Nav */}
-            <nav className="flex-1 p-2 overflow-y-auto" aria-label="Main navigation">
+            <nav className="flex-1 p-2 overflow-y-auto" aria-label={t('ariaMain')}>
                 {sections.map((section, idx) => (
                     <NavSection
                         key={idx}
@@ -330,7 +332,7 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
                     'mx-2 mb-2 flex items-center rounded-lg border border-border-subtle bg-bg-default px-3 py-2 text-xs text-content-muted transition-colors hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
                     collapsed ? 'justify-center' : 'gap-tight',
                 )}
-                aria-label="Open command palette"
+                aria-label={t('openPalette')}
                 data-testid="sidebar-search-anchor"
             >
                 <svg
@@ -346,7 +348,7 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
                     <circle cx="7" cy="7" r="5" />
                     <path d="M11 11l3 3" />
                 </svg>
-                {!collapsed && <span className="flex-1 text-left">Search</span>}
+                {!collapsed && <span className="flex-1 text-left">{t('search')}</span>}
                 {!collapsed && (
                     <span
                         className="hidden items-center gap-[2px] rounded border border-border-subtle bg-bg-muted px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-content-subtle md:flex"
@@ -366,7 +368,7 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
                     <button
                         type="button"
                         onClick={onToggleCollapse}
-                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        aria-label={collapsed ? t('expandSidebar') : t('collapseSidebar')}
                         aria-pressed={collapsed}
                         data-testid="sidebar-collapse-toggle"
                         className={cn(
@@ -379,7 +381,7 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
                         ) : (
                             <PanelLeftClose className="h-4 w-4 shrink-0" aria-hidden="true" />
                         )}
-                        {!collapsed && <span className="flex-1 text-left">Collapse</span>}
+                        {!collapsed && <span className="flex-1 text-left">{t('collapse')}</span>}
                     </button>
                 </div>
             )}
@@ -407,10 +409,10 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
                     )}
                     <div className={cn('flex gap-tight', collapsed ? 'flex-col items-center' : 'items-center')}>
                         {perms.admin.view && (
-                            <Tooltip content="Admin" side={collapsed ? 'right' : 'top'}>
+                            <Tooltip content={t('admin')} side={collapsed ? 'right' : 'top'}>
                                 <Link
                                     href={tenantHref('/admin')}
-                                    aria-label="Admin"
+                                    aria-label={t('admin')}
                                     id="admin-icon-link-desktop"
                                     data-testid="nav-admin-icon"
                                     className="icon-btn icon-btn-sm"
@@ -447,6 +449,7 @@ interface MobileDrawerProps {
 
 export function MobileDrawer({ open, onClose, children }: MobileDrawerProps) {
     const pathname = usePathname();
+    const t = useTranslations('sidebarNav');
 
     // Close on route change (always close to avoid stale open state)
     useEffect(() => {
@@ -512,7 +515,7 @@ export function MobileDrawer({ open, onClose, children }: MobileDrawerProps) {
                 `}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Navigation menu"
+                aria-label={t('navMenu')}
                 data-testid="nav-drawer"
                 data-open={open ? 'true' : 'false'}
             >
@@ -523,7 +526,7 @@ export function MobileDrawer({ open, onClose, children }: MobileDrawerProps) {
                     type="button"
                     className="absolute top-3 right-3 p-2 rounded-lg text-content-muted hover:text-content-emphasis hover:bg-bg-muted transition-colors duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                     onClick={onClose}
-                    aria-label="Close navigation"
+                    aria-label={t('closeNav')}
                     data-testid="nav-drawer-close"
                 >
                     <X className="w-5 h-5" />

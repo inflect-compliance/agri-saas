@@ -42,6 +42,12 @@ jest.mock('@/lib/redis', () => ({
 jest.mock('@/lib/observability/logger', () => ({
     logger: { warn: jest.fn(), info: jest.fn() },
 }));
+// The usecase resolves the operator's locale via next-intl's getLocale to pin
+// the briefing's output language. next-intl/server is ESM — mock it so the
+// node test transforms cleanly and the locale source is deterministic.
+jest.mock('next-intl/server', () => ({
+    getLocale: jest.fn(async () => 'en'),
+}));
 
 import { getFieldBriefing } from '@/app-layer/usecases/satellite-briefing';
 import { makeRequestContext } from '../helpers/make-context';
