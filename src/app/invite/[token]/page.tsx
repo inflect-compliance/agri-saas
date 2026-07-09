@@ -52,9 +52,12 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
     const expiryLabel = formatDateLong(preview.expiresAt);
 
     // If the user is signed in as the invitee, show the direct accept button.
-    // The POST goes to /api/invites/:token which calls redeemInvite and
-    // returns JSON; a thin client form handles the redirect.
+    // It links to the accept-redirect route, which redeems the invite and
+    // 303-redirects to the new tenant dashboard — NEVER post to the bare
+    // /api/invites/:token redeem endpoint from the UI: that returns JSON, so a
+    // native navigation would dump raw JSON in the browser (the invite-JSON bug).
     const isReady = session && preview.matchesSession;
+    const acceptUrl = `/api/invites/${token}/accept-redirect`;
 
     // start-signin sets the inflect_invite_token cookie then redirects to /login.
     // After OAuth the signIn callback reads the cookie and calls redeemInvite.
@@ -91,16 +94,12 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
                     </InlineNotice>
                 )}
 
-                {isReady ? (
-                    <InviteAcceptForm token={token} />
-                ) : (
-                    <a
-                        href={loginUrl}
-                        className="block w-full text-center rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-                    >
-                        {t('signInToAccept')}
-                    </a>
-                )}
+                <a
+                    href={isReady ? acceptUrl : loginUrl}
+                    className="block w-full text-center rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+                >
+                    {isReady ? t('acceptInvitation') : t('signInToAccept')}
+                </a>
 
                 {session && !preview.matchesSession && (
                     <p className="mt-4 text-xs text-content-muted text-center">
@@ -114,27 +113,5 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
                 )}
             </div>
         </main>
-    );
-}
-
-/**
- * Thin client component that POSTs to the redeem endpoint and redirects.
- * Kept minimal — no heavy UI library imports needed.
- */
-async function InviteAcceptForm({ token }: { token: string }) {
-    const t = await getTranslations('invite');
-    return (
-        <form
-            action={`/api/invites/${token}`}
-            method="POST"
-            onSubmit={undefined}
-        >
-            <button
-                type="submit"
-                className="w-full rounded-md bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-            >
-                {t('acceptInvitation')}
-            </button>
-        </form>
     );
 }
