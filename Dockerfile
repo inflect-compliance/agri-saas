@@ -40,6 +40,11 @@ ARG NEXT_PUBLIC_MAPTILER_KEY=""
 ENV NEXT_PUBLIC_MAPTILER_KEY=$NEXT_PUBLIC_MAPTILER_KEY
 ARG NEXT_PUBLIC_MAP_BASEMAP_STYLE="hybrid"
 ENV NEXT_PUBLIC_MAP_BASEMAP_STYLE=$NEXT_PUBLIC_MAP_BASEMAP_STYLE
+# `next build` OOMs on the ~2 GB default V8 heap when it can't reuse a cached
+# build layer (any app-source change) on the private-repo CI runners — exit
+# 134 / SIGABRT. Lift it here as the CI workflow's build/jest jobs do; the
+# ci.yml build step's fix doesn't reach this in-container build.
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN npx next build --webpack
 
 # Build the standalone BullMQ worker + scheduler bundles. esbuild is
