@@ -219,7 +219,9 @@ and `docs/rls-tenant-isolation.md` for the RLS deep dive.
 
 Business-content fields (Finding.description, Risk.treatmentNotes,
 PolicyVersion.contentText, TaskComment.body, …) are encrypted at
-rest by a Prisma `$use` middleware. The manifest lives in
+rest by a Prisma `$extends({ query })` client extension (migrated
+from the Prisma 5 `$use` middleware, which Prisma 7 removed — see
+`src/lib/prisma.ts`). The manifest lives in
 `src/lib/security/encrypted-fields.ts`; **never** add or remove
 encrypted columns outside it. Add a model here ⇒ its manifest
 fields encrypt on every write and decrypt on every read
@@ -934,6 +936,12 @@ stands for that PR only — not as a precedent.
   presence is locked by `tests/guards/r14-no-page-searchbars.test.ts`.
 
 ## Implementation notes
+
+**This file is a contract, not a scrapbook: a PR that invalidates a claim in
+CLAUDE.md updates that claim in the same diff.** A stale operating manual is
+worse than none — it sends the next engineer (or agent) down a path the code no
+longer supports. If your change moves a file, renames a symbol, flips a default,
+or supersedes a documented mechanism, fix the sentence here too.
 
 Every substantive prompt — architectural decisions, new features, security
 or infrastructure changes, anything worth revisiting in six months — lands
