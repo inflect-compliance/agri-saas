@@ -167,12 +167,20 @@ export async function getIndexTileUrl(
     index: VegetationIndex,
     aoi: NdviAoi,
     win: NdviWindow,
+    clipGeometry?: unknown,
 ): Promise<string> {
     await initEarthEngine();
 
     const recipe = INDEX_RECIPES[index];
     const band = bandFn(index);
+    // The bbox rectangle is the cheap collection-bounds filter; the RENDERED
+    // composite is clipped to `clipGeometry` (the parcel polygon(s)) when given
+    // so the raster stops at the field boundary instead of filling the whole
+    // bounding box. Falls back to the rectangle when no geometry is passed.
     const region = ee.Geometry.Rectangle([aoi.west, aoi.south, aoi.east, aoi.north]);
+    const clipRegion = clipGeometry
+        ? new (ee.Geometry as unknown as { new (g: unknown): EeImage })(clipGeometry)
+        : region;
 
     const collection = adaptiveS2Collection(region, win);
 
@@ -186,7 +194,7 @@ export async function getIndexTileUrl(
         return img.updateMask(keep);
     });
 
-    const composite: EeImage = masked.map((img: EeImage) => band(img)).median().clip(region);
+    const composite: EeImage = masked.map((img: EeImage) => band(img)).median().clip(clipRegion);
 
     const visParams = { min: recipe.min, max: recipe.max, palette: recipe.palette };
 
@@ -352,13 +360,13 @@ export async function getIndexMeansForPolygon(
 // Per-index named exports — one per `/agro/<index>-tiles` route. Each is a
 // thin wrapper over `getIndexTileUrl` so a route (and its unit test) can
 // import + mock a single stable function.
-export const getNdviTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
-    getIndexTileUrl('ndvi', aoi, win);
-export const getNdmiTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
-    getIndexTileUrl('ndmi', aoi, win);
-export const getNdreTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
-    getIndexTileUrl('ndre', aoi, win);
-export const getGndviTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
-    getIndexTileUrl('gndvi', aoi, win);
-export const getEviTileUrl = (aoi: NdviAoi, win: NdviWindow): Promise<string> =>
-    getIndexTileUrl('evi', aoi, win);
+export const getNdviTileUrl = (aoi: NdviAoi, win: NdviWindow, clipGeometry?: unknown): Promise<string> =>
+    getIndexTileUrl('ndvi', aoi, win, clipGeometry);
+export const getNdmiTileUrl = (aoi: NdviAoi, win: NdviWindow, clipGeometry?: unknown): Promise<string> =>
+    getIndexTileUrl('ndmi', aoi, win, clipGeometry);
+export const getNdreTileUrl = (aoi: NdviAoi, win: NdviWindow, clipGeometry?: unknown): Promise<string> =>
+    getIndexTileUrl('ndre', aoi, win, clipGeometry);
+export const getGndviTileUrl = (aoi: NdviAoi, win: NdviWindow, clipGeometry?: unknown): Promise<string> =>
+    getIndexTileUrl('gndvi', aoi, win, clipGeometry);
+export const getEviTileUrl = (aoi: NdviAoi, win: NdviWindow, clipGeometry?: unknown): Promise<string> =>
+    getIndexTileUrl('evi', aoi, win, clipGeometry);

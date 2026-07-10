@@ -18,10 +18,10 @@ jest.mock('@/app-layer/context', () => ({
 }));
 
 const isGeeConfiguredMock = jest.fn<boolean, []>();
-const getNdviTileUrlMock = jest.fn<Promise<string>, [unknown, unknown]>();
+const getNdviTileUrlMock = jest.fn<Promise<string>, [unknown, unknown, unknown?]>();
 jest.mock('@/lib/agro/earth-engine', () => ({
     isGeeConfigured: () => isGeeConfiguredMock(),
-    getNdviTileUrl: (aoi: unknown, win: unknown) => getNdviTileUrlMock(aoi, win),
+    getNdviTileUrl: (aoi: unknown, win: unknown, clip?: unknown) => getNdviTileUrlMock(aoi, win, clip),
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,16 +79,36 @@ it('generates + caches a tile URL on a cache miss', async () => {
     expect(body.configured).toBe(true);
     expect(body.tileUrl).toContain('earthengine.googleapis.com');
     expect(body.date).toBe('2026-06-15');
-    // AOI from bounds; 30-day window ending on the requested date.
+    // AOI from bounds; 30-day window ending on the requested date. No parcel
+    // geometry in this fixture (parcels: []), so the clip arg is undefined and
+    // the EE side falls back to the bbox.
     expect(getNdviTileUrlMock).toHaveBeenCalledWith(
         { west: 10, south: 40, east: 11, north: 41 },
         { start: '2026-05-16', end: '2026-06-15' },
+        undefined,
     );
     expect(redisSet).toHaveBeenCalledWith(
-        'ndvi:tile:tenant-1:loc-1:2026-06-15',
+        'ndvi:tile:tenant-1:loc-1:clip2:2026-06-15',
         body.tileUrl,
         'EX',
         21_600,
+    );
+});
+
+it("clips the raster to the parcels' polygons (union), not the bbox", async () => {
+    const poly = { type: 'Polygon', coordinates: [[[10, 40], [11, 40], [11, 41], [10, 41], [10, 40]]] };
+    const multi = { type: 'MultiPolygon', coordinates: [[[[11.2, 40.2], [11.3, 40.2], [11.3, 40.3], [11.2, 40.2]]]] };
+    listLocationParcelsMock.mockResolvedValue({
+        bounds: [10, 40, 11.3, 41],
+        parcels: [{ geometry: poly }, { geometry: multi }, { geometry: null }],
+    });
+    await call('locationId=loc-1&date=2026-06-15');
+    // The 3rd arg is the union of the parcels' polygons as one MultiPolygon —
+    // so the EE composite is clipped to the fields, not the location bbox.
+    expect(getNdviTileUrlMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        { type: 'MultiPolygon', coordinates: [poly.coordinates, ...multi.coordinates] },
     );
 });
 
