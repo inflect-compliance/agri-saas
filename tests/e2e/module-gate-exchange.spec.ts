@@ -13,17 +13,20 @@
  */
 import { test, expect } from './fixtures';
 
-// Every ModuleKey EXCEPT EXCHANGE — `setEnabledModules` replaces the list, so
-// this disables only the marketplace.
-const ALL_EXCEPT_EXCHANGE = [
+// The admin modules API only accepts the 9 user-toggleable ModuleKeys (EXCHANGE
+// and GRAIN are plan-gated, not in its Zod enum). `setEnabledModules` REPLACES
+// the enabled list, so submitting exactly these 9 disables EXCHANGE by
+// OMISSION — it's simply not in the enabled set, so isModuleAvailable('EXCHANGE')
+// is false and its page + nav tab gate out.
+const ENABLED_WITHOUT_EXCHANGE = [
     'JOURNAL', 'INVENTORY', 'PLANNING', 'CERTIFICATION', 'RISK',
-    'VENDORS', 'AUTOMATION', 'PROCESSES', 'AI', 'GRAIN',
+    'VENDORS', 'AUTOMATION', 'PROCESSES', 'AI',
 ];
 
 async function disableExchange(page: import('@playwright/test').Page, slug: string): Promise<void> {
     // authedPage.request shares the owner's auth cookies.
     const res = await page.request.put(`/api/t/${slug}/admin/modules`, {
-        data: { enabledModules: ALL_EXCEPT_EXCHANGE },
+        data: { enabledModules: ENABLED_WITHOUT_EXCHANGE },
     });
     expect(res.ok(), `disable EXCHANGE: ${res.status()} ${await res.text()}`).toBeTruthy();
 }
