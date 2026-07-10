@@ -3284,7 +3284,8 @@
                 "cancel": "Cancel",
                 "submit": "Send request",
                 "error": "Could not send your request. Please try again."
-            }
+            },
+            "sizeDca": "{dca} dca"
         },
         "ai": {
             "disclaimer": "AI suggestion — verify with an agronomist.",
@@ -3348,7 +3349,8 @@
                 "water": "{amount} water",
                 "done": "Done",
                 "skip": "Skip",
-                "reopen": "Reopen"
+                "reopen": "Reopen",
+                "areaDca": "{dca} dca"
             },
             "canvas": {
                 "parcelMap": "Parcel map — {mode}",
