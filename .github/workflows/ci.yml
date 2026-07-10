@@ -402,8 +402,15 @@ jobs:
       #   lib      branches=70 functions=66 lines=71 statements=70
       # Measured global at recalibration: B65.5 F67.0 L80.3 S78.7.
       - name: "Gate: test coverage thresholds"
+        # Coverage instrumentation inflates heap well past the runner's default
+        # ~2 GB ceiling — the full suite in one `--runInBand` process OOMs
+        # (exit 134) BEFORE thresholds are evaluated. Invoke jest through node
+        # with the heap flag applied directly to that V8 instance, mirroring the
+        # Typecheck job's `tsc` invocation (NODE_OPTIONS does not reliably reach
+        # a spawned CLI binary).
         run: |
-          npx jest --coverage --forceExit --runInBand \
+          node --max-old-space-size=8192 node_modules/jest/bin/jest.js \
+            --coverage --forceExit --runInBand \
             --coverageThreshold "$(cat jest.thresholds.json)"
 
       - name: Upload coverage report
