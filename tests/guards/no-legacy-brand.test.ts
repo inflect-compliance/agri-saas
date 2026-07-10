@@ -47,6 +47,7 @@ const SURVIVORS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
     { pattern: /inflect-(?:data|mfa|startup-sentinel|dev-encryption)/, reason: 'encryption/MFA key-derivation salts + HKDF info — renaming breaks decryption of all existing ciphertext' },
     { pattern: /inflect-compliance|inflect-jobs/i, reason: 'OTel resource names / GHCR org / HIBP User-Agent — observability + operator-side identity, migration-noted' },
     { pattern: /inflect_production|inflect_compliance/, reason: 'production DB names — operator-side, migration-noted' },
+    { pattern: /:-inflect\b/, reason: 'operator-side Postgres role/db default in the vendored VM compose — the file must byte-match the live VM (PR2 drift check); migration-noted' },
     { pattern: /inflect-(?:soil)/, reason: 'BullMQ queue name — renaming orphans in-flight jobs on the old queue' },
     { pattern: /inflect-onboarding/, reason: 'driver.js popover class name — styled externally' },
     { pattern: /\/opt\/inflect/, reason: 'operator-side VM path — migration-noted, not scripted (renames are manual)' },
