@@ -1,22 +1,29 @@
 # ───────────────────────────────────────────────────────────────
 #  CI — Enterprise-grade pipeline
-#  Jobs: lint · typecheck · test · coverage · build · e2e
-#        load-smoke · security · codeql · docker · trivy
+#  Jobs: changes · lint · typecheck · test · coverage · build · e2e
+#        load-smoke · security · codeql · docker (+trivy)
 #
 #  Job graph:
-#    lint ─────────────┐
-#    typecheck ────────┤
-#    test ─────────────┤
-#    coverage ─────────┼──→ (PR merge gate)
-#    build ────────────┤
-#      ├──→ e2e ───────┤
-#      ├──→ load-smoke ┤
-#      └──→ docker ────┤
-#           └──→ trivy ┤
-#    security ─────────┤
-#    codeql ───────────┘
+#    changes (path filter) ─┐   (emits `code`; gates the heavy jobs)
+#    lint ─────────────┐    │
+#    typecheck ────────┤    │
+#    test ─────────────┤    │
+#    build ────────────┤    │
+#      ├──→ e2e ───────┼────┤   e2e/load-smoke/docker also need `changes`
+#      ├──→ load-smoke ┤    │
+#      └──→ docker ────┤    │   (Trivy scan folded into docker)
+#    security ─────────┤    │
+#    codeql ───────────┘────┘
 #
-#  Runs on PRs and pushes to main.
+#  Triggers: PRs + pushes to main + weekly cron.
+#
+#  Cost controls:
+#    • changes: content-only diffs (docs/**, messages/**, **/*.md) SKIP
+#      e2e/load-smoke/docker — a skipped required check passes protection.
+#    • cancel-in-progress: PRs only (push/schedule runs always finish).
+#    • coverage: main-push only. load-smoke: main-push only.
+#    • schedule (weekly): scan-refresh only — build + docker/Trivy + codeql;
+#      test/e2e/load-smoke/coverage are skipped.
 # ───────────────────────────────────────────────────────────────
 name: CI
 
@@ -36,7 +43,11 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded runs only on PRs — a force-push rebase kills the in-flight
+  # run instead of stacking a second full one. Keep push (to main) + schedule
+  # runs UN-cancellable so a merge always finishes: protects in-flight SARIF
+  # uploads, the coverage gate, and any deploy trigger downstream.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -71,6 +82,36 @@ env:
   FILE_STORAGE_ROOT: /tmp/ci-uploads
 
 jobs:
+  # ═══════════════════════════════════════════════════════════════
+  #  Job 0: Detect changes — path filter
+  #  Emits `code=true` when a change touches anything OTHER than docs,
+  #  i18n message catalogs, or markdown. The heavy build-dependent jobs
+  #  (e2e, docker/Trivy, load-smoke) gate on it so a content-only PR
+  #  (docs/**, messages/**, **/*.md) skips them — a skipped required
+  #  check counts as passing under branch protection. lint/typecheck/
+  #  test/security still run, so i18n parity + rendered-string tests
+  #  keep gating content-only changes.
+  # ═══════════════════════════════════════════════════════════════
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # gitignore-style: match everything, then subtract the content-only
+          # paths. `code` is true iff at least one NON-content file changed.
+          filters: |
+            code:
+              - '**'
+              - '!docs/**'
+              - '!messages/**'
+              - '!**/*.md'
+
   # ═══════════════════════════════════════════════════════════════
   #  Job 1: Lint — ESLint + Next.js lint rules
   #  Fast, no DB needed. Fails immediately on lint errors.
@@ -181,6 +222,10 @@ jobs:
   test:
     name: "Test (shard ${{ matrix.shard }}/${{ matrix.total }})"
     runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
+    # Skip on the weekly scheduled run — that cron exists to refresh the
+    # CodeQL + Trivy scans, not to re-run the whole suite (build + docker +
+    # codeql still run on schedule; test/e2e/load-smoke/coverage do not).
+    if: ${{ github.event_name != 'schedule' }}
     # 35-minute budget. Pre-shard, the unit + integration + guards
     # + contracts suite ran ~24-25m and bumped this to 35m for
     # variance headroom. Each shard now does ~1/N of the work, but
@@ -300,7 +345,10 @@ jobs:
     name: Test
     needs: [test]
     runs-on: ubuntu-latest
-    if: ${{ !cancelled() }}
+    # Skip alongside the test matrix on schedule (else the shard-result check
+    # below would read `skipped` and fail). Otherwise always run so a failed
+    # shard is surfaced even when another job cancels.
+    if: ${{ !cancelled() && github.event_name != 'schedule' }}
     steps:
       - name: Verify every shard succeeded
         # `needs.test.result` is the aggregated status across all
@@ -316,7 +364,7 @@ jobs:
   #  Job 4: Coverage — enforce minimum test coverage threshold
   #  Blocking gate: fails if coverage drops below 60%.
   #
-  #  RUNS ON MAIN PUSH + WEEKLY SCHEDULE ONLY.
+  #  RUNS ON MAIN PUSH ONLY.
   #
   #  Rationale: the Test matrix above (sharded) is the per-PR pass/
   #  fail gate; Coverage runs the SAME Jest suite a second time with
@@ -329,7 +377,10 @@ jobs:
   coverage:
     name: "Coverage (≥60%)"
     runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
-    if: github.event_name == 'push' || github.event_name == 'schedule'
+    # Main-push only. Dropped from the weekly schedule (scanning-refresh runs
+    # stay lean — build + docker/Trivy + codeql); coverage drift comes from
+    # MERGED code, which the first main push after a merge already catches.
+    if: github.event_name == 'push'
     # 35-minute budget. R30 (group nodes) cancelled at 25m16s on
     # #716 even with the prior 25-min ceiling — the coverage-
     # instrumented variant has grown slower as the suite size +
@@ -495,7 +546,10 @@ jobs:
   # ═══════════════════════════════════════════════════════════════
   e2e:
     name: E2E
-    needs: [build]
+    needs: [build, changes]
+    # Skip on content-only changes (docs/messages/md) and on the weekly scan.
+    # A skipped required check passes branch protection.
+    if: ${{ github.event_name != 'schedule' && needs.changes.outputs.code == 'true' }}
     runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
     # The Playwright suite runs SERIALLY (workers: 1, fullyParallel:
     # false — see playwright.config.ts). Both a multi-JOB shard matrix and
@@ -695,7 +749,11 @@ jobs:
   # ═══════════════════════════════════════════════════════════════
   load-smoke:
     name: "Load Smoke (k6)"
-    needs: [build]
+    needs: [build, changes]
+    # Main-push only (skips PRs entirely) and only when code changed — a k6
+    # smoke check is redundant per-PR; the merge to main exercises it. Not on
+    # schedule (scanning-refresh runs stay lean).
+    if: ${{ github.event_name == 'push' && needs.changes.outputs.code == 'true' }}
     runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 12
 
@@ -1031,7 +1089,11 @@ jobs:
   # ═══════════════════════════════════════════════════════════════
   docker:
     name: "Docker Build & Scan"
-    needs: [build]
+    needs: [build, changes]
+    # Runs on the weekly scan (Trivy SARIF refresh) OR whenever code changed.
+    # A content-only PR (docs/messages/md) leaves the image unchanged, so skip
+    # it — the last Trivy result stands and the cron refreshes it weekly.
+    if: ${{ github.event_name == 'schedule' || needs.changes.outputs.code == 'true' }}
     runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
     # Roadmap-27 CI hardening — bumped 15 → 25. semantic-release
     # bumps the package.json version on every release, which
