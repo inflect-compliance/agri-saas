@@ -112,7 +112,10 @@ export function fetchSender(): Sender {
     return async (item) => {
         const res = await fetch(item.url, {
             method: item.method,
-            headers: { 'Content-Type': 'application/json' },
+            // The outbox id is the exactly-once handle: the server dedupes a
+            // replayed write by (tenant, key) so a re-send after a flaky
+            // connection returns the original result instead of a duplicate row.
+            headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.id },
             body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
         });
         let retryAfter: number | undefined;

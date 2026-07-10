@@ -209,7 +209,10 @@ async function flushOutbox() {
         try {
             const res = await fetch(item.url, {
                 method: item.method,
-                headers: { 'Content-Type': 'application/json' },
+                // The outbox id is the exactly-once handle — the server dedupes
+                // a replayed write by (tenant, key), so a re-send returns the
+                // original result instead of minting a duplicate row.
+                headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.id },
                 body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
                 credentials: 'same-origin',
             });
