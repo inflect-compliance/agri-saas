@@ -1,6 +1,11 @@
 /**
  * Unit tests for email notification templates.
  */
+// Email links must be ABSOLUTE (a bare `/t/…` path renders as a host-less
+// `http:///t/…` in mail clients — the "Redirect Notice" bug). The templates
+// prefix APP_URL; mock it so the link-format assertions exercise the real path.
+jest.mock('@/env', () => ({ env: { APP_URL: 'https://app.agrent.bg', NEXTAUTH_URL: undefined } }));
+
 import {
     buildTaskAssignedEmail,
     buildEvidenceExpiringEmail,
@@ -58,6 +63,14 @@ describe('Notification Templates', () => {
         it('returns link to tenant tasks page', () => {
             const result = buildTaskAssignedEmail(payload);
             expect(result.bodyText).toContain('/t/acme-corp/tasks');
+        });
+
+        it('builds an ABSOLUTE link (no host-less http:///) for the mail client', () => {
+            const result = buildTaskAssignedEmail(payload);
+            expect(result.bodyText).toContain('https://app.agrent.bg/t/acme-corp/tasks');
+            expect(result.bodyHtml).toContain('href="https://app.agrent.bg/t/acme-corp/tasks"');
+            expect(result.bodyText).not.toContain('http:///');
+            expect(result.bodyHtml).not.toContain('http:///');
         });
     });
 
