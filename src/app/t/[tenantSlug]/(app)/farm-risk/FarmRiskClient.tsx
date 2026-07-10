@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { haToDca, trimNumber } from '@/lib/agro/rate-calc';
 import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
@@ -92,6 +93,7 @@ export function FarmRiskClient({ tenantSlug, locations }: { tenantSlug: string; 
                                     parcelId={p.id}
                                     locationId={locationId}
                                     fallbackName={p.name}
+                                    areaHa={p.areaHa ?? null}
                                 />
                             ))}
                         </ul>
@@ -106,10 +108,12 @@ function ParcelRiskCard({
     parcelId,
     locationId,
     fallbackName,
+    areaHa,
 }: {
     parcelId: string;
     locationId: string;
     fallbackName: string;
+    areaHa: number | null;
 }) {
     const t = useTranslations('ag.risk');
     const riskQ = useTenantSWR<ParcelRisk>(`/agro/parcel-analysis?parcelId=${parcelId}`);
@@ -121,7 +125,11 @@ function ParcelRiskCard({
             <div className="flex items-start justify-between gap-default">
                 <div className="min-w-0">
                     <p className="font-medium text-content-emphasis">{risk?.name ?? fallbackName}</p>
-                    {risk?.cropType && <p className="text-xs text-content-subtle">{risk.cropType}</p>}
+                    <p className="text-xs text-content-subtle">
+                        {areaHa != null && <span className="tabular-nums">{t('sizeDca', { dca: trimNumber(haToDca(areaHa)) })}</span>}
+                        {areaHa != null && risk?.cropType && ' · '}
+                        {risk?.cropType}
+                    </p>
                 </div>
                 {risk && (
                     <StatusBadge variant={LEVEL_VARIANT[risk.overall]}>{levelLabel(risk.overall)}</StatusBadge>

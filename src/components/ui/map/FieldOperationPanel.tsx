@@ -18,7 +18,7 @@ import { AgStatusBadge } from '@/components/ag/ag-status';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPatch } from '@/lib/api-client';
-import { totalLabel } from '@/lib/agro/rate-calc';
+import { totalLabel, haToDca, trimNumber } from '@/lib/agro/rate-calc';
 import { haptic } from '@/lib/haptics';
 import { playSound } from '@/lib/sound';
 import { SprayJobCompletionCard } from '@/components/ui/map/SprayJobCompletionCard';
@@ -127,7 +127,7 @@ export function FieldOperationPanel({ taskId }: FieldOperationPanelProps) {
                         <div>
                             <div className="text-sm font-medium">{l.parcel?.name ?? t('parcel')}</div>
                             <div className="text-xs text-content-secondary">
-                                {l.product?.name} · {String(l.doseValue)} {l.doseUnit?.symbol} · {l.parcel?.areaHa ?? '–'} ha
+                                {l.product?.name} · {String(l.doseValue)} {l.doseUnit?.symbol} · {l.parcel?.areaHa != null ? t('fieldOp.areaDca', { dca: trimNumber(haToDca(l.parcel.areaHa)) }) : '–'}
                             </div>
                             {/* Amounts needed for THIS parcel — rate × its area
                                 (per the unit's /ha or /dca basis). */}
