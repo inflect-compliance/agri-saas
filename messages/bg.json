@@ -1745,7 +1745,7 @@
             "senderName": "Име на подателя",
             "senderNamePlaceholder": "Agrent",
             "senderEmail": "Имейл на подателя",
-            "senderEmailPlaceholder": "noreply@inflect.app",
+            "senderEmailPlaceholder": "noreply@agrent.bg",
             "complianceMailbox": "Пощенска кутия за съответствие (BCC)",
             "complianceMailboxPlaceholder": "compliance@yourcompany.com (по избор)",
             "bccNote": "Всички изходящи имейли ще бъдат изпращани в скрито копие (BCC) до този адрес.",
@@ -3903,14 +3903,14 @@
         "loadErrorStatus": "Наемателите не можаха да се заредят ({status})"
     },
     "installPrompt": {
-        "installTitle": "Инсталирайте AgriSaaS",
+        "installTitle": "Инсталирайте Agrent",
         "installDesc": "Добавете го на началния си екран — работи на терен, онлайн или офлайн.",
         "dismissPrompt": "Затвори поканата за инсталиране",
         "notNow": "Не сега",
         "install": "Инсталирай",
-        "a2hsAria": "Добавете AgriSaaS на началния си екран",
+        "a2hsAria": "Добавете Agrent на началния си екран",
         "a2hsTitle": "Добави на началния екран",
-        "a2hsDesc": "Докоснете иконата за споделяне, след което „Добави на началния екран“, за да инсталирате AgriSaaS за офлайн полева употреба.",
+        "a2hsDesc": "Докоснете иконата за споделяне, след което „Добави на началния екран“, за да инсталирате Agrent за офлайн полева употреба.",
         "dismissHint": "Затвори подсказката за инсталиране",
         "gotIt": "Разбрах"
     },

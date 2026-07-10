@@ -1745,7 +1745,7 @@
             "senderName": "Sender Name",
             "senderNamePlaceholder": "Agrent",
             "senderEmail": "Sender Email",
-            "senderEmailPlaceholder": "noreply@inflect.app",
+            "senderEmailPlaceholder": "noreply@agrent.bg",
             "complianceMailbox": "Compliance Mailbox (BCC)",
             "complianceMailboxPlaceholder": "compliance@yourcompany.com (optional)",
             "bccNote": "All outbound emails will be BCC'd to this address.",
@@ -3903,14 +3903,14 @@
         "loadErrorStatus": "Failed to load tenants ({status})"
     },
     "installPrompt": {
-        "installTitle": "Install AgriSaaS",
+        "installTitle": "Install Agrent",
         "installDesc": "Add it to your home screen — works in the field, online or off.",
         "dismissPrompt": "Dismiss install prompt",
         "notNow": "Not now",
         "install": "Install",
-        "a2hsAria": "Add AgriSaaS to your home screen",
+        "a2hsAria": "Add Agrent to your home screen",
         "a2hsTitle": "Add to Home Screen",
-        "a2hsDesc": "Tap the Share icon, then “Add to Home Screen” to install AgriSaaS for offline field use.",
+        "a2hsDesc": "Tap the Share icon, then “Add to Home Screen” to install Agrent for offline field use.",
         "dismissHint": "Dismiss install hint",
         "gotIt": "Got it"
     },

@@ -102,11 +102,11 @@ describe("R25-PR-B — xyflow canvas + palette", () => {
             expect(src).toMatch(/export const PALETTE_DRAG_MIME\s*=/);
         });
 
-        it("uses the inflect-namespaced mime type", () => {
+        it("uses the agrent-namespaced mime type", () => {
             // Namespace avoids collisions with arbitrary HTML5 drag
             // sources (file uploads, browser-tab tear-off, etc.).
             expect(src).toMatch(
-                /["']application\/x-inflect-process-step["']/,
+                /["']application\/x-agrent-process-step["']/,
             );
         });
 

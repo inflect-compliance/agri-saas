@@ -18,8 +18,8 @@
  *   • Category dividers — a thin hairline between Flow → Context
  *     → Container → Note groups, exposing the taxonomy
  *     hierarchy hidden by the legacy flat strip.
- *   • Drag-source contract unchanged: the
- *     `application/x-inflect-process-step` MIME type + the
+ *   • Drag-source contract: the
+ *     `application/x-agrent-process-step` MIME type + the
  *     `{ kind, label }` JSON payload from R26-PR-B / R30 stay
  *     intact. Only the LAYOUT shifted.
  *

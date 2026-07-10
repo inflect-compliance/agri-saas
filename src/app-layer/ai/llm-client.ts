@@ -84,7 +84,7 @@ export async function llmCompleteJson(
                 Authorization: `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': 'https://inflect-compliance.app',
-                'X-Title': 'Inflect — Agronomy AI',
+                'X-Title': 'Agrent — Agronomy AI',
             },
             body: JSON.stringify({
                 model,

@@ -1,5 +1,5 @@
 /*
- * AgriSaaS service worker — operator PWA.
+ * Agrent service worker — operator PWA.
  *
  * Responsibilities:
  *   - Installable, fast app SHELL (static-asset + navigation caching).
@@ -19,7 +19,10 @@
  *
  * Bump CACHE_VERSION to invalidate old caches on the next activate.
  */
-const CACHE_VERSION = 'agri-v2';
+// Bumped for the Agrent rebrand — invalidates the old `agri-v2` caches so
+// installed clients re-precache the new seedling icon.svg + manifest. The
+// `activate` handler below deletes every cache not prefixed with this value.
+const CACHE_VERSION = 'agrent-v1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const DATA_CACHE = `${CACHE_VERSION}-fielddata`;
@@ -260,9 +263,9 @@ self.addEventListener('push', (event) => {
     try {
         payload = event.data ? event.data.json() : {};
     } catch {
-        payload = { title: 'AgriSaaS', body: event.data ? event.data.text() : '' };
+        payload = { title: 'Agrent', body: event.data ? event.data.text() : '' };
     }
-    const title = payload.title || 'AgriSaaS';
+    const title = payload.title || 'Agrent';
     const options = {
         body: payload.body || payload.message || '',
         icon: '/icon.svg',

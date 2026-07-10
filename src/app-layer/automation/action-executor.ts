@@ -14,6 +14,7 @@
 import { createHmac } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import type { PrismaClient } from '@prisma/client';
+import { buildOutboundHeaders, computeBatchId } from '../events/webhook-headers';
 import { enqueue } from '../jobs/queue';
 import { checkWebhookUrl, isPrivateAddress } from './webhook-safety';
 import { isNotificationsEnabled } from '../notifications/settings';
@@ -243,16 +244,33 @@ async function fireWebhook(rule: ExecutableRule, event: ActionEvent): Promise<Ac
         event: { name: event.event, entityType: event.entityType, entityId: event.entityId },
         data: event.data ?? {},
     });
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Inflect-Automation/1',
-        ...(cfg.headers ?? {}),
-    };
-    // Sign the body so the consumer can verify authenticity (mirrors the
-    // audit-stream's X-Inflect-Signature contract).
+    // Route through the canonical outbound-header builder (no inline header
+    // names) so a signed webhook dual-emits X-Agrent-Signature + the legacy
+    // X-Inflect-Signature, and carries a deterministic batch/idempotency key
+    // for consumer-side dedupe of retries. User-supplied cfg.headers win.
+    let headers: Record<string, string>;
     if (cfg.secretRef) {
-        const sig = createHmac('sha256', cfg.secretRef).update(body).digest('hex');
-        headers['X-Inflect-Signature'] = `sha256=${sig}`;
+        const signatureHex = createHmac('sha256', cfg.secretRef).update(body).digest('hex');
+        const batchId = computeBatchId({
+            tenantId: event.tenantId,
+            schemaVersion: 1,
+            eventIds: [rule.id, event.entityId ?? event.event],
+        });
+        headers = {
+            ...buildOutboundHeaders({
+                batchId,
+                signatureHex,
+                userAgent: 'Agrent-Automation/1',
+                schemaVersion: 1,
+            }),
+            ...(cfg.headers ?? {}),
+        };
+    } else {
+        headers = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Agrent-Automation/1',
+            ...(cfg.headers ?? {}),
+        };
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);

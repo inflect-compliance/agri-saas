@@ -22,7 +22,7 @@
  *     Flow (step, decision) →  Context (risk, asset, external) →
  *     Container (group) → Note (annotation). Exposes the taxonomy
  *     hierarchy that was hidden by the flat horizontal strip.
- *   • Drag-source contract unchanged: `application/x-inflect-process-step`
+ *   • Drag-source contract: `application/x-agrent-process-step`
  *     MIME type with the same `{ kind, label }` JSON payload.
  *     Existing R26-PR-B + R30 ratchets keep asserting the payload
  *     shape — only the LAYOUT changed here.
@@ -50,7 +50,7 @@ import { useIsAutomationMode } from "@/lib/processes/canvas-mode-context";
  * The canvas reads this on `onDrop` to identify palette payloads
  * (vs unrelated drag sources like file uploads).
  */
-export const PALETTE_DRAG_MIME = "application/x-inflect-process-step";
+export const PALETTE_DRAG_MIME = "application/x-agrent-process-step";
 
 /**
  * Payload contract — the canvas's drop handler parses this shape.

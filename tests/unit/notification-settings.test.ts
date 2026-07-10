@@ -47,13 +47,13 @@ describe('Settings defaults', () => {
         const defaults = {
             enabled: true,
             defaultFromName: 'Agrent',
-            defaultFromEmail: 'noreply@inflect.app',
+            defaultFromEmail: 'noreply@agrent.bg',
             complianceMailbox: null,
         };
 
         expect(defaults.enabled).toBe(true);
         expect(defaults.defaultFromName).toBe('Agrent');
-        expect(defaults.defaultFromEmail).toBe('noreply@inflect.app');
+        expect(defaults.defaultFromEmail).toBe('noreply@agrent.bg');
         expect(defaults.complianceMailbox).toBeNull();
     });
 });

@@ -168,10 +168,30 @@ export async function sendEmail(msg: EmailMessage): Promise<void> {
  *
  * Uses the validated env module (not raw env vars).
  */
+/**
+ * Built-in fallback sender. Kept in sync with the SMTP_FROM default in
+ * src/env.ts. Production should ALWAYS set RESEND_FROM / SMTP_FROM to a
+ * verified sender on its own domain — this default is a dev convenience, and
+ * `initMailerFromEnv` warns when prod runs on it (deliverability suffers when
+ * the From address isn't a domain the operator controls / has SPF+DKIM for).
+ */
+const DEFAULT_SENDER = 'noreply@agrent.bg';
+
 export function initMailerFromEnv(): void {
     // Dynamic import to avoid circular deps at module parse time
 
     const { env } = require('@/env');
+
+    // Warn once if production falls back to the built-in default sender —
+    // neither RESEND_FROM nor SMTP_FROM was set to an operator-owned address.
+    const usingDefaultSender = !env.RESEND_FROM && (!env.SMTP_FROM || env.SMTP_FROM === DEFAULT_SENDER);
+    if (env.NODE_ENV === 'production' && usingDefaultSender) {
+        logger.warn('Mailer using the built-in default sender in production', {
+            component: 'mailer',
+            sender: DEFAULT_SENDER,
+            hint: 'Set RESEND_FROM or SMTP_FROM to a verified sender on your own domain.',
+        });
+    }
 
     // Resend (HTTPS API) takes precedence — most deployments use it and it
     // needs no SMTP egress. RESEND_FROM must be a Resend-verified sender;
@@ -179,7 +199,7 @@ export function initMailerFromEnv(): void {
     const resendKey = env.RESEND_API_KEY;
     if (resendKey) {
         setEmailProvider(
-            new ResendProvider(resendKey, env.RESEND_FROM ?? env.SMTP_FROM ?? 'noreply@inflect.app'),
+            new ResendProvider(resendKey, env.RESEND_FROM ?? env.SMTP_FROM ?? DEFAULT_SENDER),
         );
         return;
     }
@@ -189,7 +209,7 @@ export function initMailerFromEnv(): void {
         const port = env.SMTP_PORT ?? 587;
         const user = env.SMTP_USER;
         const pass = env.SMTP_PASS;
-        const from = env.SMTP_FROM ?? 'noreply@inflect.app';
+        const from = env.SMTP_FROM ?? DEFAULT_SENDER;
         setEmailProvider(new NodemailerProvider({ host, port, user, pass, from }));
     }
     // Otherwise keep ConsoleEmailProvider (dev/test default)

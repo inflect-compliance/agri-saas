@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * InstallPrompt — the "Install AgriSaaS" affordance for the operator PWA.
+ * InstallPrompt — the "Install Agrent" affordance for the operator PWA.
  *
  * Two paths, mobile-only:
  *   - Android/Chromium: capture the `beforeinstallprompt` event, suppress
