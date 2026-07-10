@@ -42,7 +42,9 @@ import {
     type RateLimitConfig,
     type RateLimitResult,
 } from '@/lib/security/rate-limit';
-import { logger } from '@/lib/observability/logger';
+// edgeLogger (loose field types + runs on both runtimes) — the Node logger's
+// warn() types `err` as Error, but we log String(err).
+import { edgeLogger } from '@/lib/observability/edge-logger';
 
 import { getUpstashRedis } from './upstashClient';
 
@@ -102,7 +104,7 @@ export async function checkRateLimitDistributed(
     } catch (err) {
         // Redis unreachable mid-request. Degrade to the local Map rather than
         // fail-open — a limiter that still counts locally beats no limiter.
-        logger.warn('rate-limit.redis_error_fallback_memory', {
+        edgeLogger.warn('rate-limit.redis_error_fallback_memory', {
             component: 'rate-limit',
             err: String(err),
         });
@@ -124,7 +126,7 @@ export async function resetRateLimitDistributed(key: string): Promise<void> {
     try {
         await redis.del(`${KEY_PREFIX}:${key}`);
     } catch (err) {
-        logger.warn('rate-limit.reset_del_failed', {
+        edgeLogger.warn('rate-limit.reset_del_failed', {
             component: 'rate-limit',
             err: String(err),
         });
