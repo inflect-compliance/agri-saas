@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+#
+# deploy/check-drift.sh — detect drift between the repo-canonical compose and
+# the live prod VM.
+#
+# The repo is the source of truth for the prod Compose STRUCTURE. This script
+# compares the sha256 of deploy/docker-compose.vm.yml against the live file on
+# the VM and exits non-zero on any mismatch, with a readable hint. Run it on a
+# WEEKLY cadence (cron / a scheduled Actions job once a GCP service-account
+# secret exists) so silent hand-edits on the VM surface fast.
+#
+# Watchtower auto-updates only the app + worker IMAGES; it never rewrites the
+# compose file, so a drift here always means a human edited the VM out of band
+# (or forgot to run deploy/apply.sh after a repo change).
+#
+# Usage:  deploy/check-drift.sh
+# Exit:   0 = in sync, 1 = drift detected, 2 = could not reach the VM.
+set -euo pipefail
+
+VM_NAME="${VM_NAME:-agrent}"
+VM_ZONE="${VM_ZONE:-europe-west1-b}"
+REMOTE_DIR="${REMOTE_DIR:-/opt/agrent}"
+COMPOSE_BASENAME="${COMPOSE_BASENAME:-docker-compose.vm.yml}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOCAL_COMPOSE="${SCRIPT_DIR}/${COMPOSE_BASENAME}"
+REMOTE_COMPOSE="${REMOTE_DIR}/${COMPOSE_BASENAME}"
+
+err() { printf '\033[31m[drift]\033[0m %s\n' "$*" >&2; }
+ok()  { printf '\033[32m[drift]\033[0m %s\n' "$*"; }
+
+[ -f "$LOCAL_COMPOSE" ] || { err "missing $LOCAL_COMPOSE"; exit 2; }
+
+LOCAL_SHA="$(sha256sum "$LOCAL_COMPOSE" | awk '{print $1}')"
+
+REMOTE_SHA="$(gcloud compute ssh "$VM_NAME" --zone "$VM_ZONE" \
+    --command "sudo sha256sum '${REMOTE_COMPOSE}'" 2>/dev/null | awk '{print $1}')" || {
+    err "could not read ${REMOTE_COMPOSE} on ${VM_NAME} (${VM_ZONE}). Check gcloud auth / VM state."
+    exit 2
+}
+
+if [ -z "$REMOTE_SHA" ]; then
+    err "remote sha256 was empty — ${REMOTE_COMPOSE} may not exist on the VM."
+    exit 2
+fi
+
+if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
+    ok "in sync — ${COMPOSE_BASENAME} matches ${VM_NAME}:${REMOTE_COMPOSE} (${LOCAL_SHA:0:12})"
+    exit 0
+fi
+
+err "DRIFT DETECTED"
+err "  repo : ${LOCAL_SHA}  (${LOCAL_COMPOSE})"
+err "  VM   : ${REMOTE_SHA}  (${VM_NAME}:${REMOTE_COMPOSE})"
+err ""
+err "The live compose no longer matches the repo. Either:"
+err "  • the VM was hand-edited  → reconcile the change INTO the repo file,"
+err "    commit it, then re-run this check; or"
+err "  • the repo changed but wasn't applied → run deploy/apply.sh to push it."
+err ""
+err "See the exact diff with:"
+err "  gcloud compute ssh ${VM_NAME} --zone ${VM_ZONE} --command \"sudo cat '${REMOTE_COMPOSE}'\" | diff ${LOCAL_COMPOSE} -"
+exit 1
