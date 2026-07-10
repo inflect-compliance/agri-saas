@@ -27,7 +27,7 @@ import {
 import { unauthorized } from '@/lib/errors/types';
 import { jsonResponse } from '@/lib/api-response';
 
-function applyRedeemRateLimit(req: NextRequest): NextResponse | null {
+async function applyRedeemRateLimit(req: NextRequest): Promise<NextResponse | null> {
     if (isRateLimitBypassed()) return null;
     const enforcement = await enforceRateLimit(req, {
         scope: 'org-invite-redeem',
@@ -39,7 +39,7 @@ function applyRedeemRateLimit(req: NextRequest): NextResponse | null {
 
 export const GET = withApiErrorHandling(
     async (req: NextRequest, routeArgs: { params: Promise<{ token: string }> }) => {
-        const limitResponse = applyRedeemRateLimit(req);
+        const limitResponse = await applyRedeemRateLimit(req);
         if (limitResponse) return limitResponse;
 
         const { token } = await routeArgs.params;
@@ -66,7 +66,7 @@ export const GET = withApiErrorHandling(
 
 export const POST = withApiErrorHandling(
     async (req: NextRequest, routeArgs: { params: Promise<{ token: string }> }) => {
-        const limitResponse = applyRedeemRateLimit(req);
+        const limitResponse = await applyRedeemRateLimit(req);
         if (limitResponse) return limitResponse;
 
         const session = await auth();
