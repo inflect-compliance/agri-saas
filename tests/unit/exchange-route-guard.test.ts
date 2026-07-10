@@ -4,11 +4,11 @@
  * The Exchange usecase throws forbidden/notFound on a cross-tenant write
  * (covered by exchange-usecase.test.ts). These tests drive the actual HTTP
  * handlers as a FOREIGN tenant and assert the wrapper maps those throws to
- * 403 / 404 — the contract a client actually sees, not just the usecase.
+ * 403 / 404 with zero mutation — the contract a client actually sees.
  *
- * getTenantCtx is mocked to the caller (foreign) tenant; the repository is
- * mocked to return rows owned by ANOTHER tenant; the real usecase + the real
- * withApiErrorHandling wrapper run in between.
+ * Refactored (Roadmap-5 PR4) to run through the reusable
+ * `assertCrossTenantGuard` factory (tests/helpers/cross-tenant-guard.ts) — the
+ * same harness every privileged route's cross-tenant test now shares.
  */
 const getTenantCtxMock = jest.fn();
 
@@ -45,6 +45,7 @@ import { ExchangeRepository } from '@/app-layer/repositories/exchange';
 import { PATCH as PATCH_LISTING } from '@/app/api/t/[tenantSlug]/exchange/listings/[listingId]/route';
 import { PATCH as PATCH_INQUIRY } from '@/app/api/t/[tenantSlug]/exchange/inquiries/[inquiryId]/route';
 import { makeRequestContext } from '../helpers/make-context';
+import { assertCrossTenantGuard } from '../helpers/cross-tenant-guard';
 
 const repo = ExchangeRepository as jest.Mocked<typeof ExchangeRepository>;
 
@@ -64,26 +65,36 @@ beforeEach(() => {
     );
 });
 
-describe('PATCH /exchange/listings/[listingId] — cross-tenant', () => {
-    it('403 when the listing belongs to ANOTHER tenant', async () => {
+// ── Cross-tenant guard, via the shared factory ───────────────────────────
+assertCrossTenantGuard({
+    name: 'PATCH /exchange/listings/[listingId]',
+    handler: PATCH_LISTING,
+    makeReq: () => patchReq({ action: 'WITHDRAWN' }),
+    params: { tenantSlug: 'tenant-b', listingId: 'lst-1' },
+    arrangeForeignRow: () =>
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        repo.getListing.mockResolvedValue({ id: 'lst-1', sellerTenantId: 'tenant-a', status: 'ACTIVE', commodity: 'Wheat' } as any);
-        const res = await PATCH_LISTING(patchReq({ action: 'WITHDRAWN' }), {
-            params: Promise.resolve({ tenantSlug: 'tenant-b', listingId: 'lst-1' }),
-        });
-        expect(res.status).toBe(403);
-        expect(repo.updateListingStatus).not.toHaveBeenCalled();
-    });
+        repo.getListing.mockResolvedValue({ id: 'lst-1', sellerTenantId: 'tenant-a', status: 'ACTIVE', commodity: 'Wheat' } as any),
+    arrangeMissing: () => repo.getListing.mockResolvedValue(null),
+    mutationSpy: () => repo.updateListingStatus,
+});
 
-    it('404 when the listing does not exist', async () => {
-        repo.getListing.mockResolvedValue(null);
-        const res = await PATCH_LISTING(patchReq({ action: 'FULFILLED' }), {
-            params: Promise.resolve({ tenantSlug: 'tenant-b', listingId: 'nope' }),
-        });
-        expect(res.status).toBe(404);
-    });
+assertCrossTenantGuard({
+    name: 'PATCH /exchange/inquiries/[inquiryId]',
+    handler: PATCH_INQUIRY,
+    makeReq: () => patchReq({ action: 'ACCEPTED' }),
+    params: { tenantSlug: 'tenant-b', inquiryId: 'inq-1' },
+    arrangeForeignRow: () =>
+        repo.getInquiry.mockResolvedValue({
+            id: 'inq-1', status: 'PENDING', listing: { sellerTenantId: 'tenant-a', commodity: 'Wheat' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any),
+    arrangeMissing: () => repo.getInquiry.mockResolvedValue(null),
+    mutationSpy: () => repo.updateInquiryStatus,
+});
 
-    it('200 when the caller OWNS the listing (guard lets the owner through)', async () => {
+// ── Positive control: the owner IS let through (guard isn't just deny-all) ──
+describe('PATCH /exchange/listings/[listingId] — owner allowed', () => {
+    it('200 when the caller OWNS the listing', async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         repo.getListing.mockResolvedValue({ id: 'lst-9', sellerTenantId: 'tenant-b', status: 'ACTIVE', commodity: 'Barley' } as any);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,27 +104,5 @@ describe('PATCH /exchange/listings/[listingId] — cross-tenant', () => {
         });
         expect(res.status).toBe(200);
         expect(repo.updateListingStatus).toHaveBeenCalledWith(mockDb, 'lst-9', 'WITHDRAWN');
-    });
-});
-
-describe('PATCH /exchange/inquiries/[inquiryId] — cross-tenant', () => {
-    it('403 when responding to an inquiry on a listing the caller does NOT own', async () => {
-        repo.getInquiry.mockResolvedValue({
-            id: 'inq-1', status: 'PENDING', listing: { sellerTenantId: 'tenant-a', commodity: 'Wheat' },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any);
-        const res = await PATCH_INQUIRY(patchReq({ action: 'ACCEPTED' }), {
-            params: Promise.resolve({ tenantSlug: 'tenant-b', inquiryId: 'inq-1' }),
-        });
-        expect(res.status).toBe(403);
-        expect(repo.updateInquiryStatus).not.toHaveBeenCalled();
-    });
-
-    it('404 when the inquiry does not exist', async () => {
-        repo.getInquiry.mockResolvedValue(null);
-        const res = await PATCH_INQUIRY(patchReq({ action: 'DECLINED' }), {
-            params: Promise.resolve({ tenantSlug: 'tenant-b', inquiryId: 'nope' }),
-        });
-        expect(res.status).toBe(404);
     });
 });
