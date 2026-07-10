@@ -163,7 +163,7 @@ export function useNavSections(): NavSectionDef[] {
                 // Govern. Reuses the already-imported ClipboardList glyph
                 // (the task affordance) — no new lucide import.
                 { href: tenantHref('/farm-tasks'), label: t('farmTasks'), icon: ClipboardList },
-                // The per-parcel satellite AI risk page ("Field Risk",
+                // The per-parcel satellite AI risk page ("Risk",
                 // /farm-risk) is a farm-operations surface, always shown. The
                 // GRC Risk Register (/risks) was removed from the sidebar.
                 { href: tenantHref('/farm-risk'), label: t('fieldRisk'), icon: AlertTriangle },
