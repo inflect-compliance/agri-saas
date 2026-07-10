@@ -44,7 +44,7 @@ export const POST = withApiErrorHandling(
         // multi-IP attacker with one compromised ADMIN session still burns
         // the shared tenant budget.
         if (!isRateLimitBypassed()) {
-            const enforcement = enforceRateLimit(req, {
+            const enforcement = await enforceRateLimit(req, {
                 scope: `invite-create:${ctx.tenantId}`,
                 config: TENANT_INVITE_CREATE_LIMIT,
                 ip: getClientIp(req),

@@ -229,15 +229,15 @@ describeFn('Epic A — tenant isolation + rate limiting + brute-force protection
 
         // Pre-condition: no prior failures.
         expect(
-            evaluateProgressiveRateLimit(key, LOGIN_PROGRESSIVE_POLICY)
+            (await evaluateProgressiveRateLimit(key, LOGIN_PROGRESSIVE_POLICY))
                 .failureCount,
         ).toBe(0);
 
         for (let i = 0; i < 10; i++) {
-            recordProgressiveFailure(key, LOGIN_PROGRESSIVE_POLICY);
+            await recordProgressiveFailure(key, LOGIN_PROGRESSIVE_POLICY);
         }
 
-        const decision = evaluateProgressiveRateLimit(
+        const decision = await evaluateProgressiveRateLimit(
             key,
             LOGIN_PROGRESSIVE_POLICY,
         );
@@ -250,9 +250,9 @@ describeFn('Epic A — tenant isolation + rate limiting + brute-force protection
     test('A.3 — tier 2 (5 failures → 30s delay) computes correctly', async () => {
         const key = 'login-progressive:epic-a-tier2';
         for (let i = 0; i < 5; i++) {
-            recordProgressiveFailure(key, LOGIN_PROGRESSIVE_POLICY);
+            await recordProgressiveFailure(key, LOGIN_PROGRESSIVE_POLICY);
         }
-        const decision = evaluateProgressiveRateLimit(
+        const decision = await evaluateProgressiveRateLimit(
             key,
             LOGIN_PROGRESSIVE_POLICY,
         );
@@ -280,7 +280,7 @@ describeFn('Epic A — tenant isolation + rate limiting + brute-force protection
         // Progressive auth counter (different scope prefix) untouched.
         const key = 'login-progressive:epic-a-unrelated';
         expect(
-            evaluateProgressiveRateLimit(key, LOGIN_PROGRESSIVE_POLICY)
+            (await evaluateProgressiveRateLimit(key, LOGIN_PROGRESSIVE_POLICY))
                 .failureCount,
         ).toBe(0);
     });
@@ -288,10 +288,10 @@ describeFn('Epic A — tenant isolation + rate limiting + brute-force protection
     test('layers coexist — progressive lockout does NOT pollute the mutation counter', async () => {
         const authKey = 'login-progressive:epic-a-auth-only';
         for (let i = 0; i < 10; i++) {
-            recordProgressiveFailure(authKey, LOGIN_PROGRESSIVE_POLICY);
+            await recordProgressiveFailure(authKey, LOGIN_PROGRESSIVE_POLICY);
         }
         expect(
-            evaluateProgressiveRateLimit(authKey, LOGIN_PROGRESSIVE_POLICY)
+            (await evaluateProgressiveRateLimit(authKey, LOGIN_PROGRESSIVE_POLICY))
                 .allowed,
         ).toBe(false);
 

@@ -12,6 +12,10 @@
  *   - lockout auto-expires and then permits the next attempt with zero delay
  *   - failures older than windowMs age out
  *   - concurrent keys are independent
+ *
+ * The primitive is now distributed-first (Roadmap-5 PR1): with no Upstash env
+ * configured (the test default) it uses the in-process Map, so the semantics
+ * asserted here are the fallback path — identical to before, just async.
  */
 
 import {
@@ -29,34 +33,34 @@ describe('Progressive rate-limit primitive', () => {
     });
 
     describe('LOGIN_PROGRESSIVE_POLICY tiers', () => {
-        it('no delay for the first 2 failures', () => {
+        it('no delay for the first 2 failures', async () => {
             const k = 'user-a';
             // Pre-check before any failure: zero.
-            expect(evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY)).toMatchObject({
+            expect(await evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY)).toMatchObject({
                 allowed: true,
                 delayMs: 0,
                 failureCount: 0,
             });
             // After 1 failure.
-            expect(recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY)).toMatchObject({
+            expect(await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY)).toMatchObject({
                 allowed: true,
                 delayMs: 0,
                 failureCount: 1,
             });
             // After 2 failures.
-            expect(recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY)).toMatchObject({
+            expect(await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY)).toMatchObject({
                 allowed: true,
                 delayMs: 0,
                 failureCount: 2,
             });
         });
 
-        it('applies 5s delay after the 3rd failure', () => {
+        it('applies 5s delay after the 3rd failure', async () => {
             const k = 'user-b';
             for (let i = 0; i < 3; i++) {
-                recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
+                await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
             }
-            const decision = evaluateProgressiveRateLimit(
+            const decision = await evaluateProgressiveRateLimit(
                 k,
                 LOGIN_PROGRESSIVE_POLICY,
             );
@@ -65,46 +69,46 @@ describe('Progressive rate-limit primitive', () => {
             expect(decision.failureCount).toBe(3);
         });
 
-        it('still 5s at 4 failures (tier 1 covers 3–4)', () => {
+        it('still 5s at 4 failures (tier 1 covers 3–4)', async () => {
             const k = 'user-c';
             for (let i = 0; i < 4; i++) {
-                recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
+                await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
             }
             expect(
-                evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY).delayMs,
+                (await evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY)).delayMs,
             ).toBe(5_000);
         });
 
-        it('escalates to 30s at 5 failures', () => {
+        it('escalates to 30s at 5 failures', async () => {
             const k = 'user-d';
             for (let i = 0; i < 5; i++) {
-                recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
+                await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
             }
             expect(
-                evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY).delayMs,
+                (await evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY)).delayMs,
             ).toBe(30_000);
         });
 
         it.each([5, 6, 7, 8, 9])(
             'stays at 30s through failure %i',
-            (count) => {
+            async (count) => {
                 const k = `user-${count}`;
                 for (let i = 0; i < count; i++) {
-                    recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
+                    await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
                 }
                 expect(
-                    evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY)
+                    (await evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY))
                         .delayMs,
                 ).toBe(30_000);
             },
         );
 
-        it('locks out at 10 failures with retryAfterSeconds ≥ 1', () => {
+        it('locks out at 10 failures with retryAfterSeconds ≥ 1', async () => {
             const k = 'user-locked';
             for (let i = 0; i < 10; i++) {
-                recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
+                await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
             }
-            const decision = evaluateProgressiveRateLimit(
+            const decision = await evaluateProgressiveRateLimit(
                 k,
                 LOGIN_PROGRESSIVE_POLICY,
             );
@@ -113,12 +117,12 @@ describe('Progressive rate-limit primitive', () => {
             expect(decision.failureCount).toBe(10);
         });
 
-        it('reports retryAfterSeconds ≤ lockoutMs in seconds (15 * 60)', () => {
+        it('reports retryAfterSeconds ≤ lockoutMs in seconds (15 * 60)', async () => {
             const k = 'user-locked-duration';
             for (let i = 0; i < 10; i++) {
-                recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
+                await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
             }
-            const decision = evaluateProgressiveRateLimit(
+            const decision = await evaluateProgressiveRateLimit(
                 k,
                 LOGIN_PROGRESSIVE_POLICY,
             );
@@ -127,78 +131,72 @@ describe('Progressive rate-limit primitive', () => {
     });
 
     describe('reset + isolation', () => {
-        it('resetProgressiveFailures clears the counter', () => {
+        it('resetProgressiveFailures clears the counter', async () => {
             const k = 'user-reset';
             for (let i = 0; i < 5; i++) {
-                recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
+                await recordProgressiveFailure(k, LOGIN_PROGRESSIVE_POLICY);
             }
-            resetProgressiveFailures(k);
+            await resetProgressiveFailures(k);
             expect(
-                evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY),
+                await evaluateProgressiveRateLimit(k, LOGIN_PROGRESSIVE_POLICY),
             ).toMatchObject({ allowed: true, delayMs: 0, failureCount: 0 });
         });
 
-        it('separate keys have independent counters', () => {
+        it('separate keys have independent counters', async () => {
             for (let i = 0; i < 10; i++) {
-                recordProgressiveFailure('alice', LOGIN_PROGRESSIVE_POLICY);
+                await recordProgressiveFailure('alice', LOGIN_PROGRESSIVE_POLICY);
             }
             expect(
-                evaluateProgressiveRateLimit('alice', LOGIN_PROGRESSIVE_POLICY)
+                (await evaluateProgressiveRateLimit('alice', LOGIN_PROGRESSIVE_POLICY))
                     .allowed,
             ).toBe(false);
             expect(
-                evaluateProgressiveRateLimit('bob', LOGIN_PROGRESSIVE_POLICY),
+                await evaluateProgressiveRateLimit('bob', LOGIN_PROGRESSIVE_POLICY),
             ).toMatchObject({ allowed: true, failureCount: 0 });
         });
     });
 
     describe('lockout expiry', () => {
-        it('after the lockout window elapses, the counter resets to zero', () => {
-            // Use a tiny policy so the test runs synchronously.
+        it('after the lockout window elapses, the counter resets to zero', async () => {
+            // Margins large enough to survive OS-descheduling jitter between the
+            // async calls under a loaded CI machine (the functions read the real
+            // clock; 300ms lockout + 600ms wait leaves comfortable slack).
             const policy: ProgressiveRateLimitPolicy = {
                 tiers: [{ atFailures: 2, delayMs: 1 }],
                 lockoutAtFailures: 3,
-                lockoutMs: 10, // 10 ms lockout
+                lockoutMs: 300,
                 windowMs: 60_000,
             };
             const k = 'u-expire';
-            for (let i = 0; i < 3; i++) recordProgressiveFailure(k, policy);
-            expect(evaluateProgressiveRateLimit(k, policy).allowed).toBe(false);
+            for (let i = 0; i < 3; i++) await recordProgressiveFailure(k, policy);
+            expect((await evaluateProgressiveRateLimit(k, policy)).allowed).toBe(false);
 
-            return new Promise<void>((resolve) => {
-                setTimeout(() => {
-                    const decision = evaluateProgressiveRateLimit(k, policy);
-                    expect(decision.allowed).toBe(true);
-                    expect(decision.delayMs).toBe(0);
-                    expect(decision.failureCount).toBe(0);
-                    resolve();
-                }, 30);
-            });
+            await new Promise<void>((resolve) => setTimeout(resolve, 600));
+            const decision = await evaluateProgressiveRateLimit(k, policy);
+            expect(decision.allowed).toBe(true);
+            expect(decision.delayMs).toBe(0);
+            expect(decision.failureCount).toBe(0);
         });
     });
 
     describe('window expiry', () => {
-        it('failures older than windowMs stop contributing', () => {
+        it('failures older than windowMs stop contributing', async () => {
             const policy: ProgressiveRateLimitPolicy = {
                 tiers: [{ atFailures: 2, delayMs: 1 }],
                 lockoutAtFailures: 5,
                 lockoutMs: 60_000,
-                windowMs: 20, // 20 ms rolling window
+                windowMs: 300, // rolling window — margin for async jitter
             };
             const k = 'u-window';
-            for (let i = 0; i < 3; i++) recordProgressiveFailure(k, policy);
+            for (let i = 0; i < 3; i++) await recordProgressiveFailure(k, policy);
             expect(
-                evaluateProgressiveRateLimit(k, policy).failureCount,
+                (await evaluateProgressiveRateLimit(k, policy)).failureCount,
             ).toBe(3);
 
-            return new Promise<void>((resolve) => {
-                setTimeout(() => {
-                    expect(
-                        evaluateProgressiveRateLimit(k, policy).failureCount,
-                    ).toBe(0);
-                    resolve();
-                }, 40);
-            });
+            await new Promise<void>((resolve) => setTimeout(resolve, 600));
+            expect(
+                (await evaluateProgressiveRateLimit(k, policy)).failureCount,
+            ).toBe(0);
         });
     });
 });

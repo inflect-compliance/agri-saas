@@ -49,11 +49,12 @@ describe('flushOutbox', () => {
         expect(res.remaining).toBe(1);
     });
 
-    it.each([408, 429])('retries on %d', async (status) => {
+    it('retries on 408 (transient, bumps attempts)', async () => {
         const s = await seed(1);
-        const res = await flushOutbox(s, async () => ({ ok: false, status }));
+        const res = await flushOutbox(s, async () => ({ ok: false, status: 408 }));
         expect(res.failed).toBe(1);
         expect(res.remaining).toBe(1);
+        expect((await s.all())[0].attempts).toBe(1);
     });
 
     it('drops a poison item once it exceeds MAX_ATTEMPTS', async () => {
@@ -83,6 +84,50 @@ describe('flushOutbox', () => {
             return { ok: true, status: 200 };
         });
         expect(order).toEqual(['first', 'second']);
+    });
+
+    // ── 429 rate-limit handling (Roadmap-5 PR1) ──────────────────────
+    // A PWA reconnect burst can outrun the mutation limiter. A 429 must
+    // RETAIN queued work (never dropped, never counts toward MAX_ATTEMPTS)
+    // and back off per Retry-After — a reconnect burst is a legit single-
+    // user pattern, not abuse.
+
+    it('429 retains the item WITHOUT bumping attempts', async () => {
+        const s = await seed(1);
+        const res = await flushOutbox(s, async () => ({ ok: false, status: 429 }));
+        expect(res).toMatchObject({ sent: 0, failed: 0, dropped: 0, remaining: 1, rateLimited: true });
+        // attempts untouched — a 429 is not the item's fault.
+        expect((await s.all())[0].attempts).toBe(0);
+    });
+
+    it('429 never drops queued work even past MAX_ATTEMPTS', async () => {
+        const s = new InMemoryOutboxStore();
+        await s.add({
+            id: 'hot', url: '/u', method: 'PATCH', body: {}, label: 'L',
+            createdAt: 1, attempts: MAX_ATTEMPTS, // already at the cap
+        });
+        const res = await flushOutbox(s, async () => ({ ok: false, status: 429 }));
+        expect(res.dropped).toBe(0);
+        expect(res.rateLimited).toBe(true);
+        expect(await s.all()).toHaveLength(1); // retained, not dropped
+    });
+
+    it('429 stops the burst — remaining items are left untouched', async () => {
+        const s = await seed(3);
+        let calls = 0;
+        const res = await flushOutbox(s, async () => {
+            calls++;
+            return { ok: false, status: 429 };
+        });
+        expect(calls).toBe(1); // stopped after the first 429
+        expect(res.remaining).toBe(3); // all three retained
+        expect(res.rateLimited).toBe(true);
+    });
+
+    it('429 surfaces the server Retry-After for backoff', async () => {
+        const s = await seed(1);
+        const res = await flushOutbox(s, async () => ({ ok: false, status: 429, retryAfter: 42 }));
+        expect(res.retryAfterSeconds).toBe(42);
     });
 
     it('handles a mixed batch: send ok, drop 4xx, keep 5xx', async () => {

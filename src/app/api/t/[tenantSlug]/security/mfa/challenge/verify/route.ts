@@ -2,7 +2,11 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { VerifyMfaInput } from '@/app-layer/schemas/mfa.schemas';
 import { withApiErrorHandling } from '@/lib/errors/api';
-import { checkRateLimit, resetRateLimit, MFA_VERIFY_LIMIT } from '@/lib/security/rate-limit';
+import { MFA_VERIFY_LIMIT } from '@/lib/security/rate-limit';
+import {
+    checkRateLimitDistributed,
+    resetRateLimitDistributed,
+} from '@/lib/security/rate-limit-middleware';
 import { verifyMfaChallenge } from '@/app-layer/usecases/mfa-challenge';
 import { env } from '@/env';
 import { jsonResponse } from '@/lib/api-response';
@@ -35,7 +39,7 @@ export const POST = withApiErrorHandling(async (
 
     // ── Rate Limit Check ────────────────────────────────────────────
     const rateLimitKey = `mfa-challenge:${userId}`;
-    const rateCheck = checkRateLimit(rateLimitKey, MFA_VERIFY_LIMIT);
+    const rateCheck = await checkRateLimitDistributed(rateLimitKey, MFA_VERIFY_LIMIT);
 
     if (!rateCheck.allowed) {
         const retrySeconds = Math.ceil(rateCheck.retryAfterMs / 1000);
@@ -77,7 +81,7 @@ export const POST = withApiErrorHandling(async (
     }
 
     // Reset rate limit on success
-    resetRateLimit(rateLimitKey);
+    await resetRateLimitDistributed(rateLimitKey);
 
     const response = jsonResponse({
         success: true,

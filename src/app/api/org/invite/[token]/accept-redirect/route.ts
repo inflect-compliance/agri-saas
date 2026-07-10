@@ -36,7 +36,7 @@ async function handle(
     routeArgs: { params: Promise<{ token: string }> },
 ) {
     if (!isRateLimitBypassed()) {
-        const enforcement = enforceRateLimit(req, {
+        const enforcement = await enforceRateLimit(req, {
             scope: 'org-invite-redeem',
             config: INVITE_REDEEM_LIMIT,
             ip: getClientIp(req),

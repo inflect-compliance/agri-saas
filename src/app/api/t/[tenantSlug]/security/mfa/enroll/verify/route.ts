@@ -4,7 +4,11 @@ import { verifyMfaEnrollment } from '@/app-layer/usecases/mfa-enrollment';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { withValidatedBody } from '@/lib/validation/route';
 import { VerifyMfaInput } from '@/app-layer/schemas/mfa.schemas';
-import { checkRateLimit, resetRateLimit, MFA_ENROLL_VERIFY_LIMIT } from '@/lib/security/rate-limit';
+import { MFA_ENROLL_VERIFY_LIMIT } from '@/lib/security/rate-limit';
+import {
+    checkRateLimitDistributed,
+    resetRateLimitDistributed,
+} from '@/lib/security/rate-limit-middleware';
 import { jsonResponse } from '@/lib/api-response';
 
 /**
@@ -25,7 +29,7 @@ export const POST = withApiErrorHandling(withValidatedBody(
 
         // Rate limit check
         const rateLimitKey = `mfa-enroll:${ctx.userId}`;
-        const rateCheck = checkRateLimit(rateLimitKey, MFA_ENROLL_VERIFY_LIMIT);
+        const rateCheck = await checkRateLimitDistributed(rateLimitKey, MFA_ENROLL_VERIFY_LIMIT);
 
         if (!rateCheck.allowed) {
             const retrySeconds = Math.ceil(rateCheck.retryAfterMs / 1000);
@@ -49,7 +53,7 @@ export const POST = withApiErrorHandling(withValidatedBody(
         }
 
         // Success — reset rate limit
-        resetRateLimit(rateLimitKey);
+        await resetRateLimitDistributed(rateLimitKey);
 
         return jsonResponse({
             success: true,

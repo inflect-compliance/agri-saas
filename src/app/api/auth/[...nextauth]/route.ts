@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
  */
 export async function POST(req: NextRequest, ctx: RouteContext) {
     if (!isRateLimitBypassed()) {
-        const { response } = enforceRateLimit(req, {
+        const { response } = await enforceRateLimit(req, {
             scope: 'login',
             config: LOGIN_LIMIT,
         });
