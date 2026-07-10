@@ -33,7 +33,7 @@ import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { getPermissionsForRole, type PermissionSet } from '@/lib/permissions';
 import {
     Shield, Pencil, Trash2, Check,
-    ChevronDown, ChevronUp, Users,
+    ChevronDown, ChevronUp, Users, Plus,
 } from 'lucide-react';
 import type { Role } from '@prisma/client';
 import { Button } from '@/components/ui/button';
@@ -608,10 +608,11 @@ export default function CustomRolesPage() {
                     {!showCreate && !editingId && (
                         <Button
                             variant="primary"
+                            icon={<Plus />}
                             onClick={() => setShowCreate(true)}
                             id="create-role-btn"
                         >
-                            + Role
+                            {t('newRoleButton')}
                         </Button>
                     )}
                 </div>

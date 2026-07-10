@@ -108,6 +108,7 @@ const UNTRANSLATED_ALLOWLIST = new Map<string, string>([
     ['admin.sso.clientSecret', 'IdP field label, kept in English'],
     ['admin.sso.idpEntityId', 'IdP field label, kept in English'],
     // Code / technical example placeholders (not natural-language copy).
+    ['admin.sso.certificatePlaceholder', 'X.509 cert example — technical, identical across locales'],
     ['admin.sso.clientIdPlaceholder', 'code-token example placeholder'],
     ['admin.sso.clientSecretPlaceholder', 'code-token example placeholder'],
     ['admin.sso.scopesPlaceholder', 'OAuth scope tokens — not translatable'],

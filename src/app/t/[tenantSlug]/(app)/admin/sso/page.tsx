@@ -353,7 +353,7 @@ export default function SsoAdminPage() {
                                 id="sso-oidc-issuer"
                                 value={oidcIssuer}
                                 onChange={(e) => setOidcIssuer(e.target.value)}
-                                placeholder="https://login.example.com"
+                                placeholder={t('issuerUrlPlaceholder')}
                                 className="input w-full"
                             />
                         </div>
@@ -406,7 +406,7 @@ export default function SsoAdminPage() {
                                 id="sso-saml-entity-id"
                                 value={samlEntityId}
                                 onChange={(e) => setSamlEntityId(e.target.value)}
-                                placeholder="https://idp.example.com"
+                                placeholder={t('idpEntityIdPlaceholder')}
                                 className="input w-full"
                             />
                         </div>
@@ -416,7 +416,7 @@ export default function SsoAdminPage() {
                                 id="sso-saml-sso-url"
                                 value={samlSsoUrl}
                                 onChange={(e) => setSamlSsoUrl(e.target.value)}
-                                placeholder="https://idp.example.com/saml/sso"
+                                placeholder={t('ssoUrlPlaceholder')}
                                 className="input w-full"
                             />
                         </div>
@@ -426,7 +426,7 @@ export default function SsoAdminPage() {
                                 id="sso-saml-certificate"
                                 value={samlCertificate}
                                 onChange={(e) => setSamlCertificate(e.target.value)}
-                                placeholder="MIICzjCCAb..."
+                                placeholder={t('certificatePlaceholder')}
                                 rows={3}
                                 className="input w-full font-mono text-xs"
                             />
@@ -444,7 +444,7 @@ export default function SsoAdminPage() {
                                 id="sso-saml-nameid"
                                 value={samlNameIdFormat}
                                 onChange={(e) => setSamlNameIdFormat(e.target.value)}
-                                placeholder="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
+                                placeholder={t('nameIdFormatPlaceholder')}
                                 className="input w-full text-xs"
                             />
                         </div>

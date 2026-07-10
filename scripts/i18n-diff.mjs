@@ -65,7 +65,8 @@ function looksTranslatable(value) {
 const UNTRANSLATED_ALLOWLIST = new Set([
     'admin.entra.directoryIdLabel', 'admin.entra.clientIdLabel', 'admin.sso.clientId',
     'admin.sso.clientSecret', 'admin.sso.idpEntityId', 'admin.sso.clientIdPlaceholder',
-    'admin.sso.clientSecretPlaceholder', 'admin.sso.scopesPlaceholder', 'org.newTenant.namePlaceholder',
+    'admin.sso.clientSecretPlaceholder', 'admin.sso.scopesPlaceholder', 'admin.sso.certificatePlaceholder',
+    'org.newTenant.namePlaceholder',
     'exchange.client.heading', 'locations.spray.techniqueLabel', 'grain.yield.colTPerHa',
     'inventory.activeIngredientPlaceholder',
 ]);

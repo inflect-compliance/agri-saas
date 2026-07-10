@@ -37,12 +37,12 @@
  */
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useKeyboardShortcut, useRegisteredShortcuts } from "@/lib/hooks/use-keyboard-shortcut";
 import { Modal } from "@/components/ui/modal";
 import { Heading } from '@/components/ui/typography';
 
 const OPEN_HELP_KEY = "?";
-const OPEN_HELP_DESCRIPTION = "Show keyboard shortcuts";
 
 interface DisplayShortcut {
     id: string;
@@ -111,6 +111,7 @@ function isMacUserAgent(): boolean {
 }
 
 export function ShortcutHelpOverlay() {
+    const t = useTranslations('shortcutHelp');
     const [open, setOpen] = useState(false);
 
     // Toggle on `?`. allowInInputs stays at its default (false) so
@@ -124,7 +125,7 @@ export function ShortcutHelpOverlay() {
         OPEN_HELP_KEY,
         () => setOpen((prev) => !prev),
         {
-            description: OPEN_HELP_DESCRIPTION,
+            description: t('showShortcuts'),
             allowWhenOverlayOpen: true,
         },
     );
@@ -163,23 +164,23 @@ export function ShortcutHelpOverlay() {
             showModal={open}
             setShowModal={setOpen}
             size="md"
-            title="Keyboard shortcuts"
-            description="Press ? any time to show this list. Shortcuts are ignored while you're typing."
+            title={t('title')}
+            description={t('description')}
         >
             <Modal.Header
-                title="Keyboard shortcuts"
-                description="Press ? any time to show this list. Shortcuts are ignored while you're typing."
+                title={t('title')}
+                description={t('description')}
             />
             <Modal.Body className="space-y-section" data-testid="shortcut-help-body">
                 <Group
-                    title="Available now"
-                    emptyHint="No global shortcuts are registered yet."
+                    title={t('availableNow')}
+                    emptyHint={t('emptyHint')}
                     rows={globalRows}
                     isMac={isMac}
                 />
                 {overlayRows.length > 0 && (
                     <Group
-                        title="In dialogs & sheets"
+                        title={t('inDialogsAndSheets')}
                         emptyHint=""
                         rows={overlayRows}
                         isMac={isMac}

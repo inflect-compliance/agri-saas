@@ -79,7 +79,25 @@
         "namePlaceholder": "Jane Smith",
         "orgPlaceholder": "Acme Corp",
         "emailPlaceholder": "you@company.com",
-        "passwordPlaceholder": "••••••••"
+        "passwordPlaceholder": "••••••••",
+        "registrationFailed": "Registration failed",
+        "loginFailed": "Login failed",
+        "invalidCredentials": "Invalid credentials",
+        "verifyVerified": "Email verified — you can sign in now.",
+        "verifyExpired": "That verification link has expired. Request a new one below.",
+        "verifyInvalid": "That verification link is not valid. Request a new one below.",
+        "passwordReset": "Your password has been reset — sign in with your new password.",
+        "passwordChanged": "Your password has been changed — please sign in again.",
+        "continueWithGoogle": "Continue with Google",
+        "continueWithMicrosoft": "Continue with Microsoft",
+        "orContinueWithEmail": "or continue with email",
+        "forgotPassword": "Forgot your password?",
+        "resendSent": "If that email is registered and not yet verified, a new link is on its way.",
+        "resendEmailAria": "Email for verification resend",
+        "resendEmailPlaceholder": "Didn't get a verification email?",
+        "resendSending": "Sending…",
+        "resend": "Resend",
+        "loading": "Loading..."
     },
     "nav": {
         "dashboard": "Board",
@@ -1464,7 +1482,8 @@
             "revokedKeySingular": "revoked key",
             "confirmRevokeTitle": "Revoke API key \"{name}\"?",
             "confirmRevokeTitleGeneric": "Revoke API key?",
-            "confirmRevokeDesc": "Key prefix {prefix}… will stop working immediately. Any integration using it will lose access. This cannot be undone."
+            "confirmRevokeDesc": "Key prefix {prefix}… will stop working immediately. Any integration using it will lose access. This cannot be undone.",
+            "newApiKeyButton": "API Key"
         },
         "billing": {
             "breadcrumbDashboard": "Dashboard",
@@ -1500,7 +1519,11 @@
             "entFeature4": "Dedicated account manager",
             "manageSubscription": "Manage Subscription",
             "manageSubscriptionBody": "Update payment method, view invoices, or change your plan via the Stripe Customer Portal.",
-            "recentActivity": "Recent Activity"
+            "recentActivity": "Recent Activity",
+            "manageBilling": "Manage Billing",
+            "upgradeTo": "Upgrade to {plan}",
+            "failedStatus": "Failed ({status})",
+            "somethingWentWrong": "Something went wrong"
         },
         "rbac": {
             "breadcrumbDashboard": "Dashboard",
@@ -1536,7 +1559,28 @@
             "saving": "Saving…",
             "save": "Save",
             "saveFailedGuid": "Save failed — check the directory + client IDs are valid GUIDs.",
-            "saveFailedNetwork": "Save failed — network error."
+            "saveFailedNetwork": "Save failed — network error.",
+            "mappingExists": "A mapping for this group already exists.",
+            "mappingAccessDenied": "Access denied — only admins can manage mappings.",
+            "mappingAddFailedGuid": "Add failed — the group ID must be a valid GUID.",
+            "mappingAddFailedNetwork": "Add failed — network error.",
+            "mappingRemoved": "Mapping for {group} removed",
+            "undo": "Undo",
+            "mappingRemoveFailed": "Failed to remove the mapping — it has been restored.",
+            "mappingsTitle": "3 · Group → role mappings",
+            "mappingsDescription": "Map an Entra security group to an IC role. When a user signs in, the highest-priority matching group sets their role. Ownership is never assigned by group — it stays manually granted.",
+            "mappingsEmptyTitle": "No group mappings yet",
+            "mappingsEmptyDescription": "Add a mapping below to drive roles from Entra group membership.",
+            "priorityValue": "priority {value}",
+            "removeMappingAria": "Remove mapping for {group}",
+            "groupObjectIdLabel": "Group object ID",
+            "displayNameLabel": "Display name (optional)",
+            "displayNamePlaceholder": "Engineering — Security",
+            "roleLabel": "Role",
+            "roleHint": "OWNER is granted manually, not by group.",
+            "priorityLabel": "Priority",
+            "addingMapping": "Adding…",
+            "addMapping": "Add mapping"
         },
         "farmProfile": {
             "breadcrumbDashboard": "Dashboard",
@@ -1628,7 +1672,8 @@
             "stale": "Stale",
             "policyLinks": "Policy links",
             "recentSyncActivity": "Recent sync activity",
-            "noSpActivity": "No SharePoint activity yet."
+            "noSpActivity": "No SharePoint activity yet.",
+            "addIntegrationButton": "Integration"
         },
         "ledgerIntegrity": {
             "colRunAt": "Run at",
@@ -1656,7 +1701,12 @@
             "unknownSubtitle": "Verdict unavailable for this run. Last run {when}.",
             "intact": "Intact",
             "drift": "Drift",
-            "unknown": "Unknown"
+            "unknown": "Unknown",
+            "breadcrumbDashboard": "Dashboard",
+            "breadcrumbAdmin": "Admin",
+            "breadcrumbLedgerIntegrity": "Ledger Integrity",
+            "title": "Stock Ledger Integrity",
+            "description": "Verify the append-only stock ledger's hash chain and review past reconciliation runs."
         },
         "modules": {
             "breadcrumbDashboard": "Dashboard",
@@ -1805,7 +1855,8 @@
             "saveChanges": "Save Changes",
             "noRoles": "No custom roles defined yet. Click \"Create Custom Role\" to get started.",
             "customRolesPlural": "custom roles",
-            "customRoleSingular": "custom role"
+            "customRoleSingular": "custom role",
+            "newRoleButton": "Role"
         },
         "scim": {
             "noPermission": "You do not have permission to view SCIM tokens.",
@@ -1857,7 +1908,8 @@
             "roleMapping": "<strongMuted>Role mapping:</strongMuted> SCIM-provisioned users are assigned the <strong>Reader</strong> role by default. Editors and Auditors can be mapped via your IdP's group/role assignment. Admin role cannot be assigned via SCIM — it must be set manually.",
             "confirmRevokeTitle": "Revoke SCIM token?",
             "confirmRevokeDesc": "Any IdP using this token will lose access immediately. This cannot be undone.",
-            "confirmRevokeLabel": "Revoke token"
+            "confirmRevokeLabel": "Revoke token",
+            "newTokenButton": "Token"
         },
         "security": {
             "loadFailed": "Failed to load security settings",
@@ -1979,7 +2031,12 @@
             "howItWorks4": "• Email domains help auto-discover SSO on the login page",
             "confirmDeleteTitle": "Delete SSO configuration?",
             "confirmDeleteDesc": "Users will need to use local login until SSO is reconfigured. This cannot be undone.",
-            "confirmDeleteLabel": "Delete configuration"
+            "confirmDeleteLabel": "Delete configuration",
+            "issuerUrlPlaceholder": "https://login.example.com",
+            "idpEntityIdPlaceholder": "https://idp.example.com",
+            "ssoUrlPlaceholder": "https://idp.example.com/saml/sso",
+            "certificatePlaceholder": "MIICzjCCAb...",
+            "nameIdFormatPlaceholder": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
         },
         "vendorTemplates": {
             "breadcrumbDashboard": "Dashboard",
@@ -2029,7 +2086,10 @@
             "promptPlaceholder": "Do you encrypt data at rest?",
             "typeLabel": "Type",
             "weightLabel": "Weight",
-            "requiredCheckbox": "Required"
+            "requiredCheckbox": "Required",
+            "addSectionButton": "Section",
+            "addQuestionButton": "Question",
+            "addingEllipsis": "Adding…"
         },
         "vendorReview": {
             "loadFailed": "Failed to load ({status})",
@@ -2142,6 +2202,28 @@
             "certificatesForMember": "Certificates — {name}",
             "certificatesEditableNote": "Editable per member. Blank clears a field.",
             "saveCertificates": "Save certificates"
+        },
+        "hub": {
+            "theme": "Theme",
+            "membersAndRoles": "Members & Roles",
+            "rolesAndAccess": "Roles & Access",
+            "customRoles": "Custom Roles",
+            "apiKeys": "API Keys",
+            "billing": "Billing",
+            "ssoIdentity": "SSO & Identity",
+            "scimProvisioning": "SCIM Provisioning",
+            "entraAccessMapping": "Entra Access Mapping",
+            "integrations": "Integrations",
+            "modules": "Modules",
+            "farmProfile": "Farm profile",
+            "securityMfa": "Security & MFA",
+            "riskAppetite": "Risk Appetite",
+            "notifications": "Notifications",
+            "ledgerIntegrity": "Ledger Integrity"
+        },
+        "forbidden": {
+            "title": "Admin Access Required",
+            "message": "You do not have permission to access admin settings. Contact your workspace administrator to request access."
         }
     },
     "riskManager": {
@@ -6740,5 +6822,23 @@
         "vendorTemplates": "Vendor templates",
         "previousPage": "previous page",
         "backTo": "Back to {label}"
+    },
+    "shortcutHelp": {
+        "title": "Keyboard shortcuts",
+        "description": "Press ? any time to show this list. Shortcuts are ignored while you're typing.",
+        "showShortcuts": "Show keyboard shortcuts",
+        "availableNow": "Available now",
+        "inDialogsAndSheets": "In dialogs & sheets",
+        "emptyHint": "No global shortcuts are registered yet."
+    },
+    "forbidden": {
+        "title": "Access Denied",
+        "message": "You do not have permission to view this page. Contact your workspace admin to request access.",
+        "backToDashboard": "Back to Dashboard"
+    },
+    "chartFrame": {
+        "errorTitle": "Couldn't load chart",
+        "emptyTitle": "No data yet",
+        "emptyDescription": "Once data flows in, this chart will populate."
     }
 }

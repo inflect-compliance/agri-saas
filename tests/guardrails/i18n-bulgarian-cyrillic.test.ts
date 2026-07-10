@@ -73,6 +73,8 @@ const LATIN_KEY_ALLOWLIST = new Map<string, string>([
     ['admin.sso.clientSecretPlaceholder', 'code-token example placeholder'],
     ['admin.sso.scopesPlaceholder', 'OAuth scope tokens — not translatable'],
     ['admin.sso.idpEntityId', 'IdP console field label — kept in English'],
+    ['admin.sso.certificatePlaceholder', 'X.509 cert example placeholder — technical, not translatable'],
+    ['admin.sso.nameIdFormatPlaceholder', 'SAML NameID URN example — technical, not translatable'],
     ['environmentBadge.staging', 'deploy-environment name — canonical English label'],
     ['environmentBadge.dev', 'deploy-environment name — canonical English label'],
     ['backNav.soa', 'SoA — Statement of Applicability, standard compliance acronym'],

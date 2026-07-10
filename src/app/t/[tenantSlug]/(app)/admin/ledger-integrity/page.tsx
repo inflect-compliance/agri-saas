@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server';
 import { getTenantCtx } from '@/app-layer/context';
 import {
     listLedgerReconciliationHistory,
@@ -29,6 +30,7 @@ export default async function LedgerIntegrityPage({
 }) {
     const { tenantSlug } = await params;
     const ctx = await getTenantCtx({ tenantSlug });
+    const t = await getTranslations('admin.ledgerIntegrity');
 
     let history: LedgerReconciliationRun[] = [];
     try {
@@ -44,12 +46,12 @@ export default async function LedgerIntegrityPage({
         <div className="space-y-section animate-fadeIn">
             <PageHeader
                 breadcrumbs={[
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
-                    { label: 'Admin', href: tenantHref('/admin') },
-                    { label: 'Ledger Integrity' },
+                    { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
+                    { label: t('breadcrumbAdmin'), href: tenantHref('/admin') },
+                    { label: t('breadcrumbLedgerIntegrity') },
                 ]}
-                title="Stock Ledger Integrity"
-                description="Verify the append-only stock ledger's hash chain and review past reconciliation runs."
+                title={t('title')}
+                description={t('description')}
             />
 
             <LedgerIntegrityClient history={JSON.parse(JSON.stringify(history))} />
