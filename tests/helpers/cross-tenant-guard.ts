@@ -14,13 +14,16 @@
 import { describe, expect, it } from '@jest/globals';
 import type { NextRequest } from 'next/server';
 
-type Handler = (req: NextRequest, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
-
 export interface CrossTenantGuardSpec {
     /** Human label, e.g. 'PATCH /exchange/listings/[listingId]'. */
     name: string;
-    /** The real route handler under test. */
-    handler: Handler;
+    /**
+     * The real route handler under test. Declared as a METHOD signature so its
+     * parameters are checked bivariantly — route handlers type `ctx.params` with
+     * their own specific param keys (`{ tenantSlug, listingId }`), which a strict
+     * function-type field would reject.
+     */
+    handler(req: NextRequest, ctx: { params: Promise<Record<string, string>> }): Promise<Response>;
     /** Build the request (optionally carrying a body with foreign ids). */
     makeReq: (body?: unknown) => NextRequest;
     /** Path params, including a FOREIGN resource id. */
