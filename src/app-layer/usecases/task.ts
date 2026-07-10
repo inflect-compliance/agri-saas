@@ -431,7 +431,7 @@ async function enqueueTaskAssignedNotification(
 
         const assigner = await db.user.findUnique({
             where: { id: ctx.userId },
-            select: { name: true },
+            select: { name: true, email: true },
         });
 
         await enqueueEmail(db, {
@@ -445,7 +445,9 @@ async function enqueueTaskAssignedNotification(
                 taskKey,
                 taskType,
                 assigneeName: assignee.name || assignee.email,
-                assignerName: assigner?.name || undefined,
+                // Who assigned it — name, or email as a fallback so the
+                // "assigned by …" line always shows.
+                assignerName: assigner?.name || assigner?.email || undefined,
                 tenantSlug: ctx.tenantSlug || '',
             },
         });

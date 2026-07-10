@@ -2,6 +2,7 @@
  * Email template builders for each EmailNotificationType.
  * Returns { subject, bodyText, bodyHtml } for each type.
  */
+import { env } from '@/env';
 
 export interface EmailTemplateResult {
     subject: string;
@@ -24,7 +25,7 @@ export function buildTaskAssignedEmail(payload: TaskAssignedPayload): EmailTempl
     const { taskTitle, taskKey, taskType, assigneeName, assignerName, tenantSlug } = payload;
     const keyLabel = taskKey ? `[${taskKey}] ` : '';
     const byLine = assignerName ? ` by ${assignerName}` : '';
-    const link = `/t/${tenantSlug}/tasks`;
+    const link = absoluteUrl(`/t/${tenantSlug}/tasks`);
 
     return {
         subject: `Task assigned to you: ${keyLabel}${taskTitle}`,
@@ -67,7 +68,7 @@ export interface EvidenceExpiringPayload {
 export function buildEvidenceExpiringEmail(payload: EvidenceExpiringPayload): EmailTemplateResult {
     const { evidenceTitle, daysRemaining, retentionUntil, controlName, recipientName, tenantSlug } = payload;
     const urgency = daysRemaining <= 7 ? '⚠️ ' : '';
-    const link = `/t/${tenantSlug}/evidence`;
+    const link = absoluteUrl(`/t/${tenantSlug}/evidence`);
 
     return {
         subject: `${urgency}Evidence expiring in ${daysRemaining} day(s): ${evidenceTitle}`,
@@ -109,7 +110,7 @@ export interface PolicyApprovalRequestedPayload {
 export function buildPolicyApprovalRequestedEmail(payload: PolicyApprovalRequestedPayload): EmailTemplateResult {
     const { policyTitle, requesterName, approverName, versionNumber, tenantSlug } = payload;
     const versionLabel = versionNumber ? ` (v${versionNumber})` : '';
-    const link = `/t/${tenantSlug}/policies`;
+    const link = absoluteUrl(`/t/${tenantSlug}/policies`);
 
     return {
         subject: `Policy approval requested: ${policyTitle}${versionLabel}`,
@@ -156,7 +157,7 @@ export function buildPolicyDecisionEmail(payload: PolicyDecisionPayload): EmailT
     const isApproved = decision === 'APPROVED';
     const emoji = isApproved ? '✅' : '❌';
     const word = isApproved ? 'approved' : 'rejected';
-    const link = `/t/${tenantSlug}/policies`;
+    const link = absoluteUrl(`/t/${tenantSlug}/policies`);
 
     return {
         subject: `${emoji} Policy ${word}: ${policyTitle}`,
@@ -448,7 +449,7 @@ export function buildAccessReviewReminderEmail(
         accessReviewId,
     } = payload;
 
-    const link = `/t/${tenantSlug}/access-reviews/${accessReviewId}`;
+    const link = absoluteUrl(`/t/${tenantSlug}/access-reviews/${accessReviewId}`);
     const dueLabel =
         daysUntilDue < 0
             ? `overdue by ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) === 1 ? '' : 's'}`
@@ -524,7 +525,7 @@ export function buildAccessReviewOverdueEscalationEmail(
         reviewerEmail,
     } = payload;
 
-    const link = `/t/${tenantSlug}/access-reviews/${accessReviewId}`;
+    const link = absoluteUrl(`/t/${tenantSlug}/access-reviews/${accessReviewId}`);
     const reviewerLine = reviewerEmail
         ? `${reviewerName} (${reviewerEmail})`
         : reviewerName;
@@ -600,7 +601,7 @@ export function buildExceptionExpiringEmail(
         exceptionId,
         controlId,
     } = payload;
-    const link = `/t/${tenantSlug}/controls/${controlId}#exceptions`;
+    const link = absoluteUrl(`/t/${tenantSlug}/controls/${controlId}#exceptions`);
     const controlLabel = controlCode
         ? `${controlCode} — ${controlName}`
         : controlName;
@@ -644,6 +645,19 @@ export function buildExceptionExpiringEmail(
 }
 
 // ─── Helpers ───
+
+/**
+ * Make an in-app path absolute for email links. Emails render outside the
+ * app origin, so a bare `/t/…` path resolves to a host-less `http:///t/…`
+ * in the recipient's mail client (the "Redirect Notice" bug). Prefix it with
+ * the deployment's public origin — `APP_URL`, falling back to `NEXTAUTH_URL`
+ * (always set in a working auth deploy). If neither is configured the path is
+ * returned unchanged so nothing crashes.
+ */
+function absoluteUrl(path: string): string {
+    const base = (env.APP_URL || env.NEXTAUTH_URL || '').replace(/\/+$/, '');
+    return base ? `${base}${path}` : path;
+}
 
 function formatIsoDate(iso: string): string {
     try {
