@@ -92,6 +92,9 @@ jobs:
       - name: Build Next.js app
         run: npx next build --webpack
         env:
+          # `next build` OOMs on the private-repo runners' ~2 GB default heap
+          # (exit 134) — lift it as the CI workflow's build/jest jobs do.
+          NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
 
       - name: Start app (background)
