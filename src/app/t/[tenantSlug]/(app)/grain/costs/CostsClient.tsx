@@ -70,6 +70,7 @@ export function CostsClient({
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
     const t = useTranslations('grainEnums');
+    const tc = useTranslations('grain.costs');
     const [by, setBy] = useState<Dimension>(initialBy);
 
     const dimensionOptions = useMemo(
@@ -105,7 +106,7 @@ export function CostsClient({
             createColumns<PlantingCostRow>([
                 {
                     accessorKey: 'plantingName',
-                    header: 'Planting',
+                    header: tc('colPlanting'),
                     cell: ({ row }) => (
                         <span className="text-content-emphasis">
                             {row.original.plantingName}
@@ -114,7 +115,7 @@ export function CostsClient({
                 },
                 {
                     id: 'cropVariety',
-                    header: 'Variety',
+                    header: tc('colVariety'),
                     accessorFn: (r) => r.cropVariety ?? '—',
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">
@@ -124,7 +125,7 @@ export function CostsClient({
                 },
                 {
                     id: 'logEntryCost',
-                    header: 'Field-event cost',
+                    header: tc('colFieldEventCost'),
                     accessorFn: (r) => r.logEntryCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums block text-right">
@@ -134,7 +135,7 @@ export function CostsClient({
                 },
                 {
                     id: 'stockCost',
-                    header: 'Input cost',
+                    header: tc('colInputCost'),
                     accessorFn: (r) => r.stockCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums block text-right">
@@ -144,7 +145,7 @@ export function CostsClient({
                 },
                 {
                     id: 'totalCost',
-                    header: 'Total cost',
+                    header: tc('colTotalCost'),
                     accessorFn: (r) => r.totalCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-emphasis tabular-nums block text-right">
@@ -153,7 +154,7 @@ export function CostsClient({
                     ),
                 },
             ]),
-        [],
+        [tc],
     );
 
     const seasonColumns = useMemo(
@@ -161,8 +162,8 @@ export function CostsClient({
             createColumns<SeasonCostRow>([
                 {
                     id: 'seasonName',
-                    header: 'Season',
-                    accessorFn: (r) => r.seasonName ?? 'Unassigned',
+                    header: tc('colSeason'),
+                    accessorFn: (r) => r.seasonName ?? tc('unassigned'),
                     cell: ({ getValue }) => (
                         <span className="text-content-emphasis">
                             {getValue() as string}
@@ -171,7 +172,7 @@ export function CostsClient({
                 },
                 {
                     id: 'plantingCount',
-                    header: 'Plantings',
+                    header: tc('colPlantings'),
                     accessorFn: (r) => r.plantingCount,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums">
@@ -181,7 +182,7 @@ export function CostsClient({
                 },
                 {
                     id: 'logEntryCost',
-                    header: 'Field-event cost',
+                    header: tc('colFieldEventCost'),
                     accessorFn: (r) => r.logEntryCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums block text-right">
@@ -191,7 +192,7 @@ export function CostsClient({
                 },
                 {
                     id: 'stockCost',
-                    header: 'Input cost',
+                    header: tc('colInputCost'),
                     accessorFn: (r) => r.stockCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums block text-right">
@@ -201,7 +202,7 @@ export function CostsClient({
                 },
                 {
                     id: 'totalCost',
-                    header: 'Total cost',
+                    header: tc('colTotalCost'),
                     accessorFn: (r) => r.totalCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-emphasis tabular-nums block text-right">
@@ -210,7 +211,7 @@ export function CostsClient({
                     ),
                 },
             ]),
-        [],
+        [tc],
     );
 
     const fieldColumns = useMemo(
@@ -218,8 +219,8 @@ export function CostsClient({
             createColumns<FieldCostRow>([
                 {
                     id: 'locationName',
-                    header: 'Field',
-                    accessorFn: (r) => r.locationName ?? 'Unassigned',
+                    header: tc('colField'),
+                    accessorFn: (r) => r.locationName ?? tc('unassigned'),
                     cell: ({ getValue }) => (
                         <span className="text-content-emphasis">
                             {getValue() as string}
@@ -228,7 +229,7 @@ export function CostsClient({
                 },
                 {
                     id: 'plantingCount',
-                    header: 'Plantings',
+                    header: tc('colPlantings'),
                     accessorFn: (r) => r.plantingCount,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums">
@@ -238,7 +239,7 @@ export function CostsClient({
                 },
                 {
                     id: 'logEntryCost',
-                    header: 'Field-event cost',
+                    header: tc('colFieldEventCost'),
                     accessorFn: (r) => r.logEntryCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums block text-right">
@@ -248,7 +249,7 @@ export function CostsClient({
                 },
                 {
                     id: 'stockCost',
-                    header: 'Input cost',
+                    header: tc('colInputCost'),
                     accessorFn: (r) => r.stockCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted tabular-nums block text-right">
@@ -258,7 +259,7 @@ export function CostsClient({
                 },
                 {
                     id: 'totalCost',
-                    header: 'Total cost',
+                    header: tc('colTotalCost'),
                     accessorFn: (r) => r.totalCost,
                     cell: ({ row }) => (
                         <span className="text-xs text-content-emphasis tabular-nums block text-right">
@@ -267,15 +268,15 @@ export function CostsClient({
                     ),
                 },
             ]),
-        [],
+        [tc],
     );
 
     const emptyState = (
         <EmptyState
             size="sm"
             variant="no-records"
-            title="No costs to roll up yet"
-            description="Cost rollups appear once field-event and input costs are logged against your plantings."
+            title={tc('emptyTitle')}
+            description={tc('emptyDescription')}
         />
     );
 
@@ -292,13 +293,13 @@ export function CostsClient({
                         { label: t('dashboard'), href: tenantHref('/dashboard') },
                         { label: t('costs') },
                     ]}
-                    title="Costs"
-                    description="Per-activity cost rollup — field-event and input costs grouped by planting, field, or season."
+                    title={tc('title')}
+                    description={tc('description')}
                 />
             </ListPageShell.Header>
             <ListPageShell.Filters className="space-y-section">
                 <ToggleGroup
-                    ariaLabel="Cost dimension"
+                    ariaLabel={tc('dimensionAria')}
                     options={dimensionOptions}
                     selected={by}
                     selectAction={(v) => setBy(v as Dimension)}

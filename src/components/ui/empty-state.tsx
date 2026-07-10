@@ -31,6 +31,7 @@
  */
 
 import { cn } from "@/lib/cn";
+import { useTranslations } from "next-intl";
 import { AlertCircle, Inbox, SearchX } from "lucide-react";
 import { type PropsWithChildren, type ReactNode } from "react";
 import { Button } from "./button";
@@ -109,6 +110,7 @@ export function EmptyState({
     className,
     "data-testid": dataTestId,
 }: EmptyStateProps) {
+    const t = useTranslations("ui.emptyState");
     const Icon = icon ?? variantIcon[variant];
 
     return (
@@ -151,7 +153,7 @@ export function EmptyState({
                             rel="noopener noreferrer"
                             tone="underline"
                         >
-                            Learn more ↗
+                            {t("learnMore")}
                         </TextLink>
                     )}
                 </p>

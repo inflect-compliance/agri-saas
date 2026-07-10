@@ -25,9 +25,8 @@ jest.mock('@/lib/tenant-context-provider', () => ({
     useMoneyFormatter: () => (v: number | null | undefined) =>
         jest.requireActual('@/lib/risk-coherence').formatCompactCurrency(v),
 }));
-jest.mock('next-intl', () => ({
-    useTranslations: () => (key: string) => key,
-}));
+// next-intl is mocked globally in tests/rendered/setup.ts (resolves keys
+// against real en.json + interpolates + provides t.rich); no local override.
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import RiskBoardPage from '@/app/t/[tenantSlug]/(app)/risks/board/page';

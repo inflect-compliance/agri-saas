@@ -212,8 +212,8 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                 body: JSON.stringify(payload),
             });
             if (!res.ok) {
-                const e = await res.json().catch(() => ({ error: 'Save failed' }));
-                throw new Error(e.error ?? 'Save failed');
+                const e = await res.json().catch(() => ({ error: t('ruleBuilder.saveFailed') }));
+                throw new Error(e.error ?? t('ruleBuilder.saveFailed'));
             }
             await mutate(apiUrl(CACHE_KEYS.automation.rules.list()));
             setOpen(false);
@@ -459,7 +459,7 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                                             onChange={(e) =>
                                                 patch({ notify: { ...form.notify, message: e.target.value } })
                                             }
-                                            placeholder="Risk {{title}} was escalated."
+                                            placeholder={t('ruleBuilder.messagePlaceholder')}
                                         />
                                     </FormField>
                                 </>
@@ -471,7 +471,7 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                                         onChange={(e) =>
                                             patch({ task: { ...form.task, title: e.target.value } })
                                         }
-                                        placeholder="Remediate {{title}}"
+                                        placeholder={t('ruleBuilder.taskTitlePlaceholder')}
                                     />
                                 </FormField>
                             )}

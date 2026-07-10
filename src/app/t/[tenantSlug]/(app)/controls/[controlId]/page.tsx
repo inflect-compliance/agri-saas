@@ -803,7 +803,7 @@ export default function ControlDetailPage() {
             onTabChange={(next) => setTab(next as Tab)}
             rail={
                 <AsidePanel
-                    title="AI Suggestions"
+                    title={t('detail.aiSuggestions')}
                     surfaceKey="controls-detail-ai"
                     defaultCollapsed
                     icon={<Sparkle3 className="h-4 w-4" />}
@@ -1007,8 +1007,8 @@ export default function ControlDetailPage() {
                     <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
                         {evidenceSWR.error ? (
                             <InlineEmptyState
-                                title="Couldn't load evidence"
-                                description="Something went wrong fetching this control's evidence. Reload the page to try again."
+                                title={t('detail.evidenceLoadErrorTitle')}
+                                description={t('detail.evidenceLoadErrorDesc')}
                             />
                         ) : (
                             <EvidenceSubTable
@@ -1060,7 +1060,7 @@ export default function ControlDetailPage() {
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm text-content-default">{ev.details}</p>
                                         <p className="text-xs text-content-subtle mt-0.5">
-                                            {ev.user?.name || 'System'} · {formatDateTime(ev.createdAt)}
+                                            {ev.user?.name || t('detail.systemActor')} · {formatDateTime(ev.createdAt)}
                                         </p>
                                     </div>
                                 </div>

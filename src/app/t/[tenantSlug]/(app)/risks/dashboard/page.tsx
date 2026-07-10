@@ -152,7 +152,7 @@ export default function RiskDashboardPage() {
                 <Card>
                     <Heading level={3} className="mb-4">{t('statusBreakdown')}</Heading>
                     <StatusBreakdown
-                        ariaLabel="Risk status breakdown"
+                        ariaLabel={t('statusBreakdownAria')}
                         total={total}
                         showPercent
                         emptyState={
@@ -181,22 +181,20 @@ export default function RiskDashboardPage() {
                 WHY there's no curve. */}
             {analytics && analytics.totals.quantifiedCount === 0 && analytics.totals.totalCount > 0 && (
                 <Card data-testid="risk-quant-empty-hint">
-                    <Heading level={2} className="mb-2">Quantitative analytics</Heading>
+                    <Heading level={2} className="mb-2">{t('quantAnalyticsTitle')}</Heading>
                     <p className="text-sm text-content-muted">
-                        No risks quantified yet — open a risk and set SLE × ARO
-                        on the overview, or fill the FAIR inputs on the
-                        Quantification tab, to populate the loss-exceedance
-                        curve and top-by-ALE table here.
+                        {t('quantEmptyHint')}
                     </p>
                 </Card>
             )}
             {analytics && analytics.totals.quantifiedCount > 0 && (
                 <Card data-testid="risk-quant-analytics">
-                    <Heading level={2} className="mb-2">Quantitative analytics</Heading>
+                    <Heading level={2} className="mb-2">{t('quantAnalyticsTitle')}</Heading>
                     <p className="text-sm text-content-muted mb-default">
-                        {analytics.totals.quantifiedCount} of{' '}
-                        {analytics.totals.totalCount} risks quantified
-                        (SLE × ARO).
+                        {t('quantifiedCount', {
+                            quantified: analytics.totals.quantifiedCount,
+                            total: analytics.totals.totalCount,
+                        })}
                     </p>
                     {/* RQ3-3 — portfolio honesty. With a simulation
                         run, the headline is the loss DISTRIBUTION
@@ -208,22 +206,21 @@ export default function RiskDashboardPage() {
                         <>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-default mb-default">
                                 <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-p50">
-                                    <KPIStat value={money(simRun.portfolioP50)} label="Portfolio P50 / year" />
+                                    <KPIStat value={money(simRun.portfolioP50)} label={t('tilePortfolioP50')} />
                                 </div>
                                 <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-p80">
-                                    <KPIStat value={money(simRun.portfolioP80)} label="Portfolio P80 / year" tone="attention" />
+                                    <KPIStat value={money(simRun.portfolioP80)} label={t('tilePortfolioP80')} tone="attention" />
                                 </div>
                                 <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-p95">
-                                    <KPIStat value={money(simRun.portfolioP95)} label="Portfolio P95 / year" tone="critical" />
+                                    <KPIStat value={money(simRun.portfolioP95)} label={t('tilePortfolioP95')} tone="critical" />
                                 </div>
                                 <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-max">
-                                    <KPIStat value={money(analytics.totals.maxAle)} label="Max single ALE" />
+                                    <KPIStat value={money(analytics.totals.maxAle)} label={t('tileMaxSingleAle')} />
                                 </div>
                             </div>
                             <p className="mb-default flex items-center gap-tight text-xs text-content-subtle tabular-nums" data-testid="risk-quant-sum-line">
-                                Σ of mean ALEs: {money(analytics.totals.totalAle)} — a sum of
-                                averages, not a distribution.
-                                <InfoTooltip content="Summing each risk's mean ALE ignores correlation and tail compounding — bad years cluster. The simulated percentiles above are the portfolio's actual loss distribution: P50 is a typical year, P80/P95 are the years the board plans reserves for. The gap between the sum and these figures is real information, not noise." />
+                                {t('sumOfMeanAles', { amount: money(analytics.totals.totalAle) })}
+                                <InfoTooltip content={t('sumTooltip')} />
                             </p>
                         </>
                     ) : (
@@ -232,39 +229,38 @@ export default function RiskDashboardPage() {
                                 <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-total">
                                     <KPIStat
                                         value={money(analytics.totals.totalAle)}
-                                        label="Total ALE / year"
+                                        label={t('tileTotalAle')}
                                     />
                                 </div>
                                 <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-avg">
                                     <KPIStat
                                         value={money(analytics.totals.avgAle)}
-                                        label="Average ALE"
+                                        label={t('tileAverageAle')}
                                         tone="attention"
                                     />
                                 </div>
                                 <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-max">
                                     <KPIStat
                                         value={money(analytics.totals.maxAle)}
-                                        label="Max single ALE"
+                                        label={t('tileMaxSingleAle')}
                                         tone="critical"
                                     />
                                 </div>
                                 <div className="rounded-md bg-bg-muted/30 px-default py-default" data-testid="risk-quant-tile-cats">
                                     <KPIStat
                                         value={analytics.byCategory.length}
-                                        label="Categories carrying loss"
+                                        label={t('tileCategoriesCarryingLoss')}
                                     />
                                 </div>
                             </div>
                             <p className="mb-default text-xs text-content-subtle" data-testid="risk-quant-sum-nudge">
-                                These figures are sums of averages. Run a simulation below to
-                                replace them with calibrated portfolio percentiles.
+                                {t('sumNudge')}
                             </p>
                         </>
                     )}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-section">
                         <div>
-                            <Heading level={3} className="mb-2">Top 10 by ALE</Heading>
+                            <Heading level={3} className="mb-2">{t('top10ByAle')}</Heading>
                             <div className="space-y-tight">
                                 {analytics.topByAle.map((row) => (
                                     <Link
@@ -290,7 +286,7 @@ export default function RiskDashboardPage() {
                             exceedance curve; this column now answers
                             the coverage question honestly as a list. */}
                         <div>
-                            <Heading level={3} className="mb-2">Exposure by category</Heading>
+                            <Heading level={3} className="mb-2">{t('exposureByCategory')}</Heading>
                             <div className="space-y-tight" data-testid="risk-quant-by-category">
                                 {analytics.byCategory.slice(0, 10).map((c) => (
                                     <div
@@ -320,20 +316,15 @@ export default function RiskDashboardPage() {
                 agreeing portfolio gets a one-line all-clear. */}
             {coherence && coherence.quantifiedCount >= coherence.minRequired && (
                 <Card data-testid="risk-coherence-widget">
-                    <Heading level={2} className="mb-2">Qual ↔ quant coherence</Heading>
+                    <Heading level={2} className="mb-2">{t('coherenceTitle')}</Heading>
                     {coherence.flags.length === 0 ? (
                         <p className="text-sm text-content-muted">
-                            Qualitative scores and loss estimates agree across the{' '}
-                            {coherence.quantifiedCount} quantified risks — no rank
-                            contradictions detected.
+                            {t('coherenceAgree', { count: coherence.quantifiedCount })}
                         </p>
                     ) : (
                         <>
                             <p className="text-sm text-content-muted mb-default">
-                                {coherence.flags.length} risk
-                                {coherence.flags.length > 1 ? 's' : ''} where the
-                                matrix and the money disagree — one of the two
-                                assessments is probably wrong.
+                                {t('coherenceDisagree', { count: coherence.flags.length })}
                             </p>
                             <div className="space-y-tight">
                                 {coherence.flags.map((f) => {
@@ -358,14 +349,14 @@ export default function RiskDashboardPage() {
                                                     className="inline-flex items-center gap-px rounded border border-border-subtle px-1 text-[10px] tabular-nums text-content-emphasis"
                                                     data-testid={`risk-coherence-chip-${f.riskId}`}
                                                 >
-                                                    {moneyBigger ? '€↑ score↓' : 'score↑ €↓'}
+                                                    {moneyBigger ? t('coherenceChipMoneyBigger') : t('coherenceChipScoreBigger')}
                                                 </span>
                                                 <span className="truncate text-content-emphasis">{f.title}</span>
                                             </span>
                                             <span className="shrink-0 tabular-nums text-content-muted">
                                                 {moneyBigger
-                                                    ? `score ${f.score} vs ${formatTailAwareAle(f.ale, tailByRisk[f.riskId] ?? null, { money, compact: true })} — losses say this is bigger`
-                                                    : `score ${f.score} vs ${formatTailAwareAle(f.ale, tailByRisk[f.riskId] ?? null, { money, compact: true })} — losses say this is smaller`}
+                                                    ? t('coherenceRowMoneyBigger', { score: f.score, ale: formatTailAwareAle(f.ale, tailByRisk[f.riskId] ?? null, { money, compact: true }) ?? '' })
+                                                    : t('coherenceRowMoneySmaller', { score: f.score, ale: formatTailAwareAle(f.ale, tailByRisk[f.riskId] ?? null, { money, compact: true }) ?? '' })}
                                             </span>
                                         </Link>
                                     );
@@ -380,12 +371,13 @@ export default function RiskDashboardPage() {
                 exists; an all-fresh register stays quiet. */}
             {staleness && staleness.staleCount > 0 && (
                 <Card data-testid="risk-staleness-widget">
-                    <Heading level={2} className="mb-2">Stale assessments</Heading>
+                    <Heading level={2} className="mb-2">{t('staleTitle')}</Heading>
                     <p className="text-sm text-content-muted mb-default">
-                        {staleness.staleCount} of {staleness.totalCount} risks carry an
-                        assessment the world may have moved past — overdue review,
-                        untouched for {staleness.maxAssessmentAgeDays}+ days, or control
-                        tests newer than the residual.
+                        {t('staleSummary', {
+                            staleCount: staleness.staleCount,
+                            totalCount: staleness.totalCount,
+                            days: staleness.maxAssessmentAgeDays,
+                        })}
                     </p>
                     <div className="space-y-tight">
                         {staleness.staleRisks.slice(0, 10).map((r) => {
@@ -419,7 +411,7 @@ export default function RiskDashboardPage() {
                         })}
                         {staleness.staleRisks.length > 10 && (
                             <p className="text-xs text-content-subtle">
-                                + {staleness.staleRisks.length - 10} more
+                                {t('moreCount', { count: staleness.staleRisks.length - 10 })}
                             </p>
                         )}
                     </div>

@@ -56,11 +56,11 @@ const APPETITE_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'neutra
     NONE: 'neutral',
 };
 
-const APPETITE_COPY: Record<string, string> = {
-    WITHIN: 'Within appetite',
-    APPROACHING: 'Approaching appetite',
-    BREACHED: 'Outside appetite',
-    NONE: 'No appetite set',
+const APPETITE_COPY_KEY: Record<string, string> = {
+    WITHIN: 'appetiteWithin',
+    APPROACHING: 'appetiteApproaching',
+    BREACHED: 'appetiteBreached',
+    NONE: 'appetiteNone',
 };
 
 export default function RiskBoardPage() {
@@ -83,7 +83,7 @@ export default function RiskBoardPage() {
 
     // ── Position ────────────────────────────────────────────────────
     const headlineAle = simRun?.portfolioP80 ?? null;
-    const headlineLabel = simRun ? 'Annual loss exposure (P80)' : 'Annual loss exposure';
+    const headlineLabel = simRun ? t('boardExposureP80') : t('boardExposure');
 
     // ── Top 5 by tail-aware ALE ─────────────────────────────────────
     // perRiskResultsJson is a JSON column on the persisted run; the
@@ -109,27 +109,27 @@ export default function RiskBoardPage() {
     // ── Appetite chip ───────────────────────────────────────────────
     const appetiteStatus = appetite?.status?.status ?? 'NONE';
     const appetiteVariant = APPETITE_VARIANT[appetiteStatus];
-    const appetiteCopy = APPETITE_COPY[appetiteStatus];
+    const appetiteCopy = t(APPETITE_COPY_KEY[appetiteStatus]);
 
     return (
         <DashboardLayout
             header={{
-                title: 'Risk Board',
-                description: `${tenant.tenantName} — board-altitude view of the program`,
+                title: t('boardTitle'),
+                description: t('boardDescription', { tenant: tenant.tenantName }),
                 actions: (
                     <Link
                         href={href('/risks/dashboard')}
                         className={buttonVariants({ variant: 'secondary' })}
                         id="back-to-dashboard"
                     >
-                        Operational dashboard
+                        {t('boardBackToDashboard')}
                     </Link>
                 ),
             }}
         >
             {/* ── 1. Position headline ──────────────────────────────── */}
             <Card data-testid="board-position-card">
-                <Heading level={2} className="mb-2">Position</Heading>
+                <Heading level={2} className="mb-2">{t('boardPosition')}</Heading>
                 {headlineAle !== null ? (
                     <>
                         <KPIStat
@@ -138,7 +138,7 @@ export default function RiskBoardPage() {
                             tone={appetiteVariant === 'error' ? 'critical' : appetiteVariant === 'warning' ? 'attention' : 'success'}
                         />
                         <p className="mt-default text-sm text-content-muted">
-                            The portfolio loss the program plans reserves for — the year you&apos;d see in roughly 1 of every 5.
+                            {t('boardPositionDesc')}
                         </p>
                     </>
                 ) : (
@@ -146,21 +146,21 @@ export default function RiskBoardPage() {
                         className="text-sm text-content-warning"
                         data-testid="board-position-empty"
                     >
-                        Not quantified yet — run a portfolio simulation on the operational dashboard to populate the board exposure figure. No fabricated number.
+                        {t('boardPositionEmpty')}
                     </p>
                 )}
             </Card>
 
             {/* ── 2. Appetite chip ─────────────────────────────────── */}
             <Card data-testid="board-appetite-card">
-                <Heading level={2} className="mb-2">Appetite</Heading>
+                <Heading level={2} className="mb-2">{t('boardAppetite')}</Heading>
                 <div className="flex items-baseline gap-default">
                     <StatusBadge variant={appetiteVariant} data-testid="board-appetite-chip">
                         {appetiteCopy}
                     </StatusBadge>
                     {appetite?.config?.totalAleThreshold != null && (
                         <span className="text-sm text-content-muted">
-                            Ceiling: {formatCompactCurrency(appetite.config.totalAleThreshold, tenant.currencySymbol ?? '€')}/yr
+                            {t('boardCeiling', { value: formatCompactCurrency(appetite.config.totalAleThreshold, tenant.currencySymbol ?? '€') })}
                         </span>
                     )}
                 </div>
@@ -169,20 +169,20 @@ export default function RiskBoardPage() {
                         className="mt-default text-sm text-content-subtle"
                         data-testid="board-appetite-empty"
                     >
-                        Set a portfolio loss ceiling on the appetite configuration page to anchor the board&apos;s tolerance.
+                        {t('boardAppetiteEmpty')}
                     </p>
                 )}
             </Card>
 
             {/* ── 3. Top 5 contributors ─────────────────────────────── */}
             <Card data-testid="board-top-risks-card">
-                <Heading level={2} className="mb-2">Top contributors</Heading>
+                <Heading level={2} className="mb-2">{t('boardTopContributors')}</Heading>
                 {topRisks.length === 0 ? (
                     <p
                         className="text-sm text-content-subtle"
                         data-testid="board-top-risks-empty"
                     >
-                        No quantified risks yet — once a risk carries SLE × ARO or FAIR inputs, the contributors list ranks itself.
+                        {t('boardTopRisksEmpty')}
                     </p>
                 ) : (
                     <ol className="space-y-tight" data-testid="board-top-risks-list">
@@ -210,13 +210,13 @@ export default function RiskBoardPage() {
 
             {/* ── 4. Investment efficiency (RQ3-8) ─────────────────── */}
             <Card data-testid="board-best-value-card">
-                <Heading level={2} className="mb-2">Best-value controls</Heading>
+                <Heading level={2} className="mb-2">{t('boardBestValue')}</Heading>
                 {!bestValue || bestValue.length === 0 ? (
                     <p
                         className="text-sm text-content-subtle"
                         data-testid="board-best-value-empty"
                     >
-                        No control yet carries a price + an effectiveness signal + a quantified linked risk. Price the highest-leverage controls first.
+                        {t('boardBestValueEmpty')}
                     </p>
                 ) : (
                     <ol className="space-y-tight" data-testid="board-best-value-list">
@@ -244,30 +244,31 @@ export default function RiskBoardPage() {
 
             {/* ── 5. Hygiene ─────────────────────────────────────────── */}
             <Card data-testid="board-hygiene-card">
-                <Heading level={2} className="mb-2">Hygiene</Heading>
+                <Heading level={2} className="mb-2">{t('boardHygiene')}</Heading>
                 {totalCount === 0 ? (
                     <p
                         className="text-sm text-content-subtle"
                         data-testid="board-hygiene-empty"
                     >
-                        No risks on the register yet.
+                        {t('boardHygieneEmpty')}
                     </p>
                 ) : (
                     <p className="text-sm text-content-default">
-                        <strong>{staleCount}</strong> of <strong>{totalCount}</strong> risks carry a stale assessment
-                        {' '}(<span data-testid="board-hygiene-pct">{stalePct}%</span>)
-                        {' '}— overdue review, untouched past the age ceiling, or a signal that has moved since.
+                        {t.rich('boardHygieneSummary', {
+                            staleCount,
+                            totalCount,
+                            stalePct,
+                            b: (chunks) => <strong>{chunks}</strong>,
+                            pct: (chunks) => <span data-testid="board-hygiene-pct">{chunks}</span>,
+                        })}
                     </p>
                 )}
                 {staleCount === 0 && totalCount > 0 && (
                     <p className="mt-tight text-sm text-content-success" data-testid="board-hygiene-all-fresh">
-                        Every assessment is current.
+                        {t('boardHygieneAllFresh')}
                     </p>
                 )}
             </Card>
-
-            {/* Pretend-suppressed link for translation key resolution. */}
-            <span className="hidden">{t('dashboardTitle')}</span>
         </DashboardLayout>
     );
 }

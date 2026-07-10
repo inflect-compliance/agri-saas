@@ -11,6 +11,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantContext, useTenantHref } from '@/lib/tenant-context-provider';
 import { formatCompactCurrency } from '@/lib/risk-coherence';
@@ -29,6 +30,7 @@ interface BestValueRow {
 }
 
 export function BestValueControls({ limit = 5 }: { limit?: number }) {
+    const t = useTranslations('controls');
     const { currencySymbol } = useTenantContext();
     const tenantHref = useTenantHref();
     const sym = currencySymbol ?? '€';
@@ -50,8 +52,7 @@ export function BestValueControls({ limit = 5 }: { limit?: number }) {
                 className="px-2 py-1 text-xs text-content-subtle"
                 data-testid="best-value-controls-empty"
             >
-                No control yet carries a price + effectiveness + a quantified linked risk.
-                The leaderboard appears once at least one does.
+                {t('bestValue.empty')}
             </div>
         );
     }
@@ -78,8 +79,10 @@ export function BestValueControls({ limit = 5 }: { limit?: number }) {
                             {row.code ? `${row.code} — ${row.name}` : row.name}
                         </Link>
                         <p className="text-xs text-content-subtle">
-                            {formatCompactCurrency(row.aleProtected, sym)}/yr saved on{' '}
-                            {formatCompactCurrency(row.annualCost, sym)}/yr
+                            {t('bestValue.savedOn', {
+                                protectedAmount: formatCompactCurrency(row.aleProtected, sym),
+                                cost: formatCompactCurrency(row.annualCost, sym),
+                            })}
                         </p>
                     </div>
                     <span

@@ -46,14 +46,17 @@ describe('RQ3-10 — five sections, no fewer', () => {
 });
 
 describe('RQ3-10 — every section carries an honest-null empty state', () => {
+    // Empty-state copy now routes through next-intl (Bulgarian sweep); the
+    // honest-null invariant is preserved via the en.json riskManager values.
     test.each([
-        ['Position', 'board-position-empty', /Not quantified yet/],
-        ['Appetite', 'board-appetite-empty', /Set a portfolio loss ceiling/],
-        ['Top contributors', 'board-top-risks-empty', /No quantified risks yet/],
-        ['Best-value', 'board-best-value-empty', /No control yet carries a price/],
-    ])('%s has a typed empty-state nudge', (_section, testid, copy) => {
+        ['Position', 'board-position-empty', 'boardPositionEmpty', /Not quantified yet/],
+        ['Appetite', 'board-appetite-empty', 'boardAppetiteEmpty', /Set a portfolio loss ceiling/],
+        ['Top contributors', 'board-top-risks-empty', 'boardTopRisksEmpty', /No quantified risks yet/],
+        ['Best-value', 'board-best-value-empty', 'boardBestValueEmpty', /No control yet carries a price/],
+    ])('%s has a typed empty-state nudge', (_section, testid, key, copy) => {
         expect(page).toMatch(new RegExp(`data-testid="${testid}"`));
-        expect(page).toMatch(copy);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        expect(require('../../messages/en.json').riskManager[key as string]).toMatch(copy);
     });
 
     test('Position never fabricates a zero — the ALE figure is gated on a non-null headline', () => {

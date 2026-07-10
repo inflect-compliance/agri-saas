@@ -31,6 +31,7 @@ interface FindingsClientProps {
         canExport: boolean;
     };
     translations: {
+        dashboard: string;
         title: string;
         listDescription: string;
         open: string;
@@ -236,7 +237,7 @@ export function FindingsClient({ initialFindings, tenantSlug, permissions, trans
             <ListPageShell.Header>
                 <PageHeader
                     breadcrumbs={[
-                        { label: 'Dashboard', href: `/t/${tenantSlug}/dashboard` },
+                        { label: t.dashboard, href: `/t/${tenantSlug}/dashboard` },
                         { label: t.title },
                     ]}
                     title={t.title}

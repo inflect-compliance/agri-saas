@@ -8,6 +8,7 @@
  * add/upload/unlink, since the evidence lives on the control.
  */
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -46,6 +47,7 @@ export function InheritedEvidencePanel({
     /** 'asset' | 'risk' — used only in the explanatory copy. */
     entityLabel: string;
 }) {
+    const t = useTranslations('inherited.evidence');
     const [rows, setRows] = useState<InheritedEvidenceRow[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -72,18 +74,18 @@ export function InheritedEvidencePanel({
     const columns = createColumns<InheritedEvidenceRow>([
         {
             id: 'title',
-            header: 'Evidence',
+            header: t('colEvidence'),
             accessorFn: (r) => r.title,
             cell: ({ row }) => <span className="text-sm text-content-default">{row.original.title}</span>,
         },
         {
             accessorKey: 'type',
-            header: 'Type',
+            header: t('colType'),
             cell: ({ getValue }) => <span className="text-xs text-content-muted">{getValue<string>()}</span>,
         },
         {
             id: 'status',
-            header: 'Status',
+            header: t('colStatus'),
             cell: ({ row }) =>
                 row.original.status ? (
                     <StatusBadge variant={STATUS_BADGE[row.original.status] || 'neutral'} size="sm">
@@ -95,7 +97,7 @@ export function InheritedEvidencePanel({
         },
         {
             id: 'control',
-            header: 'Control',
+            header: t('colControl'),
             cell: ({ row }) =>
                 row.original.control ? (
                     <TableTitleCell href={tenantHref(`/controls/${row.original.control.id}`)}>
@@ -107,7 +109,7 @@ export function InheritedEvidencePanel({
         },
         {
             id: 'createdAt',
-            header: 'Collected',
+            header: t('colCollected'),
             cell: ({ row }) => (
                 <TimestampTooltip date={row.original.createdAt} className="text-xs text-content-muted" />
             ),
@@ -117,7 +119,7 @@ export function InheritedEvidencePanel({
     return (
         <div className="space-y-default">
             <InlineNotice variant="info">
-                Evidence is inherited from the controls mapped to this {entityLabel}. Manage it on each control.
+                {t('notice', { entityLabel })}
             </InlineNotice>
             <DataTable<InheritedEvidenceRow>
                 data={rows}
@@ -128,8 +130,8 @@ export function InheritedEvidencePanel({
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No inherited evidence"
-                        description={`No evidence is attached to the controls mapped to this ${entityLabel} yet.`}
+                        title={t('emptyTitle')}
+                        description={t('emptyDesc', { entityLabel })}
                     />
                 }
             />

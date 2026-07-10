@@ -25,6 +25,7 @@
  * skeleton/empty-state chrome, and the future column-visibility gear.
  */
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
@@ -76,6 +77,7 @@ export function EvidenceSubTable({
     onUnlinkEvidence?: (evidenceId: string) => void;
     tenantHref: (path: string) => string;
 }) {
+    const t = useTranslations('evidence.subTable');
     const rows = useMemo<EvidenceTableRow[]>(() => {
         const links = data?.links ?? [];
         const evidenceRows = data?.evidence ?? [];
@@ -150,7 +152,7 @@ export function EvidenceSubTable({
             createColumns<EvidenceTableRow>([
                 {
                     id: 'type',
-                    header: 'Type',
+                    header: t('colType'),
                     cell: ({ row }) => (
                         <StatusBadge variant={row.original.kindBadge.variant}>
                             {row.original.kindBadge.label}
@@ -159,7 +161,7 @@ export function EvidenceSubTable({
                 },
                 {
                     id: 'title',
-                    header: 'Title / URL',
+                    header: t('colTitleUrl'),
                     cell: ({ row }) => {
                         const r = row.original;
                         if (r.titleCell === 'link-href') {
@@ -194,7 +196,7 @@ export function EvidenceSubTable({
                 },
                 {
                     id: 'status',
-                    header: 'Status',
+                    header: t('colStatus'),
                     cell: ({ row }) => {
                         const r = row.original;
                         if (r.statusCell === 'createdBy') {
@@ -215,7 +217,7 @@ export function EvidenceSubTable({
                 },
                 {
                     id: 'date',
-                    header: 'Date',
+                    header: t('colDate'),
                     cell: ({ row }) => (
                         <span className="text-xs text-content-muted">
                             {row.original.createdAt
@@ -228,7 +230,7 @@ export function EvidenceSubTable({
                     ? [
                           {
                               id: 'actions',
-                              header: 'Actions',
+                              header: t('colActions'),
                               cell: ({ row }: { row: { original: EvidenceTableRow } }) => {
                                   const r = row.original;
                                   if (r.linkId) {
@@ -238,7 +240,7 @@ export function EvidenceSubTable({
                                               onClick={() => onUnlink(r.linkId!)}
                                               id={`unlink-${r.linkId}`}
                                           >
-                                              × Remove
+                                              × {t('remove')}
                                           </button>
                                       );
                                   }
@@ -249,7 +251,7 @@ export function EvidenceSubTable({
                                               onClick={() => onUnlinkEvidence(r.evidenceId!)}
                                               id={`unlink-evidence-${r.evidenceId}`}
                                           >
-                                              × Remove
+                                              × {t('remove')}
                                           </button>
                                       );
                                   }
@@ -259,7 +261,7 @@ export function EvidenceSubTable({
                       ]
                     : []),
             ]),
-        [canWrite, onUnlink, onUnlinkEvidence, tenantHref],
+        [canWrite, onUnlink, onUnlinkEvidence, tenantHref, t],
     );
 
     // E2E semantics — preserve the pre-migration contract:
@@ -291,8 +293,8 @@ export function EvidenceSubTable({
                 emptyState={
                     <div id="no-evidence">
                         <InlineEmptyState
-                            title="No evidence linked"
-                            description="Link existing evidence or upload new files to satisfy this control."
+                            title={t('emptyTitle')}
+                            description={t('emptyDesc')}
                         />
                     </div>
                 }

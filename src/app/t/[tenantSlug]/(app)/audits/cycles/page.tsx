@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppIcon, type AppIconName } from '@/components/icons/AppIcon';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, Plus } from 'lucide-react';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -132,8 +132,8 @@ export default function AuditCyclesPage() {
                     <Heading level={1}>{t('cyclesList.heading')}</Heading>
                     <p className="text-content-muted text-sm">{t('cyclesList.cycleCount', { count: cycles.length })}</p>
                 </div>
-                <Button variant="primary" onClick={() => setShowForm(!showForm)} id="create-cycle-btn">
-                    {showForm ? t('cyclesList.cancel') : '+ Cycle'}
+                <Button variant="primary" icon={showForm ? undefined : <Plus className="-ml-0.5 -mr-2.5" />} onClick={() => setShowForm(!showForm)} id="create-cycle-btn">
+                    {showForm ? t('cyclesList.cancel') : t('cyclesList.cycleNoun')}
                 </Button>
             </div>
 
@@ -206,7 +206,7 @@ export default function AuditCyclesPage() {
                     </div>
                     <div className="mt-4 flex gap-tight">
                         <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>{t('cyclesList.cancel')}</Button>
-                        <Button type="submit" variant="primary" id="submit-cycle-btn">+ Cycle</Button>
+                        <Button type="submit" variant="primary" id="submit-cycle-btn">{t('cyclesList.createCycle')}</Button>
                     </div>
                 </form>
             )}
@@ -218,7 +218,7 @@ export default function AuditCyclesPage() {
                         title={t('cyclesList.emptyTitle')}
                         description={t('cyclesList.emptyDescription')}
                         primaryAction={{
-                            label: '+ Audit Cycle',
+                            label: t('cyclesList.createCycleAction'),
                             onClick: () => setShowForm(true),
                         }}
                     />
