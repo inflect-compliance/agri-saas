@@ -36,7 +36,11 @@ const BINARY_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.
  * one of these patterns. Each carries the reason it can't be renamed.
  */
 const SURVIVORS: ReadonlyArray<{ pattern: RegExp; reason: string }> = [
-    { pattern: /inflect[:.]/i, reason: 'client localStorage / redis key namespace — renaming orphans persisted user prefs (theme, filters, column visibility, onboarding state)' },
+    // Colon-delimited storage/redis key namespaces + the two dot-namespaced
+    // client keys. Deliberately NOT a bare `inflect\.` — that would falsely
+    // allow brand domains like `inflect.app`.
+    { pattern: /inflect:/i, reason: 'client localStorage / redis key namespace — renaming orphans persisted user prefs (theme, filters, column visibility, onboarding state)' },
+    { pattern: /inflect\.(?:celebrate|coachmark)/i, reason: 'client localStorage key namespace (celebrations, coach-marks) — renaming orphans persisted state' },
     { pattern: /inflect_(?:invite|org_invite)_token/, reason: 'auth cookie names — renaming breaks in-flight invites/sessions' },
     { pattern: /X-Inflect-|LEGACY_OUTBOUND_WEBHOOK_HEADERS|legacyOutboundHeaders/, reason: 'legacy outbound-webhook headers — dual-emitted for SIEM back-compat (AUDIT_STREAM_LEGACY_HEADERS)' },
     { pattern: /__INFLECT_FORM_TELEMETRY__/, reason: 'dev-only form-telemetry debug global' },

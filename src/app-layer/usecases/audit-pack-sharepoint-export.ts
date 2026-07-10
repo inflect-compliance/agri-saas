@@ -142,7 +142,7 @@ export async function exportAuditPackToSharePoint(
     const zip = new JSZip();
     zip.file(
         'README.md',
-        `# ${pack.name}\n\nFrozen audit pack exported from Inflect.\n\n` +
+        `# ${pack.name}\n\nFrozen audit pack exported from Agrent.\n\n` +
             `- Status: ${pack.status}\n- Frozen: ${pack.frozenAt ?? 'n/a'}\n- Items: ${pack.items.length}\n- Exported: ${now.toISOString()}\n`,
     );
     zip.file('pack.json', JSON.stringify(json, null, 2));

@@ -62,6 +62,12 @@ describe('Static Analysis: No process.env fallbacks', () => {
             // cached env.ts snapshot would freeze the value at import
             // time and break those flows.
             if (file.endsWith('rate-limit-middleware.ts')) continue;
+            // Outbound-webhook headers read AUDIT_STREAM_LEGACY_HEADERS at
+            // call time (same convention as rate-limit-middleware.ts) so an
+            // operator can flip the legacy X-Inflect-* dual-emit without a
+            // redeploy, and the unit test can toggle it per-case via env
+            // mutation. Reading the cached env.ts snapshot would freeze it.
+            if (file.endsWith('webhook-headers.ts')) continue;
             // GAP-17 read-tier rate limiter follows the same convention
             // as rate-limit-middleware.ts above — NEXT_TEST_MODE must be
             // read at request time so the Playwright suite can flip the

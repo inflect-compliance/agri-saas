@@ -18,7 +18,7 @@ export interface TenantNotificationSettingsData {
 const DEFAULTS: TenantNotificationSettingsData = {
     enabled: true,
     defaultFromName: 'Agrent',
-    defaultFromEmail: 'noreply@inflect.app',
+    defaultFromEmail: 'noreply@agrent.bg',
     complianceMailbox: null,
 };
 

@@ -1,17 +1,17 @@
 #
-# Caddy reverse proxy for inflect-compliance.
-# inflect.34-140-180-255.sslip.io is substituted by the deploy script once the VM's
-# external IP is known (pattern: <ip-with-dashes>.sslip.io).
+# Caddy reverse proxy for agrent.
+# The site domain (e.g. 35-187-80-26.sslip.io) is substituted by the deploy
+# script once the VM's external IP is known (pattern: <ip-with-dashes>.sslip.io).
 # Let's Encrypt issues a cert automatically on first request.
 #
 
 {
     # Use the production LE endpoint by default (default behaviour).
     # Set ACME_EMAIL in the env if you want certificate expiry mail.
-    email {$ACME_EMAIL:admin@inflect.app}
+    email {$ACME_EMAIL:admin@agrent.bg}
 }
 
-inflect.34-140-180-255.sslip.io {
+35-187-80-26.sslip.io {
     encode gzip zstd
 
     # Client-body limit roughly matches FILE_MAX_SIZE_BYTES above.
