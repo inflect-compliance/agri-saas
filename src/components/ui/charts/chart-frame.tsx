@@ -36,6 +36,7 @@
  *     four (`loading`, `error`, `data`, `emptyMessage`).
  */
 import { ReactElement, ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { ParentSize } from '@visx/responsive';
 
 import { cn } from '@/lib/cn';
@@ -111,6 +112,7 @@ export function ChartFrame<T>({
     emptyFallback,
     errorFallback,
 }: ChartFrameProps<T>): ReactElement {
+    const t = useTranslations('chartFrame');
     // Loading / empty / error short-circuit the responsive
     // measurement — no point laying out a `ParentSize` for a
     // skeleton. The outer min-height keeps the layout stable
@@ -140,7 +142,7 @@ export function ChartFrame<T>({
             >
                 {errorFallback ?? (
                     <ErrorState
-                        title="Couldn’t load chart"
+                        title={t('errorTitle')}
                         description={state.message}
                     />
                 )}
@@ -159,8 +161,8 @@ export function ChartFrame<T>({
                 {emptyFallback ?? (
                     <EmptyState
                         size="sm"
-                        title="No data yet"
-                        description="Once data flows in, this chart will populate."
+                        title={t('emptyTitle')}
+                        description={t('emptyDescription')}
                     />
                 )}
             </ChartFrameOuter>

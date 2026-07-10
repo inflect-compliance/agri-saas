@@ -92,7 +92,7 @@ function LoginForm() {
                     body: JSON.stringify({ action: 'register', email, password, name, orgName }),
                 });
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(extractErrorMessage(data?.error, 'Registration failed'));
+                if (!res.ok) throw new Error(extractErrorMessage(data?.error, t('registrationFailed')));
                 // After registration, sign in with credentials
             }
 
@@ -105,8 +105,8 @@ function LoginForm() {
             });
 
             if (result?.error) {
-                const raw = extractErrorMessage(result.error, 'Login failed');
-                throw new Error(raw === 'CredentialsSignin' ? 'Invalid credentials' : raw);
+                const raw = extractErrorMessage(result.error, t('loginFailed'));
+                throw new Error(raw === 'CredentialsSignin' ? t('invalidCredentials') : raw);
             }
 
             // Force a native hard redirect. 
@@ -190,28 +190,28 @@ function LoginForm() {
 
                     {verifyStatus === 'verified' && (
                         <InlineNotice variant="success" className="mb-4" icon={null}>
-                            Email verified — you can sign in now.
+                            {t('verifyVerified')}
                         </InlineNotice>
                     )}
                     {verifyStatus === 'expired' && (
                         <InlineNotice variant="warning" className="mb-4" icon={null}>
-                            That verification link has expired. Request a new one below.
+                            {t('verifyExpired')}
                         </InlineNotice>
                     )}
                     {verifyStatus === 'invalid' && (
                         <InlineNotice variant="warning" className="mb-4" icon={null}>
-                            That verification link is not valid. Request a new one below.
+                            {t('verifyInvalid')}
                         </InlineNotice>
                     )}
 
                     {searchParams?.get('reset') === 'success' && (
                         <InlineNotice variant="success" className="mb-4" icon={null}>
-                            Your password has been reset — sign in with your new password.
+                            {t('passwordReset')}
                         </InlineNotice>
                     )}
                     {searchParams?.get('passwordChanged') === '1' && (
                         <InlineNotice variant="success" className="mb-4" icon={null}>
-                            Your password has been changed — please sign in again.
+                            {t('passwordChanged')}
                         </InlineNotice>
                     )}
 
@@ -228,7 +228,7 @@ function LoginForm() {
                             disabled={loading}
                             className="w-full"
                         >
-                            Continue with Google
+                            {t('continueWithGoogle')}
                             <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
                                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -243,7 +243,7 @@ function LoginForm() {
                             disabled={loading}
                             className="w-full"
                         >
-                            Continue with Microsoft
+                            {t('continueWithMicrosoft')}
                             <svg className="w-5 h-5" viewBox="0 0 21 21" aria-hidden="true">
                                 <rect x="1" y="1" width="9" height="9" fill="#F25022" />
                                 <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
@@ -261,7 +261,7 @@ function LoginForm() {
                                     <div className="w-full border-t border-border-subtle" />
                                 </div>
                                 <div className="relative flex justify-center text-xs">
-                                    <span className="px-2 bg-bg-page text-content-muted">or continue with email</span>
+                                    <span className="px-2 bg-bg-page text-content-muted">{t('orContinueWithEmail')}</span>
                                 </div>
                             </div>
 
@@ -295,7 +295,7 @@ function LoginForm() {
                                     <input id="login-password" className="input" type="password" name="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder={t('passwordPlaceholder')} minLength={6} />
                                 </div>
                                 <div className="text-right -mt-2">
-                                    <a href="/forgot-password" className="text-xs text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)]">Forgot your password?</a>
+                                    <a href="/forgot-password" className="text-xs text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)]">{t('forgotPassword')}</a>
                                 </div>
                                 <Button type="submit" variant="primary" size="sm" className="w-full" disabled={loading}>
                                     {loading ? t('pleaseWait') : mode === 'login' ? t('submitLogin') : t('submitRegister')}
@@ -322,7 +322,7 @@ function LoginForm() {
                                         role="status"
                                         className="text-xs text-content-muted text-center"
                                     >
-                                        If that email is registered and not yet verified, a new link is on its way.
+                                        {t('resendSent')}
                                     </p>
                                 ) : (
                                     <form
@@ -332,9 +332,9 @@ function LoginForm() {
                                         <input
                                             type="email"
                                             name="resendEmail"
-                                            aria-label="Email for verification resend"
+                                            aria-label={t('resendEmailAria')}
                                             className="input flex-1 text-xs"
-                                            placeholder="Didn't get a verification email?"
+                                            placeholder={t('resendEmailPlaceholder')}
                                             value={resendEmail}
                                             onChange={(e) => setResendEmail(e.target.value)}
                                         />
@@ -343,7 +343,7 @@ function LoginForm() {
                                             disabled={resendState === 'sending' || !resendEmail}
                                             className="text-xs text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)] disabled:text-content-subtle disabled:no-underline"
                                         >
-                                            {resendState === 'sending' ? 'Sending…' : 'Resend'}
+                                            {resendState === 'sending' ? t('resendSending') : t('resend')}
                                         </button>
                                     </form>
                                 )}
@@ -356,13 +356,18 @@ function LoginForm() {
     );
 }
 
+function LoginFallback() {
+    const t = useTranslations('login');
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-bg-page">
+            <div className="text-content-muted">{t('loading')}</div>
+        </div>
+    );
+}
+
 export default function LoginPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-bg-page">
-                <div className="text-content-muted">Loading...</div>
-            </div>
-        }>
+        <Suspense fallback={<LoginFallback />}>
             <LoginForm />
         </Suspense>
     );

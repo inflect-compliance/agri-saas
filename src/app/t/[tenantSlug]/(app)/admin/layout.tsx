@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { RequirePermission } from '@/components/require-permission';
 import { ForbiddenPage } from '@/components/ForbiddenPage';
 
@@ -16,14 +17,15 @@ import { ForbiddenPage } from '@/components/ForbiddenPage';
  *   3. API routes — server-side RBAC (separate concern)
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    const t = useTranslations('admin');
     return (
         <RequirePermission
             resource="admin"
             action="view"
             fallback={
                 <ForbiddenPage
-                    title="Admin Access Required"
-                    message="You do not have permission to access admin settings. Contact your workspace administrator to request access."
+                    title={t('forbidden.title')}
+                    message={t('forbidden.message')}
                 />
             }
         >

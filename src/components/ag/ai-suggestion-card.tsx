@@ -34,7 +34,7 @@ export function AiSuggestionCard({ title, confidence, meta, children, className 
         <Card
             className={cn('p-4 space-y-default border-border-emphasis', className)}
             role="region"
-            aria-label={`AI suggestion: ${title}`}
+            aria-label={t('aiSuggestionAria', { title })}
         >
             <div className="flex items-start justify-between gap-compact flex-wrap">
                 <div className="min-w-0">
@@ -51,7 +51,7 @@ export function AiSuggestionCard({ title, confidence, meta, children, className 
             <div className="text-sm text-content-muted space-y-tight">{children}</div>
 
             <p className="text-[11px] text-content-subtle border-t border-border-subtle pt-2">
-                AI suggestion — verify with an agronomist.
+                {t('disclaimer')}
             </p>
         </Card>
     );

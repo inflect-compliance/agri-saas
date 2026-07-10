@@ -114,9 +114,9 @@ describe('enforceRateLimit', () => {
         jest.clearAllMocks();
     });
 
-    it('allows requests under the budget and reports remaining', () => {
+    it('allows requests under the budget and reports remaining', async () => {
         const req = fakeReq({ forwardedFor: '1.1.1.1' });
-        const first = enforceRateLimit(req, {
+        const first = await enforceRateLimit(req, {
             scope: 'test-scope',
             config: { maxAttempts: 3, windowMs: 60_000 },
             userId: 'u1',
@@ -125,7 +125,7 @@ describe('enforceRateLimit', () => {
         expect(first.result.allowed).toBe(true);
         expect(first.result.remaining).toBe(2);
 
-        const second = enforceRateLimit(req, {
+        const second = await enforceRateLimit(req, {
             scope: 'test-scope',
             config: { maxAttempts: 3, windowMs: 60_000 },
             userId: 'u1',
@@ -136,9 +136,9 @@ describe('enforceRateLimit', () => {
     it('returns a 429 response once the budget is exhausted', async () => {
         const req = fakeReq({ forwardedFor: '2.2.2.2' });
         const config = { maxAttempts: 2, windowMs: 60_000 };
-        enforceRateLimit(req, { scope: 'burst', config, userId: 'u2' });
-        enforceRateLimit(req, { scope: 'burst', config, userId: 'u2' });
-        const blocked = enforceRateLimit(req, {
+        await enforceRateLimit(req, { scope: 'burst', config, userId: 'u2' });
+        await enforceRateLimit(req, { scope: 'burst', config, userId: 'u2' });
+        const blocked = await enforceRateLimit(req, {
             scope: 'burst',
             config,
             userId: 'u2',
@@ -158,8 +158,8 @@ describe('enforceRateLimit', () => {
     it('sets Retry-After and X-RateLimit-* headers on 429', async () => {
         const req = fakeReq({ forwardedFor: '3.3.3.3' });
         const config = { maxAttempts: 1, windowMs: 60_000 };
-        enforceRateLimit(req, { scope: 'hdr', config });
-        const blocked = enforceRateLimit(req, { scope: 'hdr', config });
+        await enforceRateLimit(req, { scope: 'hdr', config });
+        const blocked = await enforceRateLimit(req, { scope: 'hdr', config });
 
         expect(blocked.response).toBeDefined();
         const h = blocked.response!.headers;
@@ -173,8 +173,8 @@ describe('enforceRateLimit', () => {
     it('429 body never leaks the key, IP, or userId', async () => {
         const req = fakeReq({ forwardedFor: '4.4.4.4' });
         const config = { maxAttempts: 1, windowMs: 60_000 };
-        enforceRateLimit(req, { scope: 's', config, userId: 'user-secret' });
-        const blocked = enforceRateLimit(req, {
+        await enforceRateLimit(req, { scope: 's', config, userId: 'user-secret' });
+        const blocked = await enforceRateLimit(req, {
             scope: 's',
             config,
             userId: 'user-secret',
@@ -187,9 +187,13 @@ describe('enforceRateLimit', () => {
 
     it('retryAfterSeconds is never less than 1 (never silently 0)', async () => {
         const req = fakeReq({ forwardedFor: '5.5.5.5' });
-        const config = { maxAttempts: 1, windowMs: 10 }; // sub-second
-        enforceRateLimit(req, { scope: 's', config });
-        const blocked = enforceRateLimit(req, { scope: 's', config });
+        // Sub-second remaining budget: retryAfterMs ≈ 900ms → ceil = 1s, so the
+        // Math.max(1, …) clamp is exercised. The window must stay wide enough
+        // that the SECOND (now-async) call still lands inside it — a 10ms window
+        // was racy against async scheduling jitter.
+        const config = { maxAttempts: 1, windowMs: 900 };
+        await enforceRateLimit(req, { scope: 's', config });
+        const blocked = await enforceRateLimit(req, { scope: 's', config });
         const body = await blocked.response!.json();
         expect(body.error.retryAfterSeconds).toBeGreaterThanOrEqual(1);
     });
@@ -200,16 +204,16 @@ describe('keying isolation', () => {
         clearAllRateLimits();
     });
 
-    it('different users on same IP have independent budgets', () => {
+    it('different users on same IP have independent budgets', async () => {
         const req = fakeReq({ forwardedFor: '10.0.0.1' });
         const config = { maxAttempts: 1, windowMs: 60_000 };
 
-        const a = enforceRateLimit(req, {
+        const a = await enforceRateLimit(req, {
             scope: 'iso',
             config,
             userId: 'alice',
         });
-        const b = enforceRateLimit(req, {
+        const b = await enforceRateLimit(req, {
             scope: 'iso',
             config,
             userId: 'bob',
@@ -219,14 +223,14 @@ describe('keying isolation', () => {
         expect(b.response).toBeUndefined();
     });
 
-    it('same user on different IPs have independent budgets', () => {
+    it('same user on different IPs have independent budgets', async () => {
         const config = { maxAttempts: 1, windowMs: 60_000 };
 
-        const fromOffice = enforceRateLimit(
+        const fromOffice = await enforceRateLimit(
             fakeReq({ forwardedFor: '10.0.0.1' }),
             { scope: 'iso2', config, userId: 'alice' }
         );
-        const fromHome = enforceRateLimit(
+        const fromHome = await enforceRateLimit(
             fakeReq({ forwardedFor: '192.168.1.1' }),
             { scope: 'iso2', config, userId: 'alice' }
         );
@@ -235,14 +239,14 @@ describe('keying isolation', () => {
         expect(fromHome.response).toBeUndefined();
     });
 
-    it('unauthenticated traffic from same IP shares a bucket', () => {
+    it('unauthenticated traffic from same IP shares a bucket', async () => {
         const config = { maxAttempts: 1, windowMs: 60_000 };
 
-        const first = enforceRateLimit(
+        const first = await enforceRateLimit(
             fakeReq({ forwardedFor: '10.10.10.10' }),
             { scope: 'anon-scope', config }
         );
-        const second = enforceRateLimit(
+        const second = await enforceRateLimit(
             fakeReq({ forwardedFor: '10.10.10.10' }),
             { scope: 'anon-scope', config }
         );
@@ -252,15 +256,15 @@ describe('keying isolation', () => {
         expect(second.response?.status).toBe(429);
     });
 
-    it('unauthenticated and authenticated from same IP have separate budgets', () => {
+    it('unauthenticated and authenticated from same IP have separate budgets', async () => {
         const config = { maxAttempts: 1, windowMs: 60_000 };
         const req = fakeReq({ forwardedFor: '20.20.20.20' });
 
-        const anon = enforceRateLimit(req, {
+        const anon = await enforceRateLimit(req, {
             scope: 'mixed',
             config,
         });
-        const auth = enforceRateLimit(req, {
+        const auth = await enforceRateLimit(req, {
             scope: 'mixed',
             config,
             userId: 'signed-in',

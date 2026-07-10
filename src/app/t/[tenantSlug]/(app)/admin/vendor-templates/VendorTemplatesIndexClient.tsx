@@ -132,7 +132,7 @@ export function VendorTemplatesIndexClient() {
                                 className="input w-full"
                                 value={newKey}
                                 onChange={(e) => setNewKey(e.target.value)}
-                                placeholder="soc2-vendor"
+                                placeholder={'soc2-vendor'}
                             />
                         </div>
                         <div>

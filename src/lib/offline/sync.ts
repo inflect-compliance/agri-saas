@@ -9,18 +9,36 @@
  *                              retry; keeping it would wedge the queue
  *                              behind a permanently-failing item.
  *   - network throw / 5xx /
- *     408 / 429              → KEEP + bump attempts (transient; retry on
+ *     408                    → KEEP + bump attempts (transient; retry on
  *                              the next flush / reconnect).
+ *   - 429 rate limited       → KEEP, do NOT bump attempts, STOP draining.
+ *                              See below.
  *
- * Items past `MAX_ATTEMPTS` are dropped so a poison item can't block the
- * queue forever. The same item id rides every retry, so a server that
- * dedupes on it sees at-least-once delivery as exactly-once.
+ * ## 429 is special (mobile-first offline replay)
+ *
+ * A PWA that queued edits offline replays them in a BURST on reconnect. If
+ * the burst exceeds the mutation rate limit the server returns 429 — which is
+ * NOT the item's fault and WILL succeed once the window rolls off. So a 429
+ * must never (a) count toward `MAX_ATTEMPTS` (or a long-enough burst would
+ * silently DROP a farmer's queued work) nor (b) keep hammering the rest of the
+ * queue into the same closed window. On the first 429 we RETAIN every
+ * remaining item untouched, stop the pass, surface the server's `Retry-After`,
+ * and let the caller reschedule after that delay. A reconnect burst is a
+ * legitimate single-user pattern; the queue drains across a few windows
+ * instead of losing data.
+ *
+ * Items past `MAX_ATTEMPTS` (genuine transient failures only) are dropped so a
+ * poison item can't block the queue forever. The same item id rides every
+ * retry, so a server that dedupes on it sees at-least-once delivery as
+ * exactly-once.
  */
 import type { OutboxItem, OutboxStore } from './outbox';
 
 export interface SendResult {
     ok: boolean;
     status: number;
+    /** Parsed `Retry-After` (seconds) when the server sent one on a 429. */
+    retryAfter?: number;
 }
 
 export type Sender = (item: OutboxItem) => Promise<SendResult>;
@@ -30,14 +48,17 @@ export interface FlushSummary {
     failed: number;
     dropped: number;
     remaining: number;
+    /** True when the pass stopped early because the server rate-limited us. */
+    rateLimited: boolean;
+    /** Seconds to back off before the next flush, from the 429 `Retry-After`. */
+    retryAfterSeconds?: number;
 }
 
 export const MAX_ATTEMPTS = 8;
 
+/** Non-429 retryable: network throw (0), 408 timeout, any 5xx. */
 function isTransient(status: number): boolean {
-    // Network throw is signalled as status 0. 408 (timeout) + 429 (rate
-    // limit) are retryable; every other 4xx is terminal.
-    return status === 0 || status === 408 || status === 429 || status >= 500;
+    return status === 0 || status === 408 || status >= 500;
 }
 
 /** Drain the outbox once. Safe to call repeatedly (idempotent per item). */
@@ -46,6 +67,8 @@ export async function flushOutbox(store: OutboxStore, send: Sender): Promise<Flu
     let sent = 0;
     let failed = 0;
     let dropped = 0;
+    let rateLimited = false;
+    let retryAfterSeconds: number | undefined;
 
     for (const item of items) {
         let res: SendResult;
@@ -58,6 +81,12 @@ export async function flushOutbox(store: OutboxStore, send: Sender): Promise<Flu
         if (res.ok) {
             await store.remove(item.id);
             sent++;
+        } else if (res.status === 429) {
+            // Rate limited — retain untouched (no attempts bump, never
+            // dropped) and stop draining into a closed window.
+            rateLimited = true;
+            retryAfterSeconds = res.retryAfter;
+            break;
         } else if (isTransient(res.status)) {
             const next = { ...item, attempts: item.attempts + 1 };
             if (next.attempts >= MAX_ATTEMPTS) {
@@ -75,7 +104,7 @@ export async function flushOutbox(store: OutboxStore, send: Sender): Promise<Flu
     }
 
     const remaining = (await store.all()).length;
-    return { sent, failed, dropped, remaining };
+    return { sent, failed, dropped, remaining, rateLimited, retryAfterSeconds };
 }
 
 /** A fetch-backed Sender for the browser. */
@@ -86,6 +115,12 @@ export function fetchSender(): Sender {
             headers: { 'Content-Type': 'application/json' },
             body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
         });
-        return { ok: res.ok, status: res.status };
+        let retryAfter: number | undefined;
+        if (res.status === 429) {
+            const raw = res.headers.get('Retry-After');
+            const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+            if (Number.isFinite(parsed) && parsed >= 0) retryAfter = parsed;
+        }
+        return { ok: res.ok, status: res.status, retryAfter };
     };
 }

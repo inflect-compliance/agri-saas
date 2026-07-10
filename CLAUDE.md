@@ -41,27 +41,46 @@ docker-compose up -d
 
 The production deployment runs on a single GCP VM, and **Claude has
 `gcloud` access to it** — project `hazel-design-419410`, instance
-`inflect-compliance`, zone `europe-west1-b`:
+**`agrent`**, zone `europe-west1-b` (served at
+`https://35-187-80-26.sslip.io`):
 
 ```bash
-gcloud compute ssh inflect-compliance --zone europe-west1-b --command "…"
+gcloud compute ssh agrent --zone europe-west1-b --command "…"
 ```
 
-The VM hosts a hand-managed Docker Compose stack at `/opt/inflect/`
-(`docker-compose.prod.yml`). It **drifts** from
-`deploy/docker-compose.prod.yml` in the repo — Watchtower
-auto-updates only the `app` + `worker` *images*, never Compose
-structure. Docker commands on the VM need `sudo`.
-`/opt/inflect/.env.prod` and the Redis `--requirepass` value are
-real secrets — never echo them.
+The VM hosts a Docker Compose stack at `/opt/agrent/`
+(`docker-compose.vm.yml` — 7 services: app, worker, watchtower,
+caddy, pgbouncer, redis, db). Docker commands on the VM need `sudo`.
+`/opt/agrent/.env` and the Redis `--requirepass` value are real
+secrets — **never echo them**.
 
-**When a deployment or runtime change must be applied to the VM** —
-a new Compose service, a Redis config change, a one-off job run,
-inspecting container logs — **execute it directly via
-`gcloud compute ssh`. Do not ask the operator to do it by hand.**
-Back up any file before editing it (the existing
-`<file>.bak.<timestamp>` convention), validate with
-`docker compose config`, then `docker compose up -d <service>`.
+**The repo is canonical; drift is DETECTABLE, not policy.** The compose
+STRUCTURE lives at **`deploy/docker-compose.vm.yml`** in the repo and is
+kept byte-identical to the VM. Watchtower auto-updates ONLY the `app` +
+`worker` *images* (never the compose file); every STRUCTURAL change — a
+new service, a resource limit, an env addition — lands in the repo file
+and is applied with **`deploy/apply.sh`** (backup → scp → `docker compose
+config` → `up -d` → health-verify `/api/readyz` + `/manifest.webmanifest`
++ `/sw.js`). **`deploy/check-drift.sh`** sha256-compares the repo file
+against the VM (run it weekly); a mismatch means the VM was hand-edited
+(reconcile it back into the repo) or the repo changed without an apply.
+`deploy/env.prod.example` lists the prod-required env keys (parity with
+`src/env.ts` is guarded by `tests/guardrails/deploy-env-parity.test.ts`).
+
+**When a runtime change must be applied to the VM** — a one-off job run,
+inspecting container logs, a manual restart — execute it directly via
+`gcloud compute ssh`; do not ask the operator to do it by hand. But a
+**structural** compose change goes through the repo + `deploy/apply.sh`,
+NOT a hand-edit on the VM. Back up any file before editing it (the
+`<file>.bak.<timestamp>` convention).
+
+> Migration note: the legacy `inflect-compliance` VM / `/opt/inflect/`
+> paths (and the `inflect-compliance` GHCR org) are being retired as part
+> of the Agrent rebrand. VM/instance renames are operator-side — not
+> scripted here. `deploy/docker-compose.prod.yml` is the older
+> inflect-branded manifest, retained because the GAP-03 encryption-key
+> guardrail asserts its `:?`-fail-fast syntax; the live agrent stack uses
+> `docker-compose.vm.yml`.
 
 ## Architecture
 

@@ -4,6 +4,7 @@
  * EntraProviderWizard. Migrate together to useTenantSWR. */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Trash } from '@/components/ui/icons/nucleo/trash';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ const ROLE_OPTIONS = ENTRA_MAPPABLE_ROLES.map((r) => ({ value: r, label: r }));
  * stays manually granted.
  */
 export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => string }) {
+    const t = useTranslations('admin.entra');
     const [rows, setRows] = useState<GroupMapping[]>([]);
     const [groupId, setGroupId] = useState('');
     const [groupName, setGroupName] = useState('');
@@ -74,10 +76,10 @@ export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => str
             if (!res.ok) {
                 setError(
                     res.status === 409
-                        ? 'A mapping for this group already exists.'
+                        ? t('mappingExists')
                         : res.status === 403
-                          ? 'Access denied — only admins can manage mappings.'
-                          : 'Add failed — the group ID must be a valid GUID.',
+                          ? t('mappingAccessDenied')
+                          : t('mappingAddFailedGuid'),
                 );
                 return;
             }
@@ -87,18 +89,18 @@ export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => str
             setPriority(0);
             await load();
         } catch {
-            setError('Add failed — network error.');
+            setError(t('mappingAddFailedNetwork'));
         } finally {
             setSaving(false);
         }
-    }, [apiUrl, groupId, groupName, role, priority, load]);
+    }, [apiUrl, groupId, groupName, role, priority, load, t]);
 
     const remove = useCallback(
         (m: GroupMapping) => {
             setRows((rs) => rs.filter((r) => r.id !== m.id)); // optimistic
             triggerUndoToast({
-                message: `Mapping for ${m.aadGroupName ?? m.aadGroupId} removed`,
-                undoMessage: 'Undo',
+                message: t('mappingRemoved', { group: m.aadGroupName ?? m.aadGroupId }),
+                undoMessage: t('undo'),
                 action: async () => {
                     const res = await fetch(apiUrl(`/sso/entra/group-mappings/${m.id}`), {
                         method: 'DELETE',
@@ -111,29 +113,27 @@ export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => str
                 },
                 undoAction: () => load(),
                 onError: () => {
-                    setError('Failed to remove the mapping — it has been restored.');
+                    setError(t('mappingRemoveFailed'));
                     void load();
                 },
             });
         },
-        [apiUrl, triggerUndoToast, load],
+        [apiUrl, triggerUndoToast, load, t],
     );
 
     return (
         <Card className="space-y-default p-6">
-            <Heading level={3}>3 · Group → role mappings</Heading>
+            <Heading level={3}>{t('mappingsTitle')}</Heading>
             <p className="text-sm text-content-muted">
-                Map an Entra security group to an IC role. When a user signs in, the
-                highest-priority matching group sets their role. Ownership is never
-                assigned by group — it stays manually granted.
+                {t('mappingsDescription')}
             </p>
 
             {error && <InlineNotice variant="error">{error}</InlineNotice>}
 
             {rows.length === 0 ? (
                 <EmptyState
-                    title="No group mappings yet"
-                    description="Add a mapping below to drive roles from Entra group membership."
+                    title={t('mappingsEmptyTitle')}
+                    description={t('mappingsEmptyDescription')}
                 />
             ) : (
                 <ul className="divide-y divide-border-subtle rounded-md border border-border-subtle">
@@ -151,13 +151,13 @@ export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => str
                             </div>
                             <StatusBadge variant="neutral">{m.role}</StatusBadge>
                             <span className="w-20 text-right text-xs text-content-muted">
-                                priority {m.priority}
+                                {t('priorityValue', { value: m.priority })}
                             </span>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 icon={<Trash />}
-                                aria-label={`Remove mapping for ${m.aadGroupName ?? m.aadGroupId}`}
+                                aria-label={t('removeMappingAria', { group: m.aadGroupName ?? m.aadGroupId })}
                                 onClick={() => remove(m)}
                             />
                         </li>
@@ -167,7 +167,7 @@ export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => str
 
             {/* Add-mapping row */}
             <div className="grid grid-cols-1 gap-default sm:grid-cols-[1fr_1fr_auto_auto_auto] sm:items-end">
-                <FormField label="Group object ID">
+                <FormField label={t('groupObjectIdLabel')}>
                     <Input
                         id="entra-mapping-group-id"
                         placeholder="00000000-0000-0000-0000-000000000000"
@@ -175,15 +175,15 @@ export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => str
                         onChange={(e) => setGroupId(e.target.value)}
                     />
                 </FormField>
-                <FormField label="Display name (optional)">
+                <FormField label={t('displayNameLabel')}>
                     <Input
                         id="entra-mapping-group-name"
-                        placeholder="Engineering — Security"
+                        placeholder={t('displayNamePlaceholder')}
                         value={groupName}
                         onChange={(e) => setGroupName(e.target.value)}
                     />
                 </FormField>
-                <FormField label="Role" hint="OWNER is granted manually, not by group.">
+                <FormField label={t('roleLabel')} hint={t('roleHint')}>
                     <Combobox
                         id="entra-mapping-role"
                         options={ROLE_OPTIONS}
@@ -192,7 +192,7 @@ export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => str
                         matchTriggerWidth
                     />
                 </FormField>
-                <FormField label="Priority">
+                <FormField label={t('priorityLabel')}>
                     <NumberStepper value={priority} onChange={setPriority} min={0} max={1000} />
                 </FormField>
                 <Button
@@ -200,7 +200,7 @@ export function GroupMappingsSection({ apiUrl }: { apiUrl: (path: string) => str
                     onClick={add}
                     disabled={saving || !groupId.trim()}
                 >
-                    {saving ? 'Adding…' : 'Add mapping'}
+                    {saving ? t('addingMapping') : t('addMapping')}
                 </Button>
             </div>
         </Card>

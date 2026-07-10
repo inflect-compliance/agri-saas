@@ -24,8 +24,16 @@ budget.
 | Tier | Source of truth (preset) | Enforcement module | Storage |
 |------|--------------------------|--------------------|---------|
 | Auth | `src/lib/rate-limit/authRateLimit.ts` | same file | Upstash + memory fallback |
-| Mutation | `src/lib/security/rate-limit.ts` (`API_MUTATION_LIMIT`) | `src/lib/security/rate-limit-middleware.ts::withRateLimit` | in-process Map (Node runtime) |
+| Mutation | `src/lib/security/rate-limit.ts` (`API_MUTATION_LIMIT`, `EXCHANGE_*`, …) | `src/lib/security/rate-limit-middleware.ts::withRateLimit` → `src/lib/rate-limit/mutationRateLimit.ts` | **Upstash + memory fallback** (Roadmap-5 PR1) |
 | Read | `src/lib/security/rate-limit.ts` (`API_READ_LIMIT`) | `src/lib/rate-limit/apiReadRateLimit.ts` | Upstash + memory fallback |
+
+Roadmap-5 PR1 moved the **mutation** tier off its in-process `Map` onto the
+same Upstash-Redis + in-memory-fallback pattern the auth/read tiers already
+use, so a multi-instance fleet enforces one global budget instead of
+`N × preset`. The counter goes through `mutationRateLimit.ts`, which uses a
+single `Ratelimit.slidingWindow` op (one Redis round-trip on the hot path) and
+falls back to the in-process Map when no Upstash env is configured. All Node
+limiters share one client factory (`src/lib/rate-limit/upstashClient.ts`).
 
 The **read** tier was added as part of GAP-17 closure. Pre-GAP-17 the
 codebase had only auth + mutation tiers; tenant-scoped GETs were
@@ -176,6 +184,38 @@ namespace.
 5. Document the new tier here. Add a row to the table at the top.
 6. Add a structural ratchet under `tests/guardrails/` mirroring
    `tests/guardrails/api-read-rate-limit.test.ts`.
+
+## Horizontal scale checklist
+
+A multi-instance deployment is only safe if **shared** rate/abuse state lives
+in Redis, not in a per-process `Map`. When adding any counter, decide which
+column it belongs in — and if it must be global, back it with the shared
+Upstash client.
+
+| State | Module | Backend | Multi-instance correct? |
+|-------|--------|---------|-------------------------|
+| Auth tier (login/session/csrf) | `authRateLimit.ts` | Upstash + memory fallback | ✅ shared |
+| Read tier (tenant GETs) | `apiReadRateLimit.ts` | Upstash + memory fallback | ✅ shared |
+| Mutation tier (`API_MUTATION_LIMIT`, `EXCHANGE_*`, MFA verify, invites, …) | `mutationRateLimit.ts` | Upstash + memory fallback | ✅ shared (Roadmap-5 PR1) |
+| Credentials backoff | `credential-rate-limit.ts` | Upstash + memory fallback | ✅ shared |
+| **Progressive login lockout** (Epic A.3) | `rate-limit.ts` | Upstash blob + memory fallback | ✅ shared (Roadmap-5 PR1) |
+| AI generation quota | `aiRateLimit.ts` | Upstash + memory fallback | ✅ shared |
+| Audit-stream per-tenant buffers | `audit-stream.ts` | in-process, **per-process BY DESIGN** | ⚠️ intentionally local |
+
+**Why the audit-stream buffers stay local.** Each instance batches the audit
+rows *it* committed and flushes them to the tenant SIEM independently. The
+buffer is a delivery accelerator, not shared authority — the audit row is
+already committed to Postgres before it enters the buffer, and every batch
+carries a deterministic idempotency key (`X-Inflect-Batch-Id`) so a SIEM
+dedupes across instances. Centralising it in Redis would add a network hop and
+a new failure mode for zero correctness gain. On shutdown each instance drains
+its own buffer (Epic E.3 graceful shutdown). **Do not migrate it.**
+
+**Fallback contract.** With no `UPSTASH_REDIS_REST_*` env (or
+`RATE_LIMIT_MODE=memory`), every shared limiter degrades to the in-process Map
+— a single-node self-host stays zero-config and correct. The chosen backend is
+logged once at boot (`rate-limit.backend`). Multi-instance operators MUST set
+the Upstash env, or each instance enforces only its fraction of every budget.
 
 ## Cross-references
 

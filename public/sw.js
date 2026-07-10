@@ -177,13 +177,21 @@ function idbWrite(db, op, arg) {
     });
 }
 function isTransient(status) {
-    // status 0 = network throw. 408/429 + 5xx are retryable; other 4xx terminal.
-    return status === 0 || status === 408 || status === 429 || status >= 500;
+    // status 0 = network throw. 408 + 5xx are retryable-with-attempt-bump.
+    // 429 is handled separately (retain, no bump, stop the burst) — see below.
+    return status === 0 || status === 408 || status >= 500;
 }
 
 // Replays every queued mutation once, applying the same policy as
-// src/lib/offline/sync.ts. Rejects if any transient failure remains so the
+// src/lib/offline/sync.ts (kept in lockstep). Rejects if work remains so the
 // browser reschedules the sync (exponential backoff) until the queue drains.
+//
+// 429 is special: a reconnect burst can outrun the mutation rate limit. A 429
+// is NOT the item's fault and WILL succeed later, so it must never bump the
+// attempts counter (or a long burst would DROP a farmer's queued edits) and
+// must stop the pass (no point replaying the rest into a closed window). We
+// retain everything, surface the server's Retry-After to open clients, and
+// throw so the browser reschedules the drain after backing off.
 async function flushOutbox() {
     let db;
     try { db = await openOutboxDb(); } catch { return; }
@@ -192,9 +200,12 @@ async function flushOutbox() {
     items.sort((a, b) => a.createdAt - b.createdAt);
 
     let transientRemains = false;
+    let rateLimited = false;
+    let retryAfterSeconds;
     for (const item of items) {
         let status = 0;
         let ok = false;
+        let retryAfterHeader = null;
         try {
             const res = await fetch(item.url, {
                 method: item.method,
@@ -204,12 +215,20 @@ async function flushOutbox() {
             });
             status = res.status;
             ok = res.ok;
+            if (status === 429) retryAfterHeader = res.headers.get('Retry-After');
         } catch {
             status = 0;
         }
 
         if (ok) {
             await idbWrite(db, 'delete', item.id);
+        } else if (status === 429) {
+            // Rate limited — retain untouched (no attempts bump, never
+            // dropped) and stop draining into the closed window.
+            rateLimited = true;
+            const parsed = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
+            if (Number.isFinite(parsed) && parsed >= 0) retryAfterSeconds = parsed;
+            break;
         } else if (isTransient(status)) {
             const next = { ...item, attempts: (item.attempts || 0) + 1 };
             if (next.attempts >= OUTBOX_MAX_ATTEMPTS) await idbWrite(db, 'delete', item.id);
@@ -221,7 +240,8 @@ async function flushOutbox() {
     }
     // Notify any open clients so their pending-count refreshes.
     const clients = await self.clients.matchAll({ includeUncontrolled: true });
-    clients.forEach((c) => c.postMessage({ type: 'outbox-flushed' }));
+    clients.forEach((c) => c.postMessage({ type: 'outbox-flushed', rateLimited, retryAfterSeconds }));
+    if (rateLimited) throw new Error('outbox: rate limited — reschedule sync after backoff');
     if (transientRemains) throw new Error('outbox: transient failures remain — reschedule sync');
 }
 
