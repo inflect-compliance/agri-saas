@@ -862,8 +862,14 @@ jobs:
       - uses: actions/checkout@v7
 
       # ── Dependency review (PR only) ──
+      # Needs the GitHub dependency-graph API, which on a PRIVATE repo
+      # requires GitHub Advanced Security. Without GHAS the action errors
+      # ("Dependency review is not supported on this repository"), so gate it
+      # on the same opt-in variable as CodeQL/Trivy — it SKIPS cleanly on a
+      # private instance/fork and runs once GHAS is enabled
+      # (CODE_SCANNING_ENABLED=true).
       - name: Dependency review
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' && vars.CODE_SCANNING_ENABLED == 'true' }}
         uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
