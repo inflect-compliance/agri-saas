@@ -628,11 +628,18 @@ first (count=2), then demote the old (count=1, trigger satisfied).
 `createInviteToken` creates a 256-bit base64url token with 7-day
 expiry. User clicks `/invite/<token>` → preview page → "Sign in to
 accept" sets a 10-min HttpOnly cookie and redirects to `/login`.
-After OAuth, the signIn callback reads the cookie and calls
-`redeemInvite`. Step 1 (atomic claim) commits standalone so
-Step 2 (email binding) can burn the invite on mismatch without
-rolling back the claim — leaked tokens are unusable on first failed
-attempt.
+After OAuth, redemption runs in the **`jwt` callback** (NOT `signIn`)
+via `redeemPendingInvites` in `src/lib/auth/invite-redemption.ts`,
+which reads the cookie and resolves the persisted `User.id` **by
+email** before calling `redeemInvite`. This is load-bearing: in the
+`signIn` callback a first-time OAuth user's `user.id` is the
+identity-provider subject, not our `User.id` (the Prisma adapter
+creates the row only after `signIn` returns), so redeeming there wrote
+a membership against a non-existent `User` FK and stranded the invitee
+on `/no-tenant`. The `jwt` callback fires after the row exists.
+Step 1 (atomic claim) commits standalone so Step 2 (email binding) can
+burn the invite on mismatch without rolling back the claim — leaked
+tokens are unusable on first failed attempt.
 
 **See `docs/epic-1-access-control.md`** for the Epic 1 operator
 runbook (verification commands, rollback procedures, how to add a

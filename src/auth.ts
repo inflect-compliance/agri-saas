@@ -46,6 +46,7 @@ import { isTokenExpired, refreshAccessToken } from '@/lib/auth/refresh';
 import type { Role } from '@prisma/client';
 import { edgeLogger } from '@/lib/observability/edge-logger';
 import { hashForLookup } from '@/lib/security/encryption';
+import { redeemPendingInvites } from '@/lib/auth/invite-redemption';
 
 // ─── Type augmentation ──────────────────────────────────────────────
 //
@@ -331,52 +332,15 @@ const providers: NextAuthOptions['providers'] = [
 //
 // Sign-in alone grants AUTHENTICATION; tenant membership is created
 // ONLY via redemption of a token-bound invite (Epic 1, GAP-01 closure).
-
-async function ensureTenantMembershipFromInvite(
-    userId: string,
-    userEmail: string,
-    inviteToken: string | null,
-): Promise<void> {
-    if (!inviteToken) return; // the common case
-    try {
-        const { redeemInvite } = await import('@/app-layer/usecases/tenant-invites');
-        await redeemInvite({ token: inviteToken, userId, userEmail });
-    } catch (err) {
-        // Surface via logger; do NOT fail the sign-in. The user is
-        // authenticated; they'll land on /no-tenant where they can
-        // see a "this invite is invalid" hint on their next visit.
-        edgeLogger.warn('signIn: invite redemption failed', {
-            component: 'auth',
-            userId,
-            error: err instanceof Error ? err.message : String(err),
-        });
-    }
-}
-
-/**
- * Epic D — same shape as ensureTenantMembershipFromInvite but for
- * org invites. Reads the `inflect_org_invite_token` cookie set by
- * /api/org/invite/:token/start-signin, then calls redeemOrgInvite.
- * Best-effort; a failure logs and falls through (the user is still
- * authenticated, they'll land on the appropriate "no access" page).
- */
-async function ensureOrgMembershipFromInvite(
-    userId: string,
-    userEmail: string,
-    orgInviteToken: string | null,
-): Promise<void> {
-    if (!orgInviteToken) return;
-    try {
-        const { redeemOrgInvite } = await import('@/app-layer/usecases/org-invites');
-        await redeemOrgInvite({ token: orgInviteToken, userId, userEmail });
-    } catch (err) {
-        edgeLogger.warn('signIn: org invite redemption failed', {
-            component: 'auth',
-            userId,
-            error: err instanceof Error ? err.message : String(err),
-        });
-    }
-}
+//
+// The redemption itself lives in `@/lib/auth/invite-redemption`
+// (`redeemPendingInvites`) and runs from the `jwt` callback, NOT here in
+// `signIn`. Reason: a first-time OAuth user's `signIn` `user.id` is the
+// identity-provider subject, not our `User.id` (the adapter creates the
+// row only after `signIn` returns) — redeeming there wrote a membership
+// against a non-existent `User` FK and stranded the invitee on
+// `/no-tenant`. `redeemPendingInvites` resolves the persisted id by email
+// from the jwt callback, which fires after the row exists.
 
 async function readInviteTokenFromCookies(): Promise<{
     tenantToken: string | null;
@@ -408,17 +372,18 @@ export const authOptions: NextAuthOptions = {
     secret: env.AUTH_SECRET,
     callbacks: {
         /**
-         * signIn — runs on EVERY sign-in attempt. Two responsibilities:
+         * signIn — runs on EVERY sign-in attempt. One responsibility:
          *
-         *   1. Account linking: if the OAuth email matches a User row
-         *      created by a different provider, link the new OAuth
-         *      `Account` to the existing User rather than creating a
-         *      duplicate.
+         *   Account linking: if the OAuth email matches a User row
+         *   created by a different provider, link the new OAuth
+         *   `Account` to the existing User rather than creating a
+         *   duplicate.
          *
-         *   2. Invite redemption: if an `inflect_invite_token` cookie
-         *      (tenant invite) or `inflect_org_invite_token` cookie
-         *      (org invite, Epic D) is present, redeem it to create
-         *      the corresponding TenantMembership / OrgMembership.
+         * Invite redemption is DELIBERATELY not done here — a first-time
+         * OAuth user's `user.id` in this callback is the identity-provider
+         * subject, not our `User.id` (the adapter persists the row only
+         * after `signIn` returns). It runs in the `jwt` callback via
+         * `redeemPendingInvites`, which resolves the real id by email.
          *
          * Sign-in alone grants AUTHENTICATION, not tenant or org
          * membership. There is NO auto-join behaviour — see
@@ -441,8 +406,6 @@ export const authOptions: NextAuthOptions = {
                 });
                 return false;
             }
-
-            const inviteTokens = await readInviteTokenFromCookies();
 
             // 1. Account linking for OAuth (not credentials).
             if (account.provider !== 'credentials' && user.email) {
@@ -477,33 +440,14 @@ export const authOptions: NextAuthOptions = {
                             },
                         });
                     }
-                    await ensureTenantMembershipFromInvite(
-                        existingUser.id,
-                        user.email,
-                        inviteTokens.tenantToken,
-                    );
-                    await ensureOrgMembershipFromInvite(
-                        existingUser.id,
-                        user.email,
-                        inviteTokens.orgToken,
-                    );
+                    // Invite redemption is NOT done here — a first-time
+                    // OAuth user's `user.id` is the provider subject, not
+                    // our User.id. It runs in the jwt callback below, which
+                    // fires after the adapter has persisted the row.
                     return true;
                 }
             }
 
-            // 2. Invite redemption (no auto-join).
-            if (user.id && user.email) {
-                await ensureTenantMembershipFromInvite(
-                    user.id,
-                    user.email,
-                    inviteTokens.tenantToken,
-                );
-                await ensureOrgMembershipFromInvite(
-                    user.id,
-                    user.email,
-                    inviteTokens.orgToken,
-                );
-            }
             return true;
         },
 
@@ -515,6 +459,23 @@ export const authOptions: NextAuthOptions = {
         async jwt({ token, user, account, profile, trigger }) {
             // Initial sign in.
             if (account && user) {
+                // Redeem any pending invite BEFORE reading membership
+                // claims, using the PERSISTED User.id resolved by email.
+                // The adapter has created the row by now, so a first-time
+                // OAuth invitee (whose signIn `user.id` was the provider
+                // subject, not our User.id) gets their membership — and
+                // applyMembershipClaims below reflects it in the token on
+                // this same sign-in, so they land straight in the tenant.
+                const inviteEmail = token.email ?? user.email ?? null;
+                if (inviteEmail) {
+                    const inviteTokens = await readInviteTokenFromCookies();
+                    await redeemPendingInvites({
+                        userEmail: inviteEmail,
+                        tenantToken: inviteTokens.tenantToken,
+                        orgToken: inviteTokens.orgToken,
+                    });
+                }
+
                 await applyMembershipClaims(token, user.id);
 
                 if (account.provider !== 'credentials') {
