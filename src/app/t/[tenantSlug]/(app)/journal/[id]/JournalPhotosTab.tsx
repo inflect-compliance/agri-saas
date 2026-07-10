@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ImageIcon, Trash, CloudUpload, NucleoPhoto } from '@/components/ui/icons/nucleo';
 import { EmptyState } from '@/components/ui/empty-state';
 import { apiDelete } from '@/lib/api-client';
+import { downscalePhoto } from '@/lib/image/downscale-photo';
 import { useToastWithUndo } from '@/components/ui/hooks';
 import { haptic } from '@/lib/haptics';
 import { cn } from '@/lib/cn';
@@ -58,8 +59,14 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
         setUploading(true);
         setError(null);
         try {
+            // Rural operators shoot 8–12 MB camera photos and upload over flaky
+            // LTE. Shrink to ~2000 px / JPEG 0.85 BEFORE the multipart POST —
+            // a few hundred KB instead of megabytes. Non-images (PDFs) and
+            // already-small photos pass through untouched, and any failure
+            // falls back to the original File, so the upload never breaks.
+            const toUpload = await downscalePhoto(file);
             const fd = new FormData();
-            fd.append('file', file);
+            fd.append('file', toUpload);
             const res = await fetch(apiUrl(`/journal/${entryId}/files`), {
                 method: 'POST',
                 body: fd,
