@@ -131,6 +131,7 @@ export async function createTask(ctx: RequestContext, input: {
     assigneeUserId?: string | null;
     reviewerUserId?: string | null;
     controlId?: string | null;
+    clientMutationId?: string | null;
     metadataJson?: unknown;
 }) {
     assertCanWriteTasks(ctx);

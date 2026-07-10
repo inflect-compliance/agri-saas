@@ -14,6 +14,12 @@ import { logger } from '@/lib/observability/logger';
 import { trace } from '@opentelemetry/api';
 import { emitAutomationEvent } from '../automation';
 import { enqueue } from '@/app-layer/jobs/queue';
+import { Prisma } from '@prisma/client';
+
+/** Prisma's unique-constraint violation — the idempotency-race backstop. */
+function isUniqueViolation(err: unknown): boolean {
+    return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
+}
 
 type OperationType = 'SPRAY' | 'FERTILIZE' | 'SEED' | 'OTHER';
 type ParcelStatus = 'PENDING' | 'DONE' | 'SKIPPED';
@@ -101,12 +107,42 @@ export function resolveOperationType(task: {
  * The selection is validated BEFORE the task is created so a bad request
  * never leaves an orphan FIELD_OPERATION behind.
  */
+/**
+ * Offline exactly-once: reconstruct the create result for a Task that a
+ * replayed request already minted (same outbox id → same idempotency key).
+ * Returns the original 201 body so a re-send never doubles the job.
+ */
+async function findFieldOperationByMutationKey(
+    ctx: RequestContext,
+    locationId: string,
+    idempotencyKey: string,
+) {
+    return runInTenantContext(ctx, async (db) => {
+        const task = await db.task.findFirst({
+            where: { tenantId: ctx.tenantId, clientMutationId: idempotencyKey, type: 'FIELD_OPERATION' },
+            select: { id: true, key: true },
+        });
+        if (!task) return null;
+        const parcelCount = await db.operationParcel.count({ where: { tenantId: ctx.tenantId, taskId: task.id } });
+        return { taskId: task.id, taskKey: task.key, locationId, parcelCount };
+    });
+}
+
 export async function createFieldOperation(
     ctx: RequestContext,
     locationId: string,
     input: CreateFieldOperationInput,
+    idempotencyKey?: string | null,
 ) {
     assertCanWrite(ctx);
+
+    // Offline exactly-once — a queued spray job re-sent over a flaky link
+    // carries the same outbox id as `Idempotency-Key`. If we already minted a
+    // Task for that key, return the original result and do no further work.
+    if (idempotencyKey) {
+        const existing = await findFieldOperationByMutationKey(ctx, locationId, idempotencyKey);
+        if (existing) return existing;
+    }
 
     // The operation applies exactly one input — a product XOR a fertilizer.
     const chosen = resolveChosenInput(input);
@@ -151,13 +187,26 @@ export async function createFieldOperation(
     //     the chosen input kind (fertilizer → FERTILIZE, else SPRAY).
     const opType: OperationType = input.operationType ?? (chosen.isFertilizer ? 'FERTILIZE' : 'SPRAY');
     const title = input.title?.trim() || `${titleCase(opType)} — ${location.name}`;
-    const task = await createTask(ctx, {
-        title,
-        type: 'FIELD_OPERATION',
-        assigneeUserId: input.assigneeUserId,
-        dueAt: input.dueAt ?? null,
-        description: input.targetNote ?? null,
-    });
+    let task;
+    try {
+        task = await createTask(ctx, {
+            title,
+            type: 'FIELD_OPERATION',
+            assigneeUserId: input.assigneeUserId,
+            dueAt: input.dueAt ?? null,
+            description: input.targetNote ?? null,
+            clientMutationId: idempotencyKey ?? null,
+        });
+    } catch (err) {
+        // Race backstop — two replays of the same queued job hit the unique
+        // (tenantId, clientMutationId) index concurrently. The loser gets a
+        // P2002; re-read the winner's Task and return its result.
+        if (idempotencyKey && isUniqueViolation(err)) {
+            const existing = await findFieldOperationByMutationKey(ctx, locationId, idempotencyKey);
+            if (existing) return existing;
+        }
+        throw err;
+    }
 
     // 3 — link Task→Location and write the per-parcel prescription lines
     const parcelCount = await runInTenantContext(ctx, async (db) => {

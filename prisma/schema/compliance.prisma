@@ -73,6 +73,13 @@ model Task {
   // the "Техника за приложение" (one rig per job is the field reality).
   operationType        FieldOperationType?
   applicationTechnique String?
+  // Offline exactly-once handle. When a FIELD_OPERATION is created from the
+  // queued outbox, the client's outbox-item id rides in as the
+  // `Idempotency-Key`; a replayed write (flaky rural LTE re-send) dedupes on
+  // (tenantId, clientMutationId) and returns the original task instead of
+  // minting a duplicate. Nullable + NULLS-DISTINCT: online creates without a
+  // key are unconstrained (every NULL is unique to Postgres).
+  clientMutationId String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   deletedAt        DateTime?
@@ -96,6 +103,10 @@ model Task {
   operationParcels OperationParcel[]
 
   @@unique([tenantId, key])
+  // Offline idempotency ledger — a replayed FIELD_OPERATION create dedupes
+  // here. Nullable column ⇒ NULLS DISTINCT ⇒ online (no-key) creates never
+  // collide; only real Idempotency-Key replays are constrained.
+  @@unique([tenantId, clientMutationId])
   @@index([tenantId])
   @@index([tenantId, createdAt])
   @@index([tenantId, status])

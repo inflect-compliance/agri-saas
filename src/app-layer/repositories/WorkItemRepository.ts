@@ -324,6 +324,9 @@ export class WorkItemRepository {
         assigneeUserId?: string | null;
         reviewerUserId?: string | null;
         controlId?: string | null;
+        // Offline exactly-once handle (outbox-item id). Dedupe key for a
+        // replayed FIELD_OPERATION create — see the Task.clientMutationId note.
+        clientMutationId?: string | null;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- caller-supplied JSON blob from Zod parse, typed as any at the usecase boundary
         metadataJson?: any;
     }) {
@@ -355,6 +358,7 @@ export class WorkItemRepository {
                 assigneeUserId: data.assigneeUserId || null,
                 reviewerUserId: data.reviewerUserId || null,
                 controlId: data.controlId || null,
+                clientMutationId: data.clientMutationId || null,
                 createdByUserId: ctx.userId,
                 metadataJson: data.metadataJson != null ? data.metadataJson : Prisma.JsonNull,
             },

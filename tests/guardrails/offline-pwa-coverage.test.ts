@@ -58,6 +58,25 @@ describe('service worker safety', () => {
     });
 });
 
+// ─── 2b — offline exactly-once (idempotency handle) ────────────────
+
+describe('outbox replay carries the idempotency handle', () => {
+    // A queued write re-sent over a flaky link must transmit the outbox-item
+    // id as `Idempotency-Key` so the server dedupes the replay instead of
+    // minting a duplicate row. BOTH senders (the in-page fetch sender AND the
+    // service-worker background flush) must set it — they drain the SAME
+    // outbox, so a gap in either reopens the double-write path.
+    it('the in-page fetch sender sets Idempotency-Key from the item id', () => {
+        const src = read('src/lib/offline/sync.ts');
+        expect(src).toMatch(/['"]Idempotency-Key['"]\s*:\s*item\.id/);
+    });
+
+    it('the service-worker flush sets Idempotency-Key from the item id', () => {
+        const src = read('public/sw.js');
+        expect(src).toMatch(/['"]Idempotency-Key['"]\s*:\s*item\.id/);
+    });
+});
+
 // ─── 3 — outbox single seam ────────────────────────────────────────
 
 function walk(dir: string): string[] {
