@@ -957,16 +957,15 @@ jobs:
     name: "CodeQL SAST"
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # Code Scanning is enabled on this repo (public + Advanced
-    # Security free). The `continue-on-error: true` guard was added
-    # as a workaround pre-enablement; it's no longer needed and was
-    # also responsible for the "Code scanning configuration error"
-    # banner on the Security tab — failed uploads emitted warnings
-    # that the UI surfaced as configuration errors even though the
-    # workflow itself succeeded. With the guard removed, SARIF
-    # upload failures (which should not happen) will fail the job
-    # loudly and we'll see them as actual CI failures, not silent
-    # Security-tab warnings.
+    # Code Scanning (SARIF upload → Security tab) requires GitHub Advanced
+    # Security, which a PRIVATE instance/fork without GHAS does not have — the
+    # analyze step then fails on upload. Gate the whole job on an explicit,
+    # opt-in repo variable so it SKIPS cleanly on such instances instead of
+    # running-and-erroring. On this repo (GHAS enabled), set the repo variable
+    #   CODE_SCANNING_ENABLED=true
+    # to keep CodeQL running. A skipped job reports its required check as
+    # "skipped", which GitHub branch protection treats as passing.
+    if: ${{ vars.CODE_SCANNING_ENABLED == 'true' }}
 
     permissions:
       security-events: write
@@ -1086,8 +1085,13 @@ jobs:
           trivyignores: ".trivyignore"
 
       # ── SARIF upload for GitHub Security tab (informational) ──
+      # Only meaningful where Code Scanning is available (GHAS). A private
+      # instance/fork without it errors on the upload, so gate both the report
+      # generation and the upload on the same opt-in variable the CodeQL job
+      # uses — they skip cleanly there. `always()` is preserved so the SARIF
+      # still uploads even when the blocking Trivy gate above flagged a vuln.
       - name: "Trivy SARIF report (all severities)"
-        if: always()
+        if: ${{ always() && vars.CODE_SCANNING_ENABLED == 'true' }}
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: "inflect-compliance:ci-${{ github.sha }}"
@@ -1098,7 +1102,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Upload Trivy SARIF to GitHub Security
-        if: always()
+        if: ${{ always() && vars.CODE_SCANNING_ENABLED == 'true' }}
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: "trivy-results.sarif"
