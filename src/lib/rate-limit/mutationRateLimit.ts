@@ -64,7 +64,10 @@ function limiterFor(config: RateLimitConfig): Ratelimit | null {
             prefix: KEY_PREFIX,
             limiter: Ratelimit.slidingWindow(
                 config.maxAttempts,
-                `${config.windowMs} ms`,
+                // config.windowMs is a plain number, so the template widens to
+                // `string`; assert the `${number} ms` shape the Duration union
+                // accepts (all presets are whole-millisecond windows).
+                `${config.windowMs} ms` as `${number} ms`,
             ),
         });
         _limiters.set(shape, limiter);

@@ -16,7 +16,9 @@
  * See docs/rate-limiting.md "horizontal scale checklist".
  */
 import { getUpstashRedis } from '@/lib/rate-limit/upstashClient';
-import { logger } from '@/lib/observability/logger';
+// edgeLogger (not the Node logger): this module is on the Edge import chain via
+// apiReadRateLimit.ts → security/rate-limit.ts. edgeLogger runs on both.
+import { edgeLogger } from '@/lib/observability/edge-logger';
 
 interface RateLimitEntry {
     timestamps: number[];
@@ -506,7 +508,7 @@ export async function evaluateProgressiveRateLimit(
             }
             return decision;
         } catch (err) {
-            logger.warn('rate-limit.progressive_redis_error_fallback_memory', {
+            edgeLogger.warn('rate-limit.progressive_redis_error_fallback_memory', {
                 component: 'rate-limit',
                 err: String(err),
             });
@@ -548,7 +550,7 @@ export async function recordProgressiveFailure(
             });
             return computeProgressive(timestamps, policy, now).decision;
         } catch (err) {
-            logger.warn('rate-limit.progressive_redis_error_fallback_memory', {
+            edgeLogger.warn('rate-limit.progressive_redis_error_fallback_memory', {
                 component: 'rate-limit',
                 err: String(err),
             });
@@ -575,7 +577,7 @@ export async function resetProgressiveFailures(key: string): Promise<void> {
     try {
         await redis.del(`${PROGRESSIVE_KEY_PREFIX}:${key}`);
     } catch (err) {
-        logger.warn('rate-limit.progressive_reset_del_failed', {
+        edgeLogger.warn('rate-limit.progressive_reset_del_failed', {
             component: 'rate-limit',
             err: String(err),
         });

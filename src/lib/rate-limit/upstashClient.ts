@@ -23,7 +23,11 @@
 import { Redis } from '@upstash/redis';
 
 import { env } from '@/env';
-import { logger } from '@/lib/observability/logger';
+// edgeLogger (not the Node logger) because this module sits on the Edge import
+// chain too: apiReadRateLimit.ts (Edge middleware) → security/rate-limit.ts →
+// here. edgeLogger works on both runtimes; the Node logger would break the
+// Edge bundle.
+import { edgeLogger } from '@/lib/observability/edge-logger';
 
 let _redis: Redis | null = null;
 let _resolved = false;
@@ -32,7 +36,7 @@ let _logged = false;
 function logBackendOnce(backend: 'upstash' | 'memory', detail: string): void {
     if (_logged) return;
     _logged = true;
-    logger.info('rate-limit.backend', {
+    edgeLogger.info('rate-limit.backend', {
         component: 'rate-limit',
         backend,
         detail,
