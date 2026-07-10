@@ -45,9 +45,28 @@ function ymd(d: Date): string {
  * Run the shared tile-route pipeline for `index`, generating the composite
  * via `getTileUrl` (the index's `get<Index>TileUrl` from `earth-engine.ts`).
  */
+/**
+ * Union the location's parcel polygons into a single GeoJSON MultiPolygon so
+ * the Earth-Engine composite can be clipped to the fields' exact shape (not
+ * the bounding box). Returns `null` when no parcel carries a usable polygon —
+ * the caller then falls back to the bbox clip.
+ */
+function parcelClipGeometry(
+    parcels: Array<{ geometry?: unknown }>,
+): { type: 'MultiPolygon'; coordinates: unknown[] } | null {
+    const coordinates: unknown[] = [];
+    for (const p of parcels) {
+        const g = p.geometry as { type?: string; coordinates?: unknown } | null | undefined;
+        if (!g || !Array.isArray(g.coordinates)) continue;
+        if (g.type === 'Polygon') coordinates.push(g.coordinates);
+        else if (g.type === 'MultiPolygon') coordinates.push(...(g.coordinates as unknown[]));
+    }
+    return coordinates.length > 0 ? { type: 'MultiPolygon', coordinates } : null;
+}
+
 export async function handleIndexTiles(
     index: VegetationIndex,
-    getTileUrl: (aoi: NdviAoi, win: NdviWindow) => Promise<string>,
+    getTileUrl: (aoi: NdviAoi, win: NdviWindow, clipGeometry?: unknown) => Promise<string>,
     req: NextRequest,
     paramsPromise: Promise<{ tenantSlug: string }>,
 ) {
@@ -66,20 +85,25 @@ export async function handleIndexTiles(
     // Resolve the location's field bounds [west, south, east, north].
     // `bounds` is a Prisma Json column — validate the tuple shape before
     // use so a malformed/absent value just skips the overlay.
-    const { bounds } = await listLocationParcels(ctx, query.locationId);
+    const { bounds, parcels } = await listLocationParcels(ctx, query.locationId);
     const box = bounds as unknown as number[] | null;
     if (!box || !Array.isArray(box) || box.length < 4) {
         // Configured, but the location has no mapped field yet.
         return jsonResponse({ configured: true, tileUrl: '' });
     }
     const [west, south, east, north] = box;
+    // Clip the raster to the parcels' polygons (falls back to the bbox when a
+    // location has no usable parcel geometry).
+    const clipGeometry = parcelClipGeometry(parcels as Array<{ geometry?: unknown }>);
 
     const endDate = query.date ? new Date(`${query.date}T00:00:00Z`) : new Date();
     const end = ymd(endDate);
     const startDate = new Date(endDate.getTime() - WINDOW_DAYS * 86_400_000);
     const start = ymd(startDate);
 
-    const cacheKey = `${index}:tile:${ctx.tenantId}:${query.locationId}:${end}`;
+    // `clip2` marks the parcel-polygon-clipped tiles so any bbox-clipped URLs
+    // cached under the old key aren't served after this change.
+    const cacheKey = `${index}:tile:${ctx.tenantId}:${query.locationId}:clip2:${end}`;
     const redis = getRedis();
 
     // Cache hit — return the still-valid tile URL.
@@ -96,7 +120,7 @@ export async function handleIndexTiles(
 
     let tileUrl: string;
     try {
-        tileUrl = await getTileUrl({ west, south, east, north }, { start, end });
+        tileUrl = await getTileUrl({ west, south, east, north }, { start, end }, clipGeometry ?? undefined);
     } catch {
         // A GEE failure must not break the map — report it softly so the
         // overlay stays off and the rest of the page works.

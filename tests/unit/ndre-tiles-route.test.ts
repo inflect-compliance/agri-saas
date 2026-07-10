@@ -87,7 +87,7 @@ it('generates + caches a tile URL on a cache miss', async () => {
         { start: '2026-05-16', end: '2026-06-15' },
     );
     expect(redisSet).toHaveBeenCalledWith(
-        'ndre:tile:tenant-1:loc-1:2026-06-15',
+        'ndre:tile:tenant-1:loc-1:clip2:2026-06-15',
         body.tileUrl,
         'EX',
         21_600,
