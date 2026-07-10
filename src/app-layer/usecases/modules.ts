@@ -8,6 +8,7 @@ import { ModuleKey } from '@prisma/client';
 import { ALL_MODULES, resolveEnabledModules, coerceModuleKeys } from '@/lib/modules';
 import { getTenantPlan } from '@/lib/entitlements-server';
 import { planAllowsModule, planModules } from '@/lib/entitlements';
+import { recordModuleAccess } from '@/lib/observability/module-metrics';
 
 /**
  * Per-tenant module gating. A module is AVAILABLE when
@@ -129,6 +130,9 @@ export async function isModuleAvailable(ctx: RequestContext, key: ModuleKey): Pr
  * (redirect) in `@/lib/security/require-module`.
  */
 export async function assertModuleEnabled(ctx: RequestContext, key: ModuleKey): Promise<void> {
+    // Usage telemetry (module × device) — recorded before the check so denied
+    // attempts count too. Best-effort; never affects the gate.
+    await recordModuleAccess(key);
     if (!(await isModuleAvailable(ctx, key))) {
         throw forbidden(`module_disabled: ${key}`);
     }
