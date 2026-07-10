@@ -16,6 +16,7 @@ import { getSeasonRecap } from '@/app-layer/usecases/season-recap';
 import { getEnabledModules } from '@/app-layer/usecases/modules';
 import { listSchemes } from '@/app-layer/usecases/certification-scheme';
 import { generateReadinessReport } from '@/app-layer/usecases/framework/coverage';
+import { haToDca } from '@/lib/agro/rate-calc';
 import { createPdfDocument } from '@/lib/pdf/pdfKitFactory';
 import { addCoverPage, applyHeadersAndFooters } from '@/lib/pdf/layout';
 import { renderTable, autoColumnWidths } from '@/lib/pdf/table';
@@ -76,7 +77,8 @@ export async function generateYearOnFarmPdf(
     // Recap metrics
     addSectionTitle(doc, 'Season recap');
     addSummaryMetrics(doc, [
-        { label: 'Total area (ha)', value: fmtNum(recap.totalAreaHa) },
+        // Area in decares (дка = ha × 10); yield/cost densities stay per-ha.
+        { label: 'Total area (dca)', value: fmtNum(recap.totalAreaHa == null ? null : haToDca(recap.totalAreaHa)) },
         { label: 'Total yield (t)', value: fmtNum(recap.totalYieldTonnes) },
         { label: 'Avg yield (t/ha)', value: fmtNum(recap.avgYieldTPerHa) },
         { label: 'Cost per ha', value: fmtNum(recap.costPerHa) },
@@ -90,13 +92,13 @@ export async function generateYearOnFarmPdf(
         const columns: TableColumn[] = [
             { key: 'name', header: 'Field', width: widths[0] },
             { key: 'yieldTonnes', header: 'Yield (t)', width: widths[1], align: 'right' },
-            { key: 'areaHa', header: 'Area (ha)', width: widths[2], align: 'right' },
+            { key: 'areaHa', header: 'Area (dca)', width: widths[2], align: 'right' },
             { key: 'tPerHa', header: 't/ha', width: widths[3], align: 'right' },
         ];
         const rows = recap.topFields.map((f) => ({
             name: f.name,
             yieldTonnes: fmtNum(f.yieldTonnes),
-            areaHa: fmtNum(f.areaHa),
+            areaHa: fmtNum(f.areaHa == null ? null : haToDca(f.areaHa)),
             tPerHa: fmtNum(f.tPerHa),
         }));
         renderTable(doc, columns, rows);

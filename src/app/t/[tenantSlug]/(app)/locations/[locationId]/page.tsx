@@ -34,7 +34,8 @@ import { soilColorForTexture, type SoilProfile } from '@/lib/soil/types';
 import type { UsdaTextureClass } from '@/lib/soil/texture';
 import { SmartDefaultsBanner } from './SmartDefaultsBanner';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
-import { CalendarIcon } from '@/components/ui/icons/nucleo';
+import { CalendarIcon, MapPosition } from '@/components/ui/icons/nucleo';
+import { haToDca, trimNumber } from '@/lib/agro/rate-calc';
 import { useMediaQuery, useToast } from '@/components/ui/hooks';
 import { cn } from '@/lib/cn';
 import type { MapParcel } from '@/components/ui/map/MapCanvas';
@@ -395,14 +396,39 @@ export default function LocationDetailPage() {
                     meta: { mobileCard: { slot: 'meta', label: t('colCrop') } },
                 },
                 {
-                    id: 'areaHa',
-                    header: t('colAreaHa'),
-                    cell: ({ row }) => row.original.areaHa ?? '—',
+                    id: 'areaDca',
+                    header: t('colAreaDca'),
+                    // Area in DECARES (дка = ha × 10, the Bulgarian standard) —
+                    // matches the journal + farm-record PDF, which are already dca.
+                    cell: ({ row }) =>
+                        row.original.areaHa != null ? trimNumber(haToDca(row.original.areaHa)) : '—',
                     // Mobile card key/value row — parcel area.
-                    meta: { mobileCard: { slot: 'meta', label: t('colAreaHa') } },
+                    meta: { mobileCard: { slot: 'meta', label: t('colAreaDca') } },
+                },
+                {
+                    id: 'viewOnMap',
+                    header: '',
+                    // Jump to this parcel on the Map tab (frames + selects it via
+                    // flyToOnSelect). stopPropagation so the card's row-click
+                    // (which opens the parcel sheet) doesn't also fire.
+                    cell: ({ row }) => (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            aria-label={t('viewOnMap')}
+                            icon={<MapPosition className="size-4" aria-hidden="true" />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelected([row.original.id]);
+                                setTab('map');
+                            }}
+                        />
+                    ),
+                    // Mobile card: anchored top-right of the card.
+                    meta: { mobileCard: { slot: 'status' } },
                 },
             ]),
-        [setParcelCrop, t],
+        [setParcelCrop, setSelected, setTab, t],
     );
 
 
@@ -485,7 +511,7 @@ export default function LocationDetailPage() {
                         figures (parcel count + total area). */}
                     <dl className="grid grid-cols-2 gap-default text-sm">
                         <div><dt className="text-content-secondary">{t('overviewParcels')}</dt><dd className="font-medium">{loc?._count?.parcels ?? parcels.length}</dd></div>
-                        <div><dt className="text-content-secondary">{t('overviewTotalArea')}</dt><dd className="font-medium">{Math.round(totalAreaHa * 10) / 10} ha</dd></div>
+                        <div><dt className="text-content-secondary">{t('overviewTotalArea')}</dt><dd className="font-medium">{trimNumber(haToDca(totalAreaHa))} dca</dd></div>
                     </dl>
                     {loc?.description && <p className="text-sm">{loc.description}</p>}
                     {parcels.length === 0 && (
@@ -664,6 +690,9 @@ export default function LocationDetailPage() {
                             bounds={bounds}
                             selectedIds={selected}
                             onSelectionChange={handleMapSelection}
+                            // Frame the parcel when the overview "view on map"
+                            // button selects a single one (operator focus).
+                            flyToOnSelect
                             // Phone-native: thumb-reachable zoom + find-my-field
                             // (with live-tracking), lifted clear of the fixed
                             // bottom-tab bar.

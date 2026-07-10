@@ -107,7 +107,7 @@ test.describe('mobile map — phone-native operator map @mobile', () => {
 
         const area = page.getByTestId('parcel-sheet-area');
         await expect(area).toBeVisible({ timeout: 15_000 });
-        await expect(area).toContainText('ha');
+        await expect(area).toContainText('dca');
         await expect(page.getByTestId('parcel-sheet-crop')).toContainText('Wheat');
 
         // The sheet IS the single create-operation form now (#3): the
