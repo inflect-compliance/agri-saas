@@ -393,10 +393,14 @@ jobs:
       # Empirical evidence + alternative paths considered:
       # docs/implementation-notes/2026-04-27-gap-15-coverage-enforcement.md
       #
-      # Current floors (calibrated 2026-04-27, observed − 3% buffer):
-      #   global   branches=56 functions=54 lines=70 statements=69
-      #   usecases branches=37 functions=30 lines=49 statements=46
-      #   lib      branches=48 functions=48 lines=57 statements=54
+      # Current floors (recalibrated 2026-07-10 from CI's coverage artifact:
+      # measured − 2%, capped at 70, never lowering an already-stricter floor):
+      #   global   branches=63 functions=64 lines=70 statements=70
+      #   usecases branches=67 functions=70 lines=77 statements=75
+      #   policies branches=78 functions=88 lines=88 statements=85
+      #   events   branches=72 functions=61 lines=78 statements=75
+      #   lib      branches=70 functions=66 lines=71 statements=70
+      # Measured global at recalibration: B65.5 F67.0 L80.3 S78.7.
       - name: "Gate: test coverage thresholds"
         run: |
           npx jest --coverage --forceExit --runInBand \
