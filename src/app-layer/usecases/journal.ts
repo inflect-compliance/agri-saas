@@ -27,6 +27,12 @@ import { env } from '@/env';
 import { traceAgUsecase, logger } from '@/lib/observability';
 import { enqueue } from '../jobs/queue';
 import { trace } from '@opentelemetry/api';
+import { Prisma } from '@prisma/client';
+
+/** Prisma's unique-constraint violation — the idempotency-race backstop. */
+function isUniqueViolation(err: unknown): boolean {
+    return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
+}
 
 /**
  * Field-journal usecases — the durable record of work done (or planned)
@@ -175,12 +181,45 @@ export async function getLogEntry(ctx: RequestContext, id: string) {
 
 // ─── Create ─────────────────────────────────────────────────────────
 
-export async function createLogEntry(ctx: RequestContext, data: CreateLogEntryData) {
-    return traceAgUsecase('journal.createLogEntry', ctx, () => createLogEntryImpl(ctx, data));
+export async function createLogEntry(
+    ctx: RequestContext,
+    data: CreateLogEntryData,
+    idempotencyKey?: string | null,
+) {
+    return traceAgUsecase('journal.createLogEntry', ctx, async () => {
+        try {
+            return await createLogEntryImpl(ctx, data, idempotencyKey);
+        } catch (err) {
+            // Race backstop — two replays of the same queued entry hit the
+            // unique (tenantId, clientMutationId) index concurrently. The loser
+            // gets a P2002; re-read the winner and return its result.
+            if (idempotencyKey && isUniqueViolation(err)) {
+                const existing = await runInTenantContext(ctx, (db) =>
+                    JournalRepository.findByClientMutationId(db, ctx, idempotencyKey),
+                );
+                if (existing) return existing;
+            }
+            throw err;
+        }
+    });
 }
 
-async function createLogEntryImpl(ctx: RequestContext, data: CreateLogEntryData) {
+async function createLogEntryImpl(
+    ctx: RequestContext,
+    data: CreateLogEntryData,
+    idempotencyKey?: string | null,
+) {
     assertCanWrite(ctx);
+
+    // Offline exactly-once — a queued journal entry re-sent over a flaky link
+    // carries the same outbox id as `Idempotency-Key`. If we already minted an
+    // entry for that key, return the original result and do no further work.
+    if (idempotencyKey) {
+        const existing = await runInTenantContext(ctx, (db) =>
+            JournalRepository.findByClientMutationId(db, ctx, idempotencyKey),
+        );
+        if (existing) return existing;
+    }
 
     // Sanitize at the boundary (Epic D.2): title is single-line plain
     // text; notes is TipTap rich-text HTML.
@@ -197,6 +236,7 @@ async function createLogEntryImpl(ctx: RequestContext, data: CreateLogEntryData)
         operationParcelId: data.operationParcelId ?? null,
         costAmount: data.costAmount ?? null,
         costCurrency: data.costCurrency ?? null,
+        clientMutationId: idempotencyKey ?? null,
         quantities: data.quantities?.map((q) => ({
             measure: q.measure,
             value: q.value,

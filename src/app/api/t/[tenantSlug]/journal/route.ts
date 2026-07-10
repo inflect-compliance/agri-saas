@@ -55,6 +55,10 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
 export const POST = withApiErrorHandling(withValidatedBody(CreateLogEntrySchema, async (req, { params: paramsPromise }: { params: Promise<{ tenantSlug: string }> }, body) => {
     const params = await paramsPromise;
     const ctx = await getTenantCtx(params, req);
-    const entry = await createLogEntry(ctx, body);
+    // Offline exactly-once — the outbox replays a queued journal entry with its
+    // item id as the Idempotency-Key; the usecase dedupes on it so a re-send
+    // over flaky rural LTE returns the original entry, not a duplicate.
+    const idempotencyKey = req.headers.get('Idempotency-Key') || undefined;
+    const entry = await createLogEntry(ctx, body, idempotencyKey);
     return jsonResponse(entry, { status: 201 });
 }));
