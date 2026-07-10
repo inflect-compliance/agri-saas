@@ -264,7 +264,11 @@ jobs:
       # never collide across shards. The intra-shard run stays
       # `--runInBand` for the "one DB per worker" invariant.
       - name: "Run tests: unit + integration (shard)"
-        run: npx jest --runInBand --no-coverage --shard=${{ matrix.shard }}/${{ matrix.total }}
+        # The integration suite + generated Prisma client push a single
+        # `--runInBand` process right up to the runner's default ~2 GB V8 heap
+        # ceiling — it OOMs (exit 134) nondeterministically. Run jest through
+        # node with the same 8192 heap flag the Typecheck + Coverage jobs use.
+        run: node --max-old-space-size=8192 node_modules/jest/bin/jest.js --runInBand --no-coverage --shard=${{ matrix.shard }}/${{ matrix.total }}
 
       # ── Architectural guard + API contract gates ──
       # These suites are fast (~30s combined) and not sharded — they
@@ -279,11 +283,11 @@ jobs:
       #      against the previous contract and approves explicitly.
       - name: "Run tests: architectural guards"
         if: matrix.shard == 1
-        run: npx jest tests/guards/ --runInBand --forceExit --no-coverage
+        run: node --max-old-space-size=8192 node_modules/jest/bin/jest.js tests/guards/ --runInBand --forceExit --no-coverage
 
       - name: "Gate: API contract tests"
         if: matrix.shard == 1
-        run: npx jest tests/contracts/ --runInBand --forceExit --no-coverage --ci
+        run: node --max-old-space-size=8192 node_modules/jest/bin/jest.js tests/contracts/ --runInBand --forceExit --no-coverage --ci
 
   # ═══════════════════════════════════════════════════════════════
   #  Job 3b: Test (summary) — single required check for the matrix
@@ -472,6 +476,9 @@ jobs:
         run: npx next build --webpack
         env:
           NODE_ENV: production
+          # next build sits near the runner's default ~2 GB heap ceiling and
+          # OOMs nondeterministically; give the build process explicit headroom.
+          NODE_OPTIONS: --max-old-space-size=8192
 
       - name: Upload build logs on failure
         if: failure()
@@ -600,6 +607,7 @@ jobs:
         env:
           NODE_ENV: production
           NEXT_TEST_MODE: "1"
+          NODE_OPTIONS: --max-old-space-size=8192
           # NEXT_PUBLIC_* env vars are inlined at BUILD time, so they
           # must be set on the build step (not just on `playwright test`)
           # to take effect in the runtime bundle. Mirrors what
@@ -800,6 +808,7 @@ jobs:
         run: npx next build --webpack
         env:
           NODE_ENV: production
+          NODE_OPTIONS: --max-old-space-size=8192
 
       - name: Start app (background)
         run: |
