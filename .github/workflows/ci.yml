@@ -264,7 +264,12 @@ jobs:
       # never collide across shards. The intra-shard run stays
       # `--runInBand` for the "one DB per worker" invariant.
       - name: "Run tests: unit + integration (shard)"
-        run: npx jest --runInBand --no-coverage --shard=${{ matrix.shard }}/${{ matrix.total }}
+        # Invoke jest via `node --max-old-space-size=8192` (mirrors the
+        # Typecheck job's tsc call). The runner's default ~2 GB V8 heap is
+        # too small for the `--runInBand` suite and OOMs ("Reached heap
+        # limit … Aborted"); NODE_OPTIONS does not reliably reach the jest
+        # process, so the flag is applied to this V8 instance directly.
+        run: node --max-old-space-size=8192 ./node_modules/jest/bin/jest.js --runInBand --no-coverage --shard=${{ matrix.shard }}/${{ matrix.total }}
 
       # ── Architectural guard + API contract gates ──
       # These suites are fast (~30s combined) and not sharded — they
@@ -279,11 +284,11 @@ jobs:
       #      against the previous contract and approves explicitly.
       - name: "Run tests: architectural guards"
         if: matrix.shard == 1
-        run: npx jest tests/guards/ --runInBand --forceExit --no-coverage
+        run: node --max-old-space-size=8192 ./node_modules/jest/bin/jest.js tests/guards/ --runInBand --forceExit --no-coverage
 
       - name: "Gate: API contract tests"
         if: matrix.shard == 1
-        run: npx jest tests/contracts/ --runInBand --forceExit --no-coverage --ci
+        run: node --max-old-space-size=8192 ./node_modules/jest/bin/jest.js tests/contracts/ --runInBand --forceExit --no-coverage --ci
 
   # ═══════════════════════════════════════════════════════════════
   #  Job 3b: Test (summary) — single required check for the matrix
@@ -403,7 +408,7 @@ jobs:
       # Measured global at recalibration: B65.5 F67.0 L80.3 S78.7.
       - name: "Gate: test coverage thresholds"
         run: |
-          npx jest --coverage --forceExit --runInBand \
+          node --max-old-space-size=8192 ./node_modules/jest/bin/jest.js --coverage --forceExit --runInBand \
             --coverageThreshold "$(cat jest.thresholds.json)"
 
       - name: Upload coverage report
@@ -464,6 +469,9 @@ jobs:
         # --webpack: nonce strict-CSP chunks (see Dockerfile + impl note).
         run: npx next build --webpack
         env:
+          # `next build` sits near the runner's default ~2 GB V8 heap ceiling
+          # and OOMs on the private-repo runners; lift it as the jest/tsc jobs do.
+          NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
 
       - name: Upload build logs on failure
@@ -591,6 +599,9 @@ jobs:
         # --webpack: match the deployed bundler (nonce strict-CSP chunks).
         run: npx next build --webpack
         env:
+          # `next build` sits near the runner's default ~2 GB V8 heap ceiling
+          # and OOMs on the private-repo runners; lift it as the jest/tsc jobs do.
+          NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
           NEXT_TEST_MODE: "1"
           # NEXT_PUBLIC_* env vars are inlined at BUILD time, so they
@@ -792,6 +803,9 @@ jobs:
         # --webpack: match the deployed bundler (nonce strict-CSP chunks).
         run: npx next build --webpack
         env:
+          # `next build` sits near the runner's default ~2 GB V8 heap ceiling
+          # and OOMs on the private-repo runners; lift it as the jest/tsc jobs do.
+          NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
 
       - name: Start app (background)
