@@ -129,7 +129,7 @@ export default function JournalDetailPage() {
             URL.revokeObjectURL(url);
             setShowDnevnik(false);
         } catch {
-            toast.error('Неуспешно генериране на дневника.');
+            toast.error(t('dnevnikGenerateFail'));
         } finally {
             setDnevnikBusy(false);
         }
@@ -211,7 +211,7 @@ export default function JournalDetailPage() {
                             onClick={() => setShowDnevnik(true)}
                             id="journal-dnevnik-btn"
                         >
-                            Дневник (PDF)
+                            {t('dnevnikBtn')}
                         </Button>
                     )}
                     {permissions.canWrite && (
@@ -363,23 +363,23 @@ export default function JournalDetailPage() {
                 showModal={showDnevnik}
                 setShowModal={(v) => { if (!v) setShowDnevnik(false); }}
                 size="sm"
-                title="Дневник (PDF)"
-                description="Изтегли попълнения дневник за периода."
+                title={t('dnevnikTitle')}
+                description={t('dnevnikDescription')}
             >
-                <Modal.Header title="Дневник (PDF)" description="Изтегли попълнения дневник за периода." />
+                <Modal.Header title={t('dnevnikTitle')} description={t('dnevnikDescription')} />
                 <Modal.Body>
                     <div className="flex flex-col gap-default sm:flex-row">
-                        <FormField label="От">
+                        <FormField label={t('dnevnikFrom')}>
                             <DatePicker value={dnevnikFrom} onChange={(d) => d && setDnevnikFrom(d)} />
                         </FormField>
-                        <FormField label="До">
+                        <FormField label={t('dnevnikTo')}>
                             <DatePicker value={dnevnikTo} onChange={(d) => d && setDnevnikTo(d)} />
                         </FormField>
                     </div>
                 </Modal.Body>
                 <Modal.Actions>
-                    <Button variant="secondary" size="sm" type="button" onClick={() => setShowDnevnik(false)}>Отказ</Button>
-                    <Button variant="primary" size="sm" type="button" loading={dnevnikBusy} disabled={dnevnikBusy} onClick={() => void generateDnevnik()}>Изтегли</Button>
+                    <Button variant="secondary" size="sm" type="button" onClick={() => setShowDnevnik(false)}>{t('dnevnikCancel')}</Button>
+                    <Button variant="primary" size="sm" type="button" loading={dnevnikBusy} disabled={dnevnikBusy} onClick={() => void generateDnevnik()}>{t('dnevnikDownload')}</Button>
                 </Modal.Actions>
             </Modal>
         </EntityDetailLayout>

@@ -145,7 +145,7 @@ export default function RiskImportPage() {
                 <p className="text-xs text-content-muted">{t('csvDesc')}</p>
                 <pre className="mt-2 text-xs text-content-subtle bg-bg-page/50 p-2 rounded overflow-x-auto">
                     title,description,category,likelihood,impact,owner{'\n'}
-                    Unauthorized access,Risk of unauthorized data access,Technical,4,5,CISO
+                    {t('csvExampleRow')}
                 </pre>
             </div>
 
@@ -183,12 +183,12 @@ export default function RiskImportPage() {
                                     data={previewData}
                                     columns={previewCols}
                                     getRowId={(r) => String(r._idx)}
-                                    emptyState="No rows to preview"
+                                    emptyState={t('importPreviewEmpty')}
                                     resourceName={(p) => p ? 'rows' : 'row'}
                                     data-testid="risk-import-preview"
                                 />
                                 {rows.length > 20 && (
-                                    <p className="text-center text-xs text-content-subtle py-2">+{rows.length - 20} more…</p>
+                                    <p className="text-center text-xs text-content-subtle py-2">{t('importMoreRows', { count: rows.length - 20 })}</p>
                                 )}
                             </>
                         );

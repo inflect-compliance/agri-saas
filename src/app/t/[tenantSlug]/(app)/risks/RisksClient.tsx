@@ -679,7 +679,7 @@ function RisksPageInner({
                 // score range so the band → range mapping reads on
                 // hover/focus without leaving the row.
                 return (
-                    <Tooltip content={`${band.name} · score ${band.minScore}–${band.maxScore}`}>
+                    <Tooltip content={tm('levelTooltip', { band: band.name, min: band.minScore, max: band.maxScore })}>
                         <span
                             className="inline-flex items-center gap-1.5 text-xs font-medium text-content-default cursor-help"
                             data-band={band.name}
@@ -978,10 +978,10 @@ function RisksPageInner({
                                             }}
                                         >
                                             <span className="truncate text-content-emphasis">
-                                                L{c.likelihood}×I{c.impact}: {c.minRisk.title} vs {c.maxRisk.title}
+                                                {tm('collisionCells', { likelihood: c.likelihood, impact: c.impact, a: c.minRisk.title, b: c.maxRisk.title })}
                                             </span>
                                             <span className="shrink-0 tabular-nums text-content-muted">
-                                                {formatCompactCurrency(c.minRisk.ale)} vs {formatCompactCurrency(c.maxRisk.ale)} (~{Math.round(c.ratio)}×)
+                                                {tm('collisionAmounts', { min: formatCompactCurrency(c.minRisk.ale), max: formatCompactCurrency(c.maxRisk.ale), ratio: Math.round(c.ratio) })}
                                             </span>
                                         </button>
                                     ))}

@@ -73,11 +73,11 @@ export default function NotificationsPage() {
         <div className="space-y-section animate-fadeIn">
             <PageHeader
                 breadcrumbs={[
-                    { label: 'Dashboard', href: tenantHref('/dashboard') },
+                    { label: t('crumbDashboard'), href: tenantHref('/dashboard') },
                     { label: t('title') },
                 ]}
                 title={t('title')}
-                description="Recent activity across your compliance program"
+                description={t('description')}
             />
             <div className="space-y-tight">
                 {optimisticList.map(n => (

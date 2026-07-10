@@ -120,7 +120,33 @@ jest.mock('next-intl', () => {
             return formatIcu(msg, values ?? {});
         };
         t.has = (key: string) => typeof get(full(key)) === 'string';
-        t.rich = (key: string) => full(key);
+        // Render rich messages: interpolate {values}, then turn each
+        // <tag>chunk</tag> into its callback's output (so tags like <b>/<pct>
+        // — and any data-testid they carry — actually render in the DOM).
+        t.rich = (key: string, values?: Record<string, unknown>) => {
+            const raw = get(full(key));
+            if (typeof raw !== 'string') return full(key);
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const React = require('react');
+            const interp = formatIcu(raw, (values ?? {}) as Record<string, unknown>);
+            const nodes: unknown[] = [];
+            const re = /<(\w+)>([\s\S]*?)<\/\1>/g;
+            let last = 0;
+            let m: RegExpExecArray | null;
+            let i = 0;
+            while ((m = re.exec(interp)) !== null) {
+                if (m.index > last) nodes.push(interp.slice(last, m.index));
+                const cb = values?.[m[1]];
+                nodes.push(
+                    typeof cb === 'function'
+                        ? React.createElement(React.Fragment, { key: i++ }, (cb as (c: unknown) => unknown)(m[2]))
+                        : m[2],
+                );
+                last = re.lastIndex;
+            }
+            if (last < interp.length) nodes.push(interp.slice(last));
+            return React.createElement(React.Fragment, null, ...nodes);
+        };
         t.markup = (key: string) => full(key);
         t.raw = (key: string) => get(full(key));
         return t;

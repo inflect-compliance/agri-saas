@@ -22,6 +22,7 @@
  * still render the footer unconditionally — gating happens here so
  * the call site stays a single JSX block regardless of state.
  */
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 
 export interface TableLoadMoreFooterProps {
@@ -60,6 +61,7 @@ export function TableLoadMoreFooter({
     resourceName = 'rows',
     testId = 'load-more',
 }: TableLoadMoreFooterProps) {
+    const t = useTranslations('ui.tableLoadMore');
     if (!hasMore) return null;
     return (
         <div
@@ -75,8 +77,8 @@ export function TableLoadMoreFooter({
                 disabled={loading}
             >
                 {loading
-                    ? 'Loading…'
-                    : `Load more ${resourceName} (${visibleCount} of ${totalCount})`}
+                    ? t('loading')
+                    : t('loadMore', { resourceName, visibleCount, totalCount })}
             </Button>
             {error && (
                 <span
@@ -84,7 +86,7 @@ export function TableLoadMoreFooter({
                     role="alert"
                     data-testid={`${testId}-error`}
                 >
-                    Failed to load more — please retry.
+                    {t('error')}
                 </span>
             )}
         </div>

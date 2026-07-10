@@ -276,7 +276,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                     items={[
                         {
                             kind: 'status',
-                            label: 'Status',
+                            label: t('status'),
                             value: vendor.status,
                             variant:
                                 VENDOR_STATUS_VARIANT[vendor.status] ??
@@ -284,7 +284,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                         },
                         {
                             kind: 'status',
-                            label: 'Criticality',
+                            label: t('criticality'),
                             value: vendor.criticality,
                             variant:
                                 VENDOR_CRITICALITY_VARIANT[
@@ -294,7 +294,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                         ...(vendor.contractEnd
                             ? [
                                   {
-                                      label: 'Contract End',
+                                      label: t('contractEnd'),
                                       value: formatDate(vendor.contractEnd),
                                   } as const,
                               ]
@@ -561,7 +561,7 @@ export default function VendorDetailPage(props: { params: Promise<{ tenantSlug: 
                         <div className="flex items-center gap-compact justify-end">
                             {!showStartAssessment ? (
                                 <Button variant="primary" onClick={() => setShowStartAssessment(true)} id="start-assessment-btn">
-                                    + Start Assessment
+                                    {t('startAssessment')}
                                 </Button>
                             ) : (
                                 <div className="flex items-center gap-tight">

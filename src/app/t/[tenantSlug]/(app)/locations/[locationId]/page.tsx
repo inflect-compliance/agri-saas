@@ -421,7 +421,7 @@ export default function LocationDetailPage() {
             await parcelsQ.mutate();
             await locQ.mutate();
         } catch (err) {
-            setMergeError(err instanceof ApiClientError ? err.message : 'Failed to merge parcels.');
+            setMergeError(err instanceof ApiClientError ? err.message : t('mergeFailed'));
         } finally {
             setMerging(false);
         }

@@ -40,8 +40,14 @@ describe('RQ3-3 — the headline is a distribution, not a sum', () => {
 
     test('the naive Σ is demoted to a subordinate line with the gap tooltip', () => {
         expect(dashboard).toMatch(/risk-quant-sum-line/);
-        expect(dashboard).toMatch(/sum of\s+\n?\s*averages, not a distribution/);
-        expect(dashboard).toMatch(/<InfoTooltip content="Summing each risk's mean ALE ignores correlation/);
+        // The Σ-line copy + gap tooltip now route through next-intl (Bulgarian
+        // sweep); the honest-framing invariant lives in the en.json values.
+        expect(dashboard).toMatch(/t\('sumOfMeanAles'/);
+        expect(dashboard).toMatch(/content=\{t\('sumTooltip'\)\}/);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const rm = require('../../messages/en.json').riskManager;
+        expect(rm.sumOfMeanAles).toMatch(/not a distribution/);
+        expect(rm.sumTooltip).toMatch(/Summing each risk's mean ALE ignores correlation/);
         // The Σ tile (headline position) exists ONLY in the no-run branch,
         // which carries the run-a-simulation nudge.
         expect(dashboard).toMatch(/risk-quant-sum-nudge/);

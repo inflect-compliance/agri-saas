@@ -20,6 +20,7 @@ import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useToastWithUndo } from '@/components/ui/hooks';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { Button } from '@/components/ui/button';
+import { Plus } from '@/components/ui/icons/nucleo/plus';
 import { Combobox } from '@/components/ui/combobox';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { CopyText } from '@/components/ui/copy-text';
@@ -192,7 +193,7 @@ export function ControlMappingsTab({
                                       }
                                       id={`unmap-${row.original.id}`}
                                   >
-                                      × Remove
+                                      × {t('mappings.remove')}
                                   </button>
                               ),
                           },
@@ -209,8 +210,8 @@ export function ControlMappingsTab({
         <div className="space-y-default">
             {canWrite && (
                 <div className="flex justify-end">
-                    <Button variant="primary" onClick={() => setShowMapForm(!showMapForm)} id="map-requirement-btn">
-                        + Map Requirement
+                    <Button variant="primary" icon={<Plus className="-ml-0.5 -mr-2.5" />} onClick={() => setShowMapForm(!showMapForm)} id="map-requirement-btn">
+                        {t('mappings.mapRequirement')}
                     </Button>
                 </div>
             )}

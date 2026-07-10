@@ -311,12 +311,12 @@ export default function PolicyDetailPage() {
         // eslint-disable-next-line react-hooks/purity
         const diff = Date.now() - d.getTime();
         const mins = Math.floor(diff / 60000);
-        if (mins < 1) return 'just now';
-        if (mins < 60) return `${mins}m ago`;
+        if (mins < 1) return t('justNow');
+        if (mins < 60) return t('minutesAgo', { mins });
         const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return `${hrs}h ago`;
+        if (hrs < 24) return t('hoursAgo', { hrs });
         const days = Math.floor(hrs / 24);
-        return days === 1 ? 'yesterday' : `${days}d ago`;
+        return days === 1 ? t('yesterday') : t('daysAgo', { days });
     };
 
     const isOverdue = policy?.nextReviewAt && new Date(policy.nextReviewAt) < new Date() && policy.status !== 'ARCHIVED';
@@ -400,7 +400,7 @@ export default function PolicyDetailPage() {
                         {
                             kind: 'status',
                             id: 'policy-status',
-                            label: 'Status',
+                            label: tp('status'),
                             value: policy.status,
                             variant:
                                 POLICY_STATUS_VARIANT[policy.status] ??
@@ -409,7 +409,7 @@ export default function PolicyDetailPage() {
                         ...(policy.owner
                             ? [
                                   {
-                                      label: 'Owner',
+                                      label: tp('owner'),
                                       value: policy.owner.name,
                                   } as const,
                               ]
@@ -417,7 +417,7 @@ export default function PolicyDetailPage() {
                         ...(policy.nextReviewAt
                             ? [
                                   {
-                                      label: 'Next Review',
+                                      label: t('nextReview'),
                                       value: formatDate(
                                           policy.nextReviewAt,
                                       ),
@@ -454,7 +454,7 @@ export default function PolicyDetailPage() {
                                     ? 'HTML'
                                     : 'MARKDOWN',
                             );
-                        }} className={buttonVariants({ variant: 'primary' })} id="new-version-btn">+ Version</button>
+                        }} className={buttonVariants({ variant: 'primary' })} id="new-version-btn">{t('newVersion')}</button>
                     )}
                     {canAdmin && policy.status !== 'ARCHIVED' && (
                         <Button variant="ghost" size="sm" className="text-content-muted hover:text-content-error" onClick={archivePolicy} disabled={actionLoading === 'archive'} id="archive-btn">
@@ -758,7 +758,7 @@ export default function PolicyDetailPage() {
                     </div>
 
                     <Button variant="primary" onClick={createVersion} disabled={saving} id="save-version-btn">
-                        {saving ? t('saving') : '+ Version'}
+                        {saving ? t('saving') : t('createVersion')}
                     </Button>
                 </div>
             )}

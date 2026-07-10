@@ -199,7 +199,7 @@ export function AuditsClient({ initialAudits, tenantSlug, translations: t }: Aud
                                 <span className="font-medium text-sm">{a.title}</span>
                                 <StatusBadge variant={STATUS_BADGE[a.status]}>{statusLabel(a.status)}</StatusBadge>
                             </div>
-                            <p className="text-xs text-content-subtle mt-1">{a._count?.checklist || 0} items · {a._count?.findings || 0} {t.findingsTab.toLowerCase()}</p>
+                            <p className="text-xs text-content-subtle mt-1">{tr('itemCount', { count: a._count?.checklist || 0 })} · {a._count?.findings || 0} {t.findingsTab.toLowerCase()}</p>
                         </button>
                     ))}
                 </div>

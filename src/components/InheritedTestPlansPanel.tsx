@@ -7,6 +7,7 @@
  * its owning control + latest run) and renders them read-only.
  */
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { TableTitleCell } from '@/components/ui/table-title-cell';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
@@ -46,6 +47,7 @@ export function InheritedTestPlansPanel({
     tenantHref: (path: string) => string;
     entityLabel: string;
 }) {
+    const t = useTranslations('inherited.testPlans');
     const [rows, setRows] = useState<InheritedTestPlanRow[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -72,18 +74,18 @@ export function InheritedTestPlansPanel({
     const columns = createColumns<InheritedTestPlanRow>([
         {
             id: 'name',
-            header: 'Test Plan',
+            header: t('colTestPlan'),
             accessorFn: (r) => r.name,
             cell: ({ row }) => <span className="text-sm text-content-default">{row.original.name}</span>,
         },
         {
             accessorKey: 'method',
-            header: 'Method',
+            header: t('colMethod'),
             cell: ({ getValue }) => <span className="text-xs text-content-muted">{getValue<string>()}</span>,
         },
         {
             id: 'status',
-            header: 'Status',
+            header: t('colStatus'),
             cell: ({ row }) => (
                 <StatusBadge variant={PLAN_STATUS_BADGE[row.original.status] || 'neutral'} size="sm">
                     {row.original.status}
@@ -92,7 +94,7 @@ export function InheritedTestPlansPanel({
         },
         {
             id: 'latest',
-            header: 'Latest Result',
+            header: t('colLatest'),
             cell: ({ row }) => {
                 const latest = row.original.runs?.[0];
                 if (!latest?.result) return <span className="text-xs text-content-subtle">—</span>;
@@ -105,7 +107,7 @@ export function InheritedTestPlansPanel({
         },
         {
             id: 'control',
-            header: 'Control',
+            header: t('colControl'),
             cell: ({ row }) =>
                 row.original.control ? (
                     <TableTitleCell href={tenantHref(`/controls/${row.original.control.id}`)}>
@@ -117,7 +119,7 @@ export function InheritedTestPlansPanel({
         },
         {
             id: 'nextDueAt',
-            header: 'Next Due',
+            header: t('colNextDue'),
             cell: ({ row }) => (
                 <TimestampTooltip date={row.original.nextDueAt} className="text-xs text-content-muted" />
             ),
@@ -127,7 +129,7 @@ export function InheritedTestPlansPanel({
     return (
         <div className="space-y-default">
             <InlineNotice variant="info">
-                Tests run on the controls mapped to this {entityLabel}. Manage test plans on each control.
+                {t('notice', { entityLabel })}
             </InlineNotice>
             <DataTable<InheritedTestPlanRow>
                 data={rows}
@@ -138,8 +140,8 @@ export function InheritedTestPlansPanel({
                     <EmptyState
                         size="sm"
                         variant="no-records"
-                        title="No inherited tests"
-                        description={`No test plans exist on the controls mapped to this ${entityLabel} yet.`}
+                        title={t('emptyTitle')}
+                        description={t('emptyDesc', { entityLabel })}
                     />
                 }
             />

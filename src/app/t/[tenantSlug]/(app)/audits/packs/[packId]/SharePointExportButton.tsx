@@ -6,12 +6,14 @@
  * uploads the pack ZIP there; shows the resulting link.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { SharePointFilePicker } from '@/components/integrations/sharepoint/SharePointFilePicker';
 
 export function SharePointExportButton({ packId }: { packId: string }) {
+    const t = useTranslations('audits');
     const apiUrl = useTenantApiUrl();
     const [available, setAvailable] = useState<boolean | null>(null);
     const [connId, setConnId] = useState('');
@@ -48,16 +50,16 @@ export function SharePointExportButton({ packId }: { packId: string }) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ connectionId: connId, driveId, folderId }),
                 });
-                if (!res.ok) { setError('Export failed.'); return; }
+                if (!res.ok) { setError(t('exportFailed')); return; }
                 const data = await res.json();
                 setResultUrl(data.webUrl || null);
             } catch {
-                setError('Export failed — network error.');
+                setError(t('exportFailedNetwork'));
             } finally {
                 setBusy(false);
             }
         },
-        [apiUrl, connId, packId],
+        [apiUrl, connId, packId, t],
     );
 
     if (available === false) return null;
@@ -71,7 +73,7 @@ export function SharePointExportButton({ packId }: { packId: string }) {
                 onClick={() => setPickerOpen(true)}
                 id="sp-export-pack-btn"
             >
-                {busy ? 'Exporting…' : 'Export to SharePoint'}
+                {busy ? t('exporting') : t('exportToSharePoint')}
             </Button>
             {connId && (
                 <SharePointFilePicker
@@ -85,9 +87,9 @@ export function SharePointExportButton({ packId }: { packId: string }) {
             )}
             {resultUrl && (
                 <InlineNotice variant="success">
-                    Exported.{' '}
+                    {t('exported')}{' '}
                     <a href={resultUrl} target="_blank" rel="noopener noreferrer" className="text-content-link">
-                        View in SharePoint ↗
+                        {t('viewInSharePoint')}
                     </a>
                 </InlineNotice>
             )}

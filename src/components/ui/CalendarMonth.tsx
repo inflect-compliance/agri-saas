@@ -19,6 +19,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/cn';
 import type {
     CalendarEvent,
@@ -109,6 +110,7 @@ export function CalendarMonth({
     className,
     'data-testid': dataTestId = 'calendar-month',
 }: CalendarMonthProps) {
+    const t = useTranslations('calendar');
     const todayDate = today ?? new Date();
     const monthStart = startOfUtcMonth(month);
     const monthEnd = endOfUtcMonth(month);
@@ -287,7 +289,7 @@ export function CalendarMonth({
                                     onClick={() => onSelectDate?.(ymd)}
                                     className="text-[10px] text-content-muted hover:text-content-emphasis text-left px-1"
                                 >
-                                    +{overflow} more
+                                    {t('moreEvents', { count: overflow })}
                                 </button>
                             )}
                         </div>

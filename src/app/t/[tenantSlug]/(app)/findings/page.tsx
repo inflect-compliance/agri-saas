@@ -38,6 +38,7 @@ export default async function FindingsPage({
                 tenantSlug={tenantSlug}
                 permissions={ctx.permissions}
                 translations={{
+                    dashboard: t('crumbDashboard'),
                     title: t('title'),
                 listDescription: t('listDescription'),
                     open: t('open'),

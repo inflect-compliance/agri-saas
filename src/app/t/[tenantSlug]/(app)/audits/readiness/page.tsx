@@ -154,7 +154,7 @@ export default async function ReadinessOverviewPage({
                         href={`/t/${tenantSlug}/audits/cycles`}
                         className={buttonVariants({ variant: 'primary' })}
                     >
-                        + Audit Cycle
+                        {t('cyclesList.createCycleAction')}
                     </Link>
                 </div>
             ) : (

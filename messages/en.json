@@ -304,7 +304,10 @@
         "serialCopied": "Serial number copied",
         "copyExternalRef": "Copy external reference {value}",
         "externalRefCopied": "External reference copied",
-        "loadingAria": "Loading assets"
+        "loadingAria": "Loading assets",
+        "discardAssetConfirm": "Discard asset? Any details you entered will be lost.",
+        "newAssetDescription": "Register an information asset to track inside risk + control coverage.",
+        "creating": "Creating…"
     },
     "risks": {
         "title": "Risk Register",
@@ -554,7 +557,9 @@
             "loadErrorTitle": "Couldn't load mappings",
             "loadErrorDesc": "Something went wrong fetching this control's framework mappings. Reload the page to try again.",
             "emptyTitle": "No framework mappings",
-            "emptyDesc": "Map this control to specific framework requirements to track coverage."
+            "emptyDesc": "Map this control to specific framework requirements to track coverage.",
+            "mapRequirement": "Map Requirement",
+            "remove": "Remove"
         },
         "detail": {
             "breadcrumbDashboard": "Dashboard",
@@ -608,7 +613,11 @@
             "copyCode": "Copy control code {code}",
             "codeCopied": "Control code copied",
             "evidenceUnlinked": "Evidence unlinked",
-            "undo": "Undo"
+            "undo": "Undo",
+            "aiSuggestions": "AI Suggestions",
+            "evidenceLoadErrorTitle": "Couldn't load evidence",
+            "evidenceLoadErrorDesc": "Something went wrong fetching this control's evidence. Reload the page to try again.",
+            "systemActor": "System"
         },
         "testPlan": {
             "loading": "Loading test plan...",
@@ -689,6 +698,10 @@
             "colCategory": "Category",
             "colFramework": "Framework",
             "colDescription": "Description"
+        },
+        "bestValue": {
+            "empty": "No control yet carries a price + effectiveness + a quantified linked risk. The leaderboard appears once at least one does.",
+            "savedOn": "{protectedAmount}/yr saved on {cost}/yr"
         }
     },
     "evidence": {
@@ -899,7 +912,24 @@
             "reject": "Reject",
             "approve": "Approve"
         },
-        "loadingAria": "Loading evidence"
+        "loadingAria": "Loading evidence",
+        "subTable": {
+            "colType": "Type",
+            "colTitleUrl": "Title / URL",
+            "colStatus": "Status",
+            "colDate": "Date",
+            "colActions": "Actions",
+            "remove": "Remove",
+            "emptyTitle": "No evidence linked",
+            "emptyDesc": "Link existing evidence or upload new files to satisfy this control."
+        },
+        "attached": {
+            "chooseFileOrUrl": "Choose a file to upload, or enter an evidence URL.",
+            "evidenceRemoved": "Evidence removed",
+            "undo": "Undo",
+            "loadErrorTitle": "Couldn't load evidence",
+            "loadErrorDesc": "Something went wrong fetching attached evidence. Reload the page to try again."
+        }
     },
     "policies": {
         "title": "Policy Management",
@@ -1058,7 +1088,14 @@
             "loadingActivity": "Loading activity…",
             "noActivity": "No activity recorded yet.",
             "system": "System",
-            "noContent": "No content"
+            "noContent": "No content",
+            "justNow": "just now",
+            "minutesAgo": "{mins}m ago",
+            "hoursAgo": "{hrs}h ago",
+            "yesterday": "yesterday",
+            "daysAgo": "{days}d ago",
+            "newVersion": "New version",
+            "createVersion": "Create version"
         },
         "loadingAria": "Loading policies"
     },
@@ -1125,7 +1162,10 @@
             "auditPeriodPlaceholder": "Select audit period",
             "emptyTitle": "No audit cycles yet",
             "emptyDescription": "Create your first audit cycle for ISO 27001 or NIS2.",
-            "packCount": "{count, plural, one {# pack} other {# packs}}"
+            "packCount": "{count, plural, one {# pack} other {# packs}}",
+            "cycleNoun": "Cycle",
+            "createCycle": "Create cycle",
+            "createCycleAction": "Create audit cycle"
         },
         "cycleDetail": {
             "crumbCycleFallback": "Cycle",
@@ -1200,7 +1240,17 @@
             "viewCycles": "View Cycles →",
             "emptyTitle": "No audit cycles yet",
             "emptyDescription": "Create an audit cycle to see readiness scores."
-        }
+        },
+        "discardConfirm": "Discard audit? Any details you entered will be lost.",
+        "newAuditDescription": "Plan a new internal audit. The default checklist is generated automatically; you can edit it after creation.",
+        "creating": "Creating…",
+        "exportFailed": "Export failed.",
+        "exportFailedNetwork": "Export failed — network error.",
+        "exporting": "Exporting…",
+        "exportToSharePoint": "Export to SharePoint",
+        "exported": "Exported.",
+        "viewInSharePoint": "View in SharePoint ↗",
+        "itemCount": "{count, plural, one {# item} other {# items}}"
     },
     "findings": {
         "title": "Nonconformity Register",
@@ -1267,7 +1317,8 @@
             "cancel": "Cancel",
             "creating": "Creating…",
             "createFinding": "Create finding"
-        }
+        },
+        "crumbDashboard": "Dashboard"
     },
     "mapping": {
         "title": "Scheme Mapping",
@@ -1377,14 +1428,17 @@
                 "yes": "Yes",
                 "no": "No",
                 "unmappedValue": "Unmapped"
-            }
+            },
+            "requirementsSummary": "{count, plural, one {# requirement} other {# requirements}}"
         }
     },
     "notifications": {
         "title": "Notifications",
         "loading": "Loading notifications...",
         "markRead": "Mark read",
-        "noNotifications": "No notifications"
+        "noNotifications": "No notifications",
+        "crumbDashboard": "Dashboard",
+        "description": "Recent activity across your compliance program"
     },
     "admin": {
         "title": "Administration",
@@ -2356,7 +2410,64 @@
         "clearFilters": "Clear filters",
         "noRisksDesc": "Identify a threat, score its likelihood × impact, and link the controls that mitigate it.",
         "createRiskAction": "Create risk",
-        "loadingAria": "Loading risks"
+        "loadingAria": "Loading risks",
+        "statusBreakdownAria": "Risk status breakdown",
+        "quantAnalyticsTitle": "Quantitative analytics",
+        "quantEmptyHint": "No risks quantified yet — open a risk and set SLE × ARO on the overview, or fill the FAIR inputs on the Quantification tab, to populate the loss-exceedance curve and top-by-ALE table here.",
+        "quantifiedCount": "{quantified} of {total} risks quantified (SLE × ARO).",
+        "tilePortfolioP50": "Portfolio P50 / year",
+        "tilePortfolioP80": "Portfolio P80 / year",
+        "tilePortfolioP95": "Portfolio P95 / year",
+        "tileMaxSingleAle": "Max single ALE",
+        "sumOfMeanAles": "Σ of mean ALEs: {amount} — a sum of averages, not a distribution.",
+        "sumTooltip": "Summing each risk's mean ALE ignores correlation and tail compounding — bad years cluster. The simulated percentiles above are the portfolio's actual loss distribution: P50 is a typical year, P80/P95 are the years the board plans reserves for. The gap between the sum and these figures is real information, not noise.",
+        "tileTotalAle": "Total ALE / year",
+        "tileAverageAle": "Average ALE",
+        "tileCategoriesCarryingLoss": "Categories carrying loss",
+        "sumNudge": "These figures are sums of averages. Run a simulation below to replace them with calibrated portfolio percentiles.",
+        "top10ByAle": "Top 10 by ALE",
+        "exposureByCategory": "Exposure by category",
+        "coherenceTitle": "Qual ↔ quant coherence",
+        "coherenceAgree": "Qualitative scores and loss estimates agree across the {count} quantified risks — no rank contradictions detected.",
+        "coherenceDisagree": "{count, plural, one {# risk where the matrix and the money disagree} other {# risks where the matrix and the money disagree}} — one of the two assessments is probably wrong.",
+        "coherenceChipMoneyBigger": "€↑ score↓",
+        "coherenceChipScoreBigger": "score↑ €↓",
+        "coherenceRowMoneyBigger": "score {score} vs {ale} — losses say this is bigger",
+        "coherenceRowMoneySmaller": "score {score} vs {ale} — losses say this is smaller",
+        "staleTitle": "Stale assessments",
+        "staleSummary": "{staleCount} of {totalCount} risks carry an assessment the world may have moved past — overdue review, untouched for {days}+ days, or control tests newer than the residual.",
+        "moreCount": "+{count} more",
+        "appetiteWithin": "Within appetite",
+        "appetiteApproaching": "Approaching appetite",
+        "appetiteBreached": "Outside appetite",
+        "appetiteNone": "No appetite set",
+        "boardExposureP80": "Annual loss exposure (P80)",
+        "boardExposure": "Annual loss exposure",
+        "boardTitle": "Risk Board",
+        "boardDescription": "{tenant} — board-altitude view of the program",
+        "boardBackToDashboard": "Operational dashboard",
+        "boardPosition": "Position",
+        "boardPositionDesc": "The portfolio loss the program plans reserves for — the year you'd see in roughly 1 of every 5.",
+        "boardPositionEmpty": "Not quantified yet — run a portfolio simulation on the operational dashboard to populate the board exposure figure. No fabricated number.",
+        "boardAppetite": "Appetite",
+        "boardCeiling": "Ceiling: {value}/yr",
+        "boardAppetiteEmpty": "Set a portfolio loss ceiling on the appetite configuration page to anchor the board's tolerance.",
+        "boardTopContributors": "Top contributors",
+        "boardTopRisksEmpty": "No quantified risks yet — once a risk carries SLE × ARO or FAIR inputs, the contributors list ranks itself.",
+        "boardBestValue": "Best-value controls",
+        "boardBestValueEmpty": "No control yet carries a price + an effectiveness signal + a quantified linked risk. Price the highest-leverage controls first.",
+        "boardHygiene": "Hygiene",
+        "boardHygieneEmpty": "No risks on the register yet.",
+        "boardHygieneSummary": "<b>{staleCount}</b> of <b>{totalCount}</b> risks carry a stale assessment (<pct>{stalePct}%</pct>) — overdue review, untouched past the age ceiling, or a signal that has moved since.",
+        "boardHygieneAllFresh": "Every assessment is current.",
+        "csvExampleRow": "Unauthorized access,Risk of unauthorized data access,Technical,4,5,CISO",
+        "importPreviewEmpty": "No rows to preview",
+        "importMoreRows": "+{count} more…",
+        "levelTooltip": "{band} · score {min}–{max}",
+        "collisionCells": "L{likelihood}×I{impact}: {a} vs {b}",
+        "collisionAmounts": "{min} vs {max} (~{ratio}×)",
+        "bowTieScore": "Score {score}",
+        "perYearSuffix": "/yr"
     },
     "ui": {
         "combobox": {
@@ -2935,7 +3046,9 @@
             "next": "Next",
             "saveRule": "Save rule",
             "createRule": "Create rule",
-            "saveFailed": "Save failed"
+            "saveFailed": "Save failed",
+            "messagePlaceholder": "Risk '{{title}}' was escalated.",
+            "taskTitlePlaceholder": "Remediate '{{title}}'"
         },
         "processDocBar": {
             "breadcrumb": "Breadcrumb",
@@ -3051,6 +3164,14 @@
             "emptyTitle": "Map a business or IT process.",
             "emptyBody": "Capture the steps, mark the controls between them, and annotate the risks and assets each step touches.",
             "createFirst": "Create your first process"
+        },
+        "emptyState": {
+            "learnMore": "Learn more ↗"
+        },
+        "tableLoadMore": {
+            "loading": "Loading…",
+            "loadMore": "Load more {resourceName} ({visibleCount} of {totalCount})",
+            "error": "Failed to load more — please retry."
         }
     },
     "ag": {
@@ -3246,7 +3367,8 @@
                 "zoomOut": "Zoom out",
                 "fieldBoundariesEmpty": "No field boundaries to jump to yet.",
                 "soilRegions": "Soil regions",
-                "soilLegendAlt": "Soil class legend"
+                "soilLegendAlt": "Soil class legend",
+                "soilAttribution": "Soil: ISRIC SoilGrids — WRB (CC-BY 4.0)"
             },
             "parcelSheet": {
                 "description": "Parcel detail and apply-rate calculator",
@@ -4537,7 +4659,9 @@
             },
             "cancel": "Cancel",
             "save": "Save",
-            "legalNameLabel": "Legal Name"
+            "legalNameLabel": "Legal Name",
+            "contractEnd": "Contract End",
+            "startAssessment": "Start assessment"
         },
         "loadingAria": "Loading vendors"
     },
@@ -4555,7 +4679,9 @@
         "loadError": "Failed to load calendar events. Try refreshing.",
         "ganttEmpty": "No duration-based events in this range. Create an audit cycle to see it here.",
         "noEventsDay": "No events on this day.",
-        "clickDay": "Click a day to see events on that date."
+        "clickDay": "Click a day to see events on that date.",
+        "moreEvents": "+{count} more",
+        "activityLegend": "Activity"
     },
     "farmTasks": {
         "dashboard": "Dashboard",
@@ -4713,7 +4839,15 @@
             "updated": "Updated",
             "quantitiesHeading": "Quantities",
             "noQuantitiesTitle": "No quantities",
-            "quantitiesEmptyDescription": "This entry records no measured amount (an input application or harvest would carry one)."
+            "quantitiesEmptyDescription": "This entry records no measured amount (an input application or harvest would carry one).",
+            "dnevnikBtn": "Дневник (PDF)",
+            "dnevnikTitle": "Дневник (PDF)",
+            "dnevnikDescription": "Download the completed field diary for the selected period.",
+            "dnevnikGenerateFail": "Failed to generate the diary.",
+            "dnevnikFrom": "From",
+            "dnevnikTo": "To",
+            "dnevnikCancel": "Cancel",
+            "dnevnikDownload": "Download"
         }
     },
     "tasks": {
@@ -5517,6 +5651,22 @@
                 "saveYield": "Save yield record",
                 "createYield": "Create yield record"
             }
+        },
+        "costs": {
+            "title": "Costs",
+            "description": "Per-activity cost rollup — field-event and input costs grouped by planting, field, or season.",
+            "dimensionAria": "Cost dimension",
+            "emptyTitle": "No costs to roll up yet",
+            "emptyDescription": "Cost rollups appear once field-event and input costs are logged against your plantings.",
+            "colPlanting": "Planting",
+            "colVariety": "Variety",
+            "colFieldEventCost": "Field-event cost",
+            "colInputCost": "Input cost",
+            "colTotalCost": "Total cost",
+            "colSeason": "Season",
+            "colPlantings": "Plantings",
+            "colField": "Field",
+            "unassigned": "Unassigned"
         }
     },
     "inventory": {
@@ -6167,7 +6317,8 @@
             "deleteParcelConfirmBody": "The parcel and its field-operation lines will be removed. This cannot be undone.",
             "deleteParcelConfirmLabel": "Delete parcel",
             "deleteParcelFailed": "Could not delete the parcel",
-            "deleteParcelsEmpty": "No parcels to delete."
+            "deleteParcelsEmpty": "No parcels to delete.",
+            "mergeFailed": "Failed to merge parcels."
         },
         "spray": {
             "title": "New spray job",
@@ -6840,5 +6991,37 @@
         "errorTitle": "Couldn't load chart",
         "emptyTitle": "No data yet",
         "emptyDescription": "Once data flows in, this chart will populate."
+    },
+    "inherited": {
+        "evidence": {
+            "notice": "Evidence is inherited from the controls mapped to this {entityLabel}. Manage it on each control.",
+            "colEvidence": "Evidence",
+            "colType": "Type",
+            "colStatus": "Status",
+            "colControl": "Control",
+            "colCollected": "Collected",
+            "emptyTitle": "No inherited evidence",
+            "emptyDesc": "No evidence is attached to the controls mapped to this {entityLabel} yet."
+        },
+        "mappings": {
+            "notice": "Framework mappings are inherited from the controls mapped to this {entityLabel}. Manage them on each control.",
+            "colRequirement": "Requirement",
+            "colTitle": "Title",
+            "colFramework": "Framework",
+            "colViaControl": "Via Control",
+            "emptyTitle": "No inherited mappings",
+            "emptyDesc": "None of the controls mapped to this {entityLabel} are linked to a framework requirement yet."
+        },
+        "testPlans": {
+            "notice": "Tests run on the controls mapped to this {entityLabel}. Manage test plans on each control.",
+            "colTestPlan": "Test Plan",
+            "colMethod": "Method",
+            "colStatus": "Status",
+            "colLatest": "Latest Result",
+            "colControl": "Control",
+            "colNextDue": "Next Due",
+            "emptyTitle": "No inherited tests",
+            "emptyDesc": "No test plans exist on the controls mapped to this {entityLabel} yet."
+        }
     }
 }

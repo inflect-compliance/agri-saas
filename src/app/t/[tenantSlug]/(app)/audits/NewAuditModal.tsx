@@ -7,6 +7,7 @@
  * unsaved-changes guard + `Modal.Form` pinned-footer shell.
  */
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -43,6 +44,7 @@ export function NewAuditModal({
     labels,
 }: NewAuditModalProps) {
     const queryClient = useQueryClient();
+    const t = useTranslations('audits');
 
     const form = useNewAuditForm({
         onSuccess: (audit) => {
@@ -62,9 +64,7 @@ export function NewAuditModal({
                 if (form.submitting) return;
                 if (
                     form.isDirty &&
-                    !window.confirm(
-                        'Discard audit? Any details you entered will be lost.',
-                    )
+                    !window.confirm(t('discardConfirm'))
                 ) {
                     return;
                 }
@@ -86,12 +86,12 @@ export function NewAuditModal({
             setShowModal={guardedSetOpen}
             size="lg"
             title={labels.newAudit}
-            description="Plan a new internal audit. The default checklist is generated automatically; you can edit it after creation."
+            description={t('newAuditDescription')}
             preventDefaultClose={form.submitting}
         >
             <Modal.Header
                 title={labels.newAudit}
-                description="Plan a new internal audit. The default checklist is generated automatically; you can edit it after creation."
+                description={t('newAuditDescription')}
             />
             <Modal.Form id="new-audit-form" onSubmit={handleSubmit}>
                 <Modal.Body>
@@ -128,7 +128,7 @@ export function NewAuditModal({
                         disabled={!form.canSubmit}
                         id="create-audit-btn"
                     >
-                        {form.submitting ? 'Creating…' : labels.createAudit}
+                        {form.submitting ? t('creating') : labels.createAudit}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

@@ -182,7 +182,7 @@ export function SoAClient({ report, controls, tenantSlug, canEdit }: SoAClientPr
             {/* Eyebrow + summary line — section-level, not page-level */}
             <div>
                 <p className="text-sm text-content-muted">
-                    {report.frameworkName} — {summary.total} requirements
+                    {report.frameworkName} — {t('requirementsSummary', { count: summary.total })}
                 </p>
             </div>
 

@@ -15,6 +15,7 @@
  * below it.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { useToastWithUndo } from '@/components/ui/hooks';
 import { EvidenceAddForm } from '@/components/EvidenceAddForm';
@@ -48,6 +49,7 @@ export function AttachedEvidencePanel({
     tenantHref,
     canWrite,
 }: AttachedEvidencePanelProps) {
+    const t = useTranslations('evidence.attached');
     const triggerUndoToast = useToastWithUndo();
     const [data, setData] = useState<EvidenceTabData | undefined>(undefined);
     const [loading, setLoading] = useState(true);
@@ -122,7 +124,7 @@ export function AttachedEvidencePanel({
             return;
         }
         if (!url.trim()) {
-            setFormError('Choose a file to upload, or enter an evidence URL.');
+            setFormError(t('chooseFileOrUrl'));
             return;
         }
         setSaving(true);
@@ -155,8 +157,8 @@ export function AttachedEvidencePanel({
                 : prev,
         );
         triggerUndoToast({
-            message: 'Evidence removed',
-            undoMessage: 'Undo',
+            message: t('evidenceRemoved'),
+            undoMessage: t('undo'),
             action: async () => {
                 const res = await fetch(apiUrl(`${endpoint}/${evidenceId}`), {
                     method: 'DELETE',
@@ -204,8 +206,8 @@ export function AttachedEvidencePanel({
             />
             {error ? (
                 <InlineEmptyState
-                    title="Couldn't load evidence"
-                    description="Something went wrong fetching attached evidence. Reload the page to try again."
+                    title={t('loadErrorTitle')}
+                    description={t('loadErrorDesc')}
                 />
             ) : (
                 <EvidenceSubTable

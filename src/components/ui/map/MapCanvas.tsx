@@ -51,7 +51,9 @@ const SOIL_WRB_WMS_TILE =
 const SOIL_WRB_LEGEND =
     'https://maps.isric.org/mapserv?map=/map/wrb.map&SERVICE=WMS&VERSION=1.1.1' +
     '&REQUEST=GetLegendGraphic&LAYER=MostProbable&FORMAT=image/png';
-const SOIL_ATTRIBUTION = 'Soil: ISRIC SoilGrids — WRB (CC-BY 4.0)';
+// Data-source citation for the ISRIC WRB soil raster. The "ISRIC SoilGrids
+// — WRB (CC-BY 4.0)" portion is a brand/licence token kept verbatim; only
+// the localisable "Soil:" prefix is threaded through i18n at the call site.
 
 export interface MapParcel {
     id: string;
@@ -621,7 +623,7 @@ export function MapCanvas({
                         type="raster"
                         tiles={[SOIL_WRB_WMS_TILE]}
                         tileSize={256}
-                        attribution={SOIL_ATTRIBUTION}
+                        attribution={t('soilAttribution')}
                     >
                         <Layer id="soil-wrb-raster" type="raster" paint={{ 'raster-opacity': 0.55 }} />
                     </Source>
