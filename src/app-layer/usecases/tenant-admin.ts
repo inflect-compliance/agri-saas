@@ -23,6 +23,7 @@ import { assertCanRead } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { runInTenantContext } from '@/lib/db-context';
 import { notFound, badRequest, forbidden } from '@/lib/errors/types';
+import { assertWithinLimit } from '@/lib/billing/entitlements';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { Prisma, type Role } from '@prisma/client';
 
@@ -455,6 +456,207 @@ export async function bulkDeactivateTenantMember(
         }
 
         return { deactivated: toDeactivate.length, skipped: requested - toDeactivate.length };
+    });
+}
+
+/**
+ * Bulk-remove memberships (→ REMOVED) — the members table's "Remove"
+ * batch action, the hard counterpart to {@link bulkDeactivateTenantMember}.
+ * Operates on ACTIVE / DEACTIVATED / INVITED rows (so removing an
+ * already-deactivated member works instead of silently no-op'ing), skips
+ * the caller's own membership, and protects the last ACTIVE OWNER / ADMIN
+ * across the selection. Rows become REMOVED, leaving the members list.
+ * Returns how many were removed vs skipped.
+ */
+export async function bulkRemoveTenantMember(
+    ctx: RequestContext,
+    input: { membershipIds: string[] },
+): Promise<{ removed: number; skipped: number }> {
+    assertCanManageMembers(ctx);
+
+    return runInTenantContext(ctx, async (db) => {
+        const memberships = await db.tenantMembership.findMany({
+            where: {
+                id: { in: input.membershipIds },
+                tenantId: ctx.tenantId,
+                status: { in: ['ACTIVE', 'DEACTIVATED', 'INVITED'] },
+            },
+            include: { user: { select: { id: true, email: true } } },
+        });
+
+        const [ownerTotal, adminTotal] = await Promise.all([
+            db.tenantMembership.count({ where: { tenantId: ctx.tenantId, role: 'OWNER', status: 'ACTIVE' } }),
+            db.tenantMembership.count({ where: { tenantId: ctx.tenantId, role: 'ADMIN', status: 'ACTIVE' } }),
+        ]);
+
+        // Only ACTIVE owners/admins count toward the tenant's live headroom;
+        // removing an already-inactive member never orphans the tenant.
+        let remainingOwners = ownerTotal;
+        let remainingAdmins = adminTotal;
+        const toRemove: typeof memberships = [];
+        let skipped = 0;
+
+        for (const m of memberships) {
+            if (m.userId === ctx.userId) { skipped++; continue; } // never self
+            if (m.status === 'ACTIVE' && m.role === 'OWNER') {
+                if (remainingOwners <= 1) { skipped++; continue; }
+                remainingOwners -= 1;
+            }
+            if (m.status === 'ACTIVE' && m.role === 'ADMIN') {
+                if (remainingAdmins <= 1) { skipped++; continue; }
+                remainingAdmins -= 1;
+            }
+            toRemove.push(m);
+        }
+
+        // Ids that matched nothing (not found / already REMOVED) → skipped.
+        skipped += input.membershipIds.length - memberships.length;
+
+        if (toRemove.length === 0) return { removed: 0, skipped };
+
+        await db.tenantMembership.updateMany({
+            where: { id: { in: toRemove.map((m) => m.id) }, tenantId: ctx.tenantId },
+            data: { status: 'REMOVED', deactivatedAt: new Date() },
+        });
+
+        for (const m of toRemove) {
+            await logEvent(db, ctx, {
+                action: 'MEMBER_REMOVED',
+                entityType: 'TenantMembership',
+                entityId: m.id,
+                details: `Removed member: ${m.user.email} (bulk)`,
+                detailsJson: {
+                    category: 'status_change',
+                    entityName: 'TenantMembership',
+                    fromStatus: m.status,
+                    toStatus: 'REMOVED',
+                },
+            });
+        }
+
+        return { removed: toRemove.length, skipped };
+    });
+}
+
+// ─── Reactivate / Remove a single (non-active) member ───
+
+/**
+ * Reactivate a DEACTIVATED / REMOVED membership — the inverse of
+ * {@link deactivateTenantMember}. Restores ACTIVE status and clears
+ * `deactivatedAt`. Seat-gated (`assertWithinLimit(ctx, 'user')`) so a
+ * tenant can't exceed its plan by reactivating. Role is preserved.
+ *
+ * This gives the admin a one-click path to bring back a member who was
+ * deactivated — no re-invite / email round-trip required.
+ */
+export async function reactivateTenantMember(
+    ctx: RequestContext,
+    input: { membershipId: string },
+) {
+    assertCanManageMembers(ctx);
+    // Reactivating consumes a seat — enforce the plan limit up front.
+    await assertWithinLimit(ctx, 'user');
+
+    return runInTenantContext(ctx, async (db) => {
+        const membership = await db.tenantMembership.findFirst({
+            where: {
+                id: input.membershipId,
+                tenantId: ctx.tenantId,
+                status: { in: ['DEACTIVATED', 'REMOVED'] },
+            },
+            include: { user: { select: { id: true, name: true, email: true } } },
+        });
+
+        if (!membership) {
+            throw notFound('Membership not found or already active.');
+        }
+
+        const reactivated = await db.tenantMembership.update({
+            where: { id: input.membershipId },
+            data: { status: 'ACTIVE', deactivatedAt: null },
+            include: { user: { select: { id: true, name: true, email: true } } },
+        });
+
+        await logEvent(db, ctx, {
+            action: 'MEMBER_REACTIVATED',
+            entityType: 'TenantMembership',
+            entityId: reactivated.id,
+            details: `Reactivated member: ${membership.user.email}`,
+            detailsJson: {
+                category: 'status_change',
+                entityName: 'TenantMembership',
+                fromStatus: membership.status,
+                toStatus: 'ACTIVE',
+            },
+        });
+
+        return reactivated;
+    });
+}
+
+/**
+ * Fully remove a membership (→ REMOVED), so it leaves the members list
+ * (which shows ACTIVE / INVITED / DEACTIVATED only). This is the hard
+ * counterpart to deactivation, used for a member the admin no longer wants
+ * listed. Self-removal is refused; an ACTIVE last OWNER/ADMIN is protected
+ * (the same invariant `deactivateTenantMember` enforces). The row is kept
+ * as REMOVED (not hard-deleted) so audit history and a future re-invite
+ * (`redeemInvite` upserts it back to ACTIVE) both stay intact.
+ */
+export async function removeTenantMember(
+    ctx: RequestContext,
+    input: { membershipId: string },
+) {
+    assertCanManageMembers(ctx);
+
+    return runInTenantContext(ctx, async (db) => {
+        const membership = await db.tenantMembership.findFirst({
+            where: {
+                id: input.membershipId,
+                tenantId: ctx.tenantId,
+                status: { in: ['ACTIVE', 'DEACTIVATED', 'INVITED'] },
+            },
+            include: { user: { select: { id: true, name: true, email: true } } },
+        });
+
+        if (!membership) {
+            throw notFound('Membership not found or already removed.');
+        }
+
+        assertNotSelfDeactivation(ctx, membership.userId);
+
+        // Protect the last ACTIVE owner/admin (a non-active member removed
+        // here never counts toward the active headcount, so this only bites
+        // when removing an ACTIVE last OWNER/ADMIN).
+        if (membership.status === 'ACTIVE' && (membership.role === 'OWNER' || membership.role === 'ADMIN')) {
+            const sameRoleActive = await db.tenantMembership.count({
+                where: { tenantId: ctx.tenantId, role: membership.role, status: 'ACTIVE' },
+            });
+            if (sameRoleActive <= 1) {
+                throw forbidden(`Cannot remove the last ${membership.role}.`);
+            }
+        }
+
+        const removed = await db.tenantMembership.update({
+            where: { id: input.membershipId },
+            data: { status: 'REMOVED', deactivatedAt: new Date() },
+            include: { user: { select: { id: true, name: true, email: true } } },
+        });
+
+        await logEvent(db, ctx, {
+            action: 'MEMBER_REMOVED',
+            entityType: 'TenantMembership',
+            entityId: removed.id,
+            details: `Removed member: ${membership.user.email}`,
+            detailsJson: {
+                category: 'status_change',
+                entityName: 'TenantMembership',
+                fromStatus: membership.status,
+                toStatus: 'REMOVED',
+            },
+        });
+
+        return removed;
     });
 }
 

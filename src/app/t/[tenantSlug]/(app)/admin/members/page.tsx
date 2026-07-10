@@ -26,6 +26,7 @@ import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import {
     Users, UserPlus, ChevronDown, Shield, XCircle,
     MoreVertical, UserMinus, Mail, Monitor, Award,
+    Trash2, RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, statusBadgeVariants } from '@/components/ui/status-badge';
@@ -199,20 +200,23 @@ export default function MembersAdminPage() {
             },
         });
 
-    // Bulk-remove (deactivate) for the members table — selection action-row.
-    // The usecase skips your own membership and the last active OWNER/ADMIN.
-    const { batchAction: memberBulkAction, dialog: memberRemoveDialog } =
+    // Bulk "Remove" (→ REMOVED) — selection action-row. Hard removal; the
+    // usecase skips your own membership and protects the last active
+    // OWNER/ADMIN. Deactivate is the sibling batch action (defined inline on
+    // the DataTable below) so the action-row offers BOTH choices.
+    const { batchAction: removeBulkAction, dialog: removeBulkDialog } =
         useBulkDelete<Member>({
             entitySingular: t('memberSingular'),
             entityPlural: t('memberPlural'),
             verb: 'Remove',
             onDelete: async (membershipIds) => {
-                const res = await fetch(apiUrl('/admin/members/bulk/delete'), {
+                const res = await fetch(apiUrl('/admin/members/bulk/remove'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ membershipIds }),
                 });
                 if (!res.ok) throw new Error(t('removeMembersFailed'));
+                setSuccess(t('membersRemoved', { count: membershipIds.length }));
                 await fetchMembers();
             },
         });
@@ -320,6 +324,78 @@ export default function MembersAdminPage() {
             }
 
             setSuccess(t('memberDeactivated', { email }));
+            await fetchMembers();
+        } catch (err) {
+            setError((err as Error).message);
+        }
+    }
+
+    // Bulk "Deactivate" — the reversible sibling of bulk Remove. A plain
+    // BatchAction (not useBulkDelete, whose canonical danger verbs exclude
+    // "Deactivate"); a lightweight confirm matches the per-row deactivate.
+    async function handleBulkDeactivate(membershipIds: string[]) {
+        if (membershipIds.length === 0) return;
+        if (!confirm(t('confirmBulkDeactivate', { count: membershipIds.length }))) return;
+        setError(null);
+        setSuccess(null);
+        try {
+            const res = await fetch(apiUrl('/admin/members/bulk/delete'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ membershipIds }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ error: t('deactivationFailed') }));
+                setError(err.error || err.message || t('deactivationFailed'));
+                return;
+            }
+            const data = await res.json().catch(() => ({ deactivated: membershipIds.length }));
+            setSuccess(t('membersDeactivated', { count: data.deactivated ?? membershipIds.length }));
+            await fetchMembers();
+        } catch (err) {
+            setError((err as Error).message);
+        }
+    }
+
+    // Reactivate a deactivated member (constructive — no confirm needed).
+    async function handleReactivate(membershipId: string, email: string) {
+        setError(null);
+        setSuccess(null);
+        setOpenMenuId(null);
+        try {
+            const res = await fetch(apiUrl(`/admin/members/${membershipId}/reactivate`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ error: t('reactivateFailed') }));
+                setError(err.error || err.message || t('reactivateFailed'));
+                return;
+            }
+            setSuccess(t('memberReactivated', { email }));
+            await fetchMembers();
+        } catch (err) {
+            setError((err as Error).message);
+        }
+    }
+
+    // Fully remove a member (→ REMOVED) — leaves the members list.
+    async function handleRemove(membershipId: string, email: string) {
+        if (!confirm(t('confirmRemove', { email }))) return;
+        setError(null);
+        setSuccess(null);
+        setOpenMenuId(null);
+        try {
+            const res = await fetch(apiUrl(`/admin/members/${membershipId}`), {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ error: t('removeFailed') }));
+                setError(err.error || err.message || t('removeFailed'));
+                return;
+            }
+            setSuccess(t('memberRemoved', { email }));
             await fetchMembers();
         } catch (err) {
             setError((err as Error).message);
@@ -597,7 +673,7 @@ export default function MembersAdminPage() {
                 header: '',
                 cell: ({ row }) => {
                     const m = row.original;
-                    if (m.status !== 'ACTIVE') return null;
+                    const isActive = m.status === 'ACTIVE';
                     return (
                         <div className="relative inline-block text-right" onClick={(e) => e.stopPropagation()}>
                             <Button
@@ -609,47 +685,70 @@ export default function MembersAdminPage() {
                             />
                             {openMenuId === m.id && (
                                 <div className="absolute right-0 top-full mt-1 bg-bg-default border border-border-default rounded-lg shadow-lg z-20 min-w-[160px]">
+                                    {isActive && (
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    setEditingRoleId(m.id);
+                                                    setPendingRole(m.role);
+                                                    setOpenMenuId(null);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
+                                                id={`action-change-role-${m.id}`}
+                                            >
+                                                <Shield className="w-3.5 h-3.5" />
+                                                {t('changeRole')}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setOpenMenuId(null);
+                                                    void openSessionsModal(m);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
+                                                id={`action-view-sessions-${m.id}`}
+                                            >
+                                                <Monitor className="w-3.5 h-3.5" />
+                                                {t('viewSessions')}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setOpenMenuId(null);
+                                                    openCertsModal(m);
+                                                }}
+                                                className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
+                                                id={`action-certificates-${m.id}`}
+                                            >
+                                                <Award className="w-3.5 h-3.5" />
+                                                {t('certificates')}
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeactivate(m.id, m.user.email)}
+                                                className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
+                                                id={`action-deactivate-${m.id}`}
+                                            >
+                                                <UserMinus className="w-3.5 h-3.5" />
+                                                {t('deactivate')}
+                                            </button>
+                                        </>
+                                    )}
+                                    {m.status === 'DEACTIVATED' && (
+                                        <button
+                                            onClick={() => handleReactivate(m.id, m.user.email)}
+                                            className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
+                                            id={`action-reactivate-${m.id}`}
+                                        >
+                                            <RotateCcw className="w-3.5 h-3.5" />
+                                            {t('reactivate')}
+                                        </button>
+                                    )}
+                                    {/* Remove (→ REMOVED) — available for every member row. */}
                                     <button
-                                        onClick={() => {
-                                            setEditingRoleId(m.id);
-                                            setPendingRole(m.role);
-                                            setOpenMenuId(null);
-                                        }}
-                                        className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
-                                        id={`action-change-role-${m.id}`}
-                                    >
-                                        <Shield className="w-3.5 h-3.5" />
-                                        {t('changeRole')}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setOpenMenuId(null);
-                                            void openSessionsModal(m);
-                                        }}
-                                        className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
-                                        id={`action-view-sessions-${m.id}`}
-                                    >
-                                        <Monitor className="w-3.5 h-3.5" />
-                                        {t('viewSessions')}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setOpenMenuId(null);
-                                            openCertsModal(m);
-                                        }}
-                                        className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
-                                        id={`action-certificates-${m.id}`}
-                                    >
-                                        <Award className="w-3.5 h-3.5" />
-                                        {t('certificates')}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeactivate(m.id, m.user.email)}
+                                        onClick={() => handleRemove(m.id, m.user.email)}
                                         className="w-full text-left px-3 py-2 text-xs text-content-error hover:bg-bg-error flex items-center gap-tight"
-                                        id={`action-deactivate-${m.id}`}
+                                        id={`action-remove-${m.id}`}
                                     >
-                                        <UserMinus className="w-3.5 h-3.5" />
-                                        {t('deactivate')}
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        {t('removeVerb')}
                                     </button>
                                 </div>
                             )}
@@ -850,13 +949,21 @@ export default function MembersAdminPage() {
                         data={filteredMembers}
                         columns={memberColumns}
                         getRowId={(m) => m.id}
-                        batchActions={[memberBulkAction]}
+                        batchActions={[
+                            {
+                                label: t('deactivate'),
+                                icon: <UserMinus className="w-3.5 h-3.5" />,
+                                onClick: (rows) =>
+                                    void handleBulkDeactivate(rows.map((r) => r.original.id)),
+                            },
+                            removeBulkAction,
+                        ]}
                         emptyState={t('noMembers')}
                         resourceName={(p) => (p ? t('memberPlural') : t('memberSingular'))}
                         data-testid="members-table"
                     />
                 )}
-                {memberRemoveDialog}
+                {removeBulkDialog}
             </div>
 
             {/* Pending Invites DataTable */}
