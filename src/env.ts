@@ -193,7 +193,7 @@ export const env = createEnv({
         SMTP_PORT: z.coerce.number().optional(),
         SMTP_USER: z.string().optional(),
         SMTP_PASS: z.string().optional(),
-        SMTP_FROM: z.string().default("noreply@inflect.app"),
+        SMTP_FROM: z.string().default("noreply@agrent.bg"),
 
         // Resend (https://resend.com) — preferred over SMTP when set. Uses
         // Resend's HTTPS API (no SMTP egress needed). RESEND_FROM must be a
@@ -344,6 +344,13 @@ export const env = createEnv({
         // '0' disables retry (single POST); anything else (or unset) keeps retry on.
         // Kill-switch for debugging a misbehaving SIEM without redeploy.
         AUDIT_STREAM_RETRY_ENABLED: z.string().optional(),
+
+        // Outbound-webhook legacy header dual-emit (Roadmap-5 PR3 brand migration)
+        // '0' emits ONLY the canonical X-Agrent-* headers; unset / '1' (default)
+        // ALSO emits the legacy X-Inflect-* headers with identical values, so
+        // existing tenant SIEM integrations keep working during the deprecation
+        // window. Read via process.env in webhook-headers.ts (operator toggle).
+        AUDIT_STREAM_LEGACY_HEADERS: z.enum(["0", "1"]).optional(),
 
         // Epic 1, PR 2 — Platform-admin API key.
         // Optional platform-scoped secret for the tenant-creation endpoint
@@ -519,6 +526,7 @@ export const env = createEnv({
         GEE_SERVICE_ACCOUNT_KEY: process.env.GEE_SERVICE_ACCOUNT_KEY,
 
         AUDIT_STREAM_RETRY_ENABLED: process.env.AUDIT_STREAM_RETRY_ENABLED,
+        AUDIT_STREAM_LEGACY_HEADERS: process.env.AUDIT_STREAM_LEGACY_HEADERS,
         PLATFORM_ADMIN_API_KEY: process.env.PLATFORM_ADMIN_API_KEY,
         PLATFORM_ADMIN_API_KEY_PREVIOUS: process.env.PLATFORM_ADMIN_API_KEY_PREVIOUS,
         NOTIFICATIONS_TZ: process.env.NOTIFICATIONS_TZ,

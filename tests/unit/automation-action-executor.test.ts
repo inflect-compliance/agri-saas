@@ -97,6 +97,10 @@ describe('executeAction', () => {
         expect(url).toBe('https://example.com/hook');
         expect(init.method).toBe('POST');
         expect(init.headers['X-Inflect-Signature']).toMatch(/^sha256=/);
+        // Dual-emit (Roadmap-5 PR3): canonical X-Agrent-Signature carries the
+        // identical value, routed through the shared buildOutboundHeaders.
+        expect(init.headers['X-Agrent-Signature']).toBe(init.headers['X-Inflect-Signature']);
+        expect(init.headers['User-Agent']).toBe('Agrent-Automation/1');
     });
 
     it('INVOKE_SUBFLOW enqueues the sub-flow dispatch', async () => {

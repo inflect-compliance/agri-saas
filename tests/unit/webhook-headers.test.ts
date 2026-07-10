@@ -1,5 +1,6 @@
 import {
     OUTBOUND_WEBHOOK_HEADERS,
+    LEGACY_OUTBOUND_WEBHOOK_HEADERS,
     SIGNATURE_PREFIX,
     buildOutboundHeaders,
     computeBatchId,
@@ -9,12 +10,18 @@ describe('buildOutboundHeaders', () => {
     const base = {
         batchId: 'b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1',
         signatureHex: 'deadbeef',
-        userAgent: 'Inflect-Audit-Stream/1',
+        userAgent: 'Agrent-Audit-Stream/1',
         schemaVersion: 1,
     };
 
-    it('emits the six canonical headers with the right names', () => {
-        const h = buildOutboundHeaders(base);
+    it('the canonical header names are X-Agrent-*', () => {
+        expect(OUTBOUND_WEBHOOK_HEADERS.BATCH_ID).toBe('X-Agrent-Batch-Id');
+        expect(OUTBOUND_WEBHOOK_HEADERS.SIGNATURE).toBe('X-Agrent-Signature');
+        expect(OUTBOUND_WEBHOOK_HEADERS.IDEMPOTENCY_KEY).toBe('X-Agrent-Idempotency-Key');
+    });
+
+    it('includeLegacy:false emits ONLY the six canonical headers', () => {
+        const h = buildOutboundHeaders({ ...base, includeLegacy: false });
         expect(Object.keys(h).sort()).toEqual([
             OUTBOUND_WEBHOOK_HEADERS.BATCH_ID,
             OUTBOUND_WEBHOOK_HEADERS.CONTENT_TYPE,
@@ -25,24 +32,48 @@ describe('buildOutboundHeaders', () => {
         ].sort());
     });
 
+    it('includeLegacy:true dual-emits X-Inflect-* with IDENTICAL values', () => {
+        const h = buildOutboundHeaders({ ...base, includeLegacy: true });
+        expect(h[LEGACY_OUTBOUND_WEBHOOK_HEADERS.BATCH_ID]).toBe(h[OUTBOUND_WEBHOOK_HEADERS.BATCH_ID]);
+        expect(h[LEGACY_OUTBOUND_WEBHOOK_HEADERS.SIGNATURE]).toBe(h[OUTBOUND_WEBHOOK_HEADERS.SIGNATURE]);
+        expect(h[LEGACY_OUTBOUND_WEBHOOK_HEADERS.IDEMPOTENCY_KEY]).toBe(h[OUTBOUND_WEBHOOK_HEADERS.IDEMPOTENCY_KEY]);
+        expect(h[LEGACY_OUTBOUND_WEBHOOK_HEADERS.SCHEMA_VERSION]).toBe(h[OUTBOUND_WEBHOOK_HEADERS.SCHEMA_VERSION]);
+    });
+
+    it('defaults to dual-emit; AUDIT_STREAM_LEGACY_HEADERS=0 drops the legacy set', () => {
+        const prev = process.env.AUDIT_STREAM_LEGACY_HEADERS;
+        try {
+            delete process.env.AUDIT_STREAM_LEGACY_HEADERS;
+            expect(buildOutboundHeaders(base)[LEGACY_OUTBOUND_WEBHOOK_HEADERS.SIGNATURE]).toBeDefined();
+
+            process.env.AUDIT_STREAM_LEGACY_HEADERS = '0';
+            const only = buildOutboundHeaders(base);
+            expect(only[LEGACY_OUTBOUND_WEBHOOK_HEADERS.SIGNATURE]).toBeUndefined();
+            expect(only[OUTBOUND_WEBHOOK_HEADERS.SIGNATURE]).toBeDefined(); // canonical still there
+        } finally {
+            if (prev === undefined) delete process.env.AUDIT_STREAM_LEGACY_HEADERS;
+            else process.env.AUDIT_STREAM_LEGACY_HEADERS = prev;
+        }
+    });
+
     it('prepends sha256= to the signature', () => {
-        const h = buildOutboundHeaders(base);
+        const h = buildOutboundHeaders({ ...base, includeLegacy: false });
         expect(h[OUTBOUND_WEBHOOK_HEADERS.SIGNATURE]).toBe(`${SIGNATURE_PREFIX}deadbeef`);
     });
 
     it('uses the batch id as the idempotency key', () => {
-        const h = buildOutboundHeaders(base);
+        const h = buildOutboundHeaders({ ...base, includeLegacy: false });
         expect(h[OUTBOUND_WEBHOOK_HEADERS.IDEMPOTENCY_KEY]).toBe(base.batchId);
         expect(h[OUTBOUND_WEBHOOK_HEADERS.BATCH_ID]).toBe(base.batchId);
     });
 
     it('serialises schemaVersion as a string', () => {
-        const h = buildOutboundHeaders({ ...base, schemaVersion: 7 });
+        const h = buildOutboundHeaders({ ...base, schemaVersion: 7, includeLegacy: false });
         expect(h[OUTBOUND_WEBHOOK_HEADERS.SCHEMA_VERSION]).toBe('7');
     });
 
     it('hardcodes Content-Type to application/json', () => {
-        const h = buildOutboundHeaders(base);
+        const h = buildOutboundHeaders({ ...base, includeLegacy: false });
         expect(h[OUTBOUND_WEBHOOK_HEADERS.CONTENT_TYPE]).toBe('application/json');
     });
 });

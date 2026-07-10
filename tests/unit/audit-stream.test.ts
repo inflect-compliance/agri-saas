@@ -180,6 +180,10 @@ describe('audit-stream — HMAC signing', () => {
 
         const expected = computeHmacSha256(post.body, 'shhh-1', 'hex');
         expect(sigHeader).toBe(`sha256=${expected}`);
+
+        // Dual-emit (Roadmap-5 PR3): the canonical X-Agrent-Signature carries
+        // the IDENTICAL value alongside the legacy X-Inflect-Signature.
+        expect(post.headers['X-Agrent-Signature']).toBe(sigHeader);
     });
 
     it('uses the per-tenant secret — different tenants get different signatures', async () => {
@@ -204,7 +208,7 @@ describe('audit-stream — HMAC signing', () => {
 
         const headers = capturedPosts[0].headers;
         expect(headers['Content-Type']).toBe('application/json');
-        expect(headers['User-Agent']).toMatch(/Inflect-Audit-Stream/);
+        expect(headers['User-Agent']).toMatch(/Agrent-Audit-Stream/);
     });
 });
 

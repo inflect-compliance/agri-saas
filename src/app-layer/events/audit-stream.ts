@@ -106,7 +106,7 @@ const POST_TIMEOUT_MS = 10_000;
 /** Hard cap on buffered events per tenant — drops oldest above this. */
 const BUFFER_HARD_CAP = 1_000;
 
-const USER_AGENT = 'Inflect-Audit-Stream/1';
+const USER_AGENT = 'Agrent-Audit-Stream/1';
 const SCHEMA_VERSION = 1;
 
 // ─── Tenant config resolver (overridable for tests) ────────────────

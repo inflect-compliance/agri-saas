@@ -67,7 +67,7 @@ export function getRedis(): Redis | null {
             connectTimeout: 10000,          // 10s to establish connection
             commandTimeout: 5000,           // 5s per command
             // ── Naming ──
-            connectionName: 'inflect-app',
+            connectionName: 'agrent-app',
             lazyConnect: false,             // Connect immediately when created
         });
 
@@ -241,7 +241,7 @@ export function createRedisClient(overrideUrl?: string): Redis {
         enableReadyCheck: true,
         connectTimeout: 10000,
         commandTimeout: 5000,
-        connectionName: 'inflect-worker',
+        connectionName: 'agrent-worker',
         lazyConnect: false,
     });
 }

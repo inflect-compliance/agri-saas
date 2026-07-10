@@ -30,7 +30,7 @@ export function isWebPushConfigured(): boolean {
     const pub = env.VAPID_PUBLIC_KEY;
     const priv = env.VAPID_PRIVATE_KEY;
     if (pub && priv) {
-        webpush.setVapidDetails(env.VAPID_SUBJECT || 'mailto:ops@agrisaas.example', pub, priv);
+        webpush.setVapidDetails(env.VAPID_SUBJECT || 'mailto:ops@agrent.bg', pub, priv);
         configured = true;
     } else {
         configured = false;

@@ -1,13 +1,13 @@
 {
-  "name": "AgriSaaS — Field Operations",
-  "short_name": "AgriSaaS",
+  "name": "Agrent — Field Operations",
+  "short_name": "Agrent",
   "description": "Map fields, log work, track stock — execute spray jobs in the field, online or off.",
   "start_url": "/tenants",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#0b1220",
-  "theme_color": "#15803d",
+  "theme_color": "#0b1220",
   "icons": [
     {
       "src": "/icon.svg",
@@ -16,10 +16,16 @@
       "purpose": "any"
     },
     {
-      "src": "/icon.svg",
-      "type": "image/svg+xml",
-      "sizes": "any",
-      "purpose": "maskable"
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ]
 }

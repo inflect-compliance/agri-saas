@@ -14,6 +14,12 @@ export const metadata: Metadata = {
     // Operator PWA — installable field-ops client (queue-and-sync).
     manifest: '/manifest.webmanifest',
     appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Agrent' },
+    // iOS ignores SVG manifest icons — it needs a PNG apple-touch-icon for the
+    // home-screen. Rendered from the Agrent seedling mark (public/icon.svg).
+    icons: {
+        icon: '/icon.svg',
+        apple: '/apple-touch-icon.png',
+    },
 };
 
 /**
@@ -30,6 +36,9 @@ export const viewport: Viewport = {
     initialScale: 1,
     maximumScale: 5,
     viewportFit: 'cover',
+    // Installed-PWA chrome (status bar) matches the dark app shell — cohesive
+    // with the Agrent identity, not a jarring accent. Was the pre-rebrand green.
+    themeColor: '#0b1220',
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
