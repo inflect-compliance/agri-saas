@@ -7,6 +7,7 @@ import { withApiErrorHandling } from '@/lib/errors/api';
 import { z } from 'zod';
 import { normalizeQ } from '@/lib/filters/query-helpers';
 import { jsonResponse } from '@/lib/api-response';
+import { jsonWithETag } from '@/lib/http/etag';
 
 const JournalQuerySchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).optional(),
@@ -44,12 +45,21 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
             cursor: query.cursor,
             filters,
         });
-        return jsonResponse(result);
+        // Roadmap-6 P3 — emit the `{ rows, nextCursor }` shape the
+        // client `useCursorPagination` accumulator consumes directly.
+        // The bounded page (limit ≤ 100, default 20) replaces the flat
+        // take:200 cold-start payload; ETag/304 makes revalidation cheap
+        // on rural LTE.
+        return jsonWithETag(req, {
+            rows: result.items,
+            nextCursor: result.pageInfo.nextCursor ?? null,
+        });
     }
 
-    // Backward-compat: flat array (the list page reads this shape).
+    // Backward-compat: flat array (the offline outbox + any consumer
+    // hitting `/journal` with no pagination params reads this shape).
     const entries = await listLogEntries(ctx, filters);
-    return jsonResponse(entries);
+    return jsonWithETag(req, entries);
 });
 
 export const POST = withApiErrorHandling(withValidatedBody(CreateLogEntrySchema, async (req, { params: paramsPromise }: { params: Promise<{ tenantSlug: string }> }, body) => {

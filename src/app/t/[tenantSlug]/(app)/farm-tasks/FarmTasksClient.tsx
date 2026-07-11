@@ -24,6 +24,8 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { useThresholdLoadMore } from '@/components/ui/hooks';
+import { TableLoadMoreFooter } from '@/components/ui/table-load-more-footer';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
@@ -278,6 +280,13 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
     );
 
     const rows = tasks ?? [];
+    // Roadmap-6 P3 — window the operator queue to a bounded first slice
+    // with an org-parity "Load more" footer (matches controls / risks /
+    // tasks). The queue is a merged FARM_TASK + FIELD_OPERATION union
+    // re-sorted by due date, so a stable server cursor isn't well-defined
+    // without a repository redesign; the flat GET is ETag/304-guarded so
+    // revalidation stays cheap, and this bounds render cost.
+    const { visibleRows, totalCount, hasMore, loadMore } = useThresholdLoadMore(rows);
 
     return (
         <EntityListPage<FarmTaskRow>
@@ -300,8 +309,18 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                     </Button>
                 ),
             }}
+            tableFooter={
+                <TableLoadMoreFooter
+                    hasMore={hasMore}
+                    visibleCount={visibleRows.length}
+                    totalCount={totalCount}
+                    onLoadMore={loadMore}
+                    resourceName="tasks"
+                    testId="farm-tasks-load-more"
+                />
+            }
             table={{
-                data: rows,
+                data: visibleRows,
                 columns,
                 loading: isLoading && !tasks,
                 getRowId: (t) => t.id,

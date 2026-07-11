@@ -55,6 +55,17 @@ export interface UseCursorPaginationResult<TRow> {
      * `await` the cycle in tests; UI consumers can fire-and-forget.
      */
     loadMore: () => Promise<void>;
+    /**
+     * Replace the accumulated page with a fresh first page + its cursor,
+     * discarding any pages loaded via `loadMore`. The reseed hook for
+     * consumers whose first page is owned elsewhere (e.g. an SWR entry
+     * keyed by active filters, or an optimistic prepend): when that
+     * source changes, call `reload(newRows, newCursor)` to restart the
+     * accumulator from page 1 without a component remount. Callers that
+     * only ever page forward (the original three drill-down tables)
+     * simply ignore it.
+     */
+    reload: (rows: ReadonlyArray<TRow>, nextCursor: string | null) => void;
 }
 
 interface PageResponse<TRow> {
@@ -100,6 +111,15 @@ export function useCursorPagination<TRow>(
         }
     }, [nextCursor, loading, fetchUrl]);
 
+    const reload = useCallback(
+        (newRows: ReadonlyArray<TRow>, newCursor: string | null): void => {
+            setRows([...newRows]);
+            setNextCursor(newCursor);
+            setError(null);
+        },
+        [],
+    );
+
     return {
         rows,
         nextCursor,
@@ -107,5 +127,6 @@ export function useCursorPagination<TRow>(
         loading,
         error,
         loadMore,
+        reload,
     };
 }

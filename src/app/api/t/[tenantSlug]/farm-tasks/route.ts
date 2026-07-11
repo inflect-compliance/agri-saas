@@ -5,6 +5,7 @@ import { createFarmTask, listMyFarmTasks } from '@/app-layer/usecases/farm-task'
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { withValidatedBody } from '@/lib/validation/route';
 import { jsonResponse } from '@/lib/api-response';
+import { jsonWithETag } from '@/lib/http/etag';
 
 /**
  * Farm tasks — a thin surface over the IC Task module.
@@ -44,7 +45,7 @@ export const GET = withApiErrorHandling(
             assigneeUserId: query.assigneeUserId,
             status: query.status,
         });
-        return jsonResponse(tasks);
+        return jsonWithETag(req, tasks);
     },
 );
 
