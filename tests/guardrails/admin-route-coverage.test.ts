@@ -34,8 +34,12 @@ const ADMIN_ONLY_ROUTES = [
     'admin/members/route.ts',
     'admin/members/[membershipId]/route.ts',
     'admin/members/[membershipId]/deactivate/route.ts',
+    // Reactivate a deactivated/removed member (inverse of deactivate)
+    'admin/members/[membershipId]/reactivate/route.ts',
     // Bulk-deactivate (remove) members — selection action-row
     'admin/members/bulk/delete/route.ts',
+    // Fully remove selected members (→ REMOVED) — selection action-row
+    'admin/members/bulk/remove/route.ts',
     // БАБХ farm-record — plant-protection certificates per member
     'admin/members/[membershipId]/certificates/route.ts',
     'admin/settings/route.ts',

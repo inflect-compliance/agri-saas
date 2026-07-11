@@ -43,6 +43,7 @@ import { InlineNotice } from '@/components/ui/inline-notice';
 import { cn } from '@/lib/cn';
 import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
+import { useToastWithUndo } from '@/components/ui/hooks';
 
 // ─── Types ───
 
@@ -117,6 +118,7 @@ export default function MembersAdminPage() {
     const t = useTranslations('admin.members');
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
+    const triggerUndoToast = useToastWithUndo();
 
     // ─── State ───
     const [members, setMembers] = useState<Member[]>([]);
@@ -333,28 +335,31 @@ export default function MembersAdminPage() {
     // Bulk "Deactivate" — the reversible sibling of bulk Remove. A plain
     // BatchAction (not useBulkDelete, whose canonical danger verbs exclude
     // "Deactivate"); a lightweight confirm matches the per-row deactivate.
-    async function handleBulkDeactivate(membershipIds: string[]) {
+    function handleBulkDeactivate(membershipIds: string[]) {
         if (membershipIds.length === 0) return;
-        if (!confirm(t('confirmBulkDeactivate', { count: membershipIds.length }))) return;
         setError(null);
         setSuccess(null);
-        try {
-            const res = await fetch(apiUrl('/admin/members/bulk/delete'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ membershipIds }),
-            });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: t('deactivationFailed') }));
-                setError(err.error || err.message || t('deactivationFailed'));
-                return;
-            }
-            const data = await res.json().catch(() => ({ deactivated: membershipIds.length }));
-            setSuccess(t('membersDeactivated', { count: data.deactivated ?? membershipIds.length }));
-            await fetchMembers();
-        } catch (err) {
-            setError((err as Error).message);
-        }
+        // Epic 67 — undo-toast instead of a blocking confirm(). The
+        // deactivation is deferred: it commits after the 5s window unless
+        // the operator hits Undo. Not optimistic (deactivated members stay
+        // in the list with a Reactivate action) — refresh once it commits.
+        triggerUndoToast({
+            message: t('membersDeactivated', { count: membershipIds.length }),
+            undoMessage: t('undo'),
+            action: async () => {
+                const res = await fetch(apiUrl('/admin/members/bulk/delete'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ membershipIds }),
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ error: t('deactivationFailed') }));
+                    throw new Error(err.error || err.message || t('deactivationFailed'));
+                }
+                await fetchMembers();
+            },
+            onError: (err) => setError((err as Error).message),
+        });
     }
 
     // Reactivate a deactivated member (constructive — no confirm needed).
@@ -380,26 +385,34 @@ export default function MembersAdminPage() {
     }
 
     // Fully remove a member (→ REMOVED) — leaves the members list.
-    async function handleRemove(membershipId: string, email: string) {
-        if (!confirm(t('confirmRemove', { email }))) return;
+    function handleRemove(membershipId: string, email: string) {
         setError(null);
         setSuccess(null);
         setOpenMenuId(null);
-        try {
-            const res = await fetch(apiUrl(`/admin/members/${membershipId}`), {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({ error: t('removeFailed') }));
-                setError(err.error || err.message || t('removeFailed'));
-                return;
-            }
-            setSuccess(t('memberRemoved', { email }));
-            await fetchMembers();
-        } catch (err) {
-            setError((err as Error).message);
-        }
+        // Epic 67 — optimistic remove + undo-toast (no blocking confirm()).
+        // The row leaves the list immediately; the DELETE commits after the
+        // 5s window unless the operator hits Undo, which restores the row.
+        const snapshot = members;
+        setMembers((prev) => prev.filter((m) => m.id !== membershipId));
+        triggerUndoToast({
+            message: t('memberRemoved', { email }),
+            undoMessage: t('undo'),
+            action: async () => {
+                const res = await fetch(apiUrl(`/admin/members/${membershipId}`), {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ error: t('removeFailed') }));
+                    throw new Error(err.error || err.message || t('removeFailed'));
+                }
+            },
+            undoAction: () => setMembers(snapshot),
+            onError: (err) => {
+                setMembers(snapshot);
+                setError((err as Error).message);
+            },
+        });
     }
 
     const openSessionsModal = useCallback(async (member: Member) => {

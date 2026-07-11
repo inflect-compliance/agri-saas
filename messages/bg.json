@@ -2189,6 +2189,7 @@
             "removeVerb": "Премахни",
             "reactivate": "Активирай отново",
             "confirmRemove": "Да се премахне ли {email} от това работно пространство? Той повече няма да се показва в списъка с членове.",
+            "undo": "Отмени",
             "confirmBulkDeactivate": "Да се деактивират ли {count} избрани членове?",
             "memberRemoved": "{email} беше премахнат",
             "memberReactivated": "{email} беше активиран отново",
