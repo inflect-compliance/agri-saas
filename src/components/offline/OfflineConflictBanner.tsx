@@ -23,7 +23,7 @@ export interface OfflineConflictBannerProps {
 
 export function OfflineConflictBanner({ conflicts, onResolve, busyId }: OfflineConflictBannerProps) {
     const t = useTranslations('offline.conflict');
-    if (conflicts.length === 0) return null;
+    if (!conflicts?.length) return null;
 
     return (
         <div className="space-y-tight" id="offline-conflicts">
