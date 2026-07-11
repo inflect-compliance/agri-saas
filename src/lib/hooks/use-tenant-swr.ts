@@ -100,6 +100,19 @@ const DEFAULT_SWR_CONFIG: SWRConfiguration = {
     dedupingInterval: 5_000,
     errorRetryCount: 2,
     errorRetryInterval: 2_000,
+    // Back off to the server's `Retry-After` on a 429/503 instead of the flat
+    // 2s interval — the outbox already honors it; the foreground fetch should
+    // too, so a rate-limited page doesn't keep hammering a closed window.
+    onErrorRetry: (error, _key, config, revalidate, { retryCount }) => {
+        const max = config.errorRetryCount ?? 2;
+        if (retryCount > max) return;
+        const raSec = (error as ApiClientError | undefined)?.retryAfterSeconds;
+        const delayMs =
+            typeof raSec === 'number' && raSec >= 0
+                ? raSec * 1000
+                : config.errorRetryInterval ?? 2_000;
+        setTimeout(() => void revalidate({ retryCount }), delayMs);
+    },
 };
 
 export interface UseTenantSWROptions<T>

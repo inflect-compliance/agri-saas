@@ -42,6 +42,17 @@ const PAGES: ReadonlyArray<{ label: string; path: (slug: string) => string }> = 
     { label: 'my-listings', path: (s) => `/t/${s}/exchange/my-listings` },
     { label: 'farm-tasks', path: (s) => `/t/${s}/farm-tasks` },
     { label: 'locations (list)', path: (s) => `/t/${s}/locations` },
+    // High-traffic pages added — drift is the app's #1 mobile regression class,
+    // so the ratchet covers the busy list surfaces, not just the ag ones.
+    { label: 'risks', path: (s) => `/t/${s}/risks` },
+    { label: 'controls', path: (s) => `/t/${s}/controls` },
+    { label: 'grain', path: (s) => `/t/${s}/grain` },
+    { label: 'planning', path: (s) => `/t/${s}/planning` },
+    { label: 'inventory', path: (s) => `/t/${s}/inventory` },
+    { label: 'vendors', path: (s) => `/t/${s}/vendors` },
+    { label: 'evidence', path: (s) => `/t/${s}/evidence` },
+    { label: 'calendar', path: (s) => `/t/${s}/calendar` },
+    { label: 'admin/members', path: (s) => `/t/${s}/admin/members` },
 ];
 
 test.describe('mobile horizontal-drift ratchet @mobile', () => {
