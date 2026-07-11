@@ -51,8 +51,14 @@ const OUTBOX_MAX_ATTEMPTS = 8; // mirrors MAX_ATTEMPTS in sync.ts
 const FLUSH_OUTBOX_TAG = 'flush-outbox';
 
 self.addEventListener('install', (event) => {
+    // Precache the shell, but do NOT skipWaiting — a deploy mid-field-session
+    // must not hot-swap the SW under an operator who's mid-queue on flaky
+    // signal. The new worker parks in the "waiting" state; ServiceWorkerRegistrar
+    // surfaces an "Update ready — refresh" prompt and only sends SKIP_WAITING
+    // (below) on the operator's consent. Otherwise the update applies on the
+    // next natural launch.
     event.waitUntil(
-        caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()),
+        caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE)),
     );
 });
 
@@ -395,6 +401,13 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === FLUSH_OUTBOX_TAG) {
         event.waitUntil ? event.waitUntil(flushOutbox()) : flushOutbox();
+    }
+    // Operator tapped "Update ready — refresh": activate the waiting worker
+    // now. It then claims clients (activate handler) and the page reloads on
+    // controllerchange. Only ever sent on explicit consent, so a deploy never
+    // interrupts an in-flight outbox flush on its own.
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
     }
 });
 

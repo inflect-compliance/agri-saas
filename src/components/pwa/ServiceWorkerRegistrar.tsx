@@ -9,21 +9,58 @@
  * cache only) — offline writes are handled by the client outbox, not the
  * SW.
  */
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { InstallPrompt } from './InstallPrompt';
+import { UpdateAvailableBanner } from './UpdateAvailableBanner';
 import { isChunkLoadError } from '@/lib/pwa/chunk-error';
 
 export function ServiceWorkerRegistrar() {
+    // The new SW parked in "waiting" (a deploy landed while the app is open).
+    // Surfaced as a non-blocking "Update ready — refresh" prompt; the update
+    // only applies on the operator's consent (SKIP_WAITING) — never mid-session.
+    const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+
     useEffect(() => {
         if (process.env.NODE_ENV !== 'production') return;
         if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
         const register = () => {
-            navigator.serviceWorker.register('/sw.js').catch(() => {
-                /* registration is best-effort — the app works without it */
-            });
+            navigator.serviceWorker
+                .register('/sw.js')
+                .then((reg) => {
+                    if (!reg) return;
+                    // An update may already be parked (installed while closed).
+                    if (reg.waiting && navigator.serviceWorker.controller) {
+                        setWaitingWorker(reg.waiting);
+                    }
+                    // A new worker finished installing → offer the update once
+                    // it reaches "installed" WITH an existing controller (i.e.
+                    // it's an update, not the first install).
+                    reg.addEventListener('updatefound', () => {
+                        const nw = reg.installing;
+                        if (!nw) return;
+                        nw.addEventListener('statechange', () => {
+                            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                                setWaitingWorker(nw);
+                            }
+                        });
+                    });
+                })
+                .catch(() => {
+                    /* registration is best-effort — the app works without it */
+                });
         };
         if (document.readyState === 'complete') register();
         else window.addEventListener('load', register, { once: true });
+
+        // The waiting worker took control (after SKIP_WAITING) → reload once so
+        // the page runs the new assets. Guarded against a reload loop.
+        let reloaded = false;
+        const onControllerChange = () => {
+            if (reloaded) return;
+            reloaded = true;
+            window.location.reload();
+        };
+        navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
         // Fallback flush trigger for browsers without Background Sync (iOS
         // Safari): on regained connectivity, nudge the SW to replay the
@@ -35,7 +72,10 @@ export function ServiceWorkerRegistrar() {
                 .catch(() => {});
         };
         window.addEventListener('online', nudgeFlush);
-        return () => window.removeEventListener('online', nudgeFlush);
+        return () => {
+            window.removeEventListener('online', nudgeFlush);
+            navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+        };
     }, []);
 
     // ChunkLoadError recovery. A lazy route/component chunk that fails to load
@@ -72,7 +112,20 @@ export function ServiceWorkerRegistrar() {
 
     // The install affordance attaches its own listeners (beforeinstallprompt
     // / appinstalled) and renders the mobile banner / iOS hint.
-    return <InstallPrompt />;
+    // Consent → tell the waiting worker to take over. It skipWaiting()s,
+    // activates + claims, and `controllerchange` (above) reloads the page.
+    // Only ever fired on an explicit tap, so a deploy never interrupts an
+    // in-flight outbox flush.
+    const applyUpdate = useCallback(() => {
+        waitingWorker?.postMessage({ type: 'SKIP_WAITING' });
+    }, [waitingWorker]);
+
+    return (
+        <>
+            <InstallPrompt />
+            {waitingWorker && <UpdateAvailableBanner onApply={applyUpdate} />}
+        </>
+    );
 }
 
 export default ServiceWorkerRegistrar;
