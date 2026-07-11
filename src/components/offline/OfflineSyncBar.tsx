@@ -43,7 +43,7 @@ export function OfflineSyncBar({ online, pending, pendingPhotos = 0, onSyncNow, 
                     </span>
                 )}
                 {pendingPhotos > 0 && (
-                    <span className="text-content-secondary" data-testid="offline-photos-queued">
+                    <span className="text-content-secondary">
                         {t('photosQueued', { count: pendingPhotos })}
                     </span>
                 )}

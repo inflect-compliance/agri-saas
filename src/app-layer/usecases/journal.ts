@@ -530,6 +530,18 @@ export async function uploadLogEntryPhoto(
         const entry = await JournalRepository.getById(db, ctx, logEntryId);
         if (!entry) throw notFound('Journal entry not found');
 
+        // Exactly-once backstop for the concurrent-flush race: on reconnect the
+        // SAME queued photo is drained by BOTH the in-page sender AND the SW
+        // background sync (plus retries). Without serialisation each request's
+        // `findBySha256`→`createPending` check-then-create misses and mints a
+        // DISTINCT FileRecord → distinct fileRecordId → the
+        // `@@unique([logEntryId, fileRecordId])` link guard never collides →
+        // duplicate attachments. A transaction-scoped advisory lock keyed on
+        // (tenant, content-hash) serialises same-content uploads: the loser then
+        // finds the winner's FileRecord + link and returns it as exactly-once.
+        // Released automatically on commit/rollback.
+        await db.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${ctx.tenantId}:${writeResult.sha256}`}))`;
+
         // Reuse an existing identical FileRecord if one is already stored
         // (SHA-256 dedup), else create + mark stored.
         const existingFile = await FileRepository.findBySha256(db, ctx.tenantId, writeResult.sha256);
