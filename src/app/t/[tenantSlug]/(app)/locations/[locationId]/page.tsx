@@ -26,6 +26,7 @@ import { Popover } from '@/components/ui/popover';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { SpatialImportModal } from '@/components/ui/map/SpatialImportModal';
 import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
+import { DownloadBasemapButton } from '@/components/ui/map/DownloadBasemapButton';
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
 import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
 import { SoilLegend } from '@/components/soil/SoilLegend';
@@ -658,6 +659,14 @@ export default function LocationDetailPage() {
                                 {t('merge')}
                             </Button>
                         )}
+                        {/* Pre-download this field's basemap backdrop for
+                            offline use (Roadmap-6 P1b). Bounded, user-initiated;
+                            renders nothing until the location has a bbox. */}
+                        <DownloadBasemapButton
+                            locationId={locationId}
+                            bounds={bounds}
+                            className="min-h-[44px]"
+                        />
                     </div>
                     {/* Active-index status line: loading / not-configured /
                         legend / error / no-imagery. Driven by the active
@@ -728,6 +737,14 @@ export default function LocationDetailPage() {
                             // the prop is exercised + ready for a future
                             // read-only farm view.
                             vectorTileUrl={buildUrl(`/locations/${locationId}/tiles/{z}/{x}/{y}.pbf`)}
+                            // Same-origin offline basemap pack (Roadmap-6 P1b).
+                            // The {z}/{x}/{y} placeholders stay literal for
+                            // MapLibre to substitute. When offline AND the pack
+                            // is available, MapCanvas swaps to a same-origin
+                            // style backed by this template; online it uses
+                            // MapTiler. Cross-origin MapTiler blanks at zero
+                            // bars — this is the offline fallback.
+                            offlineBasemapTileUrl={buildUrl(`/locations/${locationId}/basemap/{z}/{x}/{y}`)}
                             soilMode={soilView}
                             soilColorById={soilColorById}
                             cropById={cropById}

@@ -72,6 +72,27 @@ export async function listLocationParcels(
 }
 
 /**
+ * The location's bounding box ([west, south, east, north]) or null. Used by
+ * the offline-basemap proxy to keep a bounded-per-location tile pack — a
+ * requested basemap tile outside this bbox is rejected. Tenant-scoped via the
+ * repository; a missing location is a 404.
+ */
+export async function getLocationBounds(
+    ctx: RequestContext,
+    id: string,
+): Promise<[number, number, number, number] | null> {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const location = await LocationRepository.getById(db, ctx, id);
+        if (!location) throw notFound('Location not found');
+        const bounds = location.boundsJson;
+        return Array.isArray(bounds) && bounds.length === 4
+            ? (bounds as [number, number, number, number])
+            : null;
+    });
+}
+
+/**
  * Render a location's parcels as a Mapbox Vector Tile (binary protobuf)
  * for the z/x/y tile — the map's vector source at zoom ≥ 6. Tenant- +
  * location-scoped in the repository; an empty buffer means no parcel
