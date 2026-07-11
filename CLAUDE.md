@@ -209,6 +209,31 @@ live in `src/lib/security/rate-limit.ts`; the Node wrapper is
 `src/lib/security/rate-limit-middleware.ts`; the edge enforcement
 modules live under `src/lib/rate-limit/`.
 
+### Cold-start data cost (Roadmap-6 P3)
+
+Three seams keep a PWA relaunch cheap on rural LTE — see
+`docs/implementation-notes/2026-07-11-cold-start-datacost.md`.
+
+- **Persistent SWR cache.** `providers.tsx` mounts ONE
+  `<SWRConfig provider>` via `SWRPersistenceProvider`, backed by the
+  per-tenant, disk-backed Map in `src/lib/swr/persistent-cache.ts`
+  (localStorage sync-hydrate + IndexedDB backfill, versioned +
+  24h-evicting, graceful fallback). It is KEYED by tenant slug so
+  buckets never leak across tenants. **Never add a second
+  `<SWRConfig provider>`** — extend this one.
+- **Conditional revalidation.** Every hot list-read GET returns a weak
+  ETag via `jsonWithETag(req, payload)` from `src/lib/http/etag.ts`
+  (honors `If-None-Match` → 304). Wired into journal / farm-tasks /
+  locations / exchange-listings. New cacheable list GETs SHOULD use
+  `jsonWithETag` instead of `jsonResponse`.
+- **Cursor-paginated journal.** The journal list server-renders a
+  bounded first page (`JOURNAL_PAGE_SIZE = 50`) and pages forward over
+  the `?limit`/`?cursor` path via `useCursorPagination` (its additive
+  `reload()` reseeds the accumulator on a filter/optimistic change).
+  The paginated `/journal` branch returns `{ rows, nextCursor }`; the
+  bare `/journal` (no params) still returns a flat array (offline
+  outbox replay depends on it).
+
 ### Auth Brute-Force Protection (Epic A.3)
 
 `authenticateWithPassword` applies `LOGIN_PROGRESSIVE_POLICY`:

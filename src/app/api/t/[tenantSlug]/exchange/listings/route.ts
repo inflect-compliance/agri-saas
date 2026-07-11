@@ -7,6 +7,7 @@ import { toPublicListing } from '@/lib/exchange/public-listing';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { withValidatedBody } from '@/lib/validation/route';
 import { jsonResponse } from '@/lib/api-response';
+import { jsonWithETag } from '@/lib/http/etag';
 import { EXCHANGE_LISTING_CREATE_LIMIT } from '@/lib/security/rate-limit-middleware';
 
 /**
@@ -30,7 +31,7 @@ export const GET = withApiErrorHandling(
         const ctx = await getTenantCtx(params, req);
         await assertModuleEnabled(ctx, 'EXCHANGE');
         const listings = await listActiveListings(ctx);
-        return jsonResponse(listings.map((l) => toPublicListing(l, ctx.tenantId)));
+        return jsonWithETag(req, listings.map((l) => toPublicListing(l, ctx.tenantId)));
     },
 );
 

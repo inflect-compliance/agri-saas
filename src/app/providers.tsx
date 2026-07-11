@@ -15,6 +15,7 @@ import {
 import { KeyboardShortcutProvider } from '@/lib/hooks/use-keyboard-shortcut';
 import { ShortcutHelpOverlay } from '@/components/app-shell/shortcut-help-overlay';
 import { registerFormTelemetrySink } from '@/lib/telemetry/form-telemetry';
+import { SWRPersistenceProvider } from '@/components/providers/SWRPersistenceProvider';
 
 /**
  * Epic 54 — bootstrap the global form-telemetry sink once at mount.
@@ -60,7 +61,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     // provider so it can register `mod+k` on the shared registry. The
     // palette itself is rendered once at the shell so it's reachable
     // from any route, layered above page content via its own portal.
+    // Roadmap-6 P3 — `SWRPersistenceProvider` sits at the top so EVERY
+    // client read (all `useTenantSWR` / `useSWR` call sites) shares the
+    // one per-tenant, disk-backed SWR cache. A PWA relaunch then paints
+    // lists from the on-device cache instead of refetching the whole
+    // farm over rural LTE.
     return (
+        <SWRPersistenceProvider>
         <KeyboardShortcutProvider>
             <CommandPaletteProvider>
                 <ThemeProvider>
@@ -92,5 +99,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 </ThemeProvider>
             </CommandPaletteProvider>
         </KeyboardShortcutProvider>
+        </SWRPersistenceProvider>
     );
 }

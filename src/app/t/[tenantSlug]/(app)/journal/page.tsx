@@ -1,6 +1,6 @@
 import { getTenantCtx } from '@/app-layer/context';
-import { listLogEntries } from '@/app-layer/usecases/journal';
-import { JournalClient } from './JournalClient';
+import { listLogEntriesPaginated } from '@/app-layer/usecases/journal';
+import { JournalClient, JOURNAL_PAGE_SIZE } from './JournalClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +28,18 @@ export default async function JournalPage({
         if (typeof val === 'string' && val) filters[key] = val;
     }
 
-    const entries = await listLogEntries(ctx, Object.keys(filters).length > 0 ? filters : undefined);
+    // Roadmap-6 P3 — server-render only the FIRST bounded page (not the
+    // old flat take:200). The client pages forward over the cursor path.
+    const firstPage = await listLogEntriesPaginated(ctx, {
+        limit: JOURNAL_PAGE_SIZE,
+        filters: Object.keys(filters).length > 0 ? filters : undefined,
+    });
 
     return (
         <div className="space-y-section animate-fadeIn">
             <JournalClient
-                initialEntries={JSON.parse(JSON.stringify(entries))}
+                initialEntries={JSON.parse(JSON.stringify(firstPage.items))}
+                initialNextCursor={firstPage.pageInfo.nextCursor ?? null}
                 initialFilters={filters}
                 tenantSlug={tenantSlug}
                 permissions={{ canWrite: ctx.permissions.canWrite }}

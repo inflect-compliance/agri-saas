@@ -7,6 +7,7 @@ import { withApiErrorHandling } from '@/lib/errors/api';
 import { z } from 'zod';
 import { normalizeQ } from '@/lib/filters/query-helpers';
 import { jsonResponse } from '@/lib/api-response';
+import { jsonWithETag } from '@/lib/http/etag';
 
 const LocationQuerySchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).optional(),
@@ -28,11 +29,11 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
             cursor: query.cursor,
             filters: { status: query.status, q: query.q },
         });
-        return jsonResponse(result);
+        return jsonWithETag(req, result);
     }
 
     const locations = await listLocations(ctx, { status: query.status, q: query.q });
-    return jsonResponse(locations);
+    return jsonWithETag(req, locations);
 });
 
 export const POST = withApiErrorHandling(withValidatedBody(CreateLocationSchema, async (req, { params: paramsPromise }: { params: Promise<{ tenantSlug: string }> }, body) => {

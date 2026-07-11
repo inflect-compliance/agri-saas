@@ -1,9 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
+import { useTenantApiUrl } from '@/lib/tenant-context-provider';
+import { useCursorPagination } from '@/components/ui/hooks';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
 import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
@@ -52,8 +54,23 @@ interface JournalRow {
     } | null;
 }
 
+/**
+ * Roadmap-6 P3 — the bounded first-page size. Server-renders this many
+ * rows and each "Load more" fetches another page over the cursor path,
+ * replacing the old flat take:200 nested-row cold-start payload.
+ */
+export const JOURNAL_PAGE_SIZE = 50;
+
+/** Paginated shape the `/journal?limit&cursor` route returns. */
+interface JournalPageResponse {
+    rows: JournalRow[];
+    nextCursor: string | null;
+}
+
 interface JournalClientProps {
     initialEntries: JournalRow[];
+    /** Cursor for page 2 of the server-rendered first page (null if last). */
+    initialNextCursor: string | null;
     initialFilters: Record<string, string>;
     tenantSlug: string;
     permissions: { canWrite: boolean };
@@ -75,9 +92,10 @@ export function JournalClient(props: JournalClientProps) {
     );
 }
 
-function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissions }: JournalClientProps) {
+function JournalPageInner({ initialEntries, initialNextCursor, initialFilters, tenantSlug, permissions }: JournalClientProps) {
     const tenantHref = (path: string) => `/t/${tenantSlug}${path}`;
     const router = useRouter();
+    const buildApiUrl = useTenantApiUrl();
     const prefetchData = usePrefetchTenant();
     const t = useTranslations('journal');
     const te = useTranslations('journalEnums');
@@ -102,16 +120,65 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
         return true;
     }, [queryKeyFilters, initialFilters, serverHadFilters, hasActive]);
 
-    const entriesKey = useMemo(() => {
-        const qs = fetchParams.toString();
-        return qs ? `${CACHE_KEYS.journal.list()}?${qs}` : CACHE_KEYS.journal.list();
+    // Roadmap-6 P3 — the first page is an SWR entry keyed by the active
+    // filters (bounded to JOURNAL_PAGE_SIZE); "Load more" pages forward
+    // over the cursor path via `useCursorPagination`. The old flat
+    // take:200 nested-row payload is gone — cold start now downloads one
+    // bounded page, and ETag/304 makes revalidation cheap on rural LTE.
+    const page1Key = useMemo(() => {
+        const p = new URLSearchParams(fetchParams);
+        p.set('limit', String(JOURNAL_PAGE_SIZE));
+        return `${CACHE_KEYS.journal.list()}?${p.toString()}`;
     }, [fetchParams]);
 
-    const entriesQuery = useTenantSWR<JournalRow[]>(entriesKey, {
-        fallbackData: filtersMatchInitial ? initialEntries : undefined,
+    const fallbackPage = useMemo<JournalPageResponse | undefined>(
+        () =>
+            filtersMatchInitial
+                ? { rows: initialEntries, nextCursor: initialNextCursor }
+                : undefined,
+        [filtersMatchInitial, initialEntries, initialNextCursor],
+    );
+
+    const page1Query = useTenantSWR<JournalPageResponse>(page1Key, {
+        fallbackData: fallbackPage,
     });
-    const entries = entriesQuery.data ?? [];
-    const loading = entriesQuery.isLoading && !entriesQuery.data;
+
+    const fetchUrl = useCallback(
+        (cursor: string) => {
+            const p = new URLSearchParams(fetchParams);
+            p.set('limit', String(JOURNAL_PAGE_SIZE));
+            p.set('cursor', cursor);
+            return buildApiUrl(`/journal?${p.toString()}`);
+        },
+        [fetchParams, buildApiUrl],
+    );
+
+    const pagination = useCursorPagination<JournalRow>({
+        initialRows: fallbackPage?.rows ?? page1Query.data?.rows ?? [],
+        initialNextCursor: fallbackPage?.nextCursor ?? page1Query.data?.nextCursor ?? null,
+        fetchUrl,
+    });
+    const { reload: reloadPagination } = pagination;
+
+    // Reseed the accumulator whenever the first page's CONTENT changes —
+    // a filter switch, a focus/reconnect revalidation that returns
+    // different rows, or an optimistic prepend. Keyed on a content
+    // signature (row ids + cursor) so an identity-only change (SWR
+    // returning the same rows) never discards pages the user loaded.
+    const page1 = page1Query.data;
+    const page1Signature = page1
+        ? `${page1.rows.map((r) => r.id).join(',')}|${page1.nextCursor ?? ''}`
+        : null;
+    const lastSignatureRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (page1 == null || page1Signature == null) return;
+        if (lastSignatureRef.current === page1Signature) return;
+        lastSignatureRef.current = page1Signature;
+        reloadPagination(page1.rows, page1.nextCursor);
+    }, [page1, page1Signature, reloadPagination]);
+
+    const entries = pagination.rows;
+    const loading = page1Query.isLoading && !page1Query.data;
 
     // Offline-capable journal-entry create. One shared hook so a create queued
     // from the modal is reflected in this page's OfflineSyncBar pending count.
@@ -120,9 +187,14 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
         // Prepend an optimistic row so the just-logged entry shows at once.
         // Online (!queued): revalidate to swap it for the server row. Offline
         // (queued): keep it until the outbox delivers on reconnect (deduped by
-        // Idempotency-Key), when SWR's reconnect revalidation replaces it.
-        void entriesQuery.mutate(
-            (cur) => [optimistic as JournalRow, ...(cur ?? [])],
+        // Idempotency-Key), when SWR's reconnect revalidation replaces it. The
+        // mutate changes page 1's signature, so the accumulator reseeds and the
+        // optimistic row surfaces at the top immediately.
+        void page1Query.mutate(
+            (cur) => ({
+                rows: [optimistic as JournalRow, ...(cur?.rows ?? [])],
+                nextCursor: cur?.nextCursor ?? null,
+            }),
             { revalidate: !queued },
         );
     };
@@ -369,6 +441,27 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                 'data-testid': 'journal-table',
                 className: 'hover:bg-bg-muted',
             }}
+            tableFooter={
+                pagination.hasMore ? (
+                    <div className="flex flex-col items-center gap-tight pt-3">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            id="journal-load-more"
+                            onClick={() => void pagination.loadMore()}
+                            disabled={pagination.loading}
+                        >
+                            {pagination.loading ? t('loadingMore') : t('loadMore')}
+                        </Button>
+                        {pagination.error && (
+                            <span role="alert" className="text-sm text-content-error">
+                                {t('loadError')}
+                            </span>
+                        )}
+                    </div>
+                ) : null
+            }
         >
             {permissions.canWrite && (
                 <>

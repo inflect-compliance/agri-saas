@@ -4768,6 +4768,9 @@
         "emptyDescription": "Log field activities, observations, input applications, and harvests — the field record behind every traceability claim.",
         "emptyAction": "Add entry",
         "fabLabel": "New Journal entry",
+        "loadMore": "Load more entries",
+        "loadingMore": "Loading…",
+        "loadError": "Couldn't load more entries. Tap to retry.",
         "entryModal": {
             "discardConfirm": "Discard entry? Any details you entered will be lost.",
             "editTitle": "Edit journal entry",
