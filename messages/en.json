@@ -3910,7 +3910,13 @@
         "parcelDefault": "Parcel",
         "done": "Done",
         "skip": "Skip",
-        "reopen": "Reopen"
+        "reopen": "Reopen",
+        "conflict": {
+            "title": "This job changed while you were offline",
+            "description": "Your queued change to \"{label}\" clashes with a newer update on the server.",
+            "keepMine": "Keep mine",
+            "takeServer": "Use server"
+        }
     },
     "userMenu": {
         "accountMenu": "Account menu",

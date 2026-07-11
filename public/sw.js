@@ -303,9 +303,14 @@ async function flushOutbox() {
     let rateLimited = false;
     let retryAfterSeconds;
     for (const item of items) {
+        // A parked 409 conflict awaits operator resolution in an open client —
+        // never re-send it (would 409 again, or clobber once versions align).
+        if (item.conflict) continue;
+
         let status = 0;
         let ok = false;
         let retryAfterHeader = null;
+        let conflictBody;
         try {
             let res;
             if (item.kind === 'photo') {
@@ -326,10 +331,14 @@ async function flushOutbox() {
             } else {
                 res = await fetch(item.url, {
                     method: item.method,
-                    // The outbox id is the exactly-once handle — the server dedupes
-                    // a replayed write by (tenant, key), so a re-send returns the
-                    // original result instead of minting a duplicate row.
-                    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.id },
+                    // Idempotency-Key: the outbox id is the exactly-once handle
+                    // (dedupe a replay). If-Match: the optimistic-lock version the
+                    // client saw, so the server 409s a stale write, not a clobber.
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Idempotency-Key': item.id,
+                        ...(item.ifMatch !== undefined ? { 'If-Match': String(item.ifMatch) } : {}),
+                    },
                     body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
                     credentials: 'same-origin',
                 });
@@ -337,12 +346,18 @@ async function flushOutbox() {
             status = res.status;
             ok = res.ok;
             if (status === 429) retryAfterHeader = res.headers.get('Retry-After');
+            if (status === 409) conflictBody = await res.json().catch(() => undefined);
         } catch {
             status = 0;
         }
 
         if (ok) {
             await idbWrite(db, 'delete', item.id);
+        } else if (status === 409) {
+            // Optimistic-lock conflict — the row moved on while this edit sat
+            // queued. Retain it (NON-transient: never dropped, never clobbered)
+            // for the operator to resolve; stash the server state for the UI.
+            await idbWrite(db, 'put', { ...item, conflict: { status: 409, server: conflictBody } });
         } else if (status === 429) {
             // Rate limited — retain untouched (no attempts bump, never
             // dropped) and stop draining into the closed window.

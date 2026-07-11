@@ -86,6 +86,40 @@ describe('flushOutbox', () => {
         expect(order).toEqual(['first', 'second']);
     });
 
+    // ── 409 optimistic-lock conflict handling ───────────────────────
+    // A queued mark can replay after a supervisor changed the job. The server
+    // 409s (STALE_DATA); the outbox must PARK it (never drop, never clobber)
+    // for the operator to resolve — and never re-send a parked conflict.
+
+    it('409 parks the item as a conflict — not dropped, retained with server state', async () => {
+        const s = await seed(1);
+        const conflict409: Sender = async () => ({
+            ok: false,
+            status: 409,
+            conflict: { code: 'STALE_DATA', currentVersion: 3, currentStatus: 'SKIPPED' },
+        });
+        const res = await flushOutbox(s, conflict409);
+        expect(res).toMatchObject({ sent: 0, failed: 0, dropped: 0, conflicts: 1, remaining: 1 });
+        const parked = (await s.all())[0];
+        expect(parked.conflict?.status).toBe(409);
+        expect(parked.conflict?.server).toMatchObject({ currentVersion: 3 });
+        expect(parked.attempts).toBe(0); // a conflict is not the item's fault
+    });
+
+    it('never re-sends a parked conflict on a subsequent flush', async () => {
+        const s = new InMemoryOutboxStore();
+        await s.add({
+            id: 'stuck', url: '/u', method: 'PATCH', body: {}, label: 'L',
+            createdAt: 1, attempts: 0, ifMatch: 2,
+            conflict: { status: 409, server: { currentVersion: 5 } },
+        });
+        let calls = 0;
+        const res = await flushOutbox(s, async () => { calls++; return { ok: true, status: 200 }; });
+        expect(calls).toBe(0); // the parked conflict was skipped
+        expect(res).toMatchObject({ sent: 0, conflicts: 0, remaining: 1 });
+        expect((await s.all())[0].conflict?.status).toBe(409); // still parked
+    });
+
     // ── 429 rate-limit handling (Roadmap-5 PR1) ──────────────────────
     // A PWA reconnect burst can outrun the mutation limiter. A 429 must
     // RETAIN queued work (never dropped, never counts toward MAX_ATTEMPTS)

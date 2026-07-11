@@ -39,6 +39,8 @@ export interface SendResult {
     status: number;
     /** Parsed `Retry-After` (seconds) when the server sent one on a 429. */
     retryAfter?: number;
+    /** Parsed 409 body (the server's current state) for a STALE_DATA conflict. */
+    conflict?: unknown;
 }
 
 export type Sender = (item: OutboxItem) => Promise<SendResult>;
@@ -52,6 +54,8 @@ export interface FlushSummary {
     rateLimited: boolean;
     /** Seconds to back off before the next flush, from the 429 `Retry-After`. */
     retryAfterSeconds?: number;
+    /** Items newly parked as 409 conflicts awaiting operator resolution. */
+    conflicts: number;
 }
 
 export const MAX_ATTEMPTS = 8;
@@ -67,10 +71,15 @@ export async function flushOutbox(store: OutboxStore, send: Sender): Promise<Flu
     let sent = 0;
     let failed = 0;
     let dropped = 0;
+    let conflicts = 0;
     let rateLimited = false;
     let retryAfterSeconds: number | undefined;
 
     for (const item of items) {
+        // A parked 409 conflict awaits operator resolution — never re-send it
+        // (a blind retry would 409 again, or clobber once versions align).
+        if (item.conflict) continue;
+
         let res: SendResult;
         try {
             res = await send(item);
@@ -81,6 +90,12 @@ export async function flushOutbox(store: OutboxStore, send: Sender): Promise<Flu
         if (res.ok) {
             await store.remove(item.id);
             sent++;
+        } else if (res.status === 409) {
+            // Optimistic-lock conflict — the row moved on while this edit sat
+            // queued. Retain it (NON-transient: never dropped, never clobbered)
+            // and surface a resolution moment. Keep the server state for the UI.
+            await store.update({ ...item, conflict: { status: 409, server: res.conflict } });
+            conflicts++;
         } else if (res.status === 429) {
             // Rate limited — retain untouched (no attempts bump, never
             // dropped) and stop draining into a closed window.
@@ -104,7 +119,7 @@ export async function flushOutbox(store: OutboxStore, send: Sender): Promise<Flu
     }
 
     const remaining = (await store.all()).length;
-    return { sent, failed, dropped, remaining, rateLimited, retryAfterSeconds };
+    return { sent, failed, dropped, conflicts, remaining, rateLimited, retryAfterSeconds };
 }
 
 /** A fetch-backed Sender for the browser. */
@@ -114,6 +129,8 @@ export function fetchSender(): Sender {
         // stored Blob); mutations replay as JSON. Both carry the item id as
         // `Idempotency-Key` so the server dedupes a replay (the SAME item id
         // rides every retry) into exactly-once — a photo can't attach twice.
+        // A mutation additionally sends `If-Match` (the optimistic-lock version
+        // the client saw) so the server 409s a stale write instead of clobbering.
         let res: Response;
         if (isPhotoItem(item)) {
             const fd = new FormData();
@@ -128,7 +145,11 @@ export function fetchSender(): Sender {
         } else {
             res = await fetch(item.url, {
                 method: item.method,
-                headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.id },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Idempotency-Key': item.id,
+                    ...(item.ifMatch !== undefined ? { 'If-Match': String(item.ifMatch) } : {}),
+                },
                 body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
             });
         }
@@ -138,6 +159,12 @@ export function fetchSender(): Sender {
             const parsed = raw ? Number.parseInt(raw, 10) : NaN;
             if (Number.isFinite(parsed) && parsed >= 0) retryAfter = parsed;
         }
-        return { ok: res.ok, status: res.status, retryAfter };
+        // A 409 STALE_DATA carries the server's current state — keep it for the
+        // conflict-resolution UI (take-server needs it).
+        let conflict: unknown;
+        if (res.status === 409) {
+            conflict = await res.json().catch(() => undefined);
+        }
+        return { ok: res.ok, status: res.status, retryAfter, conflict };
     };
 }

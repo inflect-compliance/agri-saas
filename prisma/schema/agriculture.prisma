@@ -267,6 +267,13 @@ model OperationParcel {
   status            ParcelOperationStatus @default(PENDING)
   completedAt       DateTime?
   completedByUserId String?
+  // Optimistic-lock counter — bumped on every mutation. A queued offline mark
+  // captures the version it saw and sends it back as `If-Match` on replay; the
+  // server rejects the write with 409 STALE_DATA if the row moved on
+  // meanwhile (a supervisor edited the job), so a hours-late replay can't
+  // silently clobber newer server state. Idempotency stops duplication; this
+  // stops staleness.
+  version           Int                   @default(0)
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
