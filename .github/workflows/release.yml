@@ -10,7 +10,20 @@
 #    3. Generates CHANGELOG.md entries
 #    4. Creates a GitHub Release with release notes
 #    5. Tags the commit with the version (e.g. v1.2.3)
-#    6. Updates package.json version
+#
+#  COMMIT-BACK is opt-in (OFF by default). @semantic-release/git
+#  pushes the bump directly to main, which branch protection rejects
+#  for GITHUB_TOKEN (GH006 — required status checks). So publishing
+#  (tag → refs/tags/*, unguarded; GitHub Release; SBOM) always runs,
+#  but the in-repo bump of package.json / CHANGELOG.md / Chart.yaml is
+#  SKIPPED unless a bypass-capable RELEASE_TOKEN secret is present.
+#    • No RELEASE_TOKEN → versions freeze in-repo (in-sync, helm guard
+#      green); history lives in git tags + GitHub Releases.
+#    • Add RELEASE_TOKEN (fine-grained PAT contents:write from an admin,
+#      or a GitHub App) → commit-back self-activates, versions advance
+#      in lock-step. No workflow/config edit needed to switch it on.
+#  release.config.js includes @semantic-release/git iff
+#  SEMANTIC_RELEASE_COMMIT_BACK=true (set below from the token's presence).
 #
 #  Commit conventions used:
 #    feat(scope): → minor bump
@@ -87,11 +100,18 @@ jobs:
         id: prev_tag
         run: echo "tag=$(git describe --tags --abbrev=0 2>/dev/null || echo none)" >> "$GITHUB_OUTPUT"
 
-      # semantic-release reads .releaserc.json and does everything:
-      # analyze commits → determine version → generate notes → publish
+      # semantic-release reads release.config.js and does everything:
+      # analyze commits → determine version → generate notes → publish.
+      #
+      # Token: prefer a bypass-capable RELEASE_TOKEN (admin fine-grained PAT /
+      # GitHub App) so the optional commit-back can push to protected main; fall
+      # back to GITHUB_TOKEN (publish-only) when it isn't set. SEMANTIC_RELEASE_
+      # COMMIT_BACK mirrors the token's presence and gates @semantic-release/git
+      # in release.config.js — so with no token, no push to main is even attempted.
       - name: Run semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          SEMANTIC_RELEASE_COMMIT_BACK: ${{ secrets.RELEASE_TOKEN != '' }}
         run: npx semantic-release
 
       # Re-read the newest tag after the release. If it changed, a new
