@@ -15,6 +15,8 @@ import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Fab } from '@/components/ui/fab';
+import { Plus } from '@/components/ui/icons/nucleo';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Combobox } from '@/components/ui/combobox';
 import { ToggleGroup } from '@/components/ui/toggle-group';
@@ -529,6 +531,17 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                     <Button variant="secondary" size="sm" type="button" onClick={() => setActiveLotId(null)}>{t('close')}</Button>
                 </Modal.Actions>
             </Modal>
+
+            {/* Mobile-only FAB — the primary create action in the thumb zone
+                (md:hidden; the header buttons are the desktop affordance).
+                Opens the New product flow: a product is the foundational
+                record (the empty state's primary action too — a lot can't
+                exist without one). */}
+            <Fab
+                onClick={() => setShowProduct(true)}
+                label={t('fabLabel')}
+                icon={<Plus aria-hidden className="h-6 w-6" />}
+            />
         </ListPageShell>
     );
 }

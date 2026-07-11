@@ -80,6 +80,30 @@ test.describe('mobile bottom-tab navigation @mobile', () => {
         );
     });
 
+    test('toasts anchor bottom-centre, clear of the fixed tab bar (thumb zone)', async ({ page }) => {
+        // Roadmap-6 P4 — on mobile the global Toaster host anchors at the
+        // BOTTOM so Undo / Close lands in the thumb zone (clear of the
+        // sticky top chrome). This asserts the toast HOST placement (where
+        // any toast renders) deterministically — no mutation needed.
+        await safeGoto(page, `/t/${tenantSlug}/dashboard`);
+
+        const toaster = page.locator('[data-sonner-toaster]').first();
+        await expect(toaster).toHaveAttribute('data-y-position', 'bottom', {
+            timeout: 30_000,
+        });
+
+        // Reachable: the bottom offset clears the ≈56px BottomTabBar so a
+        // toast never renders behind it (our offset is 3.5rem + safe-area +
+        // 1rem ≈ 72px; safe-area resolves to 0 in headless).
+        const bottomPx = await toaster.evaluate((el) =>
+            parseFloat(getComputedStyle(el).bottom || '0'),
+        );
+        expect(
+            bottomPx,
+            'toast host sits above the 56px bottom-tab bar',
+        ).toBeGreaterThanOrEqual(56);
+    });
+
     test('a safe-area spacer clears content from behind the fixed bar', async ({ page }) => {
         await safeGoto(page, `/t/${tenantSlug}/dashboard`);
 

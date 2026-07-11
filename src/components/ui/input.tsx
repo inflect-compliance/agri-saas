@@ -62,7 +62,13 @@ export const inputVariants = cva(
         variants: {
             size: {
                 sm: "h-8 px-2.5 text-xs",
-                md: "h-9 px-3",
+                // Roadmap-6 P4 — mobile thumb-target floor. `md` is the
+                // DEFAULT Input size; its mobile min-height rises to 44px
+                // (WCAG 2.5.5 / Apple HIG) so tapping a field is comfortable
+                // on phones. Desktop pins back to h-9 (36px) via `md:min-h-9`
+                // so form density is unchanged on larger screens. Kept in
+                // lockstep with the Button `md` variant (R20-PR-A parity).
+                md: "h-9 min-h-[44px] md:min-h-9 px-3",
                 lg: "h-10 px-3.5",
             },
             invalid: {

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
+import { Fab } from '@/components/ui/fab';
 import { createColumns } from '@/components/ui/table';
 import {
     FilterProvider,
@@ -219,19 +220,29 @@ function CropPlansPageInner({
             }}
         >
             {permissions.canWrite && (
-                <NewCropPlanModal
-                    open={isCreateOpen}
-                    setOpen={setIsCreateOpen}
-                    tenantSlug={tenantSlug}
-                    seasons={seasons}
-                    cropTypes={cropTypes}
-                    varieties={varieties}
-                    locations={locations}
-                    onSaved={(plan) => {
-                        void plansQuery.mutate();
-                        router.push(tenantHref(`/planning/${plan.id}`));
-                    }}
-                />
+                <>
+                    <NewCropPlanModal
+                        open={isCreateOpen}
+                        setOpen={setIsCreateOpen}
+                        tenantSlug={tenantSlug}
+                        seasons={seasons}
+                        cropTypes={cropTypes}
+                        varieties={varieties}
+                        locations={locations}
+                        onSaved={(plan) => {
+                            void plansQuery.mutate();
+                            router.push(tenantHref(`/planning/${plan.id}`));
+                        }}
+                    />
+                    {/* Mobile-only FAB — the primary create action in the
+                        thumb zone (md:hidden; the header button is the
+                        desktop affordance). */}
+                    <Fab
+                        onClick={() => setIsCreateOpen(true)}
+                        label={t('fabLabel')}
+                        icon={<Plus aria-hidden className="h-6 w-6" />}
+                    />
+                </>
             )}
         </EntityListPage>
     );

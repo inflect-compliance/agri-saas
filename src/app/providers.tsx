@@ -4,7 +4,7 @@
 // so the strict CSP doesn't report Zod's `new Function` probe. Keep at
 // the top of the client entry. See src/lib/zod-jitless.ts.
 import '@/lib/zod-jitless';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -44,6 +44,48 @@ function useFormTelemetryBootstrap() {
 function FormTelemetrySink() {
     useFormTelemetryBootstrap();
     return null;
+}
+
+/**
+ * Roadmap-6 P4 — thumb-zone toast placement.
+ *
+ * On mobile (< md, where the fixed BottomTabBar + sticky top chrome
+ * both live) toasts anchor BOTTOM-CENTRE so the Undo / Close affordance
+ * lands in the natural thumb zone and stays clear of the sticky top
+ * bar. The bottom offset clears the 3.5rem tab bar + the device
+ * safe-area (mirrors the FAB / bottom-tab-spacer offset). On md+ there
+ * is no bottom bar, so we keep the conventional desktop TOP-RIGHT slot.
+ *
+ * `isMdUp` starts `true` so SSR + first client paint match the desktop
+ * default (no hydration mismatch); the effect resolves the real
+ * viewport on mount. No toast is visible at mount, so the one-frame
+ * reconcile is invisible. Sonner switches to `--mobile-offset-*` below
+ * its own 600px breakpoint, so we pass BOTH `offset` (600–767px) and
+ * `mobileOffset` (< 600px) to keep the tab-bar clearance consistent
+ * across the whole < md range.
+ */
+const MOBILE_TOAST_BOTTOM_OFFSET = 'calc(3.5rem + env(safe-area-inset-bottom) + 1rem)';
+
+function ResponsiveToaster() {
+    const [isMdUp, setIsMdUp] = useState(true);
+    useEffect(() => {
+        const mql = window.matchMedia('(min-width: 768px)');
+        const sync = () => setIsMdUp(mql.matches);
+        sync();
+        mql.addEventListener('change', sync);
+        return () => mql.removeEventListener('change', sync);
+    }, []);
+    return (
+        <Toaster
+            theme="dark"
+            position={isMdUp ? 'top-right' : 'bottom-center'}
+            offset={isMdUp ? undefined : { bottom: MOBILE_TOAST_BOTTOM_OFFSET }}
+            mobileOffset={{ bottom: MOBILE_TOAST_BOTTOM_OFFSET }}
+            richColors
+            closeButton
+            duration={3000}
+        />
+    );
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -87,14 +129,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
                          * Global toast host. CopyButton / CopyText and the
                          * optimistic-update hook emit into this Toaster;
                          * without it, every `toast()` call is a silent no-op.
+                         * Position is viewport-responsive — see
+                         * <ResponsiveToaster> above.
                          */}
-                        <Toaster
-                            theme="dark"
-                            position="top-right"
-                            richColors
-                            closeButton
-                            duration={3000}
-                        />
+                        <ResponsiveToaster />
                     </TooltipProvider>
                 </ThemeProvider>
             </CommandPaletteProvider>

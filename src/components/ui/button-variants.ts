@@ -628,7 +628,14 @@ export const buttonVariants = cva(
         // `rounded-full` on the cva root makes that override moot.
         xs: "h-7 px-2 text-[11px] gap-1 tracking-[0.005em] font-medium [&_svg]:size-3.5",
         sm: "h-8 px-2.5 text-xs gap-1.5 tracking-[0.01em] font-medium [&_svg]:size-3.5",
-        md: "h-9 px-2.5 text-sm gap-tight tracking-[-0.005em] font-semibold [&_svg]:size-4",
+        // Roadmap-6 P4 — mobile thumb-target floor. `md` is the DEFAULT
+        // Button size, so raising its mobile min-height to 44px (WCAG 2.5.5
+        // / Apple HIG) lifts every primary action into a comfortable tap
+        // target on phones. Desktop is pinned back to h-9 (36px) via
+        // `md:min-h-9` so dense toolbars / detail-header rows are unchanged.
+        // Only `md` is touched — the compact sizes (xs/sm/icon) used in
+        // dense tables + toolbars keep their existing heights.
+        md: "h-9 min-h-[44px] md:min-h-9 px-2.5 text-sm gap-tight tracking-[-0.005em] font-semibold [&_svg]:size-4",
         lg: "h-10 px-3 text-sm gap-tight tracking-[-0.01em] font-bold [&_svg]:size-[18px]",
         // B2 — icon-only button size variant. Square (h=w=h-9) so
         // the chrome stays balanced regardless of icon size; same

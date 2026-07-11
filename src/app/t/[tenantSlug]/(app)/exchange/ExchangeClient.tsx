@@ -27,6 +27,7 @@ import { ListPageShell } from '@/components/layout/ListPageShell';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
+import { Fab } from '@/components/ui/fab';
 import { Heading } from '@/components/ui/typography';
 import { Sheet } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/ui/error-state';
@@ -391,6 +392,14 @@ function ExchangeInner() {
                 setOpen={setInquiryOpen}
                 listing={selectedOffer}
                 onSent={() => setSelectedId(null)}
+            />
+
+            {/* Mobile-only FAB — the primary create action in the thumb
+                zone (md:hidden; the header button is the desktop affordance). */}
+            <Fab
+                onClick={() => setCreateOpen(true)}
+                label={t('fabLabel')}
+                icon={<Plus aria-hidden className="h-6 w-6" />}
             />
         </ListPageShell>
     );

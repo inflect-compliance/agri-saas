@@ -41,6 +41,7 @@ import { NavItem } from './nav-item';
 import { NavSection } from './nav-section';
 import { AgrentMark } from './AgrentLogo';
 import { useSidebarCollapsed } from './sidebar-collapse-context';
+import { UserMenuLanguageToggle } from './UserMenuLanguageToggle';
 
 // ─── Types ───
 
@@ -302,6 +303,21 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
                     </NavSection>
                 ))}
             </nav>
+
+            {/* Roadmap-6 P4 — UI-language toggle surfaced at the mobile
+                drawer's top level. On desktop the toggle lives in the
+                top-chrome account menu (one hover/click away); on mobile
+                that menu is two taps deep, so we lift the BG/EN switch to
+                the drawer where it's reachable in one tap. `md:hidden`
+                keeps it out of the desktop sidebar (which is `hidden
+                md:flex`) — the toggle only ever renders inside the mobile
+                drawer instance. Collapsed rail never applies on mobile. */}
+            {!collapsed && (
+                <div className="md:hidden mx-2 mb-2 flex items-center justify-between gap-tight rounded-lg border border-border-subtle bg-bg-default px-3 py-2">
+                    <span className="text-xs font-medium text-content-muted">{t('language')}</span>
+                    <UserMenuLanguageToggle />
+                </div>
+            )}
 
             {/* Driver.js product tour — manual restart entry.
                 Renders only when the OnboardingTourProvider is
