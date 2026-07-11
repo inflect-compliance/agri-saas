@@ -341,7 +341,11 @@ describe('New page token discipline', () => {
         //     — the per-parcel satellite AI risk page. Token-clean (semantic
         //     tokens only + Heading/PageBreadcrumbs/Combobox/StatusBadge/Modal
         //     via AskInsuranceModal); new surfaces, not yet promoted.
-        expect(unmigrated.length).toBeLessThanOrEqual(146);
+        //   - 147 (+1): knowledge/satellite/page.tsx — the satellite-imagery
+        //     explainer (NDVI/NDMI/NDRE/GNDVI/EVI) the map legend "Learn more"
+        //     link deep-links into. Token-clean (semantic tokens only +
+        //     Heading/PageBreadcrumbs/Button); new surface, not yet promoted.
+        expect(unmigrated.length).toBeLessThanOrEqual(147);
     });
 
     it('migrated page count is at least 4', () => {
