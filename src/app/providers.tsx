@@ -66,7 +66,7 @@ function FormTelemetrySink() {
  */
 const MOBILE_TOAST_BOTTOM_OFFSET = 'calc(3.5rem + env(safe-area-inset-bottom) + 1rem)';
 
-function ResponsiveToaster() {
+export function ResponsiveToaster() {
     const [isMdUp, setIsMdUp] = useState(true);
     useEffect(() => {
         const mql = window.matchMedia('(min-width: 768px)');
