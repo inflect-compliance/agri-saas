@@ -89,6 +89,66 @@ describe('service worker safety', () => {
     });
 });
 
+// ─── 2c — offline basemap pack: dedicated cache + LRU (Roadmap-6 P1b) ──
+//
+// The bounded, user-initiated per-location basemap pack lives in its OWN
+// cache with a byte budget + LRU eviction — deliberately SEPARATE from the
+// field-data DATA_CACHE (owned by another PR). These assertions pin that
+// separation and the bounded matcher WITHOUT weakening "never caches
+// arbitrary /api": the basemap matcher is a narrow same-origin tile pattern,
+// and the API-safety test above still holds (the SW's basemap `cache.put`
+// keys on the request object, not a literal `/api/` string).
+describe('offline basemap pack (dedicated cache + LRU eviction)', () => {
+    const sw = () => read('public/sw.js');
+
+    it('uses a dedicated basemap cache SEPARATE from the field-data cache', () => {
+        const src = sw();
+        expect(src).toMatch(/BASEMAP_CACHE\s*=\s*`\$\{CACHE_VERSION\}-basemap`/);
+        // Both caches are versioned so the activate handler prunes stale ones.
+        expect(src).toMatch(/DATA_CACHE\s*=\s*`\$\{CACHE_VERSION\}-fielddata`/);
+        // The basemap path is routed to its own handler, not the field-data one.
+        expect(src).toMatch(/isBasemapRequest\(url\)\)\s*event\.respondWith\(cacheFirstBasemap/);
+    });
+
+    it('bounds the basemap matcher to the same-origin per-location tile path', () => {
+        const src = sw();
+        // Must be gated on /api/ AND the narrow locations/<id>/basemap/z/x/y
+        // shape — never an open /api cache.
+        expect(src).toMatch(/function isBasemapRequest\(url\)/);
+        // The narrow per-location basemap tile shape: .../locations/<id>/basemap/z/x/y
+        expect(src).toMatch(/locations/);
+        expect(src).toMatch(/basemap\\\/\\d\+\\\/\\d\+\\\/\\d\+/);
+        expect(src).toMatch(/if \(!url\.pathname\.startsWith\('\/api\/'\)\) return false/);
+    });
+
+    it('enforces a byte budget with an LRU eviction helper', () => {
+        const src = sw();
+        expect(src).toMatch(/BASEMAP_CACHE_BUDGET_BYTES\s*=/);
+        expect(src).toMatch(/function selectBasemapEvictions\(entries, budgetBytes\)/);
+        expect(src).toMatch(/function evictBasemapOverBudget\(cache\)/);
+        // Eviction is actually invoked after a basemap write.
+        expect(src).toMatch(/await evictBasemapOverBudget\(cache\)/);
+    });
+
+    it('keeps the SW eviction predicate in lockstep with the unit-tested source', () => {
+        // The pure predicate lives in src/lib/offline/basemap-pack.ts (unit
+        // tested) and is MIRRORED inline in the SW. Assert both spell the same
+        // budget so a drift in one is caught.
+        const swSrc = sw();
+        const libSrc = read('src/lib/offline/basemap-pack.ts');
+        expect(libSrc).toMatch(/BASEMAP_CACHE_BUDGET_BYTES\s*=\s*24 \* 1024 \* 1024/);
+        expect(swSrc).toMatch(/BASEMAP_CACHE_BUDGET_BYTES\s*=\s*24 \* 1024 \* 1024/);
+        expect(libSrc).toMatch(/export function selectBasemapEvictions/);
+    });
+
+    it('serves basemap tiles cache-FIRST (offline-capable) but never caches empty tiles', () => {
+        const src = sw();
+        expect(src).toMatch(/function cacheFirstBasemap\(request\)/);
+        // Only a 200 with a body is stored — a 204/empty tile is not cached.
+        expect(src).toMatch(/res\.ok && res\.status === 200/);
+    });
+});
+
 // ─── 2b — offline exactly-once (idempotency handle) ────────────────
 
 describe('outbox replay carries the idempotency handle', () => {

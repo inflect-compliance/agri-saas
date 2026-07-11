@@ -26,6 +26,16 @@ const CACHE_VERSION = 'agrent-v1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const DATA_CACHE = `${CACHE_VERSION}-fielddata`;
+// Dedicated, SEPARATE cache for the offline basemap pack (Roadmap-6 P1b).
+// Kept apart from DATA_CACHE so the two eviction policies never interfere:
+// field data is network-first + unbounded (last-viewed fields), the basemap
+// is cache-first + LRU-with-a-byte-budget (bounded natural-earth tiles). The
+// basemap is public-domain geometry, NOT tenant data.
+const BASEMAP_CACHE = `${CACHE_VERSION}-basemap`;
+// Byte budget for BASEMAP_CACHE. Mirrors BASEMAP_CACHE_BUDGET_BYTES in
+// src/lib/offline/basemap-pack.ts (the SW can't import from src/ — kept in
+// lockstep by tests/guardrails/offline-pwa-coverage.test.ts).
+const BASEMAP_CACHE_BUDGET_BYTES = 24 * 1024 * 1024;
 const PRECACHE = ['/icon.svg', '/manifest.webmanifest'];
 
 // ── Outbox IndexedDB contract (shared with src/lib/offline/idb-outbox.ts) ──
@@ -96,6 +106,83 @@ async function networkFirstData(request) {
     }
 }
 
+// ── Offline basemap pack (dedicated BASEMAP_CACHE, LRU + byte budget) ───
+//
+// The bounded, user-initiated per-location basemap pack (Roadmap-6 P1b).
+// STRICTLY the same-origin basemap tile route — NOT arbitrary /api, and
+// deliberately separate from the parcel field-data path (isFieldDataRequest /
+// DATA_CACHE), which is owned by its own PR. Shape:
+//   /api/t/<slug>/locations/<id>/basemap/<z>/<x>/<y>[.pbf]
+function isBasemapRequest(url) {
+    if (!url.pathname.startsWith('/api/')) return false;
+    return /\/locations\/[^/]+\/basemap\/\d+\/\d+\/\d+(?:\.pbf)?$/.test(url.pathname);
+}
+
+// Size of a cached basemap response, from Content-Length (tiles are tiny +
+// carry it). Falls back to a small constant so an absent header can't make a
+// tile look free and defeat the budget.
+function basemapEntrySize(response) {
+    const len = response && response.headers ? response.headers.get('Content-Length') : null;
+    const n = len ? parseInt(len, 10) : NaN;
+    return Number.isFinite(n) && n >= 0 ? n : 8 * 1024;
+}
+
+// Pure LRU eviction predicate — MIRRORS selectBasemapEvictions in
+// src/lib/offline/basemap-pack.ts (unit-tested there; the SW can't import from
+// src/, so the logic is duplicated and kept in lockstep by the
+// offline-pwa-coverage guardrail). `entries` are ordered oldest-first; returns
+// the prefix of keys to evict so the remaining total sits at/under budget.
+function selectBasemapEvictions(entries, budgetBytes) {
+    let total = entries.reduce((sum, e) => sum + Math.max(0, e.size), 0);
+    const evict = [];
+    for (let i = 0; i < entries.length && total > budgetBytes; i++) {
+        evict.push(entries[i].key);
+        total -= Math.max(0, entries[i].size);
+    }
+    return evict;
+}
+
+// Evict least-recently-used basemap tiles until the cache is within budget.
+// Cache Storage preserves insertion order, and cacheFirstBasemap moves a
+// touched tile to the newest end (delete-then-put) on every hit — so
+// `cache.keys()` order IS the LRU order, oldest first.
+async function evictBasemapOverBudget(cache) {
+    const keys = await cache.keys();
+    const entries = [];
+    for (const req of keys) {
+        const res = await cache.match(req);
+        entries.push({ key: req.url, request: req, size: basemapEntrySize(res) });
+    }
+    const evictUrls = new Set(selectBasemapEvictions(entries, BASEMAP_CACHE_BUDGET_BYTES));
+    await Promise.all(
+        entries.filter((e) => evictUrls.has(e.key)).map((e) => cache.delete(e.request)),
+    );
+}
+
+// Cache-FIRST for basemap tiles: they're immutable natural-earth geometry, so
+// a cached tile is served instantly (and works offline). On a hit we bump
+// recency (delete-then-put) so the LRU order stays honest; on a miss we fetch,
+// store, and enforce the byte budget.
+async function cacheFirstBasemap(request) {
+    const cache = await caches.open(BASEMAP_CACHE);
+    const cached = await cache.match(request);
+    if (cached) {
+        // Bump recency: move this tile to the newest end of the insertion order.
+        cache
+            .delete(request)
+            .then(() => cache.put(request, cached.clone()))
+            .catch(() => {});
+        return cached;
+    }
+    const res = await fetch(request);
+    // 204/304 carry no body — don't cache an empty tile as if it were data.
+    if (res && res.ok && res.status === 200) {
+        await cache.put(request, res.clone());
+        await evictBasemapOverBudget(cache);
+    }
+    return res;
+}
+
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     if (request.method !== 'GET') return; // writes never touched by the SW
@@ -103,9 +190,11 @@ self.addEventListener('fetch', (event) => {
     if (url.origin !== self.location.origin) return; // third-party → passthrough
 
     if (url.pathname.startsWith('/api/')) {
-        // Offline-first for the narrow field-data GETs; everything else
+        // Offline-first for the narrow field-data GETs; the bounded basemap
+        // pack is cache-first in its OWN dedicated cache; everything else
         // under /api stays network-only (the app + SWR own freshness).
-        if (isFieldDataRequest(url)) event.respondWith(networkFirstData(request));
+        if (isBasemapRequest(url)) event.respondWith(cacheFirstBasemap(request));
+        else if (isFieldDataRequest(url)) event.respondWith(networkFirstData(request));
         return;
     }
 

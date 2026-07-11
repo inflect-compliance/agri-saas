@@ -34,6 +34,7 @@ import { cn } from '@/lib/cn';
 import { env } from '@/env';
 import { SOIL_PENDING_COLOR } from '@/lib/soil/types';
 import { CropGlyph } from '@/components/agriculture/CropGlyph';
+import { buildOfflineBasemapStyle } from '@/lib/geo/offline-basemap-style';
 
 // Below this zoom the per-parcel crop glyphs are hidden — at a whole-region
 // view they'd overlap into noise; they reappear when inspecting fields.
@@ -146,6 +147,17 @@ export interface MapCanvasProps {
      */
     vectorTileUrl?: string;
     /**
+     * Same-origin offline basemap pack template (Roadmap-6 P1b). When set AND
+     * the browser reports offline, MapCanvas swaps its `mapStyle` from the
+     * cross-origin MapTiler/demotiles style (which blanks at zero bars) to a
+     * minimal, glyph-free style backed by this SAME-ORIGIN `{z}/{x}/{y}`
+     * template — the service worker serves those tiles from its dedicated
+     * basemap cache (filled by the "Download offline map" affordance). Online,
+     * the normal basemap is used unchanged. Absent ⇒ behaviour is exactly as
+     * before (no offline swap).
+     */
+    offlineBasemapTileUrl?: string;
+    /**
      * Soil view mode — colour each parcel by its soil class instead of the
      * selection/operator-progress palette. `soilColorById` maps parcelId →
      * fill colour (from the colour-blind-safe texture palette); a parcel not
@@ -203,6 +215,7 @@ export function MapCanvas({
     liveTracking = false,
     flyToOnSelect = false,
     vectorTileUrl,
+    offlineBasemapTileUrl,
     soilMode = false,
     soilColorById,
     cropById,
@@ -292,6 +305,33 @@ export function MapCanvas({
     // Live zoom, so the crop glyphs can hide below a threshold (they'd clutter
     // a zoomed-out view). Seeded from the initial view; updated on zoom-end.
     const [zoom, setZoom] = useState<number>(initialViewState.zoom);
+
+    // ── Online/offline basemap swap (Roadmap-6 P1b) ────────────────────
+    // Hydration-safe: `online` starts true (matching SSR) and syncs to the
+    // real navigator.onLine post-mount (mirrors use-offline-sync.ts). When
+    // offline AND an offline pack template is supplied, swap the map style to
+    // a same-origin, glyph-free basemap the SW can serve from its dedicated
+    // cache — the cross-origin MapTiler/demotiles style blanks at zero bars.
+    const [online, setOnline] = useState(true);
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional post-mount sync (hydration-safe)
+        setOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+        const onOnline = () => setOnline(true);
+        const onOffline = () => setOnline(false);
+        window.addEventListener('online', onOnline);
+        window.addEventListener('offline', onOffline);
+        return () => {
+            window.removeEventListener('online', onOnline);
+            window.removeEventListener('offline', onOffline);
+        };
+    }, []);
+    const activeStyle = useMemo(
+        () =>
+            offlineBasemapTileUrl && offlineBasemapTileUrl.length > 0 && !online
+                ? buildOfflineBasemapStyle(offlineBasemapTileUrl)
+                : BASEMAP_STYLE,
+        [offlineBasemapTileUrl, online],
+    );
 
     const handleClick = useCallback((e: MapLayerMouseEvent) => {
         if (!interactive || !onSelectionChange || drawing) return;
@@ -592,7 +632,7 @@ export function MapCanvas({
             <Map
                 ref={mapRef}
                 initialViewState={initialViewState}
-                mapStyle={BASEMAP_STYLE}
+                mapStyle={activeStyle}
                 interactiveLayerIds={interactive && !drawing ? ['parcel-fill'] : []}
                 onClick={handleClick}
                 onZoomEnd={(e) => setZoom(e.viewState.zoom)}
