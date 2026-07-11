@@ -433,6 +433,13 @@ export const env = createEnv({
         NEXT_PUBLIC_MAP_BASEMAP_STYLE: z
             .enum(['hybrid', 'satellite', 'streets-v2', 'outdoor-v2', 'basic-v2'])
             .default('hybrid'),
+
+        // ── Sentry (browser error reporting) ──
+        // The client Sentry SDK is gated on this DSN: absent ⇒ no-op (a
+        // self-hosted deploy stays clean), mirroring how VAPID gates web push.
+        // `RELEASE` tags field crashes to a specific deploy.
+        NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+        NEXT_PUBLIC_SENTRY_RELEASE: z.string().optional(),
     },
 
     /**
@@ -538,6 +545,8 @@ export const env = createEnv({
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
         NEXT_PUBLIC_MAPTILER_KEY: process.env.NEXT_PUBLIC_MAPTILER_KEY,
         NEXT_PUBLIC_MAP_BASEMAP_STYLE: process.env.NEXT_PUBLIC_MAP_BASEMAP_STYLE,
+        NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+        NEXT_PUBLIC_SENTRY_RELEASE: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
     },
     /**
      * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.
