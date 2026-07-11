@@ -6321,7 +6321,8 @@
             "deleteParcelConfirmLabel": "Delete parcel",
             "deleteParcelFailed": "Could not delete the parcel",
             "deleteParcelsEmpty": "No parcels to delete.",
-            "mergeFailed": "Failed to merge parcels."
+            "mergeFailed": "Failed to merge parcels.",
+            "indexLearnMore": "Learn more"
         },
         "spray": {
             "title": "New spray job",
@@ -7025,6 +7026,37 @@
             "colNextDue": "Next Due",
             "emptyTitle": "No inherited tests",
             "emptyDesc": "No test plans exist on the controls mapped to this {entityLabel} yet."
+        }
+    },
+    "satelliteImagery": {
+        "title": "Satellite imagery guide",
+        "intro": "The map can shade each field by a satellite index — a per-pixel measure derived from Sentinel-2 imagery. Each index answers a different question about the crop. Pick the one that matches what you're checking; here's what each shows and how to read its colour scale.",
+        "back": "Back",
+        "tocLabel": "On this page",
+        "ndvi": {
+            "title": "NDVI — Canopy vigour",
+            "blurb": "The all-round \"how is my crop doing\" layer. NDVI compares red and near-infrared light to measure how much healthy, photosynthesising leaf area is present. It is best from full ground cover to mid-season; in very dense canopies it flattens out (saturates), so switch to EVI or NDRE then.",
+            "colours": "Red–brown marks bare soil, gaps, or stressed and senescing plants; yellow is thin or recovering cover; deep green is a dense, vigorous canopy. Scan for red patches inside a field that should be uniformly green — those are the weak spots to walk."
+        },
+        "ndmi": {
+            "title": "NDMI — Crop moisture",
+            "blurb": "Tracks water in the canopy using near-infrared and shortwave-infrared light, so it flags drought stress before it is visible to the eye. Useful for timing irrigation and spotting fields drying down unevenly.",
+            "colours": "Red is dry, moisture-stressed canopy; through pale yellow to blue is progressively better-hydrated crop. Reach for it in hot, dry spells or to compare irrigated against rain-fed blocks."
+        },
+        "ndre": {
+            "title": "NDRE — Chlorophyll & nitrogen",
+            "blurb": "Uses the red-edge band, which stays sensitive in thick, mid-to-late-season canopies where NDVI has already maxed out. It tracks chlorophyll — a good proxy for nitrogen status — so it is the layer for variable-rate nitrogen decisions.",
+            "colours": "Purple marks low chlorophyll (a possible nitrogen shortfall); through white to deep green is increasing chlorophyll and vigour. Use it late-season or in lush crops when NDVI looks uniformly green but yields do not match."
+        },
+        "gndvi": {
+            "title": "GNDVI — Green vigour",
+            "blurb": "A greener cousin of NDVI: it swaps the red band for the green one, making it more sensitive to chlorophyll and nitrogen and slower to saturate. A useful second opinion on nutrient status and photosynthetic activity.",
+            "colours": "Pale cream is weak or sparse growth; deepening green is higher chlorophyll and a stronger canopy. Compare it against NDVI — where the two disagree is often where nutrition, not biomass, is the story."
+        },
+        "evi": {
+            "title": "EVI — Enhanced vegetation",
+            "blurb": "An improved NDVI that corrects for atmospheric haze and background soil brightness and resists saturating in high-biomass crops. The most reliable vigour layer at peak season and in hot, hazy conditions.",
+            "colours": "Dark purple-blue is sparse or stressed vegetation; through teal and green to yellow is an increasingly dense, vigorous canopy. Prefer it over NDVI once the crop is at full canopy and NDVI stops separating the strong areas from the very strong."
         }
     }
 }

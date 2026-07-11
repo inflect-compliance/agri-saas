@@ -156,7 +156,14 @@ export default function LocationDetailPage() {
     const tenantHref = useTenantHref();
     const { isMobile } = useMediaQuery();
     const toast = useToast();
-    const [tab, setTab] = useState<Tab>('overview');
+    const searchParams = useSearchParams();
+    // Default to the Map tab — the field view operators reach for first. An
+    // explicit `?tab=` deep-link still wins, resolved synchronously here so
+    // there's no overview→map flash on load.
+    const [tab, setTab] = useState<Tab>(() => {
+        const t = searchParams.get('tab');
+        return t === 'overview' || t === 'map' || t === 'operations' ? t : 'map';
+    });
     // Overview crop filter (#2): null = all crops. Chips are shown only when
     // more than one crop is present on the location.
     const [cropFilter, setCropFilter] = useState<string | null>(null);
@@ -166,16 +173,10 @@ export default function LocationDetailPage() {
     // keeps the side panel.
     const [sheetParcelId, setSheetParcelId] = useState<string | null>(null);
     // Deep-link entry (QR codes on parcels): `?parcelId` opens that parcel's
-    // detail sheet on the map tab; `?tab` selects a tab. Read once on mount.
-    const searchParams = useSearchParams();
+    // detail sheet. The tab (defaulting to map) is resolved synchronously above.
     useEffect(() => {
-        const t = searchParams.get('tab');
-        if (t === 'overview' || t === 'map' || t === 'operations') setTab(t);
         const pid = searchParams.get('parcelId');
-        if (pid) {
-            setSheetParcelId(pid);
-            if (!t) setTab('map');
-        }
+        if (pid) setSheetParcelId(pid);
         // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link read on mount only
     }, []);
     const [showImport, setShowImport] = useState(false);
@@ -676,6 +677,14 @@ export default function LocationDetailPage() {
                                         className={cn('h-2 w-24 rounded-full', activeSpec.legendGradientClass)}
                                     />
                                     <span>{activeSpec.highLabel}</span>
+                                    {/* Deep-links to the exact section of the
+                                        imagery explainer for the active index. */}
+                                    <a
+                                        href={`${tenantHref('/knowledge/satellite')}#${activeSpec.id}`}
+                                        className="ml-1 inline-flex items-center gap-tight text-content-link underline hover:text-content-emphasis"
+                                    >
+                                        {t('indexLearnMore')}
+                                    </a>
                                 </>
                             ) : indexQ.data?.error ? (
                                 <span>{t('imageryLoadError', { index: activeSpec.label })}</span>
