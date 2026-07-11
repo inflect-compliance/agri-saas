@@ -6,6 +6,9 @@ import { ImageIcon, Trash, CloudUpload, NucleoPhoto } from '@/components/ui/icon
 import { EmptyState } from '@/components/ui/empty-state';
 import { apiDelete } from '@/lib/api-client';
 import { downscalePhoto } from '@/lib/image/downscale-photo';
+import { useOfflineSync } from '@/lib/offline/use-offline-sync';
+import { PhotoTooLargeError } from '@/lib/offline/outbox';
+import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
 import { useToastWithUndo } from '@/components/ui/hooks';
 import { haptic } from '@/lib/haptics';
 import { cn } from '@/lib/cn';
@@ -45,6 +48,10 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
     const [previewSrc, setPreviewSrc] = useState<string | null>(null);
     const triggerUndoToast = useToastWithUndo();
     const t = useTranslations('journal.photos');
+    // Offline-capable photo upload: sends immediately when online, else
+    // queues the downscaled BYTES in the outbox (IndexedDB) for background
+    // replay on reconnect. Same seam the field panel uses.
+    const { online, pending, pendingPhotos, submitPhoto, flush } = useOfflineSync();
 
     useEffect(() => {
         return () => {
@@ -52,8 +59,36 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
         };
     }, [previewSrc]);
 
+    // Live-refresh when queued photos finish uploading in the background (the
+    // hook flushes on reconnect, outside this component's upload handler). On
+    // the pendingPhotos count draining to zero, refetch so the newly-attached
+    // photos appear without a manual reload.
+    const prevPendingPhotos = useRef(pendingPhotos);
+    useEffect(() => {
+        if (prevPendingPhotos.current > 0 && pendingPhotos === 0) onChanged();
+        prevPendingPhotos.current = pendingPhotos;
+    }, [pendingPhotos, onChanged]);
+
     const onPick = () => fileInputRef.current?.click();
     const onPickCamera = () => cameraInputRef.current?.click();
+
+    // Direct multipart POST — the fallback when IndexedDB (the only store
+    // that can hold a Blob) is unavailable, so the photo still uploads.
+    const directUpload = async (toUpload: File) => {
+        const fd = new FormData();
+        fd.append('file', toUpload);
+        const res = await fetch(apiUrl(`/journal/${entryId}/files`), { method: 'POST', body: fd });
+        if (!res.ok) {
+            let msg = `Upload failed (${res.status})`;
+            try {
+                const body = await res.json();
+                msg = body?.error?.message || body?.error || msg;
+            } catch {
+                /* keep default */
+            }
+            throw new Error(typeof msg === 'string' ? msg : 'Upload failed');
+        }
+    };
 
     const uploadFile = async (file: File) => {
         setUploading(true);
@@ -65,26 +100,38 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
             // already-small photos pass through untouched, and any failure
             // falls back to the original File, so the upload never breaks.
             const toUpload = await downscalePhoto(file);
-            const fd = new FormData();
-            fd.append('file', toUpload);
-            const res = await fetch(apiUrl(`/journal/${entryId}/files`), {
-                method: 'POST',
-                body: fd,
-            });
-            if (!res.ok) {
-                let msg = `Upload failed (${res.status})`;
-                try {
-                    const body = await res.json();
-                    msg = body?.error?.message || body?.error || msg;
-                } catch {
-                    /* keep default */
+            let queued = false;
+            try {
+                // Offline-first: submitPhoto sends when online, else queues the
+                // downscaled BYTES in the outbox for background-sync replay.
+                const result = await submitPhoto({
+                    url: apiUrl(`/journal/${entryId}/files`),
+                    blob: toUpload,
+                    fileName: toUpload.name || 'photo.jpg',
+                    fileType: toUpload.type || 'application/octet-stream',
+                    label: t('photoQueuedLabel'),
+                });
+                queued = result === 'queued';
+            } catch (err) {
+                // No IndexedDB (jsdom / private mode) — fall back to a direct
+                // upload rather than silently dropping the photo. A terminal
+                // 4xx from submitPhoto propagates.
+                if (err instanceof Error && err.message.includes('no IndexedDB')) {
+                    await directUpload(toUpload);
+                } else {
+                    throw err;
                 }
-                throw new Error(typeof msg === 'string' ? msg : 'Upload failed');
             }
             haptic('success');
-            onChanged();
+            // Only refetch when the photo actually reached the server; a queued
+            // photo isn't linked yet (it uploads on reconnect).
+            if (!queued) onChanged();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Upload failed');
+            if (err instanceof PhotoTooLargeError) {
+                setError(t('photoTooLarge'));
+            } else {
+                setError(err instanceof Error ? err.message : 'Upload failed');
+            }
             haptic('error');
         } finally {
             setUploading(false);
@@ -129,6 +176,18 @@ export function JournalPhotosTab({ entryId, photos, apiUrl, canWrite, onChanged 
 
     return (
         <div className={cn(cardVariants(), 'space-y-default')} id="journal-photos">
+            {/* Surface the offline/queued state only when there's something to
+                say — a clean online tab stays uncluttered. Photos queued show
+                distinctly ("N photos queued"). */}
+            {(!online || pending > 0) && (
+                <OfflineSyncBar
+                    online={online}
+                    pending={pending}
+                    pendingPhotos={pendingPhotos}
+                    onSyncNow={() => void flush()}
+                />
+            )}
+
             {error && (
                 <div
                     className="rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error"

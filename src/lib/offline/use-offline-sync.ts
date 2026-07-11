@@ -11,7 +11,15 @@
  * operation will never succeed, so queueing it would be a lie.
  */
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { getOutboxStore, enqueue, type EnqueueInput } from './outbox';
+import {
+    getOutboxStore,
+    enqueue,
+    enqueuePhoto,
+    isPhotoItem,
+    type EnqueueInput,
+    type EnqueuePhotoInput,
+} from './outbox';
+import { indexedDbAvailable } from './idb-outbox';
 import { flushOutbox, fetchSender, type FlushSummary } from './sync';
 import { haptic } from '@/lib/haptics';
 
@@ -44,13 +52,24 @@ async function registerOutboxSync(): Promise<void> {
 
 export interface OfflineSync {
     online: boolean;
+    /** Total queued items (mutations + photos). */
     pending: number;
+    /** Queued PHOTO uploads only — surfaced distinctly in the sync bar. */
+    pendingPhotos: number;
     submit: (input: EnqueueInput) => Promise<'sent' | 'queued'>;
+    /**
+     * Queue (or send-then-queue) a photo upload. The blob is the ALREADY
+     * downscaled bytes; oversized blobs reject at enqueue. Requires
+     * IndexedDB (the only store that can hold a Blob) — throws otherwise so
+     * the caller can fall back to a direct online-only upload.
+     */
+    submitPhoto: (input: EnqueuePhotoInput) => Promise<'sent' | 'queued'>;
     flush: () => Promise<FlushSummary>;
 }
 
 export function useOfflineSync(): OfflineSync {
     const [pending, setPending] = useState(0);
+    const [pendingPhotos, setPendingPhotos] = useState(0);
     const [online, setOnline] = useState(true);
     // Guards against two flushes running at once (the `online` event +
     // a manual "Sync now" / mount flush) — concurrent drains would read
@@ -61,7 +80,9 @@ export function useOfflineSync(): OfflineSync {
     const flushRef = useRef<(() => Promise<FlushSummary>) | null>(null);
 
     const refresh = useCallback(async () => {
-        setPending((await getOutboxStore().all()).length);
+        const items = await getOutboxStore().all();
+        setPending(items.length);
+        setPendingPhotos(items.filter(isPhotoItem).length);
     }, []);
 
     const flush = useCallback(async (): Promise<FlushSummary> => {
@@ -73,6 +94,9 @@ export function useOfflineSync(): OfflineSync {
         try {
             const res = await flushOutbox(getOutboxStore(), fetchSender());
             setPending(res.remaining);
+            // Recompute the photo-only sub-count (mutations + photos may both
+            // have drained) so the sync bar's "N photos queued" stays honest.
+            await refresh();
             // Rate-limited mid-burst with work still queued → back off for the
             // server's Retry-After (default one mutation window) and re-drain,
             // rather than waiting for the next reconnect that may never come.
@@ -87,7 +111,7 @@ export function useOfflineSync(): OfflineSync {
         } finally {
             flushing.current = false;
         }
-    }, []);
+    }, [refresh]);
     flushRef.current = flush;
 
     useEffect(() => {
@@ -145,5 +169,39 @@ export function useOfflineSync(): OfflineSync {
         [refresh],
     );
 
-    return { online, pending, submit, flush };
+    const submitPhoto = useCallback(
+        async (input: EnqueuePhotoInput): Promise<'sent' | 'queued'> => {
+            // A Blob can only be queued in IndexedDB — the localStorage/
+            // in-memory fallbacks would JSON-serialise it to `{}`. If IDB is
+            // unavailable, throw so the caller can attempt a direct upload
+            // instead of silently dropping the photo.
+            if (!indexedDbAvailable()) {
+                throw new Error('offline photo queue unavailable (no IndexedDB)');
+            }
+            const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+            if (!offline) {
+                try {
+                    const fd = new FormData();
+                    fd.append('file', new File([input.blob], input.fileName, { type: input.fileType }));
+                    const res = await fetch(input.url, { method: 'POST', body: fd });
+                    if (res.ok) return 'sent';
+                    if (isTerminalClientError(res.status)) {
+                        throw new Error(`Request failed (${res.status})`);
+                    }
+                    // transient (5xx/408/429) → fall through to queue
+                } catch (err) {
+                    if (err instanceof Error && err.message.startsWith('Request failed (4')) throw err;
+                }
+            }
+            // Enforces MAX_QUEUED_PHOTO_BYTES — an oversized blob throws here.
+            await enqueuePhoto(getOutboxStore(), input);
+            await refresh();
+            haptic('tap');
+            void registerOutboxSync();
+            return 'queued';
+        },
+        [refresh],
+    );
+
+    return { online, pending, pendingPhotos, submit, submitPhoto, flush };
 }

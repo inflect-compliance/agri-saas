@@ -54,7 +54,7 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
     const buildUrl = useTenantApiUrl();
     const { isMobile } = useMediaQuery();
     const { data, mutate, isLoading } = useTenantSWR<FieldOpView>(`/field-operations/${taskId}`);
-    const { online, pending, submit, flush } = useOfflineSync();
+    const { online, pending, pendingPhotos, submit, flush } = useOfflineSync();
     const [error, setError] = useState<string | null>(null);
     // Tapping a parcel on the map selects it and scrolls its prescription
     // line into view, so an operator can jump straight to the line they're
@@ -176,7 +176,7 @@ export function OfflineFieldPanel({ taskId }: { taskId: string }) {
         // content), on the sanctioned animate-fade-in token.
         <FadeIn className="mx-auto max-w-xl space-y-default p-4">
             {/* sync status bar (shared across offline-capable surfaces) */}
-            <OfflineSyncBar online={online} pending={pending} onSyncNow={() => void flush()} />
+            <OfflineSyncBar online={online} pending={pending} pendingPhotos={pendingPhotos} onSyncNow={() => void flush()} />
 
             {error && (
                 <div role="alert" className="rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error">

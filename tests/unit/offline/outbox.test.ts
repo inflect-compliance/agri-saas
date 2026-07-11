@@ -7,9 +7,13 @@ import {
     enqueue,
     newOutboxId,
     type OutboxItem,
+    type MutationOutboxItem,
 } from '@/lib/offline/outbox';
 
-function item(over: Partial<OutboxItem> = {}): OutboxItem {
+// The helper builds a `mutation` outbox item (the only kind with a JSON `body`);
+// P2 split OutboxItem into a mutation|photo union, so type the override as the
+// mutation variant rather than the whole union.
+function item(over: Partial<MutationOutboxItem> = {}): OutboxItem {
     return {
         id: over.id ?? newOutboxId(),
         url: over.url ?? '/api/t/acme/field-operations/t1/parcels/p1',
