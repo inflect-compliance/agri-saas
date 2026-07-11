@@ -188,8 +188,12 @@ jest.mock('@/lib/offline/use-offline-sync', () => ({
     useOfflineSync: () => ({
         online: true,
         pending: 0,
+        pendingPhotos: 0,
         submit: jest.fn(async () => 'sent' as const),
+        submitPhoto: jest.fn(async () => 'sent' as const),
         flush: jest.fn(async () => ({ ok: 0, failed: 0 })),
+        conflicts: [],
+        resolveConflict: jest.fn(async () => {}),
     }),
 }));
 

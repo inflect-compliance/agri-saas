@@ -32,6 +32,17 @@ export type OutboxMethod = 'POST' | 'PATCH' | 'DELETE';
  */
 export type OutboxItemKind = 'mutation' | 'photo';
 
+/**
+ * Set when a replay came back 409 STALE_DATA — the row moved on while the edit
+ * sat queued. The item is RETAINED in this "needs attention" state (never
+ * dropped, never re-sent) until the operator resolves it (keep-mine /
+ * take-server). `server` is the 409 body (the current server state).
+ */
+export interface OutboxConflict {
+    status: number;
+    server?: unknown;
+}
+
 interface OutboxItemBase {
     /** Client-generated id — also the idempotency handle on replay. */
     id: string;
@@ -42,6 +53,14 @@ interface OutboxItemBase {
     label: string;
     createdAt: number;
     attempts: number;
+    /**
+     * Optimistic-lock version the client saw when it queued this write, sent
+     * back as `If-Match` on replay. The server 409s if the row moved on. Absent
+     * for writes that don't participate in optimistic locking.
+     */
+    ifMatch?: number;
+    /** Present ⇒ a 409 conflict is awaiting operator resolution (not re-sent). */
+    conflict?: OutboxConflict;
 }
 
 export interface MutationOutboxItem extends OutboxItemBase {
@@ -164,6 +183,8 @@ export interface EnqueueInput {
     method: OutboxMethod;
     body: unknown;
     label: string;
+    /** Optimistic-lock version to send as `If-Match` on replay (see OutboxItem). */
+    ifMatch?: number;
 }
 
 /** Append a mutation to the outbox; returns the created item. */
@@ -176,6 +197,7 @@ export async function enqueue(store: OutboxStore, input: EnqueueInput): Promise<
         label: input.label,
         createdAt: Date.now(),
         attempts: 0,
+        ...(input.ifMatch !== undefined ? { ifMatch: input.ifMatch } : {}),
     };
     await store.add(item);
     return item;

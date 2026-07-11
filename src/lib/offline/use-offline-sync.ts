@@ -18,6 +18,7 @@ import {
     isPhotoItem,
     type EnqueueInput,
     type EnqueuePhotoInput,
+    type OutboxItem,
 } from './outbox';
 import { indexedDbAvailable } from './idb-outbox';
 import { flushOutbox, fetchSender, type FlushSummary } from './sync';
@@ -50,9 +51,11 @@ async function registerOutboxSync(): Promise<void> {
     }
 }
 
+export type ConflictResolution = 'keep-mine' | 'take-server';
+
 export interface OfflineSync {
     online: boolean;
-    /** Total queued items (mutations + photos). */
+    /** Queued items (mutations + photos) still waiting to send — excludes parked conflicts. */
     pending: number;
     /** Queued PHOTO uploads only — surfaced distinctly in the sync bar. */
     pendingPhotos: number;
@@ -65,11 +68,19 @@ export interface OfflineSync {
      */
     submitPhoto: (input: EnqueuePhotoInput) => Promise<'sent' | 'queued'>;
     flush: () => Promise<FlushSummary>;
+    /** Writes parked as 409 conflicts, awaiting keep-mine / take-server. */
+    conflicts: OutboxItem[];
+    /**
+     * Resolve a parked conflict: `take-server` discards the queued edit;
+     * `keep-mine` re-sends it at the server's current version so it wins.
+     */
+    resolveConflict: (id: string, resolution: ConflictResolution) => Promise<void>;
 }
 
 export function useOfflineSync(): OfflineSync {
     const [pending, setPending] = useState(0);
     const [pendingPhotos, setPendingPhotos] = useState(0);
+    const [conflicts, setConflicts] = useState<OutboxItem[]>([]);
     const [online, setOnline] = useState(true);
     // Guards against two flushes running at once (the `online` event +
     // a manual "Sync now" / mount flush) — concurrent drains would read
@@ -80,22 +91,24 @@ export function useOfflineSync(): OfflineSync {
     const flushRef = useRef<(() => Promise<FlushSummary>) | null>(null);
 
     const refresh = useCallback(async () => {
-        const items = await getOutboxStore().all();
-        setPending(items.length);
-        setPendingPhotos(items.filter(isPhotoItem).length);
+        const all = await getOutboxStore().all();
+        // Parked conflicts aren't "pending to send" — they need the operator.
+        const live = all.filter((i) => !i.conflict);
+        setPending(live.length);
+        setPendingPhotos(live.filter(isPhotoItem).length);
+        setConflicts(all.filter((i) => i.conflict));
     }, []);
 
     const flush = useCallback(async (): Promise<FlushSummary> => {
         if (flushing.current) {
             const remaining = (await getOutboxStore().all()).length;
-            return { sent: 0, failed: 0, dropped: 0, remaining, rateLimited: false };
+            return { sent: 0, failed: 0, dropped: 0, conflicts: 0, remaining, rateLimited: false };
         }
         flushing.current = true;
         try {
             const res = await flushOutbox(getOutboxStore(), fetchSender());
-            setPending(res.remaining);
-            // Recompute the photo-only sub-count (mutations + photos may both
-            // have drained) so the sync bar's "N photos queued" stays honest.
+            // Refresh pending + the photo sub-count + conflicts — a flush can
+            // drain photos/mutations AND park a 409 the resolution UI must show.
             await refresh();
             // Rate-limited mid-burst with work still queued → back off for the
             // server's Retry-After (default one mutation window) and re-drain,
@@ -139,14 +152,28 @@ export function useOfflineSync(): OfflineSync {
     const submit = useCallback(
         async (input: EnqueueInput): Promise<'sent' | 'queued'> => {
             const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+            const store = getOutboxStore();
             if (!offline) {
                 try {
                     const res = await fetch(input.url, {
                         method: input.method,
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(input.ifMatch !== undefined ? { 'If-Match': String(input.ifMatch) } : {}),
+                        },
                         body: input.body !== undefined ? JSON.stringify(input.body) : undefined,
                     });
                     if (res.ok) return 'sent';
+                    if (res.status === 409) {
+                        // Optimistic-lock conflict even while online (a concurrent
+                        // edit landed first). Park it for the resolution UI rather
+                        // than throwing — keep-mine / take-server, same as a replay.
+                        const server = await res.json().catch(() => undefined);
+                        const item = await enqueue(store, input);
+                        await store.update({ ...item, conflict: { status: 409, server } });
+                        await refresh();
+                        return 'queued';
+                    }
                     if (isTerminalClientError(res.status)) {
                         throw new Error(`Request failed (${res.status})`);
                     }
@@ -156,7 +183,7 @@ export function useOfflineSync(): OfflineSync {
                     if (err instanceof Error && err.message.startsWith('Request failed (4')) throw err;
                 }
             }
-            await enqueue(getOutboxStore(), input);
+            await enqueue(store, input);
             await refresh();
             // Tactile confirmation that the action was saved offline (gloves +
             // no signal) — capability-gated, no-op on desktop/reduced-motion.
@@ -203,5 +230,39 @@ export function useOfflineSync(): OfflineSync {
         [refresh],
     );
 
-    return { online, pending, pendingPhotos, submit, submitPhoto, flush };
+    const resolveConflict = useCallback(
+        async (id: string, resolution: ConflictResolution) => {
+            const store = getOutboxStore();
+            const item = (await store.all()).find((i) => i.id === id);
+            if (!item) {
+                await refresh();
+                return;
+            }
+            if (resolution === 'take-server') {
+                // Discard the queued edit — the server's version wins.
+                await store.remove(id);
+            } else {
+                // keep-mine — re-send at the server's CURRENT version so the
+                // write is accepted (version matches) and the operator's edit
+                // overwrites, deliberately this time.
+                const server = item.conflict?.server as { currentVersion?: number } | undefined;
+                const retry: OutboxItem = {
+                    ...item,
+                    ifMatch: typeof server?.currentVersion === 'number' ? server.currentVersion : undefined,
+                    conflict: undefined,
+                };
+                const res = await fetchSender()(retry);
+                if (res.ok) {
+                    await store.remove(id);
+                } else {
+                    // Still conflicting (raced again) — re-park with fresh state.
+                    await store.update({ ...retry, conflict: { status: res.status, server: res.conflict ?? server } });
+                }
+            }
+            await refresh();
+        },
+        [refresh],
+    );
+
+    return { online, pending, pendingPhotos, submit, submitPhoto, flush, conflicts, resolveConflict };
 }

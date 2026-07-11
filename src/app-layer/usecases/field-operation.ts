@@ -1,7 +1,7 @@
 import { RequestContext } from '../types';
 import { assertCanRead, assertCanWrite, assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
-import { notFound, badRequest, forbidden } from '@/lib/errors/types';
+import { notFound, badRequest, forbidden, staleData } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
 import { createTask } from './task';
 import { WorkItemRepository, TaskLinkRepository } from '../repositories/WorkItemRepository';
@@ -348,9 +348,10 @@ export async function markOperationParcel(
     lineId: string,
     status: ParcelStatus,
     note?: string | null,
+    expectedVersion?: number,
 ) {
     return traceAgUsecase('field-operation.markOperationParcel', ctx, () =>
-        markOperationParcelImpl(ctx, taskId, lineId, status, note),
+        markOperationParcelImpl(ctx, taskId, lineId, status, note, expectedVersion),
     );
 }
 
@@ -360,6 +361,7 @@ async function markOperationParcelImpl(
     lineId: string,
     status: ParcelStatus,
     note?: string | null,
+    expectedVersion?: number,
 ) {
     const result = await runInTenantContext(ctx, async (db) => {
         const line = await db.operationParcel.findFirst({
@@ -384,15 +386,47 @@ async function markOperationParcelImpl(
         }
 
         const fromStatus = line.status;
-        await db.operationParcel.update({
-            where: { id: lineId },
+        // Optimistic lock — a mark queued offline carries the row version it
+        // saw. If a supervisor/reviewer changed the line meanwhile, reject the
+        // stale write with 409 STALE_DATA (details carry the server's current
+        // state so the client can offer keep-mine / take-server) rather than
+        // silently clobbering. Online edits (no expectedVersion) skip the check.
+        if (expectedVersion !== undefined && line.version !== expectedVersion) {
+            throw staleData('This job changed while you were offline.', {
+                currentVersion: line.version,
+                currentStatus: line.status,
+                expectedVersion,
+            });
+        }
+        const upd = await db.operationParcel.updateMany({
+            where: {
+                id: lineId,
+                tenantId: ctx.tenantId,
+                ...(expectedVersion !== undefined ? { version: expectedVersion } : {}),
+            },
             data: {
                 status,
                 completedAt: status === 'PENDING' ? null : new Date(),
                 completedByUserId: status === 'PENDING' ? null : ctx.userId,
                 ...(note !== undefined ? { targetNote: note } : {}),
+                // Every mutation bumps the version so the NEXT reader/replayer
+                // sees a fresh number.
+                version: { increment: 1 },
             },
         });
+        if (upd.count === 0) {
+            // Lost the race between the read above and this write — re-read the
+            // current version so the client resolves against fresh state.
+            const fresh = await db.operationParcel.findFirst({
+                where: { id: lineId, tenantId: ctx.tenantId },
+                select: { version: true, status: true },
+            });
+            throw staleData('This job changed while you were offline.', {
+                currentVersion: fresh?.version ?? null,
+                currentStatus: fresh?.status ?? null,
+                expectedVersion,
+            });
+        }
 
         await logEvent(db, ctx, {
             action: 'OPERATION_PARCEL_MARKED',
@@ -533,7 +567,7 @@ async function markOperationParcelImpl(
             },
         });
 
-        return { success: true, resolved, application };
+        return { success: true, resolved, application, version: line.version + 1 };
     });
 
     // БАБХ farm-record — when the job auto-resolves, regenerate the location's

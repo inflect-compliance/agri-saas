@@ -143,6 +143,7 @@ describe('ag field-workflow usecase emission', () => {
                 task: { id: 'task-1', assigneeUserId: 'user-1', status: 'OPEN', key: 'FOP-1' },
             }),
             update: jest.fn().mockResolvedValue({}),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             count: jest.fn().mockResolvedValue(1), // a PENDING parcel remains → no auto-resolve
         };
 
@@ -245,6 +246,7 @@ describe('farm-record completion snapshot + operation-type reader', () => {
                 },
             }),
             update: jest.fn().mockResolvedValue({}),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             count: jest.fn().mockResolvedValue(1), // a PENDING line remains → no auto-resolve noise
         };
         mockDb.tenantMembership = {
@@ -296,6 +298,7 @@ describe('farm-record completion snapshot + operation-type reader', () => {
                 task: { id: 'task-1', assigneeUserId: 'user-2', status: 'OPEN', key: 'FOP-1', applicationTechnique: null },
             }),
             update: jest.fn().mockResolvedValue({}),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             count: jest.fn().mockResolvedValue(1),
         };
         mockDb.logEntry = { findUnique: jest.fn(), update: logUpdate };
@@ -327,6 +330,7 @@ describe('farm-record completion snapshot + operation-type reader', () => {
                 task: { id: 'task-1', assigneeUserId: 'user-2', status: 'OPEN', key: 'FOP-1', applicationTechnique: null },
             }),
             update: jest.fn().mockResolvedValue({}),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             count: jest.fn().mockResolvedValue(0), // no PENDING lines left → auto-resolve
         };
 
@@ -353,6 +357,7 @@ describe('farm-record completion snapshot + operation-type reader', () => {
                 task: { id: 'task-1', assigneeUserId: 'user-2', status: 'OPEN', key: 'FOP-1', applicationTechnique: null },
             }),
             update: jest.fn().mockResolvedValue({}),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             count: jest.fn().mockResolvedValue(2), // PENDING lines remain → no resolve
         };
 
