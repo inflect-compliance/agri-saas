@@ -16,6 +16,8 @@ import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Fab } from '@/components/ui/fab';
+import { Plus } from '@/components/ui/icons/nucleo';
 
 interface LocationItem {
     id: string;
@@ -149,6 +151,14 @@ export function LocationsClient({ tenantSlug }: { tenantSlug: string }) {
                     </Modal.Actions>
                 </Modal.Form>
             </Modal>
+
+            {/* Mobile-only FAB — the primary create action in the thumb
+                zone (md:hidden; the header button is the desktop affordance). */}
+            <Fab
+                onClick={() => setShowNew(true)}
+                label={t('fabLabel')}
+                icon={<Plus aria-hidden className="h-6 w-6" />}
+            />
         </ListPageShell>
     );
 }

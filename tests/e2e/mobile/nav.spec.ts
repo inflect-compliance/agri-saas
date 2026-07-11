@@ -80,6 +80,13 @@ test.describe('mobile bottom-tab navigation @mobile', () => {
         );
     });
 
+    // NOTE: the mobile toast-anchor assertion moved to a rendered test
+    // (tests/rendered/responsive-toaster.test.tsx). sonner only mounts its
+    // `[data-sonner-toaster]` host once a toast fires, so asserting host
+    // placement in e2e without triggering one is unreliable; the rendered
+    // test fires a real toast and asserts `data-y-position="bottom"` on a
+    // phone viewport deterministically.
+
     test('a safe-area spacer clears content from behind the fixed bar', async ({ page }) => {
         await safeGoto(page, `/t/${tenantSlug}/dashboard`);
 

@@ -551,9 +551,12 @@ jobs:
     # duplicated the ~10-15min setup per shard, and workers>1 flaked the
     # heavier timing-sensitive specs (tenant creation, audit-pack share,
     # offline queue, a11y) under parallel load for only ~1min of gain.
-    # `retries: 2` covers transient localhost races. The 40-min budget
-    # gives headroom for the serial suite + retries.
-    timeout-minutes: 40
+    # `retries: 2` covers transient localhost races. The serial suite has
+    # grown (Roadmap-6 added @mobile specs for the offline map/photo flows +
+    # the mobile control-placement pass); it now runs just past the old 40-min
+    # budget, so lift to 50 for headroom. If it climbs further, revisit the
+    # reverted shard/worker parallelism rather than raising this again.
+    timeout-minutes: 50
 
     env:
       AUTH_TEST_MODE: "1"

@@ -64,7 +64,13 @@ describe('KeyboardShortcutProvider — root layout integration', () => {
             '<CommandPaletteProvider>',
             '<ThemeProvider>',
             '<TooltipProvider>',
-            '<Toaster',
+            // Roadmap-6 P4 — the sonner <Toaster> is now mounted via the
+            // <ResponsiveToaster> wrapper (mobile bottom-centre / desktop
+            // top-right). Track the actual mounted component: the raw
+            // `<Toaster` literal now lives in the wrapper's DEFINITION above
+            // Providers, so the invariant that the toast mounts INSIDE the
+            // shortcut provider is expressed against the mount site.
+            '<ResponsiveToaster',
         ];
         for (const token of otherProviders) {
             const idx = providers.indexOf(token);
