@@ -20,6 +20,11 @@ export class ApiClientError extends Error {
     public readonly status: number;
     public readonly details?: unknown;
     public readonly requestId?: string;
+    /**
+     * Seconds the server asked us to wait (parsed from `Retry-After` on a
+     * 429/503). Callers / SWR back off to THIS delay instead of hammering.
+     */
+    public readonly retryAfterSeconds?: number;
 
     constructor(
         message: string,
@@ -27,6 +32,7 @@ export class ApiClientError extends Error {
         status: number,
         details?: unknown,
         requestId?: string,
+        retryAfterSeconds?: number,
     ) {
         super(message);
         this.name = 'ApiClientError';
@@ -34,6 +40,7 @@ export class ApiClientError extends Error {
         this.status = status;
         this.details = details;
         this.requestId = requestId;
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 }
 
@@ -62,7 +69,37 @@ async function handleErrorResponse(res: Response): Promise<never> {
         // Body is not JSON — use defaults
     }
 
-    throw new ApiClientError(message, code, res.status, details, requestId);
+    // Honor Retry-After on rate-limit / unavailable so callers back off to the
+    // server's requested delay instead of a flat retry cadence.
+    const retryAfterSeconds = parseRetryAfterSeconds(res);
+
+    throw new ApiClientError(message, code, res.status, details, requestId, retryAfterSeconds);
+}
+
+/**
+ * Parse a `Retry-After` header (seconds form) on a 429/503. Returns undefined
+ * when absent, unparseable, or on any other status. The HTTP-date form is not
+ * handled (our server only emits the seconds form).
+ */
+export function parseRetryAfterSeconds(res: Response): number | undefined {
+    if (res.status !== 429 && res.status !== 503) return undefined;
+    const raw = res.headers.get('Retry-After');
+    if (!raw) return undefined;
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+/** Foreground fetch timeout — abort a request the server never answers. */
+export const API_CLIENT_TIMEOUT_MS = 20_000;
+
+/**
+ * Add an `AbortSignal.timeout` so a hung request aborts instead of spinning
+ * forever on flaky rural LTE. Caller-provided `init.signal` wins (override).
+ */
+function withTimeout(init?: RequestInit): RequestInit {
+    if (init?.signal) return init; // caller owns cancellation
+    const canTimeout = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function';
+    return canTimeout ? { ...init, signal: AbortSignal.timeout(API_CLIENT_TIMEOUT_MS) } : { ...(init ?? {}) };
 }
 
 /**
@@ -107,7 +144,7 @@ export async function apiGet<T>(
 ): Promise<T> {
     const res = await fetch(url, {
         method: 'GET',
-        ...init,
+        ...withTimeout(init),
     });
 
     if (!res.ok) await handleErrorResponse(res);
@@ -129,7 +166,7 @@ export async function apiPost<T>(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        ...init,
+        ...withTimeout(init),
     });
 
     if (!res.ok) await handleErrorResponse(res);
@@ -151,7 +188,7 @@ export async function apiPatch<T>(
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        ...init,
+        ...withTimeout(init),
     });
 
     if (!res.ok) await handleErrorResponse(res);
@@ -169,7 +206,7 @@ export async function apiDelete(
 ): Promise<void> {
     const res = await fetch(url, {
         method: 'DELETE',
-        ...init,
+        ...withTimeout(init),
     });
 
     if (!res.ok) await handleErrorResponse(res);

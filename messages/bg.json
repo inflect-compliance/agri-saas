@@ -3381,7 +3381,8 @@
                 "fieldBoundariesEmpty": "Все още няма граници на полета, към които да преминете.",
                 "soilRegions": "Почвени зони",
                 "soilLegendAlt": "Легенда на почвените класове",
-                "soilAttribution": "Почва: ISRIC SoilGrids — WRB (CC-BY 4.0)"
+                "soilAttribution": "Почва: ISRIC SoilGrids — WRB (CC-BY 4.0)",
+                "locateMe": "Намери ме"
             },
             "parcelSheet": {
                 "description": "Детайли за парцела и калкулатор за норма на внасяне",

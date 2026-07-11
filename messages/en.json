@@ -3381,7 +3381,8 @@
                 "fieldBoundariesEmpty": "No field boundaries to jump to yet.",
                 "soilRegions": "Soil regions",
                 "soilLegendAlt": "Soil class legend",
-                "soilAttribution": "Soil: ISRIC SoilGrids — WRB (CC-BY 4.0)"
+                "soilAttribution": "Soil: ISRIC SoilGrids — WRB (CC-BY 4.0)",
+                "locateMe": "Locate me"
             },
             "parcelSheet": {
                 "description": "Parcel detail and apply-rate calculator",

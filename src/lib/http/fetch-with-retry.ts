@@ -47,7 +47,12 @@ export async function fetchWithRetry(
 
       // Handle rate limiting and server errors
       if (response.status === 429 || response.status >= 500) {
-        const delay = retryDelay + Math.pow(i, 2) * 50;
+        // Honor the server's Retry-After (seconds) when present, else fall back
+        // to the exponential-ish backoff — don't hammer a window the server
+        // already told us is closed.
+        const ra = response.headers.get('Retry-After');
+        const raMs = ra ? Number.parseInt(ra, 10) * 1000 : NaN;
+        const delay = Number.isFinite(raMs) && raMs >= 0 ? raMs : retryDelay + Math.pow(i, 2) * 50;
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }

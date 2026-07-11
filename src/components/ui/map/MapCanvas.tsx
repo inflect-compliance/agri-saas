@@ -35,6 +35,7 @@ import { env } from '@/env';
 import { SOIL_PENDING_COLOR } from '@/lib/soil/types';
 import { CropGlyph } from '@/components/agriculture/CropGlyph';
 import { buildOfflineBasemapStyle } from '@/lib/geo/offline-basemap-style';
+import { getOneShotPosition } from '@/lib/geo/one-shot-position';
 
 // Below this zoom the per-parcel crop glyphs are hidden — at a whole-region
 // view they'd overlap into noise; they reappear when inspecting fields.
@@ -445,6 +446,25 @@ export function MapCanvas({
             { enableHighAccuracy: true, timeout: 10_000, maximumAge: 5_000 },
         );
     }, [geoAvailable, geoErrMessage, stopTracking, t]);
+
+    // One-shot "where am I" — a single getCurrentPosition fix (no continuous
+    // watch, lighter on the battery) that drops the blue dot and re-centres.
+    // Live tracking (above) stays the tool for following the device.
+    const locateOnce = useCallback(async () => {
+        if (!geoAvailable) { setGeoError(t('geoUnavailable')); return; }
+        setGeoError(null);
+        try {
+            const { lon, lat } = await getOneShotPosition();
+            setUserLoc({ lon, lat });
+            mapRef.current?.easeTo({ center: [lon, lat], duration: reducedMotion ? 0 : 500 });
+        } catch (err) {
+            setGeoError(
+                err && typeof err === 'object' && 'code' in err
+                    ? geoErrMessage(err as GeolocationPositionError)
+                    : t('geoGetFailed'),
+            );
+        }
+    }, [geoAvailable, geoErrMessage, reducedMotion, t]);
 
     // Battery-aware: always release the watch when the map unmounts.
     useEffect(() => () => {
@@ -864,6 +884,17 @@ export function MapCanvas({
                                 className={cn(controlBtn, 'rounded-lg border border-border-subtle shadow-md')}
                             >
                                 <Crosshairs3 className="size-5" aria-hidden="true" />
+                            </button>
+                        )}
+                        {geoAvailable && (
+                            <button
+                                type="button"
+                                onClick={() => void locateOnce()}
+                                aria-label={t('locateMe')}
+                                data-testid="map-locate"
+                                className={cn(controlBtn, 'rounded-lg border border-border-subtle shadow-md')}
+                            >
+                                <MapPosition className="size-5" aria-hidden="true" />
                             </button>
                         )}
                         {liveTracking && geoAvailable && (
