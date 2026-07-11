@@ -33,7 +33,11 @@ export const POST = withApiErrorHandling(async (req: NextRequest, { params: para
             throw badRequest('Missing or invalid file in form data');
         }
         const caption = (formData.get('caption') as string | null) ?? null;
-        const link = await uploadLogEntryPhoto(ctx, params.id, file, caption);
+        // Offline exactly-once: the outbox replays a queued photo with the
+        // item id as `Idempotency-Key`. Threaded through so a replayed upload
+        // returns the original link instead of attaching the photo twice.
+        const idempotencyKey = req.headers.get('Idempotency-Key');
+        const link = await uploadLogEntryPhoto(ctx, params.id, file, caption, idempotencyKey);
         return jsonResponse(link, { status: 201 });
     }
 

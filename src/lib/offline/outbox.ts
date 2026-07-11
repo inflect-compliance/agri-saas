@@ -15,17 +15,72 @@ import { IndexedDbOutboxStore, indexedDbAvailable } from './idb-outbox';
 
 export type OutboxMethod = 'POST' | 'PATCH' | 'DELETE';
 
-export interface OutboxItem {
+/**
+ * Two item kinds share the ONE outbox store so they drain in a single FIFO
+ * pass and the service worker reads a single object store:
+ *   - `mutation` (default / legacy): a tiny JSON body — the original outbox.
+ *   - `photo`: a multipart upload carrying the (already-downscaled) photo
+ *     BYTES as a `Blob`. IndexedDB stores Blobs natively via structured
+ *     clone — no base64 bloat — so the same record shape holds both. `body`
+ *     is absent; the Blob is replayed as `FormData` (see `fetchSender` and
+ *     the SW's `flushOutbox`, kept in lockstep).
+ *
+ * `kind` is OPTIONAL and absent means `mutation` — so records queued before
+ * this change keep working, and the localStorage/in-memory stores (which
+ * can't hold a Blob) are unaffected as long as they only ever carry
+ * mutations.
+ */
+export type OutboxItemKind = 'mutation' | 'photo';
+
+interface OutboxItemBase {
     /** Client-generated id — also the idempotency handle on replay. */
     id: string;
     /** Tenant-scoped API path (already built via useTenantApiUrl). */
     url: string;
     method: OutboxMethod;
-    body: unknown;
     /** Human label for the pending-sync UI ("Mark North 40 done"). */
     label: string;
     createdAt: number;
     attempts: number;
+}
+
+export interface MutationOutboxItem extends OutboxItemBase {
+    kind?: 'mutation';
+    body: unknown;
+}
+
+export interface PhotoOutboxItem extends OutboxItemBase {
+    kind: 'photo';
+    /** Downscaled photo bytes — stored natively in IndexedDB. */
+    blob: Blob;
+    /** Multipart filename for the replayed upload. */
+    fileName: string;
+    /** MIME type of the blob (e.g. `image/jpeg`). */
+    fileType: string;
+}
+
+export type OutboxItem = MutationOutboxItem | PhotoOutboxItem;
+
+/** Narrow to the binary photo kind. */
+export function isPhotoItem(item: OutboxItem): item is PhotoOutboxItem {
+    return item.kind === 'photo';
+}
+
+/**
+ * Upper bound on a QUEUED photo's compressed size. Photos are downscaled to
+ * a few hundred KB before enqueue (see downscale-photo.ts); this cap is a
+ * safety valve so a pathological blob (a downscale that failed open on a
+ * huge original) can't wedge the queue or blow the IndexedDB quota. Enforced
+ * at ENQUEUE — a rejected photo never enters the outbox.
+ */
+export const MAX_QUEUED_PHOTO_BYTES = 8 * 1024 * 1024;
+
+/** Thrown by `enqueuePhoto` when a blob exceeds {@link MAX_QUEUED_PHOTO_BYTES}. */
+export class PhotoTooLargeError extends Error {
+    constructor(readonly size: number) {
+        super(`Queued photo is ${size} bytes, over the ${MAX_QUEUED_PHOTO_BYTES}-byte cap`);
+        this.name = 'PhotoTooLargeError';
+    }
 }
 
 export interface OutboxStore {
@@ -112,12 +167,53 @@ export interface EnqueueInput {
 }
 
 /** Append a mutation to the outbox; returns the created item. */
-export async function enqueue(store: OutboxStore, input: EnqueueInput): Promise<OutboxItem> {
-    const item: OutboxItem = {
+export async function enqueue(store: OutboxStore, input: EnqueueInput): Promise<MutationOutboxItem> {
+    const item: MutationOutboxItem = {
         id: newOutboxId(),
         url: input.url,
         method: input.method,
         body: input.body,
+        label: input.label,
+        createdAt: Date.now(),
+        attempts: 0,
+    };
+    await store.add(item);
+    return item;
+}
+
+export interface EnqueuePhotoInput {
+    /** Tenant-scoped multipart POST target (e.g. `/journal/:id/files`). */
+    url: string;
+    /** The already-downscaled photo bytes. */
+    blob: Blob;
+    /** Multipart filename. */
+    fileName: string;
+    /** MIME type of the blob. */
+    fileType: string;
+    label: string;
+}
+
+/**
+ * Append a photo (binary) upload to the outbox; returns the created item.
+ * Enforces {@link MAX_QUEUED_PHOTO_BYTES} at enqueue — a blob over the cap
+ * throws {@link PhotoTooLargeError} and is NOT queued, so a huge photo can
+ * never wedge the drain loop.
+ */
+export async function enqueuePhoto(
+    store: OutboxStore,
+    input: EnqueuePhotoInput,
+): Promise<PhotoOutboxItem> {
+    if (input.blob.size > MAX_QUEUED_PHOTO_BYTES) {
+        throw new PhotoTooLargeError(input.blob.size);
+    }
+    const item: PhotoOutboxItem = {
+        id: newOutboxId(),
+        kind: 'photo',
+        url: input.url,
+        method: 'POST',
+        blob: input.blob,
+        fileName: input.fileName,
+        fileType: input.fileType,
         label: input.label,
         createdAt: Date.now(),
         attempts: 0,

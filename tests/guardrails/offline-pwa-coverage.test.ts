@@ -168,6 +168,46 @@ describe('outbox replay carries the idempotency handle', () => {
     });
 });
 
+// ─── 2d — binary (photo) outbox path (Roadmap-6 P2) ────────────────
+//
+// The outbox carries a SECOND item kind: `photo`, whose downscaled BYTES ride
+// as a `Blob` stored natively in IndexedDB. On replay BOTH senders — the
+// in-page fetch sender AND the service-worker background flush — must
+// reconstruct multipart FormData from the Blob and POST it, in lockstep. A
+// gap in either drains the shared outbox incorrectly (a JSON body with no
+// bytes) and reopens the failed-upload path P2 set out to close. The
+// compressed size is capped at ENQUEUE so a huge blob can't wedge the queue.
+
+describe('binary photo outbox path (client + SW lockstep)', () => {
+    it('the in-page sender reconstructs multipart FormData from the stored Blob', () => {
+        const src = read('src/lib/offline/sync.ts');
+        // Branches on the photo kind and builds FormData from the item blob.
+        expect(src).toMatch(/isPhotoItem\(item\)/);
+        expect(src).toMatch(/new FormData\(\)/);
+        expect(src).toMatch(/new File\(\[item\.blob\], item\.fileName/);
+        // Multipart replay still carries the idempotency handle (header only).
+        expect(src).toMatch(/['"]Idempotency-Key['"]\s*:\s*item\.id/);
+    });
+
+    it('the service-worker flush reconstructs multipart FormData from the stored Blob', () => {
+        const src = read('public/sw.js');
+        expect(src).toMatch(/item\.kind === ['"]photo['"]/);
+        expect(src).toMatch(/new FormData\(\)/);
+        expect(src).toMatch(/new File\(\[item\.blob\], item\.fileName/);
+        // The photo branch also carries the idempotency handle.
+        expect(src).toMatch(/['"]Idempotency-Key['"]\s*:\s*item\.id/);
+    });
+
+    it('enforces a compressed-size cap at ENQUEUE so a huge blob cannot wedge the queue', () => {
+        const src = read('src/lib/offline/outbox.ts');
+        expect(src).toMatch(/MAX_QUEUED_PHOTO_BYTES\s*=/);
+        // enqueuePhoto rejects an oversized blob before it enters the store.
+        expect(src).toMatch(/export async function enqueuePhoto/);
+        expect(src).toMatch(/blob\.size\s*>\s*MAX_QUEUED_PHOTO_BYTES/);
+        expect(src).toMatch(/throw new PhotoTooLargeError/);
+    });
+});
+
 // ─── 3 — outbox single seam ────────────────────────────────────────
 
 function walk(dir: string): string[] {

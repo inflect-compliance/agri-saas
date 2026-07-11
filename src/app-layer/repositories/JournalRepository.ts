@@ -476,6 +476,18 @@ export class JournalRepository {
         });
     }
 
+    /**
+     * Full link row (with its FileRecord) for a (logEntry, fileRecord) pair —
+     * used by the idempotent-upload path to return the ORIGINAL link when a
+     * replayed photo re-attaches identical bytes, instead of a duplicate.
+     */
+    static async findFileLink(db: PrismaTx, ctx: RequestContext, logEntryId: string, fileRecordId: string) {
+        return db.logEntryFile.findFirst({
+            where: { logEntryId, fileRecordId, tenantId: ctx.tenantId },
+            include: { fileRecord: true },
+        });
+    }
+
     static async detachFile(db: PrismaTx, ctx: RequestContext, logEntryId: string, fileRecordId: string) {
         await db.logEntryFile.deleteMany({
             where: { logEntryId, fileRecordId, tenantId: ctx.tenantId },

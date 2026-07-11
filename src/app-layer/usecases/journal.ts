@@ -488,12 +488,22 @@ export async function purgeLogEntry(ctx: RequestContext, id: string) {
  * Upload a photo/document, create its FileRecord through the same
  * storage pipeline evidence uploads use, and link it to the entry via
  * LogEntryFile. Returns the created link (with the FileRecord).
+ *
+ * Offline exactly-once: a queued photo re-sent over a flaky link (the
+ * response to the first POST was lost, so the outbox replayed it) carries
+ * the same `Idempotency-Key`. Dedup is CONTENT-ADDRESSED — the identical
+ * bytes hash to the same SHA-256, resolve to the same FileRecord, and the
+ * `@@unique([logEntryId, fileRecordId])` link already exists. We detect that
+ * and return the ORIGINAL link instead of throwing a unique-violation or
+ * attaching the same photo twice. `idempotencyKey` is threaded for the
+ * audit trail; the link check is the actual guarantee.
  */
 export async function uploadLogEntryPhoto(
     ctx: RequestContext,
     logEntryId: string,
     file: File,
     caption?: string | null,
+    idempotencyKey?: string | null,
 ) {
     assertCanWrite(ctx);
 
@@ -516,7 +526,7 @@ export async function uploadLogEntryPhoto(
 
     const cleanCaption = caption != null ? sanitizePlainText(caption) || null : null;
 
-    const { link, fileRecordId, isImage } = await runInTenantContext(ctx, async (db) => {
+    const { link, fileRecordId, isImage, alreadyLinked } = await runInTenantContext(ctx, async (db) => {
         const entry = await JournalRepository.getById(db, ctx, logEntryId);
         if (!entry) throw notFound('Journal entry not found');
 
@@ -527,6 +537,15 @@ export async function uploadLogEntryPhoto(
         if (existingFile && existingFile.status === 'STORED') {
             fileRecordId = existingFile.id;
             try { await storage.delete(pathKey); } catch { /* best effort */ }
+
+            // Exactly-once replay guard: if this identical file is ALREADY
+            // linked to the entry, this is a replayed upload (the first
+            // response was lost). Return the original link — never a second
+            // LogEntryFile row, never a re-classification.
+            const existingLink = await JournalRepository.findFileLink(db, ctx, logEntryId, fileRecordId);
+            if (existingLink) {
+                return { link: existingLink, fileRecordId, isImage: mimeType.startsWith('image/'), alreadyLinked: true };
+            }
         } else {
             const fileRecord = await FileRepository.createPending(db, ctx, {
                 pathKey,
@@ -542,7 +561,22 @@ export async function uploadLogEntryPhoto(
             fileRecordId = fileRecord.id;
         }
 
-        const link = await JournalRepository.attachFile(db, ctx, logEntryId, fileRecordId, cleanCaption);
+        // Attach — with a unique-violation backstop for the concurrent-replay
+        // race (two flushes of the same queued photo hit
+        // `@@unique([logEntryId, fileRecordId])` at once). The loser re-reads
+        // the winner's link and returns it as exactly-once.
+        let link: Awaited<ReturnType<typeof JournalRepository.attachFile>>;
+        try {
+            link = await JournalRepository.attachFile(db, ctx, logEntryId, fileRecordId, cleanCaption);
+        } catch (err) {
+            if (isUniqueViolation(err)) {
+                const winner = await JournalRepository.findFileLink(db, ctx, logEntryId, fileRecordId);
+                if (winner) {
+                    return { link: winner, fileRecordId, isImage: mimeType.startsWith('image/'), alreadyLinked: true };
+                }
+            }
+            throw err;
+        }
 
         await logEvent(db, ctx, {
             action: 'LOG_ENTRY_FILE_ATTACHED',
@@ -557,18 +591,20 @@ export async function uploadLogEntryPhoto(
                 targetEntity: 'FileRecord',
                 targetId: fileRecordId,
                 relation: 'PHOTO',
+                ...(idempotencyKey ? { idempotencyKey } : {}),
             },
         });
 
-        return { link, fileRecordId, isImage: mimeType.startsWith('image/') };
+        return { link, fileRecordId, isImage: mimeType.startsWith('image/'), alreadyLinked: false };
     });
 
     // Photo pest/disease classification — async vision (feat/ai-vision).
     // On-device ONNX first, Claude fallback; the job + orchestrator are
     // fully fail-safe (no-op when no backend is available), so we enqueue
     // for every image upload and let the job decide. Fire-and-forget — a
-    // queue failure must NEVER fail the upload.
-    if (isImage) {
+    // queue failure must NEVER fail the upload. Skip on an idempotent replay —
+    // the photo was already classified on its first (successful) upload.
+    if (isImage && !alreadyLinked) {
         try {
             await enqueue('classify-photo', { tenantId: ctx.tenantId, logEntryId, fileId: fileRecordId });
         } catch (err) {

@@ -32,7 +32,7 @@
  * retry, so a server that dedupes on it sees at-least-once delivery as
  * exactly-once.
  */
-import type { OutboxItem, OutboxStore } from './outbox';
+import { isPhotoItem, type OutboxItem, type OutboxStore } from './outbox';
 
 export interface SendResult {
     ok: boolean;
@@ -110,14 +110,28 @@ export async function flushOutbox(store: OutboxStore, send: Sender): Promise<Flu
 /** A fetch-backed Sender for the browser. */
 export function fetchSender(): Sender {
     return async (item) => {
-        const res = await fetch(item.url, {
-            method: item.method,
-            // The outbox id is the exactly-once handle: the server dedupes a
-            // replayed write by (tenant, key) so a re-send after a flaky
-            // connection returns the original result instead of a duplicate row.
-            headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.id },
-            body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
-        });
+        // Photo items replay as multipart (reconstructed FormData from the
+        // stored Blob); mutations replay as JSON. Both carry the item id as
+        // `Idempotency-Key` so the server dedupes a replay (the SAME item id
+        // rides every retry) into exactly-once — a photo can't attach twice.
+        let res: Response;
+        if (isPhotoItem(item)) {
+            const fd = new FormData();
+            fd.append('file', new File([item.blob], item.fileName, { type: item.fileType }));
+            res = await fetch(item.url, {
+                method: item.method,
+                // No explicit Content-Type — the browser sets the multipart
+                // boundary. The idempotency handle rides a header only.
+                headers: { 'Idempotency-Key': item.id },
+                body: fd,
+            });
+        } else {
+            res = await fetch(item.url, {
+                method: item.method,
+                headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.id },
+                body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
+            });
+        }
         let retryAfter: number | undefined;
         if (res.status === 429) {
             const raw = res.headers.get('Retry-After');

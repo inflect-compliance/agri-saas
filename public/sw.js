@@ -39,6 +39,11 @@ const BASEMAP_CACHE_BUDGET_BYTES = 24 * 1024 * 1024;
 const PRECACHE = ['/icon.svg', '/manifest.webmanifest'];
 
 // ── Outbox IndexedDB contract (shared with src/lib/offline/idb-outbox.ts) ──
+// One object store, keyPath 'id', holds two item kinds: `mutation` (JSON
+// body, default when `kind` is absent) and `photo` (a `blob` Blob stored
+// natively + `fileName`/`fileType`, replayed as multipart). flushOutbox below
+// branches on `item.kind` — kept in lockstep with fetchSender in
+// src/lib/offline/sync.ts.
 const OUTBOX_DB = 'agri-offline';
 const OUTBOX_DB_VERSION = 1;
 const OUTBOX_STORE = 'outbox';
@@ -302,15 +307,33 @@ async function flushOutbox() {
         let ok = false;
         let retryAfterHeader = null;
         try {
-            const res = await fetch(item.url, {
-                method: item.method,
-                // The outbox id is the exactly-once handle — the server dedupes
-                // a replayed write by (tenant, key), so a re-send returns the
-                // original result instead of minting a duplicate row.
-                headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.id },
-                body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
-                credentials: 'same-origin',
-            });
+            let res;
+            if (item.kind === 'photo') {
+                // Binary path — reconstruct the multipart upload from the Blob
+                // stored natively in IndexedDB (mirrors fetchSender in
+                // src/lib/offline/sync.ts). The item id rides as
+                // Idempotency-Key so a replay dedupes to exactly-once (a photo
+                // can't attach twice). No Content-Type — the runtime sets the
+                // multipart boundary.
+                const fd = new FormData();
+                fd.append('file', new File([item.blob], item.fileName, { type: item.fileType }));
+                res = await fetch(item.url, {
+                    method: item.method,
+                    headers: { 'Idempotency-Key': item.id },
+                    body: fd,
+                    credentials: 'same-origin',
+                });
+            } else {
+                res = await fetch(item.url, {
+                    method: item.method,
+                    // The outbox id is the exactly-once handle — the server dedupes
+                    // a replayed write by (tenant, key), so a re-send returns the
+                    // original result instead of minting a duplicate row.
+                    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.id },
+                    body: item.body !== undefined ? JSON.stringify(item.body) : undefined,
+                    credentials: 'same-origin',
+                });
+            }
             status = res.status;
             ok = res.ok;
             if (status === 429) retryAfterHeader = res.headers.get('Retry-After');
