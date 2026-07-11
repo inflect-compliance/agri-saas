@@ -30,7 +30,7 @@ describe('apiGet', () => {
 
         const result = await apiGet<{ id: string; name: string }>('http://localhost/api/controls/1');
         expect(result).toEqual({ id: '1', name: 'Test Control' });
-        expect(mockFetch).toHaveBeenCalledWith('http://localhost/api/controls/1', { method: 'GET' });
+        expect(mockFetch).toHaveBeenCalledWith('http://localhost/api/controls/1', { method: 'GET', signal: expect.any(AbortSignal) });
     });
 
     it('throws ApiClientError on 404 with standard error body', async () => {
@@ -90,6 +90,7 @@ describe('apiPost', () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: 'New Control' }),
+            signal: expect.any(AbortSignal),
         });
     });
 
@@ -137,6 +138,7 @@ describe('apiPatch', () => {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: 'Updated' }),
+            signal: expect.any(AbortSignal),
         });
     });
 });
@@ -148,6 +150,7 @@ describe('apiDelete', () => {
         await expect(apiDelete('http://localhost/api/controls/1')).resolves.toBeUndefined();
         expect(mockFetch).toHaveBeenCalledWith('http://localhost/api/controls/1', {
             method: 'DELETE',
+            signal: expect.any(AbortSignal),
         });
     });
 
