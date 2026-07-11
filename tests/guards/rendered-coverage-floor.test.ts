@@ -74,7 +74,7 @@ const ROOT = path.resolve(__dirname, '../..');
 // component test) was deleted with it.
 // Documented downward exceptions; the floor resumes its upward ratchet here.
 const RENDERED_TEST_FLOOR = 183;
-const E2E_SPEC_FLOOR = 50;
+const E2E_SPEC_FLOOR = 55;
 const REGISTRY_FLOOR = 5;
 
 /** Max a live count may exceed its floor before the floor must rise. */

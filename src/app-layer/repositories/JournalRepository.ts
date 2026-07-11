@@ -51,6 +51,8 @@ export interface CreateLogEntryInput {
      * Planting.
      */
     plantingLinks?: { plantingId: string; stage: 'SOW' | 'TRANSPLANT' | 'HARVEST' }[];
+    /** Offline exactly-once handle (outbox-item id). See LogEntry.clientMutationId. */
+    clientMutationId?: string | null;
 }
 
 export interface UpdateLogEntryInput {
@@ -295,6 +297,7 @@ export class JournalRepository {
                 operationParcelId: input.operationParcelId ?? null,
                 ...(input.costAmount != null ? { costAmount: input.costAmount } : {}),
                 costCurrency: input.costCurrency ?? null,
+                clientMutationId: input.clientMutationId ?? null,
                 createdByUserId: ctx.userId ?? null,
                 ...(input.quantities && input.quantities.length
                     ? {
@@ -343,6 +346,22 @@ export class JournalRepository {
                       }
                     : {}),
             },
+            include: {
+                quantities: true,
+                locations: true,
+                equipment: true,
+            },
+        });
+    }
+
+    /**
+     * Offline exactly-once — fetch the entry a replayed request already minted
+     * (same outbox id → same idempotency key), in the SAME shape `createLogEntry`
+     * returns, so a re-send yields the original 201 body and no duplicate row.
+     */
+    static async findByClientMutationId(db: PrismaTx, ctx: RequestContext, clientMutationId: string) {
+        return db.logEntry.findFirst({
+            where: { tenantId: ctx.tenantId, clientMutationId },
             include: {
                 quantities: true,
                 locations: true,

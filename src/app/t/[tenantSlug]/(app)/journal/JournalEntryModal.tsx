@@ -16,7 +16,8 @@ import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetState
 import dynamic from 'next/dynamic';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
-import { apiPost, apiPatch } from '@/lib/api-client';
+import { apiPatch } from '@/lib/api-client';
+import { useOfflineSync, type OfflineSync } from '@/lib/offline/use-offline-sync';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash } from '@/components/ui/icons/nucleo';
 import { Modal } from '@/components/ui/modal';
@@ -96,13 +97,40 @@ export interface JournalEntryInitial {
     locationIds?: string[];
 }
 
+/**
+ * The just-authored entry, surfaced for an optimistic list row so a queued
+ * (offline) create shows immediately — reconciled by the server row on the
+ * next refetch. `id` is a client temp id until the outbox delivers.
+ */
+export interface OptimisticJournalEntry {
+    id: string;
+    type: string;
+    status: string;
+    title: string;
+    occurredAt: string;
+    notes: string | null;
+}
+
 export interface JournalEntryModalProps {
     open: boolean;
     setOpen: Dispatch<SetStateAction<boolean>>;
     tenantSlug: string;
     /** When provided the modal is in EDIT mode and PATCHes this entry. */
     initial?: JournalEntryInitial;
+    /** EDIT-mode save callback — receives the server-saved entry id. */
     onSaved?: (entry: { id: string }) => void;
+    /**
+     * CREATE-mode callback. `queued` is true when the entry was enqueued
+     * offline (delivers on reconnect, deduped by Idempotency-Key). The
+     * optimistic entry lets the parent prepend a list row immediately.
+     */
+    onCreated?: (queued: boolean, optimistic: OptimisticJournalEntry) => void;
+    /**
+     * Shared offline-sync submit from the parent, so the parent's
+     * `OfflineSyncBar` pending count reflects a queued create immediately.
+     * Falls back to the modal's own hook when omitted (other call sites).
+     */
+    offlineSubmit?: OfflineSync['submit'];
 }
 
 const TYPE_OPTIONS: ComboboxOption[] = Object.entries(LOG_ENTRY_TYPE_LABELS).map(
@@ -112,8 +140,12 @@ const STATUS_OPTIONS: ComboboxOption[] = Object.entries(LOG_ENTRY_STATUS_LABELS)
     ([value, label]) => ({ value, label }),
 );
 
-export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved }: JournalEntryModalProps) {
+export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved, onCreated, offlineSubmit }: JournalEntryModalProps) {
     const buildUrl = useTenantApiUrl();
+    const localSync = useOfflineSync();
+    // Prefer the parent's shared submit (keeps its OfflineSyncBar pending count
+    // live); fall back to this modal's own hook at other call sites.
+    const enqueueSubmit = offlineSubmit ?? localSync.submit;
     const t = useTranslations('journal.entryModal');
     const isEdit = !!initial?.id;
 
@@ -252,19 +284,37 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved 
                 locationIds,
             };
             if (harvestPayload) body.harvest = harvestPayload;
-            let saved: { id: string };
             if (isEdit && initial?.id) {
                 const res = await apiPatch<{ entry: { id: string } }>(
                     buildUrl(`/journal/${initial.id}`),
                     body,
                 );
-                saved = res.entry;
+                setDirty(false);
+                setOpen(false);
+                onSaved?.(res.entry);
             } else {
-                saved = await apiPost<{ id: string }>(buildUrl('/journal'), body);
+                // CREATE goes through the offline outbox: online it POSTs
+                // immediately; offline (or on a transient 5xx) it queues and the
+                // service worker replays it on reconnect — carrying its outbox
+                // id as the Idempotency-Key, so the server dedupes the delivery.
+                const result = await enqueueSubmit({
+                    url: buildUrl('/journal'),
+                    method: 'POST',
+                    body,
+                    label: body.title || t('createEntry'),
+                });
+                setDirty(false);
+                setOpen(false);
+                onCreated?.(result === 'queued', {
+                    // Client temp id — replaced by the server row on refetch.
+                    id: `optimistic-${occurredAt?.getTime() ?? ''}-${title.trim()}`,
+                    type: body.type,
+                    status: body.status,
+                    title: body.title,
+                    occurredAt: body.occurredAt ?? new Date().toISOString(),
+                    notes: body.notes,
+                });
             }
-            setDirty(false);
-            setOpen(false);
-            onSaved?.(saved);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to save entry');
         } finally {

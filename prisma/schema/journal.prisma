@@ -55,6 +55,13 @@ model LogEntry {
   /// "Try it with sample data" tag — see Location.isSampleData
   /// (agriculture.prisma). Default-false; reversible via clearSampleData.
   isSampleData      Boolean        @default(false)
+  /// Offline exactly-once handle. When a journal entry is created from the
+  /// queued outbox, the client's outbox-item id rides in as the
+  /// `Idempotency-Key`; a replayed write (flaky rural LTE re-send) dedupes on
+  /// (tenantId, clientMutationId) and returns the original entry instead of a
+  /// duplicate. Nullable + NULLS-DISTINCT: online creates without a key are
+  /// unconstrained (every NULL is unique to Postgres). Mirrors Task.clientMutationId.
+  clientMutationId  String?
   createdByUserId   String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
@@ -76,6 +83,10 @@ model LogEntry {
   lotLinks        LotLink[]
 
   @@unique([id, tenantId])
+  // Offline idempotency ledger — a replayed journal-entry create dedupes here.
+  // Nullable column ⇒ NULLS DISTINCT ⇒ online (no-key) creates never collide;
+  // only real Idempotency-Key replays are constrained. Mirrors Task.
+  @@unique([tenantId, clientMutationId])
   @@index([tenantId, type, occurredAt])
   @@index([tenantId, status, occurredAt])
   @@index([tenantId, operationParcelId])

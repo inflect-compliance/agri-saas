@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
+import { useOfflineSync } from '@/lib/offline/use-offline-sync';
+import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { Fab } from '@/components/ui/fab';
@@ -26,7 +28,7 @@ import {
     LOG_ENTRY_TYPE_LABELS,
     CROP_FILTER_LABELS,
 } from './filter-defs';
-import { JournalEntryModal } from './JournalEntryModal';
+import { JournalEntryModal, type OptimisticJournalEntry } from './JournalEntryModal';
 
 /** List-row shape returned by GET /journal (see JournalRepository.list). */
 interface JournalRow {
@@ -110,6 +112,20 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
     });
     const entries = entriesQuery.data ?? [];
     const loading = entriesQuery.isLoading && !entriesQuery.data;
+
+    // Offline-capable journal-entry create. One shared hook so a create queued
+    // from the modal is reflected in this page's OfflineSyncBar pending count.
+    const { online, pending, submit: offlineSubmit, flush } = useOfflineSync();
+    const handleEntryCreated = (queued: boolean, optimistic: OptimisticJournalEntry) => {
+        // Prepend an optimistic row so the just-logged entry shows at once.
+        // Online (!queued): revalidate to swap it for the server row. Offline
+        // (queued): keep it until the outbox delivers on reconnect (deduped by
+        // Idempotency-Key), when SWR's reconnect revalidation replaces it.
+        void entriesQuery.mutate(
+            (cur) => [optimistic as JournalRow, ...(cur ?? [])],
+            { revalidate: !queued },
+        );
+    };
 
     const liveFilters = useMemo(() => buildJournalFilters(te), [te]);
 
@@ -318,8 +334,16 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                 // <sm: render each entry as a tappable card; taps through to
                 // the journal detail via onRowClick below.
                 mobileFallback: 'card',
-                onRowClick: (row) => router.push(tenantHref(`/journal/${row.original.id}`)),
-                onRowPrefetch: (row) => { router.prefetch(tenantHref(`/journal/${row.original.id}`)); prefetchData(CACHE_KEYS.journal.detail(row.original.id)); },
+                // An optimistic (queued-offline) row has a client temp id with
+                // no server detail page yet — don't navigate until it delivers.
+                onRowClick: (row) => {
+                    if (row.original.id.startsWith('optimistic-')) return;
+                    router.push(tenantHref(`/journal/${row.original.id}`));
+                },
+                onRowPrefetch: (row) => {
+                    if (row.original.id.startsWith('optimistic-')) return;
+                    router.prefetch(tenantHref(`/journal/${row.original.id}`)); prefetchData(CACHE_KEYS.journal.detail(row.original.id));
+                },
                 emptyState: hasActive ? (
                     <EmptyState
                         size="sm"
@@ -352,11 +376,19 @@ function JournalPageInner({ initialEntries, initialFilters, tenantSlug, permissi
                         open={isCreateOpen}
                         setOpen={setIsCreateOpen}
                         tenantSlug={tenantSlug}
-                        onSaved={(entry) => {
-                            void entriesQuery.mutate();
-                            router.push(tenantHref(`/journal/${entry.id}`));
-                        }}
+                        offlineSubmit={offlineSubmit}
+                        onCreated={handleEntryCreated}
                     />
+                    {/* Surfaces a queued (offline) create + a "Sync now" when
+                        back online. Hidden while online with nothing pending. */}
+                    {(!online || pending > 0) && (
+                        <OfflineSyncBar
+                            online={online}
+                            pending={pending}
+                            onSyncNow={() => void flush()}
+                            className="fixed inset-x-0 bottom-0 z-40 md:left-auto md:right-4 md:bottom-4 md:max-w-sm"
+                        />
+                    )}
                     <Fab
                         onClick={() => setIsCreateOpen(true)}
                         label={t('fabLabel')}
