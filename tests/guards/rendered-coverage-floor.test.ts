@@ -73,7 +73,7 @@ const ROOT = path.resolve(__dirname, '../..');
 // triad was removed, so `asset-criticality.test.tsx` (the CIA criticality
 // component test) was deleted with it.
 // Documented downward exceptions; the floor resumes its upward ratchet here.
-const RENDERED_TEST_FLOOR = 183;
+const RENDERED_TEST_FLOOR = 192;
 const E2E_SPEC_FLOOR = 55;
 const REGISTRY_FLOOR = 5;
 
