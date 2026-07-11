@@ -56,6 +56,37 @@ describe('service worker safety', () => {
         // No cache write keyed on an /api/ request anywhere.
         expect(/cache\.put\([^)]*\/api\//.test(src)).toBe(false);
     });
+
+    // Roadmap-6 P1 — scoped addition. The parcel MVT tile route joins the
+    // field-data allowlist so a previously-viewed field keeps its parcel
+    // geometry offline. This behaviourally pins BOTH halves of the contract:
+    // the tile route IS cached, and the "never cache arbitrary /api"
+    // invariant still holds. Evaluate the real predicate from sw.js so a
+    // future edit that widens it to a blanket /api cache fails here.
+    it('field-data allowlist caches parcel MVT tiles but never arbitrary /api', () => {
+        const src = sw();
+        const m = src.match(/function isFieldDataRequest\(url\)\s*\{[\s\S]*?\n\}/);
+        expect(m).toBeTruthy();
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+        const isFieldDataRequest = new Function(
+            'url',
+            `${m![0]}\nreturn isFieldDataRequest(url);`,
+        ) as (url: { pathname: string }) => boolean;
+        const u = (pathname: string) => ({ pathname });
+
+        // Scoped addition — parcel vector tiles (with + without .pbf).
+        expect(isFieldDataRequest(u('/api/t/acme/locations/loc1/tiles/12/2345/1234.pbf'))).toBe(true);
+        expect(isFieldDataRequest(u('/api/t/acme/locations/loc1/tiles/12/2345/1234'))).toBe(true);
+        // Existing field data still cached.
+        expect(isFieldDataRequest(u('/api/t/acme/locations/loc1'))).toBe(true);
+        expect(isFieldDataRequest(u('/api/t/acme/locations/loc1/parcels'))).toBe(true);
+        expect(isFieldDataRequest(u('/api/t/acme/farm-tasks'))).toBe(true);
+        // Invariant — arbitrary /api is NEVER cached.
+        expect(isFieldDataRequest(u('/api/t/acme/admin/members'))).toBe(false);
+        expect(isFieldDataRequest(u('/api/t/acme/risks'))).toBe(false);
+        // An incomplete tile path (no y) must not match.
+        expect(isFieldDataRequest(u('/api/t/acme/locations/loc1/tiles/12/2345'))).toBe(false);
+    });
 });
 
 // ─── 2b — offline exactly-once (idempotency handle) ────────────────

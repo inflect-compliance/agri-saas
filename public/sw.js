@@ -64,11 +64,17 @@ function isStaticAsset(url) {
 // Narrow allowlist of field GET endpoints worth caching for offline open.
 // Scoped on purpose — NOT a blanket /api cache (avoids stale/leaky tenant
 // data). Covers: a location, its parcels, a field-operation, the operator's
-// farm-task queue.
+// farm-task queue, and the same-origin parcel MVT tiles for a location.
 function isFieldDataRequest(url) {
     if (!url.pathname.startsWith('/api/')) return false;
     return (
         /\/locations\/[^/]+(?:\/parcels)?$/.test(url.pathname) ||
+        // Parcel vector tiles: /api/t/<slug>/locations/<id>/tiles/<z>/<x>/<y>.pbf
+        // Same-origin geometry — cache so a previously-viewed field keeps its
+        // parcel outlines offline. Bounded: only tenant parcel tiles, never
+        // arbitrary /api. (Roadmap-6 P1 — scoped addition, see
+        // offline-pwa-coverage guardrail.)
+        /\/locations\/[^/]+\/tiles\/\d+\/\d+\/\d+(?:\.pbf)?$/.test(url.pathname) ||
         /\/field-operations\/[^/]+$/.test(url.pathname) ||
         /\/farm-tasks(?:$|\?)/.test(url.pathname) ||
         url.pathname.endsWith('/farm-tasks')
