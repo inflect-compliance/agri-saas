@@ -357,7 +357,12 @@ async function flushOutbox() {
             // Optimistic-lock conflict — the row moved on while this edit sat
             // queued. Retain it (NON-transient: never dropped, never clobbered)
             // for the operator to resolve; stash the server state for the UI.
-            await idbWrite(db, 'put', { ...item, conflict: { status: 409, server: conflictBody } });
+            // Guard against resurrection: a late 409 must not re-add an item the
+            // operator already resolved (take-server removed it).
+            const current = await idbGetAll(db);
+            if (current.some((i) => i.id === item.id)) {
+                await idbWrite(db, 'put', { ...item, conflict: { status: 409, server: conflictBody } });
+            }
         } else if (status === 429) {
             // Rate limited — retain untouched (no attempts bump, never
             // dropped) and stop draining into the closed window.

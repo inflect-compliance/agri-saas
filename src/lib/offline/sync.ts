@@ -94,8 +94,14 @@ export async function flushOutbox(store: OutboxStore, send: Sender): Promise<Flu
             // Optimistic-lock conflict — the row moved on while this edit sat
             // queued. Retain it (NON-transient: never dropped, never clobbered)
             // and surface a resolution moment. Keep the server state for the UI.
-            await store.update({ ...item, conflict: { status: 409, server: res.conflict } });
-            conflicts++;
+            // Guard against resurrection: a concurrent flush's late 409 must not
+            // re-add an item the operator already resolved (take-server removed
+            // it) — only park it if it's still queued.
+            const stillQueued = (await store.all()).some((i) => i.id === item.id);
+            if (stillQueued) {
+                await store.update({ ...item, conflict: { status: 409, server: res.conflict } });
+                conflicts++;
+            }
         } else if (res.status === 429) {
             // Rate limited — retain untouched (no attempts bump, never
             // dropped) and stop draining into a closed window.
