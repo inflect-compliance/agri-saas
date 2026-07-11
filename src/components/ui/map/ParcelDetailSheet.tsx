@@ -184,7 +184,7 @@ export function ParcelDetailSheet({
     const selectedWaterUnit = unitOptions.find((o) => o.value === waterRateUnitId)?.meta ?? null;
 
     const areaSummary =
-        areaHa > 0 ? `${trimNumber(areaHa)} ha · ${trimNumber(haToDca(areaHa))} dca` : null;
+        areaHa > 0 ? `${trimNumber(haToDca(areaHa))} dca` : null;
     const inputTotal =
         doseValid && selectedUnit && areaHa > 0 ? totalLabel(doseNumber, selectedUnit.symbol, areaHa) : null;
     const waterTotal =
