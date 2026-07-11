@@ -57,6 +57,27 @@ describe('service worker safety', () => {
         expect(/cache\.put\([^)]*\/api\//.test(src)).toBe(false);
     });
 
+    it('does NOT skipWaiting on install — the new SW waits for consent', () => {
+        // A deploy mid-field-session must not hot-swap the SW under an operator
+        // who's mid-queue. The install handler precaches but never auto-activates.
+        const src = sw();
+        const install = src.slice(
+            src.indexOf("addEventListener('install'"),
+            src.indexOf("addEventListener('activate'"),
+        );
+        // No CALL to skipWaiting() in the install handler (a mention in a
+        // comment is fine).
+        expect(install).not.toMatch(/skipWaiting\s*\(/);
+    });
+
+    it('activates the waiting worker only on a SKIP_WAITING message', () => {
+        // The takeover is consent-gated: ServiceWorkerRegistrar posts
+        // SKIP_WAITING when the operator taps "Update ready — refresh".
+        const src = sw();
+        expect(src).toMatch(/['"]SKIP_WAITING['"]/);
+        expect(src).toMatch(/self\.skipWaiting\(\)/);
+    });
+
     // Roadmap-6 P1 — scoped addition. The parcel MVT tile route joins the
     // field-data allowlist so a previously-viewed field keeps its parcel
     // geometry offline. This behaviourally pins BOTH halves of the contract:

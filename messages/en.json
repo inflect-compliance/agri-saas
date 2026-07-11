@@ -7092,5 +7092,11 @@
             "colours": "Dark purple-blue is sparse or stressed vegetation; through teal and green to yellow is an increasingly dense, vigorous canopy. Prefer it over NDVI once the crop is at full canopy and NDVI stops separating the strong areas from the very strong."
         },
         "breadcrumbParent": "Knowledge base"
+    },
+    "pwa": {
+        "update": {
+            "ready": "Update ready — refresh to get the latest",
+            "refresh": "Refresh"
+        }
     }
 }
