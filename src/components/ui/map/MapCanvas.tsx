@@ -40,6 +40,10 @@ import { buildOfflineBasemapStyle } from '@/lib/geo/offline-basemap-style';
 // view they'd overlap into noise; they reappear when inspecting fields.
 const CROP_ICON_MIN_ZOOM = 12;
 
+// Fallback map view when a location has no parcel geometry to fit — the whole
+// of Bulgaria in frame (approx. geographic centre), not the world.
+const BULGARIA_VIEW = { longitude: 25.49, latitude: 42.73, zoom: 6.4 } as const;
+
 // Soil-region area overlay (soil view). ISRIC SoilGrids WRB "most probable
 // soil class" map, served as a WMS raster (CC-BY 4.0, CORS-open, so MapLibre
 // fetches tiles directly — no proxy). Drawn UNDER the parcels so a field's own
@@ -299,7 +303,10 @@ export function MapCanvas({
             const [w, s, e, n] = bounds;
             return { longitude: (w + e) / 2, latitude: (s + n) / 2, zoom: 12 };
         }
-        return { longitude: 0, latitude: 20, zoom: 1 };
+        // No parcel geometry yet → open centred on Bulgaria (the whole country
+        // in view) rather than the world, so a new location lands somewhere
+        // useful to orient and start drawing. Every tenant here farms in BG.
+        return BULGARIA_VIEW;
     }, [bounds]);
 
     // Live zoom, so the crop glyphs can hide below a threshold (they'd clutter
