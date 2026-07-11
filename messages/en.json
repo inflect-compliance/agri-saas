@@ -7057,6 +7057,7 @@
             "title": "EVI — Enhanced vegetation",
             "blurb": "An improved NDVI that corrects for atmospheric haze and background soil brightness and resists saturating in high-biomass crops. The most reliable vigour layer at peak season and in hot, hazy conditions.",
             "colours": "Dark purple-blue is sparse or stressed vegetation; through teal and green to yellow is an increasingly dense, vigorous canopy. Prefer it over NDVI once the crop is at full canopy and NDVI stops separating the strong areas from the very strong."
-        }
+        },
+        "breadcrumbParent": "Knowledge base"
     }
 }

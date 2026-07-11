@@ -13,12 +13,15 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
+import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
+import { useTenantHref } from '@/lib/tenant-context-provider';
 import { cn } from '@/lib/cn';
 import { VEGETATION_INDICES } from '@/lib/agro/vegetation-indices';
 
 export default function SatelliteImageryGuidePage() {
     const t = useTranslations('satelliteImagery');
     const router = useRouter();
+    const tenantHref = useTenantHref();
 
     // Scroll to the deep-linked section once the client-rendered content
     // exists — native hash scrolling misses it on the first client render.
@@ -32,6 +35,12 @@ export default function SatelliteImageryGuidePage() {
     return (
         <div className="mx-auto w-full max-w-3xl space-y-section px-4 py-6">
             <div className="space-y-default">
+                <PageBreadcrumbs
+                    items={[
+                        { label: t('breadcrumbParent'), href: tenantHref('/knowledge') },
+                        { label: t('title') },
+                    ]}
+                />
                 <Button variant="ghost" size="sm" onClick={() => router.back()}>
                     {t('back')}
                 </Button>
@@ -74,7 +83,7 @@ export default function SatelliteImageryGuidePage() {
                                 <span>{idx.lowLabel}</span>
                                 <span
                                     aria-hidden="true"
-                                    className={cn('h-2 w-40 max-w-full rounded-full', idx.legendGradientClass)}
+                                    className={cn('h-2 w-full max-w-xs rounded-full', idx.legendGradientClass)}
                                 />
                                 <span>{idx.highLabel}</span>
                             </div>
