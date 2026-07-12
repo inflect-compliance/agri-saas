@@ -5,7 +5,8 @@
  *
  * jsdom ignores CSS, so BOTH the `sm:hidden` card list AND the
  * `hidden sm:contents` table render into the DOM; queries are scoped to
- * the `mobile-card-list` testid to read the card branch unambiguously.
+ * the `#mobile-card-list` <ul> (role="list") to read the card branch
+ * unambiguously.
  *
  * Proves:
  *   1. Each row renders as a card built from `column.meta.mobileCard`
@@ -67,8 +68,8 @@ describe('DataTable mobileFallback="card"', () => {
             />,
         );
 
-        const list = screen.getByTestId('mobile-card-list');
-        const cards = within(list).getAllByTestId('mobile-card');
+        const list = screen.getByRole('list');
+        const cards = within(list).getAllByRole('listitem');
         expect(cards).toHaveLength(2);
 
         // Card 1: title + status pill + meta label/value, reusing cell renderers.
@@ -95,9 +96,11 @@ describe('DataTable mobileFallback="card"', () => {
             />,
         );
 
-        const list = screen.getByTestId('mobile-card-list');
-        const cards = within(list).getAllByTestId('mobile-card');
-        fireEvent.click(cards[1]);
+        const list = screen.getByRole('list');
+        const cards = within(list).getAllByRole('listitem');
+        // The <li> wraps the clickable card <div> that carries onClick; a
+        // click on the <li> itself would not reach the child handler.
+        fireEvent.click(cards[1].firstElementChild as HTMLElement);
 
         expect(onRowClick).toHaveBeenCalledTimes(1);
         // First arg is the TanStack Row for t2.
@@ -113,6 +116,6 @@ describe('DataTable mobileFallback="card"', () => {
                 selectionEnabled={false}
             />,
         );
-        expect(screen.queryByTestId('mobile-card-list')).not.toBeInTheDocument();
+        expect(document.getElementById('mobile-card-list')).not.toBeInTheDocument();
     });
 });

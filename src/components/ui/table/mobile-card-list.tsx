@@ -34,7 +34,7 @@ import {
   type Table as TableType,
 } from "@tanstack/react-table";
 import type { MouseEvent, ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/components/ui/icons/nucleo/chevron-right";
 import { useTranslations } from "next-intl";
 import { cn } from "./table-utils";
 
@@ -145,7 +145,7 @@ export function MobileCardList<T>({
   return (
     <ul
       className={cn("space-y-default", className)}
-      data-testid="mobile-card-list"
+      id="mobile-card-list"
     >
       {rows.map((row) => {
         const cells = row.getVisibleCells();
@@ -158,31 +158,23 @@ export function MobileCardList<T>({
 
         return (
           <li key={row.id}>
-            {/* A clickable card is a `<div role="button">`, NOT a real
-                <button>: some title cells embed a same-destination <Link>
-                (Tasks/Journal), and `<button><a>` is invalid HTML. A div
-                can legally contain a link; Enter/Space are wired manually
-                for keyboard parity. Non-clickable rows (no detail route)
-                render a plain, non-interactive card. */}
+            {/* Card a11y mirrors the desktop DataTable row: the card's
+                onClick is a MOUSE convenience only, and the nested
+                title <Link> (Tasks/Journal/Locations embed a
+                same-destination <Link>) is the keyboard + assistive-tech
+                affordance. The card is deliberately NOT role="button":
+                a role="button" wrapping a nested <a> is a WCAG
+                nested-interactive violation (axe 4.1.2) and would also
+                duplicate the link's action for AT users. Rows whose
+                title carries no <Link> match the desktop table's own
+                mouse-only row-click model. Non-clickable rows (no detail
+                route) render a plain, non-interactive card. */}
             <div
-              role={clickable ? "button" : undefined}
-              tabIndex={clickable ? 0 : undefined}
               onClick={clickable ? (e) => onRowClick!(row, e) : undefined}
-              onKeyDown={
-                clickable
-                  ? (e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onRowClick!(row, e as unknown as MouseEvent);
-                      }
-                    }
-                  : undefined
-              }
-              data-testid="mobile-card"
               className={cn(
                 "flex w-full flex-col gap-tight rounded-lg border border-border-default bg-bg-default p-4 text-left",
                 clickable
-                  ? "min-h-[44px] cursor-pointer transition-colors hover:bg-bg-muted active:bg-bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-inset"
+                  ? "min-h-[44px] cursor-pointer transition-colors hover:bg-bg-muted active:bg-bg-muted"
                   : "",
               )}
             >

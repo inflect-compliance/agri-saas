@@ -48,9 +48,9 @@ test.describe('mobile lists — card fallback @mobile', () => {
         ).toBeVisible({ timeout: 30_000 });
 
         // The card list (seeded tasks) renders instead of the scrolling table.
-        const cardList = main.getByTestId('mobile-card-list');
+        const cardList = main.locator('#mobile-card-list');
         await expect(cardList).toBeVisible({ timeout: 30_000 });
-        const cards = cardList.getByTestId('mobile-card');
+        const cards = cardList.getByRole('listitem');
         expect(await cards.count()).toBeGreaterThan(0);
 
         // PRIMARY GOAL: no horizontal overflow at the phone viewport.
@@ -108,7 +108,7 @@ test.describe('mobile lists — card fallback @mobile', () => {
             await test.step(label, async () => {
                 await safeGoto(page, path(tenantSlug));
                 const main = page.getByRole('main');
-                const cardList = main.getByTestId('mobile-card-list').first();
+                const cardList = main.locator('#mobile-card-list').first();
 
                 // The card list mounts post-hydration on a phone viewport. If
                 // the shared seed has no rows for this entity it never appears —
@@ -122,7 +122,7 @@ test.describe('mobile lists — card fallback @mobile', () => {
                 // PRIMARY GOAL: cards, not a horizontally-scrolling table.
                 await expectNoHorizontalOverflow(page, `${label} list (card mode)`);
 
-                const cards = cardList.getByTestId('mobile-card');
+                const cards = cardList.getByRole('listitem');
                 if ((await cards.count()) === 0) return;
 
                 if (detail) {
