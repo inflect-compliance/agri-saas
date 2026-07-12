@@ -44,7 +44,7 @@ const FULL_NAV = [
             { href: '/t/acme/assets', label: 'Asset', icon: LayoutDashboard },
             { href: '/t/acme/locations', label: 'Location', icon: MapPin },
             { href: '/t/acme/journal', label: 'Journal', icon: NotebookPen },
-            { href: '/t/acme/farm-tasks', label: 'Farm Tasks', icon: ClipboardList },
+            { href: '/t/acme/farm-tasks', label: 'Tasks', icon: ClipboardList },
             { href: '/t/acme/risks', label: 'Risk', icon: AlertTriangle },
             { href: '/t/acme/exchange', label: 'Marketplace', icon: LayoutDashboard },
         ],
