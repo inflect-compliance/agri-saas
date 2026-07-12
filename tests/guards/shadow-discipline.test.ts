@@ -109,6 +109,14 @@ const ALLOWLIST: AllowlistEntry[] = [
         file: 'src/app/t/[tenantSlug]/(app)/controls/[controlId]/page.tsx',
         reason: 'Inline success toast floats above the page; shadow communicates lift. Future PR may migrate to canonical Toast.',
     },
+    {
+        file: 'src/components/ui/hooks/use-pull-to-refresh.tsx',
+        reason: 'mobile-native-feel — the pull-to-refresh spinner disc floats over the page content during the drag gesture; shadow-md gives it the lift of a native refresh control (same floating-affordance class as the FAB).',
+    },
+    {
+        file: 'src/components/ui/scroll-to-top.tsx',
+        reason: 'mobile-native-feel — floating scroll-to-top button; shadow-lg communicates lift above scrolling content (same floating-control class as the FAB entry).',
+    },
 ];
 
 const ALLOWED = new Set(ALLOWLIST.map((e) => e.file));
