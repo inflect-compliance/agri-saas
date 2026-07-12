@@ -69,8 +69,10 @@ test.describe('mobile members admin — Popover bottom sheet @mobile', () => {
         // The kebab itself is a ≥44px tap target on mobile.
         const kebabBox = await kebab.boundingBox();
         expect(kebabBox, 'kebab must have a bounding box').toBeTruthy();
-        expect(kebabBox!.height).toBeGreaterThanOrEqual(44);
-        expect(kebabBox!.width).toBeGreaterThanOrEqual(44);
+        // Round: boundingBox() reports sub-pixel heights (e.g. 43.99997 for a
+        // min-h-[44px] element) from browser layout rounding — the CSS target is 44.
+        expect(Math.round(kebabBox!.height)).toBeGreaterThanOrEqual(44);
+        expect(Math.round(kebabBox!.width)).toBeGreaterThanOrEqual(44);
 
         await kebab.click();
 
@@ -94,13 +96,16 @@ test.describe('mobile members admin — Popover bottom sheet @mobile', () => {
             const box = await item.boundingBox();
             expect(box, `menu item ${i} must have a bounding box`).toBeTruthy();
             expect(
-                box!.height,
+                Math.round(box!.height),
                 `menu item ${i} height (${box!.height}px) must be a ≥44px tap target`,
             ).toBeGreaterThanOrEqual(44);
         }
 
         // Dismiss without committing any (potentially destructive) action.
+        // A closed Vaul drawer stays MOUNTED with data-state="closed" (it isn't
+        // removed from the DOM), so assert that close signal rather than
+        // toBeHidden() — which sees the still-present element as visible.
         await page.keyboard.press('Escape');
-        await expect(sheet).toBeHidden({ timeout: 10_000 });
+        await expect(sheet).toHaveAttribute('data-state', 'closed', { timeout: 10_000 });
     });
 });
