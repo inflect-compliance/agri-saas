@@ -199,20 +199,23 @@ describe('Epic 41 — WidgetPicker', () => {
         );
     }
 
-    it('opens with KPI selected and the default chart variant for KPI', () => {
+    it('opens with KPI selected and the default chart variant for KPI', async () => {
         const onSubmit = jest.fn();
         render(<Harness onSubmit={onSubmit} />);
         // Modal title visible.
         expect(
             screen.getByRole('heading', { name: /add widget/i }),
         ).toBeInTheDocument();
-        // KPI chartType select is present with the KPI variants.
-        const select = screen.getByTestId(
-            'widget-picker-chart-type',
-        ) as HTMLSelectElement;
-        const optionValues = Array.from(select.options).map((o) => o.value);
-        expect(optionValues).toContain('coverage');
-        expect(optionValues).toContain('critical-risks');
+        // KPI chartType Combobox is present with the KPI variants.
+        const user = userEvent.setup();
+        await act(async () => {
+            await user.click(screen.getByRole('combobox'));
+        });
+        const optionTexts = screen
+            .getAllByRole('option')
+            .map((o) => o.textContent);
+        expect(optionTexts).toContain('Coverage');
+        expect(optionTexts).toContain('Critical risks');
     });
 
     it('switching to TREND replaces the chartType options + shows the days field', async () => {
@@ -229,13 +232,15 @@ describe('Epic 41 — WidgetPicker', () => {
         });
 
         // chartType options are now the TREND set.
-        const select = screen.getByTestId(
-            'widget-picker-chart-type',
-        ) as HTMLSelectElement;
-        const optionValues = Array.from(select.options).map((o) => o.value);
-        expect(optionValues).toContain('risks-open');
-        expect(optionValues).toContain('controls-coverage');
-        expect(optionValues).not.toContain('coverage'); // KPI-only
+        await act(async () => {
+            await user.click(screen.getByRole('combobox'));
+        });
+        const optionTexts = screen
+            .getAllByRole('option')
+            .map((o) => o.textContent);
+        expect(optionTexts).toContain('Open risks');
+        expect(optionTexts).toContain('Controls coverage');
+        expect(optionTexts).not.toContain('Coverage'); // KPI-only
 
         // Days field is rendered.
         expect(screen.getByTestId('widget-picker-trend-days')).toBeInTheDocument();

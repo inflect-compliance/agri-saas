@@ -6,7 +6,7 @@
  *
  * Two surfaces to drive:
  *
- *   1. **Picker** — top of the panel. Two `<select>` dropdowns with
+ *   1. **Picker** — top of the panel. Two `<Combobox>` dropdowns with
  *      every version the policy carries. Defaults: previous-vs-current
  *      so a reviewer's first impression is always meaningful.
  *
@@ -39,6 +39,7 @@ import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { cn } from '@/lib/cn';
 import { Card } from '@/components/ui/card';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 
 export interface VersionDiffOption {
     id: string;
@@ -126,6 +127,11 @@ export function VersionDiff({
     const fromV = sorted.find((v) => v.id === defaultFrom);
     const toV = sorted.find((v) => v.id === defaultTo);
 
+    const versionOptions = useMemo<ComboboxOption[]>(
+        () => sorted.map((v) => ({ value: v.id, label: `v${v.versionNumber}` })),
+        [sorted],
+    );
+
     const chunks = useMemo(() => {
         if (!fromV || !toV || fromV.id === toV.id) return [];
         return diffLines(asPlainText(fromV), asPlainText(toV));
@@ -163,39 +169,43 @@ export function VersionDiff({
             className={className}
         >
             <header className="flex flex-wrap items-center gap-compact border-b border-border-default px-3 py-2 text-xs text-content-muted">
-                <label className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5">
                     <span className="text-content-subtle">{t('versionDiff.from')}</span>
-                    <select
-                        className="input text-xs"
-                        value={defaultFrom}
-                        onChange={(e) => handleFromChange(e.target.value)}
-                        aria-label={t('versionDiff.compareFromLabel')}
-                        data-testid="version-diff-from"
-                    >
-                        {sorted.map((v) => (
-                            <option key={v.id} value={v.id}>
-                                v{v.versionNumber}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                    <span data-testid="version-diff-from">
+                        <Combobox
+                            id="version-diff-from"
+                            options={versionOptions}
+                            selected={versionOptions.find((o) => o.value === defaultFrom) ?? null}
+                            setSelected={(opt) => opt && handleFromChange(opt.value)}
+                            hideSearch
+                            matchTriggerWidth
+                            caret
+                            buttonProps={{
+                                'aria-label': t('versionDiff.compareFromLabel'),
+                                className: 'text-xs',
+                            }}
+                        />
+                    </span>
+                </span>
                 <span aria-hidden>→</span>
-                <label className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5">
                     <span className="text-content-subtle">{t('versionDiff.to')}</span>
-                    <select
-                        className="input text-xs"
-                        value={defaultTo}
-                        onChange={(e) => handleToChange(e.target.value)}
-                        aria-label={t('versionDiff.compareToLabel')}
-                        data-testid="version-diff-to"
-                    >
-                        {sorted.map((v) => (
-                            <option key={v.id} value={v.id}>
-                                v{v.versionNumber}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                    <span data-testid="version-diff-to">
+                        <Combobox
+                            id="version-diff-to"
+                            options={versionOptions}
+                            selected={versionOptions.find((o) => o.value === defaultTo) ?? null}
+                            setSelected={(opt) => opt && handleToChange(opt.value)}
+                            hideSearch
+                            matchTriggerWidth
+                            caret
+                            buttonProps={{
+                                'aria-label': t('versionDiff.compareToLabel'),
+                                className: 'text-xs',
+                            }}
+                        />
+                    </span>
+                </span>
                 {sameVersion && (
                     <span className="text-content-subtle">
                         {t('versionDiff.pickTwoDifferent')}

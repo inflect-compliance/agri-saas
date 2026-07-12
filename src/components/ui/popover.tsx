@@ -244,7 +244,9 @@ const Item = forwardRef<HTMLButtonElement, PopoverItemProps>(function Item(
             data-selected={selected || undefined}
             disabled={disabled}
             className={cn(
-                "flex w-full cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left",
+                // ≥44px tap target on mobile (bottom-sheet menus); desktop
+                // popovers reset to the compact height via `sm:min-h-0`.
+                "flex w-full min-h-[44px] cursor-pointer select-none items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left sm:min-h-0",
                 "transition-colors duration-100 ease-out motion-reduce:transition-none",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 "disabled:cursor-not-allowed disabled:opacity-50",

@@ -30,6 +30,8 @@ import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
+import { ToggleGroup } from '@/components/ui/toggle-group';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { DataTable, createColumns } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/format-date';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
@@ -195,22 +197,23 @@ export function AccessReviewDetailClient({
                         );
                     }
                     if (canDecide) {
+                        // Segmented action trigger (not a persistent selection):
+                        // picking a verb opens the decision modal. Replaces the
+                        // hand-rolled native <select> (Epic 55).
                         return (
-                            <select
-                                className="input"
-                                defaultValue=""
-                                data-testid={`decision-select-${d.id}`}
-                                onChange={(e) => {
-                                    const v = e.target.value as DecisionType | '';
-                                    if (v) setActiveDecision({ row: d, type: v });
-                                    e.target.value = '';
-                                }}
-                            >
-                                <option value="" disabled>{t('decidePlaceholder')}</option>
-                                <option value="CONFIRM">{t('decisionConfirm')}</option>
-                                <option value="REVOKE">{t('decisionRevoke')}</option>
-                                <option value="MODIFY">{t('decisionModify')}</option>
-                            </select>
+                            <div data-testid={`decision-select-${d.id}`}>
+                                <ToggleGroup
+                                    size="sm"
+                                    ariaLabel={t('decidePlaceholder')}
+                                    selected={null}
+                                    options={[
+                                        { value: 'CONFIRM', label: t('decisionConfirm'), id: `decision-confirm-${d.id}` },
+                                        { value: 'REVOKE', label: t('decisionRevoke'), id: `decision-revoke-${d.id}` },
+                                        { value: 'MODIFY', label: t('decisionModify'), id: `decision-modify-${d.id}` },
+                                    ]}
+                                    selectAction={(v) => setActiveDecision({ row: d, type: v as DecisionType })}
+                                />
+                            </div>
                         );
                     }
                     return (
@@ -376,8 +379,12 @@ function DecisionDialog({
     const [modifiedToRole, setModifiedToRole] = useState<Role>('READER');
     const [error, setError] = useState<string | null>(null);
 
-    const targetRoles = useMemo(
-        () => ALL_ROLES.filter((r) => r !== decision.row.snapshotRole),
+    const targetRoleOptions = useMemo<ComboboxOption[]>(
+        () =>
+            ALL_ROLES.filter((r) => r !== decision.row.snapshotRole).map((r) => ({
+                value: r,
+                label: r,
+            })),
         [decision.row.snapshotRole],
     );
 
@@ -433,18 +440,20 @@ function DecisionDialog({
                     </p>
                     {decision.type === 'MODIFY' ? (
                         <FormField label={t('targetRole')} required>
-                            <select
-                                className="input"
-                                value={modifiedToRole}
-                                onChange={(e) => setModifiedToRole(e.target.value as Role)}
-                                data-testid="decision-modal-modified-to-role"
-                            >
-                                {targetRoles.map((r) => (
-                                    <option key={r} value={r}>
-                                        {r}
-                                    </option>
-                                ))}
-                            </select>
+                            {/* Combobox inside a Modal → forceDropdown (no mobile
+                                drawer). Wrapper carries the E2E testid since
+                                ButtonProps has no data-testid slot. */}
+                            <div data-testid="decision-modal-modified-to-role">
+                                <Combobox
+                                    forceDropdown
+                                    hideSearch
+                                    matchTriggerWidth
+                                    id="decision-modal-modified-to-role"
+                                    options={targetRoleOptions}
+                                    selected={targetRoleOptions.find((o) => o.value === modifiedToRole) ?? null}
+                                    setSelected={(opt) => opt && setModifiedToRole(opt.value as Role)}
+                                />
+                            </div>
                         </FormField>
                     ) : null}
                     <FormField

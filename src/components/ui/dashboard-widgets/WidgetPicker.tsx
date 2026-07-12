@@ -48,6 +48,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 
 import type {
@@ -212,6 +213,10 @@ export function WidgetPicker({
         'evidence-overdue': t('widgetPicker.chartOverdueEvidence'),
         default: t('widgetPicker.chartDefault'),
     };
+    const chartTypeOptions: ComboboxOption[] = variants.map((v) => ({
+        value: v,
+        label: chartLabels[v],
+    }));
 
     // Reset form when modal toggles closed → open transitions are
     // discoverable. We don't want a half-filled prior session
@@ -344,18 +349,19 @@ export function WidgetPicker({
                                 : t('widgetPicker.dataSourceDefaultDescription')
                         }
                     >
-                        <select
-                            value={chartType}
-                            onChange={(e) => setChartType(e.target.value)}
-                            data-testid="widget-picker-chart-type"
-                            className="block w-full rounded-md border border-border-default bg-bg-default px-3 py-2 text-sm text-content-emphasis focus:outline-none focus:ring-2 focus:ring-ring"
-                        >
-                            {variants.map((v) => (
-                                <option key={v} value={v}>
-                                    {chartLabels[v]}
-                                </option>
-                            ))}
-                        </select>
+                        <Combobox
+                            forceDropdown
+                            hideSearch
+                            matchTriggerWidth
+                            id="widget-picker-chart-type"
+                            options={chartTypeOptions}
+                            selected={
+                                chartTypeOptions.find(
+                                    (o) => o.value === chartType,
+                                ) ?? null
+                            }
+                            setSelected={(opt) => opt && setChartType(opt.value)}
+                        />
                     </FormField>
 
                     {/* ── Step 3: per-type config ── */}
@@ -443,23 +449,39 @@ export function WidgetPicker({
                             label={t('widgetPicker.sortByLabel')}
                             description={t('widgetPicker.sortByDescription')}
                         >
-                            <select
+                            <RadioGroup
                                 value={tenantSort}
-                                onChange={(e) =>
+                                onValueChange={(v) =>
                                     setTenantSort(
-                                        e.target.value as
-                                            | 'rag'
-                                            | 'name'
-                                            | 'coverage',
+                                        v as 'rag' | 'name' | 'coverage',
                                     )
                                 }
                                 data-testid="widget-picker-tenant-sort"
-                                className="block w-full rounded-md border border-border-default bg-bg-default px-3 py-2 text-sm text-content-emphasis focus:outline-none focus:ring-2 focus:ring-ring"
+                                className="flex flex-col gap-tight"
                             >
-                                <option value="rag">{t('widgetPicker.sortRag')}</option>
-                                <option value="name">{t('widgetPicker.sortName')}</option>
-                                <option value="coverage">{t('widgetPicker.sortCoverage')}</option>
-                            </select>
+                                {[
+                                    { value: 'rag', label: t('widgetPicker.sortRag') },
+                                    { value: 'name', label: t('widgetPicker.sortName') },
+                                    { value: 'coverage', label: t('widgetPicker.sortCoverage') },
+                                ].map((opt) => (
+                                    <div
+                                        key={opt.value}
+                                        className="flex items-center gap-tight"
+                                    >
+                                        <RadioGroupItem
+                                            value={opt.value}
+                                            id={`tenant-sort-${opt.value}`}
+                                            aria-label={opt.label}
+                                        />
+                                        <Label
+                                            htmlFor={`tenant-sort-${opt.value}`}
+                                            className="text-sm cursor-pointer"
+                                        >
+                                            {opt.label}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </RadioGroup>
                         </FormField>
                     )}
 

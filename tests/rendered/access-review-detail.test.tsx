@@ -132,9 +132,9 @@ describe('AccessReviewDetailClient', () => {
                 />,
             ),
         );
-        fireEvent.change(screen.getByTestId('decision-select-dec_1'), {
-            target: { value: 'CONFIRM' },
-        });
+        // The decision picker is now a ToggleGroup — clicking CONFIRM
+        // (role=radio, id=decision-confirm-<id>) opens the modal.
+        fireEvent.click(document.getElementById('decision-confirm-dec_1')!);
         // Modal opened — submit button is present.
         expect(screen.getByTestId('decision-modal-submit')).toBeTruthy();
         // CONFIRM shouldn't render the target-role select.
@@ -154,9 +154,7 @@ describe('AccessReviewDetailClient', () => {
                 />,
             ),
         );
-        fireEvent.change(screen.getByTestId('decision-select-dec_1'), {
-            target: { value: 'MODIFY' },
-        });
+        fireEvent.click(document.getElementById('decision-modify-dec_1')!);
         expect(screen.getByTestId('decision-modal-modified-to-role')).toBeTruthy();
     });
 

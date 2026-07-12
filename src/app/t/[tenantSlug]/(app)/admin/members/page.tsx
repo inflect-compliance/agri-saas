@@ -21,7 +21,7 @@
 import { formatDate } from '@/lib/format-date';
 import { useTranslations } from 'next-intl';
 import { Card, cardVariants } from '@/components/ui/card';
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import {
     Users, UserPlus, ChevronDown, Shield, XCircle,
@@ -38,6 +38,7 @@ import { Input } from '@/components/ui/input';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { Tooltip } from '@/components/ui/tooltip';
 import { DataTable, createColumns, useBulkDelete } from '@/components/ui/table';
+import { Popover } from '@/components/ui/popover';
 import { InitialsAvatar } from '@/components/ui/initials-avatar';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { cn } from '@/lib/cn';
@@ -114,6 +115,110 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'neutral'
     REMOVED: 'neutral',
 };
 
+// ─── Row-action menu (canonical Popover — bottom sheet on mobile,
+//     portalled on desktop so it escapes the DataTable overflow clip +
+//     the z-30 BottomTabBar). Each row owns its own open state. ───
+interface MemberRowActionsProps {
+    member: Member;
+    onChangeRole: (m: Member) => void;
+    onViewSessions: (m: Member) => void;
+    onCertificates: (m: Member) => void;
+    onDeactivate: (m: Member) => void;
+    onReactivate: (m: Member) => void;
+    onRemove: (m: Member) => void;
+}
+
+function MemberRowActions({
+    member,
+    onChangeRole,
+    onViewSessions,
+    onCertificates,
+    onDeactivate,
+    onReactivate,
+    onRemove,
+}: MemberRowActionsProps) {
+    const t = useTranslations('admin.members');
+    const [open, setOpen] = useState(false);
+    const isActive = member.status === 'ACTIVE';
+    const run = (fn: (m: Member) => void) => {
+        setOpen(false);
+        fn(member);
+    };
+    return (
+        <div className="inline-block text-right" onClick={(e) => e.stopPropagation()}>
+            <Popover
+                openPopover={open}
+                setOpenPopover={setOpen}
+                align="end"
+                content={
+                    <Popover.Menu>
+                        {isActive && (
+                            <>
+                                <Popover.Item
+                                    icon={<Shield className="w-3.5 h-3.5" />}
+                                    id={`action-change-role-${member.id}`}
+                                    onClick={() => run(onChangeRole)}
+                                >
+                                    {t('changeRole')}
+                                </Popover.Item>
+                                <Popover.Item
+                                    icon={<Monitor className="w-3.5 h-3.5" />}
+                                    id={`action-view-sessions-${member.id}`}
+                                    onClick={() => run(onViewSessions)}
+                                >
+                                    {t('viewSessions')}
+                                </Popover.Item>
+                                <Popover.Item
+                                    icon={<Award className="w-3.5 h-3.5" />}
+                                    id={`action-certificates-${member.id}`}
+                                    onClick={() => run(onCertificates)}
+                                >
+                                    {t('certificates')}
+                                </Popover.Item>
+                                <Popover.Item
+                                    icon={<UserMinus className="w-3.5 h-3.5" />}
+                                    destructive
+                                    id={`action-deactivate-${member.id}`}
+                                    onClick={() => run(onDeactivate)}
+                                >
+                                    {t('deactivate')}
+                                </Popover.Item>
+                            </>
+                        )}
+                        {member.status === 'DEACTIVATED' && (
+                            <Popover.Item
+                                icon={<RotateCcw className="w-3.5 h-3.5" />}
+                                id={`action-reactivate-${member.id}`}
+                                onClick={() => run(onReactivate)}
+                            >
+                                {t('reactivate')}
+                            </Popover.Item>
+                        )}
+                        {/* Remove (→ REMOVED) — available for every member row. */}
+                        <Popover.Item
+                            icon={<Trash2 className="w-3.5 h-3.5" />}
+                            destructive
+                            id={`action-remove-${member.id}`}
+                            onClick={() => run(onRemove)}
+                        >
+                            {t('removeVerb')}
+                        </Popover.Item>
+                    </Popover.Menu>
+                }
+            >
+                <Button
+                    variant="secondary"
+                    size="xs"
+                    icon={<MoreVertical className="w-3.5 h-3.5" />}
+                    id={`member-menu-${member.id}`}
+                    aria-label={t('memberActions')}
+                    className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0"
+                />
+            </Popover>
+        </div>
+    );
+}
+
 export default function MembersAdminPage() {
     const t = useTranslations('admin.members');
     const apiUrl = useTenantApiUrl();
@@ -122,6 +227,14 @@ export default function MembersAdminPage() {
 
     // ─── State ───
     const [members, setMembers] = useState<Member[]>([]);
+    // Latest-members mirror so row handlers (e.g. the optimistic remove
+    // snapshot) always read the current list without forcing the memoized
+    // columns to re-derive on every list change. Updated in an effect (not
+    // during render) so the component stays React-Compiler-optimizable.
+    const membersRef = useRef<Member[]>([]);
+    useEffect(() => {
+        membersRef.current = members;
+    }, [members]);
     const [invites, setInvites] = useState<Invite[]>([]);
     const [loading, setLoading] = useState(true);
     // R14-PR7 — standalone search input retired. Member lists are
@@ -145,8 +258,9 @@ export default function MembersAdminPage() {
     // Custom roles
     const [customRoles, setCustomRoles] = useState<CustomRoleOption[]>([]);
 
-    // Action menu
-    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    // Row-action menus are now canonical <Popover>s that own their own
+    // open state per row (see <MemberRowActions>) — no page-level
+    // openMenuId + click-away div.
 
     // Epic C.3 — sessions modal
     const [sessionsModalUser, setSessionsModalUser] = useState<Member | null>(null);
@@ -270,7 +384,7 @@ export default function MembersAdminPage() {
         setChangingRole(true);
 
         try {
-            const member = members.find(m => m.id === membershipId);
+            const member = membersRef.current.find(m => m.id === membershipId);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const payload: Record<string, any> = {};
             if (pendingRole && pendingRole !== member?.role) {
@@ -311,7 +425,6 @@ export default function MembersAdminPage() {
         if (!confirm(t('confirmDeactivate', { email }))) return;
         setError(null);
         setSuccess(null);
-        setOpenMenuId(null);
 
         try {
             const res = await fetch(apiUrl(`/admin/members/${membershipId}/deactivate`), {
@@ -366,7 +479,6 @@ export default function MembersAdminPage() {
     async function handleReactivate(membershipId: string, email: string) {
         setError(null);
         setSuccess(null);
-        setOpenMenuId(null);
         try {
             const res = await fetch(apiUrl(`/admin/members/${membershipId}/reactivate`), {
                 method: 'POST',
@@ -388,11 +500,10 @@ export default function MembersAdminPage() {
     function handleRemove(membershipId: string, email: string) {
         setError(null);
         setSuccess(null);
-        setOpenMenuId(null);
         // Epic 67 — optimistic remove + undo-toast (no blocking confirm()).
         // The row leaves the list immediately; the DELETE commits after the
         // 5s window unless the operator hits Undo, which restores the row.
-        const snapshot = members;
+        const snapshot = membersRef.current;
         setMembers((prev) => prev.filter((m) => m.id !== membershipId));
         triggerUndoToast({
             message: t('memberRemoved', { email }),
@@ -534,6 +645,7 @@ export default function MembersAdminPage() {
                         </div>
                     );
                 },
+                meta: { mobileCard: { slot: 'title' } },
             },
             {
                 id: 'email',
@@ -542,6 +654,7 @@ export default function MembersAdminPage() {
                 cell: ({ row }) => (
                     <span className="text-content-muted">{row.original.user.email}</span>
                 ),
+                meta: { mobileCard: { slot: 'subtitle' } },
             },
             {
                 id: 'role',
@@ -633,6 +746,7 @@ export default function MembersAdminPage() {
                         </div>
                     );
                 },
+                meta: { mobileCard: { slot: 'meta', label: t('colRole') } },
             },
             {
                 id: 'status',
@@ -643,6 +757,7 @@ export default function MembersAdminPage() {
                         {row.original.status}
                     </StatusBadge>
                 ),
+                meta: { mobileCard: { slot: 'status' } },
             },
             {
                 id: 'sessions',
@@ -682,99 +797,34 @@ export default function MembersAdminPage() {
                 ),
             },
             {
-                id: 'actions',
+                // Canonical DataTable utility id — pins the column right +
+                // suppresses truncation/resize like `select`.
+                id: 'menu',
                 header: '',
-                cell: ({ row }) => {
-                    const m = row.original;
-                    const isActive = m.status === 'ACTIVE';
-                    return (
-                        <div className="relative inline-block text-right" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                                variant="secondary"
-                                size="xs"
-                                onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
-                                icon={<MoreVertical className="w-3.5 h-3.5" />}
-                                id={`member-menu-${m.id}`}
-                            />
-                            {openMenuId === m.id && (
-                                <div className="absolute right-0 top-full mt-1 bg-bg-default border border-border-default rounded-lg shadow-lg z-20 min-w-[160px]">
-                                    {isActive && (
-                                        <>
-                                            <button
-                                                onClick={() => {
-                                                    setEditingRoleId(m.id);
-                                                    setPendingRole(m.role);
-                                                    setOpenMenuId(null);
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
-                                                id={`action-change-role-${m.id}`}
-                                            >
-                                                <Shield className="w-3.5 h-3.5" />
-                                                {t('changeRole')}
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setOpenMenuId(null);
-                                                    void openSessionsModal(m);
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
-                                                id={`action-view-sessions-${m.id}`}
-                                            >
-                                                <Monitor className="w-3.5 h-3.5" />
-                                                {t('viewSessions')}
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setOpenMenuId(null);
-                                                    openCertsModal(m);
-                                                }}
-                                                className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
-                                                id={`action-certificates-${m.id}`}
-                                            >
-                                                <Award className="w-3.5 h-3.5" />
-                                                {t('certificates')}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeactivate(m.id, m.user.email)}
-                                                className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
-                                                id={`action-deactivate-${m.id}`}
-                                            >
-                                                <UserMinus className="w-3.5 h-3.5" />
-                                                {t('deactivate')}
-                                            </button>
-                                        </>
-                                    )}
-                                    {m.status === 'DEACTIVATED' && (
-                                        <button
-                                            onClick={() => handleReactivate(m.id, m.user.email)}
-                                            className="w-full text-left px-3 py-2 text-xs text-content-emphasis hover:bg-bg-muted flex items-center gap-tight"
-                                            id={`action-reactivate-${m.id}`}
-                                        >
-                                            <RotateCcw className="w-3.5 h-3.5" />
-                                            {t('reactivate')}
-                                        </button>
-                                    )}
-                                    {/* Remove (→ REMOVED) — available for every member row. */}
-                                    <button
-                                        onClick={() => handleRemove(m.id, m.user.email)}
-                                        className="w-full text-left px-3 py-2 text-xs text-content-error hover:bg-bg-error flex items-center gap-tight"
-                                        id={`action-remove-${m.id}`}
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                        {t('removeVerb')}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    );
-                },
+                cell: ({ row }) => (
+                    <MemberRowActions
+                        member={row.original}
+                        onChangeRole={(m) => {
+                            setEditingRoleId(m.id);
+                            setPendingRole(m.role);
+                            setPendingCustomRoleId(m.customRoleId);
+                        }}
+                        onViewSessions={(m) => void openSessionsModal(m)}
+                        onCertificates={(m) => openCertsModal(m)}
+                        onDeactivate={(m) => void handleDeactivate(m.id, m.user.email)}
+                        onReactivate={(m) => void handleReactivate(m.id, m.user.email)}
+                        onRemove={(m) => handleRemove(m.id, m.user.email)}
+                    />
+                ),
+                meta: { mobileCard: { slot: 'actions' } },
             },
         ]),
         // Re-derive columns when any state used inline by the cells
         // changes — otherwise the inline edit row's combobox would
-        // render with a stale selection.
+        // render with a stale selection. Row-action menus own their own
+        // open state now, so openMenuId is no longer a dependency.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [editingRoleId, pendingRole, pendingCustomRoleId, changingRole, customRoles, openMenuId],
+        [editingRoleId, pendingRole, pendingCustomRoleId, changingRole, customRoles],
     );
 
     // ─── Invites DataTable columns ───
@@ -835,9 +885,9 @@ export default function MembersAdminPage() {
                     {t('loading')}
                 </Heading>
                 <Card className="space-y-default">
-                    <div className="h-4 bg-bg-subtle rounded w-1/3 animate-pulse" />
-                    <div className="h-4 bg-bg-subtle rounded w-2/3 animate-pulse" />
-                    <div className="h-4 bg-bg-subtle rounded w-1/2 animate-pulse" />
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-4 w-1/2" />
                 </Card>
             </div>
         );
@@ -962,6 +1012,7 @@ export default function MembersAdminPage() {
                         data={filteredMembers}
                         columns={memberColumns}
                         getRowId={(m) => m.id}
+                        mobileFallback="card"
                         batchActions={[
                             {
                                 label: t('deactivate'),
@@ -996,14 +1047,6 @@ export default function MembersAdminPage() {
                     </div>
                     {inviteRevokeDialog}
                 </div>
-            )}
-
-            {/* Click-away handler for action menu */}
-            {openMenuId && (
-                <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setOpenMenuId(null)}
-                />
             )}
 
             {/* Epic C.3 — sessions modal (Epic 54 Modal primitive) */}

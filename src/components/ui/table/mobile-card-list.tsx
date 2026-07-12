@@ -55,8 +55,10 @@ declare module "@tanstack/react-table" {
        * - `subtitle` — a secondary line under the title.
        * - `status`   — a status pill anchored top-right (first match wins).
        * - `meta`     — a key/value detail row (any number, in column order).
+       * - `actions`  — a row-action affordance (e.g. a kebab menu),
+       *                rendered as a right-aligned footer (first match wins).
        */
-      slot: "title" | "subtitle" | "status" | "meta";
+      slot: "title" | "subtitle" | "status" | "meta" | "actions";
       /** Label for a `meta` row's key. Falls back to the column's string header. */
       label?: string;
     };
@@ -150,6 +152,7 @@ export function MobileCardList<T>({
         const statusCell = cells.find((c) => cardSlot(c) === "status");
         const subtitleCell = cells.find((c) => cardSlot(c) === "subtitle");
         const metaCells = cells.filter((c) => cardSlot(c) === "meta");
+        const actionsCell = cells.find((c) => cardSlot(c) === "actions");
         const clickable = !!onRowClick;
 
         return (
@@ -226,6 +229,22 @@ export function MobileCardList<T>({
                     </div>
                   ))}
                 </dl>
+              ) : null}
+
+              {/* Row actions (e.g. a kebab menu) — a right-aligned footer.
+                  The card itself may be clickable (onRowClick); the action
+                  affordance stops propagation so a tap on it never triggers
+                  the row navigation. */}
+              {actionsCell ? (
+                <div
+                  className="mt-tight flex justify-end"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {flexRender(
+                    actionsCell.column.columnDef.cell,
+                    actionsCell.getContext(),
+                  )}
+                </div>
               ) : null}
             </div>
           </li>
