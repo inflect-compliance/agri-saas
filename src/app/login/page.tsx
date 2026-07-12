@@ -8,6 +8,25 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { Heading } from '@/components/ui/typography';
+/**
+ * Reserves the credentials-form footprint while the provider list is
+ * still resolving (`credentialsEnabled === null`). The login card is
+ * vertically centred, so letting the ~355px form appear only AFTER the
+ * async getProviders()/ui-config fetch pushed the whole card upward to
+ * re-centre — a large Cumulative Layout Shift (the /login CLS budget
+ * regression). Reserving the height keeps the card stable from first
+ * paint, so the null→form swap is height-neutral.
+ *
+ * Deliberately a SINGLE static spacer, NOT an animated multi-element
+ * skeleton: an earlier shimmer-skeleton version fixed CLS but its extra
+ * render + teardown cycle (×4 under Lighthouse's simulated CPU throttle)
+ * regressed Total Blocking Time past its budget. `min-h` ≈ the login-
+ * mode block (divider + two fields + forgot + submit + register toggle +
+ * resend row). aria-hidden: pure layout placeholder.
+ */
+function CredentialsFormSkeleton() {
+    return <div aria-hidden="true" className="min-h-[22rem]" />;
+}
 
 function extractErrorMessage(value: unknown, fallback: string): string {
     if (typeof value === 'string') return value;
@@ -253,7 +272,12 @@ function LoginForm() {
                         </Button>
                     </div>
 
-                    {credentialsEnabled && (
+                    {/* null = provider list still resolving → reserve the
+                        form's space (CLS fix); true = show it; false =
+                        OAuth-only server, render nothing. */}
+                    {credentialsEnabled === null ? (
+                        <CredentialsFormSkeleton />
+                    ) : credentialsEnabled ? (
                         <>
                             {/* Divider */}
                             <div className="relative mb-6">
@@ -352,7 +376,7 @@ function LoginForm() {
                                 )}
                             </div>
                         </>
-                    )}
+                    ) : null}
                 </Card>
             </div>
         </div>
