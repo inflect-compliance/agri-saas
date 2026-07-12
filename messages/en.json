@@ -2228,6 +2228,7 @@
             "viewSessions": "View Sessions",
             "certificates": "Certificates",
             "deactivate": "Deactivate",
+            "memberActions": "Member actions",
             "colInvitedBy": "Invited By",
             "colExpires": "Expires",
             "breadcrumbDashboard": "Dashboard",

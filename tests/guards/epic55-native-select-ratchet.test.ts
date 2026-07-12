@@ -3,80 +3,84 @@
  *
  * Epic 55 migrated the intended CRUD/edit forms onto the shared
  * `<Combobox>` + `<RadioGroup>` primitives. To keep the rollout durable,
- * this ratchet counts native `<select>` elements in the app-pages tree
- * and fails CI if the number grows.
+ * this ratchet counts native `<select>` elements and fails CI if the
+ * number grows.
  *
  * Rules:
  *   - The baseline is recorded below and may only go DOWN. Lowering it
  *     is the intended action when a new surface migrates; raising it
  *     would mean someone reached for native `<select>` where the shared
  *     Combobox is the canonical answer.
- *   - Scoped to `src/app/t/[tenantSlug]/(app)/**`. Library / admin /
- *     framework surfaces live outside this scope (see below for the
- *     explicit exclusion list).
+ *   - Scope: `src/app/t/**` AND `src/components/**`. The scope was
+ *     WIDENED to include `src/components` during the dropdown-unification
+ *     pass — that is how shared components (PrescriptionPanel, VersionDiff,
+ *     WidgetPicker) had escaped the app-only scan.
+ *   - Comments are stripped before counting, so a doc-comment that merely
+ *     mentions `<select>` (e.g. in status-badge.tsx / combobox/index.tsx)
+ *     is not a false positive.
  *
- * Baseline is 0: every native `<select>` inside the tenant app pages
- * has been migrated to `<Combobox>` (or `<RadioGroup>` where the
- * surface warranted inline options). New surfaces must not reintroduce
- * native selects — reach for the shared primitives instead. See
- * `docs/combobox-form-strategy.md` for the decision tree.
+ * Baseline is 2 — the two form `<select>`s in
+ * `src/components/TestPlansPanel.tsx` (test-plan frequency + method).
+ * They are a bounded follow-up: migrating them means also porting the
+ * `page.selectOption('#test-plan-frequency-select', …)` interaction in
+ * `tests/e2e/control-tests.spec.ts`, which was out of scope for the
+ * dropdown-unification pass. Everything else migrated:
+ *   - PrescriptionPanel, VersionDiff, WidgetPicker → Combobox/RadioGroup.
+ *   - access-reviews decision picker → ToggleGroup; its modal target-role
+ *     picker → Combobox.
+ *   - admin/members row-action menu → Popover (never a native select).
+ * Note: ControlsClient's dense inline pickers, referenced by earlier
+ * versions of this comment as "4 native selects", are now button-based
+ * StatusBadge triggers — they contribute ZERO native selects today.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
-const APP_PAGES_ROOT = path.resolve(__dirname, '../../src/app/t');
+const SRC_ROOT = path.resolve(__dirname, '../../src');
+const SCAN_ROOTS = [
+    path.join(SRC_ROOT, 'app', 't'),
+    path.join(SRC_ROOT, 'components'),
+];
 
-// Recorded at the Epic 55 close-out pass. Lower when you migrate;
-// raise only with a written reason.
-//
-// 0 → 4: Epic 53 inline-edit refactor on ControlsClient.tsx mounted
-// four badge-styled native `<select>` elements as the per-row status
-// + applicability + role pickers. These were a deliberate design
-// choice — the comment block above each select explains the
-// tradeoffs:
-//   - native `<select>` keeps native a11y (label, arrow-key,
-//     search-by-letter) on a dense table cell
-//   - the badge-styled trigger preserves the legacy `#status-pill-{id}`
-//     E2E selectors + the click-to-cycle UX
-//   - a Combobox per row would mount four Radix Popovers per page, a
-//     measurable hit on table render time
-// Future work: a `<TableInlineSelect>` primitive could carry the same
-// affordances on top of cmdk; until then this baseline reflects the
-// real shape of the page.
-//
-// 4 → 6: Epic G-4 access review detail page mounts two native
-// `<select>`s — one per-row decision picker and one MODIFY target-role
-// select inside the decision dialog. Both follow the same pattern as
-// the ControlsClient inline-edit selects (above): native `<select>` is
-// the dense-table-cell + simple-modal-form choice; a Combobox per row
-// would be heavier than the affordance demands. Bounded follow-up:
-// the same `<TableInlineSelect>` primitive that supersedes the
-// existing 4 would land here too.
-const BASELINE_NATIVE_SELECTS = 6;
+// Baseline: the two form `<select>`s in components/TestPlansPanel.tsx.
+// Lower to 0 when TestPlansPanel migrates (and its E2E selectOption is
+// ported); raise only with a written reason.
+const BASELINE_NATIVE_SELECTS = 2;
+
+/** Strip block + line comments so comment prose never counts as a select. */
+function stripComments(src: string): string {
+    return src
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')
+        .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+}
 
 function walk(dir: string, out: string[]): string[] {
+    if (!fs.existsSync(dir)) return out;
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) walk(full, out);
-        else if (entry.isFile() && /\.tsx?$/.test(entry.name)) out.push(full);
+        if (entry.isDirectory()) {
+            if (entry.name === 'node_modules') continue;
+            walk(full, out);
+        } else if (entry.isFile() && /\.tsx?$/.test(entry.name)) {
+            out.push(full);
+        }
     }
     return out;
 }
 
-const SOURCES = walk(APP_PAGES_ROOT, []).map((p) => ({
-    file: path.relative(APP_PAGES_ROOT, p),
+const SOURCES = SCAN_ROOTS.flatMap((root) => walk(root, [])).map((p) => ({
+    // Keyed relative to src/ so the two roots never collide.
+    file: path.relative(SRC_ROOT, p),
     src: fs.readFileSync(p, 'utf-8'),
 }));
 
 function countNativeSelects(): { total: number; byFile: Record<string, number> } {
     const byFile: Record<string, number> = {};
     let total = 0;
-    // Match opening `<select` tag. Intentionally doesn't match
-    // HTMLSelectElement types or JSX string literals.
     const re = /<select\b/g;
     for (const { file, src } of SOURCES) {
-        const matches = src.match(re);
+        const matches = stripComments(src).match(re);
         if (matches) {
             byFile[file] = matches.length;
             total += matches.length;
@@ -106,12 +110,19 @@ describe('Epic 55 — native <select> ratchet', () => {
         expect(Number.isInteger(BASELINE_NATIVE_SELECTS)).toBe(true);
         expect(BASELINE_NATIVE_SELECTS).toBeGreaterThanOrEqual(0);
     });
+
+    it('the baseline is not stale — the counted selects live where documented', () => {
+        // The whole baseline budget is spent on TestPlansPanel; if it ever
+        // migrates, this asserts the budget must drop with it.
+        const { byFile } = countNativeSelects();
+        expect(Object.keys(byFile).sort()).toEqual(['components/TestPlansPanel.tsx']);
+    });
 });
 
 // ─── Explicit drift sentinels — surfaces that MUST stay migrated ──
 
 describe('Epic 55 — migrated surfaces must not regress to native <select>', () => {
-    const MIGRATED_FILES = [
+    const APP_MIGRATED = [
         'audits/cycles/page.tsx',
         'risks/NewRiskModal.tsx',
         'controls/NewControlModal.tsx',
@@ -143,7 +154,19 @@ describe('Epic 55 — migrated surfaces must not regress to native <select>', ()
         // Session 3 — final native-select closeouts (baseline → 0)
         'audits/AuditsClient.tsx',
         'frameworks/[frameworkKey]/templates/page.tsx',
-    ].map((rel) => `[tenantSlug]/(app)/${rel}`);
+        // Dropdown-unification pass — access-reviews decision + target-role
+        'access-reviews/[reviewId]/AccessReviewDetailClient.tsx',
+    ].map((rel) => `app/t/[tenantSlug]/(app)/${rel}`);
+
+    // Shared components migrated when the scan scope was widened to
+    // src/components in the dropdown-unification pass.
+    const COMPONENT_MIGRATED = [
+        'components/ui/map/PrescriptionPanel.tsx',
+        'components/ui/VersionDiff.tsx',
+        'components/ui/dashboard-widgets/WidgetPicker.tsx',
+    ];
+
+    const MIGRATED_FILES = [...APP_MIGRATED, ...COMPONENT_MIGRATED];
 
     it.each(MIGRATED_FILES)(
         '%s contains no native <select> (Epic 55 migrated)',
@@ -155,7 +178,7 @@ describe('Epic 55 — migrated surfaces must not regress to native <select>', ()
                     `Migrated file not found at expected path: ${relFile}`,
                 );
             }
-            expect(entry.src).not.toMatch(/<select\b/);
+            expect(stripComments(entry.src)).not.toMatch(/<select\b/);
         },
     );
 });

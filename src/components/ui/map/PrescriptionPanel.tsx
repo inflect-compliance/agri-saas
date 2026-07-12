@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { UserCombobox } from '@/components/ui/user-combobox';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
@@ -36,8 +37,6 @@ export interface PrescriptionPanelProps {
     selectedParcelIds: string[];
     onCreated?: (r: { taskId: string; taskKey?: string | null; parcelCount: number }) => void;
 }
-
-const SELECT_CLASS = 'block w-full rounded-md border border-border-subtle bg-bg-default px-3 py-2 text-sm';
 
 export function PrescriptionPanel({ locationId, tenantSlug, selectedParcelIds, onCreated }: PrescriptionPanelProps) {
     const t = useTranslations('ag.map.prescription');
@@ -91,6 +90,9 @@ export function PrescriptionPanel({ locationId, tenantSlug, selectedParcelIds, o
         }
     };
 
+    const productOptions: ComboboxOption[] = (items ?? []).map((it) => ({ value: it.id, label: it.name }));
+    const unitOptions: ComboboxOption[] = (units ?? []).map((u) => ({ value: u.id, label: u.symbol }));
+
     return (
         <div className="space-y-default">
             <p className="text-sm text-content-secondary">
@@ -102,24 +104,30 @@ export function PrescriptionPanel({ locationId, tenantSlug, selectedParcelIds, o
                 </div>
             )}
             <FormField label={t('product')} required>
-                <select value={productItemId} onChange={(e) => setProductItemId(e.target.value)} className={SELECT_CLASS}>
-                    <option value="">{t('selectProduct')}</option>
-                    {(items ?? []).map((it) => (
-                        <option key={it.id} value={it.id}>{it.name}</option>
-                    ))}
-                </select>
+                <Combobox
+                    id="prescription-product-select"
+                    options={productOptions}
+                    selected={productOptions.find((o) => o.value === productItemId) ?? null}
+                    setSelected={(opt) => setProductItemId(opt?.value ?? '')}
+                    placeholder={t('selectProduct')}
+                    matchTriggerWidth
+                    forceDropdown
+                />
             </FormField>
             <div className="grid grid-cols-2 gap-default">
                 <FormField label={t('dose')} required>
                     <Input type="number" min="0" step="0.0001" value={doseValue} onChange={(e) => setDoseValue(e.target.value)} placeholder={t('dosePlaceholder')} />
                 </FormField>
                 <FormField label={t('unit')} required>
-                    <select value={doseUnitId} onChange={(e) => setDoseUnitId(e.target.value)} className={SELECT_CLASS}>
-                        <option value="">{t('unitPlaceholder')}</option>
-                        {(units ?? []).map((u) => (
-                            <option key={u.id} value={u.id}>{u.symbol}</option>
-                        ))}
-                    </select>
+                    <Combobox
+                        id="prescription-unit-select"
+                        options={unitOptions}
+                        selected={unitOptions.find((o) => o.value === doseUnitId) ?? null}
+                        setSelected={(opt) => setDoseUnitId(opt?.value ?? '')}
+                        placeholder={t('unitPlaceholder')}
+                        matchTriggerWidth
+                        forceDropdown
+                    />
                 </FormField>
             </div>
             <FormField label={t('operator')} required>

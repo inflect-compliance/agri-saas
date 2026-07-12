@@ -15,7 +15,8 @@
  *   - <2 versions renders the empty-state.
  */
 
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 
 import {
@@ -43,20 +44,33 @@ const v3 = {
 };
 
 describe('<VersionDiff>', () => {
-    it('renders the picker with every supplied version', () => {
+    it('renders the picker with every supplied version', async () => {
+        const user = userEvent.setup();
+        // Open the "from" Combobox and count its options. Rendered in its
+        // own mount so the two open popovers never coexist in one DOM.
+        const { unmount } = render(<VersionDiff versions={[v1, v2]} />);
+        await user.click(
+            within(screen.getByTestId('version-diff-from')).getByRole('combobox'),
+        );
+        expect(
+            within(await screen.findByRole('listbox')).getAllByRole('option'),
+        ).toHaveLength(2);
+        unmount();
+        // Open the "to" Combobox and count its options.
         render(<VersionDiff versions={[v1, v2]} />);
-        const fromSel = screen.getByTestId('version-diff-from') as HTMLSelectElement;
-        const toSel = screen.getByTestId('version-diff-to') as HTMLSelectElement;
-        expect(fromSel.options.length).toBe(2);
-        expect(toSel.options.length).toBe(2);
+        await user.click(
+            within(screen.getByTestId('version-diff-to')).getByRole('combobox'),
+        );
+        expect(
+            within(await screen.findByRole('listbox')).getAllByRole('option'),
+        ).toHaveLength(2);
     });
 
     it('defaults to comparing v(prev) → v(current)', () => {
         render(<VersionDiff versions={[v1, v2]} />);
-        const from = screen.getByTestId('version-diff-from') as HTMLSelectElement;
-        const to = screen.getByTestId('version-diff-to') as HTMLSelectElement;
-        expect(from.value).toBe('v_1');
-        expect(to.value).toBe('v_2');
+        // The collapsed trigger renders the selected version label.
+        expect(screen.getByTestId('version-diff-from')).toHaveTextContent('v1');
+        expect(screen.getByTestId('version-diff-to')).toHaveTextContent('v2');
     });
 
     it('renders added / removed line markers with their data-testids', () => {
@@ -86,7 +100,8 @@ describe('<VersionDiff>', () => {
         ).toBeInTheDocument();
     });
 
-    it('calls onSelectionChange when the picker changes', () => {
+    it('calls onSelectionChange when the picker changes', async () => {
+        const user = userEvent.setup();
         const onSelectionChange = jest.fn();
         render(
             <VersionDiff
@@ -94,10 +109,15 @@ describe('<VersionDiff>', () => {
                 onSelectionChange={onSelectionChange}
             />,
         );
-        const from = screen.getByTestId('version-diff-from') as HTMLSelectElement;
-        fireEvent.change(from, { target: { value: 'v_2' } });
+        // Default from is v2 (sorted[1]); pick a different version so the
+        // single-select Combobox commits rather than toggling off.
+        await user.click(
+            within(screen.getByTestId('version-diff-from')).getByRole('combobox'),
+        );
+        const listbox = await screen.findByRole('listbox');
+        await user.click(within(listbox).getByRole('option', { name: 'v1' }));
         expect(onSelectionChange).toHaveBeenCalledWith(
-            expect.objectContaining({ fromId: 'v_2' }),
+            expect.objectContaining({ fromId: 'v_1' }),
         );
     });
 

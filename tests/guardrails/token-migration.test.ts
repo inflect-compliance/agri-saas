@@ -219,11 +219,16 @@ describe('Admin members page token migration', () => {
         expect(src).toContain("from '@/components/ui/inline-notice'");
     });
 
-    it('uses semantic tokens for dropdown menu', () => {
-        expect(src).toContain('bg-bg-default');
-        expect(src).toContain('border-border-default');
-        expect(src).toContain('hover:bg-bg-muted');
-        expect(src).toContain('hover:bg-bg-error');
+    it('uses the canonical Popover primitive for the row-action menu (token-safe by construction)', () => {
+        // R6-P2 — the hand-rolled dropdown (which spelled bg-bg-default /
+        // border-border-default / hover:bg-bg-* inline) was replaced by
+        // <Popover>/<Popover.Menu>/<Popover.Item>. The primitive owns its
+        // semantic-token styling, so the page no longer repeats those classes;
+        // asserting the primitive is used preserves the token-safety guarantee
+        // (the general "no raw color scales" test below still covers the page).
+        expect(src).toContain("from '@/components/ui/popover'");
+        expect(src).toContain('Popover.Menu');
+        expect(src).toContain('Popover.Item');
     });
 
     it('uses EmptyState for empty table', () => {
