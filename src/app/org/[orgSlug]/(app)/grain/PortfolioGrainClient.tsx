@@ -278,9 +278,16 @@ export function PortfolioGrainClient({ summary }: Props) {
                             </section>
                         )}
 
-                        {/* Per-tenant breakdown table. */}
+                        {/* Per-tenant breakdown table.
+                            mobileFallback="scroll" — this is a wide, dense
+                            numeric portfolio grid (contracted / yield / cost /
+                            bin-stored tonnes per farm). The figures only make
+                            sense side-by-side for cross-farm comparison, so on
+                            a phone we keep the horizontally-scrollable table
+                            rather than collapse each farm row into a card. */}
                         <DataTable<PortfolioGrainTenantRow>
                             data={sorted}
+                            mobileFallback="scroll"
                             columns={columns}
                             getRowId={(r) => r.tenantId}
                             sortableColumns={[

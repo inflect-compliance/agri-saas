@@ -98,6 +98,7 @@ export function AccessReviewsClient({ tenantSlug, initialReviews }: Props) {
                             {row.original.name}
                         </Link>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'status',
@@ -107,6 +108,7 @@ export function AccessReviewsClient({ tenantSlug, initialReviews }: Props) {
                             {row.original.status}
                         </StatusBadge>
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
                 {
                     id: 'scope',
@@ -116,6 +118,7 @@ export function AccessReviewsClient({ tenantSlug, initialReviews }: Props) {
                             {row.original.scope.replace('_', ' ').toLowerCase()}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     id: 'period',
@@ -130,10 +133,12 @@ export function AccessReviewsClient({ tenantSlug, initialReviews }: Props) {
                     header: t('colDue'),
                     cell: ({ row }) =>
                         row.original.dueAt ? formatDate(row.original.dueAt) : '—',
+                    meta: { mobileCard: { slot: 'meta', label: t('colDue') } },
                 },
                 {
                     id: 'progress',
                     header: t('colProgress'),
+                    meta: { mobileCard: { slot: 'meta', label: t('colProgress') } },
                     cell: ({ row }) => {
                         const total = row.original._count.decisions;
                         const decided = row.original.decidedCount ?? 0;
@@ -212,6 +217,7 @@ export function AccessReviewsClient({ tenantSlug, initialReviews }: Props) {
                     <div data-testid="access-reviews-table">
                         <DataTable
                             fillBody
+                            mobileFallback="card"
                             data={reviews}
                             columns={columns}
                             getRowId={(r) => r.id}

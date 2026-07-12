@@ -609,10 +609,12 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                 // also introduces the detail surface.
                 <TableTitleCell>{row.original.title}</TableTitleCell>
             ),
+            meta: { mobileCard: { slot: 'title' } },
         },
         {
             accessorKey: 'type',
             header: t.type,
+            meta: { mobileCard: { slot: 'subtitle' } },
 
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
@@ -642,6 +644,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             id: 'control',
             header: t.control,
+            meta: { mobileCard: { slot: 'meta', label: t.control } },
 
             accessorFn: (ev: any) => ev.control ? `${ev.control.annexId || ''} ${ev.control.name}` : '\u2014',
             cell: ({ getValue }: { getValue: () => string }) => (
@@ -719,6 +722,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             accessorKey: 'status',
             header: t.status,
+            meta: { mobileCard: { slot: 'status', label: t.status } },
 
             cell: ({ row }: { row: any }) => {
                 const ev = row.original;
@@ -728,6 +732,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
         {
             id: 'owner',
             header: t.ownerLabel,
+            meta: { mobileCard: { slot: 'meta', label: t.ownerLabel } },
 
             accessorFn: (ev: any) => ev.owner || '\u2014',
             cell: ({ getValue }: { getValue: () => string }) => (
@@ -1109,6 +1114,7 @@ function EvidencePageInner({ initialEvidence, initialControls, tenantSlug, permi
                 ) : (
                     <DataTable
                         fillBody
+                        mobileFallback="card"
                         data={visibleEvidence}
                         columns={orderColumns(evidenceColumns)}
                         getRowId={(ev: any) => ev.id}

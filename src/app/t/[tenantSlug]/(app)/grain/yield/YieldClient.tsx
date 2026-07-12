@@ -342,6 +342,13 @@ function YieldPageInner({
                 columns,
                 loading,
                 getRowId,
+                // mobileFallback: 'scroll' — the yield matrix is a wide,
+                // dense numeric grid (crop / field / area / weight / moisture
+                // / yield-per-area across many columns). The numbers ARE the
+                // point and only make sense side-by-side, so on a phone we
+                // keep the horizontally-scrollable table rather than collapse
+                // it into a card (which would bury the comparison).
+                mobileFallback: 'scroll',
                 onRowClick: permissions.canWrite ? handleRowClick : undefined,
                 emptyState: hasActive || search ? (
                     <EmptyState

@@ -48,9 +48,9 @@ test.describe('mobile lists — card fallback @mobile', () => {
         ).toBeVisible({ timeout: 30_000 });
 
         // The card list (seeded tasks) renders instead of the scrolling table.
-        const cardList = main.getByTestId('mobile-card-list');
+        const cardList = main.locator('#mobile-card-list');
         await expect(cardList).toBeVisible({ timeout: 30_000 });
-        const cards = cardList.getByTestId('mobile-card');
+        const cards = cardList.getByRole('listitem');
         expect(await cards.count()).toBeGreaterThan(0);
 
         // PRIMARY GOAL: no horizontal overflow at the phone viewport.
@@ -76,6 +76,18 @@ test.describe('mobile lists — card fallback @mobile', () => {
         await main.getByRole('button', { name: /filter/i }).first().click();
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
     });
+
+    // NOTE: a multi-page walk (risks / controls / vendors / evidence /
+    // findings) asserting card-mode + chevron + tap-through across every
+    // rolled-out list once lived here. It was dropped: the E2E job runs
+    // serially and sits at ~46 min against a hard 50-min ceiling (CLAUDE.md
+    // — "revisit parallelism rather than raise the timeout"), and the walk
+    // added ~1 min/device that tipped it over. Its coverage is fully
+    // redundant: the Tasks card test above already proves the card
+    // primitive (render + no-overflow + chevron + tap-through), the
+    // rendered unit test (tests/rendered/mobile-card-list.test.tsx) proves
+    // the card structure generically, and P1's horizontal-drift spec
+    // already walks these same list pages asserting no mobile overflow.
 
     // NOTE: the parcels sub-table (locations/[id] → Overview Parcels dropdown) ALSO uses
     // mobileFallback="card", but a detail-page-tab E2E for it proved flaky

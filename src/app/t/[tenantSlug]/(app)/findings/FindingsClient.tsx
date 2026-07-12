@@ -177,24 +177,28 @@ export function FindingsClient({ initialFindings, tenantSlug, permissions, trans
         {
             accessorKey: 'title',
             header: t.findingTitle,
+            meta: { mobileCard: { slot: 'title' } },
 
             cell: ({ getValue }: any) => <TableTitleCell>{getValue()}</TableTitleCell>,
         },
         {
             accessorKey: 'severity',
             header: t.severity,
+            meta: { mobileCard: { slot: 'status' } },
 
             cell: ({ row }: any) => <StatusBadge variant={SEV_BADGE[row.original.severity]}>{sevLabel(row.original.severity)}</StatusBadge>,
         },
         {
             accessorKey: 'type',
             header: t.type,
+            meta: { mobileCard: { slot: 'subtitle' } },
 
             cell: ({ row }: any) => <span className="text-xs">{typeLabel(row.original.type)}</span>,
         },
         {
             id: 'owner',
             header: t.owner,
+            meta: { mobileCard: { slot: 'meta' } },
 
             // Prefer the assignee (the canonical owner relation); fall
             // back to the legacy free-text `owner` for older findings.
@@ -206,6 +210,7 @@ export function FindingsClient({ initialFindings, tenantSlug, permissions, trans
         {
             accessorKey: 'status',
             header: t.status,
+            meta: { mobileCard: { slot: 'meta' } },
 
             // R8-PR5 — secondary (workflow) badge demotes to `tone="subtle"`
             // so the loud severity badge in the prior column reads as the
@@ -262,6 +267,7 @@ export function FindingsClient({ initialFindings, tenantSlug, permissions, trans
                 </div>
                 <DataTable
                     fillBody
+                    mobileFallback="card"
                     data={findings}
                     columns={orderColumns(findingColumns)}
                     getRowId={(f: any) => f.id}

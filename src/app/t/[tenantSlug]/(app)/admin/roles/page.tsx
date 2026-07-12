@@ -484,6 +484,7 @@ export default function CustomRolesPage() {
                 cell: ({ row }) => (
                     <span className="text-sm font-medium text-content-emphasis">{row.original.name}</span>
                 ),
+                meta: { mobileCard: { slot: 'title' } },
             },
             {
                 id: 'baseRole',
@@ -494,6 +495,7 @@ export default function CustomRolesPage() {
                         {row.original.baseRole}
                     </StatusBadge>
                 ),
+                meta: { mobileCard: { slot: 'status', label: t('colBaseRole') } },
             },
             {
                 id: 'description',
@@ -504,6 +506,7 @@ export default function CustomRolesPage() {
                         {row.original.description || '—'}
                     </span>
                 ),
+                meta: { mobileCard: { slot: 'subtitle' } },
             },
             {
                 id: 'members',
@@ -515,6 +518,7 @@ export default function CustomRolesPage() {
                         {row.original._count.memberships}
                     </span>
                 ),
+                meta: { mobileCard: { slot: 'meta', label: t('colMembers') } },
             },
             {
                 id: 'permissions',
@@ -525,6 +529,7 @@ export default function CustomRolesPage() {
                         {countGranted(row.original.permissionsJson)}
                     </span>
                 ),
+                meta: { mobileCard: { slot: 'meta', label: t('colPermissions') } },
             },
             {
                 id: 'actions',
@@ -680,6 +685,7 @@ export default function CustomRolesPage() {
                 <div id="roles-table-card">
                     <DataTable
                         fillBody
+                        mobileFallback="card"
                         data={visibleRoles}
                         columns={roleColumns}
                         getRowId={(r) => r.id}

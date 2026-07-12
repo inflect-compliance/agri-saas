@@ -58,12 +58,14 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
         {
             accessorKey: 'title',
             header: t.risk,
+            meta: { mobileCard: { slot: 'title' } },
 
             cell: ({ getValue }: any) => <span className="font-medium text-content-emphasis">{getValue()}</span>,
         },
         {
             accessorKey: 'asset',
             header: t.asset,
+            meta: { mobileCard: { slot: 'subtitle' } },
 
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
         },
@@ -84,18 +86,21 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
         {
             accessorKey: 'score',
             header: t.score,
+            meta: { mobileCard: { slot: 'meta', label: t.score } },
 
             cell: ({ getValue }: any) => <span className="font-bold">{getValue()}</span>,
         },
         {
             accessorKey: 'treatment',
             header: t.treatment,
+            meta: { mobileCard: { slot: 'meta', label: t.treatment } },
 
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
         },
         {
             accessorKey: 'owner',
             header: t.owner,
+            meta: { mobileCard: { slot: 'meta', label: t.owner } },
 
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
         },
@@ -205,6 +210,7 @@ export function ReportsClient({ data, soaReport, controls, tenantSlug, canEdit, 
                 ) : (
                     <DataTable
                         fillBody
+                        mobileFallback="card"
                         data={data.riskRegister}
                         columns={riskColumns}
                         getRowId={(r: any) => r.id}

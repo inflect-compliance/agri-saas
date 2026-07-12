@@ -92,6 +92,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                             )}
                         </div>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'role',
@@ -101,6 +102,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                             {t(ROLE_LABEL_KEY[row.original.role])}
                         </StatusBadge>
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colRole') } },
                 },
                 {
                     id: 'joinedAt',
@@ -110,6 +112,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
                             {formatDate(row.original.joinedAt)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colJoined') } },
                 },
                 {
                     id: 'actions',
@@ -211,6 +214,7 @@ export function MembersTable({ orgSlug, currentUserId, rows, invites }: Props) {
             <ListPageShell.Body>
                 <DataTable<MemberRow>
                     fillBody
+                    mobileFallback="card"
                     data={rows}
                     columns={columns}
                     getRowId={(r) => r.membershipId}
@@ -1114,6 +1118,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                             {row.original.email}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'role',
@@ -1123,6 +1128,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                             {t(ROLE_LABEL_KEY[row.original.role])}
                         </StatusBadge>
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colRole') } },
                 },
                 {
                     id: 'invitedBy',
@@ -1134,6 +1140,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                                 '—'}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colInvitedBy') } },
                 },
                 {
                     id: 'expiresAt',
@@ -1143,6 +1150,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                             {formatDate(row.original.expiresAt)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colExpires') } },
                 },
                 {
                     id: 'actions',
@@ -1188,6 +1196,7 @@ function PendingInvitesSection({ orgSlug, invites, onMutate }: PendingInvitesSec
                 </p>
             )}
             <DataTable<PendingInviteRow>
+                mobileFallback="card"
                 data={invites}
                 columns={inviteColumns}
                 getRowId={(r) => r.id}

@@ -84,6 +84,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                     cell: ({ getValue }) => (
                         <span className="text-sm text-content-emphasis">{getValue() as string}</span>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'window',
@@ -94,7 +95,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                             {formatDate(row.original.startDate)} – {formatDate(row.original.endDate)}
                         </span>
                     ),
-                    meta: { disableTruncate: true },
+                    meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: t('colWindow') } },
                 },
                 {
                     id: 'plans',
@@ -103,6 +104,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted tabular-nums">{getValue() as number}</span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colPlans') } },
                 },
                 {
                     accessorKey: 'status',
@@ -110,6 +112,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                     cell: ({ row }) => (
                         <AgStatusBadge entity="season" status={row.original.status} />
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
                 {
                     id: 'actions',
@@ -165,6 +168,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                 columns,
                 loading,
                 getRowId: (s) => s.id,
+                mobileFallback: 'card',
                 emptyState: (
                     <EmptyState
                         size="sm"

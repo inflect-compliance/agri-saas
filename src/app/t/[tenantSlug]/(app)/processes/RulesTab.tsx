@@ -116,6 +116,7 @@ function RulesTabInner({ tenantSlug }: { tenantSlug: string }) {
                             {row.original.name}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     accessorKey: 'triggerEvent',
@@ -125,6 +126,7 @@ function RulesTabInner({ tenantSlug }: { tenantSlug: string }) {
                             {humanizeEvent(row.original.triggerEvent)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     accessorKey: 'actionType',
@@ -146,6 +148,7 @@ function RulesTabInner({ tenantSlug }: { tenantSlug: string }) {
                             {RULE_STATUS_LABELS[row.original.status] ?? row.original.status}
                         </StatusBadge>
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
                 {
                     accessorKey: 'lastTriggeredAt',
@@ -158,6 +161,7 @@ function RulesTabInner({ tenantSlug }: { tenantSlug: string }) {
                         ) : (
                             <span className="text-sm text-content-subtle">{t('never')}</span>
                         ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colLastTriggered') } },
                 },
                 {
                     accessorKey: 'executionCount',
@@ -167,6 +171,7 @@ function RulesTabInner({ tenantSlug }: { tenantSlug: string }) {
                             {row.original.executionCount}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colRuns') } },
                 },
                 {
                     accessorKey: 'priority',
@@ -216,6 +221,7 @@ function RulesTabInner({ tenantSlug }: { tenantSlug: string }) {
                     loading: isLoading,
                     error: error ? t('loadError') : undefined,
                     getRowId: (r) => r.id,
+                    mobileFallback: 'card',
                     resourceName: (plural) => (plural ? t('resourceOther') : t('resourceOne')),
                     onRowClick: (r) => {
                         setSelected(r.original);

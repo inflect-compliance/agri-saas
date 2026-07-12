@@ -306,9 +306,16 @@ export function CostsClient({
                 />
             </ListPageShell.Filters>
             <ListPageShell.Body>
+                {/* mobileFallback="scroll" on all three cost tables — these
+                    are wide, dense financial breakdowns (seed / fertiliser /
+                    chemical / labour / fuel / total cost columns per row). The
+                    cost columns only make sense read side-by-side, so on a
+                    phone we keep the horizontally-scrollable table rather than
+                    collapse each row into a card. */}
                 {activeBy === 'planting' && (
                     <DataTable<PlantingCostRow>
                         fillBody
+                        mobileFallback="scroll"
                         data={
                             data && data.by === 'planting' ? data.rows : []
                         }
@@ -323,6 +330,7 @@ export function CostsClient({
                 {activeBy === 'season' && (
                     <DataTable<SeasonCostRow>
                         fillBody
+                        mobileFallback="scroll"
                         data={data && data.by === 'season' ? data.rows : []}
                         columns={seasonColumns}
                         loading={loading}
@@ -335,6 +343,7 @@ export function CostsClient({
                 {activeBy === 'field' && (
                     <DataTable<FieldCostRow>
                         fillBody
+                        mobileFallback="scroll"
                         data={data && data.by === 'field' ? data.rows : []}
                         columns={fieldColumns}
                         loading={loading}

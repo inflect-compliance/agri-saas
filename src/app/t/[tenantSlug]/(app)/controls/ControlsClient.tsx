@@ -580,6 +580,7 @@ function ControlsPageInner({
             cell: ({ getValue }) => (
                 <span className="text-xs text-content-muted font-mono">{getValue<string>() || '—'}</span>
             ),
+            meta: { mobileCard: { slot: 'subtitle' } },
         },
         {
             accessorKey: 'name',
@@ -592,6 +593,7 @@ function ControlsPageInner({
                     {row.original.name}
                 </TableTitleCell>
             ),
+            meta: { mobileCard: { slot: 'title' } },
         },
         {
             // Framework column — split out of `category` (2026-06-07).
@@ -650,6 +652,7 @@ function ControlsPageInner({
                     </StatusBadge>
                 );
             },
+            meta: { mobileCard: { slot: 'status', label: t('list.colStatus') } },
         },
         {
             accessorKey: 'applicability',
@@ -704,6 +707,7 @@ function ControlsPageInner({
                     </span>
                 );
             },
+            meta: { mobileCard: { slot: 'meta', label: t('list.colOwner') } },
         },
         {
             id: 'frequency',
@@ -728,6 +732,7 @@ function ControlsPageInner({
                     </span>
                 );
             },
+            meta: { mobileCard: { slot: 'meta', label: t('list.colTasks') } },
         },
         {
             id: 'evidence',
@@ -1210,6 +1215,7 @@ function ControlsPageInner({
                 // bespoke per-row affordances + the JS whole-row clip
                 // depend on the standard <table> layout.
                 virtualize: false,
+                mobileFallback: 'card',
                 onRowClick: handleRowClick,
                 emptyState: hasActive ? (
                     <EmptyState

@@ -299,6 +299,7 @@ function PoliciesPageInner({
                     {row.original.title}
                 </TableTitleCell>
             ),
+            meta: { mobileCard: { slot: 'title' } },
         },
         {
             accessorKey: 'status',
@@ -317,6 +318,7 @@ function PoliciesPageInner({
                     </StatusBadge>
                 );
             },
+            meta: { mobileCard: { slot: 'status' } },
         },
         {
             id: 'category',
@@ -325,6 +327,7 @@ function PoliciesPageInner({
             cell: ({ getValue }: any) => (
                 <span className="text-xs text-content-muted">{getValue()}</span>
             ),
+            meta: { mobileCard: { slot: 'subtitle' } },
         },
         {
             id: 'owner',
@@ -361,6 +364,7 @@ function PoliciesPageInner({
                     </span>
                 );
             },
+            meta: { mobileCard: { slot: 'meta' } },
         },
         {
             id: 'version',
@@ -427,6 +431,7 @@ function PoliciesPageInner({
                     className="text-xs text-content-subtle"
                 />
             ),
+            meta: { mobileCard: { slot: 'meta' } },
         },
     ]), [tenantHref, hydratedNow]);
 
@@ -514,6 +519,7 @@ function PoliciesPageInner({
                 columns: orderColumns(policyColumns),
                 loading,
                 getRowId: (p: any) => p.id,
+                mobileFallback: 'card',
                 batchActions: permissions.canAdmin ? [policyBulkDelete] : undefined,
                 onRowClick: (row) =>
                     router.push(tenantHref(`/policies/${row.original.id}`)),

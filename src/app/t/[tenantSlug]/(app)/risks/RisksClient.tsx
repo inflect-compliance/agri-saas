@@ -580,6 +580,7 @@ function RisksPageInner({
                     {getValue<string>()}
                 </TableTitleCell>
             ),
+            meta: { mobileCard: { slot: 'title' } },
         },
         {
             accessorFn: (r) => r.asset?.name || '—',
@@ -588,6 +589,7 @@ function RisksPageInner({
             cell: ({ getValue }) => (
                 <span className="text-xs">{getValue<string>()}</span>
             ),
+            meta: { mobileCard: { slot: 'subtitle' } },
         },
         {
             accessorKey: 'threat',
@@ -714,6 +716,7 @@ function RisksPageInner({
                     <span className="text-xs text-content-subtle">—</span>
                 );
             },
+            meta: { mobileCard: { slot: 'meta', label: tm('colAle') } },
         },
         {
             id: 'status',
@@ -727,6 +730,7 @@ function RisksPageInner({
                     </StatusBadge>
                 );
             },
+            meta: { mobileCard: { slot: 'status', label: tm('colStatus') } },
         },
         {
             id: 'owner',
@@ -751,6 +755,7 @@ function RisksPageInner({
                     </span>
                 );
             },
+            meta: { mobileCard: { slot: 'meta', label: tm('colOwner') } },
         },
         {
             id: 'treatment',
@@ -992,6 +997,7 @@ function RisksPageInner({
                 ) : (
                     <DataTable<RiskListItem>
                         fillBody
+                        mobileFallback="card"
                         data={visibleRisks}
                         columns={orderColumns(riskTableColumns)}
                         loading={loading}

@@ -167,6 +167,7 @@ function KnowledgePageInner({
                             {row.original.title}
                         </TableTitleCell>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'category',
@@ -177,6 +178,7 @@ function KnowledgePageInner({
                             {getValue<string>()}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     accessorKey: 'status',
@@ -197,6 +199,7 @@ function KnowledgePageInner({
                             </StatusBadge>
                         );
                     },
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
                 {
                     id: 'source',
@@ -207,6 +210,7 @@ function KnowledgePageInner({
                             {getValue<string>()}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colSource') } },
                 },
                 {
                     id: 'updatedAt',
@@ -218,6 +222,7 @@ function KnowledgePageInner({
                             className="text-xs text-content-subtle"
                         />
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colUpdated') } },
                 },
             ]),
         [tenantHref, t],
@@ -263,6 +268,7 @@ function KnowledgePageInner({
                 columns,
                 loading,
                 getRowId: (a) => a.id,
+                mobileFallback: 'card',
                 onRowClick: (row) =>
                     router.push(tenantHref(`/knowledge/${row.original.id}`)),
                 emptyState: hasActive ? (
