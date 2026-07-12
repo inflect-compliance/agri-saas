@@ -78,22 +78,17 @@ test.describe('mobile detail-tab swipe @mobile', () => {
         await expect(firstRowLink).toBeVisible({ timeout: 30_000 });
         await firstRowLink.click();
 
-        // Tab strip present, overview active by default.
-        await expect(main.locator('#tab-overview')).toBeVisible({ timeout: 30_000 });
-        await expect(main.locator('#tab-overview')).toHaveAttribute(
-            'aria-selected',
-            'true',
-        );
-
-        // (1) Left swipe → next tab (map).
-        await swipe(page, '#tabpanel-overview', -120);
+        // Tab strip present. Locations is a map-centric entity, so its
+        // detail page defaults to the MAP tab (order: overview / map /
+        // operations), NOT overview — see the page's `useState<Tab>`
+        // initialiser ("no overview→map flash on load").
+        await expect(main.locator('#tab-map')).toBeVisible({ timeout: 30_000 });
         await expect(main.locator('#tab-map')).toHaveAttribute(
             'aria-selected',
             'true',
-            { timeout: 5_000 },
         );
 
-        // (2) Right swipe → back to the previous tab (overview).
+        // (1) Right swipe → previous tab (overview).
         await swipe(page, '#tabpanel-map', 120);
         await expect(main.locator('#tab-overview')).toHaveAttribute(
             'aria-selected',
@@ -101,9 +96,25 @@ test.describe('mobile detail-tab swipe @mobile', () => {
             { timeout: 5_000 },
         );
 
-        // (3) A short drag below the threshold does not change the tab.
-        await swipe(page, '#tabpanel-overview', -20);
-        await expect(main.locator('#tab-overview')).toHaveAttribute(
+        // (2) Left swipe → next tab (back to map).
+        await swipe(page, '#tabpanel-overview', -120);
+        await expect(main.locator('#tab-map')).toHaveAttribute(
+            'aria-selected',
+            'true',
+            { timeout: 5_000 },
+        );
+
+        // (3) Left swipe again → next tab (operations), proving multi-step travel.
+        await swipe(page, '#tabpanel-map', -120);
+        await expect(main.locator('#tab-operations')).toHaveAttribute(
+            'aria-selected',
+            'true',
+            { timeout: 5_000 },
+        );
+
+        // (4) A short drag below the threshold does not change the tab.
+        await swipe(page, '#tabpanel-operations', -20);
+        await expect(main.locator('#tab-operations')).toHaveAttribute(
             'aria-selected',
             'true',
         );
