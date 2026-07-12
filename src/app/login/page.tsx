@@ -8,6 +8,65 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { InlineNotice } from '@/components/ui/inline-notice';
 import { Heading } from '@/components/ui/typography';
+import {
+    SkeletonLine,
+    SkeletonInput,
+    SkeletonButton,
+} from '@/components/ui/skeleton';
+
+/**
+ * Reserves the credentials-form footprint while the provider list is
+ * still resolving (`credentialsEnabled === null`). The login card is
+ * vertically centred, so letting the ~360px form appear only AFTER the
+ * async getProviders()/ui-config fetch pushed the whole card upward to
+ * re-centre — a large Cumulative Layout Shift (the /login CLS budget
+ * regression). Mirroring the login-mode block's structure (divider +
+ * two fields + forgot link + submit + register toggle + resend row)
+ * keeps the card height stable from first paint, so the null→form swap
+ * is height-neutral. aria-hidden: it's a visual placeholder only.
+ */
+function CredentialsFormSkeleton() {
+    return (
+        <div aria-hidden="true" className="animate-fadeIn">
+            {/* Divider */}
+            <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border-subtle" />
+                </div>
+                <div className="relative flex justify-center">
+                    <span className="px-2 bg-bg-page">
+                        <SkeletonLine className="w-40" />
+                    </span>
+                </div>
+            </div>
+            {/* Email + password fields, forgot link, submit — matches the
+                real form's `space-y-default` stack + .input (38px) heights. */}
+            <div className="space-y-default">
+                <div>
+                    <SkeletonLine className="mb-1 w-16" />
+                    <SkeletonInput className="h-[38px]" />
+                </div>
+                <div>
+                    <SkeletonLine className="mb-1 w-20" />
+                    <SkeletonInput className="h-[38px]" />
+                </div>
+                <div className="-mt-2 flex justify-end">
+                    <SkeletonLine className="h-3 w-24" />
+                </div>
+                <SkeletonButton className="h-8 w-full" />
+            </div>
+            {/* Register toggle */}
+            <div className="mt-6 flex justify-center">
+                <SkeletonLine className="w-48" />
+            </div>
+            {/* Resend-verification row */}
+            <div className="mt-6 flex items-center gap-tight border-t border-border-subtle pt-4">
+                <SkeletonInput className="h-[34px] flex-1" />
+                <SkeletonLine className="w-14" />
+            </div>
+        </div>
+    );
+}
 
 function extractErrorMessage(value: unknown, fallback: string): string {
     if (typeof value === 'string') return value;
@@ -253,7 +312,12 @@ function LoginForm() {
                         </Button>
                     </div>
 
-                    {credentialsEnabled && (
+                    {/* null = provider list still resolving → reserve the
+                        form's space (CLS fix); true = show it; false =
+                        OAuth-only server, render nothing. */}
+                    {credentialsEnabled === null ? (
+                        <CredentialsFormSkeleton />
+                    ) : credentialsEnabled ? (
                         <>
                             {/* Divider */}
                             <div className="relative mb-6">
@@ -352,7 +416,7 @@ function LoginForm() {
                                 )}
                             </div>
                         </>
-                    )}
+                    ) : null}
                 </Card>
             </div>
         </div>
