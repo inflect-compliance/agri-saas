@@ -106,6 +106,8 @@ function ResetPasswordForm() {
                                     <Input
                                         type="password"
                                         name="newPassword"
+                                        autoComplete="new-password"
+                                        enterKeyHint="next"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         required
@@ -116,6 +118,8 @@ function ResetPasswordForm() {
                                     <Input
                                         type="password"
                                         name="confirmPassword"
+                                        autoComplete="new-password"
+                                        enterKeyHint="done"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         required

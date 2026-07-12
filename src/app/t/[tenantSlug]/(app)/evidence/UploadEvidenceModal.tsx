@@ -619,7 +619,6 @@ export function UploadEvidenceModal({
                                 searchPlaceholder={t('upload.searchControls')}
                                 emptyState={t('upload.noControlsMatch')}
                                 matchTriggerWidth
-                                forceDropdown
                                 buttonProps={{ className: 'w-full' }}
                                 caret
                             />

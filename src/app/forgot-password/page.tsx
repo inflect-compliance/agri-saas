@@ -80,6 +80,9 @@ export default function ForgotPasswordPage() {
                                     <Input
                                         type="email"
                                         name="email"
+                                        autoComplete="email"
+                                        inputMode="email"
+                                        enterKeyHint="send"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required

@@ -427,7 +427,6 @@ export function ControlDetailSheet({
                                             searchPlaceholder={t('sheet.searchCategories')}
                                             disabled={!canWrite}
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />
@@ -449,7 +448,6 @@ export function ControlDetailSheet({
                                             disabled={!canWrite}
                                             hideSearch
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />

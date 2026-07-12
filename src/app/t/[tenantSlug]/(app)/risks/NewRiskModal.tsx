@@ -408,7 +408,6 @@ export function NewRiskModal({
                                     searchPlaceholder={tn('searchTemplates')}
                                     emptyState={tn('noTemplatesMatch')}
                                     matchTriggerWidth
-                                    forceDropdown
                                     buttonProps={{ className: 'w-full' }}
                                     caret
                                 />
@@ -450,7 +449,6 @@ export function NewRiskModal({
                                     placeholder={tn('categoryPlaceholder')}
                                     searchPlaceholder={tn('searchCategories')}
                                     matchTriggerWidth
-                                    forceDropdown
                                     buttonProps={{ className: 'w-full' }}
                                     caret
                                 />
@@ -465,7 +463,6 @@ export function NewRiskModal({
                                     onChange={(userId) =>
                                         update('ownerUserId', userId ?? '')
                                     }
-                                    forceDropdown
                                     matchTriggerWidth
                                     placeholder={tn('ownerPlaceholder')}
                                 />

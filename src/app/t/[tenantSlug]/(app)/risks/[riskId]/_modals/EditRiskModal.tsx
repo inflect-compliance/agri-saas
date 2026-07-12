@@ -136,7 +136,6 @@ export function EditRiskModal({
                                 <span className={fieldLabel}>{t('category')}</span>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     selected={
                                         categoryOptions.find(
                                             (o) => o.value === (form.category ?? ''),
@@ -201,7 +200,6 @@ export function EditRiskModal({
                                 <span className={fieldLabel}>{t('treatment')}</span>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     selected={
                                         treatmentOptions.find(
                                             (o) => o.value === (form.treatment ?? ''),

@@ -30,7 +30,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Drawer } from "vaul";
-import { useMediaQuery } from "./hooks";
+import { useKeyboardInset, useMediaQuery, useReducedMotion } from "./hooks";
+import { OverlayDepthProvider, useOverlayDepth } from "./overlay-depth";
 import { Tooltip } from "./tooltip";
 
 export type PopoverProps = PropsWithChildren<{
@@ -40,6 +41,16 @@ export type PopoverProps = PropsWithChildren<{
   openPopover: boolean;
   setOpenPopover: (open: boolean) => void;
   mobileOnly?: boolean;
+  /**
+   * Explicit always-dropdown override — renders the portalled desktop-style
+   * popover even on mobile. Reserved for on-page pickers where a bottom
+   * sheet would cover essential context (e.g. a map prescription picker).
+   *
+   * P3.2: nesting no longer needs this. A popover already inside a
+   * Modal/Sheet/Popover is detected via `OverlayDepthContext` and
+   * auto-renders as a dropdown. The two signals are OR'd, so passing
+   * `forceDropdown` inside an overlay is redundant (harmless).
+   */
   forceDropdown?: boolean;
   popoverContentClassName?: string;
   onOpenAutoFocus?: PopoverPrimitive.PopoverContentProps["onOpenAutoFocus"];
@@ -81,6 +92,14 @@ function PopoverRoot({
 }: PopoverProps) {
   const t = useTranslations("ui.popover");
   const { isMobile } = useMediaQuery();
+  const { inset: keyboardInset, height: viewportHeight } = useKeyboardInset();
+  const reducedMotion = useReducedMotion();
+  // P3.2 — a popover already inside an overlay (Modal / Sheet / another
+  // Popover) renders as a portalled dropdown instead of stacking a second
+  // Vaul bottom-sheet, even on mobile. The explicit `forceDropdown` override
+  // is OR'd in for on-page always-dropdown pickers.
+  const overlayDepth = useOverlayDepth();
+  const renderAsDropdown = forceDropdown || overlayDepth > 0;
   // When a trigger tooltip is requested, wrap the whole Radix Trigger ELEMENT
   // (not the inner button) in <Tooltip>. Order matters: Tooltip OUTER →
   // Popover.Trigger INNER → button. The inner Popover.Trigger's asChild Slot
@@ -90,7 +109,7 @@ function PopoverRoot({
   const withTooltip = (el: ReactNode) =>
     triggerTooltip ? <Tooltip content={triggerTooltip}>{el}</Tooltip> : el;
 
-  if (!forceDropdown && (mobileOnly || isMobile)) {
+  if (!renderAsDropdown && (mobileOnly || isMobile)) {
     return (
       <Drawer.Root open={openPopover} onOpenChange={setOpenPopover}>
         {withTooltip(
@@ -102,6 +121,24 @@ function PopoverRoot({
           <Drawer.Overlay className="bg-bg-subtle fixed inset-0 z-50 bg-opacity-10 backdrop-blur" />
           <Drawer.Content
             className="surface-popup-texture fixed bottom-0 left-0 right-0 z-50 mt-24 rounded-t-[10px]"
+            // P3.1 — keyboard-avoidance. When a focused input inside the
+            // sheet (a Combobox search field, a form field) raises the soft
+            // keyboard, the visual viewport shrinks from the bottom and would
+            // hide the sheet's lower half behind the keyboard. Lift the sheet
+            // onto the keyboard's top edge (`bottom`) and cap its height to
+            // the visible viewport so the focused input stays on-screen. The
+            // transition is suppressed under prefers-reduced-motion.
+            style={
+              keyboardInset
+                ? {
+                    bottom: keyboardInset,
+                    maxHeight: viewportHeight,
+                    transition: reducedMotion
+                      ? undefined
+                      : "bottom 150ms ease-out, max-height 150ms ease-out",
+                  }
+                : undefined
+            }
             onEscapeKeyDown={onEscapeKeyDown}
             onPointerDownOutside={(e) => {
               // Prevent dismissal when clicking inside a toast
@@ -127,7 +164,7 @@ function PopoverRoot({
               <div className="bg-border-default my-3 h-1 w-12 rounded-full" />
             </div>
             <div className="bg-bg-default flex w-full items-center justify-center overflow-hidden pb-4 align-middle shadow-xl">
-              {content}
+              <OverlayDepthProvider>{content}</OverlayDepthProvider>
             </div>
           </Drawer.Content>
           <Drawer.Overlay />
@@ -170,7 +207,7 @@ function PopoverRoot({
           onEscapeKeyDown={onEscapeKeyDown}
           onWheel={onWheel}
         >
-          {content}
+          <OverlayDepthProvider>{content}</OverlayDepthProvider>
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>

@@ -515,6 +515,10 @@ export function Combobox<
                                     <Command.Input
                                         ref={searchInputRef}
                                         placeholder={searchPlaceholder}
+                                        // P3.3 — mobile keyboards show a
+                                        // "search" return key for this filter
+                                        // field instead of a generic Enter.
+                                        enterKeyHint="search"
                                         value={search}
                                         onValueChange={setSearch}
                                         className={cn(

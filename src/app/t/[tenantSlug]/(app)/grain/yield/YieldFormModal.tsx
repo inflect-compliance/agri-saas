@@ -377,7 +377,6 @@ export function YieldFormModal({
                                         }
                                         placeholder={t('plantingPlaceholder')}
                                         matchTriggerWidth
-                                        forceDropdown
                                         buttonProps={{ className: 'w-full' }}
                                         caret
                                     />
@@ -408,7 +407,6 @@ export function YieldFormModal({
                                             }
                                             placeholder={t('fieldPlaceholder')}
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />
@@ -437,7 +435,6 @@ export function YieldFormModal({
                                             }
                                             placeholder={t('seasonPlaceholder')}
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />

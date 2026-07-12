@@ -29,6 +29,7 @@ import { ComponentProps, type HTMLAttributes, type ReactNode } from "react";
 import { ContentProps, type DialogProps, Drawer } from "vaul";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { useKeyboardInset, useMediaQuery } from "./hooks";
+import { OverlayDepthProvider } from "./overlay-depth";
 import { ProgressiveBlur } from "./progressive-blur";
 import { Tooltip } from "./tooltip";
 
@@ -181,7 +182,7 @@ function SheetRoot({
                     >
                         {fallbackTitle}
                         {!isSide ? <DrawerHandle /> : null}
-                        {children}
+                        <OverlayDepthProvider>{children}</OverlayDepthProvider>
                     </div>
                 </Drawer.Content>
             </Drawer.Portal>

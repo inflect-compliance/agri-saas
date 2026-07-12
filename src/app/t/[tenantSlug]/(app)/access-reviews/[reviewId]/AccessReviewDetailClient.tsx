@@ -440,12 +440,12 @@ function DecisionDialog({
                     </p>
                     {decision.type === 'MODIFY' ? (
                         <FormField label={t('targetRole')} required>
-                            {/* Combobox inside a Modal → forceDropdown (no mobile
-                                drawer). Wrapper carries the E2E testid since
-                                ButtonProps has no data-testid slot. */}
+                            {/* Combobox inside a Modal → auto-renders as a
+                                dropdown via OverlayDepthContext (P3.2), no
+                                nested mobile drawer. Wrapper carries the E2E
+                                testid since ButtonProps has no data-testid slot. */}
                             <div data-testid="decision-modal-modified-to-role">
                                 <Combobox
-                                    forceDropdown
                                     hideSearch
                                     matchTriggerWidth
                                     id="decision-modal-modified-to-role"

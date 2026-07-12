@@ -84,6 +84,8 @@ export function ChangePasswordForm() {
                             <Input
                                 type="password"
                                 name="currentPassword"
+                                autoComplete="current-password"
+                                enterKeyHint="next"
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
                                 required
@@ -94,6 +96,8 @@ export function ChangePasswordForm() {
                             <Input
                                 type="password"
                                 name="newPassword"
+                                autoComplete="new-password"
+                                enterKeyHint="next"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 required
@@ -104,6 +108,8 @@ export function ChangePasswordForm() {
                             <Input
                                 type="password"
                                 name="confirmPassword"
+                                autoComplete="new-password"
+                                enterKeyHint="done"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required

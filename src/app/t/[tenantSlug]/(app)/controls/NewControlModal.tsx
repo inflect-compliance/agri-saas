@@ -357,7 +357,6 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                             placeholder={t('newModal.phCategory')}
                                             searchPlaceholder={t('newModal.searchCategories')}
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />
@@ -388,7 +387,6 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                             placeholder={t('newModal.phFrequency')}
                                             hideSearch
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />
@@ -420,7 +418,6 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                             placeholder={t('newModal.phAutomation')}
                                             hideSearch
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />
@@ -450,7 +447,6 @@ export function NewControlModal({ open, setOpen, tenantSlug }: NewControlModalPr
                                             placeholder={t('newModal.phMitigation')}
                                             hideSearch
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />

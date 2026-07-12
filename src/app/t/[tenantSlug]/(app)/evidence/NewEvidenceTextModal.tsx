@@ -247,7 +247,6 @@ export function NewEvidenceTextModal({
                                     searchPlaceholder={tr('textModal.searchControls')}
                                     emptyState={tr('textModal.noControlsMatch')}
                                     matchTriggerWidth
-                                    forceDropdown
                                     buttonProps={{ className: 'w-full' }}
                                     caret
                                 />
