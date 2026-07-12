@@ -3858,6 +3858,10 @@
         "detailSections": "Секции с детайли",
         "context": "Контекст"
     },
+    "mobile": {
+        "refreshing": "Обновяване…",
+        "scrollTop": "Обратно нагоре"
+    },
     "listPageShell": {
         "orientation": "Ориентация",
         "context": "Контекст"

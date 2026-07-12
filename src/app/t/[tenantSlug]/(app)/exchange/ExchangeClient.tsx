@@ -28,6 +28,8 @@ import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { Fab } from '@/components/ui/fab';
+import { PullToRefresh } from '@/components/ui/hooks';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { Heading } from '@/components/ui/typography';
 import { Sheet } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/ui/error-state';
@@ -393,6 +395,10 @@ function ExchangeInner() {
                 listing={selectedOffer}
                 onSent={() => setSelectedId(null)}
             />
+
+            {/* Mobile-only pull-to-refresh + scroll-to-top affordances. */}
+            <PullToRefresh onRefresh={() => mutate()} />
+            <ScrollToTop />
 
             {/* Mobile-only FAB — the primary create action in the thumb
                 zone (md:hidden; the header button is the desktop affordance). */}

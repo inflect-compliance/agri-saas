@@ -34,13 +34,50 @@
  * prop) — useful for risks-style pages that stack sections instead.
  */
 
-import { type ReactNode } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+    type ReactNode,
+} from 'react';
 import { useTranslations } from 'next-intl';
 import { cardVariants } from '@/components/ui/card';
 
 import { cn } from '@/lib/cn';
+import { useReducedMotion } from '@/components/ui/hooks';
 import { type BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { PageHeader, type PageHeaderBack } from '@/components/layout/PageHeader';
+
+// ─── Tab swipe helpers (mobile-native-feel PR-1) ──────────────────────
+
+/** Min horizontal travel (px) for a swipe to register as a tab change. */
+const SWIPE_THRESHOLD = 50;
+
+/**
+ * True when the touch began inside a horizontally-scrollable descendant
+ * (a wide `<DataTable>`, a map canvas, a code block). Swiping such an
+ * element should pan IT, not flip the tab — so the gesture is ignored.
+ * Walks up from the touch target to (but not past) the content boundary.
+ */
+function startedOnHorizontalScroller(
+    target: EventTarget | null,
+    boundary: HTMLElement | null,
+): boolean {
+    let node = target instanceof HTMLElement ? target : null;
+    while (node && node !== boundary) {
+        const style = window.getComputedStyle(node);
+        const overflowX = style.overflowX;
+        if (
+            (overflowX === 'auto' || overflowX === 'scroll') &&
+            node.scrollWidth > node.clientWidth
+        ) {
+            return true;
+        }
+        node = node.parentElement;
+    }
+    return false;
+}
 
 // ─── Tab descriptor ───────────────────────────────────────────────
 
@@ -173,6 +210,100 @@ export function EntityDetailLayout<TKey extends string = string>({
     rail,
 }: EntityDetailLayoutProps<TKey>) {
     const tr = useTranslations('entityDetailLayout');
+    const reducedMotion = useReducedMotion();
+
+    // ── Native tabs (mobile-native-feel PR-1) ──────────────────────────
+    //
+    // (1) Auto-scroll the active tab into view. Deep-linking straight to
+    //     a later tab (or switching tabs) used to leave the active tab
+    //     off-screen on a phone, since the strip scrolls but never
+    //     follows the selection. Runs on mount AND on every active-tab
+    //     change; honours prefers-reduced-motion (instant vs smooth).
+    // (2) Horizontal swipe between tabs on the CONTENT area — a subtle
+    //     slide encodes travel direction.
+    const activeTabRef = useRef<HTMLButtonElement | null>(null);
+    const panelRef = useRef<HTMLDivElement | null>(null);
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+    const [slide, setSlide] = useState<'left' | 'right' | null>(null);
+
+    useEffect(() => {
+        const el = activeTabRef.current;
+        if (!el || typeof el.scrollIntoView !== 'function') return;
+        el.scrollIntoView({
+            inline: 'nearest',
+            block: 'nearest',
+            behavior: reducedMotion ? 'auto' : 'smooth',
+        });
+    }, [activeTab, reducedMotion]);
+
+    // Adjacent-tab navigation, skipping disabled tabs, clamped at ends.
+    const goToAdjacentTab = useCallback(
+        (direction: 1 | -1) => {
+            if (!tabs || !activeTab || !onTabChange) return;
+            const idx = tabs.findIndex((tb) => tb.key === activeTab);
+            if (idx === -1) return;
+            let next = idx + direction;
+            while (next >= 0 && next < tabs.length && tabs[next]?.disabled) {
+                next += direction;
+            }
+            if (next < 0 || next >= tabs.length) return; // no wrap
+            const target = tabs[next];
+            if (!target || target.disabled) return;
+            setSlide(direction === 1 ? 'right' : 'left');
+            onTabChange(target.key);
+        },
+        [tabs, activeTab, onTabChange],
+    );
+
+    const onPanelTouchStart = useCallback((e: React.TouchEvent) => {
+        if (e.touches.length !== 1) {
+            touchStartRef.current = null;
+            return;
+        }
+        if (startedOnHorizontalScroller(e.target, panelRef.current)) {
+            touchStartRef.current = null;
+            return;
+        }
+        touchStartRef.current = {
+            x: e.touches[0].clientX,
+            y: e.touches[0].clientY,
+        };
+    }, []);
+
+    const onPanelTouchEnd = useCallback(
+        (e: React.TouchEvent) => {
+            const start = touchStartRef.current;
+            touchStartRef.current = null;
+            if (!start) return;
+            const touch = e.changedTouches[0];
+            if (!touch) return;
+            const dx = touch.clientX - start.x;
+            const dy = touch.clientY - start.y;
+            // Horizontal-dominant swipe past the threshold only.
+            if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) <= Math.abs(dy)) {
+                return;
+            }
+            goToAdjacentTab(dx < 0 ? 1 : -1); // swipe left → next tab
+        },
+        [goToAdjacentTab],
+    );
+
+    // One-shot slide class, cleared once the animation has played.
+    const slideClass =
+        slide && !reducedMotion
+            ? slide === 'right'
+                ? 'animate-tab-enter-right'
+                : 'animate-tab-enter-left'
+            : undefined;
+
+    const tabPanelInteractionProps = tabs
+        ? {
+              onTouchStart: onPanelTouchStart,
+              onTouchEnd: onPanelTouchEnd,
+              onAnimationEnd: () => setSlide(null),
+          }
+        : {};
+
     // v2-fu-4 — render the breadcrumbs / back link in EVERY state
     // (loading / error / empty / main). Previously the loading
     // skeleton, error block, and empty block returned early before
@@ -193,7 +324,7 @@ export function EntityDetailLayout<TKey extends string = string>({
     if (loading) {
         return (
             <div
-                className={cn('space-y-section animate-fadeIn', className)}
+                className={cn('space-y-section', className)}
                 aria-busy="true"
                 data-entity-detail-layout
                 data-testid="entity-detail-loading"
@@ -206,7 +337,7 @@ export function EntityDetailLayout<TKey extends string = string>({
     if (error) {
         return (
             <div
-                className={cn('space-y-section animate-fadeIn', className)}
+                className={cn('space-y-section', className)}
                 data-entity-detail-layout
             >
                 {headerNode}
@@ -223,7 +354,7 @@ export function EntityDetailLayout<TKey extends string = string>({
     if (empty) {
         return (
             <div
-                className={cn('space-y-section animate-fadeIn', className)}
+                className={cn('space-y-section', className)}
                 data-entity-detail-layout
             >
                 {headerNode}
@@ -240,7 +371,7 @@ export function EntityDetailLayout<TKey extends string = string>({
     return (
         <div
             id={id}
-            className={cn('space-y-section animate-fadeIn', className)}
+            className={cn('space-y-section', className)}
             data-entity-detail-layout
         >
             {/* Header */}
@@ -260,6 +391,7 @@ export function EntityDetailLayout<TKey extends string = string>({
                         return (
                             <button
                                 key={t.key}
+                                ref={isActive ? activeTabRef : undefined}
                                 type="button"
                                 role="tab"
                                 aria-selected={isActive}
@@ -315,11 +447,13 @@ export function EntityDetailLayout<TKey extends string = string>({
                 >
                     {tabs && activeTab ? (
                         <div
+                            ref={panelRef}
                             role="tabpanel"
                             id={`tabpanel-${activeTab}`}
                             aria-labelledby={`tab-${activeTab}`}
                             data-testid="entity-detail-tabpanel"
-                            className="min-w-0 xl:flex-1 space-y-section"
+                            className={cn('min-w-0 xl:flex-1 space-y-section', slideClass)}
+                            {...tabPanelInteractionProps}
                         >
                             {children}
                         </div>
@@ -341,11 +475,13 @@ export function EntityDetailLayout<TKey extends string = string>({
                 </div>
             ) : tabs && activeTab ? (
                 <div
+                    ref={panelRef}
                     role="tabpanel"
                     id={`tabpanel-${activeTab}`}
                     aria-labelledby={`tab-${activeTab}`}
                     data-testid="entity-detail-tabpanel"
-                    className="space-y-section"
+                    className={cn('space-y-section', slideClass)}
+                    {...tabPanelInteractionProps}
                 >
                     {children}
                 </div>

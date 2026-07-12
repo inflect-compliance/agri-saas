@@ -164,6 +164,75 @@ describe('EntityDetailLayout — tabs', () => {
     });
 });
 
+// mobile-native-feel PR-1 — the active tab is scrolled into view on
+// mount AND on every active-tab change, so deep-linking to a later tab
+// (or switching tabs) never leaves it off-screen on a phone.
+describe('EntityDetailLayout — active tab auto-scroll', () => {
+    let scrollSpy: jest.SpyInstance;
+    beforeEach(() => {
+        scrollSpy = jest
+            .spyOn(HTMLElement.prototype, 'scrollIntoView')
+            .mockImplementation(() => {});
+    });
+    afterEach(() => scrollSpy.mockRestore());
+
+    function renderTabs(activeTab: string) {
+        return render(
+            <EntityDetailLayout
+                title="Control"
+                tabs={[
+                    { key: 'overview', label: 'Overview' },
+                    { key: 'tasks', label: 'Tasks' },
+                    { key: 'evidence', label: 'Evidence' },
+                ]}
+                activeTab={activeTab}
+                onTabChange={jest.fn()}
+            >
+                <div>body</div>
+            </EntityDetailLayout>,
+        );
+    }
+
+    it('scrolls the active tab into view on mount', () => {
+        renderTabs('evidence');
+        expect(scrollSpy).toHaveBeenCalled();
+        // The element scrolled is the ACTIVE tab button.
+        const activeTab = screen.getByTestId('tab-evidence');
+        const scrolled = scrollSpy.mock.instances.some(
+            (inst) => inst === activeTab,
+        );
+        expect(scrolled).toBe(true);
+        // Called with an inline:'nearest' options object (native tabs contract).
+        expect(scrollSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ inline: 'nearest' }),
+        );
+    });
+
+    it('re-scrolls when the active tab changes', () => {
+        const { rerender } = renderTabs('overview');
+        scrollSpy.mockClear();
+        rerender(
+            <EntityDetailLayout
+                title="Control"
+                tabs={[
+                    { key: 'overview', label: 'Overview' },
+                    { key: 'tasks', label: 'Tasks' },
+                    { key: 'evidence', label: 'Evidence' },
+                ]}
+                activeTab="tasks"
+                onTabChange={jest.fn()}
+            >
+                <div>body</div>
+            </EntityDetailLayout>,
+        );
+        expect(scrollSpy).toHaveBeenCalled();
+        const tasksTab = screen.getByTestId('tab-tasks');
+        expect(
+            scrollSpy.mock.instances.some((inst) => inst === tasksTab),
+        ).toBe(true);
+    });
+});
+
 describe('EntityDetailLayout — lifecycle states', () => {
     it('loading replaces the body with a skeleton', () => {
         render(

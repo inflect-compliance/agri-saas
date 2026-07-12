@@ -175,7 +175,15 @@ export function AppShell({
         // min-h-screen is the mobile fallback — below md the body
         // scrolls naturally and min-h-screen ensures the shell fills
         // the visible viewport at minimum.
-        <div className="min-h-screen md:h-full md:overflow-hidden flex">
+        // `safe-area-x` (mobile-native-feel PR-4b) pads the shell by
+        // env(safe-area-inset-left/right) so a phone rotated landscape keeps
+        // content clear of a side notch. It is PADDING (border-box), so it
+        // can never widen the layout past the viewport — no horizontal drift
+        // — and it resolves to 0 on non-notched / desktop devices. The fixed
+        // BottomTabBar (inset-x-0 + safe-area-bottom) and Fab (right-4 +
+        // safe-area-bottom) are viewport-fixed and unaffected — their bottom
+        // insets still compose exactly as before.
+        <div className="min-h-screen md:h-full md:overflow-hidden flex safe-area-x">
             {/* Desktop sidebar — hidden on mobile, visible on md+. Collapses to
                 a 56px icon rail (w-14); expanded is a thinner 208px (w-52). */}
             <aside

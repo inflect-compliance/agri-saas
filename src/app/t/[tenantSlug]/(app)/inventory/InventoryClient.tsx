@@ -16,6 +16,8 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Fab } from '@/components/ui/fab';
+import { PullToRefresh } from '@/components/ui/hooks';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Combobox } from '@/components/ui/combobox';
@@ -537,6 +539,8 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                 Opens the New product flow: a product is the foundational
                 record (the empty state's primary action too — a lot can't
                 exist without one). */}
+            <PullToRefresh onRefresh={() => mutate()} />
+            <ScrollToTop />
             <Fab
                 onClick={() => setShowProduct(true)}
                 label={t('fabLabel')}

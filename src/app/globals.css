@@ -76,11 +76,18 @@ body {
      that overflows the DOCUMENT box, so a wide `<DataTable>` / code block
      with its own `overflow-x: auto` still scrolls within its own card.
    - `overscroll-behavior-x: none` stops an inner scroller's edge from
-     chaining into a browser back-swipe. */
+     chaining into a browser back-swipe.
+   - `overscroll-behavior-y: contain` (mobile-native-feel PR-2) stops the
+     browser's OWN pull-to-refresh / rubber-band reload from firing at the
+     top of the document, so the app's custom `usePullToRefresh` gesture is
+     the only pull affordance and never fights a native reload. In an
+     installed (standalone) PWA there is no browser chrome to reload anyway;
+     `contain` simply makes browser + standalone behave identically. */
 @media (max-width: 767px) {
   html, body {
     overflow-x: clip;
     overscroll-behavior-x: none;
+    overscroll-behavior-y: contain;
     max-width: 100%;
   }
 }
@@ -335,6 +342,22 @@ textarea.input { @apply resize-y min-h-[80px]; }
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+  /* mobile-native-feel PR-4b — top-notch clearance for the sticky nav.
+     The status-bar / camera notch overlaps the top of the viewport in
+     an installed PWA (viewport-fit=cover). Adding the inset as PADDING
+     (not margin) grows the bar downward without pushing content off the
+     top edge, so the chrome sits clear of the notch and nothing drifts. */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  /* Landscape notch clearance for the app shell — a phone rotated
+     landscape puts the notch on the LEFT or RIGHT edge. Padding (not
+     margin) keeps the content inside the box, so this can never push the
+     layout wider than the viewport (no horizontal drift). */
+  .safe-area-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 }
 
 /* SoA Print styles — moved from inline <style> for CSP compliance */
@@ -455,3 +478,50 @@ textarea.input { @apply resize-y min-h-[80px]; }
     animation: canvas-connection-shake-reduced 200ms ease-in-out;
   }
 }
+
+/* ─── Route view-transitions (mobile-native-feel PR-3) ───────────────
+ * Progressive enhancement over the View Transitions API. The JS side
+ * (`src/lib/view-transitions/`) only calls `document.startViewTransition`
+ * on a coarse-pointer (mobile) device with motion enabled, so a
+ * transition never fires on desktop or under reduced motion. These
+ * rules are the paired CSS: a fast (~150ms) crossfade + a slight
+ * horizontal slide, MOBILE ONLY, and belt-and-suspenders disabled
+ * under `prefers-reduced-motion`.
+ *
+ * The `::view-transition-*` pseudo-elements paint in a top-layer
+ * overlay that is independent of document layout — the translateX
+ * slide can never widen the page or introduce horizontal drift. */
+@media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 150ms;
+    animation-timing-function: ease-out;
+  }
+  ::view-transition-old(root) {
+    animation-name: vt-fade-out, vt-slide-out;
+  }
+  ::view-transition-new(root) {
+    animation-name: vt-fade-in, vt-slide-in;
+  }
+}
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } }
+@keyframes vt-slide-out { to { transform: translateX(-8px); } }
+@keyframes vt-slide-in { from { transform: translateX(8px); } }
+
+/* ─── Detail-tab swipe slide (mobile-native-feel PR-1) ───────────────
+ * A subtle horizontal slide when the user swipes between detail-page
+ * tabs. The direction encodes travel: swiping to a LATER tab enters
+ * from the right, an EARLIER tab from the left. tokens.css flattens
+ * animation-duration under `prefers-reduced-motion`, so these degrade
+ * to an instant swap for motion-sensitive users automatically. */
+@keyframes tab-enter-from-right {
+  from { transform: translateX(16px); opacity: 0.5; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes tab-enter-from-left {
+  from { transform: translateX(-16px); opacity: 0.5; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+.animate-tab-enter-right { animation: tab-enter-from-right 0.2s ease-out; }
+.animate-tab-enter-left  { animation: tab-enter-from-left 0.2s ease-out; }

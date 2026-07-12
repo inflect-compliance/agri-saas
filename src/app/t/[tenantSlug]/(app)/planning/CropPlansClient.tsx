@@ -7,6 +7,8 @@ import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icons/nucleo';
 import { Fab } from '@/components/ui/fab';
+import { PullToRefresh } from '@/components/ui/hooks';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { createColumns } from '@/components/ui/table';
 import {
     FilterProvider,
@@ -163,7 +165,7 @@ function CropPlansPageInner({
 
     return (
         <EntityListPage<CropPlanRow>
-            className="animate-fadeIn gap-section"
+            className="gap-section"
             header={{
                 breadcrumbs: [
                     { label: tp('bcDashboard'), href: tenantHref('/dashboard') },
@@ -237,6 +239,8 @@ function CropPlansPageInner({
                     {/* Mobile-only FAB — the primary create action in the
                         thumb zone (md:hidden; the header button is the
                         desktop affordance). */}
+                    <PullToRefresh onRefresh={() => plansQuery.mutate()} />
+                    <ScrollToTop />
                     <Fab
                         onClick={() => setIsCreateOpen(true)}
                         label={t('fabLabel')}
