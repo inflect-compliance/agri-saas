@@ -9,7 +9,7 @@
  * cache only) — offline writes are handled by the client outbox, not the
  * SW.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { InstallPrompt } from './InstallPrompt';
 import { UpdateAvailableBanner } from './UpdateAvailableBanner';
 import { isChunkLoadError } from '@/lib/pwa/chunk-error';
@@ -19,6 +19,15 @@ export function ServiceWorkerRegistrar() {
     // Surfaced as a non-blocking "Update ready — refresh" prompt; the update
     // only applies on the operator's consent (SKIP_WAITING) — never mid-session.
     const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
+    // One reload per apply, shared between every trigger (controllerchange,
+    // the new worker's own `activated` statechange, and the fallback timer)
+    // so whichever fires first wins and the others are no-ops.
+    const reloadedRef = useRef(false);
+    const reloadOnce = useCallback(() => {
+        if (reloadedRef.current) return;
+        reloadedRef.current = true;
+        window.location.reload();
+    }, []);
 
     useEffect(() => {
         if (process.env.NODE_ENV !== 'production') return;
@@ -53,13 +62,12 @@ export function ServiceWorkerRegistrar() {
         else window.addEventListener('load', register, { once: true });
 
         // The waiting worker took control (after SKIP_WAITING) → reload once so
-        // the page runs the new assets. Guarded against a reload loop.
-        let reloaded = false;
-        const onControllerChange = () => {
-            if (reloaded) return;
-            reloaded = true;
-            window.location.reload();
-        };
+        // the page runs the new assets. Guarded against a reload loop. This is
+        // the fast path; `applyUpdate` adds belt-and-braces triggers because
+        // `controllerchange` is documented as unreliable on some browsers
+        // (notably iOS Safari), which would otherwise strand the operator on a
+        // banner whose button "does nothing".
+        const onControllerChange = () => reloadOnce();
         navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
         // Fallback flush trigger for browsers without Background Sync (iOS
@@ -76,7 +84,9 @@ export function ServiceWorkerRegistrar() {
             window.removeEventListener('online', nudgeFlush);
             navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
         };
-    }, []);
+        // reloadOnce is a stable useCallback([]) — listed to satisfy
+        // exhaustive-deps without changing the run-once semantics.
+    }, [reloadOnce]);
 
     // ChunkLoadError recovery. A lazy route/component chunk that fails to load
     // mid-navigation (flaky rural LTE, or a stale chunk hash after a deploy)
@@ -110,15 +120,44 @@ export function ServiceWorkerRegistrar() {
         };
     }, []);
 
-    // The install affordance attaches its own listeners (beforeinstallprompt
-    // / appinstalled) and renders the mobile banner / iOS hint.
     // Consent → tell the waiting worker to take over. It skipWaiting()s,
-    // activates + claims, and `controllerchange` (above) reloads the page.
-    // Only ever fired on an explicit tap, so a deploy never interrupts an
-    // in-flight outbox flush.
+    // activates + claims, and the page reloads onto the new assets. Only ever
+    // fired on an explicit tap, so a deploy never interrupts an in-flight
+    // outbox flush.
+    //
+    // Robustness matters here: the naive "postMessage to the captured
+    // waitingWorker, then wait for controllerchange" is fragile in production —
+    // (a) the captured ref can be STALE (on a busy deploy a newer worker
+    // supersedes it, leaving the ref pointing at a now-`redundant` worker whose
+    // postMessage is a silent no-op), and (b) `controllerchange` is not
+    // reliably delivered on every browser. Either alone makes the button
+    // "do nothing". So we: re-query the LIVE `reg.waiting` at click time,
+    // reload on the new worker's own `activated` statechange (reliable) as well
+    // as `controllerchange` (fast path), and keep a bounded fallback reload as
+    // the last resort. `reloadOnce` collapses whichever fires first.
     const applyUpdate = useCallback(() => {
-        waitingWorker?.postMessage({ type: 'SKIP_WAITING' });
-    }, [waitingWorker]);
+        const target = (worker: ServiceWorker | null | undefined) => {
+            if (!worker) {
+                // No waiting worker to activate (superseded / already gone) —
+                // a plain reload still gets the operator off the stale page.
+                reloadOnce();
+                return;
+            }
+            worker.addEventListener('statechange', () => {
+                if (worker.state === 'activated') reloadOnce();
+            });
+            worker.postMessage({ type: 'SKIP_WAITING' });
+            // Fallback: if neither `activated` nor `controllerchange` lands
+            // (browser quirk), force the reload so the tap is never a dead end.
+            window.setTimeout(reloadOnce, 3000);
+        };
+        // Prefer the live registration's current waiting worker over the
+        // possibly-stale captured ref.
+        navigator.serviceWorker
+            .getRegistration()
+            .then((reg) => target(reg?.waiting ?? waitingWorker))
+            .catch(() => target(waitingWorker));
+    }, [waitingWorker, reloadOnce]);
 
     return (
         <>
