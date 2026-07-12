@@ -130,61 +130,65 @@ test.describe('mobile horizontal-drift ratchet @mobile', () => {
         tenantSlug = await loginAndGetTenant(page);
     });
 
-    for (const { label, path } of PAGES) {
-        test(`${label} does not drift horizontally`, async ({ page }) => {
-            await safeGoto(page, path(tenantSlug));
-            await settle(page);
-            await expectNoHorizontalDrift(page, label);
-        });
-    }
-
-    for (const { label, list, entity } of DETAIL_PAGES) {
-        test(`${label} does not drift horizontally`, async ({ page }) => {
-            const href = await firstDetailHref(page, tenantSlug, list(tenantSlug), entity);
-            test.skip(
-                href === null,
-                `no seeded ${entity} entity to open — detail drift check skipped`,
-            );
-            await safeGoto(page, href!);
-            await settle(page);
-            await expectNoHorizontalDrift(page, label);
-        });
-    }
-
-    // ---- Modal-open states — a wide form inside a phone-width sheet is the
-    // historical drift culprit. Opening a create modal is read-only (nothing
-    // is submitted). One test per biggest create form. ----
-
-    test('the create-offer modal open state does not drift', async ({ page }) => {
-        await safeGoto(page, `/t/${tenantSlug}/exchange`);
-        const trigger = page.getByRole('button', { name: /offer/i }).first();
-        if (await trigger.count()) {
-            await trigger.click().catch(() => undefined);
-            await page.waitForTimeout(300);
+    // ONE login per BLOCK, not per route. A fresh loginAndGetTenant per page
+    // scaled to ~50 logins across the device matrix and pushed the E2E job past
+    // its timeout. These are read-only drift checks, so a single authenticated
+    // session navigates every route; `test.step` attributes any failure to the
+    // specific page. Adding a page is still one line in PAGES / DETAIL_PAGES.
+    test('static pages do not drift horizontally', async ({ page }) => {
+        for (const { label, path } of PAGES) {
+            await test.step(label, async () => {
+                await safeGoto(page, path(tenantSlug));
+                await settle(page);
+                await expectNoHorizontalDrift(page, label);
+            });
         }
-        await expectNoHorizontalDrift(page, 'exchange + create-offer modal');
     });
 
-    test('the create-task modal open state does not drift', async ({ page }) => {
-        await safeGoto(page, `/t/${tenantSlug}/tasks`);
-        await settle(page);
-        const trigger = page.locator('#new-task-btn');
-        if (await trigger.count()) {
-            await trigger.click().catch(() => undefined);
-            await page.waitForTimeout(300);
+    test('detail pages do not drift horizontally', async ({ page }) => {
+        for (const { label, list, entity } of DETAIL_PAGES) {
+            await test.step(label, async () => {
+                const href = await firstDetailHref(page, tenantSlug, list(tenantSlug), entity);
+                if (href === null) return; // no seeded entity in the shared tenant — skip this route
+                await safeGoto(page, href);
+                await settle(page);
+                await expectNoHorizontalDrift(page, label);
+            });
         }
-        await expectNoHorizontalDrift(page, 'tasks + create-task modal');
     });
 
-    test('the journal-entry modal open state does not drift', async ({ page }) => {
-        await safeGoto(page, `/t/${tenantSlug}/journal`);
-        await settle(page);
-        const trigger = page.locator('#new-journal-btn');
-        if (await trigger.count()) {
-            await trigger.click().catch(() => undefined);
-            await page.waitForTimeout(300);
-        }
-        await expectNoHorizontalDrift(page, 'journal + create-entry modal');
+    // Modal-open states — a wide form inside a phone-width sheet is the
+    // historical drift culprit. Opening a create modal is read-only.
+    test('create-modal open states do not drift', async ({ page }) => {
+        await test.step('exchange + create-offer', async () => {
+            await safeGoto(page, `/t/${tenantSlug}/exchange`);
+            const trigger = page.getByRole('button', { name: /offer/i }).first();
+            if (await trigger.count()) {
+                await trigger.click().catch(() => undefined);
+                await page.waitForTimeout(300);
+            }
+            await expectNoHorizontalDrift(page, 'exchange + create-offer modal');
+        });
+        await test.step('tasks + create-task', async () => {
+            await safeGoto(page, `/t/${tenantSlug}/tasks`);
+            await settle(page);
+            const trigger = page.locator('#new-task-btn');
+            if (await trigger.count()) {
+                await trigger.click().catch(() => undefined);
+                await page.waitForTimeout(300);
+            }
+            await expectNoHorizontalDrift(page, 'tasks + create-task modal');
+        });
+        await test.step('journal + create-entry', async () => {
+            await safeGoto(page, `/t/${tenantSlug}/journal`);
+            await settle(page);
+            const trigger = page.locator('#new-journal-btn');
+            if (await trigger.count()) {
+                await trigger.click().catch(() => undefined);
+                await page.waitForTimeout(300);
+            }
+            await expectNoHorizontalDrift(page, 'journal + create-entry modal');
+        });
     });
 });
 
