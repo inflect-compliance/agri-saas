@@ -287,24 +287,16 @@ function scanRawTables(rel: string, content: string): TableHit[] {
 }
 
 /**
- * Known raw-table offenders lacking an overflow-x ancestor. A LATER prompt
- * replaces these three with `<DataTable>`; until then they are documented,
- * not silently tolerated.
+ * Known raw-table offenders lacking an overflow-x ancestor.
+ *
+ * Emptied by P5.3: the three `TraceabilityPanel` linked-entity sub-tables
+ * (risks / controls / assets) were migrated to `<DataTable
+ * mobileFallback="card">`, so there are no raw `<table>` offenders left.
+ * Any NEW bare `<table>` without an `overflow-x-auto` ancestor must be
+ * wrapped or migrated to `<DataTable>` — add here only with a written
+ * reason (the "no stale entries" test below keeps this honest).
  */
-const RAW_TABLE_ALLOWLIST: ReadonlyArray<{ key: string; reason: string }> = [
-    {
-        key: 'src/components/TraceabilityPanel.tsx:311',
-        reason: 'Linked-risks sub-table pending <DataTable> migration (later prompt).',
-    },
-    {
-        key: 'src/components/TraceabilityPanel.tsx:370',
-        reason: 'Linked-controls sub-table pending <DataTable> migration (later prompt).',
-    },
-    {
-        key: 'src/components/TraceabilityPanel.tsx:429',
-        reason: 'Linked-assets sub-table pending <DataTable> migration (later prompt).',
-    },
-];
+const RAW_TABLE_ALLOWLIST: ReadonlyArray<{ key: string; reason: string }> = [];
 const RAW_TABLE_ALLOWKEYS = new Set(RAW_TABLE_ALLOWLIST.map((e) => e.key));
 
 describe('No horizontal drift — raw tables need a scroll ancestor (b)', () => {

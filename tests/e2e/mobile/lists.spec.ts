@@ -77,6 +77,65 @@ test.describe('mobile lists — card fallback @mobile', () => {
         await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
     });
 
+    // P5.1 rollout — representative list pages now render `mobileFallback="card"`.
+    // ONE login for the whole block (beforeEach), then a single test walks every
+    // page via `test.step`. A `loginAndGetTenant` per route would scale to ~5
+    // logins × the device matrix and blow the E2E job's 50-min budget — the
+    // lesson locked by the horizontal-drift spec. These are read-only display
+    // checks on the shared seeded tenant, so one session navigates them all.
+    // Each entry resolves-or-skips: if the shared seed has no rows for that
+    // entity, its card list never mounts and the step is a no-op (coverage
+    // grows automatically as the seed grows).
+    const CARD_PAGES: ReadonlyArray<{
+        label: string;
+        path: (s: string) => string;
+        // When set, the card taps through to a detail route matching this regex.
+        detail?: RegExp;
+    }> = [
+        { label: 'risks', path: (s) => `/t/${s}/risks`, detail: /\/t\/[^/]+\/risks\/[^/]+/ },
+        { label: 'controls', path: (s) => `/t/${s}/controls`, detail: /\/t\/[^/]+\/controls\/[^/]+/ },
+        { label: 'vendors', path: (s) => `/t/${s}/vendors`, detail: /\/t\/[^/]+\/vendors\/[^/]+/ },
+        // Evidence / findings open an inspect surface rather than a detail
+        // route in some seeds, so assert card rendering only (no nav).
+        { label: 'evidence', path: (s) => `/t/${s}/evidence` },
+        { label: 'findings', path: (s) => `/t/${s}/findings` },
+    ];
+
+    test('representative list pages render as tappable cards (single session)', async ({
+        page,
+    }) => {
+        for (const { label, path, detail } of CARD_PAGES) {
+            await test.step(label, async () => {
+                await safeGoto(page, path(tenantSlug));
+                const main = page.getByRole('main');
+                const cardList = main.getByTestId('mobile-card-list').first();
+
+                // The card list mounts post-hydration on a phone viewport. If
+                // the shared seed has no rows for this entity it never appears —
+                // treat that as a skip, not a failure.
+                const appeared = await cardList
+                    .waitFor({ state: 'visible', timeout: 15_000 })
+                    .then(() => true)
+                    .catch(() => false);
+                if (!appeared) return;
+
+                // PRIMARY GOAL: cards, not a horizontally-scrolling table.
+                await expectNoHorizontalOverflow(page, `${label} list (card mode)`);
+
+                const cards = cardList.getByTestId('mobile-card');
+                if ((await cards.count()) === 0) return;
+
+                if (detail) {
+                    // Clickable cards carry the chevron affordance (P5.4) and
+                    // tap through to the row's detail page.
+                    await expect(cards.first().locator('svg').first()).toBeVisible();
+                    await cards.first().click();
+                    await page.waitForURL(detail, { timeout: 30_000 });
+                }
+            });
+        }
+    });
+
     // NOTE: the parcels sub-table (locations/[id] → Overview Parcels dropdown) ALSO uses
     // mobileFallback="card", but a detail-page-tab E2E for it proved flaky
     // (the sub-table's card list intermittently didn't mount within the

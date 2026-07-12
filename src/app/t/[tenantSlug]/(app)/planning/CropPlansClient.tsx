@@ -113,6 +113,7 @@ function CropPlansPageInner({
                             {getValue() as string}
                         </TableTitleCell>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'season',
@@ -121,6 +122,7 @@ function CropPlansPageInner({
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted">{getValue() as string}</span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colSeason') } },
                 },
                 {
                     id: 'crop',
@@ -129,6 +131,7 @@ function CropPlansPageInner({
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-default">{getValue() as string}</span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     id: 'successions',
@@ -148,6 +151,7 @@ function CropPlansPageInner({
                     cell: ({ getValue }) => (
                         <span className="text-xs text-content-muted tabular-nums">{getValue() as number}</span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colPlantings') } },
                 },
                 {
                     accessorKey: 'status',
@@ -155,6 +159,7 @@ function CropPlansPageInner({
                     cell: ({ row }) => (
                         <AgStatusBadge entity="cropPlan" status={row.original.status} />
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
             ]),
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,6 +197,7 @@ function CropPlansPageInner({
                 columns,
                 loading,
                 getRowId: (p) => p.id,
+                mobileFallback: 'card',
                 onRowClick: (row) => router.push(tenantHref(`/planning/${row.original.id}`)),
                 emptyState: hasActive ? (
                     <EmptyState

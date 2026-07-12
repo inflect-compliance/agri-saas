@@ -178,6 +178,7 @@ function TestsRollupContent() {
                             {row.original.name}
                         </Link>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'status', header: t('colStatus'), accessorKey: 'status',
@@ -186,6 +187,7 @@ function TestsRollupContent() {
                             {row.original.status}
                         </StatusBadge>
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
                 {
                     id: 'control', header: t('colControl'), accessorFn: (p) => p.control?.code || p.control?.name || '—',
@@ -195,7 +197,7 @@ function TestsRollupContent() {
                         </Link>
                     ),
                 },
-                { id: 'frequency', header: t('colFrequency'), accessorFn: (p) => freqLabel(p.frequency) },
+                { id: 'frequency', header: t('colFrequency'), accessorFn: (p) => freqLabel(p.frequency), meta: { mobileCard: { slot: 'subtitle' } } },
                 {
                     id: 'nextDue', header: t('colNextDue'), accessorKey: 'nextDueAt',
                     cell: ({ row }) => row.original.nextDueAt ? (
@@ -203,10 +205,12 @@ function TestsRollupContent() {
                             {formatDate(row.original.nextDueAt)}
                         </span>
                     ) : <span className="text-content-subtle">—</span>,
+                    meta: { mobileCard: { slot: 'meta', label: t('colNextDue') } },
                 },
                 {
                     id: 'lastResult', header: t('colLastResult'),
                     accessorFn: (p) => getLastResult(p) || '',
+                    meta: { mobileCard: { slot: 'meta', label: t('colLastResult') } },
                     cell: ({ row }) => {
                         const result = getLastResult(row.original);
                         return result ? (
@@ -292,6 +296,7 @@ function TestsRollupContent() {
             <ListPageShell.Body>
                 <DataTable
                     fillBody
+                    mobileFallback="card"
                     data={filteredPlans}
                     columns={planColumns}
                     getRowId={(p) => p.id}

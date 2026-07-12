@@ -30,27 +30,32 @@ export function AuditLogClient({ auditLog, translations: t }: AuditLogClientProp
             header: t.time,
             accessorFn: (e: any) => e.createdAt,
             cell: ({ getValue }: any) => <span className="whitespace-nowrap">{formatDateTime(getValue())}</span>,
+            meta: { mobileCard: { slot: 'meta', label: t.time } },
         },
         {
             id: 'user',
             header: t.user,
             accessorFn: (e: any) => e.user?.name || '—',
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
+            meta: { mobileCard: { slot: 'subtitle' } },
         },
         {
             accessorKey: 'action',
             header: t.action,
             cell: ({ getValue }: any) => <StatusBadge variant="info">{getValue()}</StatusBadge>,
+            meta: { mobileCard: { slot: 'status', label: t.action } },
         },
         {
             accessorKey: 'entity',
             header: t.entity,
             cell: ({ getValue }: any) => <span>{getValue()}</span>,
+            meta: { mobileCard: { slot: 'title' } },
         },
         {
             accessorKey: 'details',
             header: t.details,
             cell: ({ getValue }: any) => <span className="text-content-muted max-w-xs truncate">{getValue()}</span>,
+            meta: { mobileCard: { slot: 'meta', label: t.details } },
         },
     ]), [t]);
 
@@ -58,6 +63,7 @@ export function AuditLogClient({ auditLog, translations: t }: AuditLogClientProp
         <ListPageShell.Body>
             <DataTable
                 fillBody
+                mobileFallback="card"
                 data={auditLog}
                 columns={logColumns}
                 getRowId={(e: any) => e.id}

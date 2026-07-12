@@ -123,6 +123,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                             {row.original.name}
                         </TableTitleCell>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     accessorKey: 'kind',
@@ -130,6 +131,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                     cell: ({ row }) => (
                         <AgStatusBadge entity="bin" status={row.original.kind} />
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colKind') } },
                 },
                 {
                     id: 'capacityTonnes',
@@ -140,6 +142,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                             {fmtNum(row.original.capacityTonnes)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colCapacity') } },
                 },
                 {
                     id: 'storedQuantity',
@@ -150,6 +153,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                             {fmtNum(row.original.storedQuantity)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colStored') } },
                 },
                 {
                     id: 'fillPct',
@@ -174,6 +178,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                             />
                         );
                     },
+                    meta: { mobileCard: { slot: 'meta', label: t('colFill') } },
                 },
                 {
                     id: 'lotCount',
@@ -223,6 +228,7 @@ function BinsPageInner({ initialBins, tenantSlug, permissions }: BinsClientProps
                 columns,
                 loading,
                 getRowId,
+                mobileFallback: 'card',
                 onRowClick: permissions.canWrite ? handleRowClick : undefined,
                 emptyState: search ? (
                     <EmptyState

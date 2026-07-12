@@ -74,12 +74,14 @@ export function LocationsClient({ tenantSlug }: { tenantSlug: string }) {
                         {row.original.name}
                     </Link>
                 ),
+                meta: { mobileCard: { slot: 'title' } },
             },
-            { accessorKey: 'status', header: t('colStatus') },
+            { accessorKey: 'status', header: t('colStatus'), meta: { mobileCard: { slot: 'status', label: t('colStatus') } } },
             {
                 id: 'parcels',
                 header: t('colParcels'),
                 cell: ({ row }) => row.original._count?.parcels ?? 0,
+                meta: { mobileCard: { slot: 'meta', label: t('colParcels') } },
             },
         ]),
         [tenantSlug, t],
@@ -108,6 +110,7 @@ export function LocationsClient({ tenantSlug }: { tenantSlug: string }) {
             <ListPageShell.Body>
                 <DataTable
                     fillBody
+                    mobileFallback="card"
                     data-testid="locations-table"
                     data={rows}
                     columns={columns}

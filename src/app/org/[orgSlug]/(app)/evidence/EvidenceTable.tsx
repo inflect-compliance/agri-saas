@@ -86,6 +86,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                             {row.original.tenantName}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     id: 'title',
@@ -99,11 +100,13 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                             {row.original.title}
                         </Link>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'daysOverdue',
                     header: t('overdue.colOverdue'),
                     cell: ({ row }) => <OverdueBadge days={row.original.daysOverdue} />,
+                    meta: { mobileCard: { slot: 'meta', label: t('overdue.colOverdue') } },
                 },
                 {
                     id: 'status',
@@ -113,6 +116,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                             {row.original.status}
                         </StatusBadge>
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('overdue.colStatus') } },
                 },
                 {
                     id: 'nextReviewDate',
@@ -122,6 +126,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
                             {formatDate(row.original.nextReviewDate)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('overdue.colReviewDue') } },
                 },
             ]),
         [t],
@@ -143,6 +148,7 @@ export function EvidenceTable({ rows: initialRows, nextCursor: initialNextCursor
             <ListPageShell.Body>
                 <DataTable<OverdueEvidenceRow>
                     fillBody
+                    mobileFallback="card"
                     data={sorted}
                     columns={columns}
                     getRowId={(r) => r.evidenceId}

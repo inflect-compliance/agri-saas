@@ -148,11 +148,13 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                             {row.original.name}
                         </Link>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'rag',
                     header: t('colHealth'),
                     cell: ({ row }) => <RagPill rag={row.original.rag} />,
+                    meta: { mobileCard: { slot: 'status', label: t('colHealth') } },
                 },
                 {
                     id: 'coverage',
@@ -162,6 +164,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                             {formatPercent(row.original.coveragePercent)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colCoverage') } },
                 },
                 {
                     id: 'openRisks',
@@ -180,6 +183,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                             {row.original.criticalRisks ?? '—'}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colCritical') } },
                 },
                 {
                     id: 'overdueEvidence',
@@ -189,6 +193,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
                             {row.original.overdueEvidence ?? '—'}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colOverdueEvidence') } },
                 },
                 {
                     id: 'snapshotDate',
@@ -252,6 +257,7 @@ export function TenantsTable({ rows, orgSlug }: Props) {
             <ListPageShell.Body>
                 <DataTable<TenantHealthRow>
                     fillBody
+                    mobileFallback="card"
                     data={sorted}
                     columns={columns}
                     getRowId={(r) => r.tenantId}

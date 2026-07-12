@@ -261,6 +261,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                     {row.original.name}
                 </TableTitleCell>
             ),
+            meta: { mobileCard: { slot: 'title' } },
         },
         {
             accessorKey: 'status',
@@ -268,6 +269,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
             cell: ({ row }: any) => (
                 <StatusBadge variant={STATUS_VARIANT[row.original.status] || 'neutral'} icon={null}>{row.original.status}</StatusBadge>
             ),
+            meta: { mobileCard: { slot: 'status' } },
         },
         {
             accessorKey: 'criticality',
@@ -275,6 +277,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
             cell: ({ row }: any) => (
                 <StatusBadge variant={CRIT_VARIANT[row.original.criticality] || 'neutral'} icon={null}>{row.original.criticality}</StatusBadge>
             ),
+            meta: { mobileCard: { slot: 'meta' } },
         },
         {
             id: 'risk',
@@ -296,6 +299,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                     {isOverdue(row.original.nextReviewAt, hydratedNow) && <span className="ml-1 text-xs text-content-error font-semibold">{t('overdue')}</span>}
                 </span>
             ),
+            meta: { mobileCard: { slot: 'meta' } },
         },
         {
             id: 'contractRenewalAt',
@@ -312,6 +316,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
             header: 'Owner',
             accessorFn: (v: any) => v.owner?.name || '—',
             cell: ({ getValue }: any) => <span className="text-content-muted">{getValue()}</span>,
+            meta: { mobileCard: { slot: 'meta' } },
         },
     ])), [tenantHref, hydratedNow, orderColumns]);
 
@@ -398,6 +403,7 @@ function VendorsPageInner({ initialVendors, initialFilters, tenantSlug, permissi
                 <div className="border border-border-default rounded-lg overflow-hidden md:flex md:flex-col md:flex-1 md:min-h-0">
                     <DataTable
                         fillBody
+                        mobileFallback="card"
                         data={vendors}
                         columns={vendorColumns}
                         getRowId={(v: any) => v.id}

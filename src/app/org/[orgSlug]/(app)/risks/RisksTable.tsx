@@ -81,6 +81,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                             {row.original.tenantName}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     id: 'title',
@@ -94,11 +95,13 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                             {row.original.title}
                         </Link>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'inherentScore',
                     header: t('colScore'),
                     cell: ({ row }) => <ScorePill score={row.original.inherentScore} />,
+                    meta: { mobileCard: { slot: 'meta', label: t('colScore') } },
                 },
                 {
                     id: 'status',
@@ -108,6 +111,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                             {row.original.status}
                         </StatusBadge>
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
                 {
                     id: 'updatedAt',
@@ -117,6 +121,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
                             {formatDate(row.original.updatedAt)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colUpdated') } },
                 },
             ]),
         [t],
@@ -138,6 +143,7 @@ export function RisksTable({ rows: initialRows, nextCursor: initialNextCursor, o
             <ListPageShell.Body>
                 <DataTable<CriticalRiskRow>
                     fillBody
+                    mobileFallback="card"
                     data={sorted}
                     columns={columns}
                     getRowId={(r) => r.riskId}

@@ -162,6 +162,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                             {formatDateTime(row.original.occurredAt)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colTime') } },
                 },
                 {
                     id: 'action',
@@ -171,6 +172,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                             {t(ACTION_LABEL_KEY[row.original.action])}
                         </StatusBadge>
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colAction') } },
                 },
                 {
                     id: 'actor',
@@ -180,6 +182,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                             {userLabel(row.original.actor)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'target',
@@ -189,6 +192,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                             {userLabel(row.original.target)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colTarget') } },
                 },
                 {
                     id: 'summary',
@@ -198,6 +202,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                             {summarize(row.original, t)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
             ]),
         [t],
@@ -227,6 +232,7 @@ export function AuditLogTable({ orgSlug, initialRows, initialNextCursor }: Props
                 ) : (
                     <DataTable
                         fillBody
+                        mobileFallback="card"
                         data={rows}
                         columns={columns}
                         getRowId={(r) => r.id}

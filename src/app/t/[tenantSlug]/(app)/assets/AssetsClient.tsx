@@ -323,27 +323,32 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                     {getValue()}
                 </TableTitleCell>
             ),
+            meta: { mobileCard: { slot: 'title' } },
         },
         {
             accessorKey: 'type',
             header: t.type,
             cell: ({ getValue }: any) => <StatusBadge variant="info" size="sm">{String(getValue()).replace(/_/g, ' ')}</StatusBadge>,
+            meta: { mobileCard: { slot: 'status', label: t.type } },
         },
         {
             id: 'manufacturer',
             header: t.manufacturer,
             accessorFn: (a: any) => a.manufacturer || '—',
+            meta: { mobileCard: { slot: 'meta', label: t.manufacturer } },
         },
         {
             id: 'owner',
             header: t.owner,
             accessorFn: (a: any) => a.owner || '—',
+            meta: { mobileCard: { slot: 'meta', label: t.owner } },
         },
         {
             id: 'controls',
             header: t.controlsCol,
             accessorFn: (a: any) => a._count?.controls || 0,
             cell: ({ getValue }: any) => <span className="text-xs">{getValue()}</span>,
+            meta: { mobileCard: { slot: 'meta', label: t.controlsCol } },
         },
         {
             // B7 — unified linked-task count (done/total), matching Controls.
@@ -459,6 +464,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             <ListPageShell.Body>
                 <DataTable
                     fillBody
+                    mobileFallback="card"
                     data={assets}
                     columns={orderColumns(assetColumns)}
                     getRowId={(a: any) => a.id}

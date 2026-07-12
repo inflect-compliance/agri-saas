@@ -217,6 +217,7 @@ function ContractsPageInner({
                             {row.original.counterparty}
                         </TableTitleCell>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'commodity',
@@ -227,6 +228,7 @@ function ContractsPageInner({
                             {getValue() as string}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     accessorKey: 'type',
@@ -241,6 +243,7 @@ function ContractsPageInner({
                     cell: ({ row }) => (
                         <AgStatusBadge entity="contract" status={row.original.status} />
                     ),
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
                 {
                     id: 'volumeTonnes',
@@ -251,6 +254,7 @@ function ContractsPageInner({
                             {fmtNum(row.original.volumeTonnes)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colVolume') } },
                 },
                 {
                     id: 'pricePerTonne',
@@ -264,6 +268,7 @@ function ContractsPageInner({
                                 : ''}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colPrice') } },
                 },
                 {
                     id: 'deliveryStart',
@@ -352,6 +357,7 @@ function ContractsPageInner({
                 columns,
                 loading,
                 getRowId,
+                mobileFallback: 'card',
                 onRowClick: permissions.canWrite ? handleRowClick : undefined,
                 emptyState: hasActive || search ? (
                     <EmptyState

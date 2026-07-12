@@ -76,6 +76,7 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                             {getValue() as string}
                         </TableTitleCell>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     accessorKey: 'key',
@@ -85,6 +86,7 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                             {getValue() as string}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     id: 'requirements',
@@ -95,7 +97,7 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                             {getValue() as number}
                         </span>
                     ),
-                    meta: { disableTruncate: true },
+                    meta: { disableTruncate: true, mobileCard: { slot: 'meta', label: t('colRequirements') } },
                 },
             ]),
         [t],
@@ -132,6 +134,7 @@ function SchemesPageInner({ initialSchemes, tenantSlug, permissions }: SchemesCl
                 columns,
                 loading,
                 getRowId: (s) => s.id,
+                mobileFallback: 'card',
                 emptyState: hasActive ? (
                     <EmptyState
                         size="sm"

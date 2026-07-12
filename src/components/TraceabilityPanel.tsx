@@ -12,7 +12,33 @@ import { useToastWithUndo } from '@/components/ui/hooks';
 import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { cardVariants } from '@/components/ui/card';
+import { DataTable, createColumns } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
+
+// ── Linked-row shapes ───────────────────────────────────────────────
+// The traceability API returns link rows as `{ id, rationale, risk|control|asset }`.
+// Typed here so the DataTable column cells read `row.original.*` without
+// per-cell `any`. Assigning the `any` API arrays to these types needs no
+// cast (any is assignable to a typed target).
+interface LinkedRiskRow {
+    id: string;
+    rationale: string | null;
+    risk: { id: string; title: string; status: string; score: number | null } | null;
+}
+interface LinkedControlRow {
+    id: string;
+    rationale: string | null;
+    control: { id: string; code: string; name: string; status: string } | null;
+}
+interface LinkedAssetRow {
+    id: string;
+    rationale: string | null;
+    asset: { id: string; name: string; type: string; criticality: string } | null;
+}
+
+/** Row-level pulse class for optimistic temp rows (mirrors the pre-migration `<tr>` styling). */
+const tempRowClass = (id: string | undefined) =>
+    id?.startsWith('temp:') ? 'opacity-50 animate-pulse' : undefined;
 
 interface TraceabilityPanelProps {
     apiBase: string;            // e.g. /api/t/acme-corp
@@ -267,9 +293,154 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
     if (loading) return <div className="p-6 text-center text-content-subtle animate-pulse">{t('loading')}</div>;
     if (!data) return <div className="p-6 text-center text-content-subtle">{t('loadFailed')}</div>;
 
-    const risks = data.risks || [];
-    const controls = data.controls || [];
-    const assets = data.assets || [];
+    const risks: LinkedRiskRow[] = data.risks || [];
+    const controls: LinkedControlRow[] = data.controls || [];
+    const assets: LinkedAssetRow[] = data.assets || [];
+
+    // Unlink affordance — identical Epic 67 undo flow as before, now
+    // rendered as a DataTable actions column (card mode surfaces it in the
+    // card footer). `stopPropagation` keeps a future row-click from firing.
+    const unlinkCell = (
+        type: 'risk' | 'control' | 'asset',
+        linkedId: string | undefined,
+    ) => (
+        <Tooltip content={t(type === 'risk' ? 'unlinkRisk' : type === 'control' ? 'unlinkControl' : 'unlinkAsset')}>
+            <button
+                className="text-content-error text-xs hover:text-content-error"
+                onClick={(e) => { e.stopPropagation(); handleUnlink(type, linkedId ?? ''); }}
+                id={`unlink-${type}-${linkedId}`}
+                aria-label={t(type === 'risk' ? 'unlinkRisk' : type === 'control' ? 'unlinkControl' : 'unlinkAsset')}
+            >
+                ×
+            </button>
+        </Tooltip>
+    );
+
+    // ── Column defs (mobileFallback="card": each row → a tappable card) ──
+    const riskColumns = createColumns<LinkedRiskRow>([
+        {
+            id: 'risk',
+            header: t('colRisk'),
+            cell: ({ row }) => (
+                <span className={cn('text-sm text-content-default', tempRowClass(row.original.id))}>
+                    {row.original.risk?.title || '—'}
+                </span>
+            ),
+            meta: { mobileCard: { slot: 'title' } },
+        },
+        {
+            id: 'status',
+            header: t('colStatus'),
+            cell: ({ row }) => (
+                <StatusBadge variant={RISK_STATUS_BADGE[row.original.risk?.status ?? ''] || 'neutral'}>
+                    {row.original.risk?.status || '—'}
+                </StatusBadge>
+            ),
+            meta: { mobileCard: { slot: 'status' } },
+        },
+        {
+            id: 'score',
+            header: t('colScore'),
+            cell: ({ row }) => (
+                <span className="text-sm text-content-emphasis font-medium">{row.original.risk?.score ?? '—'}</span>
+            ),
+            meta: { mobileCard: { slot: 'meta', label: t('colScore') } },
+        },
+        {
+            id: 'rationale',
+            header: t('colRationale'),
+            cell: ({ row }) => <span className="text-xs text-content-muted">{row.original.rationale || '—'}</span>,
+            meta: { mobileCard: { slot: 'meta', label: t('colRationale') } },
+        },
+        ...(canWrite
+            ? [{
+                id: 'actions',
+                header: t('colActions'),
+                cell: ({ row }: { row: { original: LinkedRiskRow } }) => unlinkCell('risk', row.original.risk?.id),
+                meta: { mobileCard: { slot: 'actions' as const } },
+            }]
+            : []),
+    ]);
+
+    const controlColumns = createColumns<LinkedControlRow>([
+        {
+            id: 'code',
+            header: t('colCode'),
+            cell: ({ row }) => (
+                <span className={cn('font-mono text-xs text-[var(--brand-muted)]', tempRowClass(row.original.id))}>
+                    {row.original.control?.code || '—'}
+                </span>
+            ),
+            meta: { mobileCard: { slot: 'subtitle' } },
+        },
+        {
+            id: 'name',
+            header: t('colName'),
+            cell: ({ row }) => <span className="text-sm text-content-default">{row.original.control?.name || '—'}</span>,
+            meta: { mobileCard: { slot: 'title' } },
+        },
+        {
+            id: 'status',
+            header: t('colStatus'),
+            cell: ({ row }) => <StatusBadge variant="info">{row.original.control?.status || '—'}</StatusBadge>,
+            meta: { mobileCard: { slot: 'status' } },
+        },
+        {
+            id: 'rationale',
+            header: t('colRationale'),
+            cell: ({ row }) => <span className="text-xs text-content-muted">{row.original.rationale || '—'}</span>,
+            meta: { mobileCard: { slot: 'meta', label: t('colRationale') } },
+        },
+        ...(canWrite
+            ? [{
+                id: 'actions',
+                header: t('colActions'),
+                cell: ({ row }: { row: { original: LinkedControlRow } }) => unlinkCell('control', row.original.control?.id),
+                meta: { mobileCard: { slot: 'actions' as const } },
+            }]
+            : []),
+    ]);
+
+    const assetColumns = createColumns<LinkedAssetRow>([
+        {
+            id: 'name',
+            header: t('colName'),
+            cell: ({ row }) => (
+                <span className={cn('text-sm text-content-default', tempRowClass(row.original.id))}>
+                    {row.original.asset?.name || '—'}
+                </span>
+            ),
+            meta: { mobileCard: { slot: 'title' } },
+        },
+        {
+            id: 'type',
+            header: t('colType'),
+            cell: ({ row }) => <StatusBadge variant="info">{row.original.asset?.type || '—'}</StatusBadge>,
+            meta: { mobileCard: { slot: 'meta', label: t('colType') } },
+        },
+        {
+            id: 'criticality',
+            header: t('colCriticality'),
+            cell: ({ row }) => (row.original.asset?.criticality
+                ? <StatusBadge variant={row.original.asset.criticality === 'HIGH' ? 'error' : row.original.asset.criticality === 'MEDIUM' ? 'warning' : 'neutral'}>{row.original.asset.criticality}</StatusBadge>
+                : <span className="text-content-subtle">—</span>),
+            meta: { mobileCard: { slot: 'status' } },
+        },
+        {
+            id: 'rationale',
+            header: t('colRationale'),
+            cell: ({ row }) => <span className="text-xs text-content-muted">{row.original.rationale || '—'}</span>,
+            meta: { mobileCard: { slot: 'meta', label: t('colRationale') } },
+        },
+        ...(canWrite
+            ? [{
+                id: 'actions',
+                header: t('colActions'),
+                cell: ({ row }: { row: { original: LinkedAssetRow } }) => unlinkCell('asset', row.original.asset?.id),
+                meta: { mobileCard: { slot: 'actions' as const } },
+            }]
+            : []),
+    ]);
 
     // Determine which sections to show based on entity type
     const showRisks = entityType === 'control' || entityType === 'asset';
@@ -304,36 +475,15 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                             </Button>
                         </div>
                     )}
-                    <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
-                        {risks.length === 0 ? (
-                            <div className="p-6 text-center text-content-subtle text-sm" id="no-risks">{t('noRisksLinked')}</div>
-                        ) : (
-                            <table className="data-table" id="linked-risks-table">
-                                <thead><tr><th>{t('colRisk')}</th><th>{t('colStatus')}</th><th>{t('colScore')}</th><th>{t('colRationale')}</th>{canWrite && <th>{t('colActions')}</th>}</tr></thead>
-                                <tbody>
-                                    { }
-                                    {risks.map((l: any) => {
-                                        const r = l.risk;
-                                        return (
-                                            <tr key={l.id} className={l.id?.startsWith('temp:') ? 'opacity-50 animate-pulse' : ''}>
-                                                <td className="text-sm text-content-default">{r?.title || '—'}</td>
-                                                <td><StatusBadge variant={RISK_STATUS_BADGE[r?.status] || 'neutral'}>{r?.status || '—'}</StatusBadge></td>
-                                                <td className="text-sm text-content-emphasis font-medium">{r?.score ?? '—'}</td>
-                                                <td className="text-xs text-content-muted">{l.rationale || '—'}</td>
-                                                {canWrite && (
-                                                    <td>
-                                                        <Tooltip content={t('unlinkRisk')}>
-                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('risk', r?.id)} id={`unlink-risk-${r?.id}`} aria-label={t('unlinkRisk')}>×</button>
-                                                        </Tooltip>
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
+                    <DataTable<LinkedRiskRow>
+                        data-testid="linked-risks-table"
+                        data={risks}
+                        columns={riskColumns}
+                        getRowId={(l) => l.id}
+                        selectionEnabled={false}
+                        mobileFallback="card"
+                        emptyState={<div className="p-6 text-center text-content-subtle text-sm" id="no-risks">{t('noRisksLinked')}</div>}
+                    />
                 </div>
             )}
 
@@ -363,36 +513,15 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                             </Button>
                         </div>
                     )}
-                    <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
-                        {controls.length === 0 ? (
-                            <div className="p-6 text-center text-content-subtle text-sm" id="no-controls">{t('noControlsLinked')}</div>
-                        ) : (
-                            <table className="data-table" id="linked-controls-table">
-                                <thead><tr><th>{t('colCode')}</th><th>{t('colName')}</th><th>{t('colStatus')}</th><th>{t('colRationale')}</th>{canWrite && <th>{t('colActions')}</th>}</tr></thead>
-                                <tbody>
-                                    { }
-                                    {controls.map((l: any) => {
-                                        const c = l.control;
-                                        return (
-                                            <tr key={l.id} className={l.id?.startsWith('temp:') ? 'opacity-50 animate-pulse' : ''}>
-                                                <td className="font-mono text-xs text-[var(--brand-muted)]">{c?.code || '—'}</td>
-                                                <td className="text-sm text-content-default">{c?.name || '—'}</td>
-                                                <td><StatusBadge variant="info">{c?.status || '—'}</StatusBadge></td>
-                                                <td className="text-xs text-content-muted">{l.rationale || '—'}</td>
-                                                {canWrite && (
-                                                    <td>
-                                                        <Tooltip content={t('unlinkControl')}>
-                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('control', c?.id)} id={`unlink-control-${c?.id}`} aria-label={t('unlinkControl')}>×</button>
-                                                        </Tooltip>
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
+                    <DataTable<LinkedControlRow>
+                        data-testid="linked-controls-table"
+                        data={controls}
+                        columns={controlColumns}
+                        getRowId={(l) => l.id}
+                        selectionEnabled={false}
+                        mobileFallback="card"
+                        emptyState={<div className="p-6 text-center text-content-subtle text-sm" id="no-controls">{t('noControlsLinked')}</div>}
+                    />
                 </div>
             )}
 
@@ -422,36 +551,15 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
                             </Button>
                         </div>
                     )}
-                    <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')}>
-                        {assets.length === 0 ? (
-                            <div className="p-6 text-center text-content-subtle text-sm" id="no-assets">{t('noAssetsLinked')}</div>
-                        ) : (
-                            <table className="data-table" id="linked-assets-table">
-                                <thead><tr><th>{t('colName')}</th><th>{t('colType')}</th><th>{t('colCriticality')}</th><th>{t('colRationale')}</th>{canWrite && <th>{t('colActions')}</th>}</tr></thead>
-                                <tbody>
-                                    { }
-                                    {assets.map((l: any) => {
-                                        const a = l.asset;
-                                        return (
-                                            <tr key={l.id} className={l.id?.startsWith('temp:') ? 'opacity-50 animate-pulse' : ''}>
-                                                <td className="text-sm text-content-default">{a?.name || '—'}</td>
-                                                <td className="text-xs"><StatusBadge variant="info">{a?.type || '—'}</StatusBadge></td>
-                                                <td className="text-xs">{a?.criticality ? <StatusBadge variant={a.criticality === 'HIGH' ? 'error' : a.criticality === 'MEDIUM' ? 'warning' : 'neutral'}>{a.criticality}</StatusBadge> : '—'}</td>
-                                                <td className="text-xs text-content-muted">{l.rationale || '—'}</td>
-                                                {canWrite && (
-                                                    <td>
-                                                        <Tooltip content={t('unlinkAsset')}>
-                                                            <button className="text-content-error text-xs hover:text-content-error" onClick={() => handleUnlink('asset', a?.id)} id={`unlink-asset-${a?.id}`} aria-label={t('unlinkAsset')}>×</button>
-                                                        </Tooltip>
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
+                    <DataTable<LinkedAssetRow>
+                        data-testid="linked-assets-table"
+                        data={assets}
+                        columns={assetColumns}
+                        getRowId={(l) => l.id}
+                        selectionEnabled={false}
+                        mobileFallback="card"
+                        emptyState={<div className="p-6 text-center text-content-subtle text-sm" id="no-assets">{t('noAssetsLinked')}</div>}
+                    />
                 </div>
             )}
         </div>

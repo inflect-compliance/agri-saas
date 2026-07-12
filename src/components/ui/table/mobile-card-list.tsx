@@ -34,6 +34,7 @@ import {
   type Table as TableType,
 } from "@tanstack/react-table";
 import type { MouseEvent, ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "./table-utils";
 
@@ -194,12 +195,27 @@ export function MobileCardList<T>({
                       )
                     : null}
                 </div>
-                {statusCell ? (
-                  <div className="shrink-0">
-                    {flexRender(
-                      statusCell.column.columnDef.cell,
-                      statusCell.getContext(),
-                    )}
+                {/* Right rail: status pill + (for rows that navigate) a
+                    chevron that signals "this card taps through to detail".
+                    The chevron only renders on clickable cards so a
+                    non-navigating card (e.g. the farm-tasks field queue)
+                    doesn't imply a destination it doesn't have. */}
+                {statusCell || clickable ? (
+                  <div className="flex shrink-0 items-center gap-tight">
+                    {statusCell ? (
+                      <div className="shrink-0">
+                        {flexRender(
+                          statusCell.column.columnDef.cell,
+                          statusCell.getContext(),
+                        )}
+                      </div>
+                    ) : null}
+                    {clickable ? (
+                      <ChevronRight
+                        className="h-4 w-4 shrink-0 text-content-subtle"
+                        aria-hidden="true"
+                      />
+                    ) : null}
                   </div>
                 ) : null}
               </div>

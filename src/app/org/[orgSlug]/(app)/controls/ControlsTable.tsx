@@ -90,6 +90,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                             {row.original.tenantName}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'subtitle' } },
                 },
                 {
                     id: 'name',
@@ -103,6 +104,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                             {row.original.name}
                         </Link>
                     ),
+                    meta: { mobileCard: { slot: 'title' } },
                 },
                 {
                     id: 'code',
@@ -112,11 +114,13 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                             {row.original.code ?? '—'}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('orgTable.colCode') } },
                 },
                 {
                     id: 'status',
                     header: t('orgTable.colStatus'),
                     cell: ({ row }) => <StatusBadgeForControl status={row.original.status} />,
+                    meta: { mobileCard: { slot: 'status', label: t('orgTable.colStatus') } },
                 },
                 {
                     id: 'updatedAt',
@@ -126,6 +130,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
                             {formatDate(row.original.updatedAt)}
                         </span>
                     ),
+                    meta: { mobileCard: { slot: 'meta', label: t('orgTable.colUpdated') } },
                 },
             ]),
         [t],
@@ -147,6 +152,7 @@ export function ControlsTable({ rows: initialRows, nextCursor: initialNextCursor
             <ListPageShell.Body>
                 <DataTable<NonPerformingControlRow>
                     fillBody
+                    mobileFallback="card"
                     // Epic 68 — Controls is the canonical opt-out site
                     // for auto-virtualization. The bespoke load-more
                     // pagination + per-row affordances rely on the

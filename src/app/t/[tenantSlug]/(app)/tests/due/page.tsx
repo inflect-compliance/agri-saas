@@ -168,6 +168,7 @@ export default function DueQueuePage() {
                                 {row.original.name}
                             </Link>
                         ),
+                        meta: { mobileCard: { slot: 'title' } },
                     },
                     {
                         id: 'control', header: t('colControl'), accessorFn: (p) => p.control?.code || p.control?.name || '—',
@@ -177,7 +178,7 @@ export default function DueQueuePage() {
                             </Link>
                         ),
                     },
-                    { id: 'frequency', header: t('colFrequency'), accessorFn: (p) => freqLabel(p.frequency) },
+                    { id: 'frequency', header: t('colFrequency'), accessorFn: (p) => freqLabel(p.frequency), meta: { mobileCard: { slot: 'subtitle' } } },
                     {
                         id: 'dueDate', header: t('colDueDate'), accessorKey: 'nextDueAt',
                         cell: ({ row }) => (
@@ -186,13 +187,15 @@ export default function DueQueuePage() {
                                 {row.original.isOverdue && ' !'}
                             </span>
                         ),
+                        meta: { mobileCard: { slot: 'meta', label: t('colDueDate') } },
                     },
-                    { id: 'owner', header: t('colOwner'), accessorFn: (p) => p.owner?.name || p.owner?.email || '—', cell: ({ getValue }: any) => <span className="text-content-muted text-xs">{getValue()}</span> },
+                    { id: 'owner', header: t('colOwner'), accessorFn: (p) => p.owner?.name || p.owner?.email || '—', cell: ({ getValue }: any) => <span className="text-content-muted text-xs">{getValue()}</span>, meta: { mobileCard: { slot: 'meta', label: t('colOwner') } } },
                     {
                         id: 'status', header: t('colStatus'),
                         cell: ({ row }) => row.original.hasPendingRun
                             ? <StatusBadge variant="warning" size="sm">{t('runPending')}</StatusBadge>
                             : <StatusBadge variant="error" size="sm">{t('needsRun')}</StatusBadge>,
+                        meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                     },
                     {
                         id: 'actions', header: '',
@@ -204,6 +207,7 @@ export default function DueQueuePage() {
                 return (
                     <DataTable
                         fillBody
+                        mobileFallback="card"
                         data={queue}
                         columns={dueColumns}
                         getRowId={(p) => p.id}
