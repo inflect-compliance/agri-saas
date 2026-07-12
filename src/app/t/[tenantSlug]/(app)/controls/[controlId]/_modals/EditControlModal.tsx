@@ -190,7 +190,6 @@ export function EditControlModal({
                                 </label>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     id="edit-category"
                                     selected={
                                         categoryOptions.find(
@@ -217,7 +216,6 @@ export function EditControlModal({
                                 </label>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     id="edit-frequency"
                                     selected={
                                         frequencyOptions.find(
@@ -246,7 +244,6 @@ export function EditControlModal({
                                 </label>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     id="edit-automation-type"
                                     selected={
                                         AUTOMATION_TYPE_OPTIONS.find(
@@ -273,7 +270,6 @@ export function EditControlModal({
                                 </label>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     id="edit-mitigation-type"
                                     selected={
                                         MITIGATION_TYPE_OPTIONS.find(

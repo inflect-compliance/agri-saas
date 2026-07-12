@@ -278,21 +278,21 @@ function LoginForm() {
                                     <>
                                         <div>
                                             <label htmlFor="login-name" className="input-label">{t('name')}</label>
-                                            <input id="login-name" className="input" name="name" value={name} onChange={(e) => setName(e.target.value)} required placeholder={t('namePlaceholder')} />
+                                            <input id="login-name" className="input" name="name" autoComplete="name" enterKeyHint="next" value={name} onChange={(e) => setName(e.target.value)} required placeholder={t('namePlaceholder')} />
                                         </div>
                                         <div>
                                             <label htmlFor="login-org-name" className="input-label">{t('orgName')}</label>
-                                            <input id="login-org-name" className="input" name="orgName" value={orgName} onChange={(e) => setOrgName(e.target.value)} required placeholder={t('orgPlaceholder')} />
+                                            <input id="login-org-name" className="input" name="orgName" autoComplete="organization" enterKeyHint="next" value={orgName} onChange={(e) => setOrgName(e.target.value)} required placeholder={t('orgPlaceholder')} />
                                         </div>
                                     </>
                                 )}
                                 <div>
                                     <label htmlFor="login-email" className="input-label">{t('email')}</label>
-                                    <input id="login-email" className="input" type="email" name="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder={t('emailPlaceholder')} />
+                                    <input id="login-email" className="input" type="email" name="email" autoComplete="email" inputMode="email" enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder={t('emailPlaceholder')} />
                                 </div>
                                 <div>
                                     <label htmlFor="login-password" className="input-label">{t('password')}</label>
-                                    <input id="login-password" className="input" type="password" name="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder={t('passwordPlaceholder')} minLength={6} />
+                                    <input id="login-password" className="input" type="password" name="password" autoComplete={mode === 'register' ? 'new-password' : 'current-password'} enterKeyHint="done" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder={t('passwordPlaceholder')} minLength={6} />
                                 </div>
                                 <div className="text-right -mt-2">
                                     <a href="/forgot-password" className="text-xs text-content-emphasis underline underline-offset-2 hover:text-[var(--brand-default)]">{t('forgotPassword')}</a>
@@ -332,6 +332,9 @@ function LoginForm() {
                                         <input
                                             type="email"
                                             name="resendEmail"
+                                            autoComplete="email"
+                                            inputMode="email"
+                                            enterKeyHint="send"
                                             aria-label={t('resendEmailAria')}
                                             className="input flex-1 text-xs"
                                             placeholder={t('resendEmailPlaceholder')}

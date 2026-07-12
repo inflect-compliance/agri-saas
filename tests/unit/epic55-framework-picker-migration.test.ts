@@ -18,8 +18,9 @@
  *     `name` attribute (for native <form onSubmit> serialisation).
  *   - `matchTriggerWidth` + `caret` are set so the trigger feels like
  *     a form field rather than a floating button.
- *   - Inside modals we also set `forceDropdown` (avoids Vaul Drawer
- *     nested inside the Modal's own Drawer on mobile).
+ *   - Inside modals the Combobox auto-renders as a portalled dropdown
+ *     (not a nested Vaul Drawer) via OverlayDepthContext (P3.2) — no
+ *     manual `forceDropdown` opt-in is needed anymore.
  *   - The surface composes <FormField> around the Combobox so labels /
  *     descriptions / errors stay consistent with the rest of Epic 55.
  */
@@ -120,8 +121,13 @@ describe('Epic 55 — framework + taxonomy picker migration', () => {
         });
 
         if (surface.insideModal) {
-            it('uses forceDropdown (no nested Vaul Drawer inside Modal)', () => {
-                expect(surface.src).toMatch(/forceDropdown/);
+            it('renders inside <Modal> so nested Comboboxes auto-dropdown (P3.2) — no manual forceDropdown', () => {
+                // P3.2 retired the per-call-site `forceDropdown` nesting
+                // opt-in. A Combobox inside <Modal> now auto-renders as a
+                // portalled dropdown (not a nested Vaul Drawer) because
+                // <Modal> wraps its children in OverlayDepthProvider.
+                expect(surface.src).toMatch(/<Modal[\s.]/);
+                expect(surface.src).not.toMatch(/forceDropdown/);
             });
         }
     });

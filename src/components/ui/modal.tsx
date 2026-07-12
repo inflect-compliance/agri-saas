@@ -51,6 +51,7 @@ import {
 import { Drawer } from "vaul";
 import { Button } from "./button";
 import { useKeyboardInset, useMediaQuery } from "./hooks";
+import { OverlayDepthProvider } from "./overlay-depth";
 import { ProgressiveBlur } from "./progressive-blur";
 import { Tooltip } from "./tooltip";
 import { Heading } from '@/components/ui/typography';
@@ -269,7 +270,7 @@ function ModalRoot({
                             data-modal-body-wrapper
                             className="flex flex-1 flex-col overflow-hidden rounded-t-[10px] bg-inherit"
                         >
-                            {children}
+                            <OverlayDepthProvider>{children}</OverlayDepthProvider>
                         </div>
                     </Drawer.Content>
                 </Drawer.Portal>
@@ -307,7 +308,7 @@ function ModalRoot({
                     className={cn(modalContentVariants({ size }), className)}
                 >
                     {fallbackDialogTitle}
-                    {children}
+                    <OverlayDepthProvider>{children}</OverlayDepthProvider>
                     {showCloseButton && !preventDefaultClose ? (
                         <Tooltip content={tc("close")} shortcut="Esc">
                             <Dialog.Close asChild>

@@ -126,7 +126,6 @@ export function EditTaskModal({
                             <FormField label={t('fieldType')}>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     id="task-edit-type"
                                     selected={TYPE_OPTIONS.find((o) => o.value === form.type) ?? null}
                                     setSelected={(opt) => setForm((f) => ({ ...f, type: opt?.value ?? f.type }))}
@@ -158,7 +157,6 @@ export function EditTaskModal({
                             <FormField label={t('fieldSeverity')}>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     id="task-edit-severity"
                                     selected={SEVERITY_OPTIONS.find((o) => o.value === form.severity) ?? null}
                                     setSelected={(opt) => setForm((f) => ({ ...f, severity: opt?.value ?? f.severity }))}
@@ -169,7 +167,6 @@ export function EditTaskModal({
                             <FormField label={t('fieldPriority')}>
                                 <Combobox
                                     hideSearch
-                                    forceDropdown
                                     id="task-edit-priority"
                                     selected={PRIORITY_OPTIONS.find((o) => o.value === form.priority) ?? null}
                                     setSelected={(opt) => setForm((f) => ({ ...f, priority: opt?.value ?? f.priority }))}

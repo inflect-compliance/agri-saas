@@ -413,7 +413,6 @@ export function TaskDetailSheet({
                                         disabled={!canWrite}
                                         hideSearch
                                         matchTriggerWidth
-                                        forceDropdown
                                         buttonProps={{ className: 'w-full' }}
                                         caret
                                     />
@@ -442,7 +441,6 @@ export function TaskDetailSheet({
                                             disabled={!canWrite}
                                             hideSearch
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />
@@ -470,7 +468,6 @@ export function TaskDetailSheet({
                                             disabled={!canWrite}
                                             hideSearch
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />

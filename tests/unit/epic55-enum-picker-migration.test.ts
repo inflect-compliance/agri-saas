@@ -149,9 +149,14 @@ describe('NewControlModal — category + frequency Comboboxes', () => {
         );
     });
 
-    it('uses forceDropdown inside the modal (no nested Vaul Drawer)', () => {
-        const hits = CONTROL_MODAL_SRC.match(/forceDropdown/g) ?? [];
-        expect(hits.length).toBeGreaterThanOrEqual(2);
+    it('renders inside <Modal> so nested Comboboxes auto-dropdown (P3.2) — no manual forceDropdown', () => {
+        // P3.2 retired the per-call-site `forceDropdown` nesting opt-in.
+        // A Combobox inside <Modal> now auto-renders as a portalled
+        // dropdown (not a nested Vaul Drawer) because <Modal> wraps its
+        // children in OverlayDepthProvider and Popover reads the depth.
+        // So the modal needs NEITHER a nested drawer NOR a forceDropdown.
+        expect(CONTROL_MODAL_SRC).toMatch(/<Modal[\s.]/);
+        expect(CONTROL_MODAL_SRC).not.toMatch(/forceDropdown/);
     });
 
     it('CATEGORY_OPTIONS + FREQUENCY_OPTIONS are typed ComboboxOption[] (no stale string[] shape)', () => {

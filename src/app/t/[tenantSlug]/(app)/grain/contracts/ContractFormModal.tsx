@@ -326,7 +326,6 @@ export function ContractFormModal({
                                             placeholder={t('typePlaceholder')}
                                             hideSearch
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />
@@ -356,7 +355,6 @@ export function ContractFormModal({
                                             placeholder={t('statusPlaceholder')}
                                             hideSearch
                                             matchTriggerWidth
-                                            forceDropdown
                                             buttonProps={{ className: 'w-full' }}
                                             caret
                                         />
@@ -477,7 +475,6 @@ export function ContractFormModal({
                                         }
                                         placeholder={t('seasonPlaceholder')}
                                         matchTriggerWidth
-                                        forceDropdown
                                         buttonProps={{ className: 'w-full' }}
                                         caret
                                     />

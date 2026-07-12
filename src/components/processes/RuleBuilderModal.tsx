@@ -261,7 +261,6 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                                 selected={triggerSelected}
                                 setSelected={(o) => patch({ triggerEvent: o?.value ?? '', conditions: [] })}
                                 placeholder={t('ruleBuilder.selectEvent')}
-                                forceDropdown
                                 matchTriggerWidth
                                 optionDescription={(o) =>
                                     EVENT_LABELS[o.value as keyof typeof EVENT_LABELS]?.description ?? ''
@@ -319,7 +318,6 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                                                         patch({ conditions: next });
                                                     }}
                                                     placeholder={t('ruleBuilder.fieldPlaceholder')}
-                                                    forceDropdown
                                                     matchTriggerWidth
                                                 />
                                             </FormField>
@@ -341,7 +339,6 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                                                         };
                                                         patch({ conditions: next });
                                                     }}
-                                                    forceDropdown
                                                     matchTriggerWidth
                                                 />
                                             </FormField>
@@ -363,7 +360,6 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                                                             patch({ conditions: next });
                                                         }}
                                                         placeholder={t('ruleBuilder.valuePlaceholder')}
-                                                        forceDropdown
                                                         matchTriggerWidth
                                                     />
                                                 ) : (
@@ -449,7 +445,6 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                                             onChange={(ids) =>
                                                 patch({ notify: { ...form.notify, userIds: ids } })
                                             }
-                                            forceDropdown
                                             matchTriggerWidth
                                         />
                                     </FormField>
@@ -530,7 +525,6 @@ export function RuleBuilderModal({ tenantSlug, open, setOpen, editRule }: RuleBu
                                     }
                                     setSelected={(o) => patch({ nextRuleId: o?.value ?? '' })}
                                     placeholder={t('ruleBuilder.noChainedRule')}
-                                    forceDropdown
                                     matchTriggerWidth
                                 />
                             </FormField>

@@ -358,7 +358,6 @@ export function CreateFindingModal({
                                         searchPlaceholder={t('controlSearch')}
                                         emptyState={t('controlEmpty')}
                                         matchTriggerWidth
-                                        forceDropdown
                                         buttonProps={{ className: 'w-full' }}
                                         caret
                                     />
@@ -380,7 +379,6 @@ export function CreateFindingModal({
                                         searchPlaceholder={t('controlSearch')}
                                         emptyState={t('controlEmpty')}
                                         matchTriggerWidth
-                                        forceDropdown
                                         buttonProps={{ className: 'w-full' }}
                                         caret
                                     />
