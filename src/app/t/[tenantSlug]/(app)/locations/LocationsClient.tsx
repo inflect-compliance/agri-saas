@@ -17,6 +17,8 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Fab } from '@/components/ui/fab';
+import { PullToRefresh } from '@/components/ui/hooks';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { Plus } from '@/components/ui/icons/nucleo';
 
 interface LocationItem {
@@ -151,6 +153,10 @@ export function LocationsClient({ tenantSlug }: { tenantSlug: string }) {
                     </Modal.Actions>
                 </Modal.Form>
             </Modal>
+
+            {/* Mobile-only pull-to-refresh + scroll-to-top affordances. */}
+            <PullToRefresh onRefresh={() => mutate()} />
+            <ScrollToTop />
 
             {/* Mobile-only FAB — the primary create action in the thumb
                 zone (md:hidden; the header button is the desktop affordance). */}

@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR, usePrefetchTenant } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
-import { useCursorPagination } from '@/components/ui/hooks';
+import { useCursorPagination, PullToRefresh } from '@/components/ui/hooks';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
 import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
@@ -374,7 +375,7 @@ function JournalPageInner({ initialEntries, initialNextCursor, initialFilters, t
 
     return (
         <EntityListPage<JournalRow>
-            className="animate-fadeIn gap-section"
+            className="gap-section"
             header={{
                 breadcrumbs: [
                     { label: t('dashboard'), href: tenantHref('/dashboard') },
@@ -482,6 +483,8 @@ function JournalPageInner({ initialEntries, initialNextCursor, initialFilters, t
                             className="fixed inset-x-0 bottom-0 z-40 md:left-auto md:right-4 md:bottom-4 md:max-w-sm"
                         />
                     )}
+                    <PullToRefresh onRefresh={() => page1Query.mutate()} />
+                    <ScrollToTop />
                     <Fab
                         onClick={() => setIsCreateOpen(true)}
                         label={t('fabLabel')}

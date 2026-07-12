@@ -106,7 +106,12 @@ const ROOT = path.resolve(__dirname, '../..');
 // B5 (2026-07-07): +1 — the Climate (Meteobot) page's embedded-station iframe
 // wrapper is a discrete external-content surface (same register as a card /
 // table outer border), so it legitimately uses `border-border-default`.
-const BORDER_DEFAULT_BUDGET = 116;
+// mobile-native-feel (2026-07-12): +2 — two mobile floating affordances that
+// are discrete surfaces floating over arbitrary list content (same register
+// as a popover/tooltip outline, which the policy assigns to `default`): the
+// pull-to-refresh spinner pill (use-pull-to-refresh.tsx) and the
+// scroll-to-top button (scroll-to-top.tsx).
+const BORDER_DEFAULT_BUDGET = 118;
 
 function countMatches(re: RegExp): number {
     let total = 0;

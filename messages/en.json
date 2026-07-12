@@ -3859,6 +3859,10 @@
         "detailSections": "Detail sections",
         "context": "Context"
     },
+    "mobile": {
+        "refreshing": "Refreshing…",
+        "scrollTop": "Back to top"
+    },
     "listPageShell": {
         "orientation": "Orientation",
         "context": "Context"

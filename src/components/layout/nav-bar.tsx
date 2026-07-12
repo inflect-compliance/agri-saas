@@ -255,6 +255,15 @@ export const NAV_BAR_SHELL = [
     'flex',
     NAV_BAR_POSITION,
     NAV_BAR_HEIGHT,
+    // mobile-native-feel PR-4b — top-notch clearance for the installed
+    // PWA. `viewport-fit=cover` lets the status-bar / camera notch overlap
+    // the top of the viewport; `.safe-area-top` adds `env(safe-area-inset-top)`
+    // as PADDING and the `min-h-[calc(...)]` grows the bar by the same inset,
+    // so the 64px (`h-16`) content band still clears the notch instead of
+    // hiding under it. On non-notched devices the inset resolves to 0, so
+    // `min-height` == `h-16` and nothing changes (desktop untouched, env=0).
+    'safe-area-top',
+    'min-h-[calc(4rem+env(safe-area-inset-top))]',
     // `relative` anchors the `::before` (bottom hairline) and
     // `::after` (top gloss) pseudo-elements. Without it the
     // pseudo's absolute positioning escapes to the next

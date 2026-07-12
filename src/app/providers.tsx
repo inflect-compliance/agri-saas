@@ -16,6 +16,7 @@ import { KeyboardShortcutProvider } from '@/lib/hooks/use-keyboard-shortcut';
 import { ShortcutHelpOverlay } from '@/components/app-shell/shortcut-help-overlay';
 import { registerFormTelemetrySink } from '@/lib/telemetry/form-telemetry';
 import { SWRPersistenceProvider } from '@/components/providers/SWRPersistenceProvider';
+import { ViewTransitions } from '@/lib/view-transitions';
 
 /**
  * Epic 54 — bootstrap the global form-telemetry sink once at mount.
@@ -115,7 +116,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 <ThemeProvider>
                     <TooltipProvider>
                         <FormTelemetrySink />
-                        {children}
+                        {/*
+                         * mobile-native-feel PR-3 — route view-transitions.
+                         * A pass-through wrapper that installs the capture-
+                         * phase link interceptor. Enhancement is mobile-only
+                         * + reduced-motion-aware + feature-detected, so
+                         * desktop and reduced-motion users are untouched.
+                         */}
+                        <ViewTransitions>{children}</ViewTransitions>
                         <CommandPalette />
                         {/*
                          * Epic 57 — `?` pops a live listing of every

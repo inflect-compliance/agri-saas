@@ -23,7 +23,8 @@
 // deps of providers that v4 still pulls in (e.g. JWT signing via
 // jose). `oauth4webapi` and `@auth/*` were v5-specific and can be
 // dropped from the allowlist.
-const ESM_TRANSFORM_ALLOW_LIST = 'jose|preact|preact-render-to-string';
+const ESM_TRANSFORM_ALLOW_LIST =
+    'jose|preact|preact-render-to-string|next-intl|use-intl|@formatjs|intl-messageformat';
 
 // ─── Coverage thresholds ─────────────────────────────────────────────
 //

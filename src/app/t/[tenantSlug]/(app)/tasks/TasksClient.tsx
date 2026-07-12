@@ -20,7 +20,8 @@ import { CACHE_KEYS } from '@/lib/swr-keys';
 import type { CappedList } from '@/lib/list-backfill-cap';
 import { TruncationBanner } from '@/components/ui/TruncationBanner';
 import { TableLoadMoreFooter } from '@/components/ui/table-load-more-footer';
-import { useThresholdLoadMore } from '@/components/ui/hooks';
+import { useThresholdLoadMore, PullToRefresh } from '@/components/ui/hooks';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { TimestampTooltip } from '@/components/ui/timestamp-tooltip';
 import { Tooltip } from '@/components/ui/tooltip';
 import { TERMINAL_WORK_ITEM_STATUSES } from '@/app-layer/domain/work-item-status';
@@ -618,7 +619,7 @@ function TasksPageInner({
     }, [appPermissions.tasks.edit, selected, tasks.length, tenantHref, hydratedNow, t, te]);
 
     return (
-        <ListPageShell className="animate-fadeIn gap-section" data-hydrated={hydrated || undefined}>
+        <ListPageShell className="gap-section" data-hydrated={hydrated || undefined}>
             <ListPageShell.Header>
                 <div className="flex items-center justify-between">
                     <div>
@@ -839,6 +840,8 @@ function TasksPageInner({
             {appPermissions.tasks.create && (
                 <>
                     <NewTaskModal open={isCreateOpen} setOpen={setIsCreateOpen} />
+                    <PullToRefresh onRefresh={() => tasksQuery.mutate()} />
+                    <ScrollToTop />
                     <Fab
                         onClick={() => setIsCreateOpen(true)}
                         label={t('fabLabel')}

@@ -36,9 +36,15 @@ export const viewport: Viewport = {
     initialScale: 1,
     maximumScale: 5,
     viewportFit: 'cover',
-    // Installed-PWA chrome (status bar) matches the dark app shell — cohesive
-    // with the Agrent identity, not a jarring accent. Was the pre-rebrand green.
-    themeColor: '#0b1220',
+    // Installed-PWA chrome (status bar) tracks the active theme so the
+    // browser/OS chrome matches the app surface instead of a fixed accent.
+    // The colours are the two `--bg-page` token values: warm off-white in
+    // light, deep METRO navy in dark (src/styles/tokens.css). `media` lets
+    // the platform pick per the OS colour-scheme preference.
+    themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#F4F2ED' },
+        { media: '(prefers-color-scheme: dark)', color: '#001830' },
+    ],
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

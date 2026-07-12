@@ -121,3 +121,11 @@ export {
 
 // ─── Reduced motion (feat/delight-motion) ─────────────────────────────
 export { useReducedMotion, prefersReducedMotion } from "./use-reduced-motion";
+
+// ─── Pull-to-refresh (mobile-native-feel) ─────────────────────────────
+export {
+    usePullToRefresh,
+    PullToRefresh,
+    type UsePullToRefreshOptions,
+    type UsePullToRefreshResult,
+} from "./use-pull-to-refresh";

@@ -24,7 +24,8 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
-import { useThresholdLoadMore } from '@/components/ui/hooks';
+import { useThresholdLoadMore, PullToRefresh } from '@/components/ui/hooks';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { TableLoadMoreFooter } from '@/components/ui/table-load-more-footer';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost } from '@/lib/api-client';
@@ -290,7 +291,7 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
 
     return (
         <EntityListPage<FarmTaskRow>
-            className="animate-fadeIn gap-section"
+            className="gap-section"
             header={{
                 breadcrumbs: [
                     { label: t('dashboard'), href: tenantHref('/dashboard') },
@@ -343,6 +344,8 @@ export function FarmTasksClient({ tenantSlug }: { tenantSlug: string }) {
                 className: 'hover:bg-bg-muted',
             }}
         >
+            <PullToRefresh onRefresh={() => mutate()} />
+            <ScrollToTop />
             <Fab
                 onClick={goToFieldMap}
                 label={t('startFieldOperation')}
