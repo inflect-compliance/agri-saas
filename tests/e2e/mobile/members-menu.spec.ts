@@ -46,9 +46,9 @@ test.describe('mobile members admin — Popover bottom sheet @mobile', () => {
 
         // The card list (seeded membership rows) renders instead of the
         // 8-column scrolling table.
-        const cardList = main.getByTestId('mobile-card-list');
+        const cardList = main.locator('#mobile-card-list');
         await expect(cardList).toBeVisible({ timeout: 30_000 });
-        expect(await cardList.getByTestId('mobile-card').count()).toBeGreaterThan(0);
+        expect(await cardList.getByRole('listitem').count()).toBeGreaterThan(0);
 
         await expectNoHorizontalOverflow(page, 'members list (card mode)');
     });
@@ -59,7 +59,7 @@ test.describe('mobile members admin — Popover bottom sheet @mobile', () => {
         await safeGoto(page, `/t/${tenantSlug}/admin/members`);
         const main = page.getByRole('main');
 
-        const cardList = main.getByTestId('mobile-card-list');
+        const cardList = main.locator('#mobile-card-list');
         await expect(cardList).toBeVisible({ timeout: 30_000 });
 
         // Open the row-action menu (MoreVertical kebab, id="member-menu-<id>").
