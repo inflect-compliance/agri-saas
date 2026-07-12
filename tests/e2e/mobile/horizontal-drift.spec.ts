@@ -12,6 +12,11 @@
  * the mobile equivalent of the repo's structural ratchets: add a page to
  * `PAGES` in one line and it's guarded forever.
  *
+ * The STATIC sibling `tests/guards/no-horizontal-drift-patterns.test.ts`
+ * catches the root-cause markup patterns on 100% of files at author time; this
+ * spec is the live-DOM backstop, exercising the real rendered pages a field
+ * user touches.
+ *
  * Runs under the `mobile-android` (Pixel 5) + `mobile-iphone` projects (both
  * < 768px). Picked up via the `@mobile` tag (see playwright.config.ts).
  */
@@ -34,26 +39,89 @@ async function expectNoHorizontalDrift(page: Page, label: string): Promise<void>
     ).toBeLessThanOrEqual(clientWidth + 1);
 }
 
+/** Let streaming content + map tile loads settle before measuring. */
+async function settle(page: Page): Promise<void> {
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+}
+
 // Key field surfaces. One line per page — this is the extension point.
 const PAGES: ReadonlyArray<{ label: string; path: (slug: string) => string }> = [
     { label: 'dashboard', path: (s) => `/t/${s}/dashboard` },
     { label: 'journal', path: (s) => `/t/${s}/journal` },
     { label: 'exchange', path: (s) => `/t/${s}/exchange` },
     { label: 'my-listings', path: (s) => `/t/${s}/exchange/my-listings` },
+    { label: 'my-interests', path: (s) => `/t/${s}/exchange/my-interests` },
     { label: 'farm-tasks', path: (s) => `/t/${s}/farm-tasks` },
     { label: 'locations (list)', path: (s) => `/t/${s}/locations` },
-    // High-traffic pages added — drift is the app's #1 mobile regression class,
-    // so the ratchet covers the busy list surfaces, not just the ag ones.
-    { label: 'risks', path: (s) => `/t/${s}/risks` },
-    { label: 'controls', path: (s) => `/t/${s}/controls` },
-    { label: 'grain', path: (s) => `/t/${s}/grain` },
-    { label: 'planning', path: (s) => `/t/${s}/planning` },
-    { label: 'inventory', path: (s) => `/t/${s}/inventory` },
-    { label: 'vendors', path: (s) => `/t/${s}/vendors` },
-    { label: 'evidence', path: (s) => `/t/${s}/evidence` },
-    { label: 'calendar', path: (s) => `/t/${s}/calendar` },
-    { label: 'admin/members', path: (s) => `/t/${s}/admin/members` },
+    { label: 'mapping', path: (s) => `/t/${s}/mapping` },
+    { label: 'notifications', path: (s) => `/t/${s}/notifications` },
+    // Grain complex — wide numeric tables are prime drift candidates.
+    { label: 'grain/bins', path: (s) => `/t/${s}/grain/bins` },
+    { label: 'grain/contracts', path: (s) => `/t/${s}/grain/contracts` },
+    { label: 'grain/yield', path: (s) => `/t/${s}/grain/yield` },
+    // Planning + risk visualisations (boards / hierarchies / matrices).
+    { label: 'planning/seasons', path: (s) => `/t/${s}/planning/seasons` },
+    { label: 'risks/board', path: (s) => `/t/${s}/risks/board` },
+    { label: 'risks/hierarchy', path: (s) => `/t/${s}/risks/hierarchy` },
+    // Admin — wide RBAC/role matrices + audit-log + integrations tables.
+    { label: 'admin/rbac', path: (s) => `/t/${s}/admin/rbac` },
+    { label: 'admin/roles', path: (s) => `/t/${s}/admin/roles` },
+    { label: 'admin/billing', path: (s) => `/t/${s}/admin/billing` },
+    { label: 'admin/audit-log', path: (s) => `/t/${s}/admin/audit-log` },
+    { label: 'admin/integrations', path: (s) => `/t/${s}/admin/integrations` },
 ];
+
+/**
+ * Detail pages need a real entity id. Rather than hard-code seeded ids (which
+ * drift with the seed), each entry resolves the FIRST entity from its own list
+ * page via the title-cell `<Link href="/t/<slug>/<entity>/<id>">` anchor, then
+ * measures that detail page. Entities the shared seed doesn't populate today
+ * (vendors / journal / locations / field tasks) resolve to `null` and the test
+ * skips — coverage grows automatically as the seed grows. One line each.
+ */
+const DETAIL_PAGES: ReadonlyArray<{
+    label: string;
+    list: (slug: string) => string;
+    entity: string; // path segment after the slug, e.g. 'risks'
+}> = [
+    { label: 'risks/[riskId]', list: (s) => `/t/${s}/risks`, entity: 'risks' },
+    { label: 'controls/[controlId]', list: (s) => `/t/${s}/controls`, entity: 'controls' },
+    { label: 'tasks/[taskId]', list: (s) => `/t/${s}/tasks`, entity: 'tasks' },
+    { label: 'vendors/[vendorId]', list: (s) => `/t/${s}/vendors`, entity: 'vendors' },
+    { label: 'journal/[id]', list: (s) => `/t/${s}/journal`, entity: 'journal' },
+    { label: 'field/[taskId]', list: (s) => `/t/${s}/farm-tasks`, entity: 'field' },
+    { label: 'locations/[locationId]', list: (s) => `/t/${s}/locations`, entity: 'locations' },
+];
+
+/**
+ * Resolve the first detail URL for an entity from its list page. Returns the
+ * href of the first anchor pointing at `/t/<slug>/<entity>/<id-like-segment>`,
+ * or `null` if the list has no such entity (empty seed → the test skips).
+ */
+async function firstDetailHref(
+    page: Page,
+    slug: string,
+    listPath: string,
+    entity: string,
+): Promise<string | null> {
+    await safeGoto(page, listPath);
+    await settle(page);
+    const prefix = `/t/${slug}/${entity}/`;
+    const hrefs = await page
+        .getByRole('main')
+        .locator(`a[href^="${prefix}"]`)
+        .evaluateAll((els) =>
+            els.map((e) => (e as HTMLAnchorElement).getAttribute('href') ?? ''),
+        )
+        .catch(() => [] as string[]);
+    // The last path segment of a detail URL is an entity id (cuid/uuid-like),
+    // not a known sub-route word (new / import / dashboard / board / …).
+    const detail = hrefs.find((h) => {
+        const seg = h.split('?')[0].split('/').filter(Boolean).pop() ?? '';
+        return /^[a-z0-9-]{12,}$/i.test(seg);
+    });
+    return detail ?? null;
+}
 
 test.describe('mobile horizontal-drift ratchet @mobile', () => {
     let tenantSlug: string;
@@ -65,16 +133,30 @@ test.describe('mobile horizontal-drift ratchet @mobile', () => {
     for (const { label, path } of PAGES) {
         test(`${label} does not drift horizontally`, async ({ page }) => {
             await safeGoto(page, path(tenantSlug));
-            // Let streaming content settle before measuring.
-            await page.waitForLoadState('networkidle').catch(() => undefined);
+            await settle(page);
             await expectNoHorizontalDrift(page, label);
         });
     }
 
+    for (const { label, list, entity } of DETAIL_PAGES) {
+        test(`${label} does not drift horizontally`, async ({ page }) => {
+            const href = await firstDetailHref(page, tenantSlug, list(tenantSlug), entity);
+            test.skip(
+                href === null,
+                `no seeded ${entity} entity to open — detail drift check skipped`,
+            );
+            await safeGoto(page, href!);
+            await settle(page);
+            await expectNoHorizontalDrift(page, label);
+        });
+    }
+
+    // ---- Modal-open states — a wide form inside a phone-width sheet is the
+    // historical drift culprit. Opening a create modal is read-only (nothing
+    // is submitted). One test per biggest create form. ----
+
     test('the create-offer modal open state does not drift', async ({ page }) => {
         await safeGoto(page, `/t/${tenantSlug}/exchange`);
-        // Open the create-offer flow if the affordance is present; the modal is
-        // the historical drift culprit (a wide form inside a phone-width sheet).
         const trigger = page.getByRole('button', { name: /offer/i }).first();
         if (await trigger.count()) {
             await trigger.click().catch(() => undefined);
@@ -82,4 +164,51 @@ test.describe('mobile horizontal-drift ratchet @mobile', () => {
         }
         await expectNoHorizontalDrift(page, 'exchange + create-offer modal');
     });
+
+    test('the create-task modal open state does not drift', async ({ page }) => {
+        await safeGoto(page, `/t/${tenantSlug}/tasks`);
+        await settle(page);
+        const trigger = page.locator('#new-task-btn');
+        if (await trigger.count()) {
+            await trigger.click().catch(() => undefined);
+            await page.waitForTimeout(300);
+        }
+        await expectNoHorizontalDrift(page, 'tasks + create-task modal');
+    });
+
+    test('the journal-entry modal open state does not drift', async ({ page }) => {
+        await safeGoto(page, `/t/${tenantSlug}/journal`);
+        await settle(page);
+        const trigger = page.locator('#new-journal-btn');
+        if (await trigger.count()) {
+            await trigger.click().catch(() => undefined);
+            await page.waitForTimeout(300);
+        }
+        await expectNoHorizontalDrift(page, 'journal + create-entry modal');
+    });
+});
+
+/**
+ * Auth / entry surfaces sit OUTSIDE the tenant shell — some are public, some
+ * redirect to `/login` when unauthenticated. Either way, whatever renders must
+ * not drift on a phone. No login here — these are the very first screens a new
+ * field user sees.
+ */
+test.describe('mobile horizontal-drift — auth/entry surfaces @mobile', () => {
+    const SURFACES: ReadonlyArray<{ label: string; path: string }> = [
+        { label: 'login', path: '/login' },
+        { label: 'tenants (picker)', path: '/tenants' },
+        { label: 'no-tenant', path: '/no-tenant' },
+        // Invalid token → the preview renders its "invite unavailable" state,
+        // which must not drift either.
+        { label: 'invite/[token] preview', path: '/invite/drift-check-preview-token' },
+    ];
+
+    for (const { label, path } of SURFACES) {
+        test(`${label} does not drift horizontally`, async ({ page }) => {
+            await safeGoto(page, path);
+            await settle(page);
+            await expectNoHorizontalDrift(page, label);
+        });
+    }
 });
