@@ -3391,7 +3391,10 @@
                 "soilRegions": "Soil regions",
                 "soilLegendAlt": "Soil class legend",
                 "soilAttribution": "Soil: ISRIC SoilGrids — WRB (CC-BY 4.0)",
-                "locateMe": "Locate me"
+                "locateMe": "Locate me",
+                "zoomHintWindows": "Use Ctrl + scroll to zoom the map",
+                "zoomHintMac": "Use ⌘ + scroll to zoom the map",
+                "zoomHintMobile": "Use two fingers to move the map"
             },
             "parcelSheet": {
                 "description": "Parcel detail and apply-rate calculator",
