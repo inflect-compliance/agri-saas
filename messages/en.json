@@ -7111,5 +7111,19 @@
             "ready": "Update ready — refresh to get the latest",
             "refresh": "Refresh"
         }
+    },
+    "myWork": {
+        "title": "My work",
+        "subtitle": "Open jobs: {count}",
+        "emptyTitle": "You're all caught up",
+        "emptyHint": "No open jobs are assigned to you right now.",
+        "fieldOperation": "Field job",
+        "farmTask": "Task",
+        "dueLabel": "Due {date}",
+        "noDue": "No due date",
+        "openJob": "Open {title}",
+        "markDone": "Mark done",
+        "doneResolution": "Completed in the field",
+        "doneLabel": "Complete: {title}"
     }
 }

@@ -19,6 +19,7 @@ import {
     forbiddenJson,
     checkTenantAccess,
     checkOrgAccess,
+    isOperatorAllowedPath,
 } from '@/lib/auth/guard';
 import { generateNonce, buildCspHeader, CSP_NONCE_HEADER, CSP_REPORT_PATH, CSP_REPORT_GROUP, getCspHeaderName, isCspReportOnly } from '@/lib/security/csp';
 import { applySecurityHeaders } from '@/lib/security/headers';
@@ -201,6 +202,31 @@ async function authMiddleware(req: NextRequest): Promise<NextResponse> {
                 );
             }
             return NextResponse.redirect(new URL('/no-tenant', req.nextUrl.origin));
+        }
+
+        // ── MECHANISATOR operator lockdown ──
+        // A machine-operator persona is confined to its "My work" screen +
+        // the field-operation completion flow. Resolve the membership for
+        // THIS URL's slug (token.role is the PRIMARY membership only — it may
+        // not match the tenant being visited) and, if it's MECHANISATOR,
+        // redirect any other page to /my-work and 403 any non-task API. This
+        // is the load-bearing lockdown; the stripped app shell + minimal
+        // permissions are defence-in-depth. (If the JWT membership list was
+        // truncated the entry may be absent — the operator then has just one
+        // tenant in practice, and the authoritative server layout + minimal
+        // permissions still confine them.)
+        const slugMatch = pathname.match(/^\/(?:api\/)?t\/([^/]+)/);
+        const slug = slugMatch?.[1];
+        const membership = slug
+            ? memberships?.find((m) => m.slug === slug)
+            : undefined;
+        if (membership?.role === 'MECHANISATOR' && slug && !isOperatorAllowedPath(pathname, slug)) {
+            if (isApiRoute(pathname)) {
+                return NextResponse.json({ error: 'operator_scope' }, { status: 403 });
+            }
+            return NextResponse.redirect(
+                new URL(`/t/${slug}/my-work`, req.nextUrl.origin),
+            );
         }
     }
 

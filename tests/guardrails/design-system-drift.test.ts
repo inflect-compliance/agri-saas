@@ -20,6 +20,11 @@ const COMPONENTS_DIR = path.resolve(__dirname, '../../src/components');
  * These pages must NOT regress to raw color utilities.
  */
 const MIGRATED_PAGES = [
+    // MECHANISATOR operator screen — design-system-native from birth
+    // (Card / Button / Heading / Skeleton + semantic tokens only; no raw
+    // colors, no legacy btn/badge).
+    'my-work/page.tsx',
+    'my-work/MyWorkClient.tsx',
     // EI-1 — Entra provider wizard; design-system-native from birth
     // (Input / FormField / ToggleGroup / Card + semantic tokens only).
     'admin/entra/page.tsx',

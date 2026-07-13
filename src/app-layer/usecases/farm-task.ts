@@ -90,7 +90,17 @@ export interface FarmTaskQueueOptions {
     /** Defaults to the caller (the operator's own queue). */
     assigneeUserId?: string;
     status?: string;
+    /**
+     * When true, return only the operator's OUTSTANDING work — tasks that
+     * still need them. Excludes terminal statuses (RESOLVED/CLOSED/CANCELED)
+     * AND PENDING_REVIEW (a field operation whose parcels are all marked is
+     * the reviewer's turn, not the operator's). Drives the "My work" screen.
+     */
+    openOnly?: boolean;
 }
+
+/** Statuses that count as an operator's outstanding to-do. */
+const OPERATOR_OPEN_STATUSES = new Set(['OPEN', 'TRIAGED', 'IN_PROGRESS', 'BLOCKED']);
 
 /**
  * An operator's farm-work queue — FARM_TASK + FIELD_OPERATION assigned to
@@ -105,7 +115,12 @@ export async function listMyFarmTasks(ctx: RequestContext, opts: FarmTaskQueueOp
             listTasks(ctx, { assigneeUserId, status: opts.status, type }, { take: 200 }),
         ),
     );
-    const merged = lists.flat();
+    let merged = lists.flat();
+
+    // Operator "outstanding work" filter — drops done + awaiting-review rows.
+    if (opts.openOnly) {
+        merged = merged.filter((t) => OPERATOR_OPEN_STATUSES.has(t.status));
+    }
 
     // Soonest-due first; null dueAt sinks to the bottom; newest as tiebreak.
     merged.sort((a, b) => {

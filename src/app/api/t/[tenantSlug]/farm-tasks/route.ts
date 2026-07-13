@@ -33,6 +33,8 @@ const FarmTaskQuerySchema = z
     .object({
         assigneeUserId: z.string().optional(),
         status: z.string().optional(),
+        // `?open=1` → only the caller's outstanding work (drives "My work").
+        open: z.enum(['1', 'true']).optional(),
     })
     .strip();
 
@@ -44,6 +46,7 @@ export const GET = withApiErrorHandling(
         const tasks = await listMyFarmTasks(ctx, {
             assigneeUserId: query.assigneeUserId,
             status: query.status,
+            openOnly: query.open !== undefined,
         });
         return jsonWithETag(req, tasks);
     },
