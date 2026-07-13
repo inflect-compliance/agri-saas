@@ -538,25 +538,40 @@ jobs:
   #  Job 6: E2E — Playwright browser tests
   #  Needs: build (validates app compiles before expensive E2E)
   # ═══════════════════════════════════════════════════════════════
-  e2e:
-    name: E2E
+  e2e-shard:
+    name: E2E (shard ${{ matrix.shard }}/2)
     needs: [build, changes]
     # Skip on content-only changes (docs/messages/md) and on the weekly scan.
-    # A skipped required check passes branch protection.
+    # A skipped job leaves the aggregating `e2e` gate to pass (see below).
     if: ${{ github.event_name != 'schedule' && needs.changes.outputs.code == 'true' }}
     runs-on: ${{ vars.LARGE_RUNNER || 'ubuntu-latest' }}
-    # The Playwright suite runs SERIALLY (workers: 1, fullyParallel:
-    # false — see playwright.config.ts). Both a multi-JOB shard matrix and
-    # an intra-job `workers: 3` were tried and reverted: the shard matrix
-    # duplicated the ~10-15min setup per shard, and workers>1 flaked the
-    # heavier timing-sensitive specs (tenant creation, audit-pack share,
-    # offline queue, a11y) under parallel load for only ~1min of gain.
-    # `retries: 2` covers transient localhost races. The serial suite has
-    # grown (Roadmap-6 added @mobile specs for the offline map/photo flows +
-    # the mobile control-placement pass); it now runs just past the old 40-min
-    # budget, so lift to 50 for headroom. If it climbs further, revisit the
-    # reverted shard/worker parallelism rather than raising this again.
-    timeout-minutes: 50
+    # ── E2E parallelism: cross-JOB sharding, NOT intra-job workers ──
+    #
+    # History (see #113/#118): two earlier attempts were reverted.
+    #   • `workers: 3` intra-job — flaked timing-sensitive specs (tenant
+    #     creation, audit-pack share, offline queue, a11y) under parallel
+    #     load on ONE runner (CPU/mem contention), different specs each run.
+    #   • an early shard matrix — duplicated setup AND coupled shards
+    #     (they shared state).
+    #
+    # This approach avoids BOTH failure modes:
+    #   • Each shard still runs SERIALLY (playwright.config workers: 1) — no
+    #     intra-runner contention, so the timing-sensitive specs behave
+    #     exactly as they do today, just split across two runners.
+    #   • Each shard is fully self-contained: its OWN postgres/redis service
+    #     container + its own migrate+seed (service containers are per-job),
+    #     so there is zero cross-shard coupling — no shared DB/state.
+    # `--shard=i/2` (below) splits the test FILES; `fail-fast: false` lets
+    # both shards report. The cost is duplicated setup (build+seed) per
+    # shard — the deliberate trade of runner-minutes for wall-clock. Each
+    # shard now runs well under 40min (was ~46-50 serial). To rebalance,
+    # bump the matrix + the `/N` in the run steps together (kept in sync
+    # via the matrix length).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    timeout-minutes: 40
 
     env:
       AUTH_TEST_MODE: "1"
@@ -702,13 +717,19 @@ jobs:
       # do not block — the policy is intentional, see the docblock
       # at the top of the spec.
       - name: "Gate: accessibility (axe) — GAP-20"
+        # a11y.spec.ts is a SINGLE file; with fullyParallel:false Playwright
+        # shards by file, so `--shard` would hand the whole file to one shard
+        # and fail the other with "no tests found". Pin the full a11y gate to
+        # shard 1 (mirrors how the jest matrix pins its guards to shard 1).
+        if: matrix.shard == 1
         run: npx playwright test tests/e2e/a11y.spec.ts
         env:
           CI: "true"
 
       - name: Run E2E tests
-        # Skip the a11y spec here — already executed as the gate above.
-        run: npx playwright test --grep-invert "a11y"
+        # Skip the a11y spec here — run as the gate above. The functional
+        # suite spans many files, so `--shard=i/2` splits them evenly.
+        run: npx playwright test --grep-invert "a11y" --shard=${{ matrix.shard }}/2
         env:
           CI: "true"
 
@@ -717,7 +738,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
         continue-on-error: true
@@ -726,10 +747,35 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-test-results
+          name: playwright-test-results-shard-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
         continue-on-error: true
+
+  # E2E aggregation gate — the SINGLE required-check context named "E2E".
+  # The matrix jobs above report as "E2E (shard N/2)" (which are NOT required
+  # contexts); this job rolls their combined result into one stable status so
+  # branch protection keeps requiring just "E2E" regardless of shard count.
+  # `needs.e2e-shard.result` is the matrix aggregate: success only if ALL
+  # shards passed, failure if any failed. Passes on success OR skipped
+  # (content-only change → the shards' own `if` skips them); fails otherwise.
+  e2e:
+    name: E2E
+    needs: [e2e-shard]
+    # Mirror the Test (summary) gate: run unless cancelled, skip on schedule.
+    # Unlike the Test matrix, the e2e shards ALSO skip on content-only changes
+    # (their own `if`), so `skipped` must count as a pass here.
+    if: ${{ !cancelled() && github.event_name != 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate E2E shard results
+        run: |
+          result="${{ needs.e2e-shard.result }}"
+          echo "e2e-shard matrix result: $result"
+          case "$result" in
+            success|skipped) echo "E2E OK ($result)"; exit 0 ;;
+            *) echo "::error::E2E failed — shards reported '$result'"; exit 1 ;;
+          esac
 
   # ═══════════════════════════════════════════════════════════════
   #  Job 6.5: Load Smoke — k6 mutation smoke (10 VUs × 30s)
