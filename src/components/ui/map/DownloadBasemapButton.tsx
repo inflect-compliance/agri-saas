@@ -28,11 +28,18 @@ interface DownloadBasemapButtonProps {
     /** [west, south, east, north] — the location's bbox, or null. */
     bounds: [number, number, number, number] | null;
     className?: string;
+    /**
+     * Render just the download icon (no text label). The label still names
+     * the control via `aria-label`, so screen readers + the button-name a11y
+     * rule are satisfied. Used where the button sits in a compact action row
+     * (e.g. the location-detail header).
+     */
+    iconOnly?: boolean;
 }
 
 type Status = 'idle' | 'downloading' | 'done';
 
-export function DownloadBasemapButton({ locationId, bounds, className }: DownloadBasemapButtonProps) {
+export function DownloadBasemapButton({ locationId, bounds, className, iconOnly = false }: DownloadBasemapButtonProps) {
     const t = useTranslations('locations.detail');
     const buildUrl = useTenantApiUrl();
     const toast = useToast();
@@ -93,8 +100,9 @@ export function DownloadBasemapButton({ locationId, bounds, className }: Downloa
             disabled={status === 'downloading'}
             onClick={() => void download()}
             id="download-offline-map-btn"
+            aria-label={iconOnly ? label : undefined}
         >
-            {label}
+            {iconOnly ? null : label}
         </Button>
     );
 }
