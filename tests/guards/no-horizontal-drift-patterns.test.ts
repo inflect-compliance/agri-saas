@@ -160,7 +160,7 @@ const COMPENSATED_SITES: ReadonlyArray<{
         reason: 'Full-bleed hover row; -mx-3 widens the tap target to the card edge and is compensated by px-3.',
     },
     {
-        key: 'src/app/t/[tenantSlug]/(app)/locations/[locationId]/page.tsx:658',
+        key: 'src/app/t/[tenantSlug]/(app)/locations/[locationId]/page.tsx:657',
         reason: 'Full-bleed phone map; -mx-4 cancels the page px-4 for an edge-to-edge canvas and is clipped by overflow-hidden.',
     },
     {
