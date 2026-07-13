@@ -39,11 +39,16 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-// The ag strip owns its own module-gated SWR reads — stub it to a
-// marker so the composition test stays focused on the shell contract.
+// The child cards own their own SWR reads — stub them to markers so the
+// composition test stays focused on the shell contract.
 jest.mock('@/app/t/[tenantSlug]/(app)/dashboard/AgDashboardStrip', () => {
     const Stub = () => <div data-testid="ag-strip-stub" />;
     Stub.displayName = 'AgDashboardStripStub';
+    return { __esModule: true, default: Stub };
+});
+jest.mock('@/app/t/[tenantSlug]/(app)/dashboard/TasksTrendCard', () => {
+    const Stub = () => <div data-testid="tasks-trend-stub" />;
+    Stub.displayName = 'TasksTrendCardStub';
     return { __esModule: true, default: Stub };
 });
 
@@ -70,8 +75,9 @@ function makeWrapper() {
 }
 
 describe('DashboardClient — composition', () => {
-    it('renders the ag strip and NOT the retired onboarding banner', () => {
+    it('renders the tasks trend + ag strip and NOT the retired onboarding banner', () => {
         render(<DashboardClient />, { wrapper: makeWrapper() });
+        expect(screen.getByTestId('tasks-trend-stub')).toBeInTheDocument();
         expect(screen.getByTestId('ag-strip-stub')).toBeInTheDocument();
         expect(screen.queryByTestId('onboarding-banner-stub')).not.toBeInTheDocument();
     });

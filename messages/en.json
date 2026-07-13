@@ -199,6 +199,14 @@
             "title": "Recent Journal",
             "viewAll": "View all",
             "empty": "No journal entries logged"
+        },
+        "taskTrend": {
+            "title": "Task activity",
+            "window": "last {days} days",
+            "created": "Created",
+            "completed": "Completed",
+            "empty": "No task activity yet.",
+            "ariaSummary": "Task activity over the last {days} days: {created} created, {completed} completed."
         }
     },
     "clauses": {

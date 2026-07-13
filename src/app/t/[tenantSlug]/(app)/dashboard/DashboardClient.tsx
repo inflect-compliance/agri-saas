@@ -14,10 +14,17 @@
 'use client';
 
 import AgDashboardStrip from './AgDashboardStrip';
+import TasksTrendCard from './TasksTrendCard';
 
 export default function DashboardClient() {
     return (
         <div className="space-y-section">
+            {/* ─── Tasks trendline (always shown) ───
+                Daily "created vs completed" farm-task counts over the last
+                14 days. Tasks aren't module-gated, so this renders for every
+                tenant (empty state when there's no activity). */}
+            <TasksTrendCard />
+
             {/* ─── Agriculture strip (module-gated) ───
                 A small "your farm today" row led by the AI field briefing.
                 Renders nothing for a tenant with neither the JOURNAL nor
