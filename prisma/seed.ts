@@ -40,22 +40,22 @@ async function main() {
     const admin = await prisma.user.upsert({
         where: { emailHash: hashForLookup('admin@acme.com') },
         update: {},
-        create: { email: 'admin@acme.com', emailHash: hashForLookup('admin@acme.com'), passwordHash: pwd, name: 'Alice Admin' },
+        create: { email: 'admin@acme.com', emailHash: hashForLookup('admin@acme.com'), passwordHash: pwd, uiLanguage: 'en', name: 'Alice Admin' },
     });
     const editor = await prisma.user.upsert({
         where: { emailHash: hashForLookup('editor@acme.com') },
         update: {},
-        create: { email: 'editor@acme.com', emailHash: hashForLookup('editor@acme.com'), passwordHash: pwd, name: 'Bob Editor' },
+        create: { email: 'editor@acme.com', emailHash: hashForLookup('editor@acme.com'), passwordHash: pwd, uiLanguage: 'en', name: 'Bob Editor' },
     });
     const reader = await prisma.user.upsert({
         where: { emailHash: hashForLookup('viewer@acme.com') },
         update: {},
-        create: { email: 'viewer@acme.com', emailHash: hashForLookup('viewer@acme.com'), passwordHash: pwd, name: 'Carol Reader' },
+        create: { email: 'viewer@acme.com', emailHash: hashForLookup('viewer@acme.com'), passwordHash: pwd, uiLanguage: 'en', name: 'Carol Reader' },
     });
     const auditor = await prisma.user.upsert({
         where: { emailHash: hashForLookup('auditor@acme.com') },
         update: {},
-        create: { email: 'auditor@acme.com', emailHash: hashForLookup('auditor@acme.com'), passwordHash: pwd, name: 'Dan Auditor' },
+        create: { email: 'auditor@acme.com', emailHash: hashForLookup('auditor@acme.com'), passwordHash: pwd, uiLanguage: 'en', name: 'Dan Auditor' },
     });
     console.log('✅ Users created');
 
@@ -174,7 +174,7 @@ async function main() {
     const ciso = await prisma.user.upsert({
         where: { emailHash: hashForLookup('ciso@acme.com') },
         update: {},
-        create: { email: 'ciso@acme.com', emailHash: hashForLookup('ciso@acme.com'), passwordHash: pwd, name: 'Carla CISO' },
+        create: { email: 'ciso@acme.com', emailHash: hashForLookup('ciso@acme.com'), passwordHash: pwd, uiLanguage: 'en', name: 'Carla CISO' },
     });
 
     await prisma.orgMembership.upsert({
