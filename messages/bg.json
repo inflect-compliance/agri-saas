@@ -7124,6 +7124,7 @@
         "openJob": "Отвори {title}",
         "markDone": "Готово",
         "doneResolution": "Изпълнено на терен",
-        "doneLabel": "Изпълнение: {title}"
+        "doneLabel": "Изпълнение: {title}",
+        "locations": "Локации"
     }
 }

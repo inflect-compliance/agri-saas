@@ -145,7 +145,12 @@ export function TopChrome({ variant, operator = false, user, onMobileMenuClick }
                 ? `/org/${params.orgSlug}`
                 : '/'
             : params?.tenantSlug
-              ? `/t/${params.tenantSlug}/dashboard`
+              ? // Operator mode: the brand mark is the "home" affordance back
+                // to the one screen they own (the dashboard is off-limits and
+                // would just bounce them here anyway).
+                operator
+                  ? `/t/${params.tenantSlug}/my-work`
+                  : `/t/${params.tenantSlug}/dashboard`
               : '/';
 
     return (

@@ -19,8 +19,12 @@ reads):
    in `src/lib/auth/guard.ts`). Resolves the membership matching the URL slug
    (NOT the primary `token.role`) and, if MECHANISATOR, redirects any other
    page to `/t/{slug}/my-work` and 403s any non-task API. Allowlist: the
-   `my-work` + `field/*` pages; the `farm-tasks` / `field-operations` / `tasks`
-   APIs.
+   `my-work` + `field/*` + `locations/*` pages; the `farm-tasks` /
+   `field-operations` / `tasks` / `locations` / `agro` APIs. (`locations` +
+   `agro` were added in a follow-up so the sprayer can open the fields map —
+   list / detail / parcels / basemap + vegetation-index tiles — as part of the
+   job. Reached via a "Locations" link on the My work screen; the operator's
+   brand mark links back to My work.)
 2. **Stripped app shell** — `AppShell operator` mode renders no sidebar, drawer,
    or bottom-tab bar; `TopChrome operator` renders brand + account menu only
    (no switcher, bell, breadcrumbs, or mobile-menu button). Selected by role in
