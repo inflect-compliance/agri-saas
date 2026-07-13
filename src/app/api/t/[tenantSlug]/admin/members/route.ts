@@ -10,7 +10,7 @@ import { sendInviteEmail } from '@/lib/email/invite-email';
 
 const InviteMemberSchema = z.object({
     email: z.string().email('Valid email required'),
-    role: z.enum(['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER'] as const),
+    role: z.enum(['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER', 'MECHANISATOR'] as const),
 });
 
 const TENANT_ROLE_LABEL: Record<string, string> = {
@@ -19,6 +19,7 @@ const TENANT_ROLE_LABEL: Record<string, string> = {
     EDITOR: 'Editor',
     AUDITOR: 'Auditor',
     READER: 'Reader',
+    MECHANISATOR: 'Mechanisator',
 };
 
 export const GET = withApiErrorHandling(

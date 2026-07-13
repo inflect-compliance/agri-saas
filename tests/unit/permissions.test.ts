@@ -39,6 +39,27 @@ describe('Permissions Map', () => {
         expect(permissions.audits.freeze).toBe(false);
     });
 
+    it('grants ONLY task access to MECHANISATOR (everything else hidden)', () => {
+        const permissions = getPermissionsForRole('MECHANISATOR');
+        // Tasks visible + editable (completion affordances render).
+        expect(permissions.tasks.view).toBe(true);
+        expect(permissions.tasks.edit).toBe(true);
+        expect(permissions.tasks.create).toBe(false);
+        expect(permissions.tasks.assign).toBe(false);
+        // Every other domain is fully hidden — the opposite of READER's
+        // "view everything". This is the load-bearing lockdown at the UI
+        // permission layer.
+        expect(permissions.controls.view).toBe(false);
+        expect(permissions.evidence.view).toBe(false);
+        expect(permissions.evidence.download).toBe(false);
+        expect(permissions.risks.view).toBe(false);
+        expect(permissions.vendors.view).toBe(false);
+        expect(permissions.audits.view).toBe(false);
+        expect(permissions.reports.view).toBe(false);
+        expect(permissions.admin.view).toBe(false);
+        expect(permissions.admin.members).toBe(false);
+    });
+
     it('grants strict read-only access to READER', () => {
         const permissions = getPermissionsForRole('READER');
 

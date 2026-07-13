@@ -99,6 +99,8 @@ const ROLE_HIERARCHY: Record<Role, number> = {
     EDITOR: 3,
     AUDITOR: 2,
     READER: 1,
+    // Lowest privilege — a read-only operator persona (see permissions.ts).
+    MECHANISATOR: 1,
 };
 
 export function hasMinRole(userRole: Role, minRole: Role): boolean {
@@ -120,7 +122,9 @@ export function hasMinRole(userRole: Role, minRole: Role): boolean {
  * are the legacy path used by policies + a few admin-style routes.
  */
 export function canRead(role: Role): boolean {
-    return ['OWNER', 'ADMIN', 'EDITOR', 'READER', 'AUDITOR'].includes(role);
+    // MECHANISATOR is read-only at the coarse tier so its own task data
+    // loads; it's confined to the "My work" screen by the route lockdown.
+    return ['OWNER', 'ADMIN', 'EDITOR', 'READER', 'AUDITOR', 'MECHANISATOR'].includes(role);
 }
 
 /** Can write/mutate data (OWNER, ADMIN, EDITOR) */

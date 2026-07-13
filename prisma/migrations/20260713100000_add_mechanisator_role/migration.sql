@@ -1,0 +1,14 @@
+-- Add the MECHANISATOR role.
+--
+-- MECHANISATOR is a restricted machine-operator / sprayer persona: it
+-- sees only its "My work" screen (open assigned jobs) + the field-
+-- operation completion flow. The lockdown lives in application code
+-- (middleware route-guard + stripped app shell + minimal PermissionSet
+-- in src/lib/permissions.ts); this migration only makes the enum value
+-- exist. Coarse tier is read-only — task completion rides the assignee
+-- self-serve path, not general write.
+--
+-- No data is modified. ADD VALUE is non-blocking and does not rewrite
+-- tables. Appended (no BEFORE/AFTER) — enum order is not load-bearing
+-- (the hierarchy/seniority maps in code are numeric, not enum-ordered).
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'MECHANISATOR';

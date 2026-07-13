@@ -28,7 +28,7 @@ import { sanitizePlainText } from '@/lib/security/sanitize';
 import { Prisma, type Role } from '@prisma/client';
 
 // ─── Valid roles for assignment ───
-const VALID_ROLES: Role[] = ['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER'];
+const VALID_ROLES: Role[] = ['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER', 'MECHANISATOR'];
 
 // ─── List Members ───
 
