@@ -56,6 +56,12 @@ import { NavBar, NavBarBrand, NavBarMobileMenu } from './nav-bar';
 interface TopChromeProps {
     variant: AppShellVariant;
     /**
+     * Operator (MECHANISATOR) mode — a minimal bar: brand + user menu only.
+     * No mobile-menu button (there's no drawer), no breadcrumbs, no workspace
+     * switcher, no notifications bell. Keeps the operator on their one screen.
+     */
+    operator?: boolean;
+    /**
      * R14-PR12 — handler for the mobile-only menu button. Opens
      * the sidebar drawer. AppShell owns the drawer-open state and
      * passes the setter through.
@@ -103,7 +109,7 @@ interface TopChromeProps {
  * variant + URL params: tenant → `/t/<slug>/dashboard`,
  * org → `/org/<slug>` (org root).
  */
-export function TopChrome({ variant, user, onMobileMenuClick }: TopChromeProps) {
+export function TopChrome({ variant, operator = false, user, onMobileMenuClick }: TopChromeProps) {
     const t = useTranslations('topChrome');
     const breadcrumbs = useCurrentBreadcrumbs();
     const params = useParams();
@@ -146,44 +152,52 @@ export function TopChrome({ variant, user, onMobileMenuClick }: TopChromeProps) 
         <NavBar
             left={
                 <>
-                    <NavBarMobileMenu
-                        onClick={onMobileMenuClick}
-                        ariaLabel={
-                            variant === 'org'
-                                ? t('openOrgNav')
-                                : t('openNav')
-                        }
-                        dataTestId={
-                            variant === 'org' ? 'org-nav-toggle' : 'nav-toggle'
-                        }
-                    />
+                    {/* No mobile-menu button in operator mode — there's no
+                        drawer to open. */}
+                    {!operator && (
+                        <NavBarMobileMenu
+                            onClick={onMobileMenuClick}
+                            ariaLabel={
+                                variant === 'org'
+                                    ? t('openOrgNav')
+                                    : t('openNav')
+                            }
+                            dataTestId={
+                                variant === 'org' ? 'org-nav-toggle' : 'nav-toggle'
+                            }
+                        />
+                    )}
                     <NavBarBrand href={brandHref} />
                     <EnvironmentBadge />
                     {/* Breadcrumbs hidden below md — the brand mark
                         + env badge + hamburger already crowd the
                         left slot on small viewports. Mobile users
                         navigate via the drawer + the brand-mark
-                        click. */}
-                    <span className="hidden md:inline-flex items-center">
-                        {breadcrumbs.length > 0 ? (
-                            <Breadcrumbs
-                                items={breadcrumbs}
-                                data-testid="top-chrome-breadcrumbs"
-                            />
-                        ) : (
-                            // No breadcrumbs pushed yet — empty sentinel
-                            // for layout stability so the chrome's
-                            // height doesn't jump when a page resolves
-                            // its breadcrumbs after first paint.
-                            <span className="sr-only">{t('noBreadcrumbs')}</span>
-                        )}
-                    </span>
+                        click. Operator mode has no breadcrumbs (one screen). */}
+                    {!operator && (
+                        <span className="hidden md:inline-flex items-center">
+                            {breadcrumbs.length > 0 ? (
+                                <Breadcrumbs
+                                    items={breadcrumbs}
+                                    data-testid="top-chrome-breadcrumbs"
+                                />
+                            ) : (
+                                // No breadcrumbs pushed yet — empty sentinel
+                                // for layout stability so the chrome's
+                                // height doesn't jump when a page resolves
+                                // its breadcrumbs after first paint.
+                                <span className="sr-only">{t('noBreadcrumbs')}</span>
+                            )}
+                        </span>
+                    )}
                 </>
             }
             right={
                 <>
-                    {renderIdentity()}
-                    <NotificationsBell />
+                    {/* Operator mode: no workspace switcher, no notifications
+                        bell — just the account menu (sign out / language). */}
+                    {!operator && renderIdentity()}
+                    {!operator && <NotificationsBell />}
                     <UserMenu
                         displayName={user.name ?? null}
                         displayEmail={user.email ?? null}

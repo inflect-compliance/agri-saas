@@ -62,6 +62,12 @@ const EXEMPT_FILES = new Set<string>([
     // dashboard's <h1> lives in the greeting header (the masthead
     // PageHeader was removed), so the exemption tracks that file.
     "src/app/t/[tenantSlug]/(app)/dashboard/GreetingHeader.tsx",
+    // The MECHANISATOR operator screen. It renders inside a STRIPPED shell
+    // with no navigation (no sidebar / drawer / bottom-tab) — breadcrumbs
+    // would be dead links to screens the operator is redirected away from.
+    // It is the operator's single reachable page, so it IS the top of their
+    // (one-node) hierarchy.
+    "src/app/t/[tenantSlug]/(app)/my-work/MyWorkClient.tsx",
 
     // Error / loading / fallback boundaries — they render outside
     // the normal page flow.

@@ -250,6 +250,35 @@ describe('setTaskStatus — fromStatus capture + validateTypeRelevance', () => {
     });
 });
 
+describe('setTaskStatus — assignee self-serve (operator completion)', () => {
+    it('lets the ASSIGNEE change status without general write (MECHANISATOR)', async () => {
+        mockRunInTx.mockImplementationOnce(async (_ctx, fn) => fn({} as never));
+        // ctx.userId defaults to 'user-1'; the task is assigned to them.
+        mockGetById.mockResolvedValueOnce({
+            id: 't1', status: 'OPEN', type: 'FARM_TASK', controlId: null,
+            assigneeUserId: 'user-1',
+        } as never);
+
+        await setTaskStatus(makeRequestContext('MECHANISATOR'), 't1', 'IN_PROGRESS');
+
+        // The assignee bypass let the write through despite canWrite=false.
+        expect(mockSetStatus).toHaveBeenCalled();
+    });
+
+    it('blocks a MECHANISATOR who is NOT the assignee', async () => {
+        mockRunInTx.mockImplementationOnce(async (_ctx, fn) => fn({} as never));
+        mockGetById.mockResolvedValueOnce({
+            id: 't1', status: 'OPEN', type: 'FARM_TASK', controlId: null,
+            assigneeUserId: 'someone-else',
+        } as never);
+
+        await expect(
+            setTaskStatus(makeRequestContext('MECHANISATOR'), 't1', 'IN_PROGRESS'),
+        ).rejects.toThrow();
+        expect(mockSetStatus).not.toHaveBeenCalled();
+    });
+});
+
 describe('assignTask', () => {
     it('rejects READER on assign (canWrite gate)', async () => {
         await expect(

@@ -305,12 +305,23 @@ export async function bulkDeleteTask(
 // ─── Status ───
 
 export async function setTaskStatus(ctx: RequestContext, taskId: string, status: string, resolution?: string | null) {
-    assertCanWriteTasks(ctx);
     const result = await runInTenantContext(ctx, async (db) => {
         // Pre-fetch once so we can both validate + capture fromStatus
         // for the automation event.
         const existing = await WorkItemRepository.getById(db, ctx, taskId);
         if (!existing) throw notFound('Task not found');
+
+        // Authorization. Task-write permission is the general gate, BUT an
+        // operator ASSIGNED to a task may change its status without general
+        // write — a restricted MECHANISATOR (or any low-privilege assignee)
+        // must be able to complete their own farm tasks. This mirrors the
+        // assignee self-serve rule already applied to FIELD_OPERATION parcel
+        // marking in `markOperationParcel`.
+        const isAssignee = !!ctx.userId && existing.assigneeUserId === ctx.userId;
+        if (!ctx.permissions.canWrite && !isAssignee) {
+            assertCanWriteTasks(ctx); // throws the canonical 403 for non-assignees
+        }
+
         const fromStatus = existing.status;
 
         // Audit Coherence S8 (2026-05-24) — state-machine gate runs
