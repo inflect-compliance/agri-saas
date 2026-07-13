@@ -64,9 +64,14 @@ export default function TasksTrendCard() {
     );
 
     const series = useMemo<Series<TrendValues>[]>(
+        // `isActive: true` is REQUIRED for the series to render: <Areas>
+        // filters on truthy `isActive`, so a series that omits it draws its
+        // axis/scale (layout.ts treats undefined as active) but no area —
+        // the "axes but no line" symptom. Every other caller (TrendCard, …)
+        // sets it; this card originally missed it.
         () => [
-            { id: 'created', valueAccessor: (d) => d.values.created, colorClassName: CREATED_LINE },
-            { id: 'completed', valueAccessor: (d) => d.values.completed, colorClassName: COMPLETED_LINE },
+            { id: 'created', isActive: true, valueAccessor: (d) => d.values.created, colorClassName: CREATED_LINE },
+            { id: 'completed', isActive: true, valueAccessor: (d) => d.values.completed, colorClassName: COMPLETED_LINE },
         ],
         [],
     );

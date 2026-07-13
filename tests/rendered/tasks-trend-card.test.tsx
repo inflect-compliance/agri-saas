@@ -13,11 +13,16 @@ jest.mock('next-intl', () => ({
 
 // Stub the chart primitives — visx needs real layout that jsdom lacks, and
 // the card's own contract (title, legend, totals, empty/loading) is what
-// matters here.
-jest.mock('@/components/ui/charts', () => ({
-    TimeSeriesChart: ({ children }: { children: React.ReactNode }) => (
+// matters here. The TimeSeriesChart stub is a jest.fn so a test can inspect
+// the `series` prop it receives (see the isActive regression test).
+const mockTimeSeriesChart = jest.fn(
+    ({ children }: { children: React.ReactNode; series: unknown[] }) => (
         <div data-testid="ts-chart">{children}</div>
     ),
+);
+jest.mock('@/components/ui/charts', () => ({
+    TimeSeriesChart: (props: { children: React.ReactNode; series: unknown[] }) =>
+        mockTimeSeriesChart(props),
     Areas: () => <div data-testid="areas" />,
     XAxis: () => null,
     YAxis: () => null,
@@ -31,7 +36,10 @@ jest.mock('@/lib/hooks/use-tenant-swr', () => ({
 import TasksTrendCard from '@/app/t/[tenantSlug]/(app)/dashboard/TasksTrendCard';
 
 describe('TasksTrendCard', () => {
-    beforeEach(() => useTenantSWR.mockReset());
+    beforeEach(() => {
+        useTenantSWR.mockReset();
+        mockTimeSeriesChart.mockClear();
+    });
 
     it('renders a skeleton while the read is in flight', () => {
         useTenantSWR.mockReturnValue({ data: undefined });
@@ -67,5 +75,22 @@ describe('TasksTrendCard', () => {
         // Totals: created 2+3=5, completed 1+4=5.
         expect(screen.getAllByText('5')).toHaveLength(2);
         expect(screen.getByTestId('ts-chart')).toBeInTheDocument();
+    });
+
+    it('passes ACTIVE series to the chart so the areas actually render', () => {
+        // Regression (dashboard "axes but no line" bug): <Areas> filters on
+        // truthy `isActive`, so a series that omits it draws the axes/scale
+        // but no area. Every series this card feeds the chart MUST be active.
+        useTenantSWR.mockReturnValue({
+            data: { trend: [{ date: '2026-07-13', created: 2, completed: 1 }] },
+        });
+        render(<TasksTrendCard />);
+        const props = mockTimeSeriesChart.mock.calls.at(-1)?.[0] as {
+            series: { id: string; isActive?: boolean }[];
+        };
+        expect(props.series.length).toBeGreaterThan(0);
+        for (const s of props.series) {
+            expect(s.isActive).toBe(true);
+        }
     });
 });
