@@ -30,6 +30,13 @@ enum Role {
   EDITOR
   READER
   AUDITOR
+  /// MECHANISATOR — a restricted machine-operator / sprayer persona.
+  /// Sees ONLY their "My work" screen (open assigned jobs) and the
+  /// field-operation completion flow; every other route is redirected
+  /// away by middleware and the app shell renders no navigation.
+  /// Coarse tier is read-only (canRead) — task completion rides the
+  /// assignee self-serve path, not general write. Never SSO-mappable.
+  MECHANISATOR
 }
 
 /// Hub-and-spoke organization roles (Epic O-1).

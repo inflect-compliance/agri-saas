@@ -46,7 +46,7 @@ describe('getPermissionsForRole', () => {
     });
 
     test('all four roles produce valid PermissionSet shapes', () => {
-        const roles = ['ADMIN', 'EDITOR', 'AUDITOR', 'READER'] as const;
+        const roles = ['ADMIN', 'EDITOR', 'AUDITOR', 'READER', 'MECHANISATOR'] as const;
         for (const role of roles) {
             const perms = getPermissionsForRole(role);
             // Every PermissionSet must have all 11 domains

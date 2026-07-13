@@ -56,13 +56,14 @@ export default async function RbacPage({
         createdAtIso: m.createdAt.toISOString(),
     }));
 
-    const roles: Role[] = ['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER'];
+    const roles: Role[] = ['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER', 'MECHANISATOR'];
     const permissionMatrix: Record<Role, PermissionSet> = {
         OWNER: getPermissionsForRole('OWNER'),
         ADMIN: getPermissionsForRole('ADMIN'),
         EDITOR: getPermissionsForRole('EDITOR'),
         AUDITOR: getPermissionsForRole('AUDITOR'),
         READER: getPermissionsForRole('READER'),
+        MECHANISATOR: getPermissionsForRole('MECHANISATOR'),
     };
 
     // Flatten permission keys for the matrix table

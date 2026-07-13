@@ -39,6 +39,10 @@ const ROLE_ORDER: Record<Role, number> = {
     EDITOR: 3,
     AUDITOR: 2,
     READER: 1,
+    // Read-only coarse tier (like READER) so the operator's own task
+    // data loads. Write is NOT granted here — task completion rides the
+    // assignee self-serve path; the route lockdown does the restricting.
+    MECHANISATOR: 1,
 };
 
 export function computePermissions(role: Role): Permissions {

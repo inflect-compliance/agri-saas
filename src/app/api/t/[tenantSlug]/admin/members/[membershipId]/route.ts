@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { jsonResponse } from '@/lib/api-response';
 
 const UpdateMemberSchema = z.object({
-    role: z.enum(['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER']).optional(),
+    role: z.enum(['OWNER', 'ADMIN', 'EDITOR', 'AUDITOR', 'READER', 'MECHANISATOR']).optional(),
     customRoleId: z.string().nullable().optional(),
 });
 

@@ -82,6 +82,25 @@ describe('RBAC Helpers (Chunk 1)', () => {
             expect(canRead('EDITOR')).toBe(true);
             expect(canRead('READER')).toBe(true);
             expect(canRead('AUDITOR')).toBe(true);
+            // MECHANISATOR reads at the coarse tier so its own task data
+            // loads; the route lockdown confines it to "My work".
+            expect(canRead('MECHANISATOR')).toBe(true);
+        });
+    });
+
+    describe('MECHANISATOR (restricted operator)', () => {
+        it('reads but cannot write / admin / audit / export at the coarse tier', () => {
+            expect(canRead('MECHANISATOR')).toBe(true);
+            expect(canWrite('MECHANISATOR')).toBe(false);
+            expect(canAdmin('MECHANISATOR')).toBe(false);
+            expect(canAudit('MECHANISATOR')).toBe(false);
+            expect(canExport('MECHANISATOR')).toBe(false);
+        });
+
+        it('sits at the lowest rung — never satisfies a write/admin min-role gate', () => {
+            expect(hasMinRole('MECHANISATOR', 'EDITOR')).toBe(false);
+            expect(hasMinRole('MECHANISATOR', 'ADMIN')).toBe(false);
+            expect(hasMinRole('MECHANISATOR', 'READER')).toBe(true);
         });
     });
 

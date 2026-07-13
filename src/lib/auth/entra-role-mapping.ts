@@ -32,6 +32,9 @@ const ROLE_SENIORITY: Record<Role, number> = {
     EDITOR: 2,
     READER: 1,
     AUDITOR: 0,
+    // Never an SSO-mappable target (excluded from ENTRA_MAPPABLE_ROLES),
+    // ranked lowest for completeness only.
+    MECHANISATOR: 0,
 };
 
 /**

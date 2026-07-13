@@ -130,6 +130,29 @@ export function getPermissionsForRole(role: Role): PermissionSet {
                 reports: { view: true, export: true },
                 admin: { view: false, manage: false, members: false, sso: false, scim: false, tenant_lifecycle: false, owner_management: false },
             };
+        case 'MECHANISATOR':
+            // Restricted machine-operator / sprayer persona. Sees ONLY the
+            // "My work" screen (open assigned jobs) + the field-operation
+            // completion flow; every other domain is hidden. Task VIEW +
+            // EDIT are on so the completion affordances render; actual task
+            // completion rides the assignee self-serve path (not general
+            // write). Every other domain is fully false — the opposite of
+            // the READER "view everything" default. NOTE: this explicit arm
+            // is load-bearing — without it MECHANISATOR would fall through
+            // to the READER default below and silently see every screen.
+            return {
+                controls: { view: false, create: false, edit: false },
+                evidence: { view: false, upload: false, edit: false, download: false },
+                policies: { view: false, create: false, edit: false, approve: false },
+                tasks: { view: true, create: false, edit: true, assign: false },
+                risks: { view: false, create: false, edit: false },
+                vendors: { view: false, create: false, edit: false },
+                tests: { view: false, create: false, execute: false },
+                frameworks: { view: false, install: false },
+                audits: { view: false, manage: false, freeze: false, share: false },
+                reports: { view: false, export: false },
+                admin: { view: false, manage: false, members: false, sso: false, scim: false, tenant_lifecycle: false, owner_management: false },
+            };
         case 'READER':
         default:
             return {

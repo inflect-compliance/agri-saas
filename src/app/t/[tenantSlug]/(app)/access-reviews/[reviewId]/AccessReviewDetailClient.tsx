@@ -36,7 +36,7 @@ import { DataTable, createColumns } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/format-date';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 
-const ALL_ROLES = ['OWNER', 'ADMIN', 'EDITOR', 'READER', 'AUDITOR'] as const;
+const ALL_ROLES = ['OWNER', 'ADMIN', 'EDITOR', 'READER', 'AUDITOR', 'MECHANISATOR'] as const;
 type Role = (typeof ALL_ROLES)[number];
 type DecisionType = 'CONFIRM' | 'REVOKE' | 'MODIFY';
 type Status = 'OPEN' | 'IN_REVIEW' | 'CLOSED';

@@ -100,7 +100,7 @@ interface Invite {
     invitedBy: { id: string; name: string | null } | null;
 }
 
-const ROLES = ['ADMIN', 'EDITOR', 'AUDITOR', 'READER'] as const;
+const ROLES = ['ADMIN', 'EDITOR', 'AUDITOR', 'READER', 'MECHANISATOR'] as const;
 const ROLE_VARIANT: Record<string, 'error' | 'info' | 'warning' | 'neutral'> = {
     ADMIN: 'error',
     EDITOR: 'info',
