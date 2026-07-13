@@ -254,6 +254,32 @@ export function checkTenantAccess(
     return 'allow';
 }
 
+/**
+ * MECHANISATOR operator lockdown — is this tenant-scoped path one the
+ * restricted machine-operator persona is allowed to reach? Everything else
+ * is redirected to `/t/{slug}/my-work` (pages) or 403'd (APIs) by the
+ * middleware. Extracted pure so the allowlist is unit-testable without the
+ * Edge runtime (the middleware wires the NextResponse branches; E2E covers
+ * those).
+ *
+ * Allowed:
+ *   - Pages: the "My work" screen + the field-operation completion flow.
+ *   - APIs: the queue (`farm-tasks`), the field-operation data + parcel
+ *     marking (`field-operations`), and task status changes (`tasks`).
+ *
+ * `slug` is the tenant slug already parsed from the path.
+ */
+export function isOperatorAllowedPath(pathname: string, slug: string): boolean {
+    if (pathname.startsWith('/api/')) {
+        return /^\/api\/t\/[^/]+\/(farm-tasks|field-operations|tasks)(\/|$|\?)/.test(pathname);
+    }
+    return (
+        pathname === `/t/${slug}/my-work` ||
+        pathname.startsWith(`/t/${slug}/my-work/`) ||
+        pathname.startsWith(`/t/${slug}/field/`)
+    );
+}
+
 // ── Org-route gate (mirror of the tenant gate) ───────────────────────
 
 /**

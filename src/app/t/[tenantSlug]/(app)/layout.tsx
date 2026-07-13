@@ -22,8 +22,10 @@ import { NavigationTracker } from '@/components/nav/NavigationTracker';
  */
 export default async function AppLayout({
     children,
+    params,
 }: {
     children: React.ReactNode;
+    params: Promise<{ tenantSlug: string }>;
 }) {
     // Resolve session server-side — no client-side useSession() needed
     const session = await auth();
@@ -34,6 +36,15 @@ export default async function AppLayout({
     // Resolve translations server-side — passed as plain string to AppShell
     const tc = await getTranslations('common');
 
+    // Operator (MECHANISATOR) mode → the app shell renders NO navigation.
+    // The role is read from THIS tenant's membership (a user can hold
+    // different roles per tenant). Display-only defence-in-depth; the
+    // middleware route-guard is the enforcing layer.
+    const { tenantSlug } = await params;
+    const operator =
+        session.user.memberships?.find((m) => m.slug === tenantSlug)?.role ===
+        'MECHANISATOR';
+
     // ClientProviders sits inside AppShell so the page tree (children)
     // gets QueryClient + OnboardingTour context. AppShell's own
     // SidebarNav must NOT depend on either provider — the
@@ -41,6 +52,7 @@ export default async function AppLayout({
     // instead of useQuery for that reason.
     return (
         <AppShell
+            operator={operator}
             user={{
                 name: session.user.name,
                 email: session.user.email,

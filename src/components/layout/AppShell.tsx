@@ -83,6 +83,14 @@ interface AppShellProps {
      * that omit the prop.
      */
     variant?: AppShellVariant;
+    /**
+     * Operator (MECHANISATOR) mode — renders NO navigation chrome (no
+     * sidebar, no mobile drawer, no bottom-tab bar) and a minimal top bar
+     * (brand + user menu only). The operator is confined to their "My work"
+     * screen by the middleware route-guard; stripping the nav is the
+     * display-side half of the lockdown.
+     */
+    operator?: boolean;
     children: React.ReactNode;
 }
 
@@ -112,6 +120,7 @@ export function AppShell({
     // no longer rendered anywhere — see the AppShellProps doc comment.
     appName: _appName,
     variant = 'tenant',
+    operator = false,
     children,
 }: AppShellProps) {
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -185,29 +194,35 @@ export function AppShell({
         // insets still compose exactly as before.
         <div className="min-h-screen md:h-full md:overflow-hidden flex safe-area-x">
             {/* Desktop sidebar — hidden on mobile, visible on md+. Collapses to
-                a 56px icon rail (w-14); expanded is a thinner 208px (w-52). */}
-            <aside
-                className={cn(
-                    'hidden md:flex bg-bg-default border-r border-border-subtle flex-col flex-shrink-0 transition-[width] duration-200 ease-out',
-                    sidebarCollapsed ? 'md:w-14' : 'md:w-[180px]',
-                )}
-                data-collapsed={sidebarCollapsed ? 'true' : 'false'}
-            >
-                <SidebarCollapseProvider collapsed={sidebarCollapsed}>
-                    <Sidebar
-                        user={user}
-                        onLogout={handleLogout}
-                        onToggleCollapse={toggleSidebarCollapsed}
-                    />
-                </SidebarCollapseProvider>
-            </aside>
+                a 56px icon rail (w-14); expanded is a thinner 208px (w-52).
+                Operator mode renders NO sidebar. */}
+            {!operator && (
+                <aside
+                    className={cn(
+                        'hidden md:flex bg-bg-default border-r border-border-subtle flex-col flex-shrink-0 transition-[width] duration-200 ease-out',
+                        sidebarCollapsed ? 'md:w-14' : 'md:w-[180px]',
+                    )}
+                    data-collapsed={sidebarCollapsed ? 'true' : 'false'}
+                >
+                    <SidebarCollapseProvider collapsed={sidebarCollapsed}>
+                        <Sidebar
+                            user={user}
+                            onLogout={handleLogout}
+                            onToggleCollapse={toggleSidebarCollapsed}
+                        />
+                    </SidebarCollapseProvider>
+                </aside>
+            )}
 
-            {/* Mobile drawer — only renders overlay on <md. Always expanded. */}
-            <MobileDrawer open={drawerOpen} onClose={closeDrawer}>
-                <SidebarCollapseProvider collapsed={false}>
-                    <Sidebar user={user} onLogout={handleLogout} onNavClick={closeDrawer} />
-                </SidebarCollapseProvider>
-            </MobileDrawer>
+            {/* Mobile drawer — only renders overlay on <md. Always expanded.
+                Operator mode has no drawer (no nav to open). */}
+            {!operator && (
+                <MobileDrawer open={drawerOpen} onClose={closeDrawer}>
+                    <SidebarCollapseProvider collapsed={false}>
+                        <Sidebar user={user} onLogout={handleLogout} onNavClick={closeDrawer} />
+                    </SidebarCollapseProvider>
+                </MobileDrawer>
+            )}
 
             {/* Main content */}
             <main className="flex-1 overflow-auto md:overflow-hidden md:flex md:flex-col min-w-0 md:min-h-0">
@@ -222,6 +237,7 @@ export function AppShell({
                 <BreadcrumbsProvider>
                     <TopChrome
                         variant={variant}
+                        operator={operator}
                         user={user}
                         onMobileMenuClick={openDrawer}
                     />
@@ -250,7 +266,7 @@ export function AppShell({
                     {/* Spacer so page content can scroll clear of the fixed
                         mobile bottom-tab bar (≈56px) + the device safe area.
                         Tenant variant + <md only; a no-op everywhere else. */}
-                    {variant === 'tenant' && (
+                    {variant === 'tenant' && !operator && (
                         <div
                             aria-hidden="true"
                             data-testid="bottom-tab-spacer"
@@ -265,7 +281,7 @@ export function AppShell({
                 five most-used field surfaces (md:hidden). The hamburger
                 MobileDrawer above keeps the long tail. Tenant variant only:
                 the bar resolves its tabs from the tenant nav. */}
-            {variant === 'tenant' && <BottomTabBar />}
+            {variant === 'tenant' && !operator && <BottomTabBar />}
         </div>
     );
 }
