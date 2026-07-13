@@ -1,13 +1,13 @@
 /**
  * DashboardClient — composition test.
  *
- * After the recent-activity feed was removed, the dashboard client is a
- * thin composition: the onboarding banner + the "your farm today" ag strip.
- * It does NO SWR reads of its own (the KPI/trend/hero surfaces were removed)
- * and never reaches for `useRouter().refresh()`. This test pins the
+ * The dashboard client is a thin composition of just the "your farm today"
+ * ag strip (the onboarding banner and the recent-activity feed were both
+ * removed). It does NO SWR reads of its own (the KPI/trend/hero surfaces were
+ * removed) and never reaches for `useRouter().refresh()`. This test pins the
  * surviving contract:
  *
- *   1. The onboarding banner renders.
+ *   1. The ag strip renders and the retired onboarding banner does NOT.
  *   2. The client never invokes `router.refresh()`.
  */
 
@@ -39,12 +39,12 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }));
 
-// Onboarding banner queries its own state — stub it out so the
-// dashboard test stays focused on the composition contract.
-jest.mock('@/components/onboarding/OnboardingBanner', () => {
-    const Stub = () => <div data-testid="onboarding-banner-stub" />;
-    Stub.displayName = 'OnboardingBannerStub';
-    return Stub;
+// The ag strip owns its own module-gated SWR reads — stub it to a
+// marker so the composition test stays focused on the shell contract.
+jest.mock('@/app/t/[tenantSlug]/(app)/dashboard/AgDashboardStrip', () => {
+    const Stub = () => <div data-testid="ag-strip-stub" />;
+    Stub.displayName = 'AgDashboardStripStub';
+    return { __esModule: true, default: Stub };
 });
 
 import DashboardClient from '@/app/t/[tenantSlug]/(app)/dashboard/DashboardClient';
@@ -70,9 +70,10 @@ function makeWrapper() {
 }
 
 describe('DashboardClient — composition', () => {
-    it('renders the onboarding banner (thin composition, no children slot)', () => {
+    it('renders the ag strip and NOT the retired onboarding banner', () => {
         render(<DashboardClient />, { wrapper: makeWrapper() });
-        expect(screen.getByTestId('onboarding-banner-stub')).toBeInTheDocument();
+        expect(screen.getByTestId('ag-strip-stub')).toBeInTheDocument();
+        expect(screen.queryByTestId('onboarding-banner-stub')).not.toBeInTheDocument();
     });
 
     it('never invokes router.refresh()', () => {
