@@ -17,8 +17,15 @@ export const LOCALES = ['en', 'bg'] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
-/** Locale used when no preference/cookie resolves — English. */
-export const DEFAULT_LOCALE: Locale = 'en';
+/**
+ * Locale used when no preference/cookie resolves — Bulgarian. Agrent's
+ * operators are Bulgarian farms, so a first-time user (no `NEXT_LOCALE`
+ * cookie, no persisted `uiLanguage`) sees the app in Bulgarian; anyone who
+ * picks English keeps it. Note: `en` remains the i18n COMPLETENESS reference
+ * (scripts/i18n-diff.mjs) — this only changes the runtime fallback, not which
+ * locale is the translation source of truth.
+ */
+export const DEFAULT_LOCALE: Locale = 'bg';
 
 /**
  * Cookie the server reads to resolve the request locale. `NEXT_LOCALE`

@@ -704,7 +704,7 @@ model User {
   /// "en" / "bg"). Drives the `NEXT_LOCALE` cookie the server reads to
   /// pick the next-intl message catalogue. Defaults to English; a
   /// returning user's device is seeded from this in the middleware.
-  uiLanguage                    String                       @default("en")
+  uiLanguage                    String                       @default("bg")
   accounts                      Account[]
   ownedKris                     KeyRiskIndicator[]           @relation("KriOwner")
   ownedAssets                   Asset[]                      @relation("AssetOwner")

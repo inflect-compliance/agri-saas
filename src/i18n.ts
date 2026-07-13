@@ -9,8 +9,8 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/lib/i18n/locales';
  * language switcher, and seeded by the middleware from the user's
  * persisted `uiLanguage` preference). The cookie value is validated
  * against the supported `LOCALES`; anything absent or unrecognised
- * falls back to `DEFAULT_LOCALE` ('en'), so behaviour is unchanged
- * for users without a preference.
+ * falls back to `DEFAULT_LOCALE` ('bg') — a first-time user with no
+ * cookie / no persisted preference sees the app in Bulgarian.
  */
 export default getRequestConfig(async () => {
     // `cookies()` is async in Next 15+. It may be absent (first visit,
