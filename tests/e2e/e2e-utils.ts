@@ -113,6 +113,16 @@ export async function loginAndGetTenant(
         }
     });
 
+    // Force English for E2E regardless of the app's default locale (which is
+    // now Bulgarian for first-time users) — these specs assert English copy.
+    // Set BEFORE the first navigation so the middleware's seedLocaleCookie
+    // (which only seeds when NEXT_LOCALE is absent) never overrides it. The
+    // `url` mirrors the config's baseURL resolution so it always matches the
+    // navigation host.
+    await page.context().addCookies([
+        { name: 'NEXT_LOCALE', value: 'en', url: process.env.URL || 'http://localhost:3006' },
+    ]);
+
     // Wait for the dev server to be ready — first navigation may trigger JIT compilation
     await safeGoto(page, '/login', { timeout: 90_000 });
 
