@@ -101,14 +101,13 @@ export interface TenantSwitcherProps {
  * visible difference between the R2 pill and the R14 switcher.
  */
 const SWITCHER_PILL_CLASS =
-    // R14-PR12 — `hidden sm:inline-flex` hides the workspace
-    // switcher on the narrowest viewports (mobile portrait).
-    // The unified chrome puts a lot of slots in the right-hand
-    // region; on a 375px iPhone SE viewport the switcher would
-    // crowd the bell + avatar. Users on those viewports can
-    // switch workspaces via the `/tenants` picker page (linked
-    // from the user menu footer).
-    `hidden sm:inline-flex h-[22px] items-center gap-tight rounded-full border border-border-subtle bg-bg-default px-3 text-xs font-medium text-content-muted transition-colors hover:bg-bg-muted/50 hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${NAV_BAR_SLOT_PRESS}`;
+    // Visible on every viewport so the company/workspace switch is always
+    // reachable from the top-right. On the narrowest viewports it renders
+    // COMPACT — just the tenant avatar + chevron (the name label is
+    // `hidden sm:inline`, see below) — so it doesn't crowd the bell +
+    // avatar on a 375px iPhone. `px-2 sm:px-3` tightens the padding to
+    // match. At sm+ the full named pill returns.
+    `inline-flex h-[22px] items-center gap-tight rounded-full border border-border-subtle bg-bg-default px-2 sm:px-3 text-xs font-medium text-content-muted transition-colors hover:bg-bg-muted/50 hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${NAV_BAR_SLOT_PRESS}`;
 
 const MENU_ROW_CLASS =
     'flex w-full cursor-pointer select-none items-center justify-between gap-default rounded-md px-2.5 py-1.5 text-left text-sm text-content-default transition-colors duration-100 ease-out hover:bg-bg-muted hover:text-content-emphasis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]';
@@ -243,7 +242,10 @@ export function TenantSwitcher({
                 data-testid="top-chrome-tenant-switcher"
             >
                 <InitialsAvatar value={tenantSlug} mode="slug" />
-                <span className="max-w-trunc-tight truncate">{tenantName}</span>
+                {/* Name hidden below sm so the mobile pill stays compact
+                    (avatar + chevron only); the avatar + aria-label still
+                    identify the active workspace. */}
+                <span className="hidden sm:inline max-w-trunc-tight truncate">{tenantName}</span>
                 <ChevronsUpDown
                     className="h-3 w-3 flex-shrink-0 text-content-subtle"
                     aria-hidden="true"

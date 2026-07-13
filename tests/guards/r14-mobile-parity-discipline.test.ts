@@ -45,8 +45,11 @@
  *      through TopChrome.
  *   5. AppShell no longer renders its own `<Menu>` button or
  *      mobile-only sticky bar.
- *   6. Tenant switcher pill carries `hidden sm:inline-flex` so
- *      it collapses on the narrowest viewports.
+ *   6. Tenant switcher pill renders on EVERY viewport (not gated
+ *      `hidden sm:*`) so the company switch is always reachable
+ *      from the top-right; on mobile it renders compact (the
+ *      workspace NAME label is `hidden sm:inline`, avatar + chevron
+ *      only) so it doesn't crowd the bell + avatar.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -221,13 +224,26 @@ describe('Roadmap-14 PR-12 — Mobile parity (unify dual chrome)', () => {
         });
     });
 
-    describe('tenant switcher collapses on narrow viewports', () => {
-        it('carries `hidden sm:inline-flex` on the trigger', () => {
-            // R14-PR12 hides the switcher pill on the narrowest
-            // viewport. On iPhone SE (375px) the right-slot would
-            // otherwise be unworkably crowded.
+    describe('tenant switcher renders on every viewport (compact on mobile)', () => {
+        it('does not gate the trigger pill behind `hidden sm:*`', () => {
+            // The company/workspace switch must be reachable from the
+            // top-right on mobile too — the pill renders on every
+            // viewport, not gated `hidden sm:inline-flex`.
             expect(SWITCHER_SRC).toMatch(
+                /SWITCHER_PILL_CLASS\s*=[\s\S]+?`inline-flex/,
+            );
+            expect(SWITCHER_SRC).not.toMatch(
                 /SWITCHER_PILL_CLASS\s*=[\s\S]+?hidden\s+sm:inline-flex/,
+            );
+        });
+
+        it('collapses only the workspace NAME below sm (compact avatar + chevron)', () => {
+            // On iPhone (375px) the pill stays narrow — the name label
+            // is `hidden sm:inline` so only the avatar + chevron show,
+            // keeping the right slot uncrowded while still surfacing the
+            // switch affordance.
+            expect(SWITCHER_SRC).toMatch(
+                /hidden\s+sm:inline[\s\S]{0,120}\{tenantName\}/,
             );
         });
     });
