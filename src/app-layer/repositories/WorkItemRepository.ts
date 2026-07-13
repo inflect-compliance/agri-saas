@@ -67,6 +67,29 @@ export class WorkItemRepository {
     }
 
     /**
+     * Raw timestamp rows backing the dashboard "tasks — created vs
+     * completed" trend. Returns just `{ createdAt, completedAt }` for every
+     * farm task (FARM_TASK + FIELD_OPERATION) CREATED or COMPLETED since
+     * `since`; the usecase buckets them into daily counts. Tenant-scoped
+     * (RLS + explicit `tenantId`). `completedAt` is only set on RESOLVED /
+     * CLOSED (never CANCELED), so a non-null `completedAt` is exactly
+     * "completed work". Bounded by a hard `take` — a single farm's N-day
+     * task volume sits far below it; the cap only guards the dashboard read
+     * against a pathological tenant.
+     */
+    static async farmTaskTrendRows(db: PrismaTx, ctx: RequestContext, since: Date) {
+        return db.task.findMany({
+            where: {
+                tenantId: ctx.tenantId,
+                type: { in: [WorkItemType.FARM_TASK, WorkItemType.FIELD_OPERATION] },
+                OR: [{ createdAt: { gte: since } }, { completedAt: { gte: since } }],
+            },
+            select: { createdAt: true, completedAt: true },
+            take: 5000,
+        });
+    }
+
+    /**
      * Total + completed count of the unified tasks linked to a control,
      * using the SAME where-shape the LinkedTasksPanel list renders
      * (TaskLink with entityType=CONTROL OR the direct `Task.controlId`
