@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { haToDca, trimNumber } from '@/lib/agro/rate-calc';
+import { cropLabel } from '@/lib/agriculture/crop-options';
 import { Heading } from '@/components/ui/typography';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
@@ -116,6 +117,7 @@ function ParcelRiskCard({
     areaHa: number | null;
 }) {
     const t = useTranslations('ag.risk');
+    const tCrops = useTranslations('crops');
     const riskQ = useTenantSWR<ParcelRisk>(`/agro/parcel-analysis?parcelId=${parcelId}`);
     const risk = riskQ.data ?? null;
     const levelLabel = (l: RiskLevel) => t(`level.${l}`);
@@ -128,7 +130,7 @@ function ParcelRiskCard({
                     <p className="text-xs text-content-subtle">
                         {areaHa != null && <span className="tabular-nums">{t('sizeDca', { dca: trimNumber(haToDca(areaHa)) })}</span>}
                         {areaHa != null && risk?.cropType && ' · '}
-                        {risk?.cropType}
+                        {risk?.cropType ? cropLabel(tCrops, risk.cropType) : null}
                     </p>
                 </div>
                 {risk && (
