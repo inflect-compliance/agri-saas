@@ -42,6 +42,7 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import prisma from '@/lib/prisma';
 import { env } from '@/env';
 import { authenticateWithPassword } from '@/lib/auth/credentials';
+import { DEFAULT_LOCALE } from '@/lib/i18n/locales';
 import { isTokenExpired, refreshAccessToken } from '@/lib/auth/refresh';
 import type { Role } from '@prisma/client';
 import { edgeLogger } from '@/lib/observability/edge-logger';
@@ -196,7 +197,7 @@ async function applyMembershipClaims(
         token.sessionVersion = dbUser.sessionVersion;
         // T00 — persisted UI language preference. The `include` query
         // returns every scalar column, so `uiLanguage` is present.
-        token.uiLanguage = dbUser.uiLanguage ?? 'en';
+        token.uiLanguage = dbUser.uiLanguage ?? DEFAULT_LOCALE;
 
         // Active tenant memberships, capped at MAX_JWT_MEMBERSHIPS so the
         // cookie stays bounded; `membershipsTruncated` flags the rare
@@ -238,7 +239,7 @@ async function applyMembershipClaims(
     } else {
         token.userId = fallbackUserId ?? token.userId;
         token.role = 'READER';
-        token.uiLanguage = token.uiLanguage ?? 'en';
+        token.uiLanguage = token.uiLanguage ?? DEFAULT_LOCALE;
         token.sessionVersion = 0;
         token.memberships = [];
         token.orgMemberships = [];
@@ -720,7 +721,7 @@ export const authOptions: NextAuthOptions = {
                 session.user.id = token.userId ?? token.sub!;
                 session.user.tenantId = token.tenantId ?? null;
                 session.user.role = token.role ?? 'READER';
-                session.user.uiLanguage = token.uiLanguage ?? 'en';
+                session.user.uiLanguage = token.uiLanguage ?? DEFAULT_LOCALE;
                 session.user.mfaPending = token.mfaPending ?? false;
                 session.user.memberships = token.memberships ?? [];
                 session.user.orgMemberships = token.orgMemberships ?? [];

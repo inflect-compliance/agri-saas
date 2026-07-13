@@ -2,10 +2,14 @@
  * Spatial-file parser — converts an uploaded parcel-boundary file into
  * a normalized list of parcels ready to persist.
  *
- * Supported inputs (all normalized to WGS84 / EPSG:4326 GeoJSON):
+ * Supported inputs (normalized to WGS84 / EPSG:4326 GeoJSON):
  *   • GeoJSON  (.geojson / .json)  — assumed 4326 per RFC 7946.
  *   • KML / KMZ (.kml / .kmz)      — 4326 by the KML spec; via @tmcw/togeojson.
- *   • ESRI Shapefile ZIP (.zip)    — via shpjs.
+ *   • ESRI Shapefile ZIP (.zip)    — via shpjs. Bulgarian КАИС / КВС / КККР
+ *     cadastre exports in EPSG:7801 (BGS2005 / CCS2005 Lambert) or EPSG:32635
+ *     (UTM 35N) are detected from the `.prj` (or, prj-less, a Bulgarian metre
+ *     bbox) and carry a `ParseResult.srid` so the repo reprojects them via
+ *     PostGIS `ST_Transform` on write — geometry then lands as 4326.
  *
  * Pure module: no Prisma, no I/O beyond the provided Buffer/string, so
  * it is unit-testable in isolation. The repository layer is responsible
@@ -17,6 +21,7 @@
  */
 import bbox from '@turf/bbox';
 import { DOMParser } from '@xmldom/xmldom';
+import { DOC_AREA_DCA_KEY } from '@/lib/agriculture/cadastre';
 import type {
     Feature,
     FeatureCollection,
@@ -27,14 +32,43 @@ import type {
 
 export type SpatialFormat = 'geojson' | 'kml' | 'shapefile';
 
+/**
+ * Source SRIDs the importer can ingest via a PostGIS `ST_Transform` on
+ * write (Bulgarian КАИС / КВС / КККР cadastre exports):
+ *   • 7801  — BGS2005 / CCS2005 (the official Bulgarian Lambert cadastre CRS).
+ *   • 32635 — WGS84 / UTM zone 35N (some КВС exports).
+ * 4326 is the WGS84 GeoJSON default and needs no reprojection. Only these
+ * two projected CRSs are accepted; any other projected CRS is rejected (see
+ * `parseSpatialFile`), so a mystery projection is never silently mis-stored.
+ */
+export const SUPPORTED_SOURCE_SRIDS = [7801, 32635] as const;
+export type SupportedSourceSrid = (typeof SUPPORTED_SOURCE_SRIDS)[number];
+
+/** The Bulgarian cadastre default when a projected shapefile carries no `.prj`. */
+export const DEFAULT_BG_CADASTRE_SRID: SupportedSourceSrid = 7801;
+
+// Normalized propertiesJson key for the documentary area (площ по документ) —
+// single source of truth in the dependency-light cadastre module (imported at
+// top), re-exported here for the parser's callers/tests.
+export { DOC_AREA_DCA_KEY };
+
 /** One normalized parcel extracted from the source file. */
 export interface ParsedParcel {
     /** Best-effort name from common property keys, else a positional fallback. */
     name: string;
-    /** Always a MultiPolygon in WGS84 (Polygon inputs are wrapped). */
+    /** Always a MultiPolygon — WGS84 already, OR in the file's source SRID when
+     *  `ParseResult.srid` is set (the repo reprojects those via PostGIS). */
     geometry: MultiPolygon;
     /** Source-feature properties, JSON-sanitised (Dates→ISO, NaN→null). */
     properties: Record<string, unknown>;
+    /**
+     * Cadastral identifier `EKATTE.masiv.parcel` (e.g. `68134.8360.729`) when
+     * parseable, else null. Optional in the type so hand-built fixtures need
+     * not spell it — `normalizeToParcels` always sets it (possibly null).
+     */
+    cadastralId?: string | null;
+    /** The 5-digit EKATTE settlement prefix of `cadastralId`; else null. */
+    ekatte?: string | null;
 }
 
 export interface ParseResult {
@@ -44,6 +78,12 @@ export interface ParseResult {
     bounds: [number, number, number, number] | null;
     /** Features skipped because they had no polygonal geometry. */
     skipped: number;
+    /**
+     * Source SRID of `parcels[].geometry` when it is NOT WGS84 and must be
+     * reprojected on write (`ST_Transform → 4326`). `undefined` means the
+     * geometry is already WGS84 (4326) — the common GeoJSON/KML path.
+     */
+    srid?: SupportedSourceSrid;
 }
 
 export class SpatialParseError extends Error {
@@ -109,6 +149,95 @@ function pickName(properties: Record<string, unknown>, index: number): string {
     return name ?? code ?? `Parcel ${index + 1}`;
 }
 
+// --- Cadastral identity (Bulgarian КАИС) ---------------------------------
+// A cadastral identifier is `EKATTE.masiv.parcel`, e.g. `68134.8360.729`:
+// a 5-digit EKATTE settlement code, then dot-separated block + parcel
+// numbers. Leading zeros are significant (EKATTE `00134` ≠ `134`), so the
+// prefix is validated as a 5-DIGIT string and never coerced through Number.
+const EKATTE_RE = /^\d{5}$/;
+/** A full identifier: 5-digit EKATTE, then at least two more dot-parts. */
+const CADASTRAL_ID_RE = /^(\d{5})\.\d+(?:\.\d+)+$/;
+// Property keys КАИС/КВС exports use for a WHOLE pre-composed identifier.
+const CADASTRAL_ID_KEYS = ['CADNUM', 'cadnum', 'IDENT', 'ident', 'PIN', 'pin', 'KI', 'ki', 'IDENTIFIER', 'identifier', 'CAD_ID', 'cad_id'];
+// Component keys, when the export splits the identifier across columns.
+const MASIV_KEYS = ['MASIV', 'masiv', 'MASSIV', 'massiv', 'BLOCK', 'block'];
+const PARCEL_NUM_KEYS = ['PARCEL', 'parcel', 'IMOT', 'imot', 'PARC', 'parc', 'PARCELNO', 'NOMER', 'nomer'];
+const EKATTE_KEYS = ['EKATTE', 'ekatte', 'Ekatte', 'EKNM', 'eknm'];
+
+/** Trimmed string form of a property value, leading zeros preserved; else null. */
+function rawStr(properties: Record<string, unknown>, keys: readonly string[]): string | null {
+    for (const key of keys) {
+        const v = properties[key];
+        if (typeof v === 'string' && v.trim()) return v.trim();
+        // A number can't carry leading zeros — but is still a valid component.
+        if (typeof v === 'number' && Number.isFinite(v)) return String(v);
+    }
+    return null;
+}
+
+/**
+ * Parse a validated cadastral identifier from a feature's attributes.
+ * Two paths, in order of trust:
+ *   1. A whole `EKATTE.masiv.parcel` value already present in one of the
+ *      known id columns (or, as a fallback, ANY string value that matches).
+ *   2. Composed from separate EKATTE + masiv + parcel columns.
+ * Returns `{ cadastralId, ekatte }` on a format match, else `{ null, null }`.
+ * The `EKATTE` prefix must be exactly 5 digits (leading zeros preserved).
+ */
+export function parseCadastralIdentity(
+    properties: Record<string, unknown>,
+): { cadastralId: string | null; ekatte: string | null } {
+    // 1a — an explicit id column.
+    const explicit = rawStr(properties, CADASTRAL_ID_KEYS);
+    if (explicit) {
+        const m = CADASTRAL_ID_RE.exec(explicit);
+        if (m) return { cadastralId: explicit, ekatte: m[1] };
+    }
+    // 1b — any string value that IS a full identifier (some exports put it
+    //      in an unlabelled column). Numbers are skipped: `68134.8360` could
+    //      never survive as a number with a trailing zero intact.
+    for (const v of Object.values(properties)) {
+        if (typeof v === 'string') {
+            const m = CADASTRAL_ID_RE.exec(v.trim());
+            if (m) return { cadastralId: v.trim(), ekatte: m[1] };
+        }
+    }
+    // 2 — compose from components.
+    const ekatte = rawStr(properties, EKATTE_KEYS);
+    const masiv = rawStr(properties, MASIV_KEYS);
+    const parcel = rawStr(properties, PARCEL_NUM_KEYS);
+    if (ekatte && EKATTE_RE.test(ekatte) && masiv && parcel) {
+        const composed = `${ekatte}.${masiv}.${parcel}`;
+        if (CADASTRAL_ID_RE.test(composed)) return { cadastralId: composed, ekatte };
+    }
+    return { cadastralId: null, ekatte: null };
+}
+
+// Documentary area (площ по документ) — the area of RECORD from the cadastre
+// register, distinct from the geometric ST_Area. Stored in decares (декар,
+// the Bulgarian agricultural unit) under `DOC_AREA_DCA_KEY` for the >5%
+// reconciliation badge. Geometry-derived area columns (SHAPE_AREA / ST_AREA
+// / GEOM_*) are deliberately NOT treated as documentary.
+const DOC_AREA_DCA_KEYS = ['AREA_DKA', 'area_dka', 'PLOSHT_DKA', 'plosht_dka', 'POV_DKA', 'pov_dka', 'DKA', 'dka'];
+const DOC_AREA_GENERIC_KEYS = ['PLOSHT', 'plosht', 'ПЛОЩ', 'площ', 'DOC_AREA', 'doc_area', 'AREA_DOC', 'area_doc', 'POV', 'pov'];
+
+/**
+ * The documentary parcel area in DECARES, when a recognised attribute
+ * carries it; else null. Decare-unit keys are trusted directly; generic
+ * area keys are ALSO assumed decares (the agricultural-cadastre standard).
+ * Returns null for a non-positive / non-finite value.
+ */
+export function pickDocumentaryAreaDca(properties: Record<string, unknown>): number | null {
+    for (const keys of [DOC_AREA_DCA_KEYS, DOC_AREA_GENERIC_KEYS]) {
+        for (const key of keys) {
+            const v = properties[key];
+            const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v.replace(',', '.')) : NaN;
+            if (Number.isFinite(n) && n > 0) return n;
+        }
+    }
+    return null;
+}
+
 /** Coerce a Polygon or MultiPolygon into MultiPolygon; reject anything else. */
 function toMultiPolygon(geometry: Geometry | null | undefined): MultiPolygon | null {
     if (!geometry) return null;
@@ -149,7 +278,19 @@ export function normalizeToParcels(input: unknown): { parcels: ParsedParcel[]; s
         const properties = toJsonSafe(
             (feature.properties ?? {}) as Record<string, unknown>,
         ) as Record<string, unknown>;
-        parcels.push({ name: pickName(properties, parcels.length), geometry: mp, properties });
+        const { cadastralId, ekatte } = parseCadastralIdentity(properties);
+        // Normalize the documentary area into propertiesJson (площ по документ,
+        // in decares) for the >5% area-reconciliation badge. Display-only —
+        // the persisted areaHa always derives from PostGIS ST_Area.
+        const docAreaDca = pickDocumentaryAreaDca(properties);
+        if (docAreaDca !== null) properties[DOC_AREA_DCA_KEY] = docAreaDca;
+        parcels.push({
+            name: pickName(properties, parcels.length),
+            geometry: mp,
+            properties,
+            cadastralId,
+            ekatte,
+        });
     }
     return { parcels, skipped };
 }
@@ -219,9 +360,59 @@ export function parseKml(text: string): { parcels: ParsedParcel[]; skipped: numb
     return normalizeToParcels(fc);
 }
 
+/**
+ * Detect a supported source SRID from a shapefile `.prj` WKT string.
+ * Recognises the EPSG authority code (`AUTHORITY["EPSG","7801"]`) first,
+ * then falls back to CRS-name / projection signatures so a `.prj` that
+ * omits the authority still resolves. Returns null for anything else —
+ * including WGS84, which needs no reprojection.
+ *
+ * Exported for unit testing and Phase-2 reuse.
+ */
+export function detectSridFromPrj(wkt: string): SupportedSourceSrid | null {
+    if (!wkt) return null;
+    const upper = wkt.toUpperCase();
+    // Authority code — the strongest signal.
+    if (/EPSG"?\s*,\s*"?7801/.test(upper)) return 7801;
+    if (/EPSG"?\s*,\s*"?32635/.test(upper)) return 32635;
+    // Name / datum signatures for the Bulgarian Lambert cadastre CRS.
+    if (upper.includes('CCS2005') || upper.includes('BGS2005') || upper.includes('CS2005')) return 7801;
+    // UTM zone 35N (WGS84) name signature.
+    if (/UTM[_ ]?ZONE[_ ]?35N?/.test(upper) || upper.includes('32635')) return 32635;
+    return null;
+}
+
+/** Read the `.prj` WKT text from a shapefile zip (JSZip); null when absent. */
+async function readPrjFromZip(buffer: Buffer): Promise<string | null> {
+    const JSZip = (await import('jszip')).default;
+    const zip = await JSZip.loadAsync(buffer);
+    for (const name of Object.keys(zip.files)) {
+        if (name.toLowerCase().endsWith('.prj') && !name.includes('__MACOSX')) {
+            return (await zip.files[name].async('string')).trim();
+        }
+    }
+    return null;
+}
+
+/**
+ * Rebuild the zip WITHOUT its `.prj` entries so shpjs (which reprojects via
+ * proj4 whenever a `.prj` is present) leaves geometry in the RAW source
+ * coordinates. We do this once we have recognised the CRS ourselves, so the
+ * authoritative reprojection is PostGIS `ST_Transform` — deterministic and
+ * independent of proj4's WKT handling for the Bulgarian Lambert CRS.
+ */
+async function stripPrjFromZip(buffer: Buffer): Promise<Buffer> {
+    const JSZip = (await import('jszip')).default;
+    const zip = await JSZip.loadAsync(buffer);
+    for (const name of Object.keys(zip.files)) {
+        if (name.toLowerCase().endsWith('.prj')) zip.remove(name);
+    }
+    return zip.generateAsync({ type: 'nodebuffer' });
+}
+
 export async function parseShapefileZip(
     buffer: Buffer,
-): Promise<{ parcels: ParsedParcel[]; skipped: number }> {
+): Promise<{ parcels: ParsedParcel[]; skipped: number; srid?: SupportedSourceSrid }> {
     // shpjs is a browser-oriented bundle that references the `self`
     // global; polyfill it before loading so it runs server-side. Dynamic
     // import (after the polyfill) avoids static-hoisting the reference.
@@ -231,8 +422,35 @@ export async function parseShapefileZip(
         default?: (b: ArrayBuffer | Buffer) => Promise<unknown>;
     };
     const shp = mod.default ?? (mod as unknown as (b: ArrayBuffer | Buffer) => Promise<unknown>);
-    const geojson = await shp(buffer);
-    return normalizeToParcels(geojson);
+
+    // Detect the source CRS from the `.prj` ourselves. When it is a supported
+    // projected cadastre CRS (7801 / 32635), STRIP the `.prj` so shpjs yields
+    // raw metre coordinates and PostGIS does the reprojection on write.
+    const prjWkt = await readPrjFromZip(buffer);
+    const detected = prjWkt ? detectSridFromPrj(prjWkt) : null;
+    const inputBuffer = detected ? await stripPrjFromZip(buffer) : buffer;
+
+    const geojson = await shp(inputBuffer);
+    const { parcels, skipped } = normalizeToParcels(geojson);
+    return { parcels, skipped, srid: detected ?? undefined };
+}
+
+/**
+ * A projected-metre bounds heuristic for a Bulgarian cadastre shapefile that
+ * shipped WITHOUT a `.prj`: eastings within ~[-100k, 1M] and northings within
+ * ~[4.0M, 5.2M] cover both 7801 and 32635 over Bulgaria. 7801 (the official
+ * cadastre CRS) is the default — 32635 without a `.prj` is genuinely
+ * indistinguishable by magnitude and needs a `.prj` to be recognised.
+ * Returns null when the coordinates are not in the Bulgarian metre band, so
+ * a truly-unknown projection still fails the WGS84-range guard.
+ */
+function guessBulgarianMetreSrid(
+    bounds: [number, number, number, number],
+): SupportedSourceSrid | null {
+    const [w, s, e, n] = bounds;
+    const eastingsOk = w >= -100_000 && e <= 1_000_000;
+    const northingsOk = s >= 4_000_000 && n <= 5_200_000;
+    return eastingsOk && northingsOk ? DEFAULT_BG_CADASTRE_SRID : null;
 }
 
 /**
@@ -252,7 +470,7 @@ export async function parseSpatialFile(args: {
         );
     }
 
-    let extraction: { parcels: ParsedParcel[]; skipped: number };
+    let extraction: { parcels: ParsedParcel[]; skipped: number; srid?: SupportedSourceSrid };
     if (format === 'geojson') {
         extraction = parseGeoJson(args.buffer.toString('utf8'));
     } else if (format === 'kml') {
@@ -261,25 +479,31 @@ export async function parseSpatialFile(args: {
         extraction = await parseShapefileZip(args.buffer);
     }
     const { parcels, skipped } = extraction;
+    let srid = extraction.srid;
 
     if (!parcels.length) {
         throw new SpatialParseError('No polygon parcels found in the uploaded file.');
     }
 
     const bounds = computeBounds(parcels);
-    // Coordinate-range guard: if shpjs (or a malformed/unsupported .prj) failed
-    // to reproject, coordinates stay in the source CRS (e.g. UTM metres) and
-    // would otherwise be stored as garbage lat/lon. Reject with an actionable
-    // message — every WGS84 coordinate must fall within lon ±180 / lat ±90.
-    if (bounds) {
+    // Coordinate-range guard. When `srid` is set, the geometry is deliberately
+    // in the source CRS's metres (the repo reprojects via ST_Transform), so a
+    // metre-scale bbox is EXPECTED — skip the guard. Otherwise, out-of-range
+    // coordinates mean shpjs could not reproject: a Bulgarian cadastre export
+    // that shipped without a `.prj` is assumed to be EPSG:7801, anything else
+    // is rejected with an actionable message.
+    if (bounds && srid === undefined) {
         const [w, s, e, n] = bounds;
         if (w < -180 || e > 180 || s < -90 || n > 90) {
-            throw new SpatialParseError(
-                `Coordinates fall outside the valid WGS84 range (bounds [${w.toFixed(1)}, ${s.toFixed(1)}, ${e.toFixed(1)}, ${n.toFixed(1)}]; expected longitude -180..180, latitude -90..90). ` +
-                    `The file's projection could not be reprojected to WGS84. Re-export the layer as WGS84 / EPSG:4326 and upload again.`,
-            );
+            srid = guessBulgarianMetreSrid(bounds) ?? undefined;
+            if (srid === undefined) {
+                throw new SpatialParseError(
+                    `Coordinates fall outside the valid WGS84 range (bounds [${w.toFixed(1)}, ${s.toFixed(1)}, ${e.toFixed(1)}, ${n.toFixed(1)}]; expected longitude -180..180, latitude -90..90). ` +
+                        `The file's projection could not be reprojected to WGS84. Re-export the layer as WGS84 / EPSG:4326 (or EPSG:7801 / 32635 with a .prj) and upload again.`,
+                );
+            }
         }
     }
 
-    return { format, parcels, bounds, skipped };
+    return { format, parcels, bounds, skipped, srid };
 }
