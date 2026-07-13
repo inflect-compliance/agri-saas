@@ -118,8 +118,30 @@ async function runA11yScan(page: Page, surfaceLabel: string) {
             undefined,
             { timeout: 20_000 },
         )
-        .catch(() => {
-            /* settle window expired — axe runs against current DOM */
+        .catch(async () => {
+            // Settle window expired — under heavy CI load, or a slow /
+            // failed hydration (a stray ChunkLoadError blocking the
+            // ThemeProvider effect), `data-theme` can stay on the
+            // SSR-seeded value past 20 s. Scanning that half-applied
+            // theme is exactly what produces phantom color-contrast
+            // failures: axe composites TRANSLUCENT surfaces (e.g. the
+            // secondary buttons' glass fill, `--btn-glass-fill-secondary`)
+            // over a mid-transition backdrop and reports a ratio the
+            // settled page never shows. Rather than scan that transient
+            // state, force the resolved theme so every token lands on its
+            // final value first — the scan then measures what a user
+            // actually sees (the buttons' real contrast is ~9.7:1).
+            await page
+                .evaluate(() => {
+                    const want = matchMedia('(prefers-color-scheme: dark)')
+                        .matches
+                        ? 'dark'
+                        : 'light';
+                    document.documentElement.setAttribute('data-theme', want);
+                })
+                .catch(() => {
+                    /* page torn down — nothing to force; axe will no-op */
+                });
         });
 
     // Animation settle. Entry animations (R17's dashboard rise-in,
