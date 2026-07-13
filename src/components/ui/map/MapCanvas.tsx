@@ -111,6 +111,18 @@ export interface MapCanvasProps {
      */
     indexOverlay?: { id: string; tileUrl: string } | null;
     /**
+     * Bulgarian cadastre (КККР / АГКК) WMS overlay — a toggleable reference
+     * layer of cadastral parcel boundaries. `tileUrl` is a SAME-ORIGIN
+     * `{z}/{x}/{y}` template served by the bounded cadastre proxy route (the
+     * upstream WMS URL never reaches the browser — a №8002 licence is IP-bound
+     * to the server). Drawn ABOVE the basemap + soil/index rasters but BELOW
+     * the tenant's own parcel fills (layer order matters — the operator's
+     * fields must stay legible on top) at reduced opacity. `null`/absent or an
+     * empty `tileUrl` renders nothing; the host gates it on the feature being
+     * configured AND online (online-only — not part of the offline pack).
+     */
+    cadastreOverlay?: { tileUrl: string } | null;
+    /**
      * On-map thumb controls (zoom ±, find-my-field). Opt-in so the read-only
      * operator/prescription paths are unchanged unless they ask for it.
      * Each button is a 36px target (comfortably above the WCAG 2.5.8 AA
@@ -216,6 +228,7 @@ export function MapCanvas({
     onCreateSplitLine,
     onGeometryValidity,
     indexOverlay = null,
+    cadastreOverlay = null,
     showControls = false,
     controlsBottomInset = 12,
     liveTracking = false,
@@ -230,6 +243,7 @@ export function MapCanvas({
     const t = useTranslations('ag.map.canvas');
     const reducedMotion = useReducedMotion();
     const indexActive = !!indexOverlay && indexOverlay.tileUrl.length > 0;
+    const cadastreActive = !!cadastreOverlay && cadastreOverlay.tileUrl.length > 0;
     const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
     const done = useMemo(() => new Set(doneIds), [doneIds]);
     const mapRef = useRef<MapRef | null>(null);
@@ -705,6 +719,27 @@ export function MapCanvas({
                         attribution={t('soilAttribution')}
                     >
                         <Layer id="soil-wrb-raster" type="raster" paint={{ 'raster-opacity': 0.55 }} />
+                    </Source>
+                )}
+                {/* Bulgarian cadastre (КККР / АГКК) WMS overlay — cadastral
+                    parcel boundaries, proxied SAME-ORIGIN as XYZ raster tiles.
+                    Drawn after the basemap/soil/index rasters but BEFORE the
+                    parcels source below, so the operator's own field fills sit
+                    on top and stay legible. `minzoom={10}` mirrors the proxy's
+                    zoom floor so MapLibre never requests a tile the route would
+                    refuse. Reduced opacity keeps the own-parcel strokes clear.
+                    Attribution is surfaced via MapLibre's attribution control. */}
+                {cadastreActive && (
+                    <Source
+                        id="cadastre-wms"
+                        key="cadastre-wms"
+                        type="raster"
+                        tiles={[cadastreOverlay!.tileUrl]}
+                        tileSize={256}
+                        minzoom={10}
+                        attribution={t('cadastreAttribution')}
+                    >
+                        <Layer id="cadastre-wms-raster" type="raster" paint={{ 'raster-opacity': 0.8 }} />
                     </Source>
                 )}
                 {/* Hide the static layer while editing so terra-draw owns

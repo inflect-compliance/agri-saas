@@ -37,6 +37,8 @@ import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults'
 import { CalendarIcon, MapPosition } from '@/components/ui/icons/nucleo';
 import { haToDca, trimNumber } from '@/lib/agro/rate-calc';
 import { useMediaQuery, useToast } from '@/components/ui/hooks';
+import { Tooltip } from '@/components/ui/tooltip';
+import { useOfflineSync } from '@/lib/offline/use-offline-sync';
 import { cn } from '@/lib/cn';
 import type { MapParcel } from '@/components/ui/map/MapCanvas';
 import {
@@ -183,6 +185,14 @@ export default function LocationDetailPage() {
     // vegetation-index overlay (turning one on clears the other) so the map
     // never carries two competing data layers at once.
     const [soilView, setSoilView] = useState(false);
+    // Bulgarian cadastre (КККР / АГКК) overlay toggle. Independent of the
+    // soil / vegetation-index layers — it's a reference boundary layer drawn
+    // below the tenant's own parcels, so it coexists rather than being mutually
+    // exclusive. Online-only (WMS is live, not in the offline pack).
+    const [cadastreOn, setCadastreOn] = useState(false);
+    // `online` gates the cadastre toggle (offline → disabled with a hint). The
+    // offline primitive is the canonical connectivity source in the operator PWA.
+    const { online } = useOfflineSync();
     const [imageryDate, setImageryDate] = useState<DateValue>(() => {
         const n = new Date();
         return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
@@ -223,6 +233,14 @@ export default function LocationDetailPage() {
     const indexConfigured = indexQ.data?.configured ?? true;
     const indexTileUrl = indexQ.data?.tileUrl ?? '';
     const indexLoading = !!activeSpec && !indexQ.data && !indexQ.error;
+
+    // Cadastre overlay availability — a server-only feature flag (the upstream
+    // WMS URL never reaches the client). When unconfigured the toggle stays
+    // hidden entirely. Fetched only while the Map tab is open.
+    const cadastreCfgQ = useTenantSWR<{ configured: boolean }>(
+        tab === 'map' ? '/cadastre/config' : null,
+    );
+    const cadastreConfigured = cadastreCfgQ.data?.configured ?? false;
 
     const loc = locQ.data;
     const parcels = useMemo(() => parcelsQ.data?.parcels ?? [], [parcelsQ.data]);
@@ -589,6 +607,28 @@ export default function LocationDetailPage() {
                             >
                                 {tSoil('viewToggle')}
                             </Button>
+                            {/* Cadastre (КККР / АГКК) overlay toggle — only
+                                rendered when an operator has configured a WMS
+                                upstream. Online-only: disabled with a hint when
+                                offline (the WMS isn't in the offline pack). */}
+                            {cadastreConfigured && (
+                                <Tooltip
+                                    content={t('cadastreOfflineHint')}
+                                    disabled={online}
+                                >
+                                    <Button
+                                        variant={cadastreOn ? 'primary' : 'secondary'}
+                                        size="sm"
+                                        className="min-h-[44px] px-2"
+                                        disabled={!online}
+                                        onClick={() => setCadastreOn((on) => !on)}
+                                        aria-pressed={cadastreOn}
+                                        aria-label={!online ? t('cadastreOfflineHint') : undefined}
+                                    >
+                                        {t('cadastreToggle')}
+                                    </Button>
+                                </Tooltip>
+                            )}
                             {activeSpec && (
                                 <DatePicker
                                     id="imagery-date-input"
@@ -685,6 +725,16 @@ export default function LocationDetailPage() {
                             indexOverlay={
                                 activeSpec && indexTileUrl
                                     ? { id: activeSpec.id, tileUrl: indexTileUrl }
+                                    : null
+                            }
+                            // Cadastre (КККР) WMS overlay — same-origin proxy
+                            // template ({z}/{x}/{y} kept literal for MapLibre to
+                            // substitute). Gated on the feature being configured,
+                            // the toggle being on, AND online (online-only — the
+                            // WMS is never part of the offline basemap pack).
+                            cadastreOverlay={
+                                cadastreConfigured && cadastreOn && online
+                                    ? { tileUrl: buildUrl(`/cadastre/wms/{z}/{x}/{y}`) }
                                     : null
                             }
                             // Read-only vector-tile source (perf at scale). The

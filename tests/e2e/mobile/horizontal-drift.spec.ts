@@ -190,6 +190,37 @@ test.describe('mobile horizontal-drift ratchet @mobile', () => {
             await expectNoHorizontalDrift(page, 'journal + create-entry modal');
         });
     });
+
+    // Cadastre (КККР) WMS overlay — turning it ON must not introduce
+    // horizontal drift (a mis-sized raster source is a classic overflow
+    // culprit). The overlay toggle is ENV-GATED (CADASTRE_WMS_URL), so on a CI
+    // run without the env the toggle never renders — this step then no-ops /
+    // skips rather than hard-failing. When present, it toggles the overlay on
+    // and re-measures.
+    test('location map + cadastre overlay does not drift', async ({ page }) => {
+        const href = await firstDetailHref(
+            page,
+            tenantSlug,
+            `/t/${tenantSlug}/locations`,
+            'locations',
+        );
+        if (href === null) return; // no seeded location — skip
+        // Open the Map tab where the overlay toggle lives.
+        const mapUrl = href.includes('?') ? `${href}&tab=map` : `${href}?tab=map`;
+        await safeGoto(page, mapUrl);
+        await settle(page);
+        // The toggle renders only when the cadastre WMS is configured. Match
+        // both locales (en "Cadastral map" / bg "Кадастрална карта").
+        const toggle = page.getByRole('button', { name: /cadastr|кадастр/i }).first();
+        if (!(await toggle.count())) return; // env-gated feature absent on this deploy — skip
+        // Baseline before enabling, then flip it on and re-measure.
+        await expectNoHorizontalDrift(page, 'location map (cadastre off)');
+        if (await toggle.isEnabled()) {
+            await toggle.click().catch(() => undefined);
+            await page.waitForTimeout(400); // let the raster source mount + tiles settle
+        }
+        await expectNoHorizontalDrift(page, 'location map (cadastre on)');
+    });
 });
 
 /**
