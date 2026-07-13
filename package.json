@@ -245,7 +245,7 @@
     "tailwindcss": "^4.2.4",
     "ts-jest": "^29.4.11",
     "tsx": "^4.23.0",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   },
   "lint-staged": {
     "*": "bash scripts/detect-secrets.sh"
