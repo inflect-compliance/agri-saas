@@ -2,6 +2,7 @@ import { RequestContext } from '../types';
 import { badRequest } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
 import { JournalRepository } from '../repositories/JournalRepository';
+import { WorkItemRepository } from '../repositories/WorkItemRepository';
 import { createTask, addTaskLink, listTasks } from './task';
 import { getFarmTaskType } from '@/lib/agriculture/farm-task-types';
 
@@ -114,4 +115,79 @@ export async function listMyFarmTasks(ctx: RequestContext, opts: FarmTaskQueueOp
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
     return merged.slice(0, 200);
+}
+
+// ─── Dashboard trend ───
+
+export interface FarmTaskTrendPoint {
+    /** UTC calendar day, ISO `YYYY-MM-DD`. */
+    date: string;
+    /** Farm tasks created on this day. */
+    created: number;
+    /** Farm tasks completed (RESOLVED / CLOSED) on this day. */
+    completed: number;
+}
+
+const TREND_DEFAULT_DAYS = 14;
+const TREND_MIN_DAYS = 7;
+const TREND_MAX_DAYS = 60;
+const DAY_MS = 86_400_000;
+
+/** UTC-midnight epoch ms of the calendar day containing `d`. */
+function utcDayStartMs(d: Date): number {
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/** ISO `YYYY-MM-DD` for a UTC-midnight epoch ms. */
+function isoDay(ms: number): string {
+    return new Date(ms).toISOString().slice(0, 10);
+}
+
+/**
+ * Daily "created vs completed" farm-task counts over the last N days
+ * (default 14), for the dashboard trendline. Buckets by UTC calendar day and
+ * pre-seeds every day at zero so gaps render flat, not missing. A task
+ * created before the window but completed within it counts only in the
+ * completed series (and vice-versa); a task both created and completed
+ * in-window counts once in each series, on its respective day.
+ */
+export async function getFarmTaskTrend(
+    ctx: RequestContext,
+    days: number = TREND_DEFAULT_DAYS,
+): Promise<FarmTaskTrendPoint[]> {
+    const span = Math.min(
+        TREND_MAX_DAYS,
+        Math.max(TREND_MIN_DAYS, Math.floor(days) || TREND_DEFAULT_DAYS),
+    );
+    const todayStart = utcDayStartMs(new Date());
+    const firstDay = todayStart - (span - 1) * DAY_MS;
+
+    const created = new Map<string, number>();
+    const completed = new Map<string, number>();
+    const order: string[] = [];
+    for (let i = 0; i < span; i++) {
+        const key = isoDay(firstDay + i * DAY_MS);
+        order.push(key);
+        created.set(key, 0);
+        completed.set(key, 0);
+    }
+
+    const rows = await runInTenantContext(ctx, (db) =>
+        WorkItemRepository.farmTaskTrendRows(db, ctx, new Date(firstDay)),
+    );
+
+    for (const row of rows) {
+        const cKey = isoDay(utcDayStartMs(row.createdAt));
+        if (created.has(cKey)) created.set(cKey, (created.get(cKey) ?? 0) + 1);
+        if (row.completedAt) {
+            const dKey = isoDay(utcDayStartMs(row.completedAt));
+            if (completed.has(dKey)) completed.set(dKey, (completed.get(dKey) ?? 0) + 1);
+        }
+    }
+
+    return order.map((date) => ({
+        date,
+        created: created.get(date) ?? 0,
+        completed: completed.get(date) ?? 0,
+    }));
 }

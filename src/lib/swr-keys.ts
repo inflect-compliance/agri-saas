@@ -191,6 +191,8 @@ export const CACHE_KEYS = {
         // Agriculture strip — recent journal + low-stock + my farm tasks,
         // gated by the tenant's enabled modules. Read by <AgDashboardStrip>.
         ag: () => '/dashboard/ag' as const,
+        // Farm-task "created vs completed" daily trend. Read by <TasksTrendCard>.
+        taskTrend: () => '/dashboard/task-trend' as const,
     },
     coverage: {
         home: () => '/coverage' as const,
