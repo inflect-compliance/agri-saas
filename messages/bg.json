@@ -3397,7 +3397,10 @@
                 "soilRegions": "Почвени зони",
                 "soilLegendAlt": "Легенда на почвените класове",
                 "soilAttribution": "Почва: ISRIC SoilGrids — WRB (CC-BY 4.0)",
-                "locateMe": "Намери ме"
+                "locateMe": "Намери ме",
+                "zoomHintWindows": "Задръжте Ctrl + скрол, за да мащабирате картата",
+                "zoomHintMac": "Задръжте ⌘ + скрол, за да мащабирате картата",
+                "zoomHintMobile": "Използвайте два пръста, за да местите картата"
             },
             "parcelSheet": {
                 "description": "Детайли за парцела и калкулатор за норма на внасяне",
@@ -7131,6 +7134,7 @@
         "openJob": "Отвори {title}",
         "markDone": "Готово",
         "doneResolution": "Изпълнено на терен",
-        "doneLabel": "Изпълнение: {title}"
+        "doneLabel": "Изпълнение: {title}",
+        "locations": "Локации"
     }
 }

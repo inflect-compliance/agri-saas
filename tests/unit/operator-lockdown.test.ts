@@ -10,18 +10,25 @@ import { isOperatorAllowedPath } from '@/lib/auth/guard';
 const slug = 'acme';
 
 describe('isOperatorAllowedPath — allowed surfaces', () => {
-    it('allows the My work screen and field-operation completion pages', () => {
+    it('allows the My work screen, field-operation completion, and the fields/locations pages', () => {
         expect(isOperatorAllowedPath('/t/acme/my-work', slug)).toBe(true);
         expect(isOperatorAllowedPath('/t/acme/field/task-1', slug)).toBe(true);
         expect(isOperatorAllowedPath('/t/acme/field/task-1/anything', slug)).toBe(true);
+        expect(isOperatorAllowedPath('/t/acme/locations', slug)).toBe(true);
+        expect(isOperatorAllowedPath('/t/acme/locations/loc-1', slug)).toBe(true);
     });
 
-    it('allows the queue + field-operation + task-status APIs', () => {
+    it('allows the queue, field-op, task-status, locations, and agro-tile APIs', () => {
         expect(isOperatorAllowedPath('/api/t/acme/farm-tasks', slug)).toBe(true);
         expect(isOperatorAllowedPath('/api/t/acme/farm-tasks?open=1', slug)).toBe(true);
         expect(isOperatorAllowedPath('/api/t/acme/field-operations/t1', slug)).toBe(true);
         expect(isOperatorAllowedPath('/api/t/acme/field-operations/t1/parcels/l1', slug)).toBe(true);
         expect(isOperatorAllowedPath('/api/t/acme/tasks/t1/status', slug)).toBe(true);
+        // The fields map: list, detail, parcels, basemap tiles, index overlays.
+        expect(isOperatorAllowedPath('/api/t/acme/locations', slug)).toBe(true);
+        expect(isOperatorAllowedPath('/api/t/acme/locations/loc-1/parcels', slug)).toBe(true);
+        expect(isOperatorAllowedPath('/api/t/acme/locations/loc-1/basemap/1/2/3', slug)).toBe(true);
+        expect(isOperatorAllowedPath('/api/t/acme/agro/ndvi-tiles', slug)).toBe(true);
     });
 });
 
@@ -56,7 +63,9 @@ describe('isOperatorAllowedPath — blocked surfaces', () => {
         // through — the boundary is a `/`, end, or `?`.
         expect(isOperatorAllowedPath('/api/t/acme/farm-tasks-evil', slug)).toBe(false);
         expect(isOperatorAllowedPath('/api/t/acme/tasksomething', slug)).toBe(false);
+        expect(isOperatorAllowedPath('/api/t/acme/locations-secret', slug)).toBe(false);
         expect(isOperatorAllowedPath('/t/acme/my-workshop', slug)).toBe(false);
         expect(isOperatorAllowedPath('/t/acme/fieldwork', slug)).toBe(false);
+        expect(isOperatorAllowedPath('/t/acme/locationsX', slug)).toBe(false);
     });
 });

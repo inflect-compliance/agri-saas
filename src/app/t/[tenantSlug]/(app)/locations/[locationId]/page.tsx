@@ -30,7 +30,6 @@ import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
 import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
 import { ParcelCadastralInfo } from '@/components/ui/map/ParcelCadastralInfo';
 import { SoilLegend } from '@/components/soil/SoilLegend';
-import { CropLegend } from '@/components/agriculture/CropLegend';
 import { soilColorForTexture, type SoilProfile } from '@/lib/soil/types';
 import type { UsdaTextureClass } from '@/lib/soil/texture';
 import { SmartDefaultsBanner } from './SmartDefaultsBanner';
@@ -705,14 +704,14 @@ export default function LocationDetailPage() {
                             soilColorById={soilColorById}
                             cropById={cropById}
                         />
-                        {/* Side column: crop legend (whenever crops are present)
-                            + soil legend (soil view only). Both sit in the
-                            desktop side column, or stack under the map on
-                            phones. */}
-                        {(cropsPresent.length > 0 || soilView) && (
+                        {/* Side column: soil legend (soil view only). Sits in
+                            the desktop side column, or stacks under the map on
+                            phones. (The crop legend that also lived here was
+                            removed — crops are already conveyed by the on-map
+                            glyphs + the crop filter above the map.) */}
+                        {soilView && (
                             <div className="space-y-default md:col-start-2">
-                                {cropsPresent.length > 0 && <CropLegend crops={cropsPresent} />}
-                                {soilView && <SoilLegend classes={soilClasses} hasPending={soilHasPending} />}
+                                <SoilLegend classes={soilClasses} hasPending={soilHasPending} />
                             </div>
                         )}
                         {/* Spray-job panel — desktop-only; on phones the parcel

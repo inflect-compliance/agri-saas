@@ -66,6 +66,7 @@ const SIMPLE_UNITS: Readonly<Record<string, SimpleUnitDef>> = {
     // AREA — base m²
     m2: { dimension: 'AREA', toBase: 1 },
     ha: { dimension: 'AREA', toBase: 10_000 },
+    dca: { dimension: 'AREA', toBase: 1000 }, // decare (декар) = 1000 m² = 0.1 ha (Bulgarian standard)
     ac: { dimension: 'AREA', toBase: 4046.8564224 }, // international acre (exact defn)
     // VOLUME — base mL
     ml: { dimension: 'VOLUME', toBase: 1 },
@@ -87,6 +88,13 @@ const RATE_UNITS: Readonly<Record<string, RateUnitDef>> = {
     'ml-per-ha': { numerator: 'ml', denominator: 'ha' },
     'kg-per-ha': { numerator: 'kg', denominator: 'ha' },
     'g-per-ha': { numerator: 'g', denominator: 'ha' },
+    // Per-decare (Bulgarian standard). `applyRate(dose, key, areaHa, 'ha')`
+    // converts the area 'ha' → 'dca' (× 10) via toBase, so consumption is
+    // dose × decares — dimensionally correct.
+    'l-per-dca': { numerator: 'l', denominator: 'dca' },
+    'ml-per-dca': { numerator: 'ml', denominator: 'dca' },
+    'kg-per-dca': { numerator: 'kg', denominator: 'dca' },
+    'g-per-dca': { numerator: 'g', denominator: 'dca' },
 };
 
 /** The dimension of a scalar unit, or `'RATE'` for a rate unit, or null if unknown. */

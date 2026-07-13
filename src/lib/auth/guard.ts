@@ -263,20 +263,31 @@ export function checkTenantAccess(
  * those).
  *
  * Allowed:
- *   - Pages: the "My work" screen + the field-operation completion flow.
+ *   - Pages: the "My work" screen, the field-operation completion flow, and
+ *     the fields/locations map (where the sprayer sees where to spray).
  *   - APIs: the queue (`farm-tasks`), the field-operation data + parcel
- *     marking (`field-operations`), and task status changes (`tasks`).
+ *     marking (`field-operations`), task status changes (`tasks`), the
+ *     locations data + map tiles (`locations`), and vegetation-index tile
+ *     overlays (`agro`). All read-only beyond the assignee-completion path.
  *
  * `slug` is the tenant slug already parsed from the path.
  */
 export function isOperatorAllowedPath(pathname: string, slug: string): boolean {
     if (pathname.startsWith('/api/')) {
-        return /^\/api\/t\/[^/]+\/(farm-tasks|field-operations|tasks)(\/|$|\?)/.test(pathname);
+        // farm-tasks / field-operations / tasks — the queue + completion.
+        // locations — the fields map the sprayer needs on the job (list,
+        //   detail, parcels, basemap tiles all live under /locations/*).
+        // agro — vegetation-index tile overlays (NDVI/NDMI/…) rendered on
+        //   that map. All read-only; write attempts still hit the canWrite gate.
+        return /^\/api\/t\/[^/]+\/(farm-tasks|field-operations|tasks|locations|agro)(\/|$|\?)/.test(pathname);
     }
     return (
         pathname === `/t/${slug}/my-work` ||
         pathname.startsWith(`/t/${slug}/my-work/`) ||
-        pathname.startsWith(`/t/${slug}/field/`)
+        pathname.startsWith(`/t/${slug}/field/`) ||
+        // The fields/locations page — where the sprayer sees where to spray.
+        pathname === `/t/${slug}/locations` ||
+        pathname.startsWith(`/t/${slug}/locations/`)
     );
 }
 

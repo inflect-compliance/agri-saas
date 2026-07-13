@@ -42,6 +42,13 @@ describe('MyWorkClient', () => {
         expect(screen.queryByText('markDone')).not.toBeInTheDocument();
     });
 
+    it('always offers a link to the fields/locations page', () => {
+        useTenantSWR.mockReturnValue({ data: [], isLoading: false, mutate: jest.fn() });
+        render(<MyWorkClient tenantSlug="acme" />);
+        const link = screen.getByRole('link', { name: 'locations' });
+        expect(link).toHaveAttribute('href', '/t/acme/locations');
+    });
+
     it('shows the empty state when there are no open jobs', () => {
         useTenantSWR.mockReturnValue({ data: [], isLoading: false, mutate: jest.fn() });
         render(<MyWorkClient tenantSlug="acme" />);

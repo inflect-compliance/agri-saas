@@ -51,16 +51,21 @@ export const UNIT_SEEDS: UnitSeed[] = [
     { key: 'm', name: 'Metre', symbol: 'm', measure: 'LENGTH' },
     { key: 'km', name: 'Kilometre', symbol: 'km', measure: 'LENGTH' },
     // ── Rate (application doses — the spray prescription unit) ──
-    { key: 'l-per-ha', name: 'Litres per hectare', symbol: 'L/ha', measure: 'RATE' },
-    { key: 'ml-per-ha', name: 'Millilitres per hectare', symbol: 'mL/ha', measure: 'RATE' },
-    { key: 'kg-per-ha', name: 'Kilograms per hectare', symbol: 'kg/ha', measure: 'RATE' },
-    { key: 'g-per-ha', name: 'Grams per hectare', symbol: 'g/ha', measure: 'RATE' },
-    // Per-decare rates (1 ha = 10 dca) — the Bulgarian field standard, and
-    // the basis the per-parcel spray calculator multiplies against.
-    { key: 'l-per-dca', name: 'Litres per decare', symbol: 'L/dca', measure: 'RATE' },
-    { key: 'ml-per-dca', name: 'Millilitres per decare', symbol: 'mL/dca', measure: 'RATE' },
-    { key: 'kg-per-dca', name: 'Kilograms per decare', symbol: 'kg/dca', measure: 'RATE' },
-    { key: 'g-per-dca', name: 'Grams per decare', symbol: 'g/dca', measure: 'RATE' },
+    // Symbols are Bulgarian (кг/дка …): Agrent is a Bulgarian-farm product and
+    // the field standard is per-DECARE (дка; 1 ha = 10 dca). The per-hectare
+    // rows stay in the catalog for legacy operations that referenced them, but
+    // are filtered out of the dose-unit picker (see catalog.listUnits). Keys
+    // stay stable Latin slugs — `key`, not `symbol`, is the identity that
+    // conversion/basis logic keys off. NOTE: rate-calc.areaBasisOf detects the
+    // decare basis from the Cyrillic 'дка' in the symbol, so keep '/дка' intact.
+    { key: 'l-per-ha', name: 'Litres per hectare', symbol: 'л/ха', measure: 'RATE' },
+    { key: 'ml-per-ha', name: 'Millilitres per hectare', symbol: 'мл/ха', measure: 'RATE' },
+    { key: 'kg-per-ha', name: 'Kilograms per hectare', symbol: 'кг/ха', measure: 'RATE' },
+    { key: 'g-per-ha', name: 'Grams per hectare', symbol: 'г/ха', measure: 'RATE' },
+    { key: 'l-per-dca', name: 'Litres per decare', symbol: 'л/дка', measure: 'RATE' },
+    { key: 'ml-per-dca', name: 'Millilitres per decare', symbol: 'мл/дка', measure: 'RATE' },
+    { key: 'kg-per-dca', name: 'Kilograms per decare', symbol: 'кг/дка', measure: 'RATE' },
+    { key: 'g-per-dca', name: 'Grams per decare', symbol: 'г/дка', measure: 'RATE' },
     // ── Other (concentration) ──
     { key: 'pct', name: 'Percent', symbol: '%', measure: 'OTHER' },
 ];

@@ -41,12 +41,14 @@ export function amountUnitOf(rateSymbol: string): string {
 
 /**
  * Area basis encoded in a RATE symbol's denominator. Per-decare units
- * ("L/dca") multiply by the parcel's decares; everything else is treated
- * as per-hectare ("L/ha") and multiplies by hectares directly.
+ * ("кг/дка" / "L/dca") multiply by the parcel's decares; everything else is
+ * treated as per-hectare ("кг/ха" / "L/ha") and multiplies by hectares.
+ * Recognises both the Bulgarian ('дка') and Latin ('dca') decare denominators
+ * so the seeded Cyrillic symbols stay dimensionally correct.
  */
 export function areaBasisOf(rateSymbol: string): 'ha' | 'dca' {
     const denom = (rateSymbol.split('/')[1] ?? '').toLowerCase();
-    return denom.includes('dca') ? 'dca' : 'ha';
+    return denom.includes('dca') || denom.includes('дка') ? 'dca' : 'ha';
 }
 
 /**
