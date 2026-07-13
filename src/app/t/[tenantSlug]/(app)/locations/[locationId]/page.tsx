@@ -28,6 +28,7 @@ import { PrescriptionPanel } from '@/components/ui/map/PrescriptionPanel';
 import { DownloadBasemapButton } from '@/components/ui/map/DownloadBasemapButton';
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
 import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
+import { ParcelCadastralInfo } from '@/components/ui/map/ParcelCadastralInfo';
 import { SoilLegend } from '@/components/soil/SoilLegend';
 import { soilColorForTexture, type SoilProfile } from '@/lib/soil/types';
 import type { UsdaTextureClass } from '@/lib/soil/texture';
@@ -68,6 +69,9 @@ interface ParcelsResp {
         geometry: unknown;
         soilType?: string | null;
         soilJson?: SoilProfile | null;
+        cadastralId?: string | null;
+        ekatte?: string | null;
+        properties?: unknown;
     }>;
 }
 interface OperationItem {
@@ -263,6 +267,8 @@ export default function LocationDetailPage() {
                 areaHa: p.areaHa ?? null,
                 cropType: p.cropType ?? null,
                 soilJson: p.soilJson ?? null,
+                cadastralId: p.cadastralId ?? null,
+                properties: p.properties ?? null,
             }
             : null;
     }, [parcels, sheetParcelId]);
@@ -345,6 +351,22 @@ export default function LocationDetailPage() {
                         row.original.areaHa != null ? trimNumber(haToDca(row.original.areaHa)) : '—',
                     // Mobile card key/value row — parcel area.
                     meta: { mobileCard: { slot: 'meta', label: t('colAreaDca') } },
+                },
+                {
+                    id: 'cadastralId',
+                    header: t('colCadastralId'),
+                    // Bulgarian КАИС cadastral identifier + КАИС deep link, with a
+                    // subtle badge when the documentary area diverges >5%.
+                    cell: ({ row }) => (
+                        <ParcelCadastralInfo
+                            cadastralId={row.original.cadastralId ?? null}
+                            areaHa={row.original.areaHa ?? null}
+                            properties={row.original.properties ?? null}
+                            layout="compact"
+                        />
+                    ),
+                    // Mobile card key/value row — the cadastral identifier.
+                    meta: { mobileCard: { slot: 'meta', label: t('colCadastralId') } },
                 },
                 {
                     id: 'viewOnMap',

@@ -198,9 +198,10 @@ describe('parseSpatialFile', () => {
         expect(result.skipped).toBe(2);
     });
 
-    it('rejects coordinates outside the WGS84 range — un-reprojected CRS (Fix 1)', async () => {
-        // UTM-metre coordinates (easting ~500000, northing ~4_770_000) that were
-        // never reprojected — must NOT be silently stored as garbage lat/lon.
+    it('assumes EPSG:7801 for un-reprojected Bulgarian-metre coordinates (cadastre ingest)', async () => {
+        // Bulgarian cadastre metres (easting ~500000, northing ~4_770_000) that
+        // shipped without a .prj: rather than reject, the parser now flags them
+        // as EPSG:7801 so the repo reprojects via PostGIS ST_Transform on write.
         const utm = {
             type: 'FeatureCollection',
             features: [
@@ -217,8 +218,34 @@ describe('parseSpatialFile', () => {
                 },
             ],
         };
+        const result = await parseSpatialFile({
+            filename: 'p.geojson',
+            buffer: Buffer.from(JSON.stringify(utm)),
+        });
+        expect(result.srid).toBe(7801);
+    });
+
+    it('still rejects coordinates outside the Bulgarian metre band — genuinely unknown CRS (Fix 1)', async () => {
+        // Metres far outside any Bulgarian projection band — no safe assumption,
+        // so the clear "could not reproject" rejection must remain.
+        const unknown = {
+            type: 'FeatureCollection',
+            features: [
+                {
+                    type: 'Feature',
+                    properties: { name: 'X' },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [7_000_000, 8_000_000], [7_000_100, 8_000_000],
+                            [7_000_100, 8_000_100], [7_000_000, 8_000_100], [7_000_000, 8_000_000],
+                        ]],
+                    },
+                },
+            ],
+        };
         await expect(
-            parseSpatialFile({ filename: 'p.geojson', buffer: Buffer.from(JSON.stringify(utm)) }),
+            parseSpatialFile({ filename: 'p.geojson', buffer: Buffer.from(JSON.stringify(unknown)) }),
         ).rejects.toThrow(/WGS84|EPSG:4326|reprojected/);
     });
 

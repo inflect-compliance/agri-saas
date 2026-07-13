@@ -227,6 +227,9 @@ export async function runLocationSpatialImport(
                 payload.locationId,
                 parsed.parcels,
                 payload.cropType,
+                // Bulgarian cadastre imports (7801 / 32635) reproject to 4326
+                // via PostGIS on write; undefined ⇒ geometry is already WGS84.
+                parsed.srid,
             );
             const count = parcelIds.length;
             // Additive import keeps existing parcels, so the location bounds must

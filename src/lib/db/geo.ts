@@ -42,6 +42,35 @@ export function repairedGeometrySql(geometry: Polygon | MultiPolygon): Prisma.Sq
 }
 
 /**
+ * Like `repairedGeometrySql`, but REPROJECTS from a non-WGS84 source SRID to
+ * 4326 BEFORE repairing — the Bulgarian КАИС / КВС / КККР cadastre ingest path
+ * (EPSG:7801 BGS2005/CCS2005 Lambert, or EPSG:32635 UTM 35N). Order is
+ * deliberate: `ST_SetSRID` stamps the source SRID onto the raw GeoJSON
+ * (whose coordinates are the source CRS's metres), `ST_Transform(..., 4326)`
+ * reprojects to WGS84 FIRST, THEN `ST_MakeValid` repairs — reprojecting a
+ * repaired-in-metres geometry could reintroduce topology error near the
+ * projection's edges, so repair happens in the final 4326 frame. Keeps the
+ * column's MultiPolygon/4326 invariant identical to `repairedGeometrySql`, so
+ * a reprojected parcel is byte-shaped like a native-WGS84 one and `areaHa`
+ * (via `areaHectaresNonNullSql`) stays meaningful.
+ *
+ * `sourceSrid` is a trusted, validated integer from the parser's supported
+ * set (never user input); it is inlined via `Prisma.raw` so the SRID reaches
+ * PostGIS as an integer literal rather than a typed bind parameter.
+ */
+export function reprojectedGeometrySql(
+    geometry: Polygon | MultiPolygon,
+    sourceSrid: number,
+): Prisma.Sql {
+    if (!Number.isInteger(sourceSrid) || sourceSrid <= 0) {
+        throw new Error(`reprojectedGeometrySql: sourceSrid must be a positive integer, got ${sourceSrid}`);
+    }
+    const json = JSON.stringify(geometry);
+    const srid = Prisma.raw(String(sourceSrid));
+    return Prisma.sql`ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(${json}), ${srid}), 4326)), 3))`;
+}
+
+/**
  * SQL fragment computing the area of a geometry column in hectares,
  * using the geography cast for an accurate on-the-ellipsoid area
  * (m²) divided by 10,000. Returns NULL-safe NUMERIC.
