@@ -8,6 +8,7 @@ import { ChevronRight } from '@/components/ui/icons/nucleo/chevron-right';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatDate } from '@/lib/format-date';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
@@ -82,12 +83,11 @@ export function MyWorkClient({ tenantSlug: _tenantSlug }: { tenantSlug: string }
                     <Skeleton className="h-[72px] w-full rounded-lg" />
                 </div>
             ) : rows.length === 0 ? (
-                <div className="rounded-lg border border-border-subtle bg-bg-default p-8 text-center">
-                    <p className="text-base font-medium text-content-emphasis">
-                        {t('emptyTitle')}
-                    </p>
-                    <p className="mt-1 text-sm text-content-muted">{t('emptyHint')}</p>
-                </div>
+                <EmptyState
+                    variant="no-records"
+                    title={t('emptyTitle')}
+                    description={t('emptyHint')}
+                />
             ) : (
                 <ul className="space-y-default">
                     {rows.map((task) => {
