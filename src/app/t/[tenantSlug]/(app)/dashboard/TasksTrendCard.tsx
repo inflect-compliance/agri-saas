@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { Card } from '@/components/ui/card';
 import { Heading } from '@/components/ui/typography';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import {
@@ -97,7 +98,7 @@ export default function TasksTrendCard() {
             </div>
 
             {!data ? (
-                <div className="h-40 animate-pulse rounded bg-bg-muted" aria-hidden="true" />
+                <Skeleton className="h-40 w-full" />
             ) : !hasActivity ? (
                 <p className="text-content-subtle text-xs">{t('empty')}</p>
             ) : (
