@@ -61,31 +61,12 @@ test('farm-record: completing a spray job enables ДНЕВНИК generation + re
         expect(Array.isArray(list.records)).toBeTruthy();
         expect(list.records.length).toBeGreaterThan(0);
 
-        // UI: the location detail still exposes the ДНЕВНИК (PDF) action. The
-        // Farm-records TAB was removed (#2) — the register is reached via this
-        // generate button + the standalone Journal page, not a per-location tab.
-        await authedPage.goto(`/t/${slug}/locations/${sc.locationId}`);
-        await expect(authedPage.locator('#dnevnik-pdf-btn')).toBeVisible();
+        // NOTE: the per-location ДНЕВНИК (PDF) button was removed from the
+        // location detail — it was redundant (the identical export is reached
+        // from each Journal entry, which hits the same farm-record endpoint).
+        // API-level generation + the register listing are asserted above.
     } finally {
         await prisma.$disconnect();
     }
 });
 
-test('farm-record: the location detail exposes the Дневник (PDF) action @mobile', async ({
-    authedPage,
-    isolatedTenant,
-}) => {
-    const slug = isolatedTenant.tenantSlug;
-    const api = authedPage.request;
-    const prisma = agPrisma();
-    try {
-        const sc = await seedSprayScenario(
-            api, prisma, slug, isolatedTenant.tenantId, isolatedTenant.ownerUserId,
-            { dose: 2, opening: 1000 },
-        );
-        await authedPage.goto(`/t/${slug}/locations/${sc.locationId}`);
-        await expect(authedPage.locator('#dnevnik-pdf-btn')).toBeVisible();
-    } finally {
-        await prisma.$disconnect();
-    }
-});

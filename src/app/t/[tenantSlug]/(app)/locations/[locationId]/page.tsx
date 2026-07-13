@@ -20,7 +20,6 @@ import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { DatePicker, type DateValue } from '@/components/ui/date-picker';
 import { toYMD } from '@/components/ui/date-picker/date-utils';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
-import { InlineNotice } from '@/components/ui/inline-notice';
 import { apiPost, apiPatch, apiDelete, ApiClientError } from '@/lib/api-client';
 import { Popover } from '@/components/ui/popover';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -50,20 +49,6 @@ const MapCanvas = dynamic(() => import('@/components/ui/map/MapCanvas').then((m)
 
 type Tab = 'overview' | 'map' | 'operations';
 
-interface FarmRecordRow {
-    fileRecordId: string;
-    fileName: string;
-    from: string;
-    to: string;
-    generatedAt: string;
-    auto: boolean;
-    generatedByName: string | null;
-    sizeBytes: number;
-}
-interface FarmRecordsResp {
-    records: FarmRecordRow[];
-    completeness: { missingLabels: string[] };
-}
 
 interface LocationDetail {
     id: string;
@@ -185,46 +170,6 @@ export default function LocationDetailPage() {
     const [showDelete, setShowDelete] = useState(false);
     const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
     const [activeJob, setActiveJob] = useState<string | null>(null);
-    // БАБХ ДНЕВНИК (PDF) — minimal trigger: a date range (defaults to the
-    // current season, Jan 1 → today) → POST → stream the filled PDF download.
-    const [showDnevnik, setShowDnevnik] = useState(false);
-    const [dnevnikBusy, setDnevnikBusy] = useState(false);
-    const [dnevnikFrom, setDnevnikFrom] = useState<DateValue>(() => {
-        const n = new Date();
-        return new Date(Date.UTC(n.getFullYear(), 0, 1));
-    });
-    const [dnevnikTo, setDnevnikTo] = useState<DateValue>(() => {
-        const n = new Date();
-        return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()));
-    });
-    const generateDnevnik = useCallback(async () => {
-        setDnevnikBusy(true);
-        try {
-            const res = await fetch(buildUrl(`/locations/${locationId}/farm-record`), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ from: toYMD(dnevnikFrom), to: toYMD(dnevnikTo) }),
-            });
-            if (!res.ok) throw new Error((await res.text()) || 'PDF generation failed');
-            const blob = await res.blob();
-            const disposition = res.headers.get('Content-Disposition');
-            const m = disposition?.match(/filename="?([^"]+)"?/);
-            const fileName = m?.[1] || `dnevnik-${toYMD(dnevnikFrom)}_${toYMD(dnevnikTo)}.pdf`;
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            setShowDnevnik(false);
-        } catch {
-            toast.error(t('dnevnikGenerateFail'));
-        } finally {
-            setDnevnikBusy(false);
-        }
-    }, [buildUrl, locationId, dnevnikFrom, dnevnikTo, toast, t]);
     // Satellite vegetation-index overlay (Google Earth Engine). At most one
     // index (NDVI / NDMI / NDRE / GNDVI / EVI) is active at a time — they are
     // mutually exclusive. `null` = off (the default). The single inspection
@@ -248,11 +193,6 @@ export default function LocationDetailPage() {
     const locQ = useTenantSWR<LocationDetail>(`/locations/${locationId}`);
     const parcelsQ = useTenantSWR<ParcelsResp>(`/locations/${locationId}/parcels`);
     const opsQ = useTenantSWR<OperationItem[]>(tab === 'operations' ? `/locations/${locationId}/operations` : null);
-    // Generated ДНЕВНИК register — fetched when the generate modal is open
-    // (the modal shows the completeness affordance + drives the БАБХ PDF).
-    const recordsQ = useTenantSWR<FarmRecordsResp>(
-        showDnevnik ? `/locations/${locationId}/farm-records` : null,
-    );
     // Recall + weather + crop-plan suggestions for this field (editable;
     // powers the spray-window/next-task banner + the wizard prefills).
     const smartQ = useTenantSWR<LocationSmartDefaults>(`/locations/${locationId}/smart-defaults`);
@@ -491,15 +431,17 @@ export default function LocationDetailPage() {
                     >
                         <Button variant="secondary" size="sm">{t('manageParcels')}</Button>
                     </Popover>
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={<CalendarIcon className="size-4" />}
-                        onClick={() => setShowDnevnik(true)}
-                        id="dnevnik-pdf-btn"
-                    >
-                        {t('dnevnikBtn')}
-                    </Button>
+                    {/* Offline-map download — icon-only in the header action
+                        row. Renders nothing until the location has a bbox.
+                        (The per-location farm-record PDF export used to live
+                        here; it was removed as redundant — the identical
+                        export is reachable from each Journal entry.) */}
+                    <DownloadBasemapButton
+                        locationId={locationId}
+                        bounds={bounds}
+                        iconOnly
+                        className="min-h-[44px]"
+                    />
                 </div>
             }
             tabs={tabs}
@@ -659,14 +601,6 @@ export default function LocationDetailPage() {
                                 {t('merge')}
                             </Button>
                         )}
-                        {/* Pre-download this field's basemap backdrop for
-                            offline use (Roadmap-6 P1b). Bounded, user-initiated;
-                            renders nothing until the location has a bbox. */}
-                        <DownloadBasemapButton
-                            locationId={locationId}
-                            bounds={bounds}
-                            className="min-h-[44px]"
-                        />
                     </div>
                     {/* Active-index status line: loading / not-configured /
                         legend / error / no-imagery. Driven by the active
@@ -920,44 +854,6 @@ export default function LocationDetailPage() {
                 </Modal.Form>
             </Modal>
 
-            {/* БАБХ ДНЕВНИК (PDF) — pick a date range, download the filled diary. */}
-            <Modal
-                showModal={showDnevnik}
-                setShowModal={(v) => { if (!v) setShowDnevnik(false); }}
-                size="sm"
-                title={t('dnevnikTitle')}
-                description={t('dnevnikDescription')}
-            >
-                <Modal.Header
-                    title={t('dnevnikTitle')}
-                    description={t('dnevnikHeaderDescription')}
-                />
-                <Modal.Body>
-                    <div className="space-y-default">
-                        {(recordsQ.data?.completeness.missingLabels.length ?? 0) > 0 && (
-                            <InlineNotice variant="warning">
-                                {t('dnevnikMissing', { labels: recordsQ.data!.completeness.missingLabels.join(', ') })}{' '}
-                                <a className="underline" href={tenantHref('/admin/farm-profile')}>
-                                    {t('dnevnikFillProfile')}
-                                </a>
-                                .
-                            </InlineNotice>
-                        )}
-                        <div className="flex flex-col gap-default sm:flex-row">
-                            <FormField label={t('dnevnikFrom')}>
-                                <DatePicker value={dnevnikFrom} onChange={(d) => d && setDnevnikFrom(d)} />
-                            </FormField>
-                            <FormField label={t('dnevnikTo')}>
-                                <DatePicker value={dnevnikTo} onChange={(d) => d && setDnevnikTo(d)} />
-                            </FormField>
-                        </div>
-                    </div>
-                </Modal.Body>
-                <Modal.Actions>
-                    <Button variant="secondary" size="sm" type="button" onClick={() => setShowDnevnik(false)}>{t('dnevnikCancel')}</Button>
-                    <Button variant="primary" size="sm" type="button" loading={dnevnikBusy} disabled={dnevnikBusy} onClick={() => void generateDnevnik()}>{t('dnevnikDownload')}</Button>
-                </Modal.Actions>
-            </Modal>
         </EntityDetailLayout>
     );
 }
