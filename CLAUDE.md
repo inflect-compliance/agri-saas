@@ -731,7 +731,12 @@ duplicating the limits table).
 - **Unit tests**: Mock dependencies with `jest.mock()` declared **before** imports. Use `buildRequestContext()` helper from `tests/helpers/make-context.ts` to construct test contexts.
 - **Integration tests**: Use `prismaTestClient()` and `resetDatabase()` from `tests/helpers/db.ts`. Hit a real DB — do not mock Prisma in integration tests.
 - **Guard tests** (`tests/guards/`): Static analysis tests that enforce architectural rules (no `as any`, no unsafe patterns). These are regular Jest tests that scan source files with regex.
-- **E2E tests**: Playwright in serial mode. **Structural isolation, not shared state** (`chore/e2e-isolation`):
+- **E2E tests**: Playwright in serial mode (`workers: 1`). CI cuts
+  wall-clock by CROSS-JOB sharding, not intra-run parallelism: the
+  `e2e-shard` matrix in `ci.yml` runs `--shard=i/2` on two runners (each
+  with its own isolated DB, each still serial), aggregated by the `E2E`
+  gate job — `workers>1` was tried and reverted for flaking timing-
+  sensitive specs. **Structural isolation, not shared state** (`chore/e2e-isolation`):
     - **Read-only specs** (list pages, filters, a11y, theme, tooltips,
       responsive, display checks — navigate + assert, never
       create/edit/delete) keep the SHARED seeded tenant via

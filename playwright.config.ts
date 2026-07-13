@@ -35,14 +35,16 @@ export default defineConfig({
     // races, but production-mode server eliminates the systematic
     // degradation flakes that were the dominant failure mode.
     retries: 2,
-    // Serial (single worker). An intra-job `workers: 3` was tried (for a
-    // faster E2E job) and REVERTED: despite per-test tenant isolation, the
-    // heavier timing-sensitive flows — org/tenant creation, audit-pack
-    // freeze/share-link, offline-queue flush, a11y scans — flaked
-    // intermittently under parallel load (different specs failed each run).
-    // The measured wall-clock gain was only ~1 min, not worth the
-    // instability, so E2E runs serially. `retries: 2` covers transient
-    // localhost races.
+    // Serial (single worker) WITHIN a run. An intra-job `workers: 3` was
+    // tried (for a faster E2E job) and REVERTED: despite per-test tenant
+    // isolation, the heavier timing-sensitive flows — org/tenant creation,
+    // audit-pack freeze/share-link, offline-queue flush, a11y scans — flaked
+    // intermittently under parallel load on one runner (different specs
+    // failed each run). So intra-run parallelism stays OFF. CI wall-clock is
+    // instead cut by CROSS-JOB sharding: the `e2e-shard` matrix in
+    // .github/workflows/ci.yml runs `--shard=i/2` on two runners, each with
+    // its own isolated DB, each still serial here — no contention, no
+    // coupling. `retries: 2` covers transient localhost races.
     workers: 1,
     reporter: isCI ? [['list'], ['html', { open: 'never' }]] : 'list',
     use: {
