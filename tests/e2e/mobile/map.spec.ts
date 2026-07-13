@@ -74,12 +74,14 @@ test.describe('mobile map — phone-native operator map @mobile', () => {
         await expect(zoomIn).toBeVisible();
         await expect(zoomOut).toBeVisible();
 
-        // Each is a ≥44px (WCAG 2.5.5) touch target.
+        // Each is a 36px control (min-h-[36px] min-w-[36px]) — above the WCAG
+        // 2.5.8 AA 24px minimum. (Deliberately below the 44px AAA size: the
+        // controls read as oversized on the map.) Round for sub-pixel layout.
         for (const [label, ctrl] of [['find-field', findField], ['zoom-in', zoomIn], ['zoom-out', zoomOut]] as const) {
             const box = await ctrl.boundingBox();
             expect(box, `${label} control has a box`).not.toBeNull();
-            expect(box!.height, `${label} control ≥44px tall`).toBeGreaterThanOrEqual(44);
-            expect(box!.width, `${label} control ≥44px wide`).toBeGreaterThanOrEqual(44);
+            expect(Math.round(box!.height), `${label} control ≥36px tall`).toBeGreaterThanOrEqual(36);
+            expect(Math.round(box!.width), `${label} control ≥36px wide`).toBeGreaterThanOrEqual(36);
         }
 
         // The full-bleed map must not introduce horizontal overflow.

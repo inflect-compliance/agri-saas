@@ -113,8 +113,9 @@ export interface MapCanvasProps {
     /**
      * On-map thumb controls (zoom ±, find-my-field). Opt-in so the read-only
      * operator/prescription paths are unchanged unless they ask for it.
-     * Each button is a ≥44px (WCAG 2.5.5) touch target, sat in the
-     * bottom-right thumb zone. "Find my field" frames the next field
+     * Each button is a 36px target (comfortably above the WCAG 2.5.8 AA
+     * 24px minimum; the earlier 44px AAA size read as oversized on the
+     * map), sat in the bottom-right thumb zone. "Find my field" frames the next field
      * (parcel) and cycles to the next on each tap — NO GPS (the operator
      * wants to jump to their fields, not their own position). Only renders
      * when there is at least one parcel with geometry.
@@ -479,7 +480,7 @@ export function MapCanvas({
     }), [trail]);
 
     const controlBtn =
-        'flex min-h-[44px] min-w-[44px] items-center justify-center bg-bg-default text-content-default ' +
+        'flex min-h-[36px] min-w-[36px] items-center justify-center bg-bg-default text-content-default ' +
         'transition-colors hover:bg-bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
 
     // ── terra-draw lifecycle (draw / edit / split modes only) ──────────
@@ -665,6 +666,17 @@ export function MapCanvas({
                 onZoomEnd={(e) => setZoom(e.viewState.zoom)}
                 style={{ width: '100%', height: '100%' }}
                 cursor={interactive && !drawing ? 'pointer' : 'grab'}
+                // Google-Maps-style scroll: a plain wheel/one-finger scroll
+                // over the map scrolls the PAGE (not the map). Zooming needs
+                // Ctrl/⌘ + wheel; panning on touch needs two fingers. Without
+                // this the full-bleed field map traps the page scroll. The
+                // transient help overlay text is localised via `locale`.
+                cooperativeGestures
+                locale={{
+                    'CooperativeGesturesHandler.WindowsHelpText': t('zoomHintWindows'),
+                    'CooperativeGesturesHandler.MacHelpText': t('zoomHintMac'),
+                    'CooperativeGesturesHandler.MobileHelpText': t('zoomHintMobile'),
+                }}
             >
                 {/* Satellite vegetation-index raster overlay (Agro-intel) —
                     NDVI / NDMI / NDRE / GNDVI / EVI (mutually exclusive).
@@ -883,10 +895,15 @@ export function MapCanvas({
                                 data-testid="map-find-field"
                                 className={cn(controlBtn, 'rounded-lg border border-border-subtle shadow-md')}
                             >
-                                <Crosshairs3 className="size-5" aria-hidden="true" />
+                                <Crosshairs3 className="size-4" aria-hidden="true" />
                             </button>
                         )}
-                        {geoAvailable && (
+                        {/* Locate-me (center once). Hidden when `liveTracking`
+                            is on — the tracking toggle below uses the same
+                            MapPosition glyph, so showing both reads as two
+                            identical buttons. Callers without live-tracking
+                            still get this single locate control. */}
+                        {geoAvailable && !liveTracking && (
                             <button
                                 type="button"
                                 onClick={() => void locateOnce()}
@@ -894,7 +911,7 @@ export function MapCanvas({
                                 data-testid="map-locate"
                                 className={cn(controlBtn, 'rounded-lg border border-border-subtle shadow-md')}
                             >
-                                <MapPosition className="size-5" aria-hidden="true" />
+                                <MapPosition className="size-4" aria-hidden="true" />
                             </button>
                         )}
                         {liveTracking && geoAvailable && (
@@ -912,7 +929,7 @@ export function MapCanvas({
                                         : 'border-border-subtle',
                                 )}
                             >
-                                <MapPosition className="size-5" aria-hidden="true" />
+                                <MapPosition className="size-4" aria-hidden="true" />
                             </button>
                         )}
                         <div className="flex flex-col overflow-hidden rounded-lg border border-border-subtle shadow-md divide-y divide-border-subtle">
@@ -923,7 +940,7 @@ export function MapCanvas({
                                 data-testid="map-zoom-in"
                                 className={controlBtn}
                             >
-                                <Plus className="size-5" aria-hidden="true" />
+                                <Plus className="size-4" aria-hidden="true" />
                             </button>
                             <button
                                 type="button"
@@ -932,7 +949,7 @@ export function MapCanvas({
                                 data-testid="map-zoom-out"
                                 className={controlBtn}
                             >
-                                <Minus className="size-5" aria-hidden="true" />
+                                <Minus className="size-4" aria-hidden="true" />
                             </button>
                         </div>
                     </div>
