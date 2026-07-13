@@ -223,6 +223,25 @@ export const env = createEnv({
         SOIL_PROVIDER: z.string().default('soilgrids'),
         SOIL_BASE_URL: z.string().url().optional(),
 
+        // ── Bulgarian cadastre (КККР / АГКК) WMS overlay ──
+        // Opt-in, operator-configured seam for the toggleable cadastral-parcel
+        // overlay on the location map. ALL optional — the overlay is HIDDEN
+        // (the toggle never renders) unless an upstream is configured, which is
+        // the correct default: the free INSPIRE view WMS for КККР parcels could
+        // not be located by probing, and a hardcoded URL that 404s is worse
+        // than nothing. See docs/implementation-notes/2026-07-13-cadastre-wms-
+        // overlay.md for the discovery outcome + the paid №8002 commercial
+        // terms. The resolved URL is SERVER-ONLY — never NEXT_PUBLIC — because
+        // a №8002 licence is IP-bound to the VM, so tiles must be fetched from
+        // the server via the same-origin proxy, never the browser. The client
+        // only ever sees a `configured` boolean + the same-origin tile URL.
+        //   CADASTRE_WMS_URL         — free INSPIRE GetMap base URL.
+        //   CADASTRE_WMS_LAYERS      — WMS LAYERS value (INSPIRE default).
+        //   CADASTRE_WMS_PREMIUM_URL — paid №8002 GetMap base; wins when set.
+        CADASTRE_WMS_URL: z.string().url().optional(),
+        CADASTRE_WMS_LAYERS: z.string().default('CP.CadastralParcel'),
+        CADASTRE_WMS_PREMIUM_URL: z.string().url().optional(),
+
         // ── Swappable AI provider (feat/ai-provider) ──
         // ONE OpenAI-compatible provider serves local dev (Ollama) and
         // any hosted backend (OpenRouter / Groq / Together) — they differ
@@ -508,6 +527,9 @@ export const env = createEnv({
         OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
         SOIL_PROVIDER: process.env.SOIL_PROVIDER,
         SOIL_BASE_URL: process.env.SOIL_BASE_URL,
+        CADASTRE_WMS_URL: process.env.CADASTRE_WMS_URL,
+        CADASTRE_WMS_LAYERS: process.env.CADASTRE_WMS_LAYERS,
+        CADASTRE_WMS_PREMIUM_URL: process.env.CADASTRE_WMS_PREMIUM_URL,
         AI_BACKEND: process.env.AI_BACKEND,
         AI_BASE_URL: process.env.AI_BASE_URL,
         AI_API_KEY: process.env.AI_API_KEY,
