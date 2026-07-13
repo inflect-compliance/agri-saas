@@ -1,22 +1,35 @@
 /**
- * The runtime default locale is Bulgarian — Agrent's operators are Bulgarian
- * farms, so a first-time user (no NEXT_LOCALE cookie, no persisted
- * `uiLanguage`) sees the app in Bulgarian. Anyone who picks English keeps it.
+ * "Bulgarian for first-time users" is delivered through the AUTHENTICATED
+ * path: a new user's `User.uiLanguage` column defaults to `bg`, so the app
+ * renders Bulgarian on first login. The runtime `DEFAULT_LOCALE` fallback
+ * (unauthenticated pages: login, invite preview, shared packs) stays `en`.
  *
- * This pins the product decision so a refactor can't silently flip it back.
- * (`en` is still the i18n COMPLETENESS reference — that's a separate concern
- * handled by scripts/i18n-diff.mjs and unaffected by this default.)
+ * This pins both halves so a refactor can't silently regress either — and so
+ * the split (why unauthenticated pages are English) is documented in a test.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { DEFAULT_LOCALE, isLocale, LOCALES } from '@/lib/i18n/locales';
 
 describe('default locale', () => {
-    it('is Bulgarian for first-time users', () => {
-        expect(DEFAULT_LOCALE).toBe('bg');
-    });
-
-    it('is a supported locale', () => {
+    it('runtime fallback (unauthenticated pages) is English', () => {
+        expect(DEFAULT_LOCALE).toBe('en');
         expect(isLocale(DEFAULT_LOCALE)).toBe(true);
         expect(LOCALES).toContain('en');
         expect(LOCALES).toContain('bg');
+    });
+
+    it('new users default to Bulgarian via the User.uiLanguage column default', () => {
+        const schema = readFileSync(
+            resolve(__dirname, '../../prisma/schema/auth.prisma'),
+            'utf8',
+        );
+        // The `uiLanguage` field carries `@default("bg")` — first-time
+        // authenticated users get a Bulgarian app on first login.
+        const line = schema
+            .split('\n')
+            .find((l) => /^\s*uiLanguage\s+String/.test(l));
+        expect(line).toBeDefined();
+        expect(line).toMatch(/@default\("bg"\)/);
     });
 });

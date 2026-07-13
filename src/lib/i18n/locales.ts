@@ -18,14 +18,18 @@ export const LOCALES = ['en', 'bg'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /**
- * Locale used when no preference/cookie resolves — Bulgarian. Agrent's
- * operators are Bulgarian farms, so a first-time user (no `NEXT_LOCALE`
- * cookie, no persisted `uiLanguage`) sees the app in Bulgarian; anyone who
- * picks English keeps it. Note: `en` remains the i18n COMPLETENESS reference
- * (scripts/i18n-diff.mjs) — this only changes the runtime fallback, not which
- * locale is the translation source of truth.
+ * Runtime fallback locale when nothing else resolves (no `NEXT_LOCALE`
+ * cookie, no authenticated `uiLanguage`) — i.e. UNAUTHENTICATED pages
+ * (login, invite preview, shared audit packs). Kept as `en`.
+ *
+ * "Bulgarian for first-time users" is delivered via the authenticated path
+ * instead — new users get `User.uiLanguage = 'bg'` (the column default), so
+ * the APP renders Bulgarian on first login; the middleware seeds the
+ * `NEXT_LOCALE` cookie from that. Doing it this way (rather than flipping
+ * this fallback to `bg`) keeps the pre-login pages — and the English-copy
+ * E2E specs that exercise them — in English.
  */
-export const DEFAULT_LOCALE: Locale = 'bg';
+export const DEFAULT_LOCALE: Locale = 'en';
 
 /**
  * Cookie the server reads to resolve the request locale. `NEXT_LOCALE`
