@@ -3195,6 +3195,12 @@
         }
     },
     "ag": {
+        "cadastre": {
+            "cadastralId": "Cadastral identifier",
+            "viewInKais": "View in КАИС",
+            "areaMismatch": "Area differs from record",
+            "areaMismatchDetail": "Documentary area {doc} dca vs {geom} dca mapped"
+        },
         "events": {
             "title": "Agriculture events",
             "description": "Upcoming fairs, trainings, webinars, and subsidy deadlines.",
@@ -6320,6 +6326,7 @@
             "colName": "Name",
             "colCrop": "Crop",
             "colAreaDca": "Area (dca)",
+            "colCadastralId": "Cadastral ID",
             "viewOnMap": "View on map",
             "loadingImagery": "Loading {index} imagery…",
             "imageryNotConfigured": "{index} imagery isn’t configured for this deployment.",

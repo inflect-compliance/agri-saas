@@ -3,6 +3,7 @@ import { PrismaTx } from '@/lib/db-context';
 import { RequestContext } from '../types';
 import {
     repairedGeometrySql,
+    reprojectedGeometrySql,
     areaHectaresNonNullSql,
     asGeoJsonSql,
     simplifiedGeoJsonSql,
@@ -28,6 +29,10 @@ export interface ParcelGeo {
     areaHa: number | null;
     geometry: Geometry | null;
     properties: unknown;
+    /** Cadastral identifier `EKATTE.masiv.parcel` (КАИС); null when not parsed. */
+    cadastralId: string | null;
+    /** 5-digit EKATTE settlement prefix of `cadastralId`; null when absent. */
+    ekatte: string | null;
     /** Human soil label (modelled estimate); null until the fetch job runs. */
     soilType: string | null;
     /** Structured modelled soil profile; null while "soil pending". */
@@ -57,6 +62,14 @@ export class ParcelRepository {
         locationId: string,
         parcels: ParsedParcel[],
         cropType?: string | null,
+        /**
+         * Source SRID of `parcels[].geometry` when it is NOT WGS84 (Bulgarian
+         * cadastre 7801 / 32635). When set, geometry + areaHa are computed
+         * from the REPROJECTING fragment (`ST_Transform → 4326` before repair),
+         * so `areaHa` derives from the SAME reprojected expression as the
+         * stored geometry. Omit / undefined ⇒ geometry is already 4326.
+         */
+        sourceSrid?: number,
     ): Promise<string[]> {
         // A blank / whitespace-only default means "mixed — set later": leave
         // cropType null so it isn't stamped on every imported parcel (#7).
@@ -72,17 +85,24 @@ export class ParcelRepository {
                     locationId,
                     name: p.name,
                     cropType: importCrop,
+                    cadastralId: p.cadastralId ?? null,
+                    ekatte: p.ekatte ?? null,
                     propertiesJson: (p.properties ?? {}) as Prisma.InputJsonValue,
                 },
                 select: { id: true },
             });
             // …then stamp geometry + denormalized areaHa via the geo
             // fragments. areaHa is computed from the same geometry
-            // expression so it lands in one statement.
+            // expression so it lands in one statement — including, for a
+            // cadastre import, the SAME reprojection (invariant: areaHa and
+            // geometry share one expression).
+            const geomSql = sourceSrid
+                ? reprojectedGeometrySql(p.geometry, sourceSrid)
+                : repairedGeometrySql(p.geometry);
             await db.$executeRaw(
                 Prisma.sql`UPDATE "Parcel"
-                    SET "geometry" = ${repairedGeometrySql(p.geometry)},
-                        "areaHa" = ${areaHectaresNonNullSql(repairedGeometrySql(p.geometry))}
+                    SET "geometry" = ${geomSql},
+                        "areaHa" = ${areaHectaresNonNullSql(geomSql)}
                     WHERE "id" = ${row.id} AND "tenantId" = ${ctx.tenantId}`,
             );
             createdIds.push(row.id);
@@ -117,9 +137,12 @@ export class ParcelRepository {
             propertiesJson: unknown;
             soilType: string | null;
             soilJson: unknown;
+            cadastralId: string | null;
+            ekatte: string | null;
         }>>(
             Prisma.sql`SELECT "id", "name", "cropType", "areaHa"::text AS "areaHa",
-                    ${geojsonSql} AS "geojson", "propertiesJson", "soilType", "soilJson"
+                    ${geojsonSql} AS "geojson", "propertiesJson", "soilType", "soilJson",
+                    "cadastralId", "ekatte"
                 FROM "Parcel"
                 WHERE "locationId" = ${locationId}
                   AND "tenantId" = ${ctx.tenantId}
@@ -136,6 +159,8 @@ export class ParcelRepository {
             properties: r.propertiesJson ?? null,
             soilType: r.soilType,
             soilJson: (r.soilJson ?? null) as SoilProfile | null,
+            cadastralId: r.cadastralId,
+            ekatte: r.ekatte,
         }));
     }
 

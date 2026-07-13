@@ -26,6 +26,7 @@ import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { UserCombobox } from '@/components/ui/user-combobox';
 import { SoilProfileCard } from '@/components/soil/SoilProfileCard';
+import { ParcelCadastralInfo } from '@/components/ui/map/ParcelCadastralInfo';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
@@ -59,6 +60,10 @@ export interface ParcelSheetData {
     cropType?: string | null;
     lastApplication?: { label: string; occurredAt?: string | null } | null;
     soilJson?: SoilProfile | null;
+    /** Bulgarian КАИС cadastral identifier (`EKATTE.masiv.parcel`); null when absent. */
+    cadastralId?: string | null;
+    /** propertiesJson — carries the documentary area for the reconciliation badge. */
+    properties?: unknown;
 }
 
 export interface ParcelDetailSheetProps {
@@ -267,6 +272,15 @@ export function ParcelDetailSheet({
                             {areaSummary ?? '—'}
                         </dd>
                     </div>
+                    {parcel?.cadastralId ? (
+                        <ParcelCadastralInfo
+                            cadastralId={parcel.cadastralId}
+                            areaHa={parcel.areaHa ?? null}
+                            properties={parcel.properties ?? null}
+                            layout="detail"
+                            className="col-span-2"
+                        />
+                    ) : null}
                     <div>
                         <dt className="text-content-secondary">{t('parcelSheet.crop')}</dt>
                         <dd data-testid="parcel-sheet-crop">
