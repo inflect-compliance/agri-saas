@@ -229,8 +229,12 @@ describe('Dashboard Backward Compatibility', () => {
         expect(fs.existsSync(path.join(DASHBOARD_DIR, 'FieldBriefingCard.tsx'))).toBe(true);
     });
 
-    test('OnboardingBanner is still rendered (in client tree)', () => {
-        expect(readClient()).toContain('OnboardingBanner');
+    test('the guided onboarding banner was removed from the dashboard', () => {
+        // Per product direction the "set up your farm" onboarding banner no
+        // longer renders on the dashboard — the greeting header is the sole
+        // masthead. The banner component may still exist for other surfaces;
+        // the dashboard client just doesn't mount it.
+        expect(readClient()).not.toContain('OnboardingBanner');
     });
 
     test('client no longer pulls i18n directly (header strings removed)', () => {
