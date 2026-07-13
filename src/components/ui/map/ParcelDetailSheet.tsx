@@ -133,16 +133,26 @@ export function ParcelDetailSheet({
         if (open && me?.user?.id) setAssigneeUserId((prev) => prev ?? me.user?.id ?? null);
     }, [open, me?.user?.id]);
 
-    // Prefill the default (most-recently-used) RATE unit for the dose.
+    // Prefill the dose RATE unit: the location's most-recently-used unit IF
+    // it's still offered, else кг/дка (kg-per-dca) — the per-decare default.
+    // A legacy per-hectare smart-default is no longer in the offered list, so
+    // it falls through to the decare default rather than pre-selecting kg/ha.
     useEffect(() => {
-        if (open && !doseUnitId && smartDefaults?.defaultUnitId) setDoseUnitId(smartDefaults.defaultUnitId);
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- prefill on open only
-    }, [open, smartDefaults?.defaultUnitId]);
+        if (!open || doseUnitId) return;
+        const list = units ?? [];
+        if (list.length === 0) return;
+        const smart = smartDefaults?.defaultUnitId;
+        const smartOffered = !!smart && list.some((u) => u.id === smart);
+        const fallback = list.find((u) => u.key === 'kg-per-dca') ?? list[0];
+        setDoseUnitId(smartOffered ? (smart as string) : (fallback?.id ?? ''));
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- prefill on open / units-resolve
+    }, [open, units, smartDefaults?.defaultUnitId]);
 
-    // Default the water-carrier unit to L/dca (the standard tank rate).
+    // Default the water-carrier unit to л/дка (the standard tank rate) — by
+    // KEY, so it survives the symbol being Bulgarian.
     useEffect(() => {
         if (!open || waterRateUnitId) return;
-        const lPerDca = (units ?? []).find((u) => u.symbol === 'L/dca');
+        const lPerDca = (units ?? []).find((u) => u.key === 'l-per-dca');
         if (lPerDca) setWaterRateUnitId(lPerDca.id);
         // eslint-disable-next-line react-hooks/exhaustive-deps -- default on open / units-resolve
     }, [open, units]);

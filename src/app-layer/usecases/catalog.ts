@@ -8,6 +8,13 @@ import { cachedListRead } from '@/lib/cache/list-cache';
 import { Prisma, ItemCategory, QuantityMeasure } from '@prisma/client';
 
 /**
+ * Per-hectare RATE unit keys — hidden from the dose-unit picker (Bulgaria
+ * works in decares). They remain in the catalog so legacy operations that
+ * referenced them still resolve; new doses are per-decare only.
+ */
+const PER_HA_RATE_KEYS = ['l-per-ha', 'ml-per-ha', 'kg-per-ha', 'g-per-ha'];
+
+/**
  * Read-only catalog endpoints backing the prescription form:
  *   • Items — the tenant's input-product catalog (spray products),
  *   • Units — the global unit-of-measure catalog (dose RATE units).
@@ -118,7 +125,19 @@ export async function listUnits(ctx: RequestContext, measure?: string) {
             // connection path.
             runInTenantContext(ctx, (db) =>
                 db.unit.findMany({
-                    where: measure ? { measure: measure as QuantityMeasure } : {},
+                    where: measure
+                        ? {
+                              measure: measure as QuantityMeasure,
+                              // Bulgaria works in DECARES: the RATE dose picker
+                              // offers only per-decare units (кг/дка …). The
+                              // per-hectare rows stay in the catalog for legacy
+                              // operations that reference them, but are hidden
+                              // from selection so new doses can't be per-ha.
+                              ...(measure === 'RATE'
+                                  ? { key: { notIn: PER_HA_RATE_KEYS } }
+                                  : {}),
+                          }
+                        : {},
                     orderBy: [{ measure: 'asc' }, { name: 'asc' }],
                 }),
             ),

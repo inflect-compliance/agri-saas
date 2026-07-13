@@ -88,12 +88,24 @@ describe('areaBasisOf', () => {
         // Unknown/absent denominator defaults to hectare.
         expect(areaBasisOf('L')).toBe('ha');
     });
+
+    it('recognises the Bulgarian decare denominator (Cyrillic дка)', () => {
+        // The seeded symbols are Cyrillic — these must resolve to the decare
+        // basis, not silently fall through to hectare.
+        expect(areaBasisOf('кг/дка')).toBe('dca');
+        expect(areaBasisOf('л/дка')).toBe('dca');
+        expect(areaBasisOf('мл/дка')).toBe('dca');
+        // Cyrillic hectare stays hectare.
+        expect(areaBasisOf('кг/ха')).toBe('ha');
+    });
 });
 
 describe('totalForRate (basis-aware)', () => {
     it('multiplies /dca rates by decares', () => {
         expect(totalForRate(14, 'L/dca', 10)).toBe(1400);
         expect(totalForRate(100, 'mL/dca', 10)).toBe(10000);
+        // Bulgarian symbol: 20 кг/дка over 10 ha (= 100 dca) = 2000 kg.
+        expect(totalForRate(20, 'кг/дка', 10)).toBe(2000);
     });
     it('multiplies /ha rates by hectares', () => {
         // 2 L/ha over 10 ha = 20 L (NOT × dca).
