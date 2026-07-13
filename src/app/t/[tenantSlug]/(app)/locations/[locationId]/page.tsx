@@ -228,8 +228,8 @@ export default function LocationDetailPage() {
     );
     // КАИС cadastre import feature flag (server-computed; the URL is never
     // exposed to the client). Gates the "От кадастъра" tab in the import modal.
-    const cadastreCfgQ = useTenantSWR<{ enabled: boolean }>(`/locations/${locationId}/cadastre-import`);
-    const cadastreEnabled = cadastreCfgQ.data?.enabled ?? false;
+    const cadastreImportCfgQ = useTenantSWR<{ enabled: boolean }>(`/locations/${locationId}/cadastre-import`);
+    const cadastreEnabled = cadastreImportCfgQ.data?.enabled ?? false;
     const indexConfigured = indexQ.data?.configured ?? true;
     const indexTileUrl = indexQ.data?.tileUrl ?? '';
     const indexLoading = !!activeSpec && !indexQ.data && !indexQ.error;
