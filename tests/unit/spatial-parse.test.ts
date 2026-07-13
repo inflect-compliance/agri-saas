@@ -198,10 +198,11 @@ describe('parseSpatialFile', () => {
         expect(result.skipped).toBe(2);
     });
 
-    it('assumes EPSG:7801 for un-reprojected Bulgarian-metre coordinates (cadastre ingest)', async () => {
+    it('flags un-reprojected Bulgarian-metre coordinates as projected-candidate (Part A)', async () => {
         // Bulgarian cadastre metres (easting ~500000, northing ~4_770_000) that
-        // shipped without a .prj: rather than reject, the parser now flags them
-        // as EPSG:7801 so the repo reprojects via PostGIS ST_Transform on write.
+        // shipped without a .prj: rather than reject OR guess a single CRS, the
+        // parser now defers — it leaves srid undefined and flags the geometry as
+        // 'projected-candidate' so the write path probes 7801 vs 32635 (Part A).
         const utm = {
             type: 'FeatureCollection',
             features: [
@@ -222,7 +223,8 @@ describe('parseSpatialFile', () => {
             filename: 'p.geojson',
             buffer: Buffer.from(JSON.stringify(utm)),
         });
-        expect(result.srid).toBe(7801);
+        expect(result.srid).toBeUndefined();
+        expect(result.sourceCrs).toBe('projected-candidate');
     });
 
     it('still rejects coordinates outside the Bulgarian metre band — genuinely unknown CRS (Fix 1)', async () => {

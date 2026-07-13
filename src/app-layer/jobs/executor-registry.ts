@@ -1032,6 +1032,35 @@ executorRegistry.register('spatial-import', async (payload) => {
     );
 });
 
+// ── cadastre-import (КАИС OpenData import by identifier) ─────────────
+//
+// One job invocation per staged identifier list. Groups by ЕКАТТЕ, fetches
+// each settlement's land-parcels archive from КАИС OpenData (cache-first via
+// the global CadastreArchive row), parses + selects the requested features,
+// strips owner-ish attributes, reprojects КС2005 → 4326, and appends them to
+// the location. Reports not-found identifiers. See `cadastre-import.ts`.
+executorRegistry.register('cadastre-import', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runCadastreImport } = await import('./cadastre-import');
+    const r = await runCadastreImport(payload);
+    return makeResult(
+        'cadastre-import', startedAt, startMs,
+        r.requested, r.imported, r.notFound.length,
+        {
+            tenantId: r.tenantId,
+            locationId: r.locationId,
+            requested: r.requested,
+            imported: r.imported,
+            notFound: r.notFound,
+            ekatteCached: r.ekatteCached,
+            ekatteFetched: r.ekatteFetched,
+            bounds: r.bounds,
+            jobRunId: r.jobRunId,
+        },
+    );
+});
+
 // RQ-9 — daily cross-tenant risk + portfolio snapshot.
 executorRegistry.register('risk-snapshot', async (payload) => {
     const startedAt = new Date().toISOString();

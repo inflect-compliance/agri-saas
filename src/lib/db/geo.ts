@@ -71,6 +71,64 @@ export function reprojectedGeometrySql(
 }
 
 /**
+ * Part A (PR2) — the canonical reproject-then-repair fragment for the cadastre
+ * write path: `ST_Transform(ST_SetSRID(geom, srid), 4326)` INNERMOST, then
+ * `ST_MakeValid → ST_CollectionExtract(...,3) → ST_Multi`. Identical pipeline
+ * to `reprojectedGeometrySql` (which it delegates to) — this is the name the
+ * Part A probe path uses to make the "reproject FIRST, repair in the 4326
+ * frame" intent explicit at the call site (`ParcelRepository`). `sourceSrid`
+ * is a trusted validated integer (7801 / 32635 from the parser's supported set
+ * or the PostGIS probe) inlined as an integer literal, never user input.
+ */
+export function reprojectedRepairedGeometrySql(
+    geometry: Polygon | MultiPolygon,
+    sourceSrid: number,
+): Prisma.Sql {
+    return reprojectedGeometrySql(geometry, sourceSrid);
+}
+
+/**
+ * Part A (PR2) — CANDIDATE-SRID PROBE. Given a sample of raw source-CRS
+ * geometries (their coordinates are projected metres, SRID not yet stamped) and
+ * a list of candidate SRIDs, transform the WHOLE sample from EACH candidate to
+ * WGS84 in ONE round-trip and return each candidate's resulting bounding box
+ * (`xmin/ymin/xmax/ymax` = west/south/east/north). The caller
+ * (`ParcelRepository.probeSourceSrid`) picks the candidate whose transformed
+ * bounds land inside Bulgaria's WGS84 envelope — disambiguating 7801 vs 32635
+ * by REPROJECTED position, never by raw metre magnitude (the two overlap over
+ * Bulgaria). One row per candidate; a candidate whose transform yields no
+ * extent comes back with NULL corners (caller treats that as "no match").
+ *
+ * `srids` are trusted, validated integers (the parser's supported set) inlined
+ * as integer literals via `Prisma.raw`; the geometries ride as bound `text`
+ * parameters through `ST_GeomFromGeoJSON`. Lives here so every `ST_*` stays
+ * contained in geo.ts.
+ */
+export function probeCandidateSridSql(
+    geometries: ReadonlyArray<Polygon | MultiPolygon>,
+    srids: readonly number[],
+): Prisma.Sql {
+    for (const s of srids) {
+        if (!Number.isInteger(s) || s <= 0) {
+            throw new Error(`probeCandidateSridSql: srid must be a positive integer, got ${s}`);
+        }
+    }
+    const geomRows = geometries.map((g) => Prisma.sql`(${JSON.stringify(g)}::text)`);
+    const sridRows = srids.map((s) => Prisma.sql`(${Prisma.raw(String(s))}::int)`);
+    return Prisma.sql`
+        SELECT c."srid" AS "srid",
+               ST_XMin(e.ext) AS "xmin", ST_YMin(e.ext) AS "ymin",
+               ST_XMax(e.ext) AS "xmax", ST_YMax(e.ext) AS "ymax"
+        FROM (VALUES ${Prisma.join(sridRows)}) AS c("srid")
+        CROSS JOIN LATERAL (
+            SELECT ST_Extent(
+                ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(g."geojson"), c."srid"), 4326)
+            ) AS ext
+            FROM (VALUES ${Prisma.join(geomRows)}) AS g("geojson")
+        ) AS e`;
+}
+
+/**
  * SQL fragment computing the area of a geometry column in hectares,
  * using the geography cast for an accurate on-the-ellipsoid area
  * (m²) divided by 10,000. Returns NULL-safe NUMERIC.

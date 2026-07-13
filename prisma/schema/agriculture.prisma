@@ -254,6 +254,35 @@ model SoilSample {
   @@unique([latE3, lonE3])
 }
 
+/// GLOBAL cache of a downloaded КАИС OpenData settlement archive (NO tenantId —
+/// public open data, identical for every tenant, exactly like `SoilSample`).
+/// Keyed by the 5-digit ЕКАТТЕ. Lets repeat cadastre imports within the
+/// freshness window reuse the already-fetched "поземлени имоти" (land-parcels)
+/// ZIP instead of re-hitting КАИС OpenData. The ZIP bytes live in the storage
+/// abstraction (domain 'spatial') at `storageKey`.
+///
+/// PRIVACY: only the land-parcels archive (geometry + cadastral identifier +
+/// land-use) is ever fetched or cached here. The КАИС ownership registers
+/// (собственост*.zip — personal data) are NEVER downloaded or persisted.
+model CadastreArchive {
+  id         String   @id @default(cuid())
+  /// 5-digit ЕКАТТЕ settlement code (leading zeros significant).
+  ekatte     String   @unique
+  /// КАИС source freshness stamp (the tree entry's ModifiedUtc) — provenance +
+  /// the freshness check that decides reuse vs re-fetch.
+  sourceDate DateTime
+  /// Storage object key (domain 'spatial') of the cached land-parcels ZIP. A
+  /// plain key, NOT a tenant-scoped `FileRecord` FK — the cache is global.
+  storageKey String
+  /// Bytes of the cached ZIP (provenance / accounting).
+  sizeBytes  Int
+  /// КАИС tree Path the archive resolved from (debug / provenance).
+  sourcePath String?
+  fetchedAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 /// The per-parcel prescription line — the heart of the feature. The
 /// spray "job" is a FIELD_OPERATION Task (assignment, status,
 /// comments, notifications all reused); each parcel in the job gets

@@ -219,6 +219,27 @@ export async function runLocationSpatialImport(
                 );
             }
 
+            // 4a′ — Part A: resolve the source SRID for a prj-less projected
+            //       import. A resolved `.prj` already set `parsed.srid`; when
+            //       the parser could only tell it's Bulgarian projected metres
+            //       (`sourceCrs: 'projected-candidate'`), PROBE 7801 vs 32635 by
+            //       which candidate's TRANSFORMED bounds land inside Bulgaria.
+            //       Topology was already checked on the RAW geometries above
+            //       (SRID-independent), so a probe failure here is purely a
+            //       "which projection" question — reject with an actionable msg.
+            let sourceSrid = parsed.srid;
+            if (parsed.sourceCrs === 'projected-candidate' && sourceSrid === undefined) {
+                sourceSrid = (await ParcelRepository.probeSourceSrid(db, parsed.parcels)) ?? undefined;
+                if (sourceSrid === undefined) {
+                    throw new SpatialLimitError(
+                        'The upload is in projected metres but its source CRS could not be resolved: ' +
+                            'neither КС2005 (EPSG:7801) nor UTM 35N (EPSG:32635) reprojects it inside ' +
+                            'Bulgaria. Re-export the layer as WGS84 / EPSG:4326 (or include a .prj) and re-upload.',
+                        422,
+                    );
+                }
+            }
+
             // 4b — ADD the parsed parcels to the location (additive import; the
             // location's existing parcels are kept) + stamp file/format/bounds.
             const parcelIds = await ParcelRepository.addParcelsForLocation(
@@ -229,7 +250,7 @@ export async function runLocationSpatialImport(
                 payload.cropType,
                 // Bulgarian cadastre imports (7801 / 32635) reproject to 4326
                 // via PostGIS on write; undefined ⇒ geometry is already WGS84.
-                parsed.srid,
+                sourceSrid,
             );
             const count = parcelIds.length;
             // Additive import keeps existing parcels, so the location bounds must

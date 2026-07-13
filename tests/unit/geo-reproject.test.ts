@@ -8,7 +8,11 @@
  * inlined as an integer literal. This locks the ordering the cadastre ingest
  * relies on (reproject first, then repair — see the geo.ts docstring).
  */
-import { reprojectedGeometrySql } from '@/lib/db/geo';
+import {
+    reprojectedGeometrySql,
+    reprojectedRepairedGeometrySql,
+    probeCandidateSridSql,
+} from '@/lib/db/geo';
 import type { Polygon } from 'geojson';
 
 const POLY: Polygon = {
@@ -48,5 +52,35 @@ describe('reprojectedGeometrySql', () => {
     it('rejects a non-integer / non-positive source SRID', () => {
         expect(() => reprojectedGeometrySql(POLY, 0)).toThrow();
         expect(() => reprojectedGeometrySql(POLY, 4326.5)).toThrow();
+    });
+});
+
+describe('reprojectedRepairedGeometrySql (Part A alias)', () => {
+    it('is byte-identical in structure to reprojectedGeometrySql', () => {
+        const a = reprojectedRepairedGeometrySql(POLY, 7801).strings.join('');
+        const b = reprojectedGeometrySql(POLY, 7801).strings.join('');
+        expect(a).toBe(b);
+    });
+});
+
+describe('probeCandidateSridSql (Part A candidate-SRID probe)', () => {
+    it('transforms each candidate SRID to 4326 and returns bounds columns', () => {
+        const frag = probeCandidateSridSql([POLY], [7801, 32635]);
+        const text = frag.strings.join('');
+        for (const fn of ['ST_Extent', 'ST_Transform', 'ST_SetSRID', 'ST_GeomFromGeoJSON', 'ST_XMin', 'ST_YMax']) {
+            expect(text).toContain(fn);
+        }
+        // Both candidate SRIDs are inlined as integer literals + target 4326.
+        expect(text).toContain('7801');
+        expect(text).toContain('32635');
+        expect(text).toContain('4326');
+        // The geometry rides as the sole bound value; SRIDs are raw SQL.
+        expect(frag.values).toHaveLength(1);
+        expect(frag.values.some((v) => v === 7801 || v === 32635)).toBe(false);
+    });
+
+    it('rejects a non-integer / non-positive candidate SRID', () => {
+        expect(() => probeCandidateSridSql([POLY], [0])).toThrow();
+        expect(() => probeCandidateSridSql([POLY], [7801, 4326.5])).toThrow();
     });
 });

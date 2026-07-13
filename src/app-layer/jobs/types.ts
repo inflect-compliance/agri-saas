@@ -642,6 +642,33 @@ export interface SoilFetchPayload {
     requestId?: string;
 }
 
+/**
+ * КАИС cadastre OpenData import (feat/cadastre-opendata-import).
+ *
+ * Enqueued by `stageLocationCadastreImport` from a list of cadastral
+ * identifiers (ЕКАТТЕ.масив.номер). The worker groups by ЕКАТТЕ, fetches each
+ * settlement's land-parcels archive from КАИС OpenData (cache-first via the
+ * global `CadastreArchive` row), parses the shapefile ZIP, selects the features
+ * whose identifier matches a requested id, strips owner-ish attributes, and
+ * appends them to the location via `ParcelRepository.addParcelsForLocation`
+ * (КС2005 metres → PostGIS reprojection via Part A's probe). Not-found
+ * identifiers are reported in the job result.
+ *
+ * Payload is JSON-serialisable — the archive bytes live in storage, never here.
+ */
+export interface CadastreImportJobPayload {
+    /** Tenant whose location is imported into. Required for isolation. */
+    tenantId: string;
+    /** Member who requested the import — actor attribution + write gate. */
+    initiatedByUserId: string;
+    /** Target Location to append parcels to. */
+    locationId: string;
+    /** Cadastral identifiers to import (validated, normalized). */
+    identifiers: string[];
+    /** Upstream request id for log correlation. */
+    requestId?: string;
+}
+
 export interface JobPayloadMap {
     'health-check': HealthCheckPayload;
     'embed-chunks': EmbedChunksPayload;
@@ -685,6 +712,7 @@ export interface JobPayloadMap {
     'classify-photo': ClassifyPhotoPayload;
     'weather-pull': WeatherPullPayload;
     'spatial-import': SpatialImportJobPayload;
+    'cadastre-import': CadastreImportJobPayload;
     'farm-record-pdf': FarmRecordPdfPayload;
     'exchange-expiry-sweep': ExchangeExpirySweepPayload;
     'soil-fetch': SoilFetchPayload;
@@ -1008,6 +1036,18 @@ export const JOB_DEFAULTS: Record<JobName, {
         // upload intact for the operator to re-trigger manually. Keep
         // the failed job around (removeOnFail) so the GET status route
         // can surface `failedReason` to the upload modal.
+        attempts: 1,
+        backoff: { type: 'fixed', delay: 0 },
+        removeOnComplete: 200,
+        removeOnFail: 1000,
+    },
+    'cadastre-import': {
+        // No auto-retry: a walk-budget breach, a not-found ЕКАТТЕ, or a bad
+        // shapefile is a hard reject — re-running would re-walk the whole КАИС
+        // tree. A transient network flake leaves the request for the operator
+        // to re-trigger. Keep the failed job (removeOnFail) so the GET status
+        // route can surface failedReason to the import modal. Cache reuse
+        // (CadastreArchive) makes a manual re-trigger cheap regardless.
         attempts: 1,
         backoff: { type: 'fixed', delay: 0 },
         removeOnComplete: 200,

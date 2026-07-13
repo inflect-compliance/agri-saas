@@ -3483,7 +3483,15 @@
                 "statusCheckFailed": "Проверката на статуса се провали ({status})",
                 "importFailedStatus": "Импортът се провали ({status})",
                 "importing": "Импортиране…",
-                "import": "Импорт"
+                "import": "Импорт",
+                "tabFile": "Файл",
+                "tabCadastre": "От кадастъра",
+                "tabsAria": "Източник на импорт",
+                "cadastreIdentifiers": "Кадастрални идентификатори",
+                "cadastreIdentifiersHint": "Един идентификатор на ред (ЕКАТТЕ.масив.номер, напр. 68134.8360.729). Парцелите се извличат от кадастъра КАИС.",
+                "cadastreInvalidLines": "Невалидни: {list}",
+                "cadastreValidCount": "{count, plural, one {# валиден идентификатор} other {# валидни идентификатора}}",
+                "cadastreNoValid": "Въведете поне един валиден идентификатор (ЕКАТТЕ.масив.номер)."
             }
         }
     },
@@ -6354,6 +6362,7 @@
             "dnevnikDownloadFail": "Неуспешно изтегляне на дневника.",
             "importedToast": "Импортирани {count, plural, one {# парцел} other {# парцела}}",
             "importedSkipped": "{count, plural, one { — # неполигонален обект пропуснат} other { — # неполигонални обекта пропуснати}}",
+            "importedNotFound": " — не бяха намерени: {list}",
             "mergeTitle": "Обедини парцели",
             "mergeDescription": "Дайте име на парцела, образуван при обединяването на избраните парцели.",
             "mergeHeaderDescription": "Обединете {count} избрани парцела в един. Оригиналите се заменят.",

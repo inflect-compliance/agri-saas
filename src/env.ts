@@ -223,6 +223,14 @@ export const env = createEnv({
         SOIL_PROVIDER: z.string().default('soilgrids'),
         SOIL_BASE_URL: z.string().url().optional(),
 
+        // ── КАИС cadastre OpenData import (feat/cadastre-opendata-import) ──
+        // Base URL of the Bulgarian cadastre (АГКК) OpenData portal
+        // (https://kais.cadastre.bg). SERVER-ONLY + OPTIONAL: when unset the
+        // "import from the cadastre" feature is HIDDEN (the UI tab is gated on a
+        // server-computed boolean; the URL is NEVER exposed to the client).
+        // Mirrors the SOIL_BASE_URL pattern.
+        CADASTRE_OPENDATA_INDEX_URL: z.string().url().optional(),
+
         // ── Swappable AI provider (feat/ai-provider) ──
         // ONE OpenAI-compatible provider serves local dev (Ollama) and
         // any hosted backend (OpenRouter / Groq / Together) — they differ
@@ -508,6 +516,7 @@ export const env = createEnv({
         OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
         SOIL_PROVIDER: process.env.SOIL_PROVIDER,
         SOIL_BASE_URL: process.env.SOIL_BASE_URL,
+        CADASTRE_OPENDATA_INDEX_URL: process.env.CADASTRE_OPENDATA_INDEX_URL,
         AI_BACKEND: process.env.AI_BACKEND,
         AI_BASE_URL: process.env.AI_BASE_URL,
         AI_API_KEY: process.env.AI_API_KEY,
