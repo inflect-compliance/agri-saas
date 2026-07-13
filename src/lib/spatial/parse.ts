@@ -84,6 +84,19 @@ export interface ParseResult {
      * geometry is already WGS84 (4326) — the common GeoJSON/KML path.
      */
     srid?: SupportedSourceSrid;
+    /**
+     * Part A (PR2) — set when the geometry is in PROJECTED metres that fall in
+     * the Bulgarian cadastre band but the exact source CRS could NOT be
+     * resolved from a `.prj` (absent or unparseable — cadastre archive exports
+     * frequently ship no `.prj`). 7801 (КС2005/BGS2005) and 32635 (UTM 35N)
+     * are indistinguishable by raw metre magnitude over Bulgaria, so the parser
+     * defers: it leaves `srid` UNDEFINED and stamps this flag. The write path
+     * (spatial-import job) then PROBES both candidates via PostGIS — the
+     * candidate whose TRANSFORMED bounds land inside Bulgaria's WGS84 envelope
+     * wins (`ParcelRepository.probeSourceSrid`). Never disambiguated by raw
+     * metre heuristics — those two CRSs overlap in magnitude over Bulgaria.
+     */
+    sourceCrs?: 'projected-candidate';
 }
 
 export class SpatialParseError extends Error {
@@ -436,21 +449,24 @@ export async function parseShapefileZip(
 }
 
 /**
- * A projected-metre bounds heuristic for a Bulgarian cadastre shapefile that
- * shipped WITHOUT a `.prj`: eastings within ~[-100k, 1M] and northings within
- * ~[4.0M, 5.2M] cover both 7801 and 32635 over Bulgaria. 7801 (the official
- * cadastre CRS) is the default — 32635 without a `.prj` is genuinely
- * indistinguishable by magnitude and needs a `.prj` to be recognised.
- * Returns null when the coordinates are not in the Bulgarian metre band, so
- * a truly-unknown projection still fails the WGS84-range guard.
+ * Part A — does a projected-metre bbox look like a Bulgarian cadastre export
+ * that shipped WITHOUT a resolvable `.prj`? Eastings within ~[80k, 1M] and
+ * northings within ~[4.4M, 5.1M] cover BOTH candidate CRSs (7801 КС2005 Lambert
+ * and 32635 UTM 35N) over Bulgaria. Crucially we do NOT try to pick between the
+ * two here: their metre magnitudes overlap, so a raw-magnitude guess would be a
+ * coin-flip. Instead we return `true` and let the caller stamp
+ * `sourceCrs: 'projected-candidate'`; the write path disambiguates by which
+ * candidate's TRANSFORMED bounds land inside Bulgaria (PostGIS probe). Returns
+ * `false` when the coordinates are outside the Bulgarian metre band, so a
+ * truly-unknown projection still fails the WGS84-range guard.
  */
-function guessBulgarianMetreSrid(
+function looksLikeBulgarianProjectedMetres(
     bounds: [number, number, number, number],
-): SupportedSourceSrid | null {
+): boolean {
     const [w, s, e, n] = bounds;
-    const eastingsOk = w >= -100_000 && e <= 1_000_000;
-    const northingsOk = s >= 4_000_000 && n <= 5_200_000;
-    return eastingsOk && northingsOk ? DEFAULT_BG_CADASTRE_SRID : null;
+    const eastingsOk = w >= 80_000 && e <= 1_000_000;
+    const northingsOk = s >= 4_400_000 && n <= 5_100_000;
+    return eastingsOk && northingsOk;
 }
 
 /**
@@ -479,31 +495,37 @@ export async function parseSpatialFile(args: {
         extraction = await parseShapefileZip(args.buffer);
     }
     const { parcels, skipped } = extraction;
-    let srid = extraction.srid;
+    const srid = extraction.srid;
+    let sourceCrs: 'projected-candidate' | undefined;
 
     if (!parcels.length) {
         throw new SpatialParseError('No polygon parcels found in the uploaded file.');
     }
 
     const bounds = computeBounds(parcels);
-    // Coordinate-range guard. When `srid` is set, the geometry is deliberately
-    // in the source CRS's metres (the repo reprojects via ST_Transform), so a
-    // metre-scale bbox is EXPECTED — skip the guard. Otherwise, out-of-range
-    // coordinates mean shpjs could not reproject: a Bulgarian cadastre export
-    // that shipped without a `.prj` is assumed to be EPSG:7801, anything else
-    // is rejected with an actionable message.
+    // Coordinate-range guard. When `srid` is set (a `.prj` resolved the CRS),
+    // the geometry is deliberately in the source CRS's metres (the repo
+    // reprojects via ST_Transform), so a metre-scale bbox is EXPECTED — skip
+    // the guard. Otherwise, out-of-range coordinates mean shpjs could not
+    // reproject. Part A: a Bulgarian cadastre export that shipped WITHOUT a
+    // resolvable `.prj` (КС2005 archives frequently do) is NOT auto-assumed to
+    // be one CRS — 7801 and 32635 overlap by magnitude, so we stamp
+    // `sourceCrs: 'projected-candidate'` and defer the choice to the write-path
+    // PostGIS probe. Anything outside the Bulgarian metre band is still
+    // rejected with an actionable message.
     if (bounds && srid === undefined) {
         const [w, s, e, n] = bounds;
         if (w < -180 || e > 180 || s < -90 || n > 90) {
-            srid = guessBulgarianMetreSrid(bounds) ?? undefined;
-            if (srid === undefined) {
+            if (looksLikeBulgarianProjectedMetres(bounds)) {
+                sourceCrs = 'projected-candidate';
+            } else {
                 throw new SpatialParseError(
                     `Coordinates fall outside the valid WGS84 range (bounds [${w.toFixed(1)}, ${s.toFixed(1)}, ${e.toFixed(1)}, ${n.toFixed(1)}]; expected longitude -180..180, latitude -90..90). ` +
-                        `The file's projection could not be reprojected to WGS84. Re-export the layer as WGS84 / EPSG:4326 (or EPSG:7801 / 32635 with a .prj) and upload again.`,
+                        `The file's projection could not be reprojected to WGS84. Re-export the layer as WGS84 / EPSG:4326 (or a Bulgarian cadastre CRS — КС2005 / EPSG:7801, or EPSG:32635 UTM 35N — with a .prj) and upload again.`,
                 );
             }
         }
     }
 
-    return { format, parcels, bounds, skipped, srid };
+    return { format, parcels, bounds, skipped, srid, sourceCrs };
 }

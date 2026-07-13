@@ -3484,7 +3484,15 @@
                 "statusCheckFailed": "Status check failed ({status})",
                 "importFailedStatus": "Import failed ({status})",
                 "importing": "Importing…",
-                "import": "Import"
+                "import": "Import",
+                "tabFile": "File",
+                "tabCadastre": "From the cadastre",
+                "tabsAria": "Import source",
+                "cadastreIdentifiers": "Cadastral identifiers",
+                "cadastreIdentifiersHint": "One identifier per line (ЕКАТТЕ.масив.номер, e.g. 68134.8360.729). Parcels are fetched from the КАИС cadastre.",
+                "cadastreInvalidLines": "Invalid: {list}",
+                "cadastreValidCount": "{count, plural, one {# valid identifier} other {# valid identifiers}}",
+                "cadastreNoValid": "Enter at least one valid identifier (ЕКАТТЕ.масив.номер)."
             }
         }
     },
@@ -6357,6 +6365,7 @@
             "dnevnikDownloadFail": "Неуспешно изтегляне на дневника.",
             "importedToast": "Imported {count, plural, one {# parcel} other {# parcels}}",
             "importedSkipped": "{count, plural, one { — # non-polygon feature skipped} other { — # non-polygon features skipped}}",
+            "importedNotFound": " — not found: {list}",
             "mergeTitle": "Merge parcels",
             "mergeDescription": "Name the parcel formed by merging the selected parcels.",
             "mergeHeaderDescription": "Combine {count} selected parcels into one. The originals are replaced.",

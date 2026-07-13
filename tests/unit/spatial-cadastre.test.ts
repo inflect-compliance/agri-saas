@@ -152,7 +152,7 @@ describe('parseSpatialFile — projected-metre GeoJSON without a .prj', () => {
             }),
         );
 
-    it('assumes EPSG:7801 for a Bulgarian metre bbox (out of WGS84 range)', async () => {
+    it('flags a Bulgarian metre bbox as projected-candidate (Part A — defers CRS choice)', async () => {
         const ring: Array<[number, number]> = [
             [321459, 4731336],
             [321659, 4731336],
@@ -161,7 +161,10 @@ describe('parseSpatialFile — projected-metre GeoJSON without a .prj', () => {
             [321459, 4731336],
         ];
         const result = await parseSpatialFile({ filename: 'kvs.geojson', buffer: geo(ring) });
-        expect(result.srid).toBe(7801);
+        // Part A: no `.prj` → do NOT guess a SRID. Leave srid undefined and
+        // stamp the flag so the write path probes 7801 vs 32635 by reprojection.
+        expect(result.srid).toBeUndefined();
+        expect(result.sourceCrs).toBe('projected-candidate');
     });
 
     it('still rejects a genuinely unknown projection outside the Bulgarian band', async () => {

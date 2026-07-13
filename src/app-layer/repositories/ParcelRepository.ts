@@ -3,7 +3,8 @@ import { PrismaTx } from '@/lib/db-context';
 import { RequestContext } from '../types';
 import {
     repairedGeometrySql,
-    reprojectedGeometrySql,
+    reprojectedRepairedGeometrySql,
+    probeCandidateSridSql,
     areaHectaresNonNullSql,
     asGeoJsonSql,
     simplifiedGeoJsonSql,
@@ -18,8 +19,24 @@ import {
     centroidLonLatSql,
 } from '@/lib/db/geo';
 import type { ParsedParcel } from '@/lib/spatial/parse';
+import { SUPPORTED_SOURCE_SRIDS, type SupportedSourceSrid } from '@/lib/spatial/parse';
 import type { Geometry, Polygon, MultiPolygon, LineString } from 'geojson';
 import type { SoilProfile } from '@/lib/soil/types';
+
+/**
+ * Part A (PR2) — Bulgaria's WGS84 bounding envelope. The candidate-SRID probe
+ * accepts the source CRS whose TRANSFORMED bounds land fully inside this box.
+ * Deliberately generous (a few km of slack past the national border) so a
+ * legitimate border parcel is never rejected, but far tighter than the globe:
+ * a wrong CRS (7801 metres read as 32635, or vice-versa) transforms to a point
+ * hundreds of km away — well outside this box — so exactly one candidate matches.
+ */
+export const BULGARIA_WGS84_ENVELOPE = {
+    lonMin: 22.0,
+    lonMax: 29.0,
+    latMin: 41.0,
+    latMax: 44.5,
+} as const;
 
 /** A parcel returned to the client — geometry serialized to GeoJSON. */
 export interface ParcelGeo {
@@ -97,7 +114,7 @@ export class ParcelRepository {
             // cadastre import, the SAME reprojection (invariant: areaHa and
             // geometry share one expression).
             const geomSql = sourceSrid
-                ? reprojectedGeometrySql(p.geometry, sourceSrid)
+                ? reprojectedRepairedGeometrySql(p.geometry, sourceSrid)
                 : repairedGeometrySql(p.geometry);
             await db.$executeRaw(
                 Prisma.sql`UPDATE "Parcel"
@@ -296,6 +313,51 @@ export class ParcelRepository {
             const i = Number(r.idx);
             return parcels[i]?.name ?? `Parcel ${i + 1}`;
         });
+    }
+
+    /**
+     * Part A (PR2) — PROBE the source CRS of a prj-less projected-metre import.
+     * When the parser flags `sourceCrs: 'projected-candidate'` (Bulgarian metre
+     * bounds, but no `.prj` to resolve 7801 vs 32635), transform a bounded
+     * SAMPLE of the parcels from each candidate SRID to WGS84 in ONE round-trip
+     * and pick the candidate whose transformed bounds land INSIDE Bulgaria's
+     * envelope. Returns the winning SRID, or `null` when zero or MORE THAN ONE
+     * candidate matches (ambiguous — the caller rejects with an actionable
+     * error). Disambiguation is by REPROJECTED position only, never raw metre
+     * magnitude (7801 and 32635 overlap by magnitude over Bulgaria).
+     *
+     * No tenant/location scope: the geometries are the in-memory parsed
+     * payload, validated BEFORE the first write — nothing to leak.
+     */
+    static async probeSourceSrid(
+        db: PrismaTx,
+        parcels: ReadonlyArray<ParsedParcel>,
+        candidates: readonly SupportedSourceSrid[] = SUPPORTED_SOURCE_SRIDS,
+    ): Promise<SupportedSourceSrid | null> {
+        if (parcels.length === 0 || candidates.length === 0) return null;
+        // Bound the probe cost: a handful of parcels pins the transformed bbox
+        // just as well as thousands (an import is one contiguous cadastral area).
+        const sample = parcels.slice(0, 16).map((p) => p.geometry);
+        const rows = await db.$queryRaw<Array<{
+            srid: number;
+            xmin: number | null;
+            ymin: number | null;
+            xmax: number | null;
+            ymax: number | null;
+        }>>(probeCandidateSridSql(sample, candidates));
+
+        const env = BULGARIA_WGS84_ENVELOPE;
+        const matches = rows.filter((r) => {
+            if (r.xmin === null || r.ymin === null || r.xmax === null || r.ymax === null) return false;
+            const w = Number(r.xmin), s = Number(r.ymin), e = Number(r.xmax), n = Number(r.ymax);
+            return (
+                w >= env.lonMin && e <= env.lonMax &&
+                s >= env.latMin && n <= env.latMax
+            );
+        });
+        if (matches.length !== 1) return null;
+        const srid = Number(matches[0].srid) as SupportedSourceSrid;
+        return SUPPORTED_SOURCE_SRIDS.includes(srid) ? srid : null;
     }
 
     /**

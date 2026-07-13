@@ -226,6 +226,10 @@ export default function LocationDetailPage() {
             ? `/agro/${activeSpec.route}?locationId=${locationId}${imageryYmd ? `&date=${imageryYmd}` : ''}`
             : null,
     );
+    // КАИС cadastre import feature flag (server-computed; the URL is never
+    // exposed to the client). Gates the "От кадастъра" tab in the import modal.
+    const cadastreImportCfgQ = useTenantSWR<{ enabled: boolean }>(`/locations/${locationId}/cadastre-import`);
+    const cadastreEnabled = cadastreImportCfgQ.data?.enabled ?? false;
     const indexConfigured = indexQ.data?.configured ?? true;
     const indexTileUrl = indexQ.data?.tileUrl ?? '';
     const indexLoading = !!activeSpec && !indexQ.data && !indexQ.error;
@@ -820,10 +824,14 @@ export default function LocationDetailPage() {
                 locationId={locationId}
                 open={showImport}
                 setOpen={setShowImport}
-                onImported={({ parcelCount, skipped }) => {
+                cadastreEnabled={cadastreEnabled}
+                onImported={({ parcelCount, skipped, notFound }) => {
                     toast.success(
                         t('importedToast', { count: parcelCount }) +
                             (skipped > 0 ? t('importedSkipped', { count: skipped }) : '') +
+                            (notFound && notFound.length > 0
+                                ? t('importedNotFound', { list: notFound.slice(0, 5).join(', ') })
+                                : '') +
                             '.',
                     );
                     locQ.mutate();
