@@ -7124,6 +7124,7 @@
         "openJob": "Open {title}",
         "markDone": "Mark done",
         "doneResolution": "Completed in the field",
-        "doneLabel": "Complete: {title}"
+        "doneLabel": "Complete: {title}",
+        "locations": "Locations"
     }
 }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import { ChevronRight } from '@/components/ui/icons/nucleo/chevron-right';
+import { LocationPin } from '@/components/ui/icons/nucleo/location-pin';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -69,11 +70,22 @@ export function MyWorkClient({ tenantSlug: _tenantSlug }: { tenantSlug: string }
 
     return (
         <div className="space-y-section">
-            <header className="space-y-tight">
-                <Heading level={1}>{t('title')}</Heading>
-                <p className="text-sm text-content-muted">
-                    {t('subtitle', { count: rows.length })}
-                </p>
+            <header className="flex items-start justify-between gap-default">
+                <div className="space-y-tight">
+                    <Heading level={1}>{t('title')}</Heading>
+                    <p className="text-sm text-content-muted">
+                        {t('subtitle', { count: rows.length })}
+                    </p>
+                </div>
+                {/* The sprayer needs to see where the fields are as part of the
+                    job — the one extra surface they can reach from here. */}
+                <Link
+                    href={href('/locations')}
+                    className="inline-flex flex-shrink-0 items-center gap-tight rounded-lg border border-border-default bg-bg-elevated px-3 py-2 text-sm font-medium text-content-default transition-colors hover:bg-bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                >
+                    <LocationPin className="h-4 w-4 flex-shrink-0 text-content-muted" aria-hidden="true" />
+                    {t('locations')}
+                </Link>
             </header>
 
             {isLoading && !data ? (
