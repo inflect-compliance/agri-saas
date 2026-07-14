@@ -10,7 +10,7 @@
 import { makeRequestContext } from '../helpers/make-context';
 
 // ── Mocks (declared before the usecase import) ──
-const mockEnqueue = jest.fn(async () => ({ id: 'job-123' }));
+const mockEnqueue = jest.fn(async (..._args: unknown[]) => ({ id: 'job-123' }));
 jest.mock('@/app-layer/jobs/queue', () => ({
     enqueue: (...args: unknown[]) => mockEnqueue(...args),
 }));
