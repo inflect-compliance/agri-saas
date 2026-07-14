@@ -283,6 +283,41 @@ model CadastreArchive {
   updatedAt  DateTime @updatedAt
 }
 
+/// LEGAL-ENTITY ("юридическо лице") ownership of a cadastral parcel, extracted
+/// from the КАИС OpenData „собственост ПИ" register. GLOBAL — no tenantId / no
+/// RLS, like CadastreArchive / SoilSample: ownership is public open data shared
+/// across tenants, keyed by cadastral identifier, so parcels hydrate their
+/// owner at read time by joining on `cadastralId`.
+///
+/// PHYSICAL persons are NEVER stored here: КАИС masks them at source (asterisk
+/// «име на лицето» + hex-encrypted ЕГН) and `lib/cadastre/ownership.ts` drops
+/// every masked/person row before persist. Only readable legal entities with a
+/// numeric ЕИК land in this table (locked by tests/unit/cadastre-ownership.test.ts).
+model CadastreOwner {
+  id          String    @id @default(cuid())
+  /// Cadastral identifier of the owned parcel (join key to Parcel.cadastralId).
+  cadastralId String
+  /// 5-digit ЕКАТТЕ settlement code the register was sourced from.
+  ekatte      String
+  /// ЕИК / БУЛСТАТ of the legal entity (numeric, leading zeros preserved).
+  eik         String
+  /// Readable legal-entity name (Община …, … ЕООД, държава).
+  name        String
+  /// «вид на правото» — ownership right type ("" when absent; part of the key).
+  rightType   String    @default("")
+  /// «вид на лицето» — subject kind (Община, ЕООД, държава …), or null.
+  subjectKind String?
+  /// КАИС register freshness stamp (source ModifiedUtc) — provenance.
+  sourceDate  DateTime?
+  fetchedAt   DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([cadastralId, eik, rightType])
+  @@index([cadastralId])
+  @@index([ekatte])
+}
+
 /// The per-parcel prescription line — the heart of the feature. The
 /// spray "job" is a FIELD_OPERATION Task (assignment, status,
 /// comments, notifications all reused); each parcel in the job gets

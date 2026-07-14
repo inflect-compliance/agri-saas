@@ -3197,6 +3197,8 @@
     "ag": {
         "cadastre": {
             "cadastralId": "Cadastral identifier",
+            "legalOwner": "Owner (legal entity)",
+            "eik": "ЕИК {eik}",
             "viewInKais": "View in КАИС",
             "areaMismatch": "Area differs from record",
             "areaMismatchDetail": "Documentary area {doc} dca vs {geom} dca mapped"

@@ -29,6 +29,11 @@ export interface ParcelCadastralInfoProps {
     areaHa?: number | null;
     /** The parcel's propertiesJson (carries the documentary area, when present). */
     properties?: unknown;
+    /**
+     * LEGAL-ENTITY owners from the КАИС ownership register (empty when none).
+     * Shown only in the `detail` layout. Physical persons are never included.
+     */
+    companyOwners?: Array<{ name: string; eik: string; rightType: string | null; subjectKind: string | null }>;
     layout?: 'compact' | 'detail';
     className?: string;
 }
@@ -37,6 +42,7 @@ export function ParcelCadastralInfo({
     cadastralId,
     areaHa,
     properties,
+    companyOwners = [],
     layout = 'compact',
     className,
 }: ParcelCadastralInfoProps) {
@@ -81,13 +87,30 @@ export function ParcelCadastralInfo({
 
     if (layout === 'detail') {
         return (
-            <div className={className}>
-                <dt className="text-content-secondary">{t('cadastralId')}</dt>
-                <dd className="flex flex-wrap items-center gap-tight font-medium">
-                    {link}
-                    {mismatchBadge}
-                </dd>
-            </div>
+            <>
+                <div className={className}>
+                    <dt className="text-content-secondary">{t('cadastralId')}</dt>
+                    <dd className="flex flex-wrap items-center gap-tight font-medium">
+                        {link}
+                        {mismatchBadge}
+                    </dd>
+                </div>
+                {companyOwners.length > 0 ? (
+                    <div className={className}>
+                        <dt className="text-content-secondary">{t('legalOwner')}</dt>
+                        <dd className="space-y-0.5 font-medium">
+                            {companyOwners.map((o, i) => (
+                                <div key={`${o.eik}-${i}`} className="flex flex-wrap items-baseline gap-tight">
+                                    <span>{o.name}</span>
+                                    <span className="text-xs text-content-subtle tabular-nums">
+                                        {t('eik', { eik: o.eik })}
+                                    </span>
+                                </div>
+                            ))}
+                        </dd>
+                    </div>
+                ) : null}
+            </>
         );
     }
 

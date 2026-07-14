@@ -74,6 +74,7 @@ interface ParcelsResp {
         cadastralId?: string | null;
         ekatte?: string | null;
         properties?: unknown;
+        companyOwners?: Array<{ name: string; eik: string; rightType: string | null; subjectKind: string | null }>;
     }>;
 }
 interface OperationItem {
@@ -291,6 +292,7 @@ export default function LocationDetailPage() {
                 soilJson: p.soilJson ?? null,
                 cadastralId: p.cadastralId ?? null,
                 properties: p.properties ?? null,
+                companyOwners: p.companyOwners ?? [],
             }
             : null;
     }, [parcels, sheetParcelId]);
