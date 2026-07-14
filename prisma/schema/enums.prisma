@@ -119,6 +119,12 @@ enum AssetType {
   OTHER
 }
 
+/// Land-use agreement type for a leased parcel (Bulgarian farm land admin).
+enum LeaseKind {
+  ARENDA // аренда — long-term, registered farm lease
+  NAEM // наем — short-term rent
+}
+
 enum Criticality {
   LOW
   MEDIUM

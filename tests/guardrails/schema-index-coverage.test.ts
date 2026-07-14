@@ -399,6 +399,9 @@ const LIST_QUERY_INDEXES: readonly CompositeIndex[] = [
 // curated composite index is needed."
 
 const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
+    // ─── Land administration (roadmap 2/3) — parcel lease register ───
+    ParcelLease:
+        'listParcelLeases findMany filters by (tenantId, parcelId, deletedAt) — covered by @@index([tenantId, parcelId]); the endDate/createdAt orderBy runs over a parcel\'s handful of leases (take:100), no separate composite needed. The [tenantId, endDate] index serves the rent-roll expiry scan (3/3).',
     // ─── RAG (feat/ai-rag) — KnowledgeChunk retrieval store ───
     KnowledgeChunk:
         'retrieve() keyword branch findMany filters by (tenantId OR tenantId IS NULL) + text contains — covered by @@index([tenantId, articleId]) for the tenant predicate; the text match is a substring scan with no useful index (the ranked path is the vector branch, a raw ivfflat $queryRaw not a findMany). Both branches are take-bounded (topK*2). Nullable tenantId GLOBAL catalog.',
