@@ -101,4 +101,28 @@ describeFn('parcel authoring (PostGIS)', () => {
         const loc = await prisma.location.findUnique({ where: { id: locationId }, select: { boundsJson: true } });
         expect(loc!.boundsJson).toBeNull();
     });
+
+    test('updateParcel links a cadastral identifier (normalizes + derives ЕКАТТЕ)', async () => {
+        const p = await createParcel(ctx(), locationId, { name: 'Cad link', geometry: square(0.01) });
+        await updateParcel(ctx(), p.id, { cadastralId: '68134.8360.729' });
+        const row = await prisma.parcel.findUnique({ where: { id: p.id }, select: { cadastralId: true, ekatte: true } });
+        expect(row?.cadastralId).toBe('68134.8360.729');
+        expect(row?.ekatte).toBe('68134'); // 5-digit ЕКАТТЕ prefix
+    });
+
+    test('updateParcel rejects a malformed cadastral identifier', async () => {
+        const p = await createParcel(ctx(), locationId, { name: 'Cad bad', geometry: square(0.01) });
+        await expect(updateParcel(ctx(), p.id, { cadastralId: '15655-3' })).rejects.toThrow(/cadastral/i);
+        const row = await prisma.parcel.findUnique({ where: { id: p.id }, select: { cadastralId: true } });
+        expect(row?.cadastralId).toBeNull(); // unchanged
+    });
+
+    test('updateParcel clears the cadastral identifier with an empty string', async () => {
+        const p = await createParcel(ctx(), locationId, { name: 'Cad clear', geometry: square(0.01) });
+        await updateParcel(ctx(), p.id, { cadastralId: '68134.1.1' });
+        await updateParcel(ctx(), p.id, { cadastralId: '' });
+        const row = await prisma.parcel.findUnique({ where: { id: p.id }, select: { cadastralId: true, ekatte: true } });
+        expect(row?.cadastralId).toBeNull();
+        expect(row?.ekatte).toBeNull();
+    });
 });

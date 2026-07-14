@@ -8,6 +8,11 @@ import type { PrismaTx } from '@/lib/db-context';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { ParcelRepository } from '../repositories/ParcelRepository';
 import { enqueueParcelSoilFetch } from './soil';
+import {
+    normalizeCadastreIdentifier,
+    isValidCadastreIdentifier,
+    ekatteOf,
+} from '@/lib/cadastre/identifier';
 import type { Polygon, MultiPolygon, LineString } from 'geojson';
 
 /**
@@ -31,6 +36,13 @@ export interface CreateParcelInput {
 export interface UpdateParcelInput {
     name?: string;
     cropType?: string | null;
+    /**
+     * КАИ cadastral identifier (`ЕКАТТЕ.масив.парцел`). A non-empty value is
+     * normalized + format-validated and its 5-digit ЕКАТТЕ derived; an empty
+     * string / null clears the link. Setting it lights up the КАИС link, area
+     * reconciliation, and the legal-entity owner (via the ownership fetch).
+     */
+    cadastralId?: string | null;
     geometry?: Polygon | MultiPolygon;
 }
 
@@ -100,6 +112,26 @@ export async function updateParcel(ctx: RequestContext, parcelId: string, input:
             throw badRequest('Parcel shape is invalid (edges cross). Redraw it without self-intersections.');
         }
 
+        // Resolve a cadastral-identifier edit (link or clear). A non-empty value
+        // is normalized + format-validated; the 5-digit ЕКАТТЕ is derived so the
+        // ownership join + read hydration light up. `linkedEkatte` (set only on a
+        // valid link) drives the best-effort ownership fetch after commit.
+        let cadastralUpdate: { cadastralId: string | null; ekatte: string | null } | undefined;
+        if (input.cadastralId !== undefined) {
+            const raw = (input.cadastralId ?? '').trim();
+            if (!raw) {
+                cadastralUpdate = { cadastralId: null, ekatte: null };
+            } else {
+                const norm = normalizeCadastreIdentifier(raw);
+                if (!isValidCadastreIdentifier(norm)) {
+                    throw badRequest(
+                        'Invalid cadastral identifier. Expected ЕКАТТЕ.масив.парцел (e.g. 68134.8360.729).',
+                    );
+                }
+                cadastralUpdate = { cadastralId: norm, ekatte: ekatteOf(norm) };
+            }
+        }
+
         const res = await ParcelRepository.updateOne(db, ctx, parcelId, {
             name: input.name !== undefined ? sanitizePlainText(input.name.trim()) : undefined,
             cropType:
@@ -108,6 +140,7 @@ export async function updateParcel(ctx: RequestContext, parcelId: string, input:
                         ? sanitizePlainText(input.cropType.trim())
                         : null
                     : undefined,
+            ...(cadastralUpdate ?? {}),
             geometry: input.geometry,
         });
         if (input.geometry) await refreshLocationBounds(db, ctx, parcel.locationId);
@@ -131,11 +164,23 @@ export async function updateParcel(ctx: RequestContext, parcelId: string, input:
                 summary: reshaped ? `Reshaped parcel ${parcel.name}` : `Edited parcel ${parcel.name}`,
             },
         });
-        return { res, reshaped };
+        return { res, reshaped, linkedEkatte: cadastralUpdate?.ekatte ?? null };
     });
 
     // A boundary change moves the centroid → re-fetch soil (best-effort).
     if (result.reshaped) await enqueueParcelSoilFetch(ctx, [parcelId]);
+
+    // A newly-linked cadastral identifier → populate the settlement's
+    // legal-entity owners so the parcel's owner surfaces (best-effort, global
+    // cache, TTL-guarded — a no-op when the feature is off or already fresh).
+    if (result.linkedEkatte) {
+        try {
+            const { fetchAndStoreCadastreOwners } = await import('./cadastre-owners');
+            await fetchAndStoreCadastreOwners(result.linkedEkatte).catch(() => undefined);
+        } catch {
+            /* ownership population is best-effort */
+        }
+    }
     return result.res;
 }
 

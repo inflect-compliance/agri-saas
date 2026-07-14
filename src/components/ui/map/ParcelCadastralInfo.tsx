@@ -15,7 +15,7 @@
  * Renders nothing when the parcel has no cadastral identifier.
  */
 import { useTranslations } from 'next-intl';
-import { ArrowUpRight, TriangleWarning } from '@/components/ui/icons/nucleo';
+import { ArrowUpRight, TriangleWarning, PenWriting } from '@/components/ui/icons/nucleo';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
     KAIS_MAP_URL,
@@ -34,6 +34,8 @@ export interface ParcelCadastralInfoProps {
      * Shown only in the `detail` layout. Physical persons are never included.
      */
     companyOwners?: Array<{ name: string; eik: string; rightType: string | null; subjectKind: string | null }>;
+    /** When provided (detail layout), renders an inline edit affordance. */
+    onEdit?: () => void;
     layout?: 'compact' | 'detail';
     className?: string;
 }
@@ -43,10 +45,12 @@ export function ParcelCadastralInfo({
     areaHa,
     properties,
     companyOwners = [],
+    onEdit,
     layout = 'compact',
     className,
 }: ParcelCadastralInfoProps) {
     const t = useTranslations('ag.cadastre');
+    const tc = useTranslations('common');
     if (!cadastralId) return null;
 
     const docDca = documentaryAreaDca(properties);
@@ -93,6 +97,19 @@ export function ParcelCadastralInfo({
                     <dd className="flex flex-wrap items-center gap-tight font-medium">
                         {link}
                         {mismatchBadge}
+                        {onEdit ? (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEdit();
+                                }}
+                                className="inline-flex items-center text-content-subtle hover:text-content-default"
+                                aria-label={tc('edit')}
+                            >
+                                <PenWriting className="size-3.5" aria-hidden="true" />
+                            </button>
+                        ) : null}
                     </dd>
                 </div>
                 {companyOwners.length > 0 ? (

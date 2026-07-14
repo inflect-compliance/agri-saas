@@ -62,6 +62,13 @@ declare module "@tanstack/react-table" {
       slot: "title" | "subtitle" | "status" | "meta" | "actions";
       /** Label for a `meta` row's key. Falls back to the column's string header. */
       label?: string;
+      /**
+       * `meta` slot only: skip the whole key/value row (label included) when the
+       * column's value is empty (null / undefined / ""), so an unset optional
+       * field doesn't render an orphaned label. Requires the column to expose a
+       * value (accessorKey / accessorFn).
+       */
+      hideWhenEmpty?: boolean;
     };
   }
 }
@@ -152,7 +159,15 @@ export function MobileCardList<T>({
         const titleCell = cells.find((c) => cardSlot(c) === "title");
         const statusCell = cells.find((c) => cardSlot(c) === "status");
         const subtitleCell = cells.find((c) => cardSlot(c) === "subtitle");
-        const metaCells = cells.filter((c) => cardSlot(c) === "meta");
+        const metaCells = cells.filter((c) => {
+          if (cardSlot(c) !== "meta") return false;
+          // Drop an optional field's row (label + value) when it's empty.
+          if (c.column.columnDef.meta?.mobileCard?.hideWhenEmpty) {
+            const v = c.getValue();
+            if (v === null || v === undefined || v === "") return false;
+          }
+          return true;
+        });
         const actionsCell = cells.find((c) => cardSlot(c) === "actions");
         const clickable = !!onRowClick;
 

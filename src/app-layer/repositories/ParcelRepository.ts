@@ -316,11 +316,19 @@ export class ParcelRepository {
         db: PrismaTx,
         ctx: RequestContext,
         parcelId: string,
-        input: { name?: string; cropType?: string | null; geometry?: Polygon | MultiPolygon },
+        input: {
+            name?: string;
+            cropType?: string | null;
+            cadastralId?: string | null;
+            ekatte?: string | null;
+            geometry?: Polygon | MultiPolygon;
+        },
     ): Promise<{ areaHa: number | null }> {
         const scalar: Prisma.ParcelUpdateInput = {};
         if (input.name !== undefined) scalar.name = input.name;
         if (input.cropType !== undefined) scalar.cropType = input.cropType;
+        if (input.cadastralId !== undefined) scalar.cadastralId = input.cadastralId;
+        if (input.ekatte !== undefined) scalar.ekatte = input.ekatte;
         if (Object.keys(scalar).length > 0) {
             await db.parcel.update({ where: { id: parcelId }, data: scalar });
         }

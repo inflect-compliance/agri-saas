@@ -389,6 +389,9 @@ export default function LocationDetailPage() {
                 },
                 {
                     id: 'cadastralId',
+                    // Expose the value so the mobile card can drop the row when a
+                    // parcel has no cadastral identifier (hideWhenEmpty below).
+                    accessorFn: (row) => row.cadastralId ?? null,
                     header: t('colCadastralId'),
                     // Bulgarian КАИС cadastral identifier + КАИС deep link, with a
                     // subtle badge when the documentary area diverges >5%.
@@ -400,8 +403,9 @@ export default function LocationDetailPage() {
                             layout="compact"
                         />
                     ),
-                    // Mobile card key/value row — the cadastral identifier.
-                    meta: { mobileCard: { slot: 'meta', label: t('colCadastralId') } },
+                    // Mobile card key/value row — the cadastral identifier; hidden
+                    // when the parcel has none (no orphaned empty label).
+                    meta: { mobileCard: { slot: 'meta', label: t('colCadastralId'), hideWhenEmpty: true } },
                 },
                 {
                     id: 'viewOnMap',
