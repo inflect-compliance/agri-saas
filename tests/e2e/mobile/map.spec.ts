@@ -123,4 +123,54 @@ test.describe('mobile map — phone-native operator map @mobile', () => {
         // Gated until an input + dose + operator are chosen.
         await expect(createBtn).toBeDisabled();
     });
+
+    // Turning the cadastre overlay on must not introduce horizontal drift. The
+    // toggle only renders when a cadastre source is configured (CADASTRE_PARCELS_URL
+    // / CADASTRE_WMS_URL) — CI usually has neither, so this no-ops (skips) there.
+    test('the cadastre overlay toggle introduces no horizontal drift on a phone', async ({
+        authedPage,
+        isolatedTenant,
+    }) => {
+        test.setTimeout(90_000);
+        const page = authedPage;
+        const slug = isolatedTenant.tenantSlug;
+        const api = page.request;
+
+        const locRes = await api.post(`/api/t/${slug}/locations`, { data: { name: 'Cadastre Farm' } });
+        expect(locRes.ok(), `create location: ${locRes.status()}`).toBeTruthy();
+        const locationId = (await locRes.json()).id as string;
+        const parRes = await api.post(`/api/t/${slug}/locations/${locationId}/parcels`, {
+            data: { name: 'Plot A', geometry: SQUARE },
+        });
+        expect(parRes.ok(), `create parcel: ${parRes.status()}`).toBeTruthy();
+
+        await page.goto(`/t/${slug}/locations/${locationId}`);
+        const main = page.getByRole('main');
+        await expect(main.getByRole('heading', { name: 'Cadastre Farm' }).first()).toBeVisible({
+            timeout: 30_000,
+        });
+        await main.getByRole('tab', { name: 'Map' }).click();
+        await expect(page.getByTestId('map-zoom-in')).toBeVisible({ timeout: 30_000 });
+
+        // The single cadastre toggle carries either label ("Cadastral map" for
+        // the raster path, "Cadastral boundaries" for the vector path).
+        const toggle = main.getByRole('button', { name: /Cadastr/i });
+        if ((await toggle.count()) === 0) {
+            test.skip(true, 'cadastre overlay not configured in this environment');
+            return;
+        }
+
+        await toggle.first().click();
+        // Let any viewport fetch / source mount settle.
+        await page.waitForTimeout(500);
+
+        const overflow = await page.evaluate(() => ({
+            scrollWidth: document.documentElement.scrollWidth,
+            clientWidth: document.documentElement.clientWidth,
+        }));
+        expect(
+            overflow.scrollWidth,
+            `cadastre overlay should not overflow (${overflow.scrollWidth} vs ${overflow.clientWidth})`,
+        ).toBeLessThanOrEqual(overflow.clientWidth + 1);
+    });
 });

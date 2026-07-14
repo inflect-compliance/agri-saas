@@ -241,7 +241,18 @@ export default function LocationDetailPage() {
     const cadastreCfgQ = useTenantSWR<{ configured: boolean }>(
         tab === 'map' ? '/cadastre/config' : null,
     );
-    const cadastreConfigured = cadastreCfgQ.data?.configured ?? false;
+    // FREE vector parcels overlay availability (the default that actually
+    // renders). Independent server flag; when set the single cadastre toggle
+    // PREFERS this vector overlay over the raster WMS path.
+    const cadastreParcelsCfgQ = useTenantSWR<{ configured: boolean }>(
+        tab === 'map' ? '/cadastre/parcels/config' : null,
+    );
+    const cadastreRasterConfigured = cadastreCfgQ.data?.configured ?? false;
+    const cadastreVectorConfigured = cadastreParcelsCfgQ.data?.configured ?? false;
+    // ONE toggle for the cadastre overlay: shown when EITHER source is
+    // configured; it drives the vector overlay when that env is set (preferred),
+    // else the raster WMS path. Never two cadastre toggles.
+    const cadastreConfigured = cadastreVectorConfigured || cadastreRasterConfigured;
 
     const loc = locQ.data;
     const parcels = useMemo(() => parcelsQ.data?.parcels ?? [], [parcelsQ.data]);
@@ -627,7 +638,7 @@ export default function LocationDetailPage() {
                                         aria-pressed={cadastreOn}
                                         aria-label={!online ? t('cadastreOfflineHint') : undefined}
                                     >
-                                        {t('cadastreToggle')}
+                                        {cadastreVectorConfigured ? t('cadastreBoundariesToggle') : t('cadastreToggle')}
                                     </Button>
                                 </Tooltip>
                             )}
@@ -734,8 +745,24 @@ export default function LocationDetailPage() {
                             // substitute). Gated on the feature being configured,
                             // the toggle being on, AND online (online-only — the
                             // WMS is never part of the offline basemap pack).
+                            // Cadastre VECTOR parcels overlay — the FREE default
+                            // that actually renders. Same-origin proxy endpoint;
+                            // MapCanvas fetches the viewport bbox as GeoJSON.
+                            // Preferred when its env is configured; gated on the
+                            // toggle being on AND online (online-only).
+                            cadastreParcels={
+                                cadastreVectorConfigured && cadastreOn && online
+                                    ? { url: buildUrl(`/cadastre/parcels`) }
+                                    : null
+                            }
+                            // Cadastre (КККР) raster WMS overlay — same-origin
+                            // proxy template ({z}/{x}/{y} kept literal for
+                            // MapLibre to substitute). Only drives the toggle
+                            // when the VECTOR source is NOT configured (they never
+                            // both render); gated on the toggle being on AND
+                            // online (the WMS is never part of the offline pack).
                             cadastreOverlay={
-                                cadastreConfigured && cadastreOn && online
+                                !cadastreVectorConfigured && cadastreRasterConfigured && cadastreOn && online
                                     ? { tileUrl: buildUrl(`/cadastre/wms/{z}/{x}/{y}`) }
                                     : null
                             }

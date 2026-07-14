@@ -6370,6 +6370,7 @@
             "imageryNone": "Няма изображения {index} без облаци за това поле около тази дата.",
             "merge": "Обедини",
             "cadastreToggle": "Кадастрална карта",
+            "cadastreBoundariesToggle": "Кадастрални граници",
             "cadastreOfflineHint": "Кадастралната карта изисква връзка — не е достъпна офлайн.",
             "dateFallback": "Дата",
             "imageryAriaLabel": "Дата на инспекция на изображенията: {date}",

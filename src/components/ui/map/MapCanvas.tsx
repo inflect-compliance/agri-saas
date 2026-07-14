@@ -41,6 +41,15 @@ import { getOneShotPosition } from '@/lib/geo/one-shot-position';
 // view they'd overlap into noise; they reappear when inspecting fields.
 const CROP_ICON_MIN_ZOOM = 12;
 
+// Below this zoom the cadastre VECTOR parcels overlay does NOT fetch — a
+// region-wide view would pull thousands of official parcels into noise (and
+// past the proxy's bbox-span cap). At/above it the current viewport's parcels
+// are fetched on load + move (debounced). Mirrors the server-side span cap.
+const CADASTRE_PARCELS_MIN_ZOOM = 15;
+// Debounce (ms) between a map move settling and the parcels re-fetch, so a
+// pan/zoom gesture fires one request, not one per frame.
+const CADASTRE_PARCELS_FETCH_DEBOUNCE_MS = 400;
+
 // Fallback map view when a location has no parcel geometry to fit — the whole
 // of Bulgaria in frame (approx. geographic centre), not the world.
 const BULGARIA_VIEW = { longitude: 25.49, latitude: 42.73, zoom: 6.4 } as const;
@@ -122,6 +131,22 @@ export interface MapCanvasProps {
      * configured AND online (online-only — not part of the offline pack).
      */
     cadastreOverlay?: { tileUrl: string } | null;
+    /**
+     * Bulgarian cadastre (КККР / АГКК) VECTOR parcels overlay — the FREE default
+     * that actually renders. `url` is the SAME-ORIGIN `/cadastre/parcels`
+     * endpoint served by the bounded proxy route (the upstream ArcGIS URL never
+     * reaches the browser). When set AND the map is zoomed to
+     * `CADASTRE_PARCELS_MIN_ZOOM`+ (below that too many parcels), the current
+     * viewport's parcels are fetched (`?bbox=west,south,east,north`) on load +
+     * move (debounced) into a GeoJSON source, drawn as a thin boundary LINE
+     * layer ABOVE the basemap + soil/index rasters but BELOW the tenant's own
+     * parcel fills (own fields stay prominent on top). `null`/absent or an empty
+     * `url` renders nothing; the host gates it on the feature being configured
+     * AND online (online-only — not part of the offline pack). Independent of
+     * `cadastreOverlay` (the raster WMS path) — the host prefers this vector
+     * overlay when its env is configured.
+     */
+    cadastreParcels?: { url: string } | null;
     /**
      * On-map thumb controls (zoom ±, find-my-field). Opt-in so the read-only
      * operator/prescription paths are unchanged unless they ask for it.
@@ -229,6 +254,7 @@ export function MapCanvas({
     onGeometryValidity,
     indexOverlay = null,
     cadastreOverlay = null,
+    cadastreParcels = null,
     showControls = false,
     controlsBottomInset = 12,
     liveTracking = false,
@@ -244,6 +270,8 @@ export function MapCanvas({
     const reducedMotion = useReducedMotion();
     const indexActive = !!indexOverlay && indexOverlay.tileUrl.length > 0;
     const cadastreActive = !!cadastreOverlay && cadastreOverlay.tileUrl.length > 0;
+    const cadastreParcelsUrl = cadastreParcels?.url ?? '';
+    const cadastreParcelsActive = cadastreParcelsUrl.length > 0;
     const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
     const done = useMemo(() => new Set(doneIds), [doneIds]);
     const mapRef = useRef<MapRef | null>(null);
@@ -355,6 +383,75 @@ export function MapCanvas({
                 : BASEMAP_STYLE,
         [offlineBasemapTileUrl, online],
     );
+
+    // ── Cadastre VECTOR parcels overlay (КККР / АГКК) ──────────────────
+    // The current viewport's official parcels, fetched from the same-origin
+    // proxy as a GeoJSON FeatureCollection and drawn as a thin boundary line
+    // under the tenant's own fields. Fetched on load + move (debounced) while
+    // zoomed in; cleared/aborted when toggled off or below the zoom floor.
+    const [cadastreParcelData, setCadastreParcelData] = useState<FeatureCollection>(
+        () => ({ type: 'FeatureCollection', features: [] }),
+    );
+    const cadastreFetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const cadastreAbort = useRef<AbortController | null>(null);
+
+    const fetchCadastreParcels = useCallback(() => {
+        const map = mapRef.current?.getMap();
+        if (!map || !cadastreParcelsActive) return;
+        // Below the zoom floor there are too many parcels to be useful (and the
+        // proxy would refuse the wide bbox) — clear and skip the fetch.
+        if (map.getZoom() < CADASTRE_PARCELS_MIN_ZOOM) {
+            setCadastreParcelData((prev) =>
+                prev.features.length ? { type: 'FeatureCollection', features: [] } : prev,
+            );
+            return;
+        }
+        const b = map.getBounds();
+        const bbox = `${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`;
+        // Cancel any in-flight request — the viewport moved on.
+        cadastreAbort.current?.abort();
+        const controller = new AbortController();
+        cadastreAbort.current = controller;
+        fetch(`${cadastreParcelsUrl}?bbox=${encodeURIComponent(bbox)}`, { signal: controller.signal })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((json: unknown) => {
+                if (
+                    json &&
+                    typeof json === 'object' &&
+                    (json as { type?: unknown }).type === 'FeatureCollection' &&
+                    Array.isArray((json as { features?: unknown }).features)
+                ) {
+                    setCadastreParcelData(json as FeatureCollection);
+                }
+            })
+            .catch(() => {
+                /* aborted or network error — keep the last-good parcels */
+            });
+    }, [cadastreParcelsActive, cadastreParcelsUrl]);
+
+    // Debounced move handler — one fetch per settled pan/zoom, not per frame.
+    const handleCadastreMoveEnd = useCallback(() => {
+        if (!cadastreParcelsActive) return;
+        if (cadastreFetchTimer.current) clearTimeout(cadastreFetchTimer.current);
+        cadastreFetchTimer.current = setTimeout(fetchCadastreParcels, CADASTRE_PARCELS_FETCH_DEBOUNCE_MS);
+    }, [cadastreParcelsActive, fetchCadastreParcels]);
+
+    // Toggle lifecycle: fetch for the current viewport when turned on; abort +
+    // clear when turned off so a re-toggle never flashes stale parcels.
+    useEffect(() => {
+        if (!cadastreParcelsActive) {
+            cadastreAbort.current?.abort();
+            if (cadastreFetchTimer.current) clearTimeout(cadastreFetchTimer.current);
+            // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on toggle-off (bounded, no loop)
+            setCadastreParcelData({ type: 'FeatureCollection', features: [] });
+            return;
+        }
+        fetchCadastreParcels();
+        return () => {
+            cadastreAbort.current?.abort();
+            if (cadastreFetchTimer.current) clearTimeout(cadastreFetchTimer.current);
+        };
+    }, [cadastreParcelsActive, fetchCadastreParcels]);
 
     const handleClick = useCallback((e: MapLayerMouseEvent) => {
         if (!interactive || !onSelectionChange || drawing) return;
@@ -678,6 +775,11 @@ export function MapCanvas({
                 interactiveLayerIds={interactive && !drawing ? ['parcel-fill'] : []}
                 onClick={handleClick}
                 onZoomEnd={(e) => setZoom(e.viewState.zoom)}
+                // Cadastre vector parcels: fetch the current viewport on first
+                // load, and (debounced) whenever a pan/zoom settles. No-ops when
+                // the overlay is off.
+                onLoad={fetchCadastreParcels}
+                onMoveEnd={handleCadastreMoveEnd}
                 style={{ width: '100%', height: '100%' }}
                 cursor={interactive && !drawing ? 'pointer' : 'grab'}
                 // Google-Maps-style scroll: a plain wheel/one-finger scroll
@@ -740,6 +842,33 @@ export function MapCanvas({
                         attribution={t('cadastreAttribution')}
                     >
                         <Layer id="cadastre-wms-raster" type="raster" paint={{ 'raster-opacity': 0.8 }} />
+                    </Source>
+                )}
+                {/* Bulgarian cadastre (КККР / АГКК) VECTOR parcels overlay — the
+                    FREE default. Official parcel boundaries for the current
+                    viewport (fetched same-origin as GeoJSON), drawn as a thin
+                    amber boundary line ABOVE the basemap/soil/index rasters but
+                    BELOW the parcels source below, so the operator's own field
+                    fills sit on top and stay legible. Empty until the first
+                    viewport fetch resolves; renders nothing below the zoom
+                    floor. Attribution via MapLibre's attribution control. */}
+                {cadastreParcelsActive && (
+                    <Source
+                        id="cadastre-parcels"
+                        key="cadastre-parcels"
+                        type="geojson"
+                        data={cadastreParcelData}
+                        attribution={t('cadastreAttribution')}
+                    >
+                        <Layer
+                            id="cadastre-parcels-line"
+                            type="line"
+                            paint={{
+                                'line-color': '#d97706',
+                                'line-width': 1,
+                                'line-opacity': 0.7,
+                            }}
+                        />
                     </Source>
                 )}
                 {/* Hide the static layer while editing so terra-draw owns

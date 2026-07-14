@@ -250,6 +250,18 @@ export const env = createEnv({
         CADASTRE_WMS_LAYERS: z.string().default('CP.CadastralParcel'),
         CADASTRE_WMS_PREMIUM_URL: z.string().url().optional(),
 
+        // ── Bulgarian cadastre (КККР / АГКК) VECTOR parcels overlay ──
+        // The FREE default that actually renders: an ArcGIS FeatureServer-style
+        // layer (spp.api.bg CadBaseMap MapServer/2) whose `/query` returns
+        // GeoJSON parcel polygons reprojected server-side to EPSG:4326. When set,
+        // the location-map cadastre toggle drives this VECTOR boundary overlay
+        // (preferred over the raster WMS path above). SERVER-ONLY + OPTIONAL —
+        // the overlay stays hidden unless configured; the resolved URL is fetched
+        // server-side via the same-origin `/cadastre/parcels` proxy and NEVER
+        // reaches the browser (the client sees only a `configured` boolean + the
+        // same-origin endpoint). Mirrors the SOIL_BASE_URL pattern.
+        CADASTRE_PARCELS_URL: z.string().url().optional(),
+
         // ── Swappable AI provider (feat/ai-provider) ──
         // ONE OpenAI-compatible provider serves local dev (Ollama) and
         // any hosted backend (OpenRouter / Groq / Together) — they differ
@@ -539,6 +551,7 @@ export const env = createEnv({
         CADASTRE_WMS_URL: process.env.CADASTRE_WMS_URL,
         CADASTRE_WMS_LAYERS: process.env.CADASTRE_WMS_LAYERS,
         CADASTRE_WMS_PREMIUM_URL: process.env.CADASTRE_WMS_PREMIUM_URL,
+        CADASTRE_PARCELS_URL: process.env.CADASTRE_PARCELS_URL,
         AI_BACKEND: process.env.AI_BACKEND,
         AI_BASE_URL: process.env.AI_BASE_URL,
         AI_API_KEY: process.env.AI_API_KEY,

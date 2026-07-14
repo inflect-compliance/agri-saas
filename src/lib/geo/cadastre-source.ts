@@ -60,3 +60,20 @@ export function resolveCadastreSource(): CadastreSource | null {
 export function isCadastreConfigured(): boolean {
     return resolveCadastreSource() !== null;
 }
+
+/**
+ * Resolve the free VECTOR parcels upstream (`CADASTRE_PARCELS_URL`), or `null`
+ * when unset. This is the ArcGIS FeatureServer-style layer whose `/query`
+ * returns GeoJSON polygons — the FREE default that actually renders. Kept
+ * separate from `resolveCadastreSource()` (the raster WMS path) so the two
+ * overlays stay independent; the client prefers the vector overlay when this is
+ * configured. SERVER-ONLY — the URL never reaches the browser.
+ */
+export function resolveCadastreParcelsUrl(): string | null {
+    return env.CADASTRE_PARCELS_URL ?? null;
+}
+
+/** True when an operator has configured the free VECTOR parcels upstream. */
+export function isCadastreParcelsConfigured(): boolean {
+    return resolveCadastreParcelsUrl() !== null;
+}
