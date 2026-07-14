@@ -6310,7 +6310,14 @@
             "stageTransplant": "Разсаждане",
             "stageHarvest": "Прибиране на реколтата",
             "sprayWindowToday": "Прозорец за пръскане днес",
-            "nextCropPlanTask": "Следваща задача от плана"
+            "nextCropPlanTask": "Следваща задача от плана",
+            "sprayReason": {
+                "windUnsuitable": "Вятър {wind} км/ч надвишава границата за отнасяне от {limit} км/ч",
+                "windCaution": "Вятър {wind} км/ч — внимание за отнасяне над {limit} км/ч",
+                "rainUnsuitable": "Дъжд {rain} мм — риск от отмиване (граница {limit} мм)",
+                "tempOutside": "Температура {temp}°C извън прозореца {min}–{max}°C",
+                "withinLimits": "Условията са в границите за пръскане"
+            }
         },
         "detail": {
             "fallbackTitle": "Локация",

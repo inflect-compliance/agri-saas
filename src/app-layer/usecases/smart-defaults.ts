@@ -9,7 +9,7 @@
 import { RequestContext } from '../types';
 import { runInTenantContext } from '@/lib/db-context';
 import { assertCanRead } from '../policies/common';
-import { evaluateSprayWindow, type SprayWindowStatus } from '@/lib/agro/rules';
+import { evaluateSprayWindow, type SprayWindowStatus, type SprayReason } from '@/lib/agro/rules';
 
 /**
  * The most recent field operation on a location's parcels, regrouped into a
@@ -36,6 +36,8 @@ export interface SmartParcelDefault {
 export interface SmartSprayWindow {
     status: SprayWindowStatus;
     reasons: string[];
+    /** Structured reasons for i18n at the UI layer (see SmartDefaultsBanner). */
+    reasonCodes: SprayReason[];
     obsDate: string;
 }
 
@@ -165,12 +167,12 @@ async function loadSprayWindow(db: Db, tenantId: string, locationId: string): Pr
         select: { obsDate: true, windMaxKmh: true, precipMm: true, tempMeanC: true },
     });
     if (!obs) return null;
-    const { status, reasons } = evaluateSprayWindow({
+    const { status, reasons, reasonCodes } = evaluateSprayWindow({
         windMaxKmh: toNumberOrNull(obs.windMaxKmh),
         precipMm: toNumberOrNull(obs.precipMm),
         tempMeanC: toNumberOrNull(obs.tempMeanC),
     });
-    return { status, reasons, obsDate: obs.obsDate.toISOString() };
+    return { status, reasons, reasonCodes, obsDate: obs.obsDate.toISOString() };
 }
 
 async function loadNextPlanting(db: Db, tenantId: string, locationId: string, now: Date): Promise<SmartNextPlanting | null> {
