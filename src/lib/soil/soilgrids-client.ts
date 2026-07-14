@@ -9,7 +9,7 @@
  *
  * Contract (mirrors the Open-Meteo client):
  *   • one GET to the properties/query endpoint for the requested layers,
- *   • a 15s AbortController timeout,
+ *   • a 30s AbortController timeout,
  *   • a throw on any non-2xx (the beta REST API is rate-limited ~5 req/min;
  *     the caller runs this behind a cache + a queue rate limiter),
  *   • the nested `properties.layers[].depths[].values.{mean,uncertainty}`
@@ -27,7 +27,12 @@ import type { SoilProfile, SoilPropertyStat } from './types';
 /** Default SoilGrids REST base (overridable via SOIL_BASE_URL). */
 export const SOILGRIDS_DEFAULT_BASE_URL = 'https://rest.isric.org/soilgrids/v2.0';
 
-const FETCH_TIMEOUT_MS = 15_000;
+// 30s: SoilGrids' beta REST routinely takes 15-20s under its own throttling
+// (observed ~19s for a valid 200 in Bulgaria). This runs on the background
+// soil worker OUTSIDE any DB transaction (see fetchAndStoreParcelSoil), so a
+// longer wait costs nothing user-facing and just lets a slow-but-valid
+// response land instead of aborting it at 15s and stranding the parcel.
+const FETCH_TIMEOUT_MS = 30_000;
 
 /** Depth interval we read (topsoil — most relevant to crop planning). */
 const DEPTH = '0-5cm';
