@@ -46,9 +46,30 @@ export const DEFAULT_SPRAY_THRESHOLDS: SprayWindowThresholds = {
     tempMaxC: 28,
 };
 
+/**
+ * Structured, i18n-ready spray-window reason. The English `reasons[]` above
+ * stay as-is for server consumers (AI copilot prompt, audit/signal details,
+ * notifications); `reasonCodes[]` is the parallel machine form the UI
+ * translates at render time so the Bulgarian app shows Bulgarian reasons.
+ */
+export type SprayReasonCode =
+    | 'windUnsuitable'
+    | 'windCaution'
+    | 'rainUnsuitable'
+    | 'tempOutside'
+    | 'withinLimits';
+
+export interface SprayReason {
+    code: SprayReasonCode;
+    params: Record<string, number>;
+}
+
 export interface SprayWindowResult {
     status: SprayWindowStatus;
+    /** English sentences — for AI/audit/notification consumers. */
     reasons: string[];
+    /** Structured codes+params — for i18n at the UI render layer. */
+    reasonCodes: SprayReason[];
 }
 
 /**
@@ -61,6 +82,7 @@ export function evaluateSprayWindow(
     thresholds: SprayWindowThresholds = DEFAULT_SPRAY_THRESHOLDS,
 ): SprayWindowResult {
     const reasons: string[] = [];
+    const reasonCodes: SprayReason[] = [];
     let status: SprayWindowStatus = 'GOOD';
 
     const downgrade = (to: SprayWindowStatus) => {
@@ -72,24 +94,31 @@ export function evaluateSprayWindow(
         if (w.windMaxKmh >= thresholds.windUnsuitableKmh) {
             downgrade('UNSUITABLE');
             reasons.push(`Wind ${w.windMaxKmh} km/h exceeds the ${thresholds.windUnsuitableKmh} km/h drift limit`);
+            reasonCodes.push({ code: 'windUnsuitable', params: { wind: w.windMaxKmh, limit: thresholds.windUnsuitableKmh } });
         } else if (w.windMaxKmh >= thresholds.windCautionKmh) {
             downgrade('CAUTION');
             reasons.push(`Wind ${w.windMaxKmh} km/h — drift caution above ${thresholds.windCautionKmh} km/h`);
+            reasonCodes.push({ code: 'windCaution', params: { wind: w.windMaxKmh, limit: thresholds.windCautionKmh } });
         }
     }
     if (w.precipMm != null && w.precipMm >= thresholds.rainUnsuitableMm) {
         downgrade('UNSUITABLE');
         reasons.push(`Rain ${w.precipMm} mm risks wash-off (limit ${thresholds.rainUnsuitableMm} mm)`);
+        reasonCodes.push({ code: 'rainUnsuitable', params: { rain: w.precipMm, limit: thresholds.rainUnsuitableMm } });
     }
     if (w.tempMeanC != null) {
         if (w.tempMeanC < thresholds.tempMinC || w.tempMeanC > thresholds.tempMaxC) {
             downgrade('UNSUITABLE');
             reasons.push(`Temperature ${w.tempMeanC}°C outside the ${thresholds.tempMinC}–${thresholds.tempMaxC}°C window`);
+            reasonCodes.push({ code: 'tempOutside', params: { temp: w.tempMeanC, min: thresholds.tempMinC, max: thresholds.tempMaxC } });
         }
     }
 
-    if (status === 'GOOD') reasons.push('Conditions within spray limits');
-    return { status, reasons };
+    if (status === 'GOOD') {
+        reasons.push('Conditions within spray limits');
+        reasonCodes.push({ code: 'withinLimits', params: {} });
+    }
+    return { status, reasons, reasonCodes };
 }
 
 // ─── Disease risk ────────────────────────────────────────────────────

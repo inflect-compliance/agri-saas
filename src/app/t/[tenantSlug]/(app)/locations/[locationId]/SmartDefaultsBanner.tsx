@@ -48,8 +48,12 @@ export function SmartDefaultsBanner({ data }: { data?: LocationSmartDefaults | n
                     <p className={cn('text-sm font-medium', SPRAY_TONE[sprayWindow.status])}>
                         {t(SPRAY_LABEL_KEY[sprayWindow.status])}
                     </p>
-                    {sprayWindow.reasons.length > 0 && (
-                        <p className="text-xs text-content-muted">{sprayWindow.reasons.join(' · ')}</p>
+                    {sprayWindow.reasonCodes.length > 0 && (
+                        <p className="text-xs text-content-muted">
+                            {sprayWindow.reasonCodes
+                                .map((r) => t(`sprayReason.${r.code}`, r.params))
+                                .join(' · ')}
+                        </p>
                     )}
                 </div>
             )}

@@ -6322,7 +6322,14 @@
             "stageTransplant": "Transplant",
             "stageHarvest": "Harvest",
             "sprayWindowToday": "Spray window today",
-            "nextCropPlanTask": "Next crop-plan task"
+            "nextCropPlanTask": "Next crop-plan task",
+            "sprayReason": {
+                "windUnsuitable": "Wind {wind} km/h exceeds the {limit} km/h drift limit",
+                "windCaution": "Wind {wind} km/h — drift caution above {limit} km/h",
+                "rainUnsuitable": "Rain {rain} mm risks wash-off (limit {limit} mm)",
+                "tempOutside": "Temperature {temp}°C outside the {min}–{max}°C window",
+                "withinLimits": "Conditions within spray limits"
+            }
         },
         "detail": {
             "fallbackTitle": "Location",
