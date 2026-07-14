@@ -198,6 +198,14 @@ describe('CI Guard: No direct prisma in tenant-scoped code', () => {
         // runInTenantContext. See route-exemptions.ts for the
         // anti-enumeration route shape.
         'data-stream.ts',
+        // Cadastre ownership — `CadastreOwner` is a GLOBAL open-data cache
+        // (no tenantId / no RLS, like CadastreArchive / SoilSample), keyed by
+        // cadastral identifier and shared across tenants. `fetchAndStore-
+        // CadastreOwners` upserts it with the global prisma client (the same
+        // shape the cadastre-import job uses for `cadastreArchive`); there is
+        // no tenant to bind and no business data — physical persons are dropped
+        // by lib/cadastre/ownership.ts before any write.
+        'cadastre-owners.ts',
     ];
 
     const usecases = readFilesInDir(path.join(SRC_ROOT, 'app-layer/usecases'));
