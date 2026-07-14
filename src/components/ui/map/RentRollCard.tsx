@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Heading } from '@/components/ui/typography';
 
 interface RentRollData {
     totalLeasedDca: number;
@@ -41,7 +42,7 @@ export function RentRollCard({ locationId }: { locationId: string }) {
     return (
         <div className="space-y-default rounded-lg border border-border-subtle bg-bg-default p-4">
             <div className="flex items-center justify-between gap-default">
-                <h3 className="font-medium text-content-emphasis">{t('title')}</h3>
+                <Heading level={3}>{t('title')}</Heading>
                 <div className="flex items-center gap-default text-sm">
                     <a href={exportUrl('csv')} className="text-brand hover:underline">CSV</a>
                     <a href={exportUrl('pdf')} className="text-brand hover:underline">PDF</a>
