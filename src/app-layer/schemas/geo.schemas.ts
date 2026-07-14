@@ -52,12 +52,18 @@ export const UpdateParcelSchema = z
     .object({
         name: z.string().min(1).max(200).optional(),
         cropType: z.string().max(120).nullable().optional(),
+        cadastralId: z.string().max(50).nullable().optional(),
         geometry: PolygonGeometrySchema.optional(),
     })
     .strip()
-    .refine((b) => b.name !== undefined || b.cropType !== undefined || b.geometry !== undefined, {
-        message: 'No fields to update.',
-    });
+    .refine(
+        (b) =>
+            b.name !== undefined ||
+            b.cropType !== undefined ||
+            b.cadastralId !== undefined ||
+            b.geometry !== undefined,
+        { message: 'No fields to update.' },
+    );
 
 /**
  * Merge ≥2 parcels of a location into one new parcel (their geometric

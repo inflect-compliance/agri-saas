@@ -121,6 +121,11 @@ export function ParcelDetailSheet({
     const [cropValue, setCropValue] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    // Cadastral-identifier inline editor (link/clear a КАИ id on the parcel).
+    const [cadEditing, setCadEditing] = useState(false);
+    const [cadInput, setCadInput] = useState('');
+    const [cadSaving, setCadSaving] = useState(false);
+    const [cadError, setCadError] = useState<string | null>(null);
 
     // Reset the whole form whenever a different parcel takes the sheet.
     /* eslint-disable react-hooks/set-state-in-effect -- intentional form re-seed. */
@@ -133,6 +138,9 @@ export function ParcelDetailSheet({
         setWaterRateUnitId('');
         setTechniqueKey('');
         setTechniqueOther('');
+        setCadEditing(false);
+        setCadInput('');
+        setCadError(null);
         setNote('');
         setError(null);
         setCropValue(parcel?.cropType ?? '');
@@ -257,6 +265,32 @@ export function ParcelDetailSheet({
         }
     };
 
+    // Link (or clear) a КАИ cadastral identifier on this parcel. On success the
+    // parent revalidates → the КАИС link + legal-entity owner surface. Format is
+    // pre-checked client-side (ЕКАТТЕ.масив.парцел) for a friendly message; the
+    // usecase re-validates server-side.
+    const onCadastralSave = async () => {
+        if (!parcel) return;
+        const raw = cadInput.trim().replace(/\s+/g, '');
+        if (raw && !/^\d{5}\.\d+\.\d+$/.test(raw)) {
+            setCadError(t('parcelSheet.cadastralInvalid'));
+            return;
+        }
+        setCadSaving(true);
+        setCadError(null);
+        try {
+            await apiPatch(buildUrl(`/locations/${locationId}/parcels/${parcel.id}`), {
+                cadastralId: raw || null,
+            });
+            setCadEditing(false);
+            onCropChanged?.();
+        } catch (err) {
+            setCadError(err instanceof Error ? err.message : t('parcelSheet.createFailed'));
+        } finally {
+            setCadSaving(false);
+        }
+    };
+
     const doSubmit = async () => {
         if (!canSubmit || !parcel) return;
         setSubmitting(true);
@@ -318,7 +352,37 @@ export function ParcelDetailSheet({
                             {areaSummary ?? '—'}
                         </dd>
                     </div>
-                    {parcel?.cadastralId ? (
+                    {parcel && (cadEditing || !parcel.cadastralId) ? (
+                        <div className="col-span-2">
+                            <dt className="text-content-secondary">{t('parcelSheet.cadastralIdLabel')}</dt>
+                            <dd className="mt-1 flex flex-wrap items-center gap-tight">
+                                <Input
+                                    value={cadInput}
+                                    onChange={(e) => setCadInput(e.target.value)}
+                                    placeholder={t('parcelSheet.cadastralPlaceholder')}
+                                    className="max-w-[13rem]"
+                                    id="parcel-cadastral-input"
+                                    aria-label={t('parcelSheet.cadastralIdLabel')}
+                                />
+                                <Button variant="secondary" size="sm" onClick={onCadastralSave} disabled={cadSaving}>
+                                    {tc('save')}
+                                </Button>
+                                {parcel.cadastralId ? (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setCadEditing(false);
+                                            setCadError(null);
+                                        }}
+                                    >
+                                        {tc('cancel')}
+                                    </Button>
+                                ) : null}
+                            </dd>
+                            {cadError ? <p className="mt-1 text-xs text-content-error">{cadError}</p> : null}
+                        </div>
+                    ) : parcel?.cadastralId ? (
                         <ParcelCadastralInfo
                             cadastralId={parcel.cadastralId}
                             areaHa={parcel.areaHa ?? null}
@@ -326,6 +390,11 @@ export function ParcelDetailSheet({
                             companyOwners={parcel.companyOwners ?? []}
                             layout="detail"
                             className="col-span-2"
+                            onEdit={() => {
+                                setCadInput(parcel.cadastralId ?? '');
+                                setCadError(null);
+                                setCadEditing(true);
+                            }}
                         />
                     ) : null}
                     <div>
