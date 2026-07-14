@@ -3406,6 +3406,7 @@
             "parcelSheet": {
                 "description": "Parcel detail and apply-rate calculator",
                 "area": "Area",
+                "areaDca": "{dca} dca",
                 "crop": "Crop",
                 "lastApplication": "Last application",
                 "noApplications": "No applications recorded yet",
