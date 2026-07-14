@@ -223,6 +223,16 @@ export const env = createEnv({
         SOIL_PROVIDER: z.string().default('soilgrids'),
         SOIL_BASE_URL: z.string().url().optional(),
 
+        // ── Market-price trends backbone (feat/trends-data-backbone) ──
+        // Optional overrides for the market-price pull job. Both OPTIONAL:
+        // EC_AGRIFOOD_BASE_URL overrides the EC AGRI-food API endpoint (point
+        // it at a mirror/proxy; defaults live in the client). ALPHA_VANTAGE_API_KEY
+        // enables the Alpha Vantage global reference feed — when UNSET the
+        // Alpha Vantage source is simply skipped by the pull. Mirrors the
+        // SOIL_BASE_URL pattern (feature degrades gracefully when unset).
+        EC_AGRIFOOD_BASE_URL: z.string().url().optional(),
+        ALPHA_VANTAGE_API_KEY: z.string().optional(),
+
         // ── КАИС cadastre OpenData import (feat/cadastre-opendata-import) ──
         // Base URL of the Bulgarian cadastre (АГКК) OpenData portal
         // (https://kais.cadastre.bg). SERVER-ONLY + OPTIONAL: when unset the
@@ -547,6 +557,8 @@ export const env = createEnv({
         OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
         SOIL_PROVIDER: process.env.SOIL_PROVIDER,
         SOIL_BASE_URL: process.env.SOIL_BASE_URL,
+        EC_AGRIFOOD_BASE_URL: process.env.EC_AGRIFOOD_BASE_URL,
+        ALPHA_VANTAGE_API_KEY: process.env.ALPHA_VANTAGE_API_KEY,
         CADASTRE_OPENDATA_INDEX_URL: process.env.CADASTRE_OPENDATA_INDEX_URL,
         CADASTRE_WMS_URL: process.env.CADASTRE_WMS_URL,
         CADASTRE_WMS_LAYERS: process.env.CADASTRE_WMS_LAYERS,

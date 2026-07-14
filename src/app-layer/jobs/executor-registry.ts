@@ -638,6 +638,26 @@ executorRegistry.register('weather-pull', async (payload) => {
     );
 });
 
+// ── market-prices-pull (Trends) ──────────────────────────────────────
+
+executorRegistry.register('market-prices-pull', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runMarketPricesPull } = await import('./market-prices-pull');
+    const r = await runMarketPricesPull({ source: payload.source });
+    return makeResult(
+        'market-prices-pull', startedAt, startMs,
+        r.pointsUpserted + r.listingsScanned, r.pointsUpserted, r.suppressed,
+        {
+            sources: r.sources,
+            seriesTouched: r.seriesTouched,
+            pointsUpserted: r.pointsUpserted,
+            listingsScanned: r.listingsScanned,
+            suppressed: r.suppressed,
+        },
+    );
+});
+
 // ── deadline-monitor ─────────────────────────────────────────────────
 
 executorRegistry.register('deadline-monitor', async (payload) => {

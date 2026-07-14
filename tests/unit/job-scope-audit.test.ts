@@ -66,7 +66,10 @@ describe('Executor Registry — tenantId propagation audit', () => {
             // no tenantId (cross-tenant marketplace), so there is no payload
             // tenant axis — each transition's audit row is scoped by the row's
             // own sellerTenantId internally.
-            if (['health-check', 'sync-pull', 'schedule-trigger-sweep', 'sharepoint-delta-sync-dispatch', 'sharepoint-subscription-renew', 'risk-appetite-monitor', 'risk-snapshot', 'report-delivery', 'exchange-expiry-sweep'].includes(jobName)) continue;
+            // market-prices-pull writes GLOBAL, tenant-agnostic price cache
+            // tables (no tenantId, like SoilSample) + reads global Exchange
+            // listings — no tenant axis by design.
+            if (['health-check', 'sync-pull', 'schedule-trigger-sweep', 'sharepoint-delta-sync-dispatch', 'sharepoint-subscription-renew', 'risk-appetite-monitor', 'risk-snapshot', 'report-delivery', 'exchange-expiry-sweep', 'market-prices-pull'].includes(jobName)) continue;
 
             // If the parameter is named _payload, it means tenantId is being ignored
             if (paramName.startsWith('_')) {

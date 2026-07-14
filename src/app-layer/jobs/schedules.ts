@@ -122,6 +122,18 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
         defaultPayload: {},
     },
     {
+        // One weekly all-sources run (schedule names must be unique — see
+        // bullmq-scheduler.test.ts). Weekly suffices for every source: EC
+        // cereal/oilseed prices publish weekly, the own-listings median is a
+        // weekly index, and Alpha Vantage commodities are MONTHLY-granularity
+        // (so 2 AV requests/week sits trivially inside the 25 req/day budget).
+        // Manual/targeted single-source runs use the `source` payload field.
+        name: 'market-prices-pull',
+        pattern: '30 5 * * 1',     // weekly Monday at 05:30 UTC
+        description: 'Pull market prices (EC AGRI-food + Alpha Vantage + own-listings median) into the global market-price cache',
+        defaultPayload: {},
+    },
+    {
         name: 'daily-evidence-expiry',
         pattern: '0 6 * * *',     // daily at 06:00 UTC
         description: 'Sweep expiring evidence at 30/7/1 day thresholds + flush outbox',

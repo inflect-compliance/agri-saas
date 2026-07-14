@@ -1,0 +1,76 @@
+// ─────────────────────────────────────────────────────────────────────
+// Market-price domain — GLOBAL, tenant-agnostic price cache.
+//
+// Generator + datasource remain in base.prisma; this file holds only the
+// market-price model blocks. These tables are GLOBAL (no `tenantId`
+// column), the same class as SoilSample / CadastreArchive / Unit: the
+// cached price series are public reference data (EC AGRI-food open API,
+// Alpha Vantage) or a k-anonymised cross-tenant aggregate — identical for
+// every tenant. Because they carry no `tenantId`, the DMMF RLS
+// auto-enroller in src/lib/db/rls-middleware.ts leaves them out of
+// TENANT_SCOPED_MODELS — there is deliberately NO per-tenant RLS filter,
+// exactly like `SoilSample`.
+//
+// The `source:'listings'` series is a cross-tenant WEEKLY MEDIAN over all
+// tenants' ACTIVE ExchangeListings, suppressed below a k-anonymity floor
+// of 3 distinct tenants — it stores only `{ count }` in point meta, never
+// a listing id or tenant id. See src/app-layer/jobs/market-prices-pull.ts.
+// ─────────────────────────────────────────────────────────────────────
+
+/// GLOBAL cache of one market-price time series (NO tenantId — public
+/// reference data / k-anonymised aggregate, identical for every tenant,
+/// exactly like `SoilSample`). A series is the natural grouping the read
+/// API splits a chart by: (source, commodity, region, stage). Upserted
+/// idempotently on that natural key. `currency` + `unit` are per-series
+/// and load-bearing — the EC oilseeds endpoint reports national-currency
+/// prices (BG→BGN, RO→RON), so we NEVER normalise; the chart splits by
+/// unit/currency instead.
+model MarketPriceSeries {
+  id        String   @id @default(cuid())
+  /// Data origin: 'ec-agrifood' | 'alpha-vantage' | 'listings'.
+  source    String
+  /// Commodity slug: 'wheat' | 'maize' | 'barley' | 'sunflower'.
+  commodity String
+  /// Region: 'BG' | 'RO' | 'EL' | 'EU' | 'GLOBAL'.
+  region    String
+  /// Optional market stage (EC `stageName` / `marketStage`), e.g. a
+  /// delivery/processing stage. Null for sources with no stage concept
+  /// (Alpha Vantage, listings index).
+  stage     String?
+  /// Optional human label (product name / reference note).
+  label     String?
+  /// Price unit as reported by the source, e.g. 'EUR/t', 'USD/bu',
+  /// 'BGN/t'. NOT normalised across sources.
+  unit      String
+  /// ISO currency of `price`, e.g. 'EUR' | 'BGN' | 'RON' | 'USD'.
+  currency  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  points MarketPricePoint[]
+
+  /// Natural key — one series per (source, commodity, region, stage) so
+  /// the pull job upserts idempotently.
+  @@unique([source, commodity, region, stage])
+}
+
+/// GLOBAL dated observation on a MarketPriceSeries (NO tenantId — see the
+/// series doc). Upserted idempotently on (seriesId, date) so re-running
+/// the pull never duplicates a point.
+model MarketPricePoint {
+  id        String            @id @default(cuid())
+  seriesId  String
+  series    MarketPriceSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  /// Observation date (week-ending / month / day, per source). Date-only.
+  date      DateTime          @db.Date
+  price     Decimal           @db.Decimal(12, 2)
+  /// Structured provenance — e.g. `{ count }` for the k-anonymised
+  /// listings index (distinct-tenant count, never ids). Never free text.
+  meta      Json?
+  createdAt DateTime          @default(now())
+
+  /// Idempotent-upsert key.
+  @@unique([seriesId, date])
+  /// FK index (schema-index Layer B).
+  @@index([seriesId])
+}
