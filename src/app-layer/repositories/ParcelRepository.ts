@@ -10,6 +10,7 @@ import {
     simplifiedGeoJsonSql,
     mvtTileSql,
     col,
+    soilGridCellSql,
     parseGeometry,
     locationParcelBoundsSql,
     isValidGeometrySql,
@@ -22,6 +23,7 @@ import type { ParsedParcel } from '@/lib/spatial/parse';
 import { SUPPORTED_SOURCE_SRIDS, type SupportedSourceSrid } from '@/lib/spatial/parse';
 import type { Geometry, Polygon, MultiPolygon, LineString } from 'geojson';
 import type { SoilProfile } from '@/lib/soil/types';
+import { env } from '@/env';
 
 /**
  * Part A (PR2) — Bulgaria's WGS84 bounding envelope. The candidate-SRID probe
@@ -145,6 +147,9 @@ export class ParcelRepository {
         const geojsonSql = opts.simplifyTolerance != null
             ? simplifiedGeoJsonSql(col('geometry'), opts.simplifyTolerance)
             : asGeoJsonSql(col('geometry'));
+        // Centroid grid-cell match for read-time soil hydration (ST_* stays in
+        // geo.ts). Correlated to the outer "Parcel" row inside the LATERAL.
+        const soilCell = soilGridCellSql(Prisma.raw('"Parcel"."geometry"'));
         const rows = await db.$queryRaw<Array<{
             id: string;
             name: string;
@@ -154,31 +159,58 @@ export class ParcelRepository {
             propertiesJson: unknown;
             soilType: string | null;
             soilJson: unknown;
+            cachedSoilJson: unknown;
             cadastralId: string | null;
             ekatte: string | null;
         }>>(
             Prisma.sql`SELECT "id", "name", "cropType", "areaHa"::text AS "areaHa",
                     ${geojsonSql} AS "geojson", "propertiesJson", "soilType", "soilJson",
-                    "cadastralId", "ekatte"
+                    "cadastralId", "ekatte", "ss"."cachedSoilJson"
                 FROM "Parcel"
+                LEFT JOIN LATERAL (
+                    -- Read-time soil hydration. SoilSample is a GLOBAL open-data
+                    -- cache (no tenantId / no RLS) keyed by the parcel centroid's
+                    -- ~100 m grid cell — the SAME cell the async soil-fetch job
+                    -- keys on (toE3 = round(deg × 1000); floor(x+0.5) matches JS
+                    -- Math.round for Bulgaria's positive lon/lat). When a parcel's
+                    -- own soilJson is still null (job not run yet) but its cell was
+                    -- already sampled — a sibling parcel, a neighbouring field —
+                    -- the profile resolves INSTANTLY from this indexed lookup
+                    -- instead of waiting on the throttled (5/min) provider job.
+                    SELECT "s"."dataJson" AS "cachedSoilJson"
+                    FROM "SoilSample" "s"
+                    WHERE "Parcel"."soilJson" IS NULL
+                      AND "s"."provider" = ${env.SOIL_PROVIDER}
+                      AND "s"."latE3" = ${soilCell.latE3}
+                      AND "s"."lonE3" = ${soilCell.lonE3}
+                    LIMIT 1
+                ) "ss" ON true
                 WHERE "locationId" = ${locationId}
                   AND "tenantId" = ${ctx.tenantId}
                   AND "deletedAt" IS NULL
                 ORDER BY "name" ASC`,
         );
 
-        return rows.map((r) => ({
-            id: r.id,
-            name: r.name,
-            cropType: r.cropType,
-            areaHa: r.areaHa !== null ? Number(r.areaHa) : null,
-            geometry: parseGeometry(r.geojson),
-            properties: r.propertiesJson ?? null,
-            soilType: r.soilType,
-            soilJson: (r.soilJson ?? null) as SoilProfile | null,
-            cadastralId: r.cadastralId,
-            ekatte: r.ekatte,
-        }));
+        return rows.map((r) => {
+            const cachedSoil = (r.cachedSoilJson ?? null) as SoilProfile | null;
+            const soilJson = (r.soilJson ?? cachedSoil ?? null) as SoilProfile | null;
+            return {
+                id: r.id,
+                name: r.name,
+                cropType: r.cropType,
+                areaHa: r.areaHa !== null ? Number(r.areaHa) : null,
+                geometry: parseGeometry(r.geojson),
+                properties: r.propertiesJson ?? null,
+                // Derive the label from the cache too, matching the job's
+                // `soilTypeLabel` (WRB group, else USDA texture class).
+                soilType:
+                    r.soilType ??
+                    (cachedSoil ? (cachedSoil.wrbClass ?? cachedSoil.textureClass ?? null) : null),
+                soilJson,
+                cadastralId: r.cadastralId,
+                ekatte: r.ekatte,
+            };
+        });
     }
 
     /**

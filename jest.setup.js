@@ -48,6 +48,11 @@ process.env.UPLOAD_DIR = 'uploads';
 // S3_BUCKET). Root stays UPLOAD_DIR ('uploads') so storage tests' path
 // expectations hold.
 process.env.STORAGE_PROVIDER = process.env.STORAGE_PROVIDER || 'local';
+// SKIP_ENV_VALIDATION drops Zod `.default()`s, so mirror the prod default
+// (env.ts: SOIL_PROVIDER.default('soilgrids')) here — the soil read-time cache
+// hydration filters SoilSample by `env.SOIL_PROVIDER`, and it must not be
+// undefined under test.
+process.env.SOIL_PROVIDER = process.env.SOIL_PROVIDER || 'soilgrids';
 process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:3000';
 
 // Note: tests/unit/env.test.ts clears this and runs in a separate process
