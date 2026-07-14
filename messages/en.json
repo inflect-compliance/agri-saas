@@ -3195,6 +3195,24 @@
         }
     },
     "ag": {
+        "lease": {
+            "owned": "Owned",
+            "leased": "Leased",
+            "lease": "Lease",
+            "lessor": "Lessor",
+            "lessorPlaceholder": "Owner / landlord name",
+            "lessorRequired": "Enter a lessor.",
+            "kind": "Type",
+            "kindArenda": "Long lease (аренда)",
+            "kindNaem": "Rent (наем)",
+            "rent": "Rent",
+            "rentUnit": "Unit",
+            "startDate": "Start date",
+            "endDate": "End date",
+            "documentRef": "Contract №",
+            "documentRefPlaceholder": "e.g. Contract №123/2024",
+            "saveFailed": "Could not save the lease."
+        },
         "cadastre": {
             "cadastralId": "Cadastral identifier",
             "legalOwner": "Owner (legal entity)",
@@ -6358,6 +6376,7 @@
             "tabRecords": "Farm records",
             "overviewParcels": "Parcels",
             "overviewTotalArea": "Total area",
+            "overviewLeased": "Leased",
             "noParcelsHint": "No parcels yet — use “Import parcels” to upload a shapefile, KML, or GeoJSON.",
             "cropFilterLabel": "Filter by crop",
             "cropFilterAll": "All",

@@ -27,6 +27,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { UserCombobox } from '@/components/ui/user-combobox';
 import { SoilProfileCard } from '@/components/soil/SoilProfileCard';
+import { ParcelLeasePanel } from '@/components/ui/map/ParcelLeasePanel';
 import { ParcelCadastralInfo } from '@/components/ui/map/ParcelCadastralInfo';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
@@ -424,6 +425,17 @@ export function ParcelDetailSheet({
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
+
+                {parcel ? (
+                    <div className="rounded-lg border border-border-subtle p-4">
+                        <ParcelLeasePanel
+                            locationId={locationId}
+                            parcelId={parcel.id}
+                            prefillLessor={parcel.companyOwners?.[0]?.name ?? null}
+                            prefillEik={parcel.companyOwners?.[0]?.eik ?? null}
+                        />
+                    </div>
+                ) : null}
 
                 {/* The create-operation form — one exclusive input kind. Only
                     mounted with a parcel so the operator picker (react-query)

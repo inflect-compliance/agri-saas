@@ -62,6 +62,8 @@ export interface ParcelGeo {
      * Physical persons are never stored, so never appear here.
      */
     companyOwners: ParcelCompanyOwner[];
+    /** True when the parcel has an active lease (аренда/наем) — i.e. it's leased, not owned. */
+    hasActiveLease: boolean;
 }
 
 /** A legal-entity owner surfaced on a parcel (КАИС „собственост ПИ"). */
@@ -181,10 +183,21 @@ export class ParcelRepository {
             cadastralId: string | null;
             ekatte: string | null;
             ownersJson: unknown;
+            hasActiveLease: boolean;
         }>>(
             Prisma.sql`SELECT "id", "name", "cropType", "areaHa"::text AS "areaHa",
                     ${geojsonSql} AS "geojson", "propertiesJson", "soilType", "soilJson",
-                    "cadastralId", "ekatte", "ss"."cachedSoilJson", "own"."ownersJson"
+                    "cadastralId", "ekatte", "ss"."cachedSoilJson", "own"."ownersJson",
+                    EXISTS (
+                        -- "leased" = an active (non-deleted, not-yet-ended) land-use
+                        -- agreement exists. ParcelLease is tenant-scoped (RLS), and
+                        -- the subquery re-asserts the tenant barrier.
+                        SELECT 1 FROM "ParcelLease" "pl"
+                        WHERE "pl"."parcelId" = "Parcel"."id"
+                          AND "pl"."tenantId" = "Parcel"."tenantId"
+                          AND "pl"."deletedAt" IS NULL
+                          AND ("pl"."endDate" IS NULL OR "pl"."endDate" >= now())
+                    ) AS "hasActiveLease"
                 FROM "Parcel"
                 LEFT JOIN LATERAL (
                     -- Read-time soil hydration. SoilSample is a GLOBAL open-data
@@ -244,6 +257,7 @@ export class ParcelRepository {
                 cadastralId: r.cadastralId,
                 ekatte: r.ekatte,
                 companyOwners: (r.ownersJson ?? []) as ParcelCompanyOwner[],
+                hasActiveLease: Boolean(r.hasActiveLease),
             };
         });
     }

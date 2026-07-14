@@ -75,6 +75,7 @@ interface ParcelsResp {
         ekatte?: string | null;
         properties?: unknown;
         companyOwners?: Array<{ name: string; eik: string; rightType: string | null; subjectKind: string | null }>;
+        hasActiveLease?: boolean;
     }>;
 }
 interface OperationItem {
@@ -260,6 +261,8 @@ export default function LocationDetailPage() {
         () => parcels.reduce((sum, p) => sum + (p.areaHa ?? 0), 0),
         [parcels],
     );
+    // Land tenure rollup: how many of the location's parcels are leased (аренда/наем).
+    const leasedCount = useMemo(() => parcels.filter((p) => p.hasActiveLease).length, [parcels]);
     const bounds = parcelsQ.data?.bounds ?? null;
     const mapParcels = useMemo<MapParcel[]>(
         () => parcels.map((p) => ({ id: p.id, name: p.name, areaHa: p.areaHa ?? null, geometry: (p.geometry ?? null) as Geometry | null })),
@@ -516,6 +519,9 @@ export default function LocationDetailPage() {
                     <dl className="grid grid-cols-2 gap-default text-sm">
                         <div><dt className="text-content-secondary">{t('overviewParcels')}</dt><dd className="font-medium">{loc?._count?.parcels ?? parcels.length}</dd></div>
                         <div><dt className="text-content-secondary">{t('overviewTotalArea')}</dt><dd className="font-medium">{trimNumber(haToDca(totalAreaHa))} dca</dd></div>
+                        {leasedCount > 0 ? (
+                            <div><dt className="text-content-secondary">{t('overviewLeased')}</dt><dd className="font-medium">{leasedCount}</dd></div>
+                        ) : null}
                     </dl>
                     {loc?.description && <p className="text-sm">{loc.description}</p>}
                     {parcels.length === 0 && (

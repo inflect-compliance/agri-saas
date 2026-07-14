@@ -216,6 +216,7 @@ model Parcel {
   operationLines OperationParcel[]
   plantings      Planting[]
   cropPlans      CropPlan[]
+  leases         ParcelLease[]
 
   @@unique([id, tenantId])
   @@index([tenantId, locationId])
@@ -225,6 +226,41 @@ model Parcel {
   @@index([tenantId, locationId, deletedAt])
   // Per-settlement cadastre lookups (КАИС): find every parcel in an EKATTE.
   @@index([tenantId, ekatte])
+}
+
+/// A land-use agreement (аренда/наем) under which the tenant farms a parcel it
+/// does not own. Presence of an active (non-deleted, not-yet-ended) lease means
+/// the parcel is "leased"; a parcel with none is treated as owned. The lessor
+/// pre-fills from the parcel's КАИС legal-entity owner (CadastreOwner) when known.
+/// Tenant-scoped with RLS (business data). Foundation for the rent roll (3/3).
+model ParcelLease {
+  id          String    @id @default(cuid())
+  tenantId    String
+  parcelId    String
+  /// Lessor (landlord) — the parcel owner. Pre-filled from the КАИС legal-entity
+  /// owner when present; free text otherwise.
+  lessorName  String
+  /// Lessor ЕИК when the lessor is a legal entity (links back to CadastreOwner).
+  lessorEik   String?
+  kind        LeaseKind @default(ARENDA)
+  /// Rent per decare — amount + unit label (e.g. „лв/дка", „кг/дка").
+  rentAmount  Decimal?  @db.Decimal(14, 2)
+  rentUnit    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  /// Contract reference (№ на договор).
+  documentRef String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parcel Parcel @relation(fields: [parcelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@index([tenantId, parcelId])
+  // Rent-roll / expiry scans (3/3): leases ending within a window, per tenant.
+  @@index([tenantId, endDate])
 }
 
 /// GLOBAL soil-sample cache (NO tenantId — a shared catalog of open,

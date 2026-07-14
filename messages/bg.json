@@ -3195,6 +3195,24 @@
         }
     },
     "ag": {
+        "lease": {
+            "owned": "Собствена",
+            "leased": "Наета",
+            "lease": "Аренда",
+            "lessor": "Арендодател",
+            "lessorPlaceholder": "Име на собственика/арендодателя",
+            "lessorRequired": "Въведете арендодател.",
+            "kind": "Вид",
+            "kindArenda": "Аренда",
+            "kindNaem": "Наем",
+            "rent": "Рента",
+            "rentUnit": "Единица",
+            "startDate": "Начална дата",
+            "endDate": "Крайна дата",
+            "documentRef": "Договор №",
+            "documentRefPlaceholder": "напр. Договор №123/2024",
+            "saveFailed": "Неуспешно запазване на договора."
+        },
         "cadastre": {
             "cadastralId": "Кадастрален идентификатор",
             "legalOwner": "Собственик (юридическо лице)",
@@ -6358,6 +6376,7 @@
             "tabRecords": "Дневници",
             "overviewParcels": "Парцели",
             "overviewTotalArea": "Обща площ",
+            "overviewLeased": "Наети",
             "noParcelsHint": "Все още няма парцели — използвайте „Импортирай парцели“, за да качите shapefile, KML или GeoJSON.",
             "cropFilterLabel": "Филтър по култура",
             "cropFilterAll": "Всички",

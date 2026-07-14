@@ -224,6 +224,7 @@ model Tenant {
   // Agriculture domain (Feature 1).
   locations                Location[]
   parcels                  Parcel[]
+  parcelLeases             ParcelLease[]
   items                    Item[]
   operationParcels         OperationParcel[]
   // Crop planning domain.
