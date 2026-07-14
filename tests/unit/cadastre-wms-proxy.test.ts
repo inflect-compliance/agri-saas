@@ -15,6 +15,8 @@ import {
     BULGARIA_ENVELOPE,
     CADASTRE_MIN_ZOOM,
     buildCadastreWmsUrl,
+    buildCadastreArcgisExportUrl,
+    isArcgisMapServer,
     cadastreTileCacheKey,
     isCadastreZoomAllowed,
     isTileInBulgaria,
@@ -104,6 +106,29 @@ describe('cadastre tile math (pure)', () => {
         expect(cadastreTileCacheKey('premium', 14, 100, 200)).toBe('cadastre:tile:premium:14:100:200');
         expect(cadastreTileCacheKey('base', 10, 1, 2)).toBe('cadastre:tile:base:10:1:2');
     });
+
+    it('detects an ArcGIS REST MapServer URL vs a WMS URL', () => {
+        expect(isArcgisMapServer('https://arcgis.cadastre.bg/x/rest/services/ExternalKais/ParcelsCache/MapServer')).toBe(true);
+        expect(isArcgisMapServer('https://arcgis.cadastre.bg/.../MapServer/')).toBe(true);
+        expect(isArcgisMapServer('https://inspire.example/geoserver/wms')).toBe(false);
+        // A GetMap query string on a MapServer path is still ArcGIS (path wins).
+        expect(isArcgisMapServer('https://x/ParcelsCache/MapServer?f=json')).toBe(true);
+    });
+
+    it('builds an ArcGIS export URL (3857 bbox, reproject, raw PNG)', () => {
+        const url = buildCadastreArcgisExportUrl(
+            'https://arcgis.cadastre.bg/x/ParcelsCache/MapServer/',
+            [1, 2, 3, 4],
+        );
+        expect(url).toContain('/MapServer/export?');
+        expect(url).not.toContain('MapServer//export'); // trailing slash trimmed
+        expect(url).toContain('bbox=1%2C2%2C3%2C4');
+        expect(url).toContain('bboxSR=3857');
+        expect(url).toContain('imageSR=3857');
+        expect(url).toContain('size=256%2C256');
+        expect(url).toContain('f=image');
+        expect(url).toContain('transparent=true');
+    });
 });
 
 // ── Proxy route ────────────────────────────────────────────────────
@@ -180,6 +205,22 @@ it('rejects structurally invalid coordinates with 400', async () => {
     const res = await call(10, 2 ** 10, 5); // x out of the 2^z grid
     expect(res.status).toBe(400);
     expect(global.fetch).not.toHaveBeenCalled();
+});
+
+it('speaks ArcGIS export + sends a Referer when the upstream is a MapServer', async () => {
+    resolveCadastreSourceMock.mockReturnValue({
+        url: 'https://arcgis.cadastre.bg/arcgisnopki/rest/services/ExternalKais/ParcelsCache/MapServer',
+        layers: 'ignored-in-arcgis',
+        source: 'base',
+        mode: 'arcgis',
+    });
+    const res = await call(14, SOFIA.x, SOFIA.y);
+    expect(res.status).toBe(200);
+    const [calledUrl, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(calledUrl).toContain('/MapServer/export?');
+    expect(calledUrl).toContain('bboxSR=3857');
+    expect(calledUrl).not.toContain('REQUEST=GetMap'); // NOT the WMS path
+    expect((init.headers as Record<string, string>).Referer).toBe('https://arcgis.cadastre.bg/');
 });
 
 it('fetches upstream + caches on a cache miss', async () => {

@@ -130,6 +130,41 @@ export function buildCadastreWmsUrl(
     return `${baseUrl}${sep}${qp.toString()}`;
 }
 
+/**
+ * True when the configured upstream is an ArcGIS REST MapServer (path ends
+ * in `/MapServer`), not a classic OGC WMS. The Bulgarian АГКК публикува
+ * своите кадастрални слоеве като ArcGIS REST (arcgis.cadastre.bg/.../
+ * ExternalKais/ParcelsCache/MapServer) — its WMS interface is disabled (403),
+ * but its dynamic `export` endpoint serves reprojected PNG tiles. We detect
+ * this shape and speak ArcGIS `export` instead of WMS `GetMap`.
+ */
+export function isArcgisMapServer(url: string): boolean {
+    return /\/MapServer\/?$/i.test(url.split('?')[0]);
+}
+
+/**
+ * Build an ArcGIS REST `export` URL for a 256×256 EPSG:3857 tile. `baseUrl`
+ * is the `…/MapServer` endpoint; `/export` + the image params are appended.
+ * `bboxSR`/`imageSR=3857` make ArcGIS reproject its native cache (EPSG:7801
+ * for АГКК) to Web-Mercator on the fly. `f=image` returns raw PNG bytes.
+ */
+export function buildCadastreArcgisExportUrl(
+    baseUrl: string,
+    bbox3857: [number, number, number, number],
+): string {
+    const base = baseUrl.replace(/\/$/, '');
+    const qp = new URLSearchParams({
+        bbox: bbox3857.join(','),
+        bboxSR: '3857',
+        imageSR: '3857',
+        size: '256,256',
+        format: 'png32',
+        transparent: 'true',
+        f: 'image',
+    });
+    return `${base}/export?${qp.toString()}`;
+}
+
 /** Redis cache key for a proxied cadastre tile. Keyed `(source, z, x, y)`. */
 export function cadastreTileCacheKey(source: string, z: number, x: number, y: number): string {
     return `cadastre:tile:${source}:${z}:${x}:${y}`;
