@@ -137,32 +137,46 @@ export async function fetchAndStoreParcelSoil(
 ): Promise<SoilFetchOutcome> {
     const provider = env.SOIL_PROVIDER;
 
-    return runInTenantContext(ctx, async (db) => {
+    // ── Phase 1 (tenant tx): resolve the centroid + consult the global cache.
+    // Deliberately SHORT and network-free so the 5 s interactive-transaction
+    // budget is never at risk. (SoilSample is global — no tenantId / no RLS.)
+    const resolved = await runInTenantContext(ctx, async (db) => {
         const centroid = await ParcelRepository.centroidLonLat(db, ctx, parcelId);
-        if (!centroid) {
-            return { status: 'skipped', reason: 'no-centroid' };
-        }
-
+        if (!centroid) return null;
         const latE3 = toE3(centroid.lat);
         const lonE3 = toE3(centroid.lon);
-
-        // ── Global cache lookup (SoilSample has no tenantId / no RLS) ──
         const cached = await db.soilSample.findUnique({
             where: { latE3_lonE3: { latE3, lonE3 } },
         });
+        return { centroid, latE3, lonE3, cached };
+    });
 
-        let profile: SoilProfile;
-        let fromCache = false;
+    if (!resolved) return { status: 'skipped', reason: 'no-centroid' };
+    const { centroid, latE3, lonE3, cached } = resolved;
 
-        if (cached && cached.provider === provider) {
-            profile = cached.dataJson as unknown as SoilProfile;
-            fromCache = true;
-        } else {
-            // Cache miss (or a different provider) — call the provider.
-            profile = await fetchSoilProfile(centroid.lat, centroid.lon, {
-                provider,
-                baseUrl: env.SOIL_BASE_URL,
-            });
+    // ── Phase 2 (NO transaction): the provider HTTP call.
+    // The external fetch MUST NOT run inside a Prisma interactive transaction —
+    // holding a tenant tx open across a network round-trip blows the 5 s cap,
+    // the transaction expires, and the write fails ("query cannot be executed
+    // on an expired transaction"). That was the bug that left every parcel
+    // stuck on "soil pending" and the SoilSample cache empty. Cache hits skip
+    // the call entirely.
+    let profile: SoilProfile;
+    let fromCache = false;
+    if (cached && cached.provider === provider) {
+        profile = cached.dataJson as unknown as SoilProfile;
+        fromCache = true;
+    } else {
+        profile = await fetchSoilProfile(centroid.lat, centroid.lon, {
+            provider,
+            baseUrl: env.SOIL_BASE_URL,
+        });
+    }
+
+    // ── Phase 3 (tenant tx): persist the sample + parcel + audit — short,
+    // network-free, comfortably inside the transaction budget.
+    await runInTenantContext(ctx, async (db) => {
+        if (!fromCache) {
             const dataJson = profile as unknown as Prisma.InputJsonValue;
             await db.soilSample.upsert({
                 where: { latE3_lonE3: { latE3, lonE3 } },
@@ -171,7 +185,6 @@ export async function fetchAndStoreParcelSoil(
             });
         }
 
-        // ── Persist onto the parcel (tenant-scoped) ──
         await db.parcel.updateMany({
             where: { id: parcelId, tenantId: ctx.tenantId, deletedAt: null },
             data: {
@@ -196,17 +209,17 @@ export async function fetchAndStoreParcelSoil(
                 gridCell: { latE3, lonE3 },
             },
         });
-
-        logger.info('parcel soil populated', {
-            component: 'soil',
-            parcelId,
-            provider,
-            fromCache,
-            textureClass: profile.textureClass,
-        });
-
-        return fromCache
-            ? { status: 'cached', profile }
-            : { status: 'fetched', profile };
     });
+
+    logger.info('parcel soil populated', {
+        component: 'soil',
+        parcelId,
+        provider,
+        fromCache,
+        textureClass: profile.textureClass,
+    });
+
+    return fromCache
+        ? { status: 'cached', profile }
+        : { status: 'fetched', profile };
 }
