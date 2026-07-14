@@ -34,6 +34,11 @@ const STAGE_LABEL_KEY: Record<'sow' | 'transplant' | 'harvest', string> = {
     harvest: 'stageHarvest',
 };
 
+/** Hour-of-day (0–24) → `HH:00` for the spray-window range. */
+function formatHour(hour: number): string {
+    return `${String(hour).padStart(2, '0')}:00`;
+}
+
 export function SmartDefaultsBanner({ data }: { data?: LocationSmartDefaults | null }) {
     const t = useTranslations('locations.smart');
     const sprayWindow = data?.sprayWindow ?? null;
@@ -48,6 +53,16 @@ export function SmartDefaultsBanner({ data }: { data?: LocationSmartDefaults | n
                     <p className={cn('text-sm font-medium', SPRAY_TONE[sprayWindow.status])}>
                         {t(SPRAY_LABEL_KEY[sprayWindow.status])}
                     </p>
+                    {(sprayWindow.windows ?? []).length > 0 ? (
+                        <p className="text-xs text-content-secondary">
+                            {t('bestSprayWindow')}:{' '}
+                            {(sprayWindow.windows ?? [])
+                                .map((w) => t('sprayWindowRange', { from: formatHour(w.startHour), to: formatHour(w.endHour) }))
+                                .join(', ')}
+                        </p>
+                    ) : (
+                        <p className="text-xs text-content-muted">{t('sprayNoWindowToday')}</p>
+                    )}
                     {sprayWindow.reasonCodes.length > 0 && (
                         <p className="text-xs text-content-muted">
                             {sprayWindow.reasonCodes

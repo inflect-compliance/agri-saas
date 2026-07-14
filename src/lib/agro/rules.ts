@@ -121,6 +121,95 @@ export function evaluateSprayWindow(
     return { status, reasons, reasonCodes };
 }
 
+// ─── Hourly spray window ─────────────────────────────────────────────
+
+/** One LOCATION-LOCAL hour of weather for the hourly spray-window scan. */
+export interface SprayHour {
+    /** Hour-of-day 0–23, location-local. */
+    hour: number;
+    windKmh?: number | null;
+    precipMm?: number | null;
+    tempC?: number | null;
+}
+
+/** A contiguous run of suitable hours. `endHour` is EXCLUSIVE (last hour + 1). */
+export interface SprayWindow {
+    startHour: number;
+    endHour: number;
+}
+
+export interface ComputeSprayWindowsOptions {
+    /**
+     * Location-local current hour (0–23). Windows that have fully passed
+     * (`endHour <= fromHour`) are dropped; a window in progress is clipped so
+     * `startHour` is never earlier than now — the UI shows only actionable time.
+     */
+    fromHour?: number;
+}
+
+/** Effectively-dry threshold — below this hourly precip an hour counts as dry. */
+const DRY_PRECIP_MM = 0.2;
+
+/**
+ * A single hour is SUITABLE for spraying when wind is below the drift-caution
+ * limit AND the hour is effectively dry AND the temperature sits inside the
+ * spray band. A missing input is treated as unsuitable — a partial hour never
+ * fabricates a spray window.
+ */
+function isHourSuitable(h: SprayHour, t: SprayWindowThresholds): boolean {
+    return (
+        h.windKmh != null && h.windKmh < t.windCautionKmh &&
+        h.precipMm != null && h.precipMm < DRY_PRECIP_MM &&
+        h.tempC != null && h.tempC >= t.tempMinC && h.tempC <= t.tempMaxC
+    );
+}
+
+/**
+ * Reduce a day's hourly rows to the contiguous suitable time ranges. Rows are
+ * sorted by hour, adjacent suitable hours merge into one window, and a gap (a
+ * non-suitable hour, or a non-consecutive hour number) closes the current
+ * window. With `opts.fromHour`, windows fully in the past are dropped and a
+ * window in progress is clipped to start at `fromHour`.
+ */
+export function computeSprayWindows(
+    hours: SprayHour[],
+    thresholds: SprayWindowThresholds = DEFAULT_SPRAY_THRESHOLDS,
+    opts: ComputeSprayWindowsOptions = {},
+): SprayWindow[] {
+    const sorted = [...hours].sort((a, b) => a.hour - b.hour);
+
+    const windows: SprayWindow[] = [];
+    let start: number | null = null;
+    let prev: number | null = null;
+    const close = () => {
+        if (start !== null && prev !== null) windows.push({ startHour: start, endHour: prev + 1 });
+        start = null;
+        prev = null;
+    };
+    for (const h of sorted) {
+        if (isHourSuitable(h, thresholds)) {
+            if (start === null) {
+                start = h.hour;
+            } else if (prev !== null && h.hour !== prev + 1) {
+                // Suitable, but not consecutive — close the run and open a new one.
+                close();
+                start = h.hour;
+            }
+            prev = h.hour;
+        } else {
+            close();
+        }
+    }
+    close();
+
+    const { fromHour } = opts;
+    if (fromHour == null) return windows;
+    // Drop fully-passed windows; clip an in-progress window to "now".
+    return windows
+        .filter((w) => w.endHour > fromHour)
+        .map((w) => (w.startHour < fromHour ? { startHour: fromHour, endHour: w.endHour } : w));
+}
+
 // ─── Disease risk ────────────────────────────────────────────────────
 
 export interface DiseaseDay {

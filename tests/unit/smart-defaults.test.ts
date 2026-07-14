@@ -8,7 +8,7 @@ import { makeRequestContext } from '../helpers/make-context';
 const db = {
     parcel: { findMany: jest.fn() },
     operationParcel: { findMany: jest.fn() },
-    weatherObservation: { findFirst: jest.fn() },
+    weatherObservation: { findMany: jest.fn() },
     planting: { findMany: jest.fn() },
 };
 jest.mock('@/lib/db-context', () => ({
@@ -50,12 +50,25 @@ describe('getLocationSmartDefaults', () => {
                 { parcelId: 'p2', productItemId: 'prodA', doseValue: dec(2.5), doseUnitId: 'unitL', createdAt: d('2026-06-10T00:00:00Z') },
             ]);
 
-        db.weatherObservation.findFirst.mockResolvedValue({
-            obsDate: d('2026-06-18T00:00:00Z'),
-            windMaxKmh: dec(30), // ≥ 25 ⇒ UNSUITABLE
-            precipMm: dec(0),
-            tempMeanC: dec(18),
-        });
+        // A fixed-date obs (not "today") so the fallback-row path runs
+        // deterministically: daily verdict UNSUITABLE, but the hourly series
+        // still yields concrete suitable windows. hours 6–8 are calm/dry/warm
+        // (one window 06:00–09:00), hour 9 is windy (closes it).
+        db.weatherObservation.findMany.mockResolvedValue([
+            {
+                obsDate: d('2026-06-18T00:00:00Z'),
+                windMaxKmh: dec(30), // ≥ 25 ⇒ UNSUITABLE (daily aggregate)
+                precipMm: dec(0),
+                tempMeanC: dec(18),
+                utcOffsetSeconds: 7200,
+                hourlyJson: [
+                    { hour: 6, windKmh: 8, precipMm: 0, tempC: 17 },
+                    { hour: 7, windKmh: 9, precipMm: 0, tempC: 18 },
+                    { hour: 8, windKmh: 10, precipMm: 0, tempC: 19 },
+                    { hour: 9, windKmh: 22, precipMm: 0, tempC: 20 },
+                ],
+            },
+        ]);
 
         // Dates are RELATIVE to now so the "soonest FUTURE milestone"
         // assertion never rots as the calendar advances (pl-soon must stay
@@ -91,6 +104,8 @@ describe('getLocationSmartDefaults', () => {
         expect(res.sprayWindow?.status).toBe('UNSUITABLE');
         expect(res.sprayWindow?.obsDate).toBe('2026-06-18T00:00:00.000Z');
         expect(res.sprayWindow?.reasons.some((r) => r.includes('Wind'))).toBe(true);
+        // windows — the real suitable hours from hourlyJson (06:00–09:00).
+        expect(res.sprayWindow?.windows).toEqual([{ startHour: 6, endHour: 9 }]);
 
         // nextPlanting — soonest FUTURE milestone (pl-soon's transplant, not
         // pl-far's much later sow).
@@ -108,7 +123,7 @@ describe('getLocationSmartDefaults', () => {
 
     it('empty tenant → all nulls / empty, no per-parcel queries', async () => {
         db.parcel.findMany.mockResolvedValue([]);
-        db.weatherObservation.findFirst.mockResolvedValue(null);
+        db.weatherObservation.findMany.mockResolvedValue([]);
         db.planting.findMany.mockResolvedValue([]);
 
         const res = await getLocationSmartDefaults(ctx, 'loc1');

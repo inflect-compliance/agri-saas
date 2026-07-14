@@ -183,6 +183,10 @@ export async function runWeatherPull(
                             precipMm: day.precipMm,
                             windMaxKmh: day.windMaxKmh,
                             humidityMean: day.humidityMean,
+                            // Location-local hourly series + UTC offset for the
+                            // real "best spray window today" surface.
+                            hourlyJson: day.hours as unknown as object,
+                            utcOffsetSeconds: day.utcOffsetSeconds,
                             rawJson: day as unknown as object,
                         };
                         await db.weatherObservation.upsert({

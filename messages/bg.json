@@ -6322,6 +6322,9 @@
             "stageTransplant": "Разсаждане",
             "stageHarvest": "Прибиране на реколтата",
             "sprayWindowToday": "Прозорец за пръскане днес",
+            "bestSprayWindow": "Най-добър прозорец",
+            "sprayWindowRange": "{from}–{to}",
+            "sprayNoWindowToday": "Няма подходящ прозорец днес",
             "nextCropPlanTask": "Следваща задача от плана",
             "sprayReason": {
                 "windUnsuitable": "Вятър {wind} км/ч надвишава границата за отнасяне от {limit} км/ч",
