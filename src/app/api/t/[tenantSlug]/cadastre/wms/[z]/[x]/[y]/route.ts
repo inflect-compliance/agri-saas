@@ -28,6 +28,7 @@ import { withApiErrorHandling } from '@/lib/errors/api';
 import { resolveCadastreSource } from '@/lib/geo/cadastre-source';
 import {
     buildCadastreWmsUrl,
+    buildCadastreArcgisExportUrl,
     cadastreTileCacheKey,
     isCadastreZoomAllowed,
     isTileInBulgaria,
@@ -97,13 +98,25 @@ export const GET = withApiErrorHandling(
             }
         }
 
-        const upstream = buildCadastreWmsUrl(src.url, src.layers, tileTo3857Bbox(z, x, y));
+        const bbox = tileTo3857Bbox(z, x, y);
+        // ArcGIS REST `export` for a `…/MapServer` upstream (АГКК's parcels
+        // are served this way — its WMS is disabled); classic WMS `GetMap`
+        // otherwise. ArcGIS refuses without a same-domain Referer, so send the
+        // upstream's own origin (any cadastre.bg referer is accepted).
+        const upstream =
+            src.mode === 'arcgis'
+                ? buildCadastreArcgisExportUrl(src.url, bbox)
+                : buildCadastreWmsUrl(src.url, src.layers, bbox);
+        const upstreamHeaders: Record<string, string> = { Accept: 'image/png,*/*' };
+        if (src.mode === 'arcgis') {
+            upstreamHeaders.Referer = new URL(src.url).origin + '/';
+        }
 
         let res: globalThis.Response;
         try {
             // Server-side fetch: never forward the caller's cookies/credentials
             // to the upstream (the licence is IP-bound to this VM, not the user).
-            res = await fetch(upstream, { headers: { Accept: 'image/png,*/*' } });
+            res = await fetch(upstream, { headers: upstreamHeaders });
         } catch {
             return emptyTile();
         }

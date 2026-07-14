@@ -10,7 +10,7 @@
 import { makeRequestContext } from '../helpers/make-context';
 
 // ── Mocks (declared before the usecase import) ──
-const mockEnqueue = jest.fn(async () => ({ id: 'job-123' }));
+const mockEnqueue = jest.fn(async (..._args: unknown[]) => ({ id: 'job-123' }));
 jest.mock('@/app-layer/jobs/queue', () => ({
     enqueue: (...args: unknown[]) => mockEnqueue(...args),
 }));
@@ -106,7 +106,7 @@ describe('cadastre-import staging usecase', () => {
         expect(res.invalid).toContain('not-an-id');
         expect(res.jobId).toBe('job-123');
         expect(mockEnqueue).toHaveBeenCalledTimes(1);
-        const [jobName, payload] = mockEnqueue.mock.calls[0] as [string, { identifiers: string[] }];
+        const [jobName, payload] = mockEnqueue.mock.calls[0] as unknown as [string, { identifiers: string[] }];
         expect(jobName).toBe('cadastre-import');
         expect(payload.identifiers).toEqual(['68134.8360.729', '00123.10.5']);
     });
