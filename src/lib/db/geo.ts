@@ -201,6 +201,20 @@ export function centroidLonLatSql(column: Prisma.Sql): Prisma.Sql {
 }
 
 /**
+ * SQL fragments for the `SoilSample` grid cell (integer milli-degrees) of a
+ * geometry column's centroid: `latE3` / `lonE3` = round(deg × 1000). Uses
+ * `floor(x + 0.5)` so it matches the soil-fetch job's JS `toE3` (Math.round)
+ * for Bulgaria's positive lon/lat — read-time soil hydration must land in the
+ * SAME cell the job keys on. Compare as `${cell.latE3}` / `${cell.lonE3}`.
+ */
+export function soilGridCellSql(column: Prisma.Sql): { latE3: Prisma.Sql; lonE3: Prisma.Sql } {
+    return {
+        latE3: Prisma.sql`floor(ST_Y(ST_Centroid(${column})) * 1000 + 0.5)::int`,
+        lonE3: Prisma.sql`floor(ST_X(ST_Centroid(${column})) * 1000 + 0.5)::int`,
+    };
+}
+
+/**
  * Full query: a Mapbox Vector Tile (MVT) for the z/x/y tile covering a
  * location's parcels. The geometry is reprojected to Web Mercator (3857),
  * clipped to the tile envelope, and quantised to a 4096-unit extent by

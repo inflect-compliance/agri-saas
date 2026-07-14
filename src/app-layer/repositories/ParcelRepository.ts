@@ -10,6 +10,7 @@ import {
     simplifiedGeoJsonSql,
     mvtTileSql,
     col,
+    soilGridCellSql,
     parseGeometry,
     locationParcelBoundsSql,
     isValidGeometrySql,
@@ -146,6 +147,9 @@ export class ParcelRepository {
         const geojsonSql = opts.simplifyTolerance != null
             ? simplifiedGeoJsonSql(col('geometry'), opts.simplifyTolerance)
             : asGeoJsonSql(col('geometry'));
+        // Centroid grid-cell match for read-time soil hydration (ST_* stays in
+        // geo.ts). Correlated to the outer "Parcel" row inside the LATERAL.
+        const soilCell = soilGridCellSql(Prisma.raw('"Parcel"."geometry"'));
         const rows = await db.$queryRaw<Array<{
             id: string;
             name: string;
@@ -177,8 +181,8 @@ export class ParcelRepository {
                     FROM "SoilSample" "s"
                     WHERE "Parcel"."soilJson" IS NULL
                       AND "s"."provider" = ${env.SOIL_PROVIDER}
-                      AND "s"."latE3" = floor(ST_Y(ST_Centroid("Parcel"."geometry")) * 1000 + 0.5)::int
-                      AND "s"."lonE3" = floor(ST_X(ST_Centroid("Parcel"."geometry")) * 1000 + 0.5)::int
+                      AND "s"."latE3" = ${soilCell.latE3}
+                      AND "s"."lonE3" = ${soilCell.lonE3}
                     LIMIT 1
                 ) "ss" ON true
                 WHERE "locationId" = ${locationId}
