@@ -9,7 +9,15 @@
 import { RequestContext } from '../types';
 import { runInTenantContext } from '@/lib/db-context';
 import { assertCanRead } from '../policies/common';
-import { evaluateSprayWindow, type SprayWindowStatus, type SprayReason } from '@/lib/agro/rules';
+import {
+    evaluateSprayWindow,
+    computeSprayWindows,
+    DEFAULT_SPRAY_THRESHOLDS,
+    type SprayWindowStatus,
+    type SprayReason,
+    type SprayHour,
+    type SprayWindow,
+} from '@/lib/agro/rules';
 
 /**
  * The most recent field operation on a location's parcels, regrouped into a
@@ -39,6 +47,13 @@ export interface SmartSprayWindow {
     /** Structured reasons for i18n at the UI layer (see SmartDefaultsBanner). */
     reasonCodes: SprayReason[];
     obsDate: string;
+    /**
+     * The real suitable time ranges today (location-local, hours already passed
+     * dropped/clipped). Empty ⇒ no suitable window left today. Derived from the
+     * WeatherObservation's hourly series; the daily `status`/`reasons` above
+     * still carry the tone + the CAUTION explanation.
+     */
+    windows: SprayWindow[];
 }
 
 export interface SmartNextPlanting {
@@ -94,7 +109,7 @@ export async function getLocationSmartDefaults(ctx: RequestContext, locationId: 
         // No parcels ⇒ nothing op-derived to recall (weather + planting still apply).
         if (parcelIds.length === 0) {
             const [obs, planting] = await Promise.all([
-                loadSprayWindow(db, t, locationId),
+                loadSprayWindow(db, t, locationId, now),
                 loadNextPlanting(db, t, locationId, now),
             ]);
             return { repeatLast: null, byParcel: {}, defaultUnitId: null, sprayWindow: obs, nextPlanting: planting };
@@ -127,7 +142,7 @@ export async function getLocationSmartDefaults(ctx: RequestContext, locationId: 
         // 3. repeatLast — the latest line's taskId → load that job's lines, regroup.
         const [repeatLast, sprayWindow, nextPlanting] = await Promise.all([
             loadRepeatLast(db, t, lines.length > 0 ? lines[0].taskId : null),
-            loadSprayWindow(db, t, locationId),
+            loadSprayWindow(db, t, locationId, now),
             loadNextPlanting(db, t, locationId, now),
         ]);
 
@@ -160,19 +175,70 @@ async function loadRepeatLast(db: Db, tenantId: string, taskId: string | null): 
     };
 }
 
-async function loadSprayWindow(db: Db, tenantId: string, locationId: string): Promise<SmartSprayWindow | null> {
-    const obs = await db.weatherObservation.findFirst({
+// hourlyJson (Json?) → SprayHour[] — defensively typed; a legacy/absent series
+// yields no hours (⇒ no windows), never a throw.
+function parseHourly(raw: unknown): SprayHour[] {
+    if (!Array.isArray(raw)) return [];
+    const out: SprayHour[] = [];
+    for (const item of raw) {
+        if (item && typeof item === 'object') {
+            const h = item as Record<string, unknown>;
+            if (typeof h.hour === 'number') {
+                out.push({
+                    hour: h.hour,
+                    windKmh: typeof h.windKmh === 'number' ? h.windKmh : null,
+                    precipMm: typeof h.precipMm === 'number' ? h.precipMm : null,
+                    tempC: typeof h.tempC === 'number' ? h.tempC : null,
+                });
+            }
+        }
+    }
+    return out;
+}
+
+// obsDate (@db.Date, UTC midnight) → its YYYY-MM-DD calendar-day key.
+function dayKey(date: Date): string {
+    return date.toISOString().slice(0, 10);
+}
+
+async function loadSprayWindow(db: Db, tenantId: string, locationId: string, now: Date): Promise<SmartSprayWindow | null> {
+    // Pull a small recent window (latest first): enough to hold "today" and to
+    // read the location's UTC offset (identical across a location's rows).
+    const rows = await db.weatherObservation.findMany({
         where: { tenantId, locationId },
         orderBy: { obsDate: 'desc' },
-        select: { obsDate: true, windMaxKmh: true, precipMm: true, tempMeanC: true },
+        select: { obsDate: true, windMaxKmh: true, precipMm: true, tempMeanC: true, hourlyJson: true, utcOffsetSeconds: true },
+        take: 10,
     });
-    if (!obs) return null;
+    if (rows.length === 0) return null;
+
+    // Location-local "now" — server UTC shifted by the stored offset. From that
+    // shifted instant, UTC getters read the location-local clock.
+    const offsetSec = rows.find((r) => r.utcOffsetSeconds != null)?.utcOffsetSeconds ?? 0;
+    const localNow = new Date(now.getTime() + offsetSec * 1000);
+    const localHour = localNow.getUTCHours();
+    const localDate = dayKey(localNow);
+
+    // "Today" = the row whose obsDate matches the location-local calendar date;
+    // fall back to the most-recent row so the daily verdict still shows.
+    const todayRow = rows.find((r) => dayKey(r.obsDate) === localDate) ?? rows[0];
+    const isToday = dayKey(todayRow.obsDate) === localDate;
+
     const { status, reasons, reasonCodes } = evaluateSprayWindow({
-        windMaxKmh: toNumberOrNull(obs.windMaxKmh),
-        precipMm: toNumberOrNull(obs.precipMm),
-        tempMeanC: toNumberOrNull(obs.tempMeanC),
+        windMaxKmh: toNumberOrNull(todayRow.windMaxKmh),
+        precipMm: toNumberOrNull(todayRow.precipMm),
+        tempMeanC: toNumberOrNull(todayRow.tempMeanC),
     });
-    return { status, reasons, reasonCodes, obsDate: obs.obsDate.toISOString() };
+
+    // Only clip to "now" when the row really is today's — a fallback (no data
+    // for today) shouldn't have its morning hours dropped by today's clock.
+    const windows = computeSprayWindows(
+        parseHourly(todayRow.hourlyJson),
+        DEFAULT_SPRAY_THRESHOLDS,
+        isToday ? { fromHour: localHour } : {},
+    );
+
+    return { status, reasons, reasonCodes, obsDate: todayRow.obsDate.toISOString(), windows };
 }
 
 async function loadNextPlanting(db: Db, tenantId: string, locationId: string, now: Date): Promise<SmartNextPlanting | null> {

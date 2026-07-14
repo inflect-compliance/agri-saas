@@ -45,8 +45,14 @@ jest.mock('@/app-layer/usecases/agro-signals', () => ({
 import { runWeatherPull } from '@/app-layer/jobs/weather-pull';
 
 const DAYS = [
-    { date: '2026-06-14', tempMaxC: 24, tempMinC: 14, tempMeanC: null, precipMm: 1, windMaxKmh: 8, humidityMean: 80 },
-    { date: '2026-06-15', tempMaxC: 25, tempMinC: 15, tempMeanC: 20, precipMm: 0, windMaxKmh: 9, humidityMean: 82 },
+    {
+        date: '2026-06-14', tempMaxC: 24, tempMinC: 14, tempMeanC: null, precipMm: 1, windMaxKmh: 8, humidityMean: 80,
+        hours: [{ hour: 6, windKmh: 7, precipMm: 0, tempC: 16 }], utcOffsetSeconds: 7200,
+    },
+    {
+        date: '2026-06-15', tempMaxC: 25, tempMinC: 15, tempMeanC: 20, precipMm: 0, windMaxKmh: 9, humidityMean: 82,
+        hours: [{ hour: 7, windKmh: 8, precipMm: 0, tempC: 18 }], utcOffsetSeconds: 7200,
+    },
 ];
 
 beforeEach(() => {
@@ -72,6 +78,9 @@ describe('runWeatherPull — scoped to one tenant', () => {
         expect(firstUpsert.where.tenantId_locationId_obsDate.locationId).toBe('loc-1');
         // tempMeanC filled from (max+min)/2 when the API omits it (day 1).
         expect(firstUpsert.create.tempMeanC).toBe(19);
+        // Hourly series + UTC offset persisted for the hourly spray-window.
+        expect(firstUpsert.create.hourlyJson).toEqual([{ hour: 6, windKmh: 7, precipMm: 0, tempC: 16 }]);
+        expect(firstUpsert.create.utcOffsetSeconds).toBe(7200);
         // Signal eval ran for the processed location.
         expect(evaluateLocationSignals).toHaveBeenCalledWith(expect.anything(), 'loc-1');
         expect(r.scanned).toBe(1);

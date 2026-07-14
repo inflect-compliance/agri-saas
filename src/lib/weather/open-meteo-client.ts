@@ -23,6 +23,18 @@ const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 /** Default network budget — matches the OpenRouter provider's shape. */
 const FETCH_TIMEOUT_MS = 15_000;
 
+/** One LOCATION-LOCAL hour of weather, feeding the hourly spray-window. */
+export interface HourWeather {
+    /** Hour-of-day 0–23 in the LOCATION's local time (Open-Meteo `timezone=auto`). */
+    hour: number;
+    /** Wind speed at 10 m (km/h — the fetch forces `wind_speed_unit=kmh`). */
+    windKmh: number | null;
+    /** Precipitation for the hour (mm). */
+    precipMm: number | null;
+    /** Air temperature at 2 m (°C). */
+    tempC: number | null;
+}
+
 /** One calendar day of weather as the agro layer consumes it. */
 export interface DailyWeather {
     /** ISO calendar day (YYYY-MM-DD), as returned by Open-Meteo `daily.time`. */
@@ -35,6 +47,18 @@ export interface DailyWeather {
     windMaxKmh: number | null;
     /** Daily mean relative humidity (%). Optional — only some grids carry it. */
     humidityMean: number | null;
+    /**
+     * Location-local hourly rows for THIS calendar day (0–23), zipped from the
+     * `hourly.*` arrays. Empty when the API omits an hourly series. Feeds
+     * `computeSprayWindows` for the real "best window today" surface.
+     */
+    hours: HourWeather[];
+    /**
+     * Location UTC offset in seconds (`utc_offset_seconds`). Same for every day
+     * of one response; carried per-day so the caller can persist it alongside
+     * each WeatherObservation and later recover the location-local "now".
+     */
+    utcOffsetSeconds: number | null;
 }
 
 export interface FetchDailyWeatherOptions {
@@ -50,6 +74,8 @@ export interface FetchDailyWeatherOptions {
 
 /** The slice of the Open-Meteo response we read. All arrays are index-aligned. */
 interface OpenMeteoDailyResponse {
+    /** Location UTC offset (seconds) — present when `timezone=auto`. */
+    utc_offset_seconds?: number;
     daily?: {
         time?: string[];
         temperature_2m_max?: (number | null)[];
@@ -58,6 +84,13 @@ interface OpenMeteoDailyResponse {
         precipitation_sum?: (number | null)[];
         wind_speed_10m_max?: (number | null)[];
         relative_humidity_2m_mean?: (number | null)[];
+    };
+    /** Hourly series — `time` carries LOCAL `YYYY-MM-DDTHH:mm` stamps. */
+    hourly?: {
+        time?: string[];
+        temperature_2m?: (number | null)[];
+        precipitation?: (number | null)[];
+        wind_speed_10m?: (number | null)[];
     };
 }
 
@@ -93,6 +126,16 @@ export async function fetchDailyWeather(
             'wind_speed_10m_max',
             'relative_humidity_2m_mean',
         ].join(','),
+        // Hourly series for the real "best spray window today" — location-local
+        // (timezone=auto). wind_speed_unit=kmh forces km/h so the hourly wind
+        // matches the daily `wind_speed_10m_max` unit (Open-Meteo's default is
+        // km/h; we pin it explicitly rather than rely on the default).
+        hourly: [
+            'temperature_2m',
+            'precipitation',
+            'wind_speed_10m',
+        ].join(','),
+        wind_speed_unit: 'kmh',
         past_days: String(pastDays),
         forecast_days: String(forecastDays),
         timezone,
@@ -126,6 +169,11 @@ export async function fetchDailyWeather(
         return [];
     }
 
+    const utcOffsetSeconds = typeof data.utc_offset_seconds === 'number' && Number.isFinite(data.utc_offset_seconds)
+        ? data.utc_offset_seconds
+        : null;
+    const hoursByDate = groupHourlyByDate(data.hourly);
+
     const out: DailyWeather[] = [];
     for (let i = 0; i < time.length; i++) {
         out.push({
@@ -136,7 +184,39 @@ export async function fetchDailyWeather(
             precipMm: at(data.daily?.precipitation_sum, i),
             windMaxKmh: at(data.daily?.wind_speed_10m_max, i),
             humidityMean: at(data.daily?.relative_humidity_2m_mean, i),
+            hours: hoursByDate.get(time[i]) ?? [],
+            utcOffsetSeconds,
         });
     }
     return out;
+}
+
+/**
+ * Zip the parallel `hourly.*` arrays into per-calendar-day `HourWeather[]`.
+ * `hourly.time` carries LOCATION-LOCAL `YYYY-MM-DDTHH:mm` stamps (timezone=auto),
+ * so the date prefix buckets the row and the `HH` prefix is the local hour.
+ */
+function groupHourlyByDate(hourly: OpenMeteoDailyResponse['hourly']): Map<string, HourWeather[]> {
+    const byDate = new Map<string, HourWeather[]>();
+    const times = hourly?.time;
+    if (!Array.isArray(times)) return byDate;
+    for (let i = 0; i < times.length; i++) {
+        const stamp = times[i];
+        if (typeof stamp !== 'string') continue;
+        const tIdx = stamp.indexOf('T');
+        if (tIdx < 0) continue;
+        const date = stamp.slice(0, tIdx);
+        const hour = Number(stamp.slice(tIdx + 1, tIdx + 3));
+        if (!Number.isInteger(hour) || hour < 0 || hour > 23) continue;
+        const row: HourWeather = {
+            hour,
+            windKmh: at(hourly?.wind_speed_10m, i),
+            precipMm: at(hourly?.precipitation, i),
+            tempC: at(hourly?.temperature_2m, i),
+        };
+        const bucket = byDate.get(date);
+        if (bucket) bucket.push(row);
+        else byDate.set(date, [row]);
+    }
+    return byDate;
 }

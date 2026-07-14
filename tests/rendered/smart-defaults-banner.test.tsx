@@ -36,6 +36,7 @@ describe('SmartDefaultsBanner spray reasons i18n', () => {
                         // English strings that must NOT appear in the DOM:
                         reasons: ['Wind 18.4 km/h — drift caution above 15 km/h'],
                         reasonCodes: [{ code: 'windCaution', params: { wind: 18.4, limit: 15 } }],
+                        windows: [],
                     },
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any}
@@ -45,6 +46,58 @@ describe('SmartDefaultsBanner spray reasons i18n', () => {
         expect(screen.getByText(/spray:sprayReason\.windCaution\(wind=18\.4,limit=15\)/)).toBeInTheDocument();
         // The raw English reason string must never be rendered.
         expect(screen.queryByText(/drift caution above 15 km\/h/)).not.toBeInTheDocument();
+    });
+
+    it('renders the actual suitable time window(s) as HH:00–HH:00', () => {
+        render(
+            <SmartDefaultsBanner
+                data={{
+                    repeatLast: null,
+                    byParcel: {},
+                    defaultUnitId: null,
+                    nextPlanting: null,
+                    sprayWindow: {
+                        status: 'GOOD',
+                        obsDate: '2026-07-14T00:00:00.000Z',
+                        reasons: [],
+                        reasonCodes: [],
+                        windows: [
+                            { startHour: 6, endHour: 10 },
+                            { startHour: 16, endHour: 19 },
+                        ],
+                    },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any}
+            />,
+        );
+        // Each window is formatted HH:00 and passed to t('sprayWindowRange').
+        expect(screen.getByText(/spray:bestSprayWindow/)).toBeInTheDocument();
+        expect(
+            screen.getByText(/spray:sprayWindowRange\(from=06:00,to=10:00\).*spray:sprayWindowRange\(from=16:00,to=19:00\)/),
+        ).toBeInTheDocument();
+    });
+
+    it('renders the "no window today" line when windows is empty', () => {
+        render(
+            <SmartDefaultsBanner
+                data={{
+                    repeatLast: null,
+                    byParcel: {},
+                    defaultUnitId: null,
+                    nextPlanting: null,
+                    sprayWindow: {
+                        status: 'UNSUITABLE',
+                        obsDate: '2026-07-14T00:00:00.000Z',
+                        reasons: [],
+                        reasonCodes: [],
+                        windows: [],
+                    },
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any}
+            />,
+        );
+        expect(screen.getByText(/spray:sprayNoWindowToday/)).toBeInTheDocument();
+        expect(screen.queryByText(/spray:bestSprayWindow/)).not.toBeInTheDocument();
     });
 
     it('renders nothing when there is no spray window and no planting', () => {

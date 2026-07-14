@@ -6322,6 +6322,9 @@
             "stageTransplant": "Transplant",
             "stageHarvest": "Harvest",
             "sprayWindowToday": "Spray window today",
+            "bestSprayWindow": "Best window",
+            "sprayWindowRange": "{from}–{to}",
+            "sprayNoWindowToday": "No suitable window today",
             "nextCropPlanTask": "Next crop-plan task",
             "sprayReason": {
                 "windUnsuitable": "Wind {wind} km/h exceeds the {limit} km/h drift limit",
