@@ -23,6 +23,7 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Sheet } from '@/components/ui/sheet';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { UserCombobox } from '@/components/ui/user-combobox';
 import { SoilProfileCard } from '@/components/soil/SoilProfileCard';
@@ -93,6 +94,7 @@ export function ParcelDetailSheet({
     const t = useTranslations('ag.map');
     const tc = useTranslations('common');
     const tCrops = useTranslations('crops');
+    const tSoil = useTranslations('ag.soil');
     const buildUrl = useTenantApiUrl();
     const { tenantSlug } = useParams<{ tenantSlug: string }>();
     const { submit } = useOfflineSync();
@@ -338,9 +340,18 @@ export function ParcelDetailSheet({
                     </div>
                 </dl>
 
-                <div className="rounded-lg border border-border-subtle p-4">
-                    <SoilProfileCard profile={parcel?.soilJson ?? null} />
-                </div>
+                <Accordion type="single" collapsible className="rounded-lg border border-border-subtle">
+                    <AccordionItem value="soil" density="compact">
+                        <AccordionTrigger size="sm" className="px-4">
+                            <span className="font-medium">{tSoil('title')}</span>
+                        </AccordionTrigger>
+                        <AccordionContent size="sm">
+                            <div className="px-4 pb-4">
+                                <SoilProfileCard profile={parcel?.soilJson ?? null} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
 
                 {/* The create-operation form — one exclusive input kind. Only
                     mounted with a parcel so the operator picker (react-query)
