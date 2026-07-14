@@ -104,6 +104,12 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
         defaultPayload: {},
     },
     {
+        name: 'lease-expiry-sweep',
+        pattern: '0 7 * * *',     // daily at 07:00 UTC
+        description: 'Scan parcel leases (аренда/наем) ending within 30 days and fire LEASE_EXPIRING notifications to tenant OWNER/ADMIN members',
+        defaultPayload: {},
+    },
+    {
         name: 'reconcile-inventory-ledgers',
         pattern: '0 4 * * *',     // daily at 04:00 UTC
         description: 'Reconcile every tenant\'s stock ledger: hash-chain integrity + lot quantityOnHand vs SUM(transactions); log + alert on drift',

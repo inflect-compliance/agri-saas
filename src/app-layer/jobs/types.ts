@@ -514,6 +514,12 @@ export interface LowStockMonitorPayload {
     tenantId?: string;
 }
 
+/** Land admin — daily cross-tenant lease-expiry sweep + LEASE_EXPIRING alerts. */
+export interface LeaseExpirySweepPayload {
+    tenantId?: string;
+    withinDays?: number;
+}
+
 /** Data-integrity — daily cross-tenant stock-ledger reconciliation (chain + balances). */
 export interface ReconcileInventoryLedgersPayload {
     tenantId?: string;
@@ -706,6 +712,7 @@ export interface JobPayloadMap {
     'risk-snapshot': RiskSnapshotPayload;
     'report-delivery': ReportDeliveryPayload;
     'low-stock-monitor': LowStockMonitorPayload;
+    'lease-expiry-sweep': LeaseExpirySweepPayload;
     'reconcile-inventory-ledgers': ReconcileInventoryLedgersPayload;
     'agronomy-copilot': AgronomyCopilotPayload;
     'photo-pest-id': PhotoPestIdPayload;
@@ -859,6 +866,12 @@ export const JOB_DEFAULTS: Record<JobName, {
         removeOnFail: 200,
     },
     'low-stock-monitor': {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: 100,
+        removeOnFail: 200,
+    },
+    'lease-expiry-sweep': {
         attempts: 2,
         backoff: { type: 'exponential', delay: 10000 },
         removeOnComplete: 100,

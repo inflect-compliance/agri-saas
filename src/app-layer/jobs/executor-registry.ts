@@ -573,6 +573,17 @@ executorRegistry.register('low-stock-monitor', async (payload) => {
     return result;
 });
 
+// ── lease-expiry-sweep (land administration) ─────────────────────────
+
+executorRegistry.register('lease-expiry-sweep', async (payload) => {
+    const { runLeaseExpirySweep } = await import('./lease-expiry-sweep');
+    const { result } = await runLeaseExpirySweep({
+        tenantId: payload.tenantId,
+        withinDays: payload.withinDays,
+    });
+    return result;
+});
+
 // ── reconcile-inventory-ledgers (data-integrity) ─────────────────────
 
 executorRegistry.register('reconcile-inventory-ledgers', async (payload) => {
