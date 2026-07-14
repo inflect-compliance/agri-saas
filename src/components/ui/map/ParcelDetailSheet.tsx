@@ -65,6 +65,8 @@ export interface ParcelSheetData {
     cadastralId?: string | null;
     /** propertiesJson — carries the documentary area for the reconciliation badge. */
     properties?: unknown;
+    /** Legal-entity owners from the КАИС ownership register (empty when none). */
+    companyOwners?: Array<{ name: string; eik: string; rightType: string | null; subjectKind: string | null }>;
 }
 
 export interface ParcelDetailSheetProps {
@@ -321,6 +323,7 @@ export function ParcelDetailSheet({
                             cadastralId={parcel.cadastralId}
                             areaHa={parcel.areaHa ?? null}
                             properties={parcel.properties ?? null}
+                            companyOwners={parcel.companyOwners ?? []}
                             layout="detail"
                             className="col-span-2"
                         />

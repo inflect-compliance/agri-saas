@@ -56,6 +56,24 @@ export interface ParcelGeo {
     soilType: string | null;
     /** Structured modelled soil profile; null while "soil pending". */
     soilJson: SoilProfile | null;
+    /**
+     * LEGAL-ENTITY owners of this parcel from the КАИС ownership register,
+     * joined at read time on `cadastralId` (empty when unknown / not a company).
+     * Physical persons are never stored, so never appear here.
+     */
+    companyOwners: ParcelCompanyOwner[];
+}
+
+/** A legal-entity owner surfaced on a parcel (КАИС „собственост ПИ"). */
+export interface ParcelCompanyOwner {
+    /** Legal-entity name (Община …, … ЕООД). */
+    name: string;
+    /** ЕИК / БУЛСТАТ. */
+    eik: string;
+    /** «вид на правото» — ownership right type, or null. */
+    rightType: string | null;
+    /** «вид на лицето» — subject kind (Община, ЕООД …), or null. */
+    subjectKind: string | null;
 }
 
 /**
@@ -162,10 +180,11 @@ export class ParcelRepository {
             cachedSoilJson: unknown;
             cadastralId: string | null;
             ekatte: string | null;
+            ownersJson: unknown;
         }>>(
             Prisma.sql`SELECT "id", "name", "cropType", "areaHa"::text AS "areaHa",
                     ${geojsonSql} AS "geojson", "propertiesJson", "soilType", "soilJson",
-                    "cadastralId", "ekatte", "ss"."cachedSoilJson"
+                    "cadastralId", "ekatte", "ss"."cachedSoilJson", "own"."ownersJson"
                 FROM "Parcel"
                 LEFT JOIN LATERAL (
                     -- Read-time soil hydration. SoilSample is a GLOBAL open-data
@@ -185,6 +204,21 @@ export class ParcelRepository {
                       AND "s"."lonE3" = ${soilCell.lonE3}
                     LIMIT 1
                 ) "ss" ON true
+                LEFT JOIN LATERAL (
+                    -- Read-time legal-entity ownership. CadastreOwner is a GLOBAL
+                    -- open-data cache (no tenantId / no RLS) keyed by cadastral
+                    -- identifier; a parcel can have several co-owners, so aggregate
+                    -- them into one JSON array. Physical persons are never stored.
+                    SELECT json_agg(
+                        json_build_object(
+                            'name', "o"."name", 'eik', "o"."eik",
+                            'rightType', NULLIF("o"."rightType", ''), 'subjectKind', "o"."subjectKind"
+                        ) ORDER BY "o"."name"
+                    ) AS "ownersJson"
+                    FROM "CadastreOwner" "o"
+                    WHERE "Parcel"."cadastralId" IS NOT NULL
+                      AND "o"."cadastralId" = "Parcel"."cadastralId"
+                ) "own" ON true
                 WHERE "locationId" = ${locationId}
                   AND "tenantId" = ${ctx.tenantId}
                   AND "deletedAt" IS NULL
@@ -209,6 +243,7 @@ export class ParcelRepository {
                 soilJson,
                 cadastralId: r.cadastralId,
                 ekatte: r.ekatte,
+                companyOwners: (r.ownersJson ?? []) as ParcelCompanyOwner[],
             };
         });
     }

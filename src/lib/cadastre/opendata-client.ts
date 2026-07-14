@@ -40,8 +40,15 @@
 const DEFAULT_TIMEOUT_MS = 20_000;
 /** Land-parcels file name (Name field, sans extension) — the ONLY file we pull. */
 const LAND_PARCELS_NAME = 'поземлени имоти';
-/** Ownership-register name prefix — NEVER fetched (personal data). */
+/** Ownership-register name prefix — never fetched by the GEOMETRY path. */
 const OWNERSHIP_NAME_PREFIX = 'собственост';
+/**
+ * The LAND-PARCEL ownership register name. Fetched ONLY by
+ * `fetchOwnershipArchive`, whose caller keeps LEGAL ENTITIES and drops every
+ * physical person (masked at source) via `lib/cadastre/ownership.ts`. The
+ * building/SOS ownership registers („собственост сгради/СОС") are never fetched.
+ */
+const OWNERSHIP_LAND_PARCELS_NAME = 'собственост пи';
 /** Hard cap on a downloaded archive (a settlement land-parcels ZIP is ~1–8 MB). */
 const DEFAULT_MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 /** Runaway guard on the directory walk (Read calls) when resolving an ЕКАТТЕ. */
@@ -276,6 +283,64 @@ export class CadastreOpenDataClient {
                     buffer,
                     sourcePath: landParcels.Path,
                     sourceDate: landParcels.ModifiedUtc ?? landParcels.Modified ?? new Date().toISOString(),
+                    sizeBytes: buffer.byteLength,
+                };
+            }
+        }
+        throw new CadastreOpenDataError(`ЕКАТТЕ ${ekatte} not found in the КАИС index`, 'not_found');
+    }
+
+    /**
+     * `fetchOwnershipArchive(ekatte)` — resolve a settlement's LAND-PARCEL
+     * ownership register („собственост ПИ.zip"). Same tree walk as
+     * `fetchArchive`, targeting the ownership archive instead of the geometry
+     * one. The register is an `.xlsx` that КАИС masks at source; the caller
+     * (`cadastre-owners` usecase) passes it through `lib/cadastre/ownership.ts`,
+     * which keeps ONLY legal entities (readable name + numeric ЕИК) and drops
+     * every physical person BEFORE anything is persisted. Buildings/SOS
+     * ownership registers are never fetched.
+     */
+    async fetchOwnershipArchive(ekatte: string): Promise<FetchedArchive> {
+        const session = await this.openSession();
+        const marker = `(${ekatte})`;
+        let nodes = 0;
+
+        const oblasti = await this.read(session, '');
+        nodes++;
+        for (const oblast of oblasti) {
+            if (!oblast.IsDirectory) continue;
+            const obshtini = await this.read(session, oblast.Path);
+            if (++nodes > this.maxWalkNodes) {
+                throw new CadastreOpenDataError(`walk exceeded ${this.maxWalkNodes} nodes`, 'walk_budget');
+            }
+            for (const obshtina of obshtini) {
+                if (!obshtina.IsDirectory) continue;
+                const settlements = await this.read(session, obshtina.Path);
+                if (++nodes > this.maxWalkNodes) {
+                    throw new CadastreOpenDataError(`walk exceeded ${this.maxWalkNodes} nodes`, 'walk_budget');
+                }
+                const match = settlements.find((s) => s.IsDirectory && s.Name.includes(marker));
+                if (!match) continue;
+
+                const files = await this.read(session, match.Path);
+                nodes++;
+                const ownership = files.find(
+                    (f) =>
+                        !f.IsDirectory &&
+                        f.Name.trim().toLowerCase() === OWNERSHIP_LAND_PARCELS_NAME,
+                );
+                if (!ownership) {
+                    throw new CadastreOpenDataError(
+                        `settlement ${ekatte} has no "${OWNERSHIP_LAND_PARCELS_NAME}" archive`,
+                        'not_found',
+                    );
+                }
+                const buffer = await this.download(session, ownership.Path);
+                return {
+                    ekatte,
+                    buffer,
+                    sourcePath: ownership.Path,
+                    sourceDate: ownership.ModifiedUtc ?? ownership.Modified ?? new Date().toISOString(),
                     sizeBytes: buffer.byteLength,
                 };
             }

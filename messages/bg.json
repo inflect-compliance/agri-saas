@@ -3197,6 +3197,8 @@
     "ag": {
         "cadastre": {
             "cadastralId": "Кадастрален идентификатор",
+            "legalOwner": "Собственик (юридическо лице)",
+            "eik": "ЕИК {eik}",
             "viewInKais": "Виж в КАИС",
             "areaMismatch": "Площта се различава от документа",
             "areaMismatchDetail": "Площ по документ {doc} дка спрямо {geom} дка по карта"

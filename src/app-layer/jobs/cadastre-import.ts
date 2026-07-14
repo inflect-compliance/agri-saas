@@ -336,6 +336,19 @@ export async function runCadastreImport(
             /* soil fetch is best-effort */
         }
 
+        // Best-effort legal-entity ownership population for the imported
+        // settlements (global CadastreOwner cache, TTL-guarded; parcels surface
+        // the owner via a read-time join on cadastralId). Never blocks the
+        // import; personal data is dropped in the extractor, never persisted.
+        try {
+            const { fetchAndStoreCadastreOwners } = await import('@/app-layer/usecases/cadastre-owners');
+            for (const ekatte of new Set([...ekatteFetched, ...ekatteCached])) {
+                await fetchAndStoreCadastreOwners(ekatte).catch(() => undefined);
+            }
+        } catch {
+            /* ownership population is best-effort */
+        }
+
         logger.info('cadastre-import.completed', {
             component: 'cadastre-import',
             tenantId: ctx.tenantId,
