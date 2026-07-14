@@ -206,6 +206,16 @@ describe('CI Guard: No direct prisma in tenant-scoped code', () => {
         // no tenant to bind and no business data — physical persons are dropped
         // by lib/cadastre/ownership.ts before any write.
         'cadastre-owners.ts',
+        // Trends (feat/trends-data-backbone) — `MarketPriceSeries` /
+        // `MarketPricePoint` are GLOBAL market-price cache tables (no tenantId
+        // / no RLS, like SoilSample / CadastreArchive / Framework), shared
+        // identically across every tenant. `getPriceTrends` reads them with the
+        // global prisma client because there is no tenantId to filter on — the
+        // global handle carries no RLS risk. The read is still access-gated:
+        // the route (src/app/api/t/[tenantSlug]/trends/prices/route.ts) calls
+        // getTenantCtx to enforce tenant membership before serving; the payload
+        // is public reference data (no business data leak).
+        'trends.ts',
     ];
 
     const usecases = readFilesInDir(path.join(SRC_ROOT, 'app-layer/usecases'));

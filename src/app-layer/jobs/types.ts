@@ -564,6 +564,16 @@ export interface WeatherPullPayload {
 }
 
 /**
+ * Market-price trends — weekly/daily pull of the three price sources into
+ * the GLOBAL MarketPriceSeries/Point cache. `source` scopes the run to one
+ * source ('ec' EC AGRI-food weekly, 'av' Alpha Vantage daily, 'listings'
+ * k-anonymised own-listings median); omit to run all three.
+ */
+export interface MarketPricesPullPayload {
+    source?: 'ec' | 'av' | 'listings';
+}
+
+/**
  * Spatial-upload abuse hardening — off-thread parcel-boundary import.
  *
  * The HTTP layer stages the uploaded shapefile/KML/GeoJSON to storage
@@ -723,6 +733,7 @@ export interface JobPayloadMap {
     'farm-record-pdf': FarmRecordPdfPayload;
     'exchange-expiry-sweep': ExchangeExpirySweepPayload;
     'soil-fetch': SoilFetchPayload;
+    'market-prices-pull': MarketPricesPullPayload;
 }
 
 /** Union of all valid job names */
@@ -920,6 +931,15 @@ export const JOB_DEFAULTS: Record<JobName, {
         backoff: { type: 'exponential', delay: 10000 },
         removeOnComplete: 100,
         removeOnFail: 200,
+    },
+    'market-prices-pull': {
+        // Weekly/daily market-price pull. One retry on a transient network/DB
+        // blip; the Series/Point upserts are keyed on their natural unique
+        // constraints so a re-run is fully idempotent.
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: 50,
+        removeOnFail: 100,
     },
     'exception-expiry-monitor': {
         attempts: 2,

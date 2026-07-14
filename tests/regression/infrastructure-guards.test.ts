@@ -109,6 +109,9 @@ describe('Infrastructure Regression Guards', () => {
                 // Inventory Phase 1 — daily cross-tenant low-stock sweep
                 // firing LOW_STOCK alerts for items below reorderLevel.
                 'low-stock-monitor',
+                // Trends — weekly market-price backbone pull (EC AGRI-food +
+                // Alpha Vantage + own-listings median) into the global cache.
+                'market-prices-pull',
                 'notification-dispatch',
                 'policy-review-reminder',
                 // Data-integrity — daily cross-tenant stock-ledger
