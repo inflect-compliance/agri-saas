@@ -74,8 +74,8 @@ describe('Infrastructure Regression Guards', () => {
             }
         });
 
-        test('exactly 24 scheduled jobs exist', () => {
-            expect(SCHEDULED_JOBS).toHaveLength(24);
+        test('exactly 25 scheduled jobs exist', () => {
+            expect(SCHEDULED_JOBS).toHaveLength(25);
         });
 
         test('scheduled job names match expected set', () => {
@@ -102,6 +102,10 @@ describe('Infrastructure Regression Guards', () => {
                 // Exchange — daily global sweep flipping ACTIVE listings past
                 // their expiresAt to EXPIRED (+ audit row per transition).
                 'exchange-expiry-sweep',
+                // Land administration (roadmap 3/3) — daily cross-tenant
+                // sweep firing LEASE_EXPIRING alerts for parcel leases
+                // (аренда/наем) ending within 30 days.
+                'lease-expiry-sweep',
                 // Inventory Phase 1 — daily cross-tenant low-stock sweep
                 // firing LOW_STOCK alerts for items below reorderLevel.
                 'low-stock-monitor',

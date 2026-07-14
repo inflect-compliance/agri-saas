@@ -3195,6 +3195,15 @@
         }
     },
     "ag": {
+        "rentRoll": {
+            "title": "Rent roll",
+            "leasedArea": "Leased area",
+            "lessors": "Lessors",
+            "leases": "Leases",
+            "rentSeason": "Rent / season",
+            "expiring": "Expiring soon",
+            "daysLeft": "{days} d"
+        },
         "lease": {
             "owned": "Owned",
             "leased": "Leased",

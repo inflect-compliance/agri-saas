@@ -29,6 +29,7 @@ import { DownloadBasemapButton } from '@/components/ui/map/DownloadBasemapButton
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
 import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
 import { ParcelCadastralInfo } from '@/components/ui/map/ParcelCadastralInfo';
+import { RentRollCard } from '@/components/ui/map/RentRollCard';
 import { SoilLegend } from '@/components/soil/SoilLegend';
 import { soilColorForTexture, type SoilProfile } from '@/lib/soil/types';
 import type { UsdaTextureClass } from '@/lib/soil/texture';
@@ -523,6 +524,9 @@ export default function LocationDetailPage() {
                             <div><dt className="text-content-secondary">{t('overviewLeased')}</dt><dd className="font-medium">{leasedCount}</dd></div>
                         ) : null}
                     </dl>
+
+                    {/* Land obligations — rent roll for this location (renders only when leased). */}
+                    <RentRollCard locationId={locationId} />
                     {loc?.description && <p className="text-sm">{loc.description}</p>}
                     {parcels.length === 0 && (
                         <div className="rounded-lg border border-border-subtle p-6 text-sm text-content-secondary">

@@ -535,6 +535,11 @@ enum NotificationType {
   // below `Item.reorderLevel`. One bell notification per (item, owner,
   // day); routed to the tenant's OWNER/ADMIN members.
   LOW_STOCK
+  // Land administration (2026-07-15) — fired by the `lease-expiry-sweep`
+  // daily job when a parcel lease (аренда/наем) is within 30 days of its
+  // endDate. One bell notification per (lease, owner, endDate); routed to
+  // the tenant's OWNER/ADMIN members.
+  LEASE_EXPIRING
   GENERAL
 }
 
