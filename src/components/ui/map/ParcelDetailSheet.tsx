@@ -110,7 +110,8 @@ export function ParcelDetailSheet({
     const [doseUnitId, setDoseUnitId] = useState('');
     const [waterRate, setWaterRate] = useState('');
     const [waterRateUnitId, setWaterRateUnitId] = useState('');
-    const [technique, setTechnique] = useState('');
+    const [techniqueKey, setTechniqueKey] = useState('');
+    const [techniqueOther, setTechniqueOther] = useState('');
     const [note, setNote] = useState('');
     const [assigneeUserId, setAssigneeUserId] = useState<string | null>(null);
     const [cropValue, setCropValue] = useState('');
@@ -126,7 +127,8 @@ export function ParcelDetailSheet({
         setDoseUnitId('');
         setWaterRate('');
         setWaterRateUnitId('');
-        setTechnique('');
+        setTechniqueKey('');
+        setTechniqueOther('');
         setNote('');
         setError(null);
         setCropValue(parcel?.cropType ?? '');
@@ -189,6 +191,36 @@ export function ParcelDetailSheet({
         [t],
     );
 
+    // Curated БАБХ application-technique catalogue. 'other' reveals a
+    // free-text field so any rig not listed can still be recorded.
+    const techniqueLabels = useMemo<Record<string, string>>(
+        () => ({
+            boom: t('parcelSheet.techniqueOptions.boom'),
+            ground: t('parcelSheet.techniqueOptions.ground'),
+            airblast: t('parcelSheet.techniqueOptions.airblast'),
+            knapsack: t('parcelSheet.techniqueOptions.knapsack'),
+            spreader: t('parcelSheet.techniqueOptions.spreader'),
+            drone: t('parcelSheet.techniqueOptions.drone'),
+            other: t('parcelSheet.techniqueOptions.other'),
+        }),
+        [t],
+    );
+    const techniqueOptions = useMemo<ComboboxOption[]>(
+        () =>
+            (['boom', 'ground', 'airblast', 'knapsack', 'spreader', 'drone', 'other'] as const).map(
+                (k) => ({ value: k, label: techniqueLabels[k] }),
+            ),
+        [techniqueLabels],
+    );
+    // Persisted verbatim (БАБХ record): the localized label for a preset,
+    // or the typed text for 'other' — preserving the free-text contract.
+    const applicationTechnique =
+        techniqueKey === 'other'
+            ? techniqueOther.trim() || null
+            : techniqueKey
+              ? techniqueLabels[techniqueKey] ?? null
+              : null;
+
     const area = parcel?.areaHa ?? null;
     const areaHa = area ?? 0;
     const doseNumber = Number(dose);
@@ -243,7 +275,7 @@ export function ParcelDetailSheet({
                               waterRateValue: waterValid ? waterNumber : null,
                               waterRateUnitId: waterValid ? waterRateUnitId : null,
                           }),
-                    applicationTechnique: technique.trim() || null,
+                    applicationTechnique,
                     targetNote: note.trim() || null,
                 },
                 label: t('parcelSheet.createOperation'),
@@ -417,13 +449,24 @@ export function ParcelDetailSheet({
                     </FormField>
 
                     <FormField label={t('parcelSheet.technique')} hint={t('parcelSheet.techniqueHint')}>
-                        <Input
-                            value={technique}
-                            onChange={(e) => setTechnique(e.target.value)}
+                        <Combobox
+                            options={techniqueOptions}
+                            selected={techniqueOptions.find((o) => o.value === techniqueKey) ?? null}
+                            setSelected={(o) => setTechniqueKey(o?.value ?? '')}
                             placeholder={t('parcelSheet.techniquePlaceholder')}
-                            id="parcel-sheet-technique"
+                            matchTriggerWidth
                         />
                     </FormField>
+                    {techniqueKey === 'other' && (
+                        <FormField label={t('parcelSheet.techniqueOtherLabel')}>
+                            <Input
+                                value={techniqueOther}
+                                onChange={(e) => setTechniqueOther(e.target.value)}
+                                placeholder={t('parcelSheet.techniqueOtherPlaceholder')}
+                                id="parcel-sheet-technique-other"
+                            />
+                        </FormField>
+                    )}
 
                     <FormField label={t('parcelSheet.note')}>
                         <Input
