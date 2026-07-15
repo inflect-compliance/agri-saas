@@ -154,10 +154,6 @@ export function useNavSections(): NavSectionDef[] {
                 // the already-imported Coins glyph (deals/pricing) — no new
                 // lucide import.
                 { href: tenantHref('/offers'), label: t('offers'), icon: Coins },
-                // Trends (#trends) — global market-price charts (EC + reference
-                // benchmark + own-listings index), visible to every tenant.
-                // Sits with the market surfaces (Offers) in Govern.
-                { href: tenantHref('/trends'), label: t('trends'), icon: TrendingUp },
                 // Climate (#14) — the tenant's Meteobot station embed, with an
                 // Open-Meteo weather fallback. Sits with the field surfaces.
                 { href: tenantHref('/climate'), label: t('climate'), icon: CloudSun },
@@ -194,12 +190,18 @@ export function useNavSections(): NavSectionDef[] {
             ]),
         },
         {
-            // Exchange — cross-tenant P2P marketplace. Single-item section
-            // gated behind EXCHANGE; dropped for non-Exchange tenants by the
-            // `sections.filter(...)` tail below.
+            // Exchange — market surfaces. The cross-tenant P2P marketplace is
+            // gated behind EXCHANGE, but Trends (global market-price charts +
+            // market news) is market data too and sits here, visible to EVERY
+            // tenant. Because Trends is ungated the section always renders even
+            // for non-Exchange tenants (marketplace hidden, Trends shown).
             title: t('sectionExchange'),
             items: filterVisible([
                 { href: tenantHref('/exchange'), label: t('marketplace'), icon: ArrowLeftRight, visible: exchangeAvailable },
+                // Trends (#trends) — global market-price charts (EC + reference
+                // benchmark + own-listings index) + market news. Visible to
+                // every tenant.
+                { href: tenantHref('/trends'), label: t('trends'), icon: TrendingUp },
             ]),
         },
         {
