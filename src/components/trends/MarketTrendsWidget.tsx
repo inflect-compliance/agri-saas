@@ -195,8 +195,10 @@ export function MarketTrendsWidget() {
                 )}
             </Link>
 
-            {/* Dot indicators — one per crop, clickable to jump. */}
-            <div className="flex items-center justify-center gap-tight" role="tablist" aria-label={t('widget.title')}>
+            {/* Dot indicators — one per crop, clickable to jump. Each button is a
+                24×24 touch target (WCAG 2.2 target-size); the visible dot inside
+                stays small. */}
+            <div className="flex items-center justify-center" role="tablist" aria-label={t('widget.title')}>
                 {WIDGET_COMMODITIES.map((c, i) => (
                     <button
                         key={c}
@@ -205,10 +207,15 @@ export function MarketTrendsWidget() {
                         aria-selected={i === index}
                         aria-label={t('widget.showCrop', { commodity: t(`commodities.${c}`) })}
                         onClick={() => go(i)}
-                        className={`h-1.5 rounded-full transition-all ${
-                            i === index ? 'w-4 bg-brand-default' : 'w-1.5 bg-border-default hover:bg-content-muted'
-                        }`}
-                    />
+                        className="flex h-6 w-6 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                    >
+                        <span
+                            aria-hidden="true"
+                            className={`h-1.5 rounded-full transition-all ${
+                                i === index ? 'w-4 bg-brand-default' : 'w-1.5 bg-border-default'
+                            }`}
+                        />
+                    </button>
                 ))}
             </div>
         </Card>
