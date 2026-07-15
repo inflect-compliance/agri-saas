@@ -2,7 +2,8 @@
  * EC AGRI-food data-portal client — PURE HTTP, no DB.
  *
  * Fetches weekly cereal + oilseed prices from the European Commission's open
- * AGRI-food API (https://www.ec.europa.eu/agrifood/api). Contract mirrors the
+ * AGRI-food API (https://api.tech.ec.europa.eu/agrifood/api — the legacy
+ * www.ec.europa.eu/agrifood/api host now 302-redirects here). Contract mirrors the
  * SoilGrids client: one GET per call, an AbortController timeout, a throw on
  * any non-2xx, a base-URL override for tests, and an injectable `fetch`.
  *
@@ -29,7 +30,11 @@
 import { parseEuroPrice, oilseedCurrencyForRegion } from './price-parse';
 
 /** Default EC AGRI-food API base (overridable via EC_AGRIFOOD_BASE_URL). */
-export const EC_AGRIFOOD_DEFAULT_BASE_URL = 'https://www.ec.europa.eu/agrifood/api';
+// The EC AGRI-food API moved to the api.tech.ec.europa.eu gateway; the legacy
+// www.ec.europa.eu/agrifood/api host 302-redirects here. Point at the gateway
+// directly so the pull never depends on a cross-host redirect being followed.
+// Override per-environment with EC_AGRIFOOD_BASE_URL.
+export const EC_AGRIFOOD_DEFAULT_BASE_URL = 'https://api.tech.ec.europa.eu/agrifood/api';
 
 const FETCH_TIMEOUT_MS = 30_000;
 
