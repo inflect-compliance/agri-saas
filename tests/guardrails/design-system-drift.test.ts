@@ -358,7 +358,13 @@ describe('New page token discipline', () => {
         //     clean (semantic tokens only + ListPageShell/PageBreadcrumbs/
         //     DataTable/Modal/Combobox/ToggleGroup/DatePicker/StatusBadge/
         //     EmptyState/Heading/Button); new surfaces, not yet promoted.
-        expect(unmigrated.length).toBeLessThanOrEqual(150);
+        //   - 151 (+1, 2026-07-15, feat/news-standalone): news/page.tsx — the
+        //     decoupled News destination (News split out of the Trends tabs into
+        //     its own nav button + route). Token-clean thin shell (renders
+        //     NewsPageClient, which lives under src/components/ so it isn't
+        //     scanned); in the tally only because the route surface is new and
+        //     not yet promoted to MIGRATED_PAGES.
+        expect(unmigrated.length).toBeLessThanOrEqual(151);
     });
 
     it('migrated page count is at least 4', () => {
