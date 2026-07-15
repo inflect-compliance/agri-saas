@@ -190,10 +190,16 @@ export function buildYScale({
     height: number;
 }) {
     const range = maxY - minY;
+    // A flat series (every value identical, e.g. a price the source reports as a
+    // constant) has range 0 → a degenerate [v, v] domain that collapses the
+    // whole chart (every point maps to the same y, the area fill renders as a
+    // solid block). Fall back to a symmetric band around the value so the line
+    // renders mid-chart with a normal fill.
+    const flatPad = range === 0 ? (Math.abs(maxY) > 0 ? Math.abs(maxY) * 0.05 : 1) : 0;
     return scaleLinear<number>({
         domain: [
-            minY - range * (padding.bottom ?? 0),
-            maxY + range * (padding.top ?? 0),
+            minY - range * (padding.bottom ?? 0) - flatPad,
+            maxY + range * (padding.top ?? 0) + flatPad,
         ],
         range: [height, 0],
         nice: true,

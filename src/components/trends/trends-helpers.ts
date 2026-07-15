@@ -47,29 +47,41 @@ export function seriesKey(s: Pick<TrendSeries, 'source' | 'region' | 'stage'>): 
     return `${s.source}|${s.region}|${s.stage ?? ''}`;
 }
 
-export interface UnitGroup {
-    /** `${currency}|${unit}` — the grouping key + a stable React key. */
+export interface ChartGroup {
+    /** `${region}|${currency}|${unit}` — the grouping key + a stable React key. */
     key: string;
+    region: string;
     currency: string;
     unit: string;
     series: TrendSeries[];
 }
 
 /**
- * Partition the flat series list into unit-groups so each group can own a
- * single Y axis. Groups are ordered by first appearance (EC first, since the
- * backend orders by source asc), which keeps the official prices at the top.
+ * Partition the flat series list into chart-groups: ONE chart per
+ * (region, currency, unit). Splitting by region — not just currency — keeps
+ * each member state on its own chart even when two regions now share a
+ * currency: Bulgaria adopted the euro in 2026, so BG and EL are both EUR/t yet
+ * still render as separate charts. Within a group the series share a single Y
+ * axis (a region's own stages at the same unit overlay cleanly); different
+ * currencies never mix. Ordered by first appearance (the backend orders by
+ * source asc then region asc, which keeps EC official prices first).
  */
-export function groupSeriesByUnit(series: TrendSeries[]): UnitGroup[] {
-    const groups = new Map<string, UnitGroup>();
+export function groupSeriesByRegionUnit(series: TrendSeries[]): ChartGroup[] {
+    const groups = new Map<string, ChartGroup>();
     for (const s of series) {
         if (s.points.length === 0) continue;
-        const key = `${s.currency}|${s.unit}`;
+        const key = `${s.region}|${s.currency}|${s.unit}`;
         const existing = groups.get(key);
         if (existing) {
             existing.series.push(s);
         } else {
-            groups.set(key, { key, currency: s.currency, unit: s.unit, series: [s] });
+            groups.set(key, {
+                key,
+                region: s.region,
+                currency: s.currency,
+                unit: s.unit,
+                series: [s],
+            });
         }
     }
     return [...groups.values()];
@@ -90,7 +102,7 @@ export interface MergedDatum {
  * unit-group the series usually share a cadence (all EC member states pull on
  * the same weekly dates), so fills are rare in practice.
  */
-export function buildMergedData(group: UnitGroup): MergedDatum[] {
+export function buildMergedData(group: ChartGroup): MergedDatum[] {
     const keys = group.series.map(seriesKey);
     const priceByKeyDate = new Map<string, Map<string, number>>();
     const dateSet = new Set<string>();
@@ -186,6 +198,11 @@ export function isEmptyPayload(payload: TrendPricesResponse | undefined): boolea
 /** Round-trip-safe display number: fixed to at most 2 decimals, trimmed. */
 export function formatPrice(value: number): string {
     return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+/** Display price with its ISO currency suffix (e.g. `"512 EUR"`). */
+export function formatPriceWithCurrency(value: number, currency: string): string {
+    return currency ? `${formatPrice(value)} ${currency}` : formatPrice(value);
 }
 
 /** Signed, 2-decimal delta for the WoW tile (`+12.5` / `-3.2`). */

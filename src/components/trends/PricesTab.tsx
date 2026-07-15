@@ -40,7 +40,7 @@ import {
     type TrendPricesResponse,
     type MergedDatum,
     type TrendSeries,
-    groupSeriesByUnit,
+    groupSeriesByRegionUnit,
     buildMergedData,
     seriesKey,
     sourceLabelKey,
@@ -51,6 +51,7 @@ import {
     weekOverWeekDelta,
     isEmptyPayload,
     formatPrice,
+    formatPriceWithCurrency,
     formatDelta,
 } from './trends-helpers';
 
@@ -222,7 +223,7 @@ export function PricesTab() {
     }, [data]);
 
     const groups = useMemo(
-        () => (data ? groupSeriesByUnit(data.series) : []),
+        () => (data ? groupSeriesByRegionUnit(data.series) : []),
         [data],
     );
 
@@ -308,7 +309,10 @@ export function PricesTab() {
                             label={t('tiles.bgLatest')}
                             value={
                                 tiles?.ec && latestPoint(tiles.ec)
-                                    ? formatPrice(latestPoint(tiles.ec)!.price)
+                                    ? formatPriceWithCurrency(
+                                          latestPoint(tiles.ec)!.price,
+                                          tiles.ec.currency,
+                                      )
                                     : t('tiles.noData')
                             }
                             sub={

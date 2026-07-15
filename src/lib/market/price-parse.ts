@@ -48,14 +48,17 @@ export function parseEuroPrice(raw: string | number | null | undefined): number 
  * and prefixes them with a MISLEADING generic `€` glyph — the real currency
  * is the member state's national currency, so we trust the region, NOT the
  * glyph. Cereals prices are always EUR and never go through here.
+ *
+ * Bulgaria adopted the euro on 2026-01-01, so its national currency is now EUR
+ * (the EC feed reports BG oilseed prices in EUR, and the values are already
+ * EUR-magnitude). Romania still reports in RON.
  */
 export function oilseedCurrencyForRegion(region: string): string {
     switch (region.toUpperCase()) {
-        case 'BG':
-            return 'BGN';
         case 'RO':
             return 'RON';
-        // EL (Greece) + EU aggregate + everything else report in EUR.
+        // BG (euro since 2026) + EL (Greece) + EU aggregate + everything else
+        // report in EUR.
         default:
             return 'EUR';
     }

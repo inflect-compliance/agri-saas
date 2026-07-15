@@ -68,7 +68,7 @@ describe('fetchCerealPrices', () => {
 });
 
 describe('fetchOilseedPrices', () => {
-    it('normalises an oilseed record (DIFFERENT keys, dot-decimal, BG→BGN, BGN/t)', async () => {
+    it('normalises an oilseed record (DIFFERENT keys, dot-decimal, BG→EUR, EUR/t)', async () => {
         const { fetchImpl, urls } = stubFetch([
             {
                 memberStateCode: 'BG',
@@ -93,8 +93,8 @@ describe('fetchOilseedPrices', () => {
             memberStateCode: 'BG',
             productName: 'Sunflower seed',
             price: 512,
-            currency: 'BGN', // resolved from region, NOT the € glyph
-            unit: 'BGN/t',
+            currency: 'EUR', // Bulgaria's national currency is EUR since 2026
+            unit: 'EUR/t',
             stage: 'CIF',
             market: 'Dobrich',
         });

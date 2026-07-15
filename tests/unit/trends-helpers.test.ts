@@ -3,7 +3,7 @@
  * assembly, and stat-tile derivations. No DOM / visx involved.
  */
 import {
-    groupSeriesByUnit,
+    groupSeriesByRegionUnit,
     buildMergedData,
     seriesKey,
     sourceLabelKey,
@@ -14,6 +14,7 @@ import {
     weekOverWeekDelta,
     isEmptyPayload,
     formatPrice,
+    formatPriceWithCurrency,
     formatDelta,
     SOURCE_EC,
     SOURCE_AV,
@@ -21,11 +22,15 @@ import {
     type TrendSeries,
 } from '@/components/trends/trends-helpers';
 
-function ecSeries(region: string, points: Array<[string, number]>): TrendSeries {
+function ecSeries(
+    region: string,
+    points: Array<[string, number]>,
+    stage: string | null = 'delivered',
+): TrendSeries {
     return {
         source: SOURCE_EC,
         region,
-        stage: 'delivered',
+        stage,
         unit: 'EUR/t',
         currency: 'EUR',
         label: 'Wheat',
@@ -43,7 +48,7 @@ describe('trends-helpers', () => {
         });
     });
 
-    describe('groupSeriesByUnit', () => {
+    describe('groupSeriesByRegionUnit', () => {
         it('never puts different currency/unit series in one group', () => {
             const series: TrendSeries[] = [
                 ecSeries('BG', [['2026-01-01', 200]]),
@@ -67,59 +72,101 @@ describe('trends-helpers', () => {
                     points: [{ date: '2026-01-01', price: 6.2 }],
                 },
             ];
-            const groups = groupSeriesByUnit(series);
-            expect(groups).toHaveLength(3); // EUR/t (2 regions), BGN/t, USD/bu
-            const eur = groups.find((g) => g.currency === 'EUR');
-            expect(eur?.series).toHaveLength(2);
+            const groups = groupSeriesByRegionUnit(series);
             for (const g of groups) {
                 const units = new Set(g.series.map((s) => `${s.currency}|${s.unit}`));
                 expect(units.size).toBe(1);
             }
         });
 
+        it('splits same-currency regions into separate per-region charts', () => {
+            // BG and EL are BOTH EUR/t now (Bulgaria's euro adoption), but must
+            // still render as two charts, not one merged EUR/t chart.
+            const groups = groupSeriesByRegionUnit([
+                ecSeries('BG', [['2026-01-01', 512]]),
+                ecSeries('EL', [['2026-01-01', 400]]),
+            ]);
+            expect(groups).toHaveLength(2);
+            expect(groups.map((g) => g.region).sort()).toEqual(['BG', 'EL']);
+            expect(groups.every((g) => g.series.length === 1)).toBe(true);
+        });
+
+        it('overlays a region’s own stages in one group', () => {
+            // Same region + currency + unit, two stages → one chart, two lines.
+            const groups = groupSeriesByRegionUnit([
+                ecSeries('BG', [['2026-01-01', 512]], 'FGATE'),
+                ecSeries('BG', [['2026-01-01', 505]], 'Not Defined'),
+            ]);
+            expect(groups).toHaveLength(1);
+            expect(groups[0].series).toHaveLength(2);
+        });
+
         it('drops series with no points', () => {
-            const groups = groupSeriesByUnit([ecSeries('BG', [])]);
+            const groups = groupSeriesByRegionUnit([ecSeries('BG', [])]);
             expect(groups).toHaveLength(0);
         });
     });
 
     describe('buildMergedData', () => {
         it('produces dense rows — every series key present on every date', () => {
-            const group = groupSeriesByUnit([
-                ecSeries('BG', [
-                    ['2026-01-01', 200],
-                    ['2026-01-08', 210],
-                ]),
-                // RO misses the first week → must be back-filled, never 0.
-                ecSeries('RO', [['2026-01-08', 195]]),
+            // Two stages of the same region (a real in-group overlay).
+            const group = groupSeriesByRegionUnit([
+                ecSeries(
+                    'BG',
+                    [
+                        ['2026-01-01', 200],
+                        ['2026-01-08', 210],
+                    ],
+                    'FGATE',
+                ),
+                // The second stage misses the first week → must be back-filled, never 0.
+                ecSeries('BG', [['2026-01-08', 195]], 'DEPSILO'),
             ])[0];
             const rows = buildMergedData(group);
             expect(rows).toHaveLength(2);
-            const bgKey = seriesKey({ source: SOURCE_EC, region: 'BG', stage: 'delivered' });
-            const roKey = seriesKey({ source: SOURCE_EC, region: 'RO', stage: 'delivered' });
-            // Back-fill: RO's first-known price (195) fills the earlier row.
-            expect(rows[0].values[roKey]).toBe(195);
-            expect(rows[0].values[bgKey]).toBe(200);
-            expect(rows[1].values[roKey]).toBe(195);
-            expect(rows[1].values[bgKey]).toBe(210);
+            const aKey = seriesKey({ source: SOURCE_EC, region: 'BG', stage: 'FGATE' });
+            const bKey = seriesKey({ source: SOURCE_EC, region: 'BG', stage: 'DEPSILO' });
+            // Back-fill: the second stage's first-known price (195) fills the earlier row.
+            expect(rows[0].values[bKey]).toBe(195);
+            expect(rows[0].values[aKey]).toBe(200);
+            expect(rows[1].values[bKey]).toBe(195);
+            expect(rows[1].values[aKey]).toBe(210);
         });
 
         it('forward-fills a mid-series gap instead of dipping to zero', () => {
-            const group = groupSeriesByUnit([
-                ecSeries('BG', [
-                    ['2026-01-01', 200],
-                    ['2026-01-15', 220],
-                ]),
-                ecSeries('RO', [
-                    ['2026-01-01', 190],
-                    ['2026-01-08', 195], // BG has no 01-08 point
-                    ['2026-01-15', 205],
-                ]),
+            const group = groupSeriesByRegionUnit([
+                ecSeries(
+                    'BG',
+                    [
+                        ['2026-01-01', 200],
+                        ['2026-01-15', 220],
+                    ],
+                    'FGATE',
+                ),
+                ecSeries(
+                    'BG',
+                    [
+                        ['2026-01-01', 190],
+                        ['2026-01-08', 195], // the FGATE stage has no 01-08 point
+                        ['2026-01-15', 205],
+                    ],
+                    'DEPSILO',
+                ),
             ])[0];
             const rows = buildMergedData(group);
-            const bgKey = seriesKey({ source: SOURCE_EC, region: 'BG', stage: 'delivered' });
+            const aKey = seriesKey({ source: SOURCE_EC, region: 'BG', stage: 'FGATE' });
             const midRow = rows.find((r) => r.date.getTime() === Date.parse('2026-01-08T00:00:00Z'));
-            expect(midRow?.values[bgKey]).toBe(200); // carried forward, not 0
+            expect(midRow?.values[aKey]).toBe(200); // carried forward, not 0
+        });
+    });
+
+    describe('formatPriceWithCurrency', () => {
+        it('appends the ISO currency', () => {
+            expect(formatPriceWithCurrency(512, 'EUR')).toBe('512 EUR');
+            expect(formatPriceWithCurrency(512.5, 'EUR')).toBe('512.50 EUR');
+        });
+        it('omits the suffix when currency is empty', () => {
+            expect(formatPriceWithCurrency(512, '')).toBe('512');
         });
     });
 

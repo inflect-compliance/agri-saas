@@ -200,6 +200,37 @@ describe('buildYScale', () => {
         expect(scale(100)).toBe(0);
         expect(scale(0)).toBe(200);
     });
+
+    it('pads a flat series (minY === maxY) into a non-degenerate band', () => {
+        // A constant series (e.g. a source that reports the same price every
+        // week) would otherwise collapse to a [v, v] domain → every point maps
+        // to the same y and the area fill renders as a solid block. The scale
+        // must open a band around the value so the line sits mid-chart.
+        const scale = buildYScale({
+            minY: 400,
+            maxY: 400,
+            padding: { top: 0.1, bottom: 0.1 },
+            height: 200,
+        });
+        const [lo, hi] = scale.domain();
+        expect(hi).toBeGreaterThan(lo); // not degenerate
+        expect(lo).toBeLessThan(400);
+        expect(hi).toBeGreaterThan(400);
+        // The constant value renders strictly inside the plot, not at an edge.
+        expect(scale(400)).toBeGreaterThan(0);
+        expect(scale(400)).toBeLessThan(200);
+    });
+
+    it('pads a flat zero series without dividing by zero', () => {
+        const scale = buildYScale({
+            minY: 0,
+            maxY: 0,
+            padding: { top: 0.1, bottom: 0.1 },
+            height: 200,
+        });
+        const [lo, hi] = scale.domain();
+        expect(hi).toBeGreaterThan(lo);
+    });
 });
 
 describe('buildTimeSeriesXScale', () => {
