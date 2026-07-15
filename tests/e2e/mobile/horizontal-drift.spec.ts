@@ -52,6 +52,9 @@ const PAGES: ReadonlyArray<{ label: string; path: (slug: string) => string }> = 
     // Trends — market-price charts. Renders on any tenant (empty/unconfigured
     // state when the market-data backend has no data), so no seed dependency.
     { label: 'trends', path: (s) => `/t/${s}/trends` },
+    // News — aggregated agri-news feed (its own destination now). Renders the
+    // empty/operator state when no items are cached, so no seed dependency.
+    { label: 'news', path: (s) => `/t/${s}/news` },
     { label: 'my-listings', path: (s) => `/t/${s}/exchange/my-listings` },
     { label: 'my-interests', path: (s) => `/t/${s}/exchange/my-interests` },
     { label: 'farm-tasks', path: (s) => `/t/${s}/farm-tasks` },

@@ -36,6 +36,7 @@
         "navMenu": "Navigation menu",
         "closeNav": "Close navigation",
         "trends": "Trends",
+        "news": "News",
         "rent": "Rent"
     },
     "common": {
@@ -7281,6 +7282,7 @@
             "noData": "—"
         },
         "news": {
+            "pageTitle": "News",
             "filterAriaLabel": "Filter news by category",
             "filters": {
                 "all": "All",
