@@ -35,8 +35,8 @@ describe('parseEuroPrice', () => {
 });
 
 describe('oilseedCurrencyForRegion', () => {
-    it('maps BG → BGN', () => {
-        expect(oilseedCurrencyForRegion('BG')).toBe('BGN');
+    it('maps BG → EUR (Bulgaria adopted the euro in 2026)', () => {
+        expect(oilseedCurrencyForRegion('BG')).toBe('EUR');
     });
 
     it('maps RO → RON', () => {
