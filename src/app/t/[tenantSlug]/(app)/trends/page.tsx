@@ -1,7 +1,7 @@
 import { TrendsPageClient } from '@/components/trends/TrendsPageClient';
 
 /**
- * Trends page — market-price charts (+ a News placeholder tab).
+ * Trends page — market-price charts.
  *
  * A dashboard-style page visible to every tenant (market data is global, not
  * module-gated — same posture as Offers / Events). The payload is fetched

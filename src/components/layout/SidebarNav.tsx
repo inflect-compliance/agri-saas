@@ -34,6 +34,7 @@ import {
     CloudSun,
     CalendarClock,
     TrendingUp,
+    Newspaper,
     ScrollText,
     type LucideIcon,
 } from 'lucide-react';
@@ -199,9 +200,11 @@ export function useNavSections(): NavSectionDef[] {
             items: filterVisible([
                 { href: tenantHref('/exchange'), label: t('marketplace'), icon: ArrowLeftRight, visible: exchangeAvailable },
                 // Trends (#trends) — global market-price charts (EC + reference
-                // benchmark + own-listings index) + market news. Visible to
-                // every tenant.
+                // benchmark + own-listings index). Visible to every tenant.
                 { href: tenantHref('/trends'), label: t('trends'), icon: TrendingUp },
+                // News (#news) — aggregated agricultural news feed, decoupled
+                // from Trends into its own destination. Visible to every tenant.
+                { href: tenantHref('/news'), label: t('news'), icon: Newspaper },
             ]),
         },
         {

@@ -49,19 +49,16 @@ test.describe('Trends page @mobile', () => {
         await expectNoDrift(page);
     });
 
-    test('opens the News tab and filters without drift at phone width', async ({ page }) => {
+    test('the News page renders and filters without drift at phone width', async ({ page }) => {
         const slug = await loginAndGetTenant(page);
-        await safeGoto(page, `/t/${slug}/trends`);
+        // News is now its own top-level destination, not a tab on /trends.
+        await safeGoto(page, `/t/${slug}/news`);
         await settle(page);
 
-        // Switch to the News page tab.
-        const newsTab = page.getByRole('tab', { name: /news|новини/i });
-        await newsTab.click();
-        await expect(newsTab).toHaveAttribute('aria-selected', 'true');
-        await settle(page);
-
-        // The News panel renders. With no feeds configured in CI it shows the
-        // empty + operator state, which is valid — assert the shell, not data.
+        // The News page renders its heading + feed panel. With no feeds
+        // configured in CI it shows the empty + operator state, which is valid —
+        // assert the shell, not data.
+        await expect(page.getByRole('main').locator('#news-title')).toBeVisible();
         await expect(page.getByRole('main').locator('#trends-news-panel')).toBeVisible();
 
         // Switch the category filter — panel re-renders, selection flips.
