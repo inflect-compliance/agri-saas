@@ -29,21 +29,25 @@ export interface NewsFeed {
 }
 
 /**
- * Best-effort default feeds (Bulgarian agri outlets + EC agri press). Operators
- * SHOULD verify these against the live sources and override via
- * `MARKET_NEWS_FEEDS` — the pull is fail-soft, so an unreachable default just
- * contributes nothing rather than breaking the tab.
+ * Default feeds — Bulgarian agri news portals, each VERIFIED live from a cloud
+ * IP on 2026-07-15 (200 + valid RSS + real items), representative of what the
+ * server-side pull sees. All default to `general` (broad portals); the keyword
+ * categoriser promotes individual market/policy items. Operators can still
+ * override via `MARKET_NEWS_FEEDS`, and the pull is fail-soft so a feed that
+ * later dies just contributes nothing.
+ *
+ * Notable rejects (do NOT re-add without re-verifying): agri.bg + sinor.bg
+ * (WAF 403 from datacenter IPs — unusable for a server pull), agroclub.bg /
+ * dfz.bg / mzh.government.bg (no working RSS / 404 — the Ministry + State Fund
+ * expose none), agroportal.bg + agri-press.network.europa.eu (HTML, not a
+ * feed). EC general-news + Eurostat feeds work but are NOT agri-specific, so
+ * they'd pollute the tab — left out deliberately.
  */
 export const DEFAULT_NEWS_FEEDS: readonly NewsFeed[] = [
-    // Broad Bulgarian agri news portals — mixed content, keyword-refined.
-    { slug: 'agri-bg', url: 'https://agri.bg/rss', defaultCategory: 'general' },
-    { slug: 'fermer-bg', url: 'https://www.fermer.bg/rss', defaultCategory: 'general' },
-    // EC agri-food press — policy/CAP-leaning, English (keyword-refined).
-    {
-        slug: 'ec-agrifood',
-        url: 'https://agriculture.ec.europa.eu/news_en/rss.xml',
-        defaultCategory: 'policy',
-    },
+    { slug: 'agro-bg', url: 'https://agro.bg/rss', defaultCategory: 'general' },
+    { slug: 'agrovest', url: 'https://agrovest.bg/feed/', defaultCategory: 'general' },
+    { slug: 'agrozona', url: 'https://agrozona.bg/feed/', defaultCategory: 'general' },
+    { slug: 'agrotv', url: 'https://agrotv.bg/feed/', defaultCategory: 'general' },
 ];
 
 const isCategory = (v: unknown): v is NewsCategory =>
