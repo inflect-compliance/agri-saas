@@ -31,10 +31,10 @@ test.describe('Trends page @mobile', () => {
         await safeGoto(page, `/t/${slug}/trends`);
         await settle(page);
 
-        // Shell renders: title + the two page tabs (Prices active by default).
+        // Shell renders: the page title. Trends is Prices-only now (News moved
+        // to its own /news destination), so there is no page-level tab bar —
+        // the only tabs on the page are the Prices range selector below.
         await expect(page.getByRole('main').locator('#trends-title')).toBeVisible();
-        const pricesTab = page.getByRole('tab', { name: /prices|цени/i });
-        await expect(pricesTab).toHaveAttribute('aria-selected', 'true');
 
         // Switch the range selector — the panel re-renders (chart OR empty
         // state), and the selected range flips. Data-agnostic: works whether
