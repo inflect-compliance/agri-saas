@@ -146,7 +146,7 @@ export function MarketTrendsWidget() {
                         type="button"
                         onClick={prev}
                         aria-label={t('widget.prev')}
-                        className="rounded-md p-1 text-content-muted transition-colors hover:bg-bg-subtle hover:text-content-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                        className="rounded-md p-1 text-content-muted transition-colors hover:bg-bg-muted hover:text-content-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                     >
                         <ChevronLeft width={16} height={16} aria-hidden="true" />
                     </button>
@@ -154,7 +154,7 @@ export function MarketTrendsWidget() {
                         type="button"
                         onClick={next}
                         aria-label={t('widget.next')}
-                        className="rounded-md p-1 text-content-muted transition-colors hover:bg-bg-subtle hover:text-content-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                        className="rounded-md p-1 text-content-muted transition-colors hover:bg-bg-muted hover:text-content-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                     >
                         <ChevronRight width={16} height={16} aria-hidden="true" />
                     </button>
@@ -165,7 +165,7 @@ export function MarketTrendsWidget() {
                 href={tenantHref('/trends')}
                 id="market-trends-widget"
                 aria-label={t('widget.tapThrough')}
-                className="block rounded-lg transition-colors hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                className="block rounded-lg transition-colors hover:bg-bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             >
                 {!data ? (
                     <Skeleton className="h-16 w-full" />
