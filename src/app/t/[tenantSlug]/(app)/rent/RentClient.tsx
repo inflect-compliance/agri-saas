@@ -366,6 +366,7 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                     <DataTable
                         fillBody
                         mobileFallback="card"
+                        data-testid="rent-table"
                         data={leases}
                         columns={columns}
                         loading={leasesQ.isLoading && !leasesQ.data}

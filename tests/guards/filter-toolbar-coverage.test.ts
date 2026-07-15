@@ -50,6 +50,9 @@ const EXEMPTIONS: Record<string, string> = {
     // Agriculture (Feature 1) — lean locations roster.
     "src/app/t/[tenantSlug]/(app)/locations/LocationsClient.tsx":
         "Lean agriculture roster — name/status/parcel-count with no faceted filters yet; search/filter arrives with the Phase 2 inventory module.",
+    // Land administration (roadmap 3/3) — lean lease register.
+    "src/app/t/[tenantSlug]/(app)/rent/RentClient.tsx":
+        "Lean lease register (lessor/parcel/type/rent/term/status) fronted by the rent-roll summary; no faceted filters yet — search/filter arrives if the register grows.",
     // Agriculture (Phase 1) — lean inventory lots roster.
     "src/app/t/[tenantSlug]/(app)/inventory/InventoryClient.tsx":
         "Lean inventory lots roster — lot/product/on-hand/expiry; faceted filtering (by item/low-stock) arrives once the catalog grows past a single screen.",

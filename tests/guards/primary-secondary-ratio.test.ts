@@ -242,7 +242,11 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // #13 (Farm Risk): +1 primary — the insurer "Ask for offer" lead-modal
 // confirm (Send request) on the per-parcel risk page. Trigger + Cancel are
 // secondary. Measured = 166; ceiling at 166 (no headroom slot).
-const MAX_PRIMARY_COUNT = 166;
+// Rent page (roadmap 3/3): +2 primary — the list-create header "Lease"
+// button + the create-lease modal confirm ("Create lease"). The modal's
+// Cancel is secondary, so the secondary:primary ratio stays healthy.
+// Measured = 168; ceiling at 168 (no headroom slot).
+const MAX_PRIMARY_COUNT = 168;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

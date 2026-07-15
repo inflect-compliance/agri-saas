@@ -63,6 +63,11 @@ const PRIMARY_BUDGET: Record<string, number> = {
     // and the create-modal confirm ("Create") are each the single primary
     // of their region (list header vs dialog) and never on screen together.
     "src/app/t/[tenantSlug]/(app)/locations/LocationsClient.tsx": 2,
+    // Rent page (roadmap 3/3) — the list header "Lease" button and the
+    // create-lease modal confirm ("Create lease") are each the single
+    // primary of their region (list header vs dialog), never on screen
+    // together. Budget 2.
+    "src/app/t/[tenantSlug]/(app)/rent/RentClient.tsx": 2,
     // Fast-follows (in-map split/merge) — the Location DETAIL page has two
     // modal-confirm primaries, never co-visible: "Create parcel" (name a
     // drawn polygon) and "Merge parcels" (name the union of ≥2 selected).
