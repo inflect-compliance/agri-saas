@@ -19,11 +19,14 @@ import {
     RANGE_LOOKBACK_DAYS,
     type TrendCommodity,
     type TrendRange,
+    type NewsCategory,
 } from '@/app-layer/schemas/trends.schemas';
 
 const CACHE_TTL_SECONDS = 21_600; // 6h — data refreshes weekly/daily
+const NEWS_CACHE_TTL_SECONDS = 3_600; // 1h — the news pull runs daily
 const MAX_SERIES = 100;
 const MAX_POINTS_PER_SERIES = 1000;
+const MAX_NEWS = 100;
 const COMPONENT = 'trends';
 
 export interface TrendPoint {
@@ -126,6 +129,100 @@ export async function getPriceTrends(
         } catch (err) {
             // Non-fatal — the response is already computed, just uncached.
             logger.warn('trends: redis set failed', {
+                component: COMPONENT,
+                error: err instanceof Error ? err.message : String(err),
+            });
+        }
+    }
+
+    return payload;
+}
+
+// ── News ──────────────────────────────────────────────────────────────
+
+export interface NewsItem {
+    id: string;
+    /** Origin feed slug. */
+    source: string;
+    /** 'market' | 'policy' | 'general'. */
+    category: string;
+    title: string;
+    summary: string | null;
+    url: string;
+    imageUrl: string | null;
+    /** ISO-8601 publish time. */
+    publishedAt: string;
+}
+
+export interface TrendNewsResponse {
+    /** The requested filter ('all' when unfiltered). */
+    category: NewsCategory | 'all';
+    items: NewsItem[];
+}
+
+async function readNewsFromDb(
+    category: NewsCategory | 'all',
+    limit: number,
+): Promise<TrendNewsResponse> {
+    const rows = await prisma.marketNewsItem.findMany({
+        where: category === 'all' ? undefined : { category },
+        take: Math.min(limit, MAX_NEWS),
+        orderBy: { publishedAt: 'desc' },
+        select: {
+            id: true,
+            source: true,
+            category: true,
+            title: true,
+            summary: true,
+            url: true,
+            imageUrl: true,
+            publishedAt: true,
+        },
+    });
+
+    const items: NewsItem[] = rows.map((r) => ({
+        id: r.id,
+        source: r.source,
+        category: r.category,
+        title: r.title,
+        summary: r.summary,
+        url: r.url,
+        imageUrl: r.imageUrl,
+        publishedAt: r.publishedAt.toISOString(),
+    }));
+
+    return { category, items };
+}
+
+/**
+ * Read the aggregated agri-news feed, optionally filtered by category, newest
+ * first. Redis-cached per (category, limit) for 1h — the pull runs daily — and
+ * degrades to a live DB read on any Redis miss/hiccup. Tenant-agnostic payload
+ * (the MarketNewsItem cache carries no tenantId).
+ */
+export async function getMarketNews(
+    category: NewsCategory | 'all',
+    limit: number,
+): Promise<TrendNewsResponse> {
+    const cacheKey = `trends:news:v1:${category}:${limit}`;
+    const redis = getRedis();
+
+    if (redis) {
+        try {
+            const cached = await redis.get(cacheKey);
+            if (cached) return JSON.parse(cached) as TrendNewsResponse;
+        } catch {
+            /* redis hiccup — fall through to a live DB read */
+        }
+    }
+
+    const payload = await readNewsFromDb(category, limit);
+
+    if (redis) {
+        try {
+            await redis.set(cacheKey, JSON.stringify(payload), 'EX', NEWS_CACHE_TTL_SECONDS);
+        } catch (err) {
+            logger.warn('trends: news redis set failed', {
                 component: COMPONENT,
                 error: err instanceof Error ? err.message : String(err),
             });

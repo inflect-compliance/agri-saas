@@ -74,8 +74,8 @@ describe('Infrastructure Regression Guards', () => {
             }
         });
 
-        test('exactly 25 scheduled jobs exist', () => {
-            expect(SCHEDULED_JOBS).toHaveLength(26);
+        test('exactly 27 scheduled jobs exist', () => {
+            expect(SCHEDULED_JOBS).toHaveLength(27);
         });
 
         test('scheduled job names match expected set', () => {
@@ -109,6 +109,9 @@ describe('Infrastructure Regression Guards', () => {
                 // Inventory Phase 1 — daily cross-tenant low-stock sweep
                 // firing LOW_STOCK alerts for items below reorderLevel.
                 'low-stock-monitor',
+                // Trends → News — daily aggregation of free agri RSS/Atom feeds
+                // into the global market-news cache.
+                'market-news-pull',
                 // Trends — weekly market-price backbone pull (EC AGRI-food +
                 // Alpha Vantage + own-listings median) into the global cache.
                 'market-prices-pull',

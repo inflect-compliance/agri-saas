@@ -574,6 +574,15 @@ export interface MarketPricesPullPayload {
 }
 
 /**
+ * Market-news trends — daily aggregation of free agricultural RSS/Atom feeds
+ * into the GLOBAL MarketNewsItem cache (no tenantId, like MarketPriceSeries).
+ * `feedSlug` scopes the run to one configured feed; omit to pull every feed.
+ */
+export interface MarketNewsPullPayload {
+    feedSlug?: string;
+}
+
+/**
  * Spatial-upload abuse hardening — off-thread parcel-boundary import.
  *
  * The HTTP layer stages the uploaded shapefile/KML/GeoJSON to storage
@@ -734,6 +743,7 @@ export interface JobPayloadMap {
     'exchange-expiry-sweep': ExchangeExpirySweepPayload;
     'soil-fetch': SoilFetchPayload;
     'market-prices-pull': MarketPricesPullPayload;
+    'market-news-pull': MarketNewsPullPayload;
 }
 
 /** Union of all valid job names */
@@ -936,6 +946,15 @@ export const JOB_DEFAULTS: Record<JobName, {
         // Weekly/daily market-price pull. One retry on a transient network/DB
         // blip; the Series/Point upserts are keyed on their natural unique
         // constraints so a re-run is fully idempotent.
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: 50,
+        removeOnFail: 100,
+    },
+    'market-news-pull': {
+        // Daily agri-news aggregation. One retry on a transient network/DB blip;
+        // items upsert on their natural `guidHash` unique key so a re-run is
+        // fully idempotent.
         attempts: 2,
         backoff: { type: 'exponential', delay: 10000 },
         removeOnComplete: 50,

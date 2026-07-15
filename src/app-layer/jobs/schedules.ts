@@ -140,6 +140,16 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
         defaultPayload: {},
     },
     {
+        // Daily — agri news refreshes far more often than weekly prices. 05:50
+        // UTC sits just after the weekly price pull, before European morning
+        // traffic. The guidHash upsert makes a re-run idempotent; the job also
+        // prunes items older than 60 days each run.
+        name: 'market-news-pull',
+        pattern: '50 5 * * *',     // daily at 05:50 UTC
+        description: 'Aggregate free agri RSS/Atom feeds into the global market-news cache (Trends → News tab)',
+        defaultPayload: {},
+    },
+    {
         name: 'daily-evidence-expiry',
         pattern: '0 6 * * *',     // daily at 06:00 UTC
         description: 'Sweep expiring evidence at 30/7/1 day thresholds + flush outbox',

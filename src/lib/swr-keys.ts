@@ -158,6 +158,10 @@ export const CACHE_KEYS = {
     trends: {
         prices: (commodity: string, range: string) =>
             `/trends/prices?commodity=${commodity}&range=${range}` as const,
+        // `/trends/news?category=` — the News tab feed. `category` is one of the
+        // fixed buckets or 'all' (default), so like `prices` the query axis is a
+        // small closed set, not an open-ended filter.
+        news: (category: string) => `/trends/news?category=${category}` as const,
     },
 
     // ─── Workflow automation (Automation Epics 1–10) ─────────────
