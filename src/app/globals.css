@@ -3,7 +3,7 @@
  * generated rules; a remote-URL @import stays an @import rule in the
  * output, and CSS requires @import rules before all other rules.
  * Next 16's strict CSS parser hard-errors otherwise (site-wide 500). */
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Onest:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 

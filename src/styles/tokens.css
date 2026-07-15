@@ -80,8 +80,13 @@
   /* Metallic-gold text gradient for featured dashboard numbers (.metric-gradient).
      Light-to-deep polished-gold sheen; reads bright on the navy ground. */
   --grad-gold: linear-gradient(142deg, #F6E7AC 0%, #E4C55C 22%, #D4AF37 52%, #A9760B 100%);
-  /* Display face — Bricolage Grotesque for the big numbers + page headings. */
+  /* Display face — Bricolage Grotesque for the big numbers (Latin digits only;
+     Bricolage has no Cyrillic, so it is NEVER used on text). */
   --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
+  /* Heading face — Onest, for page + section headings. Chosen over Bricolage
+     for headings because it carries a full Cyrillic set (the product ships in
+     Bulgarian); a cool modern grotesque that pairs with the Bricolage numbers. */
+  --font-heading: 'Onest', 'Inter', system-ui, sans-serif;
 
   /* ── Brand / Secondary (electric blue — complementary cool counterpoint) ──
    *

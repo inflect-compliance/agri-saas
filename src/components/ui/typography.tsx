@@ -44,8 +44,11 @@ import {
 const headingVariants = cva("text-content-emphasis", {
   variants: {
     level: {
-      1: "text-2xl font-semibold tracking-tight",
-      2: "text-lg font-semibold",
+      // Levels 1–2 (page + section titles) wear the Onest heading face — a
+      // cooler, more formal voice with full Cyrillic. Level 3 (small labels)
+      // stays Inter: a display face reads awkward at label size.
+      1: "font-heading text-2xl font-semibold tracking-tight",
+      2: "font-heading text-lg font-semibold",
       3: "text-sm font-semibold",
     },
     tone: {
