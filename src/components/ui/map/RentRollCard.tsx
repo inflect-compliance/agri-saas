@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * RentRollCard — the location's land-obligation summary (roadmap 3/3): leased
- * area, rent per season, and contracts expiring soon, with CSV/PDF export.
- * Scoped to one location (tenant-wide is the same endpoint without locationId).
- * Renders nothing when the location has no active leases.
+ * RentRollCard — the land-obligation summary (roadmap 3/3): leased area, rent
+ * per season, and contracts expiring soon, with CSV/PDF export. Tenant-wide by
+ * default (the Rent page); pass a `locationId` to scope it to one location.
+ * Renders nothing when there are no active leases in scope.
  */
 import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
@@ -29,15 +29,16 @@ interface RentRollData {
 
 const num = (n: number) => new Intl.NumberFormat('bg-BG', { maximumFractionDigits: 2 }).format(n);
 
-export function RentRollCard({ locationId }: { locationId: string }) {
+export function RentRollCard({ locationId }: { locationId?: string }) {
     const t = useTranslations('ag.rentRoll');
     const buildUrl = useTenantApiUrl();
-    const q = useTenantSWR<RentRollData>(`/reports/rent-roll?locationId=${locationId}`);
+    const scope = locationId ? `?locationId=${locationId}` : '';
+    const q = useTenantSWR<RentRollData>(`/reports/rent-roll${scope}`);
     const data = q.data;
     if (!data || data.activeLeaseCount === 0) return null;
 
     const exportUrl = (fmt: 'csv' | 'pdf') =>
-        buildUrl(`/reports/rent-roll?locationId=${locationId}&format=${fmt}`);
+        buildUrl(`/reports/rent-roll${scope}${scope ? '&' : '?'}format=${fmt}`);
 
     return (
         <div className="space-y-default rounded-lg border border-border-subtle bg-bg-default p-4">

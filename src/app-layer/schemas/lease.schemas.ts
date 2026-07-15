@@ -18,3 +18,14 @@ export const ParcelLeaseSchema = z.object({
 });
 
 export type ParcelLeaseBody = z.infer<typeof ParcelLeaseSchema>;
+
+/**
+ * Tenant-wide create payload for the Rent page — a lease is parcel-bound, so the
+ * parcel is chosen in the modal (a Combobox) and travels in the body rather than
+ * the URL path (the parcel-scoped route carries it as a path param instead).
+ */
+export const TenantLeaseCreateSchema = ParcelLeaseSchema.extend({
+    parcelId: z.string().min(1).max(60),
+});
+
+export type TenantLeaseCreateBody = z.infer<typeof TenantLeaseCreateSchema>;

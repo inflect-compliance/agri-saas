@@ -35,7 +35,8 @@
         "admin": "Admin",
         "navMenu": "Navigation menu",
         "closeNav": "Close navigation",
-        "trends": "Trends"
+        "trends": "Trends",
+        "rent": "Rent"
     },
     "common": {
         "appName": "Agrent",
@@ -3223,6 +3224,34 @@
             "documentRefPlaceholder": "e.g. Contract №123/2024",
             "saveFailed": "Could not save the lease."
         },
+        "rent": {
+            "title": "Rent",
+            "description": "Every lease across your parcels — the rent roll and contracts expiring soon.",
+            "bcDashboard": "Dashboard",
+            "colLessor": "Lessor",
+            "colParcel": "Parcel",
+            "colKind": "Type",
+            "colRent": "Rent",
+            "colTerm": "Term",
+            "colStatus": "Status",
+            "statusActive": "Active",
+            "statusExpiring": "{days} d left",
+            "statusExpired": "Expired",
+            "emptyTitle": "No leases yet",
+            "emptyDesc": "Record an аренда or наем agreement to start tracking rent and expiry.",
+            "modalCreateTitle": "New lease",
+            "modalEditTitle": "Edit lease",
+            "modalDescription": "Record a land-use agreement (аренда/наем) for a parcel.",
+            "createLease": "Create lease",
+            "fieldParcel": "Parcel",
+            "parcelPlaceholder": "Select a parcel",
+            "parcelSearchPlaceholder": "Search parcels…",
+            "parcelRequired": "Choose a parcel for the lease.",
+            "filteredTo": "Showing {location}",
+            "clearFilter": "Show all parcels",
+            "leaseRemoved": "Lease removed",
+            "undo": "Undo"
+        },
         "cadastre": {
             "cadastralId": "Cadastral identifier",
             "legalOwner": "Owner (legal entity)",
@@ -6387,6 +6416,7 @@
             "overviewParcels": "Parcels",
             "overviewTotalArea": "Total area",
             "overviewLeased": "Leased",
+            "viewRent": "View rent roll & leases",
             "noParcelsHint": "No parcels yet — use “Import parcels” to upload a shapefile, KML, or GeoJSON.",
             "cropFilterLabel": "Filter by crop",
             "cropFilterAll": "All",

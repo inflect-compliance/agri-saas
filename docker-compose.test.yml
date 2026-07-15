@@ -3,7 +3,17 @@
 # Usage: docker compose -f docker-compose.test.yml up -d
 services:
   postgres-test:
-    image: postgres:16-alpine
+    # PostGIS + pgvector (built from deploy/postgres/Dockerfile — same image
+    # as the dev stack; mirrors CI's postgis service + enable-pgvector step).
+    # Required by two migrations that plain postgres:16-alpine can't satisfy:
+    # 20260613090735_ag_feature1_spray_map (`CREATE EXTENSION postgis`, for
+    # Parcel.geometry) and 20260619100000_ai_rag_pgvector (`CREATE EXTENSION
+    # vector`, for RAG embeddings). Without both, migrate deploy fails and
+    # blocks every later migration (P3009).
+    build:
+      context: .
+      dockerfile: deploy/postgres/Dockerfile
+    image: agri-saas-postgres:16-3.4-pgvector
     container_name: inflect-test-db
     environment:
       POSTGRES_USER: test

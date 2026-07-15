@@ -79,6 +79,65 @@ export async function listParcelLeases(ctx: RequestContext, parcelId: string) {
     );
 }
 
+/**
+ * Every (non-deleted) lease across the tenant, with its parcel + location for
+ * display on the Rent page. Optionally scoped to one location (the deep-link
+ * from a location's overview). Newest term first.
+ */
+export async function listTenantLeases(
+    ctx: RequestContext,
+    opts: { locationId?: string } = {},
+) {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, (db) =>
+        db.parcelLease.findMany({
+            where: {
+                tenantId: ctx.tenantId,
+                deletedAt: null,
+                ...(opts.locationId ? { parcel: { locationId: opts.locationId } } : {}),
+            },
+            select: {
+                ...LEASE_SELECT,
+                parcel: {
+                    select: {
+                        id: true,
+                        name: true,
+                        areaHa: true,
+                        location: { select: { id: true, name: true } },
+                    },
+                },
+            },
+            orderBy: [{ endDate: 'desc' }, { createdAt: 'desc' }],
+            // A tenant's whole lease register — realistically hundreds, not
+            // thousands; the [tenantId, endDate] index serves the orderBy.
+            take: 500,
+        }),
+    );
+}
+
+/**
+ * Lightweight parcel picker options for the Rent-page create modal — a lease is
+ * parcel-bound, so the modal needs to choose one. Grouped by location name in
+ * the Combobox via the returned locationName.
+ */
+export async function listTenantParcelOptions(ctx: RequestContext) {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const rows = await db.parcel.findMany({
+            where: { tenantId: ctx.tenantId, deletedAt: null },
+            select: { id: true, name: true, location: { select: { id: true, name: true } } },
+            orderBy: [{ name: 'asc' }],
+            take: 5000,
+        });
+        return rows.map((p) => ({
+            id: p.id,
+            name: p.name,
+            locationId: p.location.id,
+            locationName: p.location.name,
+        }));
+    });
+}
+
 export async function createParcelLease(ctx: RequestContext, parcelId: string, input: ParcelLeaseInput) {
     assertCanWrite(ctx);
     return runInTenantContext(ctx, async (db) => {
