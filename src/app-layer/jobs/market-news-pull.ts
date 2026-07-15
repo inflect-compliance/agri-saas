@@ -1,0 +1,152 @@
+/**
+ * market-news-pull — aggregate free agricultural RSS/Atom feeds into the GLOBAL
+ * MarketNewsItem cache that backs the Trends → News tab.
+ *
+ * For each configured feed (src/lib/news/feeds.ts, overridable via
+ * MARKET_NEWS_FEEDS) the job fetches the newest items, sanitises the title +
+ * summary to plain text, categorises each item (feed default + deterministic
+ * BG/EN keyword promotion), and idempotently upserts on `guidHash`
+ * (sha256(feedSlug‖guid)). Finally it prunes items older than 60 days so the
+ * table stays bounded.
+ *
+ * Like the market-price cache, MarketNewsItem is a GLOBAL table (no tenantId,
+ * no RLS — public reference data identical for every tenant), so the ordinary
+ * `prisma` singleton (superuser-bypass) writes it directly with no per-tenant
+ * context. Fail-soft per feed: one unreachable feed is logged and skipped, never
+ * failing the batch. All writes are idempotent, so a retry never duplicates a
+ * headline.
+ *
+ * @module jobs/market-news-pull
+ */
+import { createHash } from 'node:crypto';
+import type { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import { env } from '@/env';
+import { logger } from '@/lib/observability/logger';
+import { sanitizePlainText } from '@/lib/security/sanitize';
+import { resolveNewsFeeds } from '@/lib/news/feeds';
+import { fetchFeed } from '@/lib/news/rss-client';
+import { categorize } from '@/lib/news/categorize';
+import type { MarketNewsPullPayload } from './types';
+
+const COMPONENT = 'market-news-pull';
+/** Items older than this are pruned each run so the table stays bounded. */
+const RETENTION_DAYS = 60;
+/** Per-feed newest-items cap. */
+const MAX_ITEMS_PER_FEED = 40;
+/** Column length caps — keep headlines/excerpts sane, never store blobs. */
+const TITLE_MAX = 300;
+const SUMMARY_MAX = 500;
+
+/** The single Prisma delegate this job touches (a GLOBAL cache table). */
+type NewsDbClient = Pick<PrismaClient, 'marketNewsItem'>;
+
+/** Injectable seams so tests drive the pull without real network / prod DB. */
+export interface MarketNewsPullDeps {
+    fetchFeedImpl?: typeof fetchFeed;
+    db?: NewsDbClient;
+    /** Clock injection for a deterministic prune cutoff in tests. */
+    now?: () => Date;
+}
+
+export interface MarketNewsPullResult {
+    feeds: number;
+    /** Raw items fetched across all feeds (pre-dedupe). */
+    fetched: number;
+    /** Items upserted (created or refreshed). */
+    upserted: number;
+    /** Old items pruned. */
+    pruned: number;
+}
+
+/** Namespaced dedupe/upsert key: sha256(feedSlug‖guid). */
+function guidHash(feedSlug: string, guid: string): string {
+    return createHash('sha256').update(`${feedSlug}\n${guid}`).digest('hex');
+}
+
+export async function runMarketNewsPull(
+    payload: MarketNewsPullPayload = {},
+    deps: MarketNewsPullDeps = {},
+): Promise<MarketNewsPullResult> {
+    const db = (deps.db ?? prisma) as NewsDbClient;
+    const doFetch = deps.fetchFeedImpl ?? fetchFeed;
+    const now = (deps.now ?? (() => new Date()))();
+
+    const allFeeds = resolveNewsFeeds(env.MARKET_NEWS_FEEDS);
+    const feeds = payload.feedSlug
+        ? allFeeds.filter((f) => f.slug === payload.feedSlug)
+        : [...allFeeds];
+
+    let fetched = 0;
+    let upserted = 0;
+
+    for (const feed of feeds) {
+        let items;
+        try {
+            items = await doFetch(feed.url, { maxItems: MAX_ITEMS_PER_FEED });
+        } catch (err) {
+            // Fail-soft: one dead feed never fails the batch.
+            logger.warn('market-news-pull: feed fetch failed', {
+                component: COMPONENT,
+                feed: feed.slug,
+                error: err instanceof Error ? err.message : String(err),
+            });
+            continue;
+        }
+        fetched += items.length;
+
+        for (const raw of items) {
+            const title = sanitizePlainText(raw.title).slice(0, TITLE_MAX);
+            if (!title) continue; // sanitised-away title ⇒ skip
+            const summary = raw.summary
+                ? sanitizePlainText(raw.summary).slice(0, SUMMARY_MAX) || null
+                : null;
+            const category = categorize(title, summary, feed.defaultCategory);
+            const hash = guidHash(feed.slug, raw.guid);
+
+            // Idempotent upsert on the natural dedupe key (a WRITE in the loop —
+            // the N+1 guard is about READS; mirrors market-prices-pull's point
+            // upsert loop).
+            await db.marketNewsItem.upsert({
+                where: { guidHash: hash },
+                create: {
+                    source: feed.slug,
+                    category,
+                    title,
+                    summary,
+                    url: raw.url,
+                    imageUrl: raw.imageUrl,
+                    publishedAt: raw.publishedAt,
+                    guidHash: hash,
+                },
+                update: {
+                    category,
+                    title,
+                    summary,
+                    url: raw.url,
+                    imageUrl: raw.imageUrl,
+                    publishedAt: raw.publishedAt,
+                    fetchedAt: now,
+                },
+            });
+            upserted += 1;
+        }
+    }
+
+    // Prune the tail so the global table stays bounded.
+    const cutoff = new Date(now);
+    cutoff.setUTCDate(cutoff.getUTCDate() - RETENTION_DAYS);
+    const { count: pruned } = await db.marketNewsItem.deleteMany({
+        where: { publishedAt: { lt: cutoff } },
+    });
+
+    logger.info('market-news-pull: complete', {
+        component: COMPONENT,
+        feeds: feeds.length,
+        fetched,
+        upserted,
+        pruned,
+    });
+
+    return { feeds: feeds.length, fetched, upserted, pruned };
+}

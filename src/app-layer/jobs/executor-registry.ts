@@ -669,6 +669,20 @@ executorRegistry.register('market-prices-pull', async (payload) => {
     );
 });
 
+// ── market-news-pull (Trends → News) ─────────────────────────────────
+
+executorRegistry.register('market-news-pull', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runMarketNewsPull } = await import('./market-news-pull');
+    const r = await runMarketNewsPull({ feedSlug: payload.feedSlug });
+    return makeResult(
+        'market-news-pull', startedAt, startMs,
+        r.fetched, r.upserted, r.pruned,
+        { feeds: r.feeds, fetched: r.fetched, upserted: r.upserted, pruned: r.pruned },
+    );
+});
+
 // ── deadline-monitor ─────────────────────────────────────────────────
 
 executorRegistry.register('deadline-monitor', async (payload) => {

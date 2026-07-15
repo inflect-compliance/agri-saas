@@ -233,6 +233,17 @@ export const env = createEnv({
         EC_AGRIFOOD_BASE_URL: z.string().url().optional(),
         ALPHA_VANTAGE_API_KEY: z.string().optional(),
 
+        // ── Market-news feeds (feat/trends-news-tab) ──
+        // Optional JSON override for the RSS/Atom feeds the market-news-pull job
+        // aggregates into the Trends → News tab: a JSON array of
+        // `{ slug, url, category }` (category ∈ market|policy|general). SERVER-ONLY
+        // + OPTIONAL — when unset the curated defaults in src/lib/news/feeds.ts
+        // are used; a malformed value also falls back to the defaults. Lets an
+        // operator retune sources (a feed dies / a better one appears) without a
+        // redeploy. The pull is fail-soft per feed, so a bad URL just yields no
+        // items.
+        MARKET_NEWS_FEEDS: z.string().optional(),
+
         // ── КАИС cadastre OpenData import (feat/cadastre-opendata-import) ──
         // Base URL of the Bulgarian cadastre (АГКК) OpenData portal
         // (https://kais.cadastre.bg). SERVER-ONLY + OPTIONAL: when unset the
@@ -559,6 +570,7 @@ export const env = createEnv({
         SOIL_BASE_URL: process.env.SOIL_BASE_URL,
         EC_AGRIFOOD_BASE_URL: process.env.EC_AGRIFOOD_BASE_URL,
         ALPHA_VANTAGE_API_KEY: process.env.ALPHA_VANTAGE_API_KEY,
+        MARKET_NEWS_FEEDS: process.env.MARKET_NEWS_FEEDS,
         CADASTRE_OPENDATA_INDEX_URL: process.env.CADASTRE_OPENDATA_INDEX_URL,
         CADASTRE_WMS_URL: process.env.CADASTRE_WMS_URL,
         CADASTRE_WMS_LAYERS: process.env.CADASTRE_WMS_LAYERS,

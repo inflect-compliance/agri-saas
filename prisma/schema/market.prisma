@@ -74,3 +74,44 @@ model MarketPricePoint {
   /// FK index (schema-index Layer B).
   @@index([seriesId])
 }
+
+/// GLOBAL cache of one aggregated agricultural-news headline (NO tenantId —
+/// public reference data aggregated from free Bulgarian agri RSS/Atom feeds +
+/// ДФ Земеделие + EC agri press, identical for every tenant, exactly like
+/// `MarketPriceSeries` / `SoilSample`). Feeds the Trends → News tab. Upserted
+/// idempotently on `guidHash` (sha256 of the item's guid‖link) so a re-run of
+/// the daily `market-news-pull` job never duplicates a headline; the job also
+/// prunes rows whose `publishedAt` is older than 60 days.
+model MarketNewsItem {
+  id String @id @default(cuid())
+  /// Origin feed slug, e.g. 'agri-bg' | 'dfz' | 'ec-agrifood'.
+  source String
+  /// Bucket the News tab filters by: 'market' | 'policy' | 'general'. Assigned
+  /// by the feed's default category, promoted by a deterministic BG+EN keyword
+  /// match (see src/lib/news/categorize.ts).
+  category String
+  /// Headline text (plain, sanitised — never raw HTML).
+  title String
+  /// Short excerpt from the feed description (plain, sanitised). Nullable —
+  /// some feeds ship title-only items.
+  summary String?
+  /// Canonical article URL — the tap-through target.
+  url String
+  /// Optional lead image (RSS enclosure / media:content).
+  imageUrl String?
+  /// Publish time from the feed (pubDate / atom:updated). Drives feed order.
+  publishedAt DateTime
+  /// Idempotent-upsert + dedupe key: sha256(guid || link).
+  guidHash String
+  /// Last time the pull saw this item (refreshed on every upsert).
+  fetchedAt DateTime @default(now())
+  /// First time the pull ingested this item.
+  createdAt DateTime @default(now())
+
+  /// Idempotent-upsert / dedupe key.
+  @@unique([guidHash])
+  /// Backs the News read: filter by category, newest first.
+  @@index([category, publishedAt])
+  /// Backs the all-categories read: newest first + the 60-day prune scan.
+  @@index([publishedAt])
+}
