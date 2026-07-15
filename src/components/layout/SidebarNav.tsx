@@ -33,6 +33,7 @@ import {
     ArrowLeftRight,
     CloudSun,
     CalendarClock,
+    TrendingUp,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -148,6 +149,10 @@ export function useNavSections(): NavSectionDef[] {
                 // the already-imported Coins glyph (deals/pricing) — no new
                 // lucide import.
                 { href: tenantHref('/offers'), label: t('offers'), icon: Coins },
+                // Trends (#trends) — global market-price charts (EC + reference
+                // benchmark + own-listings index), visible to every tenant.
+                // Sits with the market surfaces (Offers) in Govern.
+                { href: tenantHref('/trends'), label: t('trends'), icon: TrendingUp },
                 // Climate (#14) — the tenant's Meteobot station embed, with an
                 // Open-Meteo weather fallback. Sits with the field surfaces.
                 { href: tenantHref('/climate'), label: t('climate'), icon: CloudSun },

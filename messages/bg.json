@@ -34,7 +34,8 @@
         "collapse": "Свий",
         "admin": "Администрация",
         "navMenu": "Меню за навигация",
-        "closeNav": "Затвори навигацията"
+        "closeNav": "Затвори навигацията",
+        "trends": "Тенденции"
     },
     "common": {
         "appName": "Agrent",
@@ -7204,5 +7205,60 @@
         "doneResolution": "Изпълнено на терен",
         "doneLabel": "Изпълнение: {title}",
         "locations": "Локации"
+    },
+    "trends": {
+        "title": "Тенденции",
+        "tabsAriaLabel": "Раздели на тенденциите",
+        "tabs": {
+            "prices": "Цени",
+            "news": "Новини"
+        },
+        "commodityLabel": "Култура",
+        "commoditySearchPlaceholder": "Търсене на култури…",
+        "rangeAriaLabel": "Времеви период",
+        "commodities": {
+            "wheat": "Пшеница",
+            "maize": "Царевица",
+            "barley": "Ечемик",
+            "sunflower": "Слънчоглед"
+        },
+        "ranges": {
+            "1m": "1М",
+            "3m": "3М",
+            "1y": "1Г",
+            "all": "Всички"
+        },
+        "sources": {
+            "official": "Официални цени (ЕК)",
+            "reference": "Референтен бенчмарк",
+            "listings": "Индекс от обяви",
+            "other": "Друг източник"
+        },
+        "chartAria": "Ценова тенденция за {commodity} ({unit})",
+        "empty": {
+            "title": "Няма данни за периода",
+            "description": "Все още няма пазарни цени за избраната култура и период."
+        },
+        "operator": {
+            "title": "За оператори",
+            "body": "Пазарните данни се зареждат от планирана задача. Конфигурирайте {ec} и {av}, за да ги активирате."
+        },
+        "tiles": {
+            "bgLatest": "Цена BG (официална)",
+            "listings": "Индекс от обяви",
+            "listingsCount": "{count} обяви",
+            "reference": "Референтна цена",
+            "noData": "—"
+        },
+        "news": {
+            "comingSoonTitle": "Пазарни новини — скоро",
+            "comingSoonBody": "Тук ще се появяват пазарни новини и анализи."
+        },
+        "widget": {
+            "title": "Пазарни тенденции",
+            "tapThrough": "Отвори пазарните тенденции",
+            "ariaSparkline": "Ценова графика за {commodity}",
+            "empty": "Все още няма пазарни данни"
+        }
     }
 }

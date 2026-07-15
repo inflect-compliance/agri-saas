@@ -34,7 +34,8 @@
         "collapse": "Collapse",
         "admin": "Admin",
         "navMenu": "Navigation menu",
-        "closeNav": "Close navigation"
+        "closeNav": "Close navigation",
+        "trends": "Trends"
     },
     "common": {
         "appName": "Agrent",
@@ -7204,5 +7205,60 @@
         "doneResolution": "Completed in the field",
         "doneLabel": "Complete: {title}",
         "locations": "Locations"
+    },
+    "trends": {
+        "title": "Trends",
+        "tabsAriaLabel": "Trends sections",
+        "tabs": {
+            "prices": "Prices",
+            "news": "News"
+        },
+        "commodityLabel": "Commodity",
+        "commoditySearchPlaceholder": "Search commodities…",
+        "rangeAriaLabel": "Time range",
+        "commodities": {
+            "wheat": "Wheat",
+            "maize": "Maize",
+            "barley": "Barley",
+            "sunflower": "Sunflower"
+        },
+        "ranges": {
+            "1m": "1M",
+            "3m": "3M",
+            "1y": "1Y",
+            "all": "All"
+        },
+        "sources": {
+            "official": "Official prices (EC)",
+            "reference": "Reference benchmark",
+            "listings": "Listings index",
+            "other": "Other source"
+        },
+        "chartAria": "{commodity} price trend ({unit})",
+        "empty": {
+            "title": "No data for this period",
+            "description": "There are no market prices yet for the selected commodity and range."
+        },
+        "operator": {
+            "title": "For operators",
+            "body": "Market data is populated by a scheduled job. Configure {ec} and {av} to enable it."
+        },
+        "tiles": {
+            "bgLatest": "BG price (official)",
+            "listings": "Listings index",
+            "listingsCount": "{count} listings",
+            "reference": "Reference price",
+            "noData": "—"
+        },
+        "news": {
+            "comingSoonTitle": "Market news coming soon",
+            "comingSoonBody": "Market news and analysis will appear here."
+        },
+        "widget": {
+            "title": "Market trends",
+            "tapThrough": "Open market trends",
+            "ariaSparkline": "{commodity} price sparkline",
+            "empty": "No market data yet"
+        }
     }
 }

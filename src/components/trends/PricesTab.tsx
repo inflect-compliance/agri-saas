@@ -1,0 +1,383 @@
+'use client';
+
+/**
+ * Trends → Prices tab.
+ *
+ * A commodity picker + range selector driving one line chart PER UNIT-GROUP
+ * (EC EUR/t, listings BGN, Alpha Vantage USD each get their own Y axis — units
+ * are never mixed on one axis). Above the charts sit stat tiles (latest BG
+ * official price + week-over-week delta, listings index + sample count,
+ * reference-benchmark latest). Degrades to a skeleton while loading, and to a
+ * combined empty + operator-configuration panel when the payload has no data
+ * (the endpoint returns empty series when EC / Alpha Vantage are unconfigured
+ * OR the window is genuinely empty — the two are indistinguishable to the
+ * client, so the no-data panel carries both messages).
+ *
+ * Lives under `src/components/trends/` (not the route folder) deliberately: the
+ * `single-tab-pattern` guard forbids `<TabSelect>` inside `src/app/**`, and
+ * this tab uses TabSelect for the range selector.
+ */
+import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
+
+import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { CACHE_KEYS } from '@/lib/swr-keys';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FormField } from '@/components/ui/form-field';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import { TabSelect } from '@/components/ui/tab-select';
+import { Heading } from '@/components/ui/typography';
+import {
+    TimeSeriesChart,
+    Areas,
+    XAxis,
+    YAxis,
+    type Series,
+} from '@/components/ui/charts';
+import {
+    type TrendPricesResponse,
+    type MergedDatum,
+    type TrendSeries,
+    groupSeriesByUnit,
+    buildMergedData,
+    seriesKey,
+    sourceLabelKey,
+    findEcSeries,
+    findListingsSeries,
+    findReferenceSeries,
+    latestPoint,
+    weekOverWeekDelta,
+    isEmptyPayload,
+    formatPrice,
+    formatDelta,
+} from './trends-helpers';
+
+const COMMODITIES = ['wheat', 'maize', 'barley', 'sunflower'] as const;
+const RANGES = ['1m', '3m', '1y', 'all'] as const;
+type Commodity = (typeof COMMODITIES)[number];
+type Range = (typeof RANGES)[number];
+
+// Token-backed series palette (currentColor drives chart fill/stroke; the
+// legend dot uses the matching bg-*). Assigned by a series' global index so a
+// region keeps the same hue across every unit-group chart on the tab.
+const SERIES_TEXT = [
+    'text-brand-default',
+    'text-content-success',
+    'text-content-info',
+    'text-content-warning',
+    'text-content-error',
+    'text-brand-emphasis',
+];
+const SERIES_DOT = [
+    'bg-brand-default',
+    'bg-content-success',
+    'bg-content-info',
+    'bg-content-warning',
+    'bg-content-error',
+    'bg-brand-emphasis',
+];
+
+// ─── Stat tile ───────────────────────────────────────────────────────
+
+function StatTile({
+    label,
+    value,
+    sub,
+    tone,
+}: {
+    label: string;
+    value: string;
+    sub?: string;
+    tone?: 'up' | 'down' | 'flat';
+}) {
+    const toneClass =
+        tone === 'up'
+            ? 'text-content-success'
+            : tone === 'down'
+              ? 'text-content-error'
+              : 'text-content-muted';
+    return (
+        <Card density="compact" className="min-w-[140px] flex-1">
+            <p className="text-xs text-content-muted">{label}</p>
+            <p className="mt-0.5 text-lg font-semibold text-content-emphasis tabular-nums">
+                {value}
+            </p>
+            {sub !== undefined && (
+                <p className={`text-xs tabular-nums ${toneClass}`}>{sub}</p>
+            )}
+        </Card>
+    );
+}
+
+// ─── Unit-group chart ────────────────────────────────────────────────
+
+function UnitGroupChart({
+    unit,
+    merged,
+    series,
+    colorIndex,
+    commodityLabel,
+}: {
+    unit: string;
+    merged: MergedDatum[];
+    series: TrendSeries[];
+    colorIndex: Map<string, number>;
+    commodityLabel: string;
+}) {
+    const t = useTranslations('trends');
+    const chartSeries = useMemo<Series<Record<string, number>>[]>(
+        () =>
+            series.map((s) => {
+                const k = seriesKey(s);
+                const idx = colorIndex.get(k) ?? 0;
+                return {
+                    id: k,
+                    isActive: true,
+                    valueAccessor: (d) => d.values[k] ?? 0,
+                    colorClassName: SERIES_TEXT[idx % SERIES_TEXT.length],
+                };
+            }),
+        [series, colorIndex],
+    );
+
+    return (
+        <Card className="space-y-default">
+            <div className="flex items-baseline justify-between gap-tight">
+                <Heading level={3}>{commodityLabel}</Heading>
+                {/* Currency/unit rides the axis caption — units never mix on
+                    one axis, so each group's chart declares its own. */}
+                <span className="text-xs font-medium text-content-muted tabular-nums">
+                    {unit}
+                </span>
+            </div>
+
+            {/* Source-tagged legend. */}
+            <ul className="flex flex-wrap gap-default text-xs">
+                {series.map((s) => {
+                    const idx = colorIndex.get(seriesKey(s)) ?? 0;
+                    return (
+                        <li key={seriesKey(s)} className="flex items-center gap-tight">
+                            <span
+                                aria-hidden="true"
+                                className={`h-2 w-2 rounded-full ${SERIES_DOT[idx % SERIES_DOT.length]}`}
+                            />
+                            <span className="text-content-muted">
+                                {t(`sources.${sourceLabelKey(s.source)}`)}
+                            </span>
+                            <span className="font-medium text-content-default">{s.region}</span>
+                        </li>
+                    );
+                })}
+            </ul>
+
+            <div
+                className="h-56"
+                role="img"
+                aria-label={t('chartAria', { commodity: commodityLabel, unit })}
+            >
+                <TimeSeriesChart<Record<string, number>>
+                    type="area"
+                    data={merged}
+                    series={chartSeries}
+                >
+                    <YAxis showGridLines />
+                    <Areas />
+                    <XAxis />
+                </TimeSeriesChart>
+            </div>
+        </Card>
+    );
+}
+
+// ─── Prices tab ──────────────────────────────────────────────────────
+
+export function PricesTab() {
+    const t = useTranslations('trends');
+    const [commodity, setCommodity] = useState<Commodity>('wheat');
+    const [range, setRange] = useState<Range>('3m');
+
+    const { data, error } = useTenantSWR<TrendPricesResponse>(
+        CACHE_KEYS.trends.prices(commodity, range),
+    );
+
+    const commodityOptions = useMemo<ComboboxOption[]>(
+        () => COMMODITIES.map((c) => ({ value: c, label: t(`commodities.${c}`) })),
+        [t],
+    );
+    const selectedCommodity = useMemo<ComboboxOption>(
+        () => ({ value: commodity, label: t(`commodities.${commodity}`) }),
+        [commodity, t],
+    );
+    const rangeOptions = useMemo(
+        () => RANGES.map((r) => ({ id: r, label: t(`ranges.${r}`) })),
+        [t],
+    );
+
+    const colorIndex = useMemo(() => {
+        const m = new Map<string, number>();
+        (data?.series ?? []).forEach((s, i) => m.set(seriesKey(s), i));
+        return m;
+    }, [data]);
+
+    const groups = useMemo(
+        () => (data ? groupSeriesByUnit(data.series) : []),
+        [data],
+    );
+
+    // ── Stat-tile derivations ──
+    const tiles = useMemo(() => {
+        if (!data) return null;
+        const ec = findEcSeries(data.series, 'BG');
+        const listings = findListingsSeries(data.series);
+        const reference = findReferenceSeries(data.series);
+        return { ec, listings, reference };
+    }, [data]);
+
+    // ── Controls (always visible so a user can switch even on empty) ──
+    const controls = (
+        <div className="flex flex-col gap-default sm:flex-row sm:items-end sm:justify-between">
+            <div className="w-full sm:max-w-[220px]">
+                <FormField label={t('commodityLabel')}>
+                    <Combobox
+                        options={commodityOptions}
+                        selected={selectedCommodity}
+                        setSelected={(opt) => {
+                            if (opt) setCommodity(opt.value as Commodity);
+                        }}
+                        searchPlaceholder={t('commoditySearchPlaceholder')}
+                    />
+                </FormField>
+            </div>
+            <TabSelect<Range>
+                options={rangeOptions}
+                selected={range}
+                onSelect={setRange}
+                ariaLabel={t('rangeAriaLabel')}
+                idPrefix="trends-range-"
+            />
+        </div>
+    );
+
+    const isLoading = !data && !error;
+    const empty = error != null || (data != null && isEmptyPayload(data));
+
+    return (
+        <div className="space-y-section" id="trends-prices-panel">
+            {controls}
+
+            {isLoading ? (
+                <div className="space-y-default" data-testid="trends-loading">
+                    <div className="flex gap-default">
+                        <Skeleton className="h-20 flex-1" />
+                        <Skeleton className="h-20 flex-1" />
+                        <Skeleton className="h-20 flex-1" />
+                    </div>
+                    <Skeleton className="h-72 w-full" />
+                </div>
+            ) : empty ? (
+                <EmptyState
+                    variant="no-records"
+                    title={t('empty.title')}
+                    description={t('empty.description')}
+                    data-testid="trends-empty"
+                >
+                    {/* Operator-configuration explainer — market data is
+                        populated by a scheduled job that reads these env vars. */}
+                    <div
+                        className="mt-default rounded-lg border border-border-subtle bg-bg-muted px-4 py-3 text-left"
+                        data-testid="trends-operator-hint"
+                    >
+                        <p className="text-xs font-semibold text-content-emphasis">
+                            {t('operator.title')}
+                        </p>
+                        <p className="mt-1 text-xs text-content-muted">
+                            {t('operator.body', {
+                                ec: 'EC_AGRIFOOD_BASE_URL',
+                                av: 'ALPHA_VANTAGE_API_KEY',
+                            })}
+                        </p>
+                    </div>
+                </EmptyState>
+            ) : (
+                <>
+                    {/* Stat tiles — wrap on 390px. */}
+                    <div className="flex flex-wrap gap-default">
+                        <StatTile
+                            label={t('tiles.bgLatest')}
+                            value={
+                                tiles?.ec && latestPoint(tiles.ec)
+                                    ? formatPrice(latestPoint(tiles.ec)!.price)
+                                    : t('tiles.noData')
+                            }
+                            sub={
+                                tiles?.ec && weekOverWeekDelta(tiles.ec) != null
+                                    ? formatDelta(weekOverWeekDelta(tiles.ec)!)
+                                    : undefined
+                            }
+                            tone={
+                                tiles?.ec && weekOverWeekDelta(tiles.ec) != null
+                                    ? weekOverWeekDelta(tiles.ec)! > 0
+                                        ? 'up'
+                                        : weekOverWeekDelta(tiles.ec)! < 0
+                                          ? 'down'
+                                          : 'flat'
+                                    : undefined
+                            }
+                        />
+                        <StatTile
+                            label={t('tiles.listings')}
+                            value={
+                                tiles?.listings && latestPoint(tiles.listings)
+                                    ? formatPrice(latestPoint(tiles.listings)!.price)
+                                    : t('tiles.noData')
+                            }
+                            sub={
+                                tiles?.listings && latestPoint(tiles.listings)?.count != null
+                                    ? t('tiles.listingsCount', {
+                                          count: latestPoint(tiles.listings)!.count!,
+                                      })
+                                    : undefined
+                            }
+                        />
+                        <StatTile
+                            label={t('tiles.reference')}
+                            value={
+                                tiles?.reference && latestPoint(tiles.reference)
+                                    ? formatPrice(latestPoint(tiles.reference)!.price)
+                                    : t('tiles.noData')
+                            }
+                            sub={
+                                tiles?.reference && weekOverWeekDelta(tiles.reference) != null
+                                    ? formatDelta(weekOverWeekDelta(tiles.reference)!)
+                                    : undefined
+                            }
+                            tone={
+                                tiles?.reference && weekOverWeekDelta(tiles.reference) != null
+                                    ? weekOverWeekDelta(tiles.reference)! > 0
+                                        ? 'up'
+                                        : weekOverWeekDelta(tiles.reference)! < 0
+                                          ? 'down'
+                                          : 'flat'
+                                    : undefined
+                            }
+                        />
+                    </div>
+
+                    {/* One chart per unit-group. */}
+                    {groups.map((g) => (
+                        <UnitGroupChart
+                            key={g.key}
+                            unit={g.unit}
+                            merged={buildMergedData(g)}
+                            series={g.series}
+                            colorIndex={colorIndex}
+                            commodityLabel={t(`commodities.${commodity}`)}
+                        />
+                    ))}
+                </>
+            )}
+        </div>
+    );
+}
