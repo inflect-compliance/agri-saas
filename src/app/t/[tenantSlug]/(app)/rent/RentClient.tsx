@@ -414,7 +414,10 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                                     <Combobox<false, ParcelOption>
                                         selected={selectedParcel}
                                         setSelected={(o) => set('parcelId', o?.value ?? '')}
-                                        options={parcelComboOptions}
+                                        // undefined while the options are still loading → the
+                                        // Combobox shows a spinner instead of a premature "No matches".
+                                        options={parcelsQ.data ? parcelComboOptions : undefined}
+                                        loading={parcelsQ.isLoading}
                                         placeholder={t('parcelPlaceholder')}
                                         searchPlaceholder={t('parcelSearchPlaceholder')}
                                         optionDescription={(o) => o.meta?.locationName ?? ''}
