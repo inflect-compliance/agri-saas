@@ -7283,6 +7283,12 @@
         },
         "news": {
             "pageTitle": "News",
+            "searchPlaceholder": "Search news…",
+            "searchAria": "Search news by keyword",
+            "noMatches": {
+                "title": "No matching news",
+                "description": "No news matches “{query}”."
+            },
             "filterAriaLabel": "Filter news by category",
             "filters": {
                 "all": "All",
