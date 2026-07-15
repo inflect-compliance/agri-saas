@@ -353,7 +353,12 @@ describe('New page token discipline', () => {
         //   - 148 (+1, feat/trends-page): trends/page.tsx — the market-price
         //     charts shell (renders TrendsPageClient). Token-clean (thin server
         //     shell, no styling of its own); new surface, not yet promoted.
-        expect(unmigrated.length).toBeLessThanOrEqual(148);
+        //   - 150 (+2, feat/rent-page): rent/page.tsx shim + rent/RentClient.tsx
+        //     — the tenant-wide rent roll + lease register (roadmap 3/3). Token-
+        //     clean (semantic tokens only + ListPageShell/PageBreadcrumbs/
+        //     DataTable/Modal/Combobox/ToggleGroup/DatePicker/StatusBadge/
+        //     EmptyState/Heading/Button); new surfaces, not yet promoted.
+        expect(unmigrated.length).toBeLessThanOrEqual(150);
     });
 
     it('migrated page count is at least 4', () => {

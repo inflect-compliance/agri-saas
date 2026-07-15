@@ -401,7 +401,7 @@ const LIST_QUERY_INDEXES: readonly CompositeIndex[] = [
 const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
     // ─── Land administration (roadmap 2/3) — parcel lease register ───
     ParcelLease:
-        'listParcelLeases findMany filters by (tenantId, parcelId, deletedAt) — covered by @@index([tenantId, parcelId]); the endDate/createdAt orderBy runs over a parcel\'s handful of leases (take:100), no separate composite needed. The [tenantId, endDate] index serves the rent-roll expiry scan (3/3).',
+        'listParcelLeases findMany filters by (tenantId, parcelId, deletedAt) — covered by @@index([tenantId, parcelId]); the endDate/createdAt orderBy runs over a parcel\'s handful of leases (take:100), no separate composite needed. listTenantLeases (Rent page, roadmap 3/3) is the tenant-wide register — filters (tenantId, deletedAt) with an optional parcel.locationId relation filter, orders by endDate/createdAt, take:500 — served by @@index([tenantId, endDate]) (the same index the rent-roll expiry scan uses); the createdAt tiebreak sorts a tenant\'s bounded lease set in memory.',
     // ─── RAG (feat/ai-rag) — KnowledgeChunk retrieval store ───
     KnowledgeChunk:
         'retrieve() keyword branch findMany filters by (tenantId OR tenantId IS NULL) + text contains — covered by @@index([tenantId, articleId]) for the tenant predicate; the text match is a substring scan with no useful index (the ranked path is the vector branch, a raw ivfflat $queryRaw not a findMany). Both branches are take-bounded (topK*2). Nullable tenantId GLOBAL catalog.',
@@ -409,7 +409,7 @@ const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
     Location:
         'listLocations filters by tenantId + status and searches name/description, orders by createdAt — covered by @@index([tenantId, status]) / @@index([tenantId, name]); the paginated path is cursor-bounded.',
     Parcel:
-        'Parcel is never tenant-wide list-queried — reads are scoped to a location (ParcelRepository.listForLocation, [tenantId, locationId]) or to an id set (validIdsForLocation, PK).',
+        'Parcel reads are normally scoped to a location (ParcelRepository.listForLocation, [tenantId, locationId]) or to an id set (validIdsForLocation, PK). The one tenant-wide read is listTenantParcelOptions (Rent-page create picker) — filters (tenantId, deletedAt), selects id/name/location, orders by name, take:5000 — narrowed by the tenantId-leading @@index([tenantId, locationId]); the name sort runs in memory over the picker\'s bounded option set (a lightweight id+name projection, not the geometry-bearing row).',
     Item:
         'listItems filters by tenantId + category and searches name — covered by @@index([tenantId, category]) / @@index([tenantId, name]).',
     OperationParcel:

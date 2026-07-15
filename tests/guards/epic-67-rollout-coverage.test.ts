@@ -62,6 +62,11 @@ const SITE_CONTRACTS: ReadonlyArray<SiteContract> = [
         name: 'Exchange listing withdraw (my listings)',
         handlers: ['withdrawListing'],
     },
+    {
+        file: 'src/app/t/[tenantSlug]/(app)/rent/RentClient.tsx',
+        name: 'Lease removal (Rent page)',
+        handlers: ['remove'],
+    },
 ];
 
 function loadFile(file: string): string {

@@ -34,6 +34,7 @@ import {
     CloudSun,
     CalendarClock,
     TrendingUp,
+    ScrollText,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -140,6 +141,10 @@ export function useNavSections(): NavSectionDef[] {
             items: filterVisible([
                 { href: tenantHref('/assets'), label: t('asset'), icon: Building2 },
                 { href: tenantHref('/locations'), label: t('location'), icon: MapPin },
+                // Rent (roadmap 3/3) — the land-obligation register: every
+                // аренда/наем lease across the tenant's parcels, the rent roll,
+                // and expiring contracts. Sits with the land surfaces (Locations).
+                { href: tenantHref('/rent'), label: t('rent'), icon: ScrollText },
                 { href: tenantHref('/journal'), label: t('journal'), icon: NotebookPen },
                 // Agriculture events (#15) — global feed of fairs / trainings /
                 // webinars / subsidy deadlines, visible to every tenant.

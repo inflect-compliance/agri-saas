@@ -29,7 +29,6 @@ import { DownloadBasemapButton } from '@/components/ui/map/DownloadBasemapButton
 import { FieldOperationPanel } from '@/components/ui/map/FieldOperationPanel';
 import { ParcelDetailSheet, type ParcelSheetData } from '@/components/ui/map/ParcelDetailSheet';
 import { ParcelCadastralInfo } from '@/components/ui/map/ParcelCadastralInfo';
-import { RentRollCard } from '@/components/ui/map/RentRollCard';
 import { SoilLegend } from '@/components/soil/SoilLegend';
 import { soilColorForTexture, type SoilProfile } from '@/lib/soil/types';
 import type { UsdaTextureClass } from '@/lib/soil/texture';
@@ -525,8 +524,18 @@ export default function LocationDetailPage() {
                         ) : null}
                     </dl>
 
-                    {/* Land obligations — rent roll for this location (renders only when leased). */}
-                    <RentRollCard locationId={locationId} />
+                    {/* Land obligations — the full rent roll now lives on the
+                        dedicated Rent page; here we deep-link to it scoped to
+                        this location, shown only when the location has leases. */}
+                    {leasedCount > 0 ? (
+                        <a
+                            href={tenantHref(`/rent?locationId=${locationId}`)}
+                            className="flex items-center justify-between gap-default rounded-lg border border-border-subtle bg-bg-default p-3 text-sm hover:border-border-emphasis"
+                        >
+                            <span className="font-medium text-content-emphasis">{t('viewRent')}</span>
+                            <span aria-hidden="true" className="text-content-link">→</span>
+                        </a>
+                    ) : null}
                     {loc?.description && <p className="text-sm">{loc.description}</p>}
                     {parcels.length === 0 && (
                         <div className="rounded-lg border border-border-subtle p-6 text-sm text-content-secondary">

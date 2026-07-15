@@ -1,0 +1,495 @@
+'use client';
+
+/**
+ * RentClient — the tenant-wide land-obligation surface (roadmap 3/3). Folds the
+ * rent roll (leased area / rent / expiring contracts, via RentRollCard) and the
+ * full аренда/наем register into one page: every lease across every parcel,
+ * created / edited / removed here. A lease is parcel-bound, so create picks a
+ * parcel via a Combobox. Honors a `?locationId` deep-link from a location page.
+ */
+import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
+import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
+import { apiPost, apiPatch, apiDelete } from '@/lib/api-client';
+import { ListPageShell } from '@/components/layout/ListPageShell';
+import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
+import { DataTable, createColumns } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Heading } from '@/components/ui/typography';
+import { Modal } from '@/components/ui/modal';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
+import { ToggleGroup } from '@/components/ui/toggle-group';
+import { DatePicker } from '@/components/ui/date-picker/date-picker';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { RentRollCard } from '@/components/ui/map/RentRollCard';
+import { Fab } from '@/components/ui/fab';
+import { PullToRefresh, useToastWithUndo } from '@/components/ui/hooks';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
+import { Plus, PenWriting, Trash } from '@/components/ui/icons/nucleo';
+import { formatDate } from '@/lib/format-date';
+
+interface LeaseRow {
+    id: string;
+    parcelId: string;
+    lessorName: string;
+    lessorEik: string | null;
+    kind: 'ARENDA' | 'NAEM';
+    rentAmount: string | number | null;
+    rentUnit: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    documentRef: string | null;
+    notes: string | null;
+    parcel: {
+        id: string;
+        name: string;
+        areaHa: string | number | null;
+        location: { id: string; name: string };
+    };
+}
+
+interface ParcelOption {
+    id: string;
+    name: string;
+    locationId: string;
+    locationName: string;
+}
+
+interface FormState {
+    parcelId: string;
+    lessorName: string;
+    lessorEik: string;
+    kind: 'ARENDA' | 'NAEM';
+    rentAmount: string;
+    rentUnit: string;
+    startDate: Date | null;
+    endDate: Date | null;
+    documentRef: string;
+    notes: string;
+}
+
+const EMPTY_FORM: FormState = {
+    parcelId: '',
+    lessorName: '',
+    lessorEik: '',
+    kind: 'ARENDA',
+    rentAmount: '',
+    rentUnit: 'лв/дка',
+    startDate: null,
+    endDate: null,
+    documentRef: '',
+    notes: '',
+};
+
+const toYMD = (d: Date | null): string | null => (d ? d.toISOString().slice(0, 10) : null);
+const parseDate = (s: string | null): Date | null => {
+    if (!s) return null;
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d;
+};
+const daysUntil = (iso: string): number =>
+    Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+
+export function RentClient({ tenantSlug }: { tenantSlug: string }) {
+    const t = useTranslations('ag.rent');
+    const tl = useTranslations('ag.lease');
+    const tc = useTranslations('common');
+    const buildUrl = useTenantApiUrl();
+    const tenantHref = useTenantHref();
+    const triggerUndoToast = useToastWithUndo();
+
+    const locationId = useSearchParams().get('locationId') ?? undefined;
+    const scope = locationId ? `?locationId=${locationId}` : '';
+
+    const leasesQ = useTenantSWR<{ leases: LeaseRow[] }>(`/leases${scope}`);
+    const parcelsQ = useTenantSWR<{ parcels: ParcelOption[] }>('/leases/parcel-options');
+    const leases = useMemo(() => leasesQ.data?.leases ?? [], [leasesQ.data]);
+    const parcelOptions = useMemo(() => parcelsQ.data?.parcels ?? [], [parcelsQ.data]);
+
+    // The location name for the deep-linked filter chip, read off any row.
+    const locationName = locationId ? leases[0]?.parcel.location.name : undefined;
+
+    const [showModal, setShowModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [form, setForm] = useState<FormState>(EMPTY_FORM);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+        setForm((f) => ({ ...f, [k]: v }));
+
+    const openCreate = () => {
+        setEditingId(null);
+        setForm(EMPTY_FORM);
+        setError(null);
+        setShowModal(true);
+    };
+    const openEdit = (l: LeaseRow) => {
+        setEditingId(l.id);
+        setForm({
+            parcelId: l.parcelId,
+            lessorName: l.lessorName,
+            lessorEik: l.lessorEik ?? '',
+            kind: l.kind,
+            rentAmount: l.rentAmount != null ? String(l.rentAmount) : '',
+            rentUnit: l.rentUnit ?? '',
+            startDate: parseDate(l.startDate),
+            endDate: parseDate(l.endDate),
+            documentRef: l.documentRef ?? '',
+            notes: l.notes ?? '',
+        });
+        setError(null);
+        setShowModal(true);
+    };
+
+    const parcelComboOptions: ComboboxOption<ParcelOption>[] = useMemo(
+        () =>
+            parcelOptions.map((p) => ({
+                label: p.name,
+                value: p.id,
+                meta: p,
+            })),
+        [parcelOptions],
+    );
+    const selectedParcel = parcelComboOptions.find((o) => o.value === form.parcelId) ?? null;
+    const selectedParcelName = parcelOptions.find((p) => p.id === form.parcelId)?.name ?? '';
+
+    const save = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.parcelId) {
+            setError(t('parcelRequired'));
+            return;
+        }
+        if (!form.lessorName.trim()) {
+            setError(tl('lessorRequired'));
+            return;
+        }
+        const body = {
+            lessorName: form.lessorName.trim(),
+            lessorEik: form.lessorEik.trim() || null,
+            kind: form.kind,
+            rentAmount: form.rentAmount.trim() ? Number(form.rentAmount) : null,
+            rentUnit: form.rentUnit.trim() || null,
+            startDate: toYMD(form.startDate),
+            endDate: toYMD(form.endDate),
+            documentRef: form.documentRef.trim() || null,
+            notes: form.notes.trim() || null,
+        };
+        setBusy(true);
+        setError(null);
+        try {
+            if (editingId) await apiPatch(buildUrl(`/leases/${editingId}`), body);
+            else await apiPost(buildUrl('/leases'), { ...body, parcelId: form.parcelId });
+            setShowModal(false);
+            await leasesQ.mutate();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : tl('saveFailed'));
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const remove = (l: LeaseRow) => {
+        // Epic 67 — optimistic remove + 5s undo window; the DELETE only fires
+        // if the user doesn't hit Undo. SWR's `mutate` is referentially stable
+        // and its functional updater sees the CURRENT cache, so this stays
+        // correct even though the column cells that call it are memoised.
+        let snapshot: LeaseRow[] = [];
+        void leasesQ.mutate(
+            (cur) => {
+                snapshot = cur?.leases ?? [];
+                return { leases: snapshot.filter((x) => x.id !== l.id) };
+            },
+            { revalidate: false },
+        );
+        const restore = () => {
+            void leasesQ.mutate({ leases: snapshot }, { revalidate: false });
+        };
+        triggerUndoToast({
+            action: () => apiDelete(buildUrl(`/leases/${l.id}`)),
+            undoAction: restore,
+            onCommit: () => {
+                void leasesQ.mutate();
+            },
+            onError: restore,
+            message: t('leaseRemoved'),
+            undoMessage: t('undo'),
+        });
+    };
+
+    const kindLabel = (k: 'ARENDA' | 'NAEM') => (k === 'ARENDA' ? tl('kindArenda') : tl('kindNaem'));
+    const rentLabel = (l: LeaseRow) =>
+        l.rentAmount != null ? `${l.rentAmount}${l.rentUnit ? ` ${l.rentUnit}` : ''}` : '—';
+    const termLabel = (l: LeaseRow) => {
+        const s = l.startDate ? formatDate(l.startDate) : null;
+        const e = l.endDate ? formatDate(l.endDate) : null;
+        if (s && e) return `${s} – ${e}`;
+        if (e) return `→ ${e}`;
+        if (s) return `${s} →`;
+        return '—';
+    };
+    const statusBadge = (l: LeaseRow) => {
+        if (!l.endDate) return <StatusBadge variant="success">{t('statusActive')}</StatusBadge>;
+        const d = daysUntil(l.endDate);
+        if (d < 0) return <StatusBadge variant="neutral">{t('statusExpired')}</StatusBadge>;
+        if (d <= 60)
+            return (
+                <StatusBadge variant={d <= 14 ? 'error' : 'warning'}>
+                    {t('statusExpiring', { days: d })}
+                </StatusBadge>
+            );
+        return <StatusBadge variant="success">{t('statusActive')}</StatusBadge>;
+    };
+
+    const columns = useMemo(
+        () =>
+            createColumns<LeaseRow>([
+                {
+                    accessorKey: 'lessorName',
+                    header: t('colLessor'),
+                    cell: ({ row }) => (
+                        <span className="font-medium text-content-emphasis">{row.original.lessorName}</span>
+                    ),
+                    meta: { mobileCard: { slot: 'title' } },
+                },
+                {
+                    id: 'parcel',
+                    header: t('colParcel'),
+                    cell: ({ row }) => (
+                        <span className="text-content-secondary">
+                            {row.original.parcel.name}
+                            <span className="text-content-subtle"> · {row.original.parcel.location.name}</span>
+                        </span>
+                    ),
+                    meta: { mobileCard: { slot: 'meta', label: t('colParcel') } },
+                },
+                {
+                    id: 'kind',
+                    header: t('colKind'),
+                    cell: ({ row }) => kindLabel(row.original.kind),
+                    meta: { mobileCard: { slot: 'meta', label: t('colKind') } },
+                },
+                {
+                    id: 'rent',
+                    header: t('colRent'),
+                    cell: ({ row }) => <span className="tabular-nums">{rentLabel(row.original)}</span>,
+                    meta: { mobileCard: { slot: 'meta', label: t('colRent') } },
+                },
+                {
+                    id: 'term',
+                    header: t('colTerm'),
+                    cell: ({ row }) => <span className="tabular-nums">{termLabel(row.original)}</span>,
+                    meta: { mobileCard: { slot: 'meta', label: t('colTerm') } },
+                },
+                {
+                    id: 'status',
+                    header: t('colStatus'),
+                    cell: ({ row }) => statusBadge(row.original),
+                    meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
+                },
+                {
+                    id: 'actions',
+                    header: '',
+                    cell: ({ row }) => (
+                        <div className="flex items-center justify-end gap-tight">
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEdit(row.original);
+                                }}
+                                aria-label={tc('edit')}
+                                className="text-content-subtle hover:text-content-default"
+                            >
+                                <PenWriting className="size-4" aria-hidden="true" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    remove(row.original);
+                                }}
+                                aria-label={tc('delete')}
+                                className="text-content-subtle hover:text-content-error"
+                            >
+                                <Trash className="size-4" aria-hidden="true" />
+                            </button>
+                        </div>
+                    ),
+                    meta: { mobileCard: { slot: 'actions' } },
+                },
+            ]),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [t, tc, tl],
+    );
+
+    return (
+        <ListPageShell className="gap-section">
+            <ListPageShell.Header>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <PageBreadcrumbs
+                            items={[
+                                { label: t('bcDashboard'), href: `/t/${tenantSlug}/dashboard` },
+                                { label: t('title') },
+                            ]}
+                            className="mb-1"
+                        />
+                        <Heading level={1}>{t('title')}</Heading>
+                        <p className="text-sm text-content-secondary">{t('description')}</p>
+                        {locationId ? (
+                            <p className="mt-1 text-sm text-content-secondary">
+                                {locationName ? t('filteredTo', { location: locationName }) : null}{' '}
+                                <a href={tenantHref('/rent')} className="text-content-link hover:underline">
+                                    {t('clearFilter')}
+                                </a>
+                            </p>
+                        ) : null}
+                    </div>
+                    <Button variant="primary" size="sm" icon={<Plus />} onClick={openCreate}>
+                        {tl('lease')}
+                    </Button>
+                </div>
+            </ListPageShell.Header>
+
+            <ListPageShell.Body>
+                <div className="flex h-full min-h-0 flex-col gap-section">
+                    {/* Summary stays anchored (shrink-0); the table body scrolls
+                        beneath it via fillBody in the bounded flex column. */}
+                    <div className="shrink-0">
+                        <RentRollCard locationId={locationId} />
+                    </div>
+                    <DataTable
+                        fillBody
+                        mobileFallback="card"
+                        data={leases}
+                        columns={columns}
+                        loading={leasesQ.isLoading && !leasesQ.data}
+                        getRowId={(l) => l.id}
+                        onRowClick={(row) => openEdit(row.original)}
+                        emptyState={(
+                            <EmptyState
+                                size="sm"
+                                variant="no-records"
+                                title={t('emptyTitle')}
+                                description={t('emptyDesc')}
+                                primaryAction={{ label: tl('lease'), onClick: openCreate }}
+                            />
+                        )}
+                    />
+                </div>
+            </ListPageShell.Body>
+
+            <Modal
+                showModal={showModal}
+                setShowModal={setShowModal}
+                size="md"
+                title={editingId ? t('modalEditTitle') : t('modalCreateTitle')}
+            >
+                <Modal.Header
+                    title={editingId ? t('modalEditTitle') : t('modalCreateTitle')}
+                    description={t('modalDescription')}
+                />
+                <Modal.Form id="lease-form" onSubmit={save}>
+                    <Modal.Body>
+                        {error ? (
+                            <div
+                                role="alert"
+                                className="mb-4 rounded-lg border border-border-error bg-bg-error px-3 py-2 text-sm text-content-error"
+                            >
+                                {error}
+                            </div>
+                        ) : null}
+                        <div className="space-y-default">
+                            <FormField label={t('fieldParcel')} required>
+                                {editingId ? (
+                                    // Parcel is fixed once a lease exists (a lease belongs
+                                    // to its parcel) — show it read-only.
+                                    <Input value={selectedParcelName} disabled />
+                                ) : (
+                                    <Combobox<false, ParcelOption>
+                                        selected={selectedParcel}
+                                        setSelected={(o) => set('parcelId', o?.value ?? '')}
+                                        options={parcelComboOptions}
+                                        placeholder={t('parcelPlaceholder')}
+                                        searchPlaceholder={t('parcelSearchPlaceholder')}
+                                        optionDescription={(o) => o.meta?.locationName ?? ''}
+                                        matchTriggerWidth
+                                    />
+                                )}
+                            </FormField>
+                            <FormField label={tl('lessor')} required>
+                                <Input
+                                    value={form.lessorName}
+                                    onChange={(e) => set('lessorName', e.target.value)}
+                                    placeholder={tl('lessorPlaceholder')}
+                                />
+                            </FormField>
+                            <FormField label={tl('kind')}>
+                                <ToggleGroup
+                                    size="sm"
+                                    ariaLabel={tl('kind')}
+                                    selected={form.kind}
+                                    selectAction={(v) => set('kind', v as 'ARENDA' | 'NAEM')}
+                                    options={[
+                                        { value: 'ARENDA', label: tl('kindArenda') },
+                                        { value: 'NAEM', label: tl('kindNaem') },
+                                    ]}
+                                />
+                            </FormField>
+                            <div className="grid grid-cols-2 gap-default">
+                                <FormField label={tl('rent')}>
+                                    <Input
+                                        type="number"
+                                        inputMode="decimal"
+                                        value={form.rentAmount}
+                                        onChange={(e) => set('rentAmount', e.target.value)}
+                                    />
+                                </FormField>
+                                <FormField label={tl('rentUnit')}>
+                                    <Input
+                                        value={form.rentUnit}
+                                        onChange={(e) => set('rentUnit', e.target.value)}
+                                    />
+                                </FormField>
+                            </div>
+                            <div className="grid grid-cols-2 gap-default">
+                                <FormField label={tl('startDate')}>
+                                    <DatePicker value={form.startDate} onChange={(d) => set('startDate', d)} />
+                                </FormField>
+                                <FormField label={tl('endDate')}>
+                                    <DatePicker value={form.endDate} onChange={(d) => set('endDate', d)} />
+                                </FormField>
+                            </div>
+                            <FormField label={tl('documentRef')}>
+                                <Input
+                                    value={form.documentRef}
+                                    onChange={(e) => set('documentRef', e.target.value)}
+                                    placeholder={tl('documentRefPlaceholder')}
+                                />
+                            </FormField>
+                        </div>
+                    </Modal.Body>
+                    <Modal.Actions>
+                        <Button variant="secondary" size="sm" type="button" onClick={() => setShowModal(false)}>
+                            {tc('cancel')}
+                        </Button>
+                        <Button variant="primary" size="sm" type="submit" loading={busy} disabled={busy}>
+                            {editingId ? tc('save') : t('createLease')}
+                        </Button>
+                    </Modal.Actions>
+                </Modal.Form>
+            </Modal>
+
+            <PullToRefresh onRefresh={() => leasesQ.mutate()} />
+            <ScrollToTop />
+            <Fab onClick={openCreate} label={tl('lease')} icon={<Plus aria-hidden className="h-6 w-6" />} />
+        </ListPageShell>
+    );
+}
+
+export default RentClient;
