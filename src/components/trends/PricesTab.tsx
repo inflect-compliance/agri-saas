@@ -102,7 +102,7 @@ function StatTile({
     return (
         <Card density="compact" className="min-w-[140px] flex-1">
             <p className="text-xs text-content-muted">{label}</p>
-            <p className="mt-0.5 text-lg font-semibold text-content-emphasis tabular-nums">
+            <p className="metric-gradient font-display mt-0.5 text-2xl font-semibold tabular-nums">
                 {value}
             </p>
             {sub !== undefined && (

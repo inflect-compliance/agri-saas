@@ -17,6 +17,13 @@ module.exports = {
             '3xl': '1792px',
         },
         extend: {
+            fontFamily: {
+                // Display face — Bricolage Grotesque — for the big dashboard
+                // numbers (`font-display`) and page headings. Body stays Inter
+                // (the default `body` font-family in globals.css). Loaded via
+                // the Google-Fonts @import at the top of globals.css.
+                display: ['Bricolage Grotesque', 'Inter', 'system-ui', 'sans-serif'],
+            },
             colors: {
                 // ── Existing brand palette (unchanged) ──
                 brand: {

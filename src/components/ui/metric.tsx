@@ -49,6 +49,14 @@ const TONE_VALUE_CLASS: Record<MetricTone, string> = {
     critical: 'text-content-error',
 };
 
+// The VALUE colour: default tone wears the metallic-gold gradient (the
+// featured-number signature); semantic tones keep their colour — the colour IS
+// the signal, so a critical value reads red, never gold. This is value-only:
+// TONE_VALUE_CLASS still drives the small TrendIndicator, which never gradients.
+function valueToneClass(tone: MetricTone): string {
+    return tone === 'default' ? 'metric-gradient' : TONE_VALUE_CLASS[tone];
+}
+
 // ─── Trend ───────────────────────────────────────────────────────────
 
 export interface MetricTrend {
@@ -139,8 +147,8 @@ export function HeroMetric({
             <div className="flex items-baseline gap-compact flex-wrap">
                 <span
                     className={cn(
-                        'text-5xl md:text-6xl font-semibold leading-none tabular-nums',
-                        TONE_VALUE_CLASS[tone],
+                        'font-display text-5xl md:text-6xl font-semibold leading-none tabular-nums',
+                        valueToneClass(tone),
                     )}
                     data-metric-value
                 >
@@ -207,9 +215,9 @@ export function KPIStat({
                 <span
                     id={id}
                     className={cn(
-                        'font-semibold leading-none tabular-nums',
+                        'font-display font-semibold leading-none tabular-nums',
                         size === 'md' ? 'text-3xl' : 'text-xl',
-                        TONE_VALUE_CLASS[tone],
+                        valueToneClass(tone),
                     )}
                     data-metric-value
                 >

@@ -77,6 +77,11 @@
   --brand-emphasis: #B8860B;                /* dark goldenrod — primary buttons, active brand */
   --brand-muted:    #E4C55C;                /* lighter gold — hover accent */
   --brand-subtle:   rgba(212, 175, 55, 0.16); /* gold @ 16% — brand tint backgrounds */
+  /* Metallic-gold text gradient for featured dashboard numbers (.metric-gradient).
+     Light-to-deep polished-gold sheen; reads bright on the navy ground. */
+  --grad-gold: linear-gradient(142deg, #F6E7AC 0%, #E4C55C 22%, #D4AF37 52%, #A9760B 100%);
+  /* Display face — Bricolage Grotesque for the big numbers + page headings. */
+  --font-display: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
 
   /* ── Brand / Secondary (electric blue — complementary cool counterpoint) ──
    *
@@ -632,6 +637,8 @@
   --brand-emphasis: #7A5800;                /* deep bronze-gold — active brand + text on --brand-subtle tiles; ≥4.5:1 (WCAG AA), one rung darker than default */
   --brand-muted:    #D4AF37;                /* metallic gold — hover accent */
   --brand-subtle:   rgba(212, 175, 55, 0.16); /* gold @ 16% — brand tint backgrounds */
+  /* Deep-gold gradient tuned for the cream ground (AA-legible bronze→gold). */
+  --grad-gold: linear-gradient(142deg, #B98A22 0%, #9A6E12 45%, #6E4E08 100%);
 
   /* ── Brand / Secondary (deep navy — complementary cool counterpoint) ──
    *
@@ -950,6 +957,9 @@
   --border-default: #2b2b2b;
   --border-subtle: #8a8a8a;
   --border-emphasis: #000000;
+  /* High-contrast: a bright-gold gradient on white would fail contrast, so the
+     featured number falls back to a solid deep bronze (AAA on white). */
+  --grad-gold: linear-gradient(#5A3F06, #5A3F06);
 }
 
 /* ─────────────────────────────────────────────────────────────────

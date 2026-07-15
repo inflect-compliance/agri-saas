@@ -224,7 +224,7 @@ export function MetricCard({
                 tests can target the metric value as a single
                 paragraph element. */}
             <p
-                className="text-2xl font-bold tabular-nums"
+                className="font-display text-2xl font-bold tabular-nums"
                 data-metric-card-value
             >
                 {children}
