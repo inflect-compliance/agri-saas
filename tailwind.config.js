@@ -19,10 +19,13 @@ module.exports = {
         extend: {
             fontFamily: {
                 // Display face — Bricolage Grotesque — for the big dashboard
-                // numbers (`font-display`) and page headings. Body stays Inter
-                // (the default `body` font-family in globals.css). Loaded via
-                // the Google-Fonts @import at the top of globals.css.
+                // NUMBERS (`font-display`). Latin digits only — Bricolage has no
+                // Cyrillic, so it never lands on text. Body stays Inter.
                 display: ['Bricolage Grotesque', 'Inter', 'system-ui', 'sans-serif'],
+                // Heading face — Onest (`font-heading`) — for page + section
+                // headings; carries full Cyrillic for the Bulgarian UI. Both
+                // loaded via the Google-Fonts @import at the top of globals.css.
+                heading: ['Onest', 'Inter', 'system-ui', 'sans-serif'],
             },
             colors: {
                 // ── Existing brand palette (unchanged) ──
