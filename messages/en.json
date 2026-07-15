@@ -7306,6 +7306,10 @@
         },
         "widget": {
             "title": "Market trends",
+            "carousel": "Crop price slideshow",
+            "prev": "Previous crop",
+            "next": "Next crop",
+            "showCrop": "Show {commodity}",
             "tapThrough": "Open market trends",
             "ariaSparkline": "{commodity} price sparkline",
             "empty": "No market data yet"
