@@ -3,7 +3,7 @@
  * generated rules; a remote-URL @import stays an @import rule in the
  * output, and CSS requires @import rules before all other rules.
  * Next 16's strict CSS parser hard-errors otherwise (site-wide 500). */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @config "../../tailwind.config.js";
 
@@ -38,6 +38,25 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--bg-page);
   color: var(--content-emphasis);
+}
+
+/* Metallic-gold gradient fill for the featured dashboard numbers (the hero
+   price + default-tone KPI values). Brand gold `--grad-gold` (defined per
+   theme in tokens.css); background-clip:text paints the glyphs. Semantic
+   tone colours (success/critical) never use this — the colour is the signal.
+   The @supports guard keeps a solid brand-gold fallback where background-clip
+   isn't honoured, so the number is never invisible. */
+.metric-gradient {
+  color: var(--brand-default);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .metric-gradient {
+    background-image: var(--grad-gold);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
 }
 
 /* List-page-shell document lock.

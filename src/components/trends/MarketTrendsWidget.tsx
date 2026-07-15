@@ -174,7 +174,7 @@ export function MarketTrendsWidget() {
                 ) : (
                     <div className="flex items-center gap-default">
                         <div className="min-w-0">
-                            <p className="text-2xl font-semibold text-content-emphasis tabular-nums">
+                            <p className="metric-gradient font-display text-2xl font-semibold tabular-nums">
                                 {formatPrice(headline.price)}
                             </p>
                             <p className="text-xs text-content-muted tabular-nums">{headline.unit}</p>
