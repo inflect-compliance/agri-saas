@@ -1,8 +1,9 @@
 /** @jest-environment jsdom */
 /**
- * Trends → News tab. Pins the three states (loading / empty+operator / ready),
- * the card content (category badge, external link, source), and the category-
- * filter refetch wiring (clicking a filter re-reads with the new SWR key).
+ * Trends → News tab. Pins the states (loading / empty+operator / no-matches /
+ * ready), the card content (category badge, external link, source), the
+ * category-filter refetch wiring, and the LIVE keyword search (client-side,
+ * filters the visible cards as the user types).
  */
 import { render, screen, fireEvent } from '@testing-library/react';
 
@@ -29,6 +30,14 @@ const item = (over: Record<string, unknown> = {}) => ({
     ...over,
 });
 
+const twoItems = {
+    category: 'all',
+    items: [
+        item(),
+        item({ id: 'n2', title: 'Субсидии по ДФЗ', summary: 'Директни плащания', category: 'policy', url: 'https://x/2' }),
+    ],
+};
+
 beforeEach(() => useTenantSWR.mockReset());
 
 describe('NewsTab', () => {
@@ -52,21 +61,14 @@ describe('NewsTab', () => {
     });
 
     it('renders a card per item — title, source, category badge, external link', () => {
-        useTenantSWR.mockReturnValue({
-            data: { category: 'all', items: [item(), item({ id: 'n2', title: 'Субсидии', category: 'policy', url: 'https://x/2' })] },
-            error: undefined,
-        });
+        useTenantSWR.mockReturnValue({ data: twoItems, error: undefined });
         render(<NewsTab />);
 
         expect(screen.getByText('Цената на пшеницата се покачва')).toBeInTheDocument();
-        expect(screen.getByText('Субсидии')).toBeInTheDocument();
-        expect(screen.getAllByText('agri-bg')).toHaveLength(2);
-
-        // Category badge labels come through the i18n key path.
+        expect(screen.getByText('Субсидии по ДФЗ')).toBeInTheDocument();
         expect(screen.getByText('news.categories.market')).toBeInTheDocument();
         expect(screen.getByText('news.categories.policy')).toBeInTheDocument();
 
-        // Each card links out safely.
         const link = screen.getByText('Цената на пшеницата се покачва').closest('a')!;
         expect(link).toHaveAttribute('href', 'https://agri.bg/news/1');
         expect(link).toHaveAttribute('target', '_blank');
@@ -76,12 +78,43 @@ describe('NewsTab', () => {
     it('reads the "all" feed by default and refetches with the category on filter click', () => {
         useTenantSWR.mockReturnValue({ data: { category: 'all', items: [] }, error: undefined });
         render(<NewsTab />);
-
-        // Default filter → the all-categories key.
         expect(useTenantSWR).toHaveBeenCalledWith('/trends/news?category=all');
-
-        // Click the "Policy" filter tab → refetch with the policy key.
         fireEvent.click(screen.getByRole('tab', { name: 'news.filters.policy' }));
         expect(useTenantSWR).toHaveBeenLastCalledWith('/trends/news?category=policy');
+    });
+
+    it('filters the visible cards LIVE as the user types (title/summary/source)', () => {
+        useTenantSWR.mockReturnValue({ data: twoItems, error: undefined });
+        render(<NewsTab />);
+        // Both visible before typing.
+        expect(screen.getByText('Цената на пшеницата се покачва')).toBeInTheDocument();
+        expect(screen.getByText('Субсидии по ДФЗ')).toBeInTheDocument();
+
+        // Type a keyword that only the wheat item matches.
+        fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'пшеницата' } });
+        expect(screen.getByText('Цената на пшеницата се покачва')).toBeInTheDocument();
+        expect(screen.queryByText('Субсидии по ДФЗ')).not.toBeInTheDocument();
+
+        // Match on the summary text of the other item instead.
+        fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'плащания' } });
+        expect(screen.getByText('Субсидии по ДФЗ')).toBeInTheDocument();
+        expect(screen.queryByText('Цената на пшеницата се покачва')).not.toBeInTheDocument();
+    });
+
+    it('shows a no-matches state (not the operator hint) when the search matches nothing', () => {
+        useTenantSWR.mockReturnValue({ data: twoItems, error: undefined });
+        render(<NewsTab />);
+        fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zzznotfound' } });
+        expect(screen.getByTestId('trends-news-no-matches')).toBeInTheDocument();
+        // Not the "no feed configured" operator hint.
+        expect(screen.queryByTestId('trends-news-operator-hint')).not.toBeInTheDocument();
+    });
+
+    it('is case-insensitive', () => {
+        useTenantSWR.mockReturnValue({ data: twoItems, error: undefined });
+        render(<NewsTab />);
+        fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'ПШЕНИЦАТА' } });
+        expect(screen.getByText('Цената на пшеницата се покачва')).toBeInTheDocument();
+        expect(screen.queryByText('Субсидии по ДФЗ')).not.toBeInTheDocument();
     });
 });

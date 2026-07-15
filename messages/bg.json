@@ -7283,6 +7283,12 @@
         },
         "news": {
             "pageTitle": "Новини",
+            "searchPlaceholder": "Търси новини…",
+            "searchAria": "Търсене на новини по ключова дума",
+            "noMatches": {
+                "title": "Няма съвпадащи новини",
+                "description": "Няма новини, съответстващи на „{query}“."
+            },
             "filterAriaLabel": "Филтриране на новините по категория",
             "filters": {
                 "all": "Всички",

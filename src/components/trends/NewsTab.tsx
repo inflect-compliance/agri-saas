@@ -3,13 +3,14 @@
 /**
  * Trends → News tab.
  *
- * A category filter (`All / Market / Policy / General`) over the aggregated
- * agri-news feed. Each item is a card that links out to the source article.
- * Degrades to a skeleton while loading, and to a combined empty + operator-
- * configuration panel when the feed is empty (the endpoint returns an empty
- * feed both when no feeds are configured and when the window is genuinely
- * empty — indistinguishable to the client, so the panel carries both messages,
- * mirroring the Prices tab).
+ * A keyword search + category filter (`All / Market / Policy / General`) over
+ * the aggregated agri-news feed. Each item is a card that links out to the
+ * source article. The keyword search is LIVE + client-side: the feed for the
+ * chosen category is already loaded, so typing filters the visible cards
+ * instantly (title / summary / source, case-insensitive) with no per-keystroke
+ * network. Degrades to a skeleton while loading, a combined empty + operator-
+ * configuration panel when the feed is empty, and a distinct "no matches" note
+ * when a search yields nothing.
  *
  * Text-first (no thumbnails) — keeps the feed cheap on rural LTE and avoids
  * remote-image domain config; `imageUrl` is stored for future use.
@@ -24,6 +25,7 @@ import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -40,6 +42,16 @@ const CATEGORY_VARIANT: Record<string, 'info' | 'warning' | 'neutral'> = {
     policy: 'warning',
     general: 'neutral',
 };
+
+/** Case-insensitive keyword match over an item's title / summary / source. */
+function matchesQuery(item: NewsItem, q: string): boolean {
+    if (!q) return true;
+    return (
+        item.title.toLowerCase().includes(q) ||
+        (item.summary ?? '').toLowerCase().includes(q) ||
+        item.source.toLowerCase().includes(q)
+    );
+}
 
 // ─── News card ───────────────────────────────────────────────────────
 
@@ -77,6 +89,7 @@ function NewsCard({ item, now }: { item: NewsItem; now: Date }) {
 export function NewsTab() {
     const t = useTranslations('trends');
     const [filter, setFilter] = useState<Filter>('all');
+    const [query, setQuery] = useState('');
 
     const { data, error } = useTenantSWR<TrendNewsResponse>(CACHE_KEYS.trends.news(filter));
 
@@ -88,19 +101,35 @@ export function NewsTab() {
         [t],
     );
 
+    const items = useMemo(() => data?.items ?? [], [data]);
+    const q = query.trim().toLowerCase();
+    const visibleItems = useMemo(() => items.filter((it) => matchesQuery(it, q)), [items, q]);
+
     const isLoading = !data && !error;
-    const items = data?.items ?? [];
-    const empty = error != null || (data != null && items.length === 0);
+    // No feed at all (unconfigured OR genuinely empty window).
+    const feedEmpty = error != null || (data != null && items.length === 0);
+    // Feed has items, but the current search matches none of them.
+    const noMatches = !feedEmpty && items.length > 0 && visibleItems.length === 0;
 
     return (
         <div className="space-y-section" id="trends-news-panel">
-            <TabSelect<Filter>
-                options={filterOptions}
-                selected={filter}
-                onSelect={setFilter}
-                ariaLabel={t('news.filterAriaLabel')}
-                idPrefix="trends-news-filter-"
-            />
+            <div className="space-y-default">
+                <Input
+                    type="search"
+                    id="trends-news-search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={t('news.searchPlaceholder')}
+                    aria-label={t('news.searchAria')}
+                />
+                <TabSelect<Filter>
+                    options={filterOptions}
+                    selected={filter}
+                    onSelect={setFilter}
+                    ariaLabel={t('news.filterAriaLabel')}
+                    idPrefix="trends-news-filter-"
+                />
+            </div>
 
             {isLoading ? (
                 <div className="space-y-default" data-testid="trends-news-loading">
@@ -108,7 +137,7 @@ export function NewsTab() {
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
                 </div>
-            ) : empty ? (
+            ) : feedEmpty ? (
                 <EmptyState
                     variant="no-records"
                     title={t('news.empty.title')}
@@ -129,9 +158,16 @@ export function NewsTab() {
                         </p>
                     </div>
                 </EmptyState>
+            ) : noMatches ? (
+                <EmptyState
+                    variant="no-results"
+                    title={t('news.noMatches.title')}
+                    description={t('news.noMatches.description', { query: query.trim() })}
+                    data-testid="trends-news-no-matches"
+                />
             ) : (
                 <ul className="space-y-default">
-                    {items.map((item) => (
+                    {visibleItems.map((item) => (
                         <li key={item.id}>
                             <NewsCard item={item} now={now} />
                         </li>
