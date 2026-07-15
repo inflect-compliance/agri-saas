@@ -56,9 +56,22 @@ test.describe('mobile lists — card fallback @mobile', () => {
         // PRIMARY GOAL: no horizontal overflow at the phone viewport.
         await expectNoHorizontalOverflow(page, 'tasks list (card mode)');
 
-        // Tap-through: a card navigates to /tasks/<id>.
-        await cards.first().click();
-        await page.waitForURL(/\/t\/[^/]+\/tasks\/[^/]+/, { timeout: 30_000 });
+        // Tap-through: a card navigates to /tasks/<id>. The detail route is a
+        // lazy chunk; on mobile there's no hover-prefetch, so the FIRST tap does
+        // a cold chunk fetch that can intermittently fail under CI load /
+        // rural-LTE conditions (ChunkLoadError → App Router doesn't commit the
+        // URL, so the nav stalls). Production recovers by reloading (see
+        // ServiceWorkerRegistrar); mirror that here — reload the list and tap
+        // again — so a transient chunk miss doesn't fail the suite.
+        await expect(async () => {
+            await safeGoto(page, `/t/${tenantSlug}/tasks`);
+            await main
+                .locator('#mobile-card-list')
+                .getByRole('listitem')
+                .first()
+                .click({ timeout: 15_000 });
+            await page.waitForURL(/\/t\/[^/]+\/tasks\/[^/]+/, { timeout: 15_000 });
+        }).toPass({ timeout: 75_000 });
     });
 
     test('list filters live in a vaul bottom-sheet on mobile', async ({ page }) => {
