@@ -71,7 +71,12 @@ describe('Epic 60 — legacy pattern ratchet', () => {
         //     (assessment-score field, variable range by question type)
         //   - src/app/t/[tenantSlug]/(app)/admin/security/page.tsx
         //     (sessionMaxAgeMinutes — unbounded max, large range)
-        const CAP = 2;
+        //   - src/app/t/[tenantSlug]/(app)/rent/RentClient.tsx
+        //     (lease rent amount — an unbounded decimal price in лв/дка;
+        //     NumberStepper's +/- step UX is meaningless for a free-entry
+        //     price, same rationale as the two fields above. Mirrors the
+        //     sibling ParcelLeasePanel's rent input.)
+        const CAP = 3;
         if (total > CAP) {
             throw new Error(
                 `Raw \`<input type="number">\` count in src/app/** rose to ${total} (cap ${CAP}). ` +
