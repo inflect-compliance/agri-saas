@@ -48,4 +48,30 @@ test.describe('Trends page @mobile', () => {
 
         await expectNoDrift(page);
     });
+
+    test('opens the News tab and filters without drift at phone width', async ({ page }) => {
+        const slug = await loginAndGetTenant(page);
+        await safeGoto(page, `/t/${slug}/trends`);
+        await settle(page);
+
+        // Switch to the News page tab.
+        const newsTab = page.getByRole('tab', { name: /news|новини/i });
+        await newsTab.click();
+        await expect(newsTab).toHaveAttribute('aria-selected', 'true');
+        await settle(page);
+
+        // The News panel renders. With no feeds configured in CI it shows the
+        // empty + operator state, which is valid — assert the shell, not data.
+        await expect(page.getByRole('main').locator('#trends-news-panel')).toBeVisible();
+
+        // Switch the category filter — panel re-renders, selection flips.
+        const policyFilter = page.locator('#trends-news-filter-policy');
+        if (await policyFilter.count()) {
+            await policyFilter.click();
+            await expect(policyFilter).toHaveAttribute('aria-selected', 'true');
+            await settle(page);
+        }
+
+        await expectNoDrift(page);
+    });
 });

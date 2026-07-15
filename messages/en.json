@@ -7251,8 +7251,26 @@
             "noData": "—"
         },
         "news": {
-            "comingSoonTitle": "Market news coming soon",
-            "comingSoonBody": "Market news and analysis will appear here."
+            "filterAriaLabel": "Filter news by category",
+            "filters": {
+                "all": "All",
+                "market": "Market",
+                "policy": "Policy",
+                "general": "General"
+            },
+            "categories": {
+                "market": "Market",
+                "policy": "Policy",
+                "general": "General"
+            },
+            "empty": {
+                "title": "No news yet",
+                "description": "Agricultural news will appear here as it’s published."
+            },
+            "operator": {
+                "title": "For operators",
+                "body": "News is aggregated from public agri RSS feeds by a daily job. Configure or override the feeds with {env}."
+            }
         },
         "widget": {
             "title": "Market trends",
