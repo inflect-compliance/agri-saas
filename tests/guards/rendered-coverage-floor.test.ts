@@ -73,7 +73,12 @@ const ROOT = path.resolve(__dirname, '../..');
 // triad was removed, so `asset-criticality.test.tsx` (the CIA criticality
 // component test) was deleted with it.
 // Documented downward exceptions; the floor resumes its upward ratchet here.
-const RENDERED_TEST_FLOOR = 192;
+// Raised 192 → 201 (feat/trends-page): the Trends UI adds rendered coverage —
+// trends-prices-tab (loading/empty+operator/ready states + commodity & range
+// refetch wiring), trends-page-client (two-tab shell, Prices default),
+// market-trends-widget (headline + sparkline + tap-through), plus accumulated
+// rendered gains. Locked to the live count of 201.
+const RENDERED_TEST_FLOOR = 201;
 const E2E_SPEC_FLOOR = 55;
 const REGISTRY_FLOOR = 5;
 

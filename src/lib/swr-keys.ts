@@ -149,6 +149,16 @@ export const CACHE_KEYS = {
         readiness: (key: string) => `/schemes/${key}/readiness` as const,
     },
     issues: makeResource('issues'),
+    // ─── Market-price trends (global, tenant-agnostic payload) ───
+    // `/trends/prices?commodity=&range=` — the query string IS part of the
+    // cache key (per-commodity + per-range buckets dedupe naturally). This is
+    // the one place the registry carries a query string; the swr-keys "no
+    // query-string assembly" non-goal is relaxed here because the filter axes
+    // (commodity, range) are a fixed 4×4 grid, not an open-ended filter set.
+    trends: {
+        prices: (commodity: string, range: string) =>
+            `/trends/prices?commodity=${commodity}&range=${range}` as const,
+    },
 
     // ─── Workflow automation (Automation Epics 1–10) ─────────────
     automation: {

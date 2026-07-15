@@ -51,6 +51,9 @@ jest.mock('@/app/t/[tenantSlug]/(app)/dashboard/TasksTrendCard', () => {
     Stub.displayName = 'TasksTrendCardStub';
     return { __esModule: true, default: Stub };
 });
+jest.mock('@/components/trends/MarketTrendsWidget', () => ({
+    MarketTrendsWidget: () => <div data-testid="market-trends-stub" />,
+}));
 
 import DashboardClient from '@/app/t/[tenantSlug]/(app)/dashboard/DashboardClient';
 

@@ -15,10 +15,17 @@
 
 import AgDashboardStrip from './AgDashboardStrip';
 import TasksTrendCard from './TasksTrendCard';
+import { MarketTrendsWidget } from '@/components/trends/MarketTrendsWidget';
 
 export default function DashboardClient() {
     return (
         <div className="space-y-section">
+            {/* ─── Market trends (always shown) ───
+                Headline lead-commodity price + sparkline, tapping through to
+                the full Trends page. Market data is global; renders a muted
+                empty state when the backend has no data. */}
+            <MarketTrendsWidget />
+
             {/* ─── Tasks trendline (always shown) ───
                 Daily "created vs completed" farm-task counts over the last
                 14 days. Tasks aren't module-gated, so this renders for every

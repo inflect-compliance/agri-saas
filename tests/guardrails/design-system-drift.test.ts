@@ -350,7 +350,10 @@ describe('New page token discipline', () => {
         //     explainer (NDVI/NDMI/NDRE/GNDVI/EVI) the map legend "Learn more"
         //     link deep-links into. Token-clean (semantic tokens only +
         //     Heading/PageBreadcrumbs/Button); new surface, not yet promoted.
-        expect(unmigrated.length).toBeLessThanOrEqual(147);
+        //   - 148 (+1, feat/trends-page): trends/page.tsx — the market-price
+        //     charts shell (renders TrendsPageClient). Token-clean (thin server
+        //     shell, no styling of its own); new surface, not yet promoted.
+        expect(unmigrated.length).toBeLessThanOrEqual(148);
     });
 
     it('migrated page count is at least 4', () => {
