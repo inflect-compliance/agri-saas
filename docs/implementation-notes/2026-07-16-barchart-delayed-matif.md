@@ -48,12 +48,16 @@ oil are one commented line away (they need a Trends-picker commodity added).
 - **Units are NOT normalised.** MATIF is EUR/t (clean). If CBOT is enabled it is
   US-cents/bushel and palm oil MYR/t — each lands on its own chart by design; no
   cross-source conversion is done.
-- **Scheduling is still weekly.** `ScheduleDefinition.name` must be a unique
-  `JobName`, so a second `market-prices-pull` cron isn't possible. For genuine
-  near-real-time, add a dedicated intraday job (e.g. every 20 min, Mon–Fri,
-  MATIF hours) that calls `runMarketPricesPull({ source: 'barchart' })` — a
-  follow-up gated on the Barchart request budget. Until then, trial it with a
-  manual/targeted `{ source: 'barchart' }` run.
+- **Intraday scheduling — included, but dormant until the key is set.** A
+  dedicated `market-prices-barchart` job (executor forces `source: 'barchart'`)
+  runs the pull every **20 min, 08:00–17:59 UTC, Mon–Fri** (≈ Euronext Paris
+  grain hours + the 10–15 min delay). Its schedule entry is added to
+  `SCHEDULED_JOBS` **only when `BARCHART_API_KEY` is present** (a conditional
+  spread in `schedules.ts`), so a key-less deployment runs no empty cron. Budget:
+  one `getQuote` batches all symbols → ~150 requests/week — check against the
+  Barchart plan before enabling. (A second `market-prices-pull` cron wasn't an
+  option — `ScheduleDefinition.name` must be a unique `JobName`.) You can still
+  trial ad-hoc with a manual `{ source: 'barchart' }` run.
 - **Licence first.** Do not set `BARCHART_API_KEY` in prod until the delayed
   MATIF redistribution licence (Barchart sub-vendor fee + Euronext EMDA) is
   signed — the feed is for end-user display.

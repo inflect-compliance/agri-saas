@@ -669,6 +669,26 @@ executorRegistry.register('market-prices-pull', async (payload) => {
     );
 });
 
+// ── market-prices-barchart (intraday delayed MATIF) ──────────────────
+// Runs the SAME pull scoped to the Barchart source only. Scheduled every
+// ~20 min on weekdays, but ONLY when BARCHART_API_KEY is set; without the
+// key the pull no-ops, so this executor is a cheap guard either way.
+executorRegistry.register('market-prices-barchart', async () => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runMarketPricesPull } = await import('./market-prices-pull');
+    const r = await runMarketPricesPull({ source: 'barchart' });
+    return makeResult(
+        'market-prices-barchart', startedAt, startMs,
+        r.pointsUpserted, r.pointsUpserted, r.suppressed,
+        {
+            sources: r.sources,
+            seriesTouched: r.seriesTouched,
+            pointsUpserted: r.pointsUpserted,
+        },
+    );
+});
+
 // ── market-news-pull (Trends → News) ─────────────────────────────────
 
 executorRegistry.register('market-news-pull', async (payload) => {
