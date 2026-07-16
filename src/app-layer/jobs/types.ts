@@ -570,7 +570,7 @@ export interface WeatherPullPayload {
  * k-anonymised own-listings median); omit to run all three.
  */
 export interface MarketPricesPullPayload {
-    source?: 'ec' | 'av' | 'listings';
+    source?: 'ec' | 'av' | 'barchart' | 'listings';
 }
 
 /**
