@@ -15,11 +15,18 @@ jest.mock('@/lib/tenant-context-provider', () => ({
 }));
 
 jest.mock('@/components/ui/modal', () => {
-    const Modal = ({ showModal, children }: { showModal: boolean; children: React.ReactNode }) =>
-        showModal ? <div data-testid="modal">{children}</div> : null;
-    Modal.Header = ({ title }: { title: string }) => <h2>{title}</h2>;
-    Modal.Body = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
-    Modal.Actions = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+    function Modal({ showModal, children }: { showModal: boolean; children: React.ReactNode }) {
+        return showModal ? <div data-testid="modal">{children}</div> : null;
+    }
+    Modal.Header = function Header({ title }: { title: string }) {
+        return <h2>{title}</h2>;
+    };
+    Modal.Body = function Body({ children }: { children: React.ReactNode }) {
+        return <div>{children}</div>;
+    };
+    Modal.Actions = function Actions({ children }: { children: React.ReactNode }) {
+        return <div>{children}</div>;
+    };
     return { Modal };
 });
 
