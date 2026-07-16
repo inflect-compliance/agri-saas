@@ -191,6 +191,7 @@ model Tenant {
   vendorRelationships               VendorRelationship[]
   syncMappings                      IntegrationSyncMapping[]
   customRoles                       TenantCustomRole[]
+  userInterests                     UserInterest[]                     @relation("TenantUserInterest")
   apiKeys                           TenantApiKey[]
   complianceSnapshots               ComplianceSnapshot[]
   automationRules                   AutomationRule[]
@@ -763,6 +764,7 @@ model User {
   vendorBundlesCreated          VendorEvidenceBundle[]       @relation("EvidenceBundleCreator")
   apiKeysCreated                TenantApiKey[]               @relation("ApiKeyCreator")
   userSessions                  UserSession[]                @relation("UserSessionOwner")
+  interests                     UserInterest[]               @relation("UserInterestOwner")
   passwordResetTokens           PasswordResetToken[]         @relation("UserPasswordResetTokens")
   orgMemberships                OrgMembership[]
   orgAuditLogActions            OrgAuditLog[]                @relation("OrgAuditLogActor")
@@ -888,6 +890,30 @@ model UserSession {
   @@index([tenantId])
   @@index([userId, revokedAt])
   @@index([tenantId, revokedAt])
+}
+
+/// A keyword a user has chosen as an interest, powering the News page's
+/// "For You" tab (items matching any of the user's keywords). Tenant-scoped
+/// (RLS) + per-user: it syncs across the user's devices within a tenant.
+/// Cross-tenant sync is a deliberate non-goal (the RLS-by-tenant model). The
+/// keyword is stored normalized (trimmed, lowercased); the (tenantId, userId,
+/// keyword) unique key makes a PUT-replace idempotent.
+model UserInterest {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  /// Normalized (trimmed, lowercased) interest keyword.
+  keyword   String
+  createdAt DateTime @default(now())
+
+  user   User   @relation("UserInterestOwner", fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation("TenantUserInterest", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  /// One row per (tenant, user, keyword) — idempotent PUT-replace.
+  @@unique([tenantId, userId, keyword])
+  /// Tenant-leading index (RLS + the per-user list read). Covers the userId FK
+  /// as its 2nd column (schema-index Layer B).
+  @@index([tenantId, userId])
 }
 
 model VerificationToken {
