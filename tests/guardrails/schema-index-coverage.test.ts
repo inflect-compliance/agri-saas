@@ -399,6 +399,9 @@ const LIST_QUERY_INDEXES: readonly CompositeIndex[] = [
 // curated composite index is needed."
 
 const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
+    // ─── News "For You" — per-user interest keywords ───
+    UserInterest:
+        "getUserInterests findMany filters by (tenantId, userId), orders by keyword asc, take:20 — covered by @@index([tenantId, userId]); the keyword sort runs in memory over a user's capped-at-20 self-service interest set. No open-ended filter; PUT-replace clears + createMany on the same (tenantId, userId) scope.",
     // ─── Land administration (roadmap 2/3) — parcel lease register ───
     ParcelLease:
         'listParcelLeases findMany filters by (tenantId, parcelId, deletedAt) — covered by @@index([tenantId, parcelId]); the endDate/createdAt orderBy runs over a parcel\'s handful of leases (take:100), no separate composite needed. listTenantLeases (Rent page, roadmap 3/3) is the tenant-wide register — filters (tenantId, deletedAt) with an optional parcel.locationId relation filter, orders by endDate/createdAt, take:500 — served by @@index([tenantId, endDate]) (the same index the rent-roll expiry scan uses); the createdAt tiebreak sorts a tenant\'s bounded lease set in memory.',

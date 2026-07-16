@@ -3,21 +3,23 @@
 /**
  * Trends → News tab.
  *
- * A keyword search + category filter (`All / Market / Policy / General`) over
- * the aggregated agri-news feed. Each item is a card that links out to the
- * source article. The keyword search is LIVE + client-side: the feed for the
- * chosen category is already loaded, so typing filters the visible cards
- * instantly (title / summary / source, case-insensitive) with no per-keystroke
- * network. Degrades to a skeleton while loading, a combined empty + operator-
- * configuration panel when the feed is empty, and a distinct "no matches" note
- * when a search yields nothing.
+ * A personalized "For You" tab + keyword search + category filter over the
+ * aggregated agri-news feed.
  *
- * Text-first (no thumbnails) — keeps the feed cheap on rural LTE and avoids
- * remote-image domain config; `imageUrl` is stored for future use.
+ *   • Category filter — `For You / All / Market / Policy / General`.
+ *   • For You — filters the feed to items matching ANY of the user's chosen
+ *     interest keywords (server-persisted per user; edited via a modal).
+ *   • Search — a LIVE, client-side keyword box that composes on top of both.
  *
- * Lives under `src/components/trends/` (not the route folder) deliberately: the
- * `single-tab-pattern` guard forbids `<TabSelect>` inside `src/app/**`, and this
- * tab uses TabSelect for the category filter.
+ * All filtering is client-side over the already-loaded feed, so it's instant.
+ * Degrades to a skeleton while loading, a combined empty + operator panel when
+ * the feed is empty, a "no interests yet" prompt on For You with none set, and a
+ * "no matches" note when a search/interest set yields nothing.
+ *
+ * Text-first (no thumbnails) — cheap on rural LTE; `imageUrl` stored for later.
+ *
+ * Lives under `src/components/trends/` (not the route folder): the
+ * `single-tab-pattern` guard forbids `<TabSelect>` inside `src/app/**`.
  */
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
@@ -26,14 +28,16 @@ import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { TabSelect } from '@/components/ui/tab-select';
 import { formatRelativeTime } from '@/lib/format-date';
 import type { TrendNewsResponse, NewsItem } from '@/app-layer/usecases/trends';
+import { InterestsModal } from './InterestsModal';
 
-const FILTERS = ['all', 'market', 'policy', 'general'] as const;
+const FILTERS = ['foryou', 'all', 'market', 'policy', 'general'] as const;
 type Filter = (typeof FILTERS)[number];
 
 /** Category → StatusBadge variant. */
@@ -44,12 +48,12 @@ const CATEGORY_VARIANT: Record<string, 'info' | 'warning' | 'neutral'> = {
 };
 
 /** Case-insensitive keyword match over an item's title / summary / source. */
-function matchesQuery(item: NewsItem, q: string): boolean {
-    if (!q) return true;
+function matchesKeyword(item: NewsItem, kw: string): boolean {
+    if (!kw) return true;
     return (
-        item.title.toLowerCase().includes(q) ||
-        (item.summary ?? '').toLowerCase().includes(q) ||
-        item.source.toLowerCase().includes(q)
+        item.title.toLowerCase().includes(kw) ||
+        (item.summary ?? '').toLowerCase().includes(kw) ||
+        item.source.toLowerCase().includes(kw)
     );
 }
 
@@ -88,10 +92,25 @@ function NewsCard({ item, now }: { item: NewsItem; now: Date }) {
 
 export function NewsTab() {
     const t = useTranslations('trends');
+    // Default to the full feed (content-first); For You is the opt-in first tab.
     const [filter, setFilter] = useState<Filter>('all');
     const [query, setQuery] = useState('');
+    const [modalOpen, setModalOpen] = useState(false);
 
-    const { data, error } = useTenantSWR<TrendNewsResponse>(CACHE_KEYS.trends.news(filter));
+    const forYou = filter === 'foryou';
+    // For You has no server category — it reads the full feed and filters by the
+    // user's interest keywords client-side.
+    const newsCategory = forYou ? 'all' : filter;
+
+    const { data, error } = useTenantSWR<TrendNewsResponse>(
+        CACHE_KEYS.trends.news(newsCategory),
+    );
+    const {
+        data: interestsData,
+        error: interestsError,
+        mutate: mutateInterests,
+    } = useTenantSWR<{ keywords: string[] }>(forYou ? CACHE_KEYS.me.interests() : null);
+    const interests = useMemo(() => interestsData?.keywords ?? [], [interestsData]);
 
     // Stable "now" for relative times within one render pass.
     const now = useMemo(() => new Date(), [data]);
@@ -103,12 +122,19 @@ export function NewsTab() {
 
     const items = useMemo(() => data?.items ?? [], [data]);
     const q = query.trim().toLowerCase();
-    const visibleItems = useMemo(() => items.filter((it) => matchesQuery(it, q)), [items, q]);
+    // For You: keep items matching ANY interest keyword; then the search box.
+    const visibleItems = useMemo(() => {
+        const base = forYou
+            ? items.filter((it) => interests.some((kw) => matchesKeyword(it, kw)))
+            : items;
+        return base.filter((it) => matchesKeyword(it, q));
+    }, [items, forYou, interests, q]);
 
-    const isLoading = !data && !error;
-    // No feed at all (unconfigured OR genuinely empty window).
+    const newsLoading = !data && !error;
+    const interestsLoading = forYou && interestsData === undefined && !interestsError;
+    const isLoading = newsLoading || interestsLoading;
+    const noInterests = forYou && !interestsLoading && interests.length === 0;
     const feedEmpty = error != null || (data != null && items.length === 0);
-    // Feed has items, but the current search matches none of them.
     const noMatches = !feedEmpty && items.length > 0 && visibleItems.length === 0;
 
     return (
@@ -129,6 +155,21 @@ export function NewsTab() {
                     ariaLabel={t('news.filterAriaLabel')}
                     idPrefix="trends-news-filter-"
                 />
+                {forYou && !noInterests && (
+                    <div className="flex items-center justify-between gap-tight">
+                        <span className="text-xs text-content-muted">
+                            {t('news.forYou.count', { count: interests.length })}
+                        </span>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setModalOpen(true)}
+                        >
+                            {t('news.forYou.edit')}
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {isLoading ? (
@@ -137,6 +178,17 @@ export function NewsTab() {
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
                 </div>
+            ) : noInterests ? (
+                <EmptyState
+                    variant="no-records"
+                    title={t('news.forYou.emptyTitle')}
+                    description={t('news.forYou.emptyDescription')}
+                    data-testid="trends-news-no-interests"
+                >
+                    <Button type="button" variant="primary" size="sm" onClick={() => setModalOpen(true)}>
+                        {t('news.forYou.addFirst')}
+                    </Button>
+                </EmptyState>
             ) : feedEmpty ? (
                 <EmptyState
                     variant="no-records"
@@ -144,8 +196,6 @@ export function NewsTab() {
                     description={t('news.empty.description')}
                     data-testid="trends-news-empty"
                 >
-                    {/* Operator-configuration explainer — the feed is populated
-                        by a scheduled job reading these curated/env feeds. */}
                     <div
                         className="mt-default rounded-lg border border-border-subtle bg-bg-muted px-4 py-3 text-left"
                         data-testid="trends-news-operator-hint"
@@ -174,6 +224,15 @@ export function NewsTab() {
                     ))}
                 </ul>
             )}
+
+            <InterestsModal
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+                initial={interests}
+                onSaved={(keywords) => {
+                    void mutateInterests({ keywords }, { revalidate: false });
+                }}
+            />
         </div>
     );
 }

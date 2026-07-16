@@ -7291,10 +7291,27 @@
             },
             "filterAriaLabel": "Filter news by category",
             "filters": {
+                "foryou": "For You",
                 "all": "All",
                 "market": "Market",
                 "policy": "Policy",
                 "general": "General"
+            },
+            "forYou": {
+                "count": "Interests: {count}",
+                "edit": "Edit interests",
+                "emptyTitle": "No interests yet",
+                "emptyDescription": "Add keywords you care about to get a personalized news feed.",
+                "addFirst": "Add interests",
+                "modalTitle": "Your interests",
+                "addPlaceholder": "Add a keyword…",
+                "addAria": "Add an interest keyword",
+                "add": "Add",
+                "emptyDraft": "No interests yet — add a few keywords.",
+                "chipsAria": "Your interest keywords",
+                "removeChip": "Remove {keyword}",
+                "cancel": "Cancel",
+                "save": "Save"
             },
             "categories": {
                 "market": "Market",

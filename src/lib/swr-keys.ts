@@ -164,6 +164,13 @@ export const CACHE_KEYS = {
         news: (category: string) => `/trends/news?category=${category}` as const,
     },
 
+    // ─── Self-service per-user data ───
+    me: {
+        // `/me/interests` — the user's chosen News "For You" keywords. Own data
+        // (tenant + user scoped server-side); no query axis.
+        interests: () => '/me/interests' as const,
+    },
+
     // ─── Workflow automation (Automation Epics 1–10) ─────────────
     automation: {
         rules: {
