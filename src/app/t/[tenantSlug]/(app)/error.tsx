@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { ErrorState } from '@/components/ui/error-state';
 import { Card } from '@/components/ui/card';
+import { useChunkErrorRecovery } from '@/lib/pwa/use-chunk-error-recovery';
 
 /**
  * Error boundary for the tenant-scoped app shell.
@@ -28,9 +30,27 @@ export default function AppSectionError({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    // Stale-chunk recovery: a lazy chunk that 404s after a deploy (client on an
+    // old SW bundle) throws a ChunkLoadError into this boundary. Reload once onto
+    // the fresh assets instead of stranding the operator — see the hook.
+    const recovering = useChunkErrorRecovery(error);
+
     useEffect(() => {
         console.error('[AppSectionError]', error);
+        // Report to Sentry — the root boundary did, but this sub-route boundary
+        // (which catches every /(app) page error) did NOT, so page-level crashes
+        // were invisible in Sentry. try/catch so the boundary never re-throws.
+        try {
+            Sentry.captureException(error, {
+                tags: { digest: error.digest || 'none', boundary: 'app-section' },
+            });
+        } catch {
+            /* Sentry unavailable — the console.error above still records it */
+        }
     }, [error]);
+
+    // While a chunk-error reload is imminent, render nothing (no error flash).
+    if (recovering) return null;
 
     return (
         <div className="space-y-section animate-fadeIn">

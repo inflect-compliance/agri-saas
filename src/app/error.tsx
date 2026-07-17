@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { ErrorState } from '@/components/ui/error-state';
 import { Card } from '@/components/ui/card';
+import { useChunkErrorRecovery } from '@/lib/pwa/use-chunk-error-recovery';
 
 /**
  * Global Error Boundary for the Next.js App Router.
@@ -22,6 +23,10 @@ export default function GlobalError({
     error: Error & { digest?: string };
     reset: () => void;
 }) {
+    // Stale-chunk recovery (same as the (app) boundary) for errors that escape
+    // the app shell — reload once onto fresh assets instead of a dead-end.
+    const recovering = useChunkErrorRecovery(error);
+
     useEffect(() => {
         // Report to Sentry — wrapped in try/catch so the error boundary
         // itself never crashes (which causes "missing required error components")
@@ -33,6 +38,8 @@ export default function GlobalError({
             console.error('[error.tsx] Failed to report to Sentry:', error);
         }
     }, [error]);
+
+    if (recovering) return null;
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-bg-page p-6">
