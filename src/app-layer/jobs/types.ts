@@ -570,7 +570,7 @@ export interface WeatherPullPayload {
  * k-anonymised own-listings median); omit to run all three.
  */
 export interface MarketPricesPullPayload {
-    source?: 'ec' | 'av' | 'listings';
+    source?: 'ec' | 'av' | 'barchart' | 'listings';
 }
 
 /**
@@ -743,6 +743,10 @@ export interface JobPayloadMap {
     'exchange-expiry-sweep': ExchangeExpirySweepPayload;
     'soil-fetch': SoilFetchPayload;
     'market-prices-pull': MarketPricesPullPayload;
+    // Intraday Barchart-only pull (delayed MATIF futures). Same payload shape;
+    // the executor forces source='barchart'. Scheduled every ~20 min on
+    // weekdays ONLY when BARCHART_API_KEY is set (see schedules.ts).
+    'market-prices-barchart': MarketPricesPullPayload;
     'market-news-pull': MarketNewsPullPayload;
 }
 
@@ -950,6 +954,15 @@ export const JOB_DEFAULTS: Record<JobName, {
         backoff: { type: 'exponential', delay: 10000 },
         removeOnComplete: 50,
         removeOnFail: 100,
+    },
+    'market-prices-barchart': {
+        // Intraday Barchart pull (every ~20 min). One quick retry on a blip;
+        // upserts are idempotent on (seriesId, date) so a same-day re-run just
+        // refreshes today's point. Keep history light — it fires often.
+        attempts: 2,
+        backoff: { type: 'fixed', delay: 5000 },
+        removeOnComplete: 20,
+        removeOnFail: 50,
     },
     'market-news-pull': {
         // Daily agri-news aggregation. One retry on a transient network/DB blip;

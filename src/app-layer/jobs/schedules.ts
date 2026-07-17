@@ -139,6 +139,22 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
         description: 'Pull market prices (EC AGRI-food + Alpha Vantage + own-listings median) into the global market-price cache',
         defaultPayload: {},
     },
+    // Intraday Barchart pull for near-real-time (10-15 min delayed) MATIF
+    // futures — registered ONLY when BARCHART_API_KEY is set, so no empty
+    // cron runs on deployments without the (licensed) feed. Every 20 min,
+    // 08:00-17:59 UTC, Mon-Fri (≈ Euronext Paris grain hours + delay). A
+    // getQuote batches all symbols in one request → ~150 requests/week; check
+    // this against the Barchart plan's request budget before enabling.
+    ...(env.BARCHART_API_KEY
+        ? [
+              {
+                  name: 'market-prices-barchart' as JobName,
+                  pattern: '*/20 8-17 * * 1-5',
+                  description: 'Intraday pull of delayed Euronext MATIF futures (Barchart) into the global market-price cache',
+                  defaultPayload: {},
+              },
+          ]
+        : []),
     {
         // Daily — agri news refreshes far more often than weekly prices. 05:50
         // UTC sits just after the weekly price pull, before European morning

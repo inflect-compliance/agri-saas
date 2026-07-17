@@ -114,6 +114,9 @@ describe('Infrastructure Regression Guards', () => {
                 'market-news-pull',
                 // Trends — weekly market-price backbone pull (EC AGRI-food +
                 // Alpha Vantage + own-listings median) into the global cache.
+                // (The intraday 'market-prices-barchart' schedule is CONDITIONAL
+                // on BARCHART_API_KEY — absent in this key-less test env — so it
+                // is deliberately not in this always-on set.)
                 'market-prices-pull',
                 'notification-dispatch',
                 'policy-review-reminder',

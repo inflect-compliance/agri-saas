@@ -232,6 +232,11 @@ export const env = createEnv({
         // SOIL_BASE_URL pattern (feature degrades gracefully when unset).
         EC_AGRIFOOD_BASE_URL: z.string().url().optional(),
         ALPHA_VANTAGE_API_KEY: z.string().optional(),
+        // BARCHART_API_KEY enables the Barchart OnDemand delayed-futures feed
+        // (Euronext MATIF wheat/corn benchmark). UNSET → the Barchart source is
+        // skipped by the pull, exactly like the Alpha Vantage key. Requires a
+        // per-exchange redistribution licence before showing to end users.
+        BARCHART_API_KEY: z.string().optional(),
 
         // ── Market-news feeds (feat/trends-news-tab) ──
         // Optional JSON override for the RSS/Atom feeds the market-news-pull job
@@ -570,6 +575,7 @@ export const env = createEnv({
         SOIL_BASE_URL: process.env.SOIL_BASE_URL,
         EC_AGRIFOOD_BASE_URL: process.env.EC_AGRIFOOD_BASE_URL,
         ALPHA_VANTAGE_API_KEY: process.env.ALPHA_VANTAGE_API_KEY,
+        BARCHART_API_KEY: process.env.BARCHART_API_KEY,
         MARKET_NEWS_FEEDS: process.env.MARKET_NEWS_FEEDS,
         CADASTRE_OPENDATA_INDEX_URL: process.env.CADASTRE_OPENDATA_INDEX_URL,
         CADASTRE_WMS_URL: process.env.CADASTRE_WMS_URL,

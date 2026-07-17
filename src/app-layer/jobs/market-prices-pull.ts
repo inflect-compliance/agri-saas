@@ -43,6 +43,11 @@ import {
     ALPHA_VANTAGE_FUNCTIONS,
     type AlphaVantageFetchOptions,
 } from '@/lib/market/alpha-vantage-client';
+import {
+    fetchBarchartQuotes,
+    BarchartRateLimitError,
+    BARCHART_CONTRACTS,
+} from '@/lib/market/barchart-client';
 import { computeListingsMedianIndex, type ListingPriceRow } from '@/lib/market/listings-index';
 import type { MarketPricesPullPayload } from './types';
 
@@ -75,6 +80,7 @@ export interface MarketPricesPullDeps {
     fetchCereal?: typeof fetchCerealPrices;
     fetchOilseed?: typeof fetchOilseedPrices;
     fetchAv?: typeof fetchAlphaVantageCommodity;
+    fetchBarchart?: typeof fetchBarchartQuotes;
     /** DB client override (integration tests pass the test-DB client). */
     db?: MarketDbClient;
     /** Sleep (ms) — no-op in tests. */
@@ -327,6 +333,66 @@ async function pullAlphaVantage(deps: MarketPricesPullDeps): Promise<UpsertItem[
     return items;
 }
 
+// ── Barchart OnDemand (delayed futures — MATIF benchmark) ─────────────
+
+/** UTC midnight of a date — the day-key for a delayed intraday quote. */
+function startOfUtcDay(d: Date): Date {
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
+async function pullBarchart(deps: MarketPricesPullDeps): Promise<UpsertItem[]> {
+    const apiKey = env.BARCHART_API_KEY;
+    if (!apiKey) {
+        logger.info('market-prices-pull: Barchart skipped (no API key)', {
+            component: COMPONENT,
+        });
+        return [];
+    }
+    const fetchBarchart = deps.fetchBarchart ?? fetchBarchartQuotes;
+    const symbols = BARCHART_CONTRACTS.map((c) => c.symbol);
+    // Match a resolved quote symbol (e.g. "MLU26") back to its contract by the
+    // root the request used ("ML*0" → root "ML"); roots in the set are distinct.
+    const contractsByRoot = BARCHART_CONTRACTS.map((c) => ({
+        root: c.symbol.replace(/\*0$/, '').toUpperCase(),
+        contract: c,
+    }));
+
+    const items: UpsertItem[] = [];
+    try {
+        const quotes = await fetchBarchart(symbols, apiKey, {});
+        const day = startOfUtcDay(new Date());
+        for (const q of quotes) {
+            if (q.lastPrice == null) continue;
+            const match = contractsByRoot.find(({ root }) => q.symbol.startsWith(root));
+            if (!match) continue;
+            const c = match.contract;
+            items.push({
+                source: 'barchart',
+                commodity: c.commodity,
+                region: c.region,
+                stage: null,
+                unit: c.unit,
+                currency: c.currency,
+                label: q.name ?? 'Futures (Barchart, delayed)',
+                // A delayed intraday quote → today's point; a same-day re-pull
+                // upserts on (seriesId, date), so the point holds the latest tick.
+                date: day,
+                price: q.lastPrice,
+            });
+        }
+    } catch (err) {
+        // Rate-limit and any other failure are non-fatal — the other sources
+        // (and the last-good Barchart points) stand.
+        const rateLimited = err instanceof BarchartRateLimitError;
+        logger.warn('market-prices-pull: Barchart fetch failed', {
+            component: COMPONENT,
+            rateLimited,
+            error: err instanceof Error ? err.message : String(err),
+        });
+    }
+    return items;
+}
+
 // ── own-listings k-anon median ────────────────────────────────────────
 
 async function pullListings(
@@ -394,6 +460,10 @@ export async function runMarketPricesPull(
     if (runAll || payload.source === 'av') {
         sources.push('av');
         items.push(...(await pullAlphaVantage(deps)));
+    }
+    if (runAll || payload.source === 'barchart') {
+        sources.push('barchart');
+        items.push(...(await pullBarchart(deps)));
     }
     if (runAll || payload.source === 'listings') {
         sources.push('listings');
