@@ -35,6 +35,7 @@ import type { UsdaTextureClass } from '@/lib/soil/texture';
 import { SmartDefaultsBanner } from './SmartDefaultsBanner';
 import type { LocationSmartDefaults } from '@/app-layer/usecases/smart-defaults';
 import { CalendarIcon, MapPosition } from '@/components/ui/icons/nucleo';
+import { GridIcon } from '@/components/ui/icons/nucleo/grid';
 import { haToDca, trimNumber } from '@/lib/agro/rate-calc';
 import { useMediaQuery, useToast } from '@/components/ui/hooks';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -494,6 +495,31 @@ export default function LocationDetailPage() {
                     >
                         <Button variant="secondary" size="sm">{t('manageParcels')}</Button>
                     </Popover>
+                    {/* Cadastre (КККР / АГКК) boundaries overlay toggle — icon
+                        only, sits just left of the download button. Only on the
+                        Map tab (it drives the map overlay) and only when an
+                        operator configured an upstream. Online-only: disabled
+                        with a hint offline (the overlay isn't in the offline
+                        pack). Moved here from the in-map controls row, where its
+                        text label overflowed the row on phones. */}
+                    {cadastreConfigured && tab === 'map' && (
+                        <Tooltip content={t('cadastreOfflineHint')} disabled={online}>
+                            <Button
+                                variant={cadastreOn ? 'primary' : 'secondary'}
+                                size="sm"
+                                className="min-h-[44px]"
+                                icon={<GridIcon className="size-4" aria-hidden="true" />}
+                                disabled={!online}
+                                onClick={() => setCadastreOn((on) => !on)}
+                                aria-pressed={cadastreOn}
+                                aria-label={
+                                    cadastreVectorConfigured
+                                        ? t('cadastreBoundariesToggle')
+                                        : t('cadastreToggle')
+                                }
+                            />
+                        </Tooltip>
+                    )}
                     {/* Offline-map download — icon-only in the header action
                         row. Renders nothing until the location has a bbox.
                         (The per-location farm-record PDF export used to live
@@ -643,28 +669,10 @@ export default function LocationDetailPage() {
                             >
                                 {tSoil('viewToggle')}
                             </Button>
-                            {/* Cadastre (КККР / АГКК) overlay toggle — only
-                                rendered when an operator has configured a WMS
-                                upstream. Online-only: disabled with a hint when
-                                offline (the WMS isn't in the offline pack). */}
-                            {cadastreConfigured && (
-                                <Tooltip
-                                    content={t('cadastreOfflineHint')}
-                                    disabled={online}
-                                >
-                                    <Button
-                                        variant={cadastreOn ? 'primary' : 'secondary'}
-                                        size="sm"
-                                        className="min-h-[44px] px-2"
-                                        disabled={!online}
-                                        onClick={() => setCadastreOn((on) => !on)}
-                                        aria-pressed={cadastreOn}
-                                        aria-label={!online ? t('cadastreOfflineHint') : undefined}
-                                    >
-                                        {cadastreVectorConfigured ? t('cadastreBoundariesToggle') : t('cadastreToggle')}
-                                    </Button>
-                                </Tooltip>
-                            )}
+                            {/* Cadastre boundaries toggle moved to the header
+                                action row (icon-only, left of the download
+                                button) — its text label overflowed this controls
+                                row on phones. */}
                             {activeSpec && (
                                 <DatePicker
                                     id="imagery-date-input"
