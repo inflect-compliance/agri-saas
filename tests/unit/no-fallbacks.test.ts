@@ -139,6 +139,12 @@ describe('Static Analysis: No process.env fallbacks', () => {
             // client test-env gate must read NODE_ENV directly, same as the
             // ServiceWorkerRegistrar prod-gate above.
             if (file.endsWith('ui/DeferredOnMobile.tsx')) continue;
+            // The stale-chunk recovery hook gates its auto-reload on
+            // `process.env.NODE_ENV === 'production'` — a reload in dev fights
+            // Next.js HMR, and it shares the same reload window as the
+            // ServiceWorkerRegistrar prod-gate above. env.ts's snapshot freezes
+            // at import time; a client prod-gate must read NODE_ENV directly.
+            if (file.endsWith('pwa/use-chunk-error-recovery.ts')) continue;
 
             const content = fs.readFileSync(file, 'utf8');
 
