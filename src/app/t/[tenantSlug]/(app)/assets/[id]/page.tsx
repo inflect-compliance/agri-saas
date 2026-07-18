@@ -32,6 +32,7 @@ import { AttachedEvidencePanel } from '@/components/AttachedEvidencePanel';
 import { Heading } from '@/components/ui/typography';
 import { InheritedTestPlansPanel } from '@/components/InheritedTestPlansPanel';
 import { InheritedMappingsPanel } from '@/components/InheritedMappingsPanel';
+import { hasComplianceModules } from '@/lib/modules';
 
 const TraceabilityPanel = dynamic(() => import('@/components/TraceabilityPanel'), {
     loading: () => <SkeletonCard lines={3} />,
@@ -43,8 +44,12 @@ export default function AssetDetailPage() {
     const params = useParams();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
-    const { permissions, tenantSlug } = useTenantContext();
+    const { permissions, tenantSlug, availableModules } = useTenantContext();
     const assetId = params.id as string;
+    // Assets-exoskeleton — the GRC tabs (evidence / mappings / traceability /
+    // tests) only render for a tenant that runs a compliance module. A plain
+    // farm gets the clean Overview / Tasks / Activity trio.
+    const showCompliance = hasComplianceModules(availableModules);
 
     const [asset, setAsset] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -76,11 +81,17 @@ export default function AssetDetailPage() {
     const tabs: ReadonlyArray<{ key: Tab; label: string }> = [
         { key: 'overview', label: t('tabOverview') },
         { key: 'tasks', label: t('tabTasks') },
-        { key: 'evidence', label: t('tabEvidence') },
-        { key: 'mappings', label: t('tabMappings') },
-        { key: 'traceability', label: t('tabTraceability') },
+        ...(showCompliance
+            ? ([
+                  { key: 'evidence', label: t('tabEvidence') },
+                  { key: 'mappings', label: t('tabMappings') },
+                  { key: 'traceability', label: t('tabTraceability') },
+              ] as const)
+            : []),
         { key: 'activity', label: t('tabActivity') },
-        { key: 'tests', label: t('tabTests') },
+        ...(showCompliance
+            ? ([{ key: 'tests', label: t('tabTests') }] as const)
+            : []),
     ];
     // Modal-form P2 — the inline-edit panel is replaced by an
     // EditAssetModal launched from the detail header. The page URL
