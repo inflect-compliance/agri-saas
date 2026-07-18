@@ -49,6 +49,8 @@ const INITIAL: NewAssetFormFields = {
     status: 'ACTIVE',
     criticality: undefined,
     ownerUserId: '',
+    owner: '',
+    externalRef: '',
     location: '',
     manufacturer: '',
     model: '',
@@ -74,6 +76,8 @@ export function useNewAssetForm({
             };
             if (payload.criticality) body.criticality = payload.criticality;
             if (payload.ownerUserId) body.ownerUserId = payload.ownerUserId;
+            if (payload.owner) body.owner = payload.owner;
+            if (payload.externalRef) body.externalRef = payload.externalRef;
             if (payload.location) body.location = payload.location;
             if (payload.manufacturer) body.manufacturer = payload.manufacturer;
             if (payload.model) body.model = payload.model;

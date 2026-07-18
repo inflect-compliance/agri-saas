@@ -4,22 +4,25 @@
  * carries an inline disable directive; collectively they should
  * migrate to useTenantSWR (Epic 69 shape) so the rule can lift. */
 
-import { formatDate } from '@/lib/format-date';
+import { formatDate, formatDateTime } from '@/lib/format-date';
 import { SkeletonCard } from '@/components/ui/skeleton';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { useTenantMembers } from '@/components/ui/user-combobox';
+import { useToastWithUndo } from '@/components/ui/hooks';
 import dynamic from 'next/dynamic';
 import LinkedTasksPanel from '@/components/LinkedTasksPanel';
 import { EmptyState } from '@/components/ui/empty-state';
+import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { CopyText } from '@/components/ui/copy-text';
 import { Button } from '@/components/ui/button';
-import { Pen2 } from '@/components/ui/icons/nucleo';
+import { Pen2, Trash } from '@/components/ui/icons/nucleo';
 import { Tooltip } from '@/components/ui/tooltip';
-import { type StatusBadgeVariant } from '@/components/ui/status-badge';
+import { StatusBadge, type StatusBadgeVariant } from '@/components/ui/status-badge';
+import type { AuditLogEntry } from '@/lib/dto/common';
 import { Eyebrow } from '@/components/ui/typography';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
@@ -39,11 +42,21 @@ const TraceabilityPanel = dynamic(() => import('@/components/TraceabilityPanel')
     ssr: false,
 });
 
+// B7 — status badge tone. IN_MAINTENANCE previously fell into the `else`
+// and rendered green; it now gets its own amber tone.
+const STATUS_TONE: Record<string, StatusBadgeVariant> = {
+    ACTIVE: 'success',
+    IN_MAINTENANCE: 'warning',
+    RETIRED: 'neutral',
+};
+
 export default function AssetDetailPage() {
     const t = useTranslations('assets');
     const params = useParams();
+    const router = useRouter();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
+    const triggerUndoToast = useToastWithUndo();
     const { permissions, tenantSlug, availableModules } = useTenantContext();
     const assetId = params.id as string;
     // Assets-exoskeleton — the GRC tabs (evidence / mappings / traceability /
@@ -164,6 +177,42 @@ export default function AssetDetailPage() {
     }, [apiUrl]);
 
     const critColor = (c: string): StatusBadgeVariant => c === 'HIGH' ? 'error' : c === 'MEDIUM' ? 'warning' : 'success';
+    const statusLabel = (s: string): string => {
+        const key = { ACTIVE: 'statusActive', IN_MAINTENANCE: 'statusInMaintenance', RETIRED: 'statusRetired' }[s];
+        return key ? t(key) : s;
+    };
+
+    // B1 — per-asset delete. Soft-delete is restorable from the list's
+    // Deleted view, so this is a routine reversible action → the Epic-67
+    // undo-toast pattern (the DELETE fires only after the 5s window). We
+    // navigate back to the list immediately; if the user hits Undo the
+    // deferred commit never runs.
+    const handleDeleteAsset = () => {
+        triggerUndoToast({
+            message: t('assetDeleted'),
+            undoMessage: t('undo'),
+            action: async () => {
+                const res = await fetch(apiUrl(`/assets/${assetId}`), { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed');
+            },
+        });
+        router.push(tenantHref('/assets'));
+    };
+
+    // B6 — per-asset activity feed (loaded lazily when the tab opens).
+    const [activity, setActivity] = useState<AuditLogEntry[]>([]);
+    const [activityLoading, setActivityLoading] = useState(false);
+    useEffect(() => {
+        if (activeTab !== 'activity') return;
+        setActivityLoading(true);
+        fetch(apiUrl(`/assets/${assetId}/activity`))
+            .then((r) => (r.ok ? r.json() : []))
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            .then(setActivity)
+            .catch(() => { /* best-effort — feed just stays empty */ })
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            .finally(() => setActivityLoading(false));
+    }, [activeTab, apiUrl, assetId]);
 
     const breadcrumbs = [
         { label: t('breadcrumbDashboard'), href: tenantHref('/dashboard') },
@@ -199,7 +248,21 @@ export default function AssetDetailPage() {
             tabs={tabs}
             activeTab={activeTab}
             onTabChange={(k) => setActiveTab(k)}
-
+            actions={
+                permissions.canAdmin ? (
+                    <Tooltip content={t('deleteAsset')}>
+                        <Button
+                            variant="destructive-outline"
+                            size="icon"
+                            onClick={handleDeleteAsset}
+                            id="delete-asset-btn"
+                            aria-label={t('deleteAsset')}
+                        >
+                            <Trash className="size-4" />
+                        </Button>
+                    </Tooltip>
+                ) : undefined
+            }
             title={
                 <span className="inline-flex items-center gap-2.5">
                     <span id="asset-title-heading">{asset.name}</span>
@@ -232,11 +295,8 @@ export default function AssetDetailPage() {
                         {
                             kind: 'status' as const,
                             label: t('status'),
-                            value: asset.status || 'ACTIVE',
-                            variant:
-                                asset.status === 'RETIRED'
-                                    ? 'neutral'
-                                    : 'success',
+                            value: statusLabel(asset.status || 'ACTIVE'),
+                            variant: STATUS_TONE[asset.status || 'ACTIVE'] ?? 'success',
                         },
                     ]}
                 />
@@ -307,12 +367,32 @@ export default function AssetDetailPage() {
                 />
             )}
             {activeTab === 'activity' && (
-                <EmptyState
-                    size="sm"
-                    variant="no-records"
-                    title={t('activityTitle')}
-                    description={t('activityDescription')}
-                />
+                <div className={cn(cardVariants({ density: 'none' }), 'overflow-hidden')} id="asset-activity-tab">
+                    {activityLoading ? (
+                        <div className="p-8 text-center text-content-subtle animate-pulse">{t('activityLoading')}</div>
+                    ) : activity.length === 0 ? (
+                        <InlineEmptyState
+                            title={t('activityTitle')}
+                            description={t('activityDescription')}
+                        />
+                    ) : (
+                        <div className="divide-y divide-border-default/50" id="asset-activity-feed">
+                            {activity.map((ev) => (
+                                <div key={ev.id} className="px-5 py-3 flex items-start gap-compact">
+                                    <div className="mt-0.5">
+                                        <StatusBadge variant="info">{ev.action}</StatusBadge>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm text-content-default">{ev.details}</p>
+                                        <p className="text-xs text-content-subtle mt-0.5">
+                                            {ev.user?.name || t('systemActor')} · {formatDateTime(ev.createdAt)}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             )}
             {activeTab === 'tests' && (
                 <InheritedTestPlansPanel

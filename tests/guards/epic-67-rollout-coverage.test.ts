@@ -67,6 +67,13 @@ const SITE_CONTRACTS: ReadonlyArray<SiteContract> = [
         name: 'Lease removal (Rent page)',
         handlers: ['remove'],
     },
+    {
+        // B1 — per-asset soft-delete on the asset detail header. Restorable
+        // from the list Trash view, so it uses the undo-toast pattern.
+        file: 'src/app/t/[tenantSlug]/(app)/assets/[id]/page.tsx',
+        name: 'Asset delete (asset detail)',
+        handlers: ['handleDeleteAsset'],
+    },
 ];
 
 function loadFile(file: string): string {

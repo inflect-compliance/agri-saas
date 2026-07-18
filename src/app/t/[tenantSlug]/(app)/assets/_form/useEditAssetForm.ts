@@ -113,6 +113,7 @@ export function useEditAssetForm({
                 criticality: fields.criticality || null,
                 owner: fields.owner,
                 ownerUserId: fields.ownerUserId,
+                externalRef: fields.externalRef.trim() === '' ? null : fields.externalRef,
                 location: fields.location,
                 manufacturer: fields.manufacturer,
                 model: fields.model,

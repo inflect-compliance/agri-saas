@@ -23,7 +23,13 @@ export class AssetRepository {
         return db.asset.findMany({
             where,
             orderBy: { createdAt: 'desc' },
-            include: { _count: { select: { controls: true, risks: true } } },
+            include: {
+                _count: { select: { controls: true, risks: true } },
+                // B4 — resolve the structured assignee so the list Owner
+                // column can prefer the assigned user's name over the
+                // free-text keeper.
+                ownerUser: { select: { id: true, name: true, email: true } },
+            },
         });
     }
 

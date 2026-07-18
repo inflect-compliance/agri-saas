@@ -40,6 +40,8 @@ export const NewAssetFormSchema = z.object({
     status: z.enum(ASSET_STATUS_VALUES).default('ACTIVE'),
     criticality: z.enum(ASSET_CRITICALITY_VALUES).optional(),
     ownerUserId: z.string().trim().max(255).default(''),
+    owner: z.string().trim().max(255).default(''),
+    externalRef: z.string().trim().max(255).default(''),
     location: z.string().trim().max(255).default(''),
     manufacturer: z.string().trim().max(255).default(''),
     model: z.string().trim().max(255).default(''),

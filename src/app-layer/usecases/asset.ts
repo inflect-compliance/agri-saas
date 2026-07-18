@@ -70,6 +70,7 @@ export async function createAsset(ctx: RequestContext, data: any) {
             criticality: data.criticality ?? null,
             owner: data.owner,
             ownerUserId: data.ownerUserId || null,
+            externalRef: data.externalRef ?? null,
             location: data.location,
             manufacturer: data.manufacturer,
             model: data.model,
@@ -110,6 +111,9 @@ export async function updateAsset(ctx: RequestContext, id: string, data: any) {
         const asset = await AssetRepository.update(db, ctx, id, {
             name: data.name,
             type: data.type,
+            // Status edits were silently dropped before B7 — the form sends
+            // it but it never reached the repo. undefined leaves it untouched.
+            status: data.status,
             criticality: data.criticality,
             owner: data.owner,
             // "Assigned to" — undefined leaves it untouched; '' or null
@@ -118,6 +122,7 @@ export async function updateAsset(ctx: RequestContext, id: string, data: any) {
                 data.ownerUserId === undefined
                     ? undefined
                     : data.ownerUserId || null,
+            externalRef: data.externalRef,
             location: data.location,
             manufacturer: data.manufacturer,
             model: data.model,
@@ -261,6 +266,27 @@ export async function listAssetsWithDeleted(ctx: RequestContext) {
     return runInTenantContext(ctx, (db) =>
         db.asset.findMany(withDeleted({ where: { tenantId: ctx.tenantId }, orderBy: { createdAt: 'desc' as const } }))
     );
+}
+
+/**
+ * B6 — per-asset activity feed. The immutable, hash-chained audit trail
+ * already records every asset lifecycle event (CREATE / UPDATE /
+ * SOFT_DELETE / ENTITY_RESTORED / ENTITY_PURGED / evidence + link edits).
+ * This is a bounded read-only view of it for the detail-page Activity tab,
+ * mirroring `getControlActivity`. The hash chain is never touched.
+ */
+export async function getAssetActivity(ctx: RequestContext, assetId: string) {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const asset = await AssetRepository.getById(db, ctx, assetId);
+        if (!asset) throw notFound('Asset not found');
+        return db.auditLog.findMany({
+            where: { tenantId: ctx.tenantId, entity: 'Asset', entityId: assetId },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+            include: { user: { select: { id: true, name: true } } },
+        });
+    });
 }
 
 // ─── Attached Evidence ───
