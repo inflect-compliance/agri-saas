@@ -47,6 +47,7 @@
 
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { ChevronRight } from '@/components/ui/icons/nucleo/chevron-right';
 import { useSidebarCollapsed } from './sidebar-collapse-context';
 
 export interface NavSectionProps {
@@ -63,6 +64,24 @@ export interface NavSectionProps {
      * doesn't pick up an accidental rule. Default: false.
      */
     isFirst?: boolean;
+    /**
+     * Foldable-section evolution. When `true` (AND the sidebar is
+     * expanded AND a `title` exists), the header becomes a disclosure
+     * `<button>` that folds/unfolds the section's items. The header
+     * text keeps its `NAV_SECTION_HEADER` recipe as an inner `<span>`
+     * — only the surrounding button carries the click-target
+     * affordance. Default `false` (the org sidebar / any non-foldable
+     * caller renders the plain decorative header as before).
+     */
+    collapsible?: boolean;
+    /**
+     * Controlled open state. Only meaningful when `collapsible`.
+     * When folded, the section's items are not rendered. Default
+     * `true` so a non-collapsible section always shows its items.
+     */
+    open?: boolean;
+    /** Toggle handler fired by the disclosure button. */
+    onToggleOpen?: () => void;
     children: ReactNode;
 }
 
@@ -71,6 +90,30 @@ export interface NavSectionProps {
 // instead of floating ~24px below it, killing the dead space between groups.
 export const NAV_SECTION_HEADER =
     'block px-3 pt-1.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-content-subtle select-none';
+
+/**
+ * Disclosure-button wrapper for a FOLDABLE section header.
+ *
+ * The header text keeps its `NAV_SECTION_HEADER` recipe (10px,
+ * tracking-0.12em, select-none) as an inner `<span>`; this const owns
+ * ONLY the button's layout + click-target affordance, so the two
+ * concerns stay separable and the R12-PR3 typography ratchet still
+ * reads the untouched header recipe.
+ *
+ *   - `hover:bg-bg-muted` — the canonical CLICK-TARGET hover recipe
+ *     (R5-PR5), not the row/card `/50`. A section header you tap is a
+ *     button, not a hoverable row.
+ *   - `min-h-[32px]` — a comfortable tap target in the mobile drawer
+ *     (clears the 24px WCAG 2.5.8 floor with headroom) while staying
+ *     compact on desktop. The header text's own pt-1.5/pb-1 gives
+ *     ~24px; the min-h pads it to a confident 32.
+ *   - `pr-2` — right inset for the chevron (the header text supplies
+ *     the left inset via its `px-3`).
+ *   - canonical focus ring + `transition-colors duration-150`
+ *     (motion-language: enumerate the property, never `transition-all`).
+ */
+export const NAV_SECTION_HEADER_BUTTON =
+    'group flex w-full items-center justify-between rounded-md pr-2 min-h-[32px] hover:bg-bg-muted transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]';
 
 /**
  * Soft-gradient hairline above the section (skipped on the first
@@ -102,19 +145,48 @@ export const NAV_SECTION_HEADER =
 export const NAV_SECTION_DIVIDER =
     'relative mt-1.5 pt-1.5 before:absolute before:top-0 before:left-0 before:right-0 before:h-px before:bg-[linear-gradient(90deg,_transparent,_var(--border-subtle),_transparent)]';
 
-export function NavSection({ title, isFirst = false, children }: NavSectionProps) {
+export function NavSection({
+    title,
+    isFirst = false,
+    collapsible = false,
+    open = true,
+    onToggleOpen,
+    children,
+}: NavSectionProps) {
     // Collapsed icon-rail: drop the text header (it would overflow the narrow
     // rail) but keep the top divider on titled sections so the Govern / Comply /
     // Manage groups still read as distinct bands.
     const collapsed = useSidebarCollapsed();
+    // The disclosure only engages in the EXPANDED sidebar on a TITLED section.
+    // The collapsed icon-rail has no headers, so it always shows every item.
+    const isDisclosure = collapsible && !collapsed && Boolean(title);
+    const childrenHidden = isDisclosure && !open;
     return (
         <div className={cn(!isFirst && title && NAV_SECTION_DIVIDER)}>
             {title && !collapsed && (
-                <span className={NAV_SECTION_HEADER}>
-                    {title}
-                </span>
+                isDisclosure ? (
+                    <button
+                        type="button"
+                        onClick={onToggleOpen}
+                        aria-expanded={open}
+                        className={NAV_SECTION_HEADER_BUTTON}
+                    >
+                        <span className={NAV_SECTION_HEADER}>{title}</span>
+                        <ChevronRight
+                            aria-hidden="true"
+                            className={cn(
+                                'size-3 shrink-0 text-content-subtle transition-transform duration-150',
+                                open && 'rotate-90',
+                            )}
+                        />
+                    </button>
+                ) : (
+                    <span className={NAV_SECTION_HEADER}>
+                        {title}
+                    </span>
+                )
             )}
-            <div className="space-y-0.5">{children}</div>
+            {!childrenHidden && <div className="space-y-0.5">{children}</div>}
         </div>
     );
 }

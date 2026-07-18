@@ -39,6 +39,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useLocalStorage } from '@/components/ui/hooks';
 import { useCalendarBadge } from './use-calendar-badge';
 import { NavItem } from './nav-item';
 import { NavSection } from './nav-section';
@@ -57,6 +58,13 @@ interface NavItemDef {
 }
 
 interface NavSectionDef {
+    /**
+     * Stable, locale-INDEPENDENT section id. Keys the foldable-section
+     * open/closed state in localStorage (the translated `title` can't —
+     * it changes with the UI language). The untitled Board home-link
+     * group has no id and is never foldable.
+     */
+    id?: string;
     title?: string;
     items: NavItemDef[];
 }
@@ -138,6 +146,7 @@ export function useNavSections(): NavSectionDef[] {
             // risks, controls) as the surfaces compliance teams
             // govern day-to-day, distinct from the daily-cadence
             // work that sits under "Comply".
+            id: 'govern',
             title: t('sectionGovern'),
             items: filterVisible([
                 { href: tenantHref('/assets'), label: t('asset'), icon: Building2 },
@@ -182,6 +191,7 @@ export function useNavSections(): NavSectionDef[] {
             // section is dropped for non-grain tenants by the
             // `sections.filter((s) => !s.title || s.items.length > 0)`
             // tail below.
+            id: 'grain',
             title: t('sectionGrain'),
             items: filterVisible([
                 { href: tenantHref('/grain/contracts'), label: t('contracts'), icon: Wheat, visible: grainAvailable },
@@ -196,6 +206,7 @@ export function useNavSections(): NavSectionDef[] {
             // market news) is market data too and sits here, visible to EVERY
             // tenant. Because Trends is ungated the section always renders even
             // for non-Exchange tenants (marketplace hidden, Trends shown).
+            id: 'exchange',
             title: t('sectionExchange'),
             items: filterVisible([
                 { href: tenantHref('/exchange'), label: t('marketplace'), icon: ArrowLeftRight, visible: exchangeAvailable },
@@ -208,6 +219,7 @@ export function useNavSections(): NavSectionDef[] {
             ]),
         },
         {
+            id: 'comply',
             title: t('sectionComply'),
             items: filterVisible([
                 {
@@ -220,6 +232,7 @@ export function useNavSections(): NavSectionDef[] {
             ]),
         },
         {
+            id: 'manage',
             title: t('sectionManage'),
             items: filterVisible([
                 // R13-PR12 — Frameworks dropped from the sidebar.
@@ -276,6 +289,21 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
     // false, so this whole branch is desktop-only in practice.
     const collapsed = useSidebarCollapsed();
 
+    // Foldable sections. Titled sections start FOLDED, except the one holding
+    // the current route (so you always see where you are). The user's explicit
+    // open/close choices win over that default and persist across navigation +
+    // reloads. Keyed by the stable section id so the map survives a UI-language
+    // switch. SSR-safe: `useLocalStorage` returns the `{}` default on the first
+    // render and hydrates the stored map in an effect — the active section is
+    // open on that first paint either way.
+    const [openSections, setOpenSections] = useLocalStorage<Record<string, boolean>>(
+        'agrent:sidebar:open-sections:v1',
+        {},
+    );
+    const activeSectionId = sections.find(
+        (s) => s.id && s.items.some((item) => pathname.startsWith(item.href)),
+    )?.id;
+
     return (
         <div className="flex flex-col h-full">
             {/* Logo */}
@@ -292,30 +320,50 @@ export function SidebarContent({ user, onLogout, onNavClick, onToggleCollapse }:
 
             {/* Nav */}
             <nav className="flex-1 p-2 overflow-y-auto" aria-label={t('ariaMain')}>
-                {sections.map((section, idx) => (
-                    <NavSection
-                        key={idx}
-                        title={section.title}
-                        // R12-PR3 — suppress the top hairline on
-                        // the first titled section (the very top
-                        // of the sidebar). The solo Board section
-                        // sits at idx 0 with no title; the first
-                        // titled section is "Govern" at idx 1.
-                        isFirst={idx === 0 || sections.findIndex((s) => s.title) === idx}
-                    >
-                        {section.items.map((item) => (
-                            <NavItem
-                                key={item.href}
-                                href={item.href}
-                                icon={item.icon}
-                                label={item.label}
-                                badge={item.badge}
-                                active={pathname.startsWith(item.href)}
-                                onClick={onNavClick}
-                            />
-                        ))}
-                    </NavSection>
-                ))}
+                {sections.map((section, idx) => {
+                    const id = section.id;
+                    // Effective open state: the user's stored choice wins;
+                    // absent a choice, the active section is open and the rest
+                    // are folded.
+                    const isOpen = id
+                        ? (openSections[id] ?? id === activeSectionId)
+                        : true;
+                    return (
+                        <NavSection
+                            key={idx}
+                            title={section.title}
+                            // R12-PR3 — suppress the top hairline on
+                            // the first titled section (the very top
+                            // of the sidebar). The solo Board section
+                            // sits at idx 0 with no title; the first
+                            // titled section is "Govern" at idx 1.
+                            isFirst={idx === 0 || sections.findIndex((s) => s.title) === idx}
+                            collapsible={Boolean(id)}
+                            open={isOpen}
+                            onToggleOpen={
+                                id
+                                    ? () =>
+                                          setOpenSections((prev) => ({
+                                              ...prev,
+                                              [id]: !isOpen,
+                                          }))
+                                    : undefined
+                            }
+                        >
+                            {section.items.map((item) => (
+                                <NavItem
+                                    key={item.href}
+                                    href={item.href}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    badge={item.badge}
+                                    active={pathname.startsWith(item.href)}
+                                    onClick={onNavClick}
+                                />
+                            ))}
+                        </NavSection>
+                    );
+                })}
             </nav>
 
             {/* The UI-language (BG/EN) toggle lives ONLY in the top-chrome
