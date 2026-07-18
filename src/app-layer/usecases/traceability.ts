@@ -45,16 +45,9 @@ export async function unmapControlFromRisk(ctx: RequestContext, controlId: strin
 }
 
 // ─── Asset ↔ Control ───
-
-export async function listAssetControls(ctx: RequestContext, assetId: string) {
-    assertCanRead(ctx);
-    return runInTenantContext(ctx, (db) => AssetControlRepository.listByAsset(db, ctx.tenantId, assetId));
-}
-
-export async function listControlAssets(ctx: RequestContext, controlId: string) {
-    assertCanRead(ctx);
-    return runInTenantContext(ctx, (db) => AssetControlRepository.listByControl(db, ctx.tenantId, controlId));
-}
+// The read side is served by `getAssetTraceability` / `getControlTraceability`
+// below (the TraceabilityPanel reads those); the standalone list-by-asset /
+// list-by-control readers were dead and removed.
 
 export async function mapAssetToControl(ctx: RequestContext, assetId: string, controlId: string, coverageType?: string, rationale?: string) {
     assertCanManage(ctx);
@@ -74,16 +67,8 @@ export async function unmapAssetFromControl(ctx: RequestContext, assetId: string
 }
 
 // ─── Asset ↔ Risk ───
-
-export async function listAssetRisks(ctx: RequestContext, assetId: string) {
-    assertCanRead(ctx);
-    return runInTenantContext(ctx, (db) => AssetRiskRepository.listByAsset(db, ctx.tenantId, assetId));
-}
-
-export async function listRiskAssets(ctx: RequestContext, riskId: string) {
-    assertCanRead(ctx);
-    return runInTenantContext(ctx, (db) => AssetRiskRepository.listByRisk(db, ctx.tenantId, riskId));
-}
+// Read side served by the traceability views below; the standalone
+// list-by-asset / list-by-risk readers were dead and removed.
 
 export async function mapAssetToRisk(ctx: RequestContext, assetId: string, riskId: string, exposureLevel?: string, rationale?: string) {
     assertCanManage(ctx);

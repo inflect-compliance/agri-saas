@@ -861,22 +861,6 @@ exports[`API contract — per-schema snapshots schema: ContributorAddRequest 1`]
 }"
 `;
 
-exports[`API contract — per-schema snapshots schema: ControlAssetMapRequest 1`] = `
-"{
-  "type": "object",
-  "properties": {
-    "assetId": {
-      "type": "string",
-      "minLength": 1
-    }
-  },
-  "required": [
-    "assetId"
-  ],
-  "description": "Body for mapping an asset to a control (declares the asset is in scope for this control)."
-}"
-`;
-
 exports[`API contract — per-schema snapshots schema: ControlCreateRequest 1`] = `
 "{
   "type": "object",

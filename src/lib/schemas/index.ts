@@ -124,12 +124,6 @@ export const MapRiskControlSchema = z.object({
     description: 'Body for mapping a control to a risk (alternative endpoint to RiskControlLinkRequest; same shape, different surface).',
 });
 
-export const MapControlAssetSchema = z.object({
-    assetId: z.string().min(1, 'assetId is required'),
-}).strip().openapi('ControlAssetMapRequest', {
-    description: 'Body for mapping an asset to a control (declares the asset is in scope for this control).',
-});
-
 // ─── Controls ───
 
 export const CreateControlSchema = z.object({
