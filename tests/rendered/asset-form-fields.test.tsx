@@ -105,14 +105,16 @@ describe('EditAssetFields (edit)', () => {
         year: '2021', purchaseDate: '', purchaseCost: '145000',
     });
 
-    it("labels the people-picker 'Owner' and drops 'Assigned to' + 'External Ref'", () => {
-        // i18n: useTranslations echoes the key, so the Owner label renders
-        // as its message key (`owner`). The dropped fields have no key at
-        // all, so they stay absent.
+    it("labels the people-picker 'Assigned to' and exposes editable Keeper + External Ref", () => {
+        // B4/B5: the structured people-picker is now labelled `assignedTo`,
+        // and the free-text keeper (`owner`) + `externalRef` are editable
+        // fields. i18n mock echoes the message key.
         withClient(<EditAssetFields form={form} tenantSlug="acme" />);
-        expect(screen.getByText('owner')).not.toBeNull();
-        expect(screen.queryByText('Assigned to')).toBeNull();
-        expect(screen.queryByText('External Ref')).toBeNull();
+        expect(screen.getByText('assignedTo')).not.toBeNull();
+        expect(screen.getByText('keeper')).not.toBeNull();
+        expect(screen.getByText('externalRef')).not.toBeNull();
+        // The bare 'owner' label is gone — the picker no longer claims it.
+        expect(screen.queryByText('owner')).toBeNull();
     });
 
     it('has Criticality + Manufacturer fields and no Classification / Data Residency', () => {

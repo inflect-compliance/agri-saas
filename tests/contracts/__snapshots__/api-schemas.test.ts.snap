@@ -41,6 +41,12 @@ exports[`API contract — per-schema snapshots schema: AssetCreateRequest 1`] = 
         "null"
       ]
     },
+    "externalRef": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "location": {
       "type": "string"
     },
@@ -374,6 +380,12 @@ exports[`API contract — per-schema snapshots schema: AssetUpdateRequest 1`] = 
       "type": "string"
     },
     "ownerUserId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "externalRef": {
       "type": [
         "string",
         "null"
