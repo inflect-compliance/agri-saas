@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agrent API",
-    "version": "1.72.0",
+    "version": "1.73.0",
     "description": "Multi-tenant agriculture-operations API. The schema layer in `src/lib/schemas/index.ts` (request bodies) and `src/lib/dto/*.dto.ts` (response shapes) is the single source of truth — this document is generated from those Zod schemas via `npm run openapi:generate`.",
     "license": {
       "name": "Proprietary"
@@ -848,19 +848,6 @@
           "userId"
         ],
         "description": "Add a user as a contributor to a control. Contributors get write access to the control without being the canonical owner."
-      },
-      "ControlAssetMapRequest": {
-        "type": "object",
-        "properties": {
-          "assetId": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "assetId"
-        ],
-        "description": "Body for mapping an asset to a control (declares the asset is in scope for this control)."
       },
       "ControlCreateRequest": {
         "type": "object",

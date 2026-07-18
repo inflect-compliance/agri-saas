@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { useEnterSubmit } from '@/components/ui/hooks';
 import {
     Building2,
-    Server,
     ShieldCheck,
     AlertTriangle,
     Users,
@@ -433,7 +432,6 @@ function StepContent({ step, data, onUpdate, completedSteps, allData }: {
     switch (step) {
         case 'COMPANY_PROFILE': return <CompanyProfileStep data={data} onUpdate={onUpdate} />;
         case 'FRAMEWORK_SELECTION': return <FrameworkSelectionStep data={data} onUpdate={onUpdate} />;
-        case 'ASSET_SETUP': return <AssetSetupStep data={data} onUpdate={onUpdate} />;
         case 'CONTROL_BASELINE_INSTALL': return <ControlInstallStep data={data} onUpdate={onUpdate} allData={allData} />;
         case 'INITIAL_RISK_REGISTER': return <RiskRegisterStep data={data} onUpdate={onUpdate} />;
         case 'TEAM_SETUP': return <TeamSetupStep data={data} onUpdate={onUpdate} />;
@@ -541,57 +539,6 @@ function FrameworkSelectionStep({ data, onUpdate }: { data: StepData; onUpdate: 
                 })}
             </div>
             {selected.length === 0 && <p className="text-xs text-content-warning">{t('selectAtLeastOne')}</p>}
-        </div>
-    );
-}
-
-// ─── ASSET_SETUP ───
-
-function AssetSetupStep({ data, onUpdate }: { data: StepData; onUpdate: (d: StepData) => void }) {
-    const t = useTranslations('onboarding');
-    const assets: string[] = data.assets || [];
-    const [newAsset, setNewAsset] = useState('');
-
-    const addAsset = () => {
-        if (newAsset.trim() && !assets.includes(newAsset.trim())) {
-            const next = [...assets, newAsset.trim()];
-            onUpdate({ assets: next });
-            setNewAsset('');
-        }
-    };
-
-    // Epic 60 — useEnterSubmit replaces the inline
-    // `onKeyDown={(e) => e.key === 'Enter' && addAsset()}`. Wins: IME
-    // composition guard (no phantom adds mid-candidate), Shift+Enter
-    // preserved for paste-with-newlines, disabled opt-out plumbed.
-    const { handleKeyDown: assetKeyDown } = useEnterSubmit({ onSubmit: addAsset });
-
-    const removeAsset = (name: string) => {
-        onUpdate({ assets: assets.filter(a => a !== name) });
-    };
-
-    return (
-        <div className="space-y-default max-w-lg animate-fadeIn">
-            <p className="text-sm text-content-muted mb-4">{t('assetIntro')}</p>
-            <div className="flex gap-tight">
-                <input className="input flex-1" placeholder={t('assetPlaceholder')} value={newAsset}
-                    onChange={(e) => setNewAsset(e.target.value)} onKeyDown={assetKeyDown} data-testid="asset-input" />
-                <Button variant="primary" onClick={addAsset}>{t('add')}</Button>
-            </div>
-            {assets.length > 0 && (
-                <div className="space-y-1">
-                    {assets.map(a => (
-                        <div key={a} className="flex items-center justify-between bg-bg-default/50 rounded-lg px-3 py-2 text-sm">
-                            <div className="flex items-center gap-tight">
-                                <Server className="w-3.5 h-3.5 text-content-subtle" />
-                                <span className="text-content-emphasis">{a}</span>
-                            </div>
-                            <button onClick={() => removeAsset(a)} className="text-content-subtle hover:text-content-error text-xs">&times;</button>
-                        </div>
-                    ))}
-                </div>
-            )}
-            <p className="text-xs text-content-subtle">{t('assetHint')}</p>
         </div>
     );
 }
