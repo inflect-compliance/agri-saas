@@ -1,5 +1,4 @@
 'use client';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
  * B2 — the assets Trash surface. Reached in-page from the assets list via
@@ -29,6 +28,15 @@ import { formatDate } from '@/lib/format-date';
 interface DeletedAssetsViewProps {
     tenantSlug: string;
     onBack: () => void;
+}
+
+interface DeletedAssetRow {
+    id: string;
+    name: string;
+    type: string;
+    owner: string | null;
+    ownerUser: { name: string | null } | null;
+    deletedAt: string | null;
 }
 
 /** Typed-confirm permanent-delete dialog — the operator must type the asset's
@@ -113,13 +121,13 @@ export function DeletedAssetsView({ tenantSlug, onBack }: DeletedAssetsViewProps
 
     const deletedQuery = useQuery({
         queryKey: queryKeys.assets.list(tenantSlug, { includeDeleted: 'true' }),
-        queryFn: async () => {
+        queryFn: async (): Promise<DeletedAssetRow[]> => {
             const res = await fetch(apiUrl('/assets?includeDeleted=true'));
             if (!res.ok) throw new Error('Failed to fetch deleted assets');
             return res.json();
         },
     });
-    const rows: any[] = (deletedQuery.data ?? []).filter((a: any) => a.deletedAt);
+    const rows: DeletedAssetRow[] = (deletedQuery.data ?? []).filter((a) => a.deletedAt);
 
     const refetchAll = async () => {
         await deletedQuery.refetch();
@@ -137,35 +145,35 @@ export function DeletedAssetsView({ tenantSlug, onBack }: DeletedAssetsViewProps
         if (res.ok) await refetchAll();
     };
 
-    const columns = createColumns<any>([
+    const columns = createColumns<DeletedAssetRow>([
         {
-            accessorKey: 'name',
+            id: 'name',
             header: t('name'),
-            cell: ({ getValue }: any) => <span className="text-sm text-content-default">{getValue()}</span>,
+            cell: ({ row }) => <span className="text-sm text-content-default">{row.original.name}</span>,
             meta: { mobileCard: { slot: 'title' } },
         },
         {
-            accessorKey: 'type',
+            id: 'type',
             header: t('type'),
-            cell: ({ getValue }: any) => <StatusBadge variant="info" size="sm">{String(getValue()).replace(/_/g, ' ')}</StatusBadge>,
+            cell: ({ row }) => <StatusBadge variant="info" size="sm">{String(row.original.type).replace(/_/g, ' ')}</StatusBadge>,
             meta: { mobileCard: { slot: 'status', label: t('type') } },
         },
         {
             id: 'keeper',
             header: t('keeper'),
-            accessorFn: (a: any) => a.ownerUser?.name || a.owner || '—',
+            accessorFn: (a) => a.ownerUser?.name || a.owner || '—',
             meta: { mobileCard: { slot: 'meta', label: t('keeper') } },
         },
         {
             id: 'deletedAt',
             header: t('colDeletedAt'),
-            accessorFn: (a: any) => (a.deletedAt ? formatDate(a.deletedAt) : '—'),
+            accessorFn: (a) => (a.deletedAt ? formatDate(a.deletedAt) : '—'),
             meta: { mobileCard: { slot: 'meta', label: t('colDeletedAt') } },
         },
         {
             id: 'actions',
             header: t('colActions'),
-            cell: ({ row }: any) => (
+            cell: ({ row }) => (
                 <div className="flex gap-tight justify-end">
                     <Button
                         variant="secondary"
@@ -221,7 +229,7 @@ export function DeletedAssetsView({ tenantSlug, onBack }: DeletedAssetsViewProps
                     mobileFallback="card"
                     data={rows}
                     columns={columns}
-                    getRowId={(a: any) => a.id}
+                    getRowId={(a: DeletedAssetRow) => a.id}
                     emptyState={
                         <EmptyState
                             size="sm"

@@ -374,8 +374,8 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             // B7 — status cell with a per-status tone (IN_MAINTENANCE amber).
             id: 'status',
             header: tm('status'),
-            accessorFn: (a: any) => a.status || 'ACTIVE',
-            cell: ({ getValue }: any) => {
+            accessorFn: (a) => a.status || 'ACTIVE',
+            cell: ({ getValue }) => {
                 const s = String(getValue());
                 return <StatusBadge variant={ASSET_STATUS_TONE[s] ?? 'neutral'} size="sm">{s.replace(/_/g, ' ')}</StatusBadge>;
             },
