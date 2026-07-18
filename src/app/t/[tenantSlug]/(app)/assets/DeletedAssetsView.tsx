@@ -215,7 +215,6 @@ export function DeletedAssetsView({ tenantSlug, onBack }: DeletedAssetsViewProps
                             className="mb-1"
                         />
                         <Heading level={1}>{t('trashTitle')}</Heading>
-                        <p className="text-sm text-content-muted mt-1">{t('trashDescription')}</p>
                     </div>
                     <Button variant="secondary" icon={<ChevronLeft className="size-4" />} onClick={onBack} id="back-to-assets-btn">
                         {t('backToAssets')}

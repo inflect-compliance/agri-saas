@@ -47,6 +47,11 @@ const EXEMPT_FILE_PATTERNS: RegExp[] = [
  * length to stop hand-waved exemptions.
  */
 const EXEMPTIONS: Record<string, string> = {
+    // Assets Trash (B2) — a bounded ADMIN-only soft-deleted list reached
+    // in-page from the assets toggle. Restore/purge affordances only; no
+    // faceted filtering (the parent list owns filters).
+    "src/app/t/[tenantSlug]/(app)/assets/DeletedAssetsView.tsx":
+        "Bounded ADMIN Trash sub-view — restore/purge only, filters live on the parent assets list.",
     // Agriculture (Feature 1) — lean locations roster.
     "src/app/t/[tenantSlug]/(app)/locations/LocationsClient.tsx":
         "Lean agriculture roster — name/status/parcel-count with no faceted filters yet; search/filter arrives with the Phase 2 inventory module.",

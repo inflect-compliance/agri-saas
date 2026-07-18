@@ -39,6 +39,9 @@ const SCAN_DIR = 'src/app/t/[tenantSlug]/(app)';
  * absence of a gear; PRs that mount a gear should REMOVE the entry.
  */
 const EXEMPTIONS: Record<string, string> = {
+    // Assets Trash (B2) — bounded ADMIN soft-deleted sub-view.
+    "assets/DeletedAssetsView.tsx":
+        "(c) lean Trash roster — five fixed columns (name/type/keeper/deleted/actions); the parent assets list owns the column-visibility gear.",
     // Agriculture (Feature 1) — lean locations roster, three fixed columns.
     "locations/LocationsClient.tsx":
         "(c) lean agriculture roster — three fixed columns (name/status/parcels); column-visibility gear deferred to the Phase 2 inventory module.",
