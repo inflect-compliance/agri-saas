@@ -34,6 +34,8 @@ import { Plus } from '@/components/ui/icons/nucleo';
 import type { TrendPayload } from '@/app-layer/usecases/compliance-trends';
 import type { TimeSeriesPoint } from '@/components/ui/charts';
 import { NewAssetModal } from './NewAssetModal';
+import { useTenantContext } from '@/lib/tenant-context-provider';
+import { hasComplianceModules } from '@/lib/modules';
 
 interface AssetsClientProps {
     initialAssets: any[];
@@ -76,6 +78,11 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
     // Inline strings not passed via the server `translations` prop use a
     // client-side `useTranslations('assets')` binding (`tm`).
     const tm = useTranslations('assets');
+    // Assets-exoskeleton — the compliance chrome (Controls + Risks link
+    // counts, the coverage shield) only renders for a tenant that runs a
+    // compliance module. A plain farm gets a clean register.
+    const { availableModules } = useTenantContext();
+    const showCompliance = hasComplianceModules(availableModules);
     // Modal-form follow-up — create-asset modal mounted off the list,
     // auto-opening on `?create=1` (the redirect target from
     // `/assets/new`). Matches the canonical NewVendorModal wiring.
@@ -274,10 +281,16 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             { id: 'type', label: t.type },
             { id: 'manufacturer', label: t.manufacturer },
             { id: 'owner', label: t.owner },
-            { id: 'controls', label: t.controlsCol },
+            // Compliance-only link counts — hidden for a plain farm.
+            ...(showCompliance
+                ? [
+                      { id: 'risks', label: tm('risksCol') },
+                      { id: 'controls', label: t.controlsCol },
+                  ]
+                : []),
             { id: 'tasks', label: tm('colTasks') },
         ],
-        [t, tm],
+        [t, tm, showCompliance],
     );
     const {
         columnVisibility,
@@ -343,13 +356,27 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             accessorFn: (a: any) => a.owner || '—',
             meta: { mobileCard: { slot: 'meta', label: t.owner } },
         },
-        {
-            id: 'controls',
-            header: t.controlsCol,
-            accessorFn: (a: any) => a._count?.controls || 0,
-            cell: ({ getValue }: any) => <span className="text-xs">{getValue()}</span>,
-            meta: { mobileCard: { slot: 'meta', label: t.controlsCol } },
-        },
+        // Compliance-only link counts (assets-exoskeleton): the asset↔risk
+        // and asset↔control registers only mean something to a tenant running
+        // a compliance module. Gated out entirely for a plain farm.
+        ...(showCompliance
+            ? [
+                  {
+                      id: 'risks',
+                      header: tm('risksCol'),
+                      accessorFn: (a: any) => a._count?.risks || 0,
+                      cell: ({ getValue }: any) => <span className="text-xs">{getValue()}</span>,
+                      meta: { mobileCard: { slot: 'meta' as const, label: tm('risksCol') } },
+                  },
+                  {
+                      id: 'controls',
+                      header: t.controlsCol,
+                      accessorFn: (a: any) => a._count?.controls || 0,
+                      cell: ({ getValue }: any) => <span className="text-xs">{getValue()}</span>,
+                      meta: { mobileCard: { slot: 'meta' as const, label: t.controlsCol } },
+                  },
+              ]
+            : []),
         {
             // B7 — unified linked-task count (done/total), matching Controls.
             id: 'tasks',
@@ -371,7 +398,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                 );
             },
         },
-    ]), [t, tm]);
+    ]), [t, tm, showCompliance]);
 
     return (
         <ListPageShell className="gap-section">
@@ -391,9 +418,13 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                         )}
                     </div>
                     <div className="flex gap-tight">
-                        <Tooltip content={tm('tooltipCoverage')}>
-                            <Link href={tenantHref('/coverage')} aria-label={tm('tooltipCoverage')} className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="shield" size={16} /></Link>
-                        </Tooltip>
+                        {/* Coverage shield → the compliance coverage board.
+                            Hidden for a plain farm (assets-exoskeleton). */}
+                        {showCompliance && (
+                            <Tooltip content={tm('tooltipCoverage')}>
+                                <Link href={tenantHref('/coverage')} aria-label={tm('tooltipCoverage')} className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="shield" size={16} /></Link>
+                            </Tooltip>
+                        )}
                         <Button variant="primary" icon={<Plus className="-ml-0.5 -mr-2.5" />} onClick={() => setIsCreateOpen(true)} id="new-asset-btn">{t.addAsset}</Button>
                     </div>
                 </div>

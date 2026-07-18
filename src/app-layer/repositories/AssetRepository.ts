@@ -23,7 +23,7 @@ export class AssetRepository {
         return db.asset.findMany({
             where,
             orderBy: { createdAt: 'desc' },
-            include: { _count: { select: { controls: true } } },
+            include: { _count: { select: { controls: true, risks: true } } },
         });
     }
 
@@ -44,7 +44,7 @@ export class AssetRepository {
             where,
             orderBy: CURSOR_ORDER_BY,
             take: limit + 1,
-            include: { _count: { select: { controls: true } } },
+            include: { _count: { select: { controls: true, risks: true } } },
         });
 
         const { trimmedItems, nextCursor, hasNextPage } = computePageInfo(items, limit);

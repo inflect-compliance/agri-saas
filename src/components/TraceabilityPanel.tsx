@@ -23,6 +23,9 @@ import { cn } from '@/lib/cn';
 interface LinkedRiskRow {
     id: string;
     rationale: string | null;
+    // Scalar on the asset↔risk link itself (LOW | MEDIUM | HIGH). Present only
+    // on an asset's risks (the control arm's risk links have no exposure).
+    exposureLevel?: string | null;
     risk: { id: string; title: string; status: string; score: number | null } | null;
 }
 interface LinkedControlRow {
@@ -51,6 +54,11 @@ interface TraceabilityPanelProps {
 
 const RISK_STATUS_BADGE: Record<string, StatusBadgeVariant> = {
     OPEN: 'error', MITIGATING: 'warning', CLOSED: 'success', ACCEPTED: 'info',
+};
+
+// Asset↔risk exposure severity → badge tone (mirrors the criticality scale).
+const EXPOSURE_BADGE: Record<string, StatusBadgeVariant> = {
+    HIGH: 'error', MEDIUM: 'warning', LOW: 'neutral',
 };
 
 // Cache key for traceability data
@@ -346,6 +354,20 @@ export default function TraceabilityPanel({ apiBase: apiBaseRaw, entityType, ent
             ),
             meta: { mobileCard: { slot: 'meta', label: t('colScore') } },
         },
+        // Exposure only exists on an asset's risk links — closes the write-only
+        // read-back gap so the level captured at link time is visible.
+        ...(entityType === 'asset'
+            ? [{
+                id: 'exposure',
+                header: t('colExposure'),
+                cell: ({ row }: { row: { original: LinkedRiskRow } }) => (
+                    row.original.exposureLevel
+                        ? <StatusBadge variant={EXPOSURE_BADGE[row.original.exposureLevel] || 'neutral'}>{row.original.exposureLevel}</StatusBadge>
+                        : <span className="text-content-subtle">—</span>
+                ),
+                meta: { mobileCard: { slot: 'meta' as const, label: t('colExposure') } },
+            }]
+            : []),
         {
             id: 'rationale',
             header: t('colRationale'),
