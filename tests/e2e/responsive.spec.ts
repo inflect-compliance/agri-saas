@@ -56,7 +56,12 @@ test.describe('Mobile viewport (375×812)', () => {
 
     test('drawer opens and closes on nav click', async ({ page }) => {
         slug = await signInAs(page, tenant);
-        await gotoAndVerify(page, `/t/${slug}/dashboard`, 'main');
+        // Start on a page INSIDE the "Govern" section (Assets). Sidebar
+        // sections are foldable and start collapsed EXCEPT the one holding
+        // the current route, so landing on a Govern page keeps its sibling
+        // items (Locations) unfolded and clickable. (The fold/unfold
+        // mechanics themselves are unit-covered in nav-section-foldable.)
+        await gotoAndVerify(page, `/t/${slug}/assets`, 'main');
 
         // Open drawer
         await page.click('[data-testid="nav-toggle"]');
@@ -66,7 +71,7 @@ test.describe('Mobile viewport (375×812)', () => {
         // Verify nav items are visible inside drawer
         await expect(drawer.locator('[data-testid="nav-dashboard"]')).toBeVisible();
 
-        // Click a nav item — drawer should close
+        // Click a sibling Govern item (Locations) — drawer should close
         await drawer.locator('[data-testid="nav-locations"]').click();
         // The page may need cold JIT compilation under heavy suite
         // load; allow a generous window for the nav transition.
