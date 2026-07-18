@@ -127,7 +127,7 @@ export function EditAssetFields({
                 />
             </div>
             <div>
-                <label className="input-label">{t('owner')}</label>
+                <label className="input-label">{t('assignedTo')}</label>
                 <UserCombobox
                     tenantSlug={tenantSlug}
                     selectedId={form.fields.ownerUserId || null}
@@ -141,11 +141,31 @@ export function EditAssetFields({
                 />
             </div>
             <div>
+                <label className="input-label">{t('keeper')}</label>
+                <input
+                    className="input"
+                    id="asset-keeper"
+                    value={form.fields.owner}
+                    onChange={(e) => form.setField('owner', e.target.value)}
+                    placeholder={t('keeperPlaceholder')}
+                />
+            </div>
+            <div>
                 <label className="input-label">{t('location')}</label>
                 <input
                     className="input"
                     value={form.fields.location}
                     onChange={(e) => form.setField('location', e.target.value)}
+                />
+            </div>
+            <div>
+                <label className="input-label">{t('externalRef')}</label>
+                <input
+                    className="input"
+                    id="asset-external-ref"
+                    value={form.fields.externalRef}
+                    onChange={(e) => form.setField('externalRef', e.target.value)}
+                    placeholder={t('externalRefPlaceholder')}
                 />
             </div>
             <div>

@@ -22,7 +22,6 @@ const ASSET_TYPE_OPTIONS: ComboboxOption[] = Object.entries(ASSET_TYPE_LABELS).m
 export interface NewAssetFieldsLabels {
     name: string;
     type: string;
-    owner: string;
     location: string;
 }
 
@@ -146,7 +145,7 @@ export function NewAssetFields({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-default">
-                <FormField label={labels.owner}>
+                <FormField label={t('assignedTo')}>
                     <UserCombobox
                         id="asset-owner-input"
                         tenantSlug={tenantSlug}
@@ -159,6 +158,17 @@ export function NewAssetFields({
                         placeholder={t('unassigned')}
                     />
                 </FormField>
+                <FormField label={t('keeper')}>
+                    <Input
+                        id="asset-keeper-input"
+                        value={form.fields.owner ?? ''}
+                        onChange={(e) => form.setField('owner', e.target.value)}
+                        placeholder={t('keeperPlaceholder')}
+                    />
+                </FormField>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-default">
                 <FormField label={labels.location}>
                     <Input
                         id="asset-location-input"
@@ -167,6 +177,16 @@ export function NewAssetFields({
                             form.setField('location', e.target.value)
                         }
                         placeholder={t('locationPlaceholder')}
+                    />
+                </FormField>
+                <FormField label={t('externalRef')}>
+                    <Input
+                        id="asset-external-ref-input"
+                        value={form.fields.externalRef ?? ''}
+                        onChange={(e) =>
+                            form.setField('externalRef', e.target.value)
+                        }
+                        placeholder={t('externalRefPlaceholder')}
                     />
                 </FormField>
             </div>

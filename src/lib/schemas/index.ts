@@ -25,8 +25,9 @@ export const CreateAssetSchema = z.object({
     type: z.string().min(1, 'Type is required'),
     status: z.enum(['ACTIVE', 'IN_MAINTENANCE', 'RETIRED']).optional(),
     criticality: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional().nullable(),
-    owner: z.string().optional(),
-    ownerUserId: z.string().optional().nullable(),    // Real user reference — the asset keeper (people picker)
+    owner: z.string().optional(),                     // Free-text keeper (the person physically holding the asset)
+    ownerUserId: z.string().optional().nullable(),    // Real user reference — "Assigned to" (people picker)
+    externalRef: z.string().optional().nullable(),    // External system / registry reference
     location: z.string().optional(),
     manufacturer: z.string().optional().nullable(),
     model: z.string().optional().nullable(),
@@ -43,8 +44,9 @@ export const UpdateAssetSchema = z.object({
     type: z.string().min(1).optional(),
     status: z.enum(['ACTIVE', 'IN_MAINTENANCE', 'RETIRED']).optional(),
     criticality: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional().nullable(),
-    owner: z.string().optional(),
+    owner: z.string().optional(),                     // Free-text keeper
     ownerUserId: z.string().optional().nullable(),    // Real user reference — "Assigned to"
+    externalRef: z.string().optional().nullable(),    // External system / registry reference
     location: z.string().optional(),
     manufacturer: z.string().optional().nullable(),
     model: z.string().optional().nullable(),

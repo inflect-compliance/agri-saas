@@ -30,12 +30,21 @@ import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
 import { KpiFilterCard } from '@/components/ui/kpi-filter-card';
 import { firstAssetDataIndex } from '@/lib/assets/asset-sparkline';
 import { useKpiFilter, type KpiFilterDef } from '@/components/ui/kpi-filter';
-import { Plus } from '@/components/ui/icons/nucleo';
+import { Plus, Trash } from '@/components/ui/icons/nucleo';
 import type { TrendPayload } from '@/app-layer/usecases/compliance-trends';
 import type { TimeSeriesPoint } from '@/components/ui/charts';
 import { NewAssetModal } from './NewAssetModal';
+import { DeletedAssetsView } from './DeletedAssetsView';
 import { useTenantContext } from '@/lib/tenant-context-provider';
 import { hasComplianceModules } from '@/lib/modules';
+import type { StatusBadgeVariant } from '@/components/ui/status-badge';
+
+// B7 — status badge tone; IN_MAINTENANCE gets its own amber tone.
+const ASSET_STATUS_TONE: Record<string, StatusBadgeVariant> = {
+    ACTIVE: 'success',
+    IN_MAINTENANCE: 'warning',
+    RETIRED: 'neutral',
+};
 
 interface AssetsClientProps {
     initialAssets: any[];
@@ -83,6 +92,8 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
     // compliance module. A plain farm gets a clean register.
     const { availableModules } = useTenantContext();
     const showCompliance = hasComplianceModules(availableModules);
+    // B2 — in-page Trash toggle (ADMIN-only; no navbar entry).
+    const [showDeleted, setShowDeleted] = useState(false);
     // Modal-form follow-up — create-asset modal mounted off the list,
     // auto-opening on `?create=1` (the redirect target from
     // `/assets/new`). Matches the canonical NewVendorModal wiring.
@@ -281,6 +292,7 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             { id: 'type', label: t.type },
             { id: 'manufacturer', label: t.manufacturer },
             { id: 'owner', label: t.owner },
+            { id: 'status', label: tm('status') },
             // Compliance-only link counts — hidden for a plain farm.
             ...(showCompliance
                 ? [
@@ -351,10 +363,23 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
             meta: { mobileCard: { slot: 'meta', label: t.manufacturer } },
         },
         {
+            // B4 — prefer the structured assignee's name, fall back to the
+            // free-text keeper.
             id: 'owner',
             header: t.owner,
-            accessorFn: (a: any) => a.owner || '—',
+            accessorFn: (a: any) => a.ownerUser?.name || a.owner || '—',
             meta: { mobileCard: { slot: 'meta', label: t.owner } },
+        },
+        {
+            // B7 — status cell with a per-status tone (IN_MAINTENANCE amber).
+            id: 'status',
+            header: tm('status'),
+            accessorFn: (a) => a.status || 'ACTIVE',
+            cell: ({ getValue }) => {
+                const s = String(getValue());
+                return <StatusBadge variant={ASSET_STATUS_TONE[s] ?? 'neutral'} size="sm">{s.replace(/_/g, ' ')}</StatusBadge>;
+            },
+            meta: { mobileCard: { slot: 'status', label: tm('status') } },
         },
         // Compliance-only link counts (assets-exoskeleton): the asset↔risk
         // and asset↔control registers only mean something to a tenant running
@@ -400,6 +425,12 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
         },
     ]), [t, tm, showCompliance]);
 
+    // B2 — swap the whole surface into the Trash view. Placed after all
+    // hooks so hook order stays stable.
+    if (showDeleted && permissions.canAdmin) {
+        return <DeletedAssetsView tenantSlug={tenantSlug} onBack={() => setShowDeleted(false)} />;
+    }
+
     return (
         <ListPageShell className="gap-section">
             <ListPageShell.Header>
@@ -425,7 +456,19 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                                 <Link href={tenantHref('/coverage')} aria-label={tm('tooltipCoverage')} className={buttonVariants({ variant: 'secondary', size: 'icon' })}><AppIcon name="shield" size={16} /></Link>
                             </Tooltip>
                         )}
-                        <Button variant="primary" icon={<Plus className="-ml-0.5 -mr-2.5" />} onClick={() => setIsCreateOpen(true)} id="new-asset-btn">{t.addAsset}</Button>
+                        {/* B2 — in-page Trash. ADMIN-only (the includeDeleted
+                            route + restore/purge are ADMIN-gated). */}
+                        {permissions.canAdmin && (
+                            <Tooltip content={tm('trashTitle')}>
+                                <Button variant="secondary" size="icon" onClick={() => setShowDeleted(true)} id="assets-trash-btn" aria-label={tm('trashTitle')}>
+                                    <Trash className="size-4" />
+                                </Button>
+                            </Tooltip>
+                        )}
+                        {/* B3 — Add gated on write, matching the empty-state CTA. */}
+                        {permissions.canWrite && (
+                            <Button variant="primary" icon={<Plus className="-ml-0.5 -mr-2.5" />} onClick={() => setIsCreateOpen(true)} id="new-asset-btn">{t.addAsset}</Button>
+                        )}
                     </div>
                 </div>
             </ListPageShell.Header>
@@ -545,7 +588,6 @@ function AssetsPageInner({ initialAssets, initialFilters, tenantSlug, permission
                 labels={{
                     name: t.name,
                     type: t.type,
-                    owner: t.owner,
                     location: t.location,
                     cancel: t.cancel,
                     createAsset: t.createAsset,
