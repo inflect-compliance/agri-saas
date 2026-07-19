@@ -4,6 +4,11 @@ import { RentClient } from './RentClient';
 export default async function RentPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
     const { tenantSlug } = await params;
     // getTenantCtx also guards tenant access (throws/redirects on no-access).
-    await getTenantCtx({ tenantSlug });
-    return <RentClient tenantSlug={tenantSlug} />;
+    const ctx = await getTenantCtx({ tenantSlug });
+    return (
+        <RentClient
+            tenantSlug={tenantSlug}
+            permissions={{ canWrite: ctx.permissions.canWrite }}
+        />
+    );
 }

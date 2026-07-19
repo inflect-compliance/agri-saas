@@ -9,7 +9,6 @@
  * — the join + area math + GROUP BY don't fit a Prisma findMany, and staying in
  * SQL keeps it a single round-trip.
  */
-import { Prisma } from '@prisma/client';
 import type { RequestContext } from '../types';
 import { assertCanRead } from '../policies/common';
 import { runInTenantContext } from '@/lib/db-context';
@@ -60,12 +59,24 @@ export interface RentRoll {
     lessorCount: number;
     /** The season the `paid` / `outstanding` figures settle. */
     seasonYear: number;
+    /** True when the lease set hit the cap — totals cover the first N only. */
+    truncated: boolean;
+    /** The cap that applied, so surfaces can say "showing the first N". */
+    leaseCap: number;
     byLessor: RentRollLessor[];
     expiringSoon: RentRollExpiring[];
 }
 
 // The roll's "expiring soon" horizon is the shared REPORT window (90d).
 const DEFAULT_EXPIRING_WITHIN_DAYS = REPORT_DAYS;
+
+/**
+ * Correctness bound for the roll. Aggregation happens in this layer (the
+ * lessor columns are encrypted, so SQL can't group them), which means a
+ * truncated fetch would silently under-report totals. We read one past this
+ * cap; going over sets `truncated` so every surface can say so out loud.
+ */
+export const ROLL_LEASE_CAP = 2000;
 
 export async function getRentRoll(
     ctx: RequestContext,
@@ -74,104 +85,104 @@ export async function getRentRoll(
     assertCanRead(ctx);
     const withinDays = opts.expiringWithinDays ?? DEFAULT_EXPIRING_WITHIN_DAYS;
     const seasonYear = opts.seasonYear ?? new Date().getUTCFullYear();
-    // Optional scope to one location (the location-overview card); tenant-wide otherwise.
-    const locFilter = opts.locationId
-        ? Prisma.sql`AND "p"."locationId" = ${opts.locationId}`
-        : Prisma.empty;
 
     return runInTenantContext(ctx, async (db) => {
-        // Grouped by (lessor × unit) so every row is dimensionally homogeneous.
-        // Payments for the season are folded in per lease via a LEFT JOIN so a
-        // lessor's row carries what was actually settled.
-        const byLessorRows = await db.$queryRaw<
-            Array<{
-                lessorName: string;
-                lessorEik: string | null;
-                rentUnit: string | null;
-                leaseCount: number;
-                leasedDca: number | null;
-                rentTotal: number | null;
-                paid: number | null;
-                hasRent: boolean;
-            }>
-        >(Prisma.sql`
-            SELECT "pl"."lessorName",
-                   "pl"."lessorEik",
-                   "pl"."rentUnit",
-                   count(*)::int AS "leaseCount",
-                   sum("p"."areaHa" * 10)::float8 AS "leasedDca",
-                   sum(COALESCE("pl"."rentAmount", 0) * "p"."areaHa" * 10)::float8 AS "rentTotal",
-                   COALESCE(sum("pay"."paid"), 0)::float8 AS "paid",
-                   bool_or("pl"."rentAmount" IS NOT NULL) AS "hasRent"
-            FROM "ParcelLease" "pl"
-            JOIN "Parcel" "p"
-              ON "p"."id" = "pl"."parcelId" AND "p"."tenantId" = "pl"."tenantId"
-             AND "p"."deletedAt" IS NULL
-            LEFT JOIN (
-                SELECT "leaseId", sum("amountPaid")::float8 AS "paid"
-                FROM "LeasePayment"
-                WHERE "tenantId" = ${ctx.tenantId}
-                  AND "deletedAt" IS NULL
-                  AND "seasonYear" = ${seasonYear}
-                GROUP BY "leaseId"
-            ) "pay" ON "pay"."leaseId" = "pl"."id"
-            WHERE "pl"."tenantId" = ${ctx.tenantId}
-              AND "pl"."deletedAt" IS NULL
-              AND ("pl"."endDate" IS NULL OR "pl"."endDate" >= now())
-              ${locFilter}
-            GROUP BY "pl"."lessorName", "pl"."lessorEik", "pl"."rentUnit"
-            ORDER BY "pl"."lessorName" ASC, "pl"."rentUnit" ASC NULLS LAST
-        `);
-
-        const expiringRows = await db.$queryRaw<
-            Array<{
-                leaseId: string;
-                parcelId: string;
-                parcelName: string;
-                lessorName: string;
-                kind: 'ARENDA' | 'NAEM';
-                endDate: Date;
-                daysLeft: number;
-            }>
-        >(Prisma.sql`
-            SELECT "pl"."id" AS "leaseId",
-                   "pl"."parcelId",
-                   "p"."name" AS "parcelName",
-                   "pl"."lessorName",
-                   "pl"."kind",
-                   "pl"."endDate",
-                   ("pl"."endDate"::date - now()::date)::int AS "daysLeft"
-            FROM "ParcelLease" "pl"
-            JOIN "Parcel" "p"
-              ON "p"."id" = "pl"."parcelId" AND "p"."tenantId" = "pl"."tenantId"
-             AND "p"."deletedAt" IS NULL
-            WHERE "pl"."tenantId" = ${ctx.tenantId}
-              AND "pl"."deletedAt" IS NULL
-              AND "pl"."endDate" IS NOT NULL
-              AND "pl"."endDate" >= now()
-              AND "pl"."endDate" <= now() + make_interval(days => ${withinDays})
-              ${locFilter}
-            ORDER BY "pl"."endDate" ASC
-            LIMIT 200
-        `);
-
-        const byLessor: RentRollLessor[] = byLessorRows.map((r) => {
-            const rentTotal = r.hasRent && r.rentTotal != null ? Number(r.rentTotal) : null;
-            const paid = r.paid != null ? Number(r.paid) : 0;
-            return {
-                lessorName: r.lessorName,
-                lessorEik: r.lessorEik,
-                rentUnit: r.rentUnit,
-                leaseCount: Number(r.leaseCount),
-                leasedDca: r.leasedDca != null ? Number(r.leasedDca) : 0,
-                rentTotal,
-                paid,
-                outstanding: (rentTotal ?? 0) - paid,
-            };
+        // ── Why this is NOT raw SQL ───────────────────────────────────────
+        // `lessorName` / `lessorEik` are encrypted at rest (Epic B manifest).
+        // Raw SQL bypasses the decryption extension, and AES-GCM is
+        // randomised — two leases from the same landlord yield DIFFERENT
+        // ciphertexts, so `GROUP BY "lessorName"` would emit one group per
+        // lease instead of one per landlord. The grouping therefore happens
+        // here, over rows Prisma has decrypted.
+        //
+        // That makes the fetch bound a CORRECTNESS bound, not just a page
+        // size: aggregating a truncated set would silently under-report the
+        // totals. We read one row past the cap so truncation is detectable,
+        // and report it rather than quietly lying.
+        const rows = await db.parcelLease.findMany({
+            where: {
+                tenantId: ctx.tenantId,
+                deletedAt: null,
+                OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+                parcel: {
+                    deletedAt: null,
+                    ...(opts.locationId ? { locationId: opts.locationId } : {}),
+                },
+            },
+            select: {
+                lessorName: true,
+                lessorEik: true,
+                rentUnit: true,
+                rentAmount: true,
+                parcel: { select: { areaHa: true } },
+                payments: {
+                    where: { deletedAt: null, seasonYear },
+                    select: { amountPaid: true },
+                },
+            },
+            take: ROLL_LEASE_CAP + 1,
         });
+        const truncated = rows.length > ROLL_LEASE_CAP;
+        const leases = truncated ? rows.slice(0, ROLL_LEASE_CAP) : rows;
 
-        // Season totals per unit. Rows partition the leases (each lease has one
-        // unit), so summing across rows never double-counts area or leases.
+        // Aggregate per (lessor × unit) — each lease has exactly one unit, so
+        // the groups partition the leases and summing across them never
+        // double-counts area or lease counts.
+        interface Acc {
+            lessorName: string;
+            lessorEik: string | null;
+            rentUnit: string | null;
+            leaseCount: number;
+            leasedDca: number;
+            rentTotal: number;
+            hasRent: boolean;
+            paid: number;
+        }
+        const groups = new Map<string, Acc>();
+        for (const l of leases) {
+            const dca = Number(l.parcel?.areaHa ?? 0) * 10;
+            const amount = l.rentAmount != null ? Number(l.rentAmount) : null;
+            const paid = l.payments.reduce((s, p) => s + Number(p.amountPaid), 0);
+            const key = `${l.lessorName}\u0000${l.lessorEik ?? ''}\u0000${l.rentUnit ?? ''}`;
+            const acc = groups.get(key) ?? {
+                lessorName: l.lessorName,
+                lessorEik: l.lessorEik,
+                rentUnit: l.rentUnit,
+                leaseCount: 0,
+                leasedDca: 0,
+                rentTotal: 0,
+                hasRent: false,
+                paid: 0,
+            };
+            acc.leaseCount += 1;
+            acc.leasedDca += dca;
+            acc.rentTotal += (amount ?? 0) * dca;
+            acc.hasRent = acc.hasRent || amount != null;
+            acc.paid += paid;
+            groups.set(key, acc);
+        }
+
+        const byLessor: RentRollLessor[] = [...groups.values()]
+            .map((g) => {
+                const rentTotal = g.hasRent ? g.rentTotal : null;
+                return {
+                    lessorName: g.lessorName,
+                    lessorEik: g.lessorEik,
+                    rentUnit: g.rentUnit,
+                    leaseCount: g.leaseCount,
+                    leasedDca: g.leasedDca,
+                    rentTotal,
+                    paid: g.paid,
+                    outstanding: (rentTotal ?? 0) - g.paid,
+                };
+            })
+            .sort(
+                (a, b) =>
+                    a.lessorName.localeCompare(b.lessorName, 'bg') ||
+                    (a.rentUnit ?? '').localeCompare(b.rentUnit ?? '', 'bg'),
+            );
+
+        // Season totals per unit — money and produce are never summed together.
         const totalsByUnit = new Map<string, RentRollUnitTotal>();
         for (const l of byLessor) {
             const key = l.rentUnit ?? '';
@@ -181,25 +192,51 @@ export async function getRentRoll(
             acc.outstanding += l.outstanding;
             totalsByUnit.set(key, acc);
         }
-        // Only surface units that actually carry a priced obligation.
         const totals = [...totalsByUnit.values()].filter((t) => t.total !== 0 || t.paid !== 0);
+
+        // Expiring contracts — also Prisma (it selects the encrypted lessor).
+        const now = new Date();
+        const windowEnd = new Date(now.getTime() + withinDays * 86_400_000);
+        const expiringRows = await db.parcelLease.findMany({
+            where: {
+                tenantId: ctx.tenantId,
+                deletedAt: null,
+                endDate: { gte: now, lte: windowEnd },
+                parcel: {
+                    deletedAt: null,
+                    ...(opts.locationId ? { locationId: opts.locationId } : {}),
+                },
+            },
+            select: {
+                id: true,
+                parcelId: true,
+                lessorName: true,
+                kind: true,
+                endDate: true,
+                parcel: { select: { name: true } },
+            },
+            orderBy: { endDate: 'asc' },
+            take: 200,
+        });
 
         return {
             totalLeasedDca: byLessor.reduce((s, l) => s + l.leasedDca, 0),
             totals,
             activeLeaseCount: byLessor.reduce((s, l) => s + l.leaseCount, 0),
-            // Rows are per (lessor × unit) — count DISTINCT lessors, not rows.
-            lessorCount: new Set(byLessor.map((l) => `${l.lessorName} ${l.lessorEik ?? ''}`)).size,
+            // Groups are per (lessor × unit) — count DISTINCT lessors.
+            lessorCount: new Set(byLessor.map((l) => `${l.lessorName}\u0000${l.lessorEik ?? ''}`)).size,
             seasonYear,
+            truncated,
+            leaseCap: ROLL_LEASE_CAP,
             byLessor,
             expiringSoon: expiringRows.map((r) => ({
-                leaseId: r.leaseId,
+                leaseId: r.id,
                 parcelId: r.parcelId,
-                parcelName: r.parcelName,
+                parcelName: r.parcel?.name ?? '',
                 lessorName: r.lessorName,
-                kind: r.kind,
-                endDate: r.endDate.toISOString().slice(0, 10),
-                daysLeft: Number(r.daysLeft),
+                kind: r.kind as 'ARENDA' | 'NAEM',
+                endDate: r.endDate!.toISOString().slice(0, 10),
+                daysLeft: Math.ceil((r.endDate!.getTime() - now.getTime()) / 86_400_000),
             })),
         };
     });

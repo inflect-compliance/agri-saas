@@ -102,7 +102,7 @@ export async function generateRentRollPdf(
             ? data.totals.map((s) => `${num(s.outstanding)} ${rentTotalSuffix(s.unit)}`.trim()).join(' · ')
             : '—';
     doc.font(UNICODE_FONT).fontSize(10).fillColor(INK).text(
-        `Наета площ: ${num(data.totalLeasedDca)} дка   ·   Наемодатели: ${data.lessorCount}   ·   ` +
+        `Наета площ: ${num(data.totalLeasedDca)} дка   ·   Собственици: ${data.lessorCount}   ·   ` +
             `Договори: ${data.activeLeaseCount}   ·   Рента/сезон: ${totalsLabel}   ·   ` +
             `Оставащо (${data.seasonYear}): ${outstandingLabel}`,
         m.left,
@@ -112,7 +112,7 @@ export async function generateRentRollPdf(
     doc.moveDown(1);
 
     // Rent by lessor.
-    doc.font(UNICODE_FONT_BOLD).fontSize(11).fillColor(INK).text('Наеми по наемодател', m.left, doc.y);
+    doc.font(UNICODE_FONT_BOLD).fontSize(11).fillColor(INK).text('Наеми по собственик', m.left, doc.y);
     doc.moveDown(0.4);
     if (data.byLessor.length === 0) {
         doc.font(UNICODE_FONT).fontSize(9).fillColor(MUTED).text('Няма регистрирани наеми.', m.left, doc.y, { width: contentW });
@@ -120,7 +120,7 @@ export async function generateRentRollPdf(
         drawTable(
             doc,
             [
-                { header: 'Наемодател', width: contentW * 0.26 },
+                { header: 'Собственик', width: contentW * 0.26 },
                 { header: 'ЕИК', width: contentW * 0.12 },
                 { header: 'Дог.', width: contentW * 0.07, align: 'right' },
                 { header: 'Площ (дка)', width: contentW * 0.13, align: 'right' },
@@ -155,7 +155,7 @@ export async function generateRentRollPdf(
             doc,
             [
                 { header: 'Парцел', width: contentW * 0.3 },
-                { header: 'Наемодател', width: contentW * 0.34 },
+                { header: 'Собственик', width: contentW * 0.34 },
                 { header: 'Вид', width: contentW * 0.14 },
                 { header: 'Изтича', width: contentW * 0.14 },
                 { header: 'Дни', width: contentW * 0.08, align: 'right' },

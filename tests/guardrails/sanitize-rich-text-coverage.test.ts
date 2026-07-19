@@ -61,6 +61,9 @@ const RICH_TEXT_COVERAGE: Readonly<
         sanitizer: 'sanitizePlainText',
     },
     Finding: { usecases: ['src/app-layer/usecases/finding.ts'], sanitizer: 'sanitizePlainText' },
+    // Lease counterparty PII — sanitised at the single `mapLeaseData` write
+    // seam that both create and update route through.
+    ParcelLease: { usecases: ['src/app-layer/usecases/parcel-lease.ts'], sanitizer: 'sanitizePlainText' },
     Risk: { usecases: ['src/app-layer/usecases/risk.ts'], sanitizer: 'sanitizePlainText' },
     // RQ3-6 — loss-event narrative + reviewer justification; sanitised
     // at the single createLossEvent write seam before the Epic B

@@ -18,6 +18,16 @@ import { DatePicker } from '@/components/ui/date-picker/date-picker';
 import { FormField } from '@/components/ui/form-field';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Plus, PenWriting, Trash } from '@/components/ui/icons/nucleo';
+import {
+    LeaseFormFields,
+    EMPTY_LEASE_FORM,
+    leaseToForm,
+    leaseFormToBody,
+    validateLeaseForm,
+    type LeaseFormState,
+} from '@/components/agro/LeaseFormFields';
+type FormState = LeaseFormState;
+const EMPTY_FORM = EMPTY_LEASE_FORM;
 
 export interface LeaseDTO {
     id: string;
@@ -31,37 +41,6 @@ export interface LeaseDTO {
     documentRef: string | null;
     notes: string | null;
 }
-
-interface FormState {
-    lessorName: string;
-    lessorEik: string;
-    kind: 'ARENDA' | 'NAEM';
-    rentAmount: string;
-    rentUnit: string;
-    startDate: Date | null;
-    endDate: Date | null;
-    documentRef: string;
-    notes: string;
-}
-
-const EMPTY_FORM: FormState = {
-    lessorName: '',
-    lessorEik: '',
-    kind: 'ARENDA',
-    rentAmount: '',
-    rentUnit: 'лв/дка',
-    startDate: null,
-    endDate: null,
-    documentRef: '',
-    notes: '',
-};
-
-const toYMD = (d: Date | null): string | null => (d ? d.toISOString().slice(0, 10) : null);
-const parseDate = (s: string | null): Date | null => {
-    if (!s) return null;
-    const d = new Date(s);
-    return Number.isNaN(d.getTime()) ? null : d;
-};
 
 export function ParcelLeasePanel({
     locationId,
@@ -95,37 +74,18 @@ export function ParcelLeasePanel({
         setEditing('new');
     };
     const startEdit = (l: LeaseDTO) => {
-        setForm({
-            lessorName: l.lessorName,
-            lessorEik: l.lessorEik ?? '',
-            kind: l.kind,
-            rentAmount: l.rentAmount != null ? String(l.rentAmount) : '',
-            rentUnit: l.rentUnit ?? '',
-            startDate: parseDate(l.startDate),
-            endDate: parseDate(l.endDate),
-            documentRef: l.documentRef ?? '',
-            notes: l.notes ?? '',
-        });
+        setForm(leaseToForm(l));
         setErr(null);
         setEditing(l.id);
     };
 
     const save = async () => {
-        if (!form.lessorName.trim()) {
-            setErr(t('lessorRequired'));
+        const invalid = validateLeaseForm(form);
+        if (invalid) {
+            setErr(t(invalid));
             return;
         }
-        const payload = {
-            lessorName: form.lessorName.trim(),
-            lessorEik: form.lessorEik.trim() || null,
-            kind: form.kind,
-            rentAmount: form.rentAmount.trim() ? Number(form.rentAmount) : null,
-            rentUnit: form.rentUnit.trim() || null,
-            startDate: toYMD(form.startDate),
-            endDate: toYMD(form.endDate),
-            documentRef: form.documentRef.trim() || null,
-            notes: form.notes.trim() || null,
-        };
+        const payload = leaseFormToBody(form);
         setSaving(true);
         setErr(null);
         try {
@@ -215,58 +175,7 @@ export function ParcelLeasePanel({
 
             {editing !== null ? (
                 <div className="space-y-default rounded-lg border border-border-default p-3">
-                    <FormField label={t('lessor')} required>
-                        <Input
-                            value={form.lessorName}
-                            onChange={(e) => set('lessorName', e.target.value)}
-                            placeholder={t('lessorPlaceholder')}
-                        />
-                    </FormField>
-                    <FormField label={t('kind')}>
-                        <ToggleGroup
-                            size="sm"
-                            ariaLabel={t('kind')}
-                            selected={form.kind}
-                            selectAction={(v) => set('kind', v as 'ARENDA' | 'NAEM')}
-                            options={[
-                                { value: 'ARENDA', label: t('kindArenda') },
-                                { value: 'NAEM', label: t('kindNaem') },
-                            ]}
-                        />
-                    </FormField>
-                    <div className="grid grid-cols-2 gap-default">
-                        <FormField label={t('rent')}>
-                            <Input
-                                type="number"
-                                inputMode="decimal"
-                                value={form.rentAmount}
-                                onChange={(e) => set('rentAmount', e.target.value)}
-                                placeholder="напр. 60"
-                            />
-                        </FormField>
-                        <FormField label={t('rentUnit')}>
-                            <Input
-                                value={form.rentUnit}
-                                onChange={(e) => set('rentUnit', e.target.value)}
-                                placeholder="лв/дка"
-                            />
-                        </FormField>
-                    </div>
-                    <div className="grid grid-cols-2 gap-default">
-                        <FormField label={t('startDate')}>
-                            <DatePicker value={form.startDate} onChange={(d) => set('startDate', d)} />
-                        </FormField>
-                        <FormField label={t('endDate')}>
-                            <DatePicker value={form.endDate} onChange={(d) => set('endDate', d)} />
-                        </FormField>
-                    </div>
-                    <FormField label={t('documentRef')}>
-                        <Input
-                            value={form.documentRef}
-                            onChange={(e) => set('documentRef', e.target.value)}
-                            placeholder={t('documentRefPlaceholder')}
-                        />
-                    </FormField>
+                    <LeaseFormFields form={form} setField={set} />
                     {err ? <p className="text-xs text-content-error">{err}</p> : null}
                     <div className="flex items-center gap-tight">
                         <Button variant="secondary" size="sm" onClick={save} disabled={saving}>

@@ -27,6 +27,9 @@ export interface RentRollData {
     activeLeaseCount: number;
     lessorCount: number;
     seasonYear: number;
+    /** True when the roll hit its lease cap — totals cover the first N only. */
+    truncated: boolean;
+    leaseCap: number;
     /** Per (lessor × unit) rows — drives the Rent page's „Неплатени" filter. */
     byLessor: Array<{
         lessorName: string;
