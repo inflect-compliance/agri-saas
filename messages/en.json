@@ -4995,6 +4995,8 @@
             "notFound": "Journal entry not found.",
             "metaType": "Type",
             "metaStatus": "Status",
+            "metaOrigin": "Origin",
+            "originFieldOperation": "From a field operation",
             "editEntry": "Edit entry",
             "tabDetails": "Details",
             "tabQuantities": "Quantities",

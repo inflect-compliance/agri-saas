@@ -203,6 +203,48 @@ describe('recordInputApplication', () => {
         expect(res.consumed).toBe(20); // dose 2 (RATE) × 10 ha
     });
 
+    // The auto-generated entry is freely editable/deletable, so the hash chain
+    // is the accountability layer — it must start with a CREATE like the manual
+    // path, tagged with its origin.
+    it('writes a LogEntry CREATE audit event for the auto-generated entry', async () => {
+        (ModuleSettingsRepository.get as jest.Mock).mockResolvedValue({ enabledModules: ['JOURNAL'] });
+        primeParcelProductUnits('RATE');
+        (JournalRepository.createLogEntry as jest.Mock).mockResolvedValue({
+            id: 'log-1', type: 'INPUT_APPLICATION', title: 'Applied P to Parcel', status: 'DONE',
+        });
+
+        await recordInputApplication(mockDb, editorCtx, line as any);
+
+        expect(logEvent).toHaveBeenCalledWith(
+            expect.anything(),
+            editorCtx,
+            expect.objectContaining({
+                action: 'CREATE',
+                entityType: 'LogEntry',
+                entityId: 'log-1',
+                detailsJson: expect.objectContaining({
+                    category: 'entity_lifecycle',
+                    entityName: 'LogEntry',
+                    operation: 'created',
+                    origin: 'field_operation',
+                }),
+            }),
+        );
+    });
+
+    it('writes no LogEntry CREATE when JOURNAL is disabled', async () => {
+        (ModuleSettingsRepository.get as jest.Mock).mockResolvedValue({ enabledModules: ['INVENTORY'] });
+        primeParcelProductUnits('RATE');
+
+        await recordInputApplication(mockDb, editorCtx, line as any);
+
+        expect(logEvent).not.toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            expect.objectContaining({ entityType: 'LogEntry', action: 'CREATE' }),
+        );
+    });
+
     it('deducts CONSUMPTION from the FEFO lot (dose × area) linked to the journal entry', async () => {
         (ModuleSettingsRepository.get as jest.Mock).mockResolvedValue(null); // all modules
         primeParcelProductUnits('RATE');

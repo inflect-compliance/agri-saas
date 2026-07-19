@@ -4995,6 +4995,8 @@
             "notFound": "Записът в дневника не е намерен.",
             "metaType": "Тип",
             "metaStatus": "Статус",
+            "metaOrigin": "Произход",
+            "originFieldOperation": "От земеделска операция",
             "editEntry": "Редактирай записа",
             "tabDetails": "Детайли",
             "tabQuantities": "Количества",

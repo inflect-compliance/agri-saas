@@ -35,6 +35,15 @@ const MODULE_GATED_ROUTES: ReadonlyArray<{
     /** The ModuleKey this route is gated behind. */
     module: string;
 }> = [
+    // Journal (Земеделски дневник) — a simple-mode core module, but a tenant
+    // can still toggle it off. The auto-emission path in
+    // `recordInputApplication` already honoured that toggle while every CRUD
+    // route stayed open; these close the asymmetry.
+    { file: 'src/app/api/t/[tenantSlug]/journal/route.ts', module: 'JOURNAL' },
+    { file: 'src/app/api/t/[tenantSlug]/journal/[id]/route.ts', module: 'JOURNAL' },
+    { file: 'src/app/api/t/[tenantSlug]/journal/[id]/files/route.ts', module: 'JOURNAL' },
+    { file: 'src/app/api/t/[tenantSlug]/journal/[id]/restore/route.ts', module: 'JOURNAL' },
+    { file: 'src/app/api/t/[tenantSlug]/journal/[id]/purge/route.ts', module: 'JOURNAL' },
     // Certification / compliance (GRC) domain — every list/create entry
     // point is gated behind CERTIFICATION. A simple-mode farm tenant (plan
     // below the CERTIFICATION tier, or the module toggled off) gets a 403

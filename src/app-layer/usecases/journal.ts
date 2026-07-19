@@ -15,6 +15,7 @@ import { assertCanRead, assertCanWrite, assertCanAdmin } from '../policies/commo
 import { logEvent } from '../events/audit';
 import { notFound, badRequest } from '@/lib/errors/types';
 import { runInTenantContext, type PrismaTx } from '@/lib/db-context';
+import { createLogEntryWithAudit } from './journal-write';
 import { sanitizePlainText, sanitizeRichTextHtml } from '@/lib/security/sanitize';
 import {
     getStorageProvider,
@@ -266,26 +267,7 @@ async function createLogEntryImpl(
             }
         }
 
-        const entry = await JournalRepository.createLogEntry(db, ctx, input);
-
-        await logEvent(db, ctx, {
-            action: 'CREATE',
-            entityType: 'LogEntry',
-            entityId: entry.id,
-            details: `Created journal entry: ${entry.title}`,
-            detailsJson: {
-                category: 'entity_lifecycle',
-                entityName: 'LogEntry',
-                operation: 'created',
-                after: {
-                    type: entry.type,
-                    title: entry.title,
-                    status: entry.status,
-                    quantityCount: input.quantities?.length ?? 0,
-                },
-                summary: `Created journal entry: ${entry.title}`,
-            },
-        });
+        const entry = await createLogEntryWithAudit(db, ctx, input, 'manual');
 
         // A HARVEST entry can mint its output lot + record genealogy in the
         // same transaction (INVENTORY-module gated inside recordHarvestLot).
