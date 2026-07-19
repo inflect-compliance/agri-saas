@@ -4,15 +4,21 @@
  * RentRollCard — the land-obligation summary (roadmap 3/3): leased area, rent
  * per season, and contracts expiring soon, with CSV/PDF export. Tenant-wide by
  * default (the Rent page); pass a `locationId` to scope it to one location.
- * Renders nothing when there are no active leases in scope.
+ *
+ * Presentational: the parent (RentClient) owns the `/reports/rent-roll` SWR and
+ * passes `data` down, so a create/edit/delete/pull-to-refresh revalidation on
+ * the parent refreshes these KPIs too. `hasLeases` distinguishes the true
+ * no-data case (tenant has no leases → render nothing) from "leases exist but
+ * none are active" (→ a zero-state, so the card doesn't vanish once the first
+ * lease lapses).
  */
 import { useTranslations } from 'next-intl';
-import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
+import { leaseExpiryTier, LEASE_EXPIRY_TONE } from '@/lib/agro/lease-expiry';
 
-interface RentRollData {
+export interface RentRollData {
     totalLeasedDca: number;
     totalRent: number;
     activeLeaseCount: number;
@@ -29,13 +35,33 @@ interface RentRollData {
 
 const num = (n: number) => new Intl.NumberFormat('bg-BG', { maximumFractionDigits: 2 }).format(n);
 
-export function RentRollCard({ locationId }: { locationId?: string }) {
+export function RentRollCard({
+    locationId,
+    data,
+    hasLeases,
+}: {
+    locationId?: string;
+    data: RentRollData | undefined;
+    hasLeases: boolean;
+}) {
     const t = useTranslations('ag.rentRoll');
     const buildUrl = useTenantApiUrl();
     const scope = locationId ? `?locationId=${locationId}` : '';
-    const q = useTenantSWR<RentRollData>(`/reports/rent-roll${scope}`);
-    const data = q.data;
-    if (!data || data.activeLeaseCount === 0) return null;
+
+    // Loading / not fetched yet → nothing.
+    if (!data) return null;
+
+    // Zero-state: leases exist but none are active (all expired). Reserve `null`
+    // for the genuine no-data case (no leases at all).
+    if (data.activeLeaseCount === 0) {
+        if (!hasLeases) return null;
+        return (
+            <div className="space-y-default rounded-lg border border-border-subtle bg-bg-default p-4">
+                <Heading level={3}>{t('title')}</Heading>
+                <p className="text-sm text-content-secondary">{t('noActive')}</p>
+            </div>
+        );
+    }
 
     const exportUrl = (fmt: 'csv' | 'pdf') =>
         buildUrl(`/reports/rent-roll${scope}${scope ? '&' : '?'}format=${fmt}`);
@@ -78,7 +104,7 @@ export function RentRollCard({ locationId }: { locationId?: string }) {
                                 <span className="min-w-0 truncate">
                                     {e.parcelName} · {e.lessorName}
                                 </span>
-                                <StatusBadge variant={e.daysLeft <= 14 ? 'error' : 'warning'}>
+                                <StatusBadge variant={LEASE_EXPIRY_TONE[leaseExpiryTier(e.daysLeft)]}>
                                     {t('daysLeft', { days: e.daysLeft })}
                                 </StatusBadge>
                             </li>

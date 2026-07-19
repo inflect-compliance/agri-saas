@@ -3219,7 +3219,8 @@
             "leases": "Leases",
             "rentSeason": "Rent / season",
             "expiring": "Expiring soon",
-            "daysLeft": "{days} d"
+            "daysLeft": "{days} d",
+            "noActive": "No active leases"
         },
         "lease": {
             "owned": "Owned",

@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
 import { getRentRoll } from '@/app-layer/usecases/rent-roll';
 import { generateRentRollPdf } from '@/app-layer/reports/pdf/rent-roll';
+import { REPORT_DAYS } from '@/lib/agro/lease-expiry';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { jsonResponse } from '@/lib/api-response';
 
@@ -52,7 +53,7 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
         });
     }
 
-    const data = await getRentRoll(ctx, { expiringWithinDays: 90, locationId });
+    const data = await getRentRoll(ctx, { expiringWithinDays: REPORT_DAYS, locationId });
 
     if (format === 'csv') {
         const rows = [

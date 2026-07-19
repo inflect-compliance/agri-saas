@@ -59,6 +59,8 @@ const PAGES: ReadonlyArray<{ label: string; path: (slug: string) => string }> = 
     { label: 'my-interests', path: (s) => `/t/${s}/exchange/my-interests` },
     { label: 'farm-tasks', path: (s) => `/t/${s}/farm-tasks` },
     { label: 'locations (list)', path: (s) => `/t/${s}/locations` },
+    // Rent — the lease register: wide table + KPI card + Fab.
+    { label: 'rent', path: (s) => `/t/${s}/rent` },
     { label: 'mapping', path: (s) => `/t/${s}/mapping` },
     { label: 'notifications', path: (s) => `/t/${s}/notifications` },
     // Grain complex — wide numeric tables are prime drift candidates.

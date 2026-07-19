@@ -13,6 +13,7 @@ import { Prisma } from '@prisma/client';
 import type { RequestContext } from '../types';
 import { assertCanRead } from '../policies/common';
 import { runInTenantContext } from '@/lib/db-context';
+import { REPORT_DAYS } from '@/lib/agro/lease-expiry';
 
 export interface RentRollLessor {
     lessorName: string;
@@ -44,7 +45,8 @@ export interface RentRoll {
     expiringSoon: RentRollExpiring[];
 }
 
-const DEFAULT_EXPIRING_WITHIN_DAYS = 60;
+// The roll's "expiring soon" horizon is the shared REPORT window (90d).
+const DEFAULT_EXPIRING_WITHIN_DAYS = REPORT_DAYS;
 
 export async function getRentRoll(
     ctx: RequestContext,
