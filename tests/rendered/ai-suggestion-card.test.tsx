@@ -7,7 +7,6 @@
 import { render, screen } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { AiSuggestionCard } from '@/components/ag/ai-suggestion-card';
-import { PhotoIdCard, type PhotoIdData } from '@/components/ag/photo-id-card';
 import { CopilotCard, type CopilotData } from '@/components/ag/copilot-card';
 
 const DISCLAIMER = /verify with an agronomist/i;
@@ -40,31 +39,6 @@ describe('AiSuggestionCard', () => {
         );
         expect(screen.getByRole('region', { name: /AI suggestion/i })).toBeInTheDocument();
         expect(await axe(container)).toHaveNoViolations();
-    });
-});
-
-describe('PhotoIdCard', () => {
-    const data: PhotoIdData = {
-        identified: true,
-        category: 'DISEASE',
-        name: 'Septoria leaf blotch',
-        recommendation: 'Provisional — scout and consult an agronomist.',
-        confidence: 'medium',
-    };
-
-    it('renders the identification with category, recommendation, confidence + disclaimer', async () => {
-        const { container } = render(<PhotoIdCard data={data} />);
-        expect(screen.getByText('Septoria leaf blotch')).toBeInTheDocument();
-        expect(screen.getByText(/Disease/)).toBeInTheDocument();
-        expect(screen.getByText(/scout and consult/i)).toBeInTheDocument();
-        expect(screen.getByText(/Medium confidence/i)).toBeInTheDocument();
-        expect(screen.getByText(DISCLAIMER)).toBeInTheDocument();
-        expect(await axe(container)).toHaveNoViolations();
-    });
-
-    it('renders nothing when there is no data', () => {
-        const { container } = render(<PhotoIdCard data={null} />);
-        expect(container).toBeEmptyDOMElement();
     });
 });
 

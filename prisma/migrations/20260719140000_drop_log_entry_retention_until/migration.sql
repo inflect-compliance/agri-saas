@@ -1,0 +1,23 @@
+-- Drop the dead `LogEntry.retentionUntil` column.
+--
+-- The column arrived with the bulk 20260323210000_soft_delete_retention_rollout
+-- migration and has never been read or written: nothing sets it, no DTO or
+-- repository projection selects it, and LogEntry is absent from both
+-- RETENTION_MODELS (the sweep registry) and SOFT_DELETE_MODELS.
+--
+-- Registering it would have been actively wrong, not merely unfinished. The
+-- retention sweep only SOFT-deletes; the hard purge iterates
+-- SOFT_DELETE_MODELS. Adding LogEntry to the sweep alone would soft-delete
+-- entries that then never purge — permanent limbo — and adding it to
+-- SOFT_DELETE_MODELS would switch on the Prisma read-filter extension across
+-- every journal query, colliding with the hand-rolled restore/purge that
+-- journal deliberately implements itself.
+--
+-- No statutory retention period for the БАБХ spray/fertilisation diary is
+-- documented anywhere in this repo, and auto-expiring regulated agricultural
+-- records is the wrong default: keeping them is. "No sweep" is already the
+-- correct behaviour — this removes the dead lever that implied otherwise.
+--
+-- Direct precedent: Asset dropped this same column in the agricultural-assets
+-- rework ("data-retention is an information-asset concept, not a machine one").
+ALTER TABLE "LogEntry" DROP COLUMN IF EXISTS "retentionUntil";

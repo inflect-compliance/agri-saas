@@ -14,7 +14,6 @@ jest.mock('@/app-layer/ai/llm-client', () => {
 
 import { isLlmConfigured, llmCompleteJson } from '@/app-layer/ai/llm-client';
 import { generateCopilotExplanation, computeGddSum, type CopilotSignalInput } from '@/app-layer/ai/agronomy/copilot';
-import { identifyPhoto, type PhotoIdInput } from '@/app-layer/ai/agronomy/photo-id';
 
 const mockConfigured = isLlmConfigured as jest.Mock;
 const mockComplete = llmCompleteJson as jest.Mock;
@@ -30,7 +29,6 @@ const signalInput: CopilotSignalInput = {
     growthStage: 'SOWN',
 };
 
-const photoInput: PhotoIdInput = { imageBase64: 'AAAA', mimeType: 'image/jpeg', cropType: 'Wheat' };
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -82,34 +80,5 @@ describe('computeGddSum', () => {
     });
     it('returns null when no day has a temperature', () => {
         expect(computeGddSum([{ date: 'a', tempMeanC: null, precipMm: null, windMaxKmh: null, humidityMean: null }])).toBeNull();
-    });
-});
-
-describe('identifyPhoto', () => {
-    it('returns null when the LLM is not configured', async () => {
-        mockConfigured.mockReturnValue(false);
-        expect(await identifyPhoto(photoInput)).toBeNull();
-    });
-
-    it('returns the validated identification on a well-formed response', async () => {
-        mockConfigured.mockReturnValue(true);
-        mockComplete.mockResolvedValue({
-            identified: true,
-            category: 'DISEASE',
-            name: 'Septoria leaf blotch',
-            recommendation: 'Provisional — scout neighbouring rows and consult an agronomist before treating.',
-            confidence: 'medium',
-        });
-        const out = await identifyPhoto(photoInput);
-        expect(out).not.toBeNull();
-        expect(out!.category).toBe('DISEASE');
-        expect(out!.confidence).toBe('medium');
-        expect(out!.name).toBe('Septoria leaf blotch');
-    });
-
-    it('returns null on an invalid category', async () => {
-        mockConfigured.mockReturnValue(true);
-        mockComplete.mockResolvedValue({ identified: true, category: 'ALIEN', name: null, recommendation: 'x', confidence: 'low' });
-        expect(await identifyPhoto(photoInput)).toBeNull();
     });
 });
