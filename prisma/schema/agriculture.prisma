@@ -244,8 +244,11 @@ model ParcelLease {
   lessorEik   String?
   kind        LeaseKind @default(ARENDA)
   /// Rent per decare — amount + unit label (e.g. „лв/дка", „кг/дка").
+  /// `rentUnit` holds the CANONICAL unit (see `@/lib/agro/rent-units`) so the
+  /// rent roll can group by it; `rentUnitRaw` preserves what the operator typed.
   rentAmount  Decimal?  @db.Decimal(14, 2)
   rentUnit    String?
+  rentUnitRaw String?
   startDate   DateTime?
   endDate     DateTime?
   /// Contract reference (№ на договор).
@@ -255,12 +258,43 @@ model ParcelLease {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  parcel Parcel @relation(fields: [parcelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parcel   Parcel         @relation(fields: [parcelId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payments LeasePayment[]
 
+  /// Cross-tenant row barrier — lets LeasePayment carry the composite
+  /// [leaseId, tenantId] FK so a payment can never point at another tenant's lease.
+  @@unique([id, tenantId])
   @@index([tenantId, parcelId])
   // Rent-roll / expiry scans (3/3): leases ending within a window, per tenant.
   @@index([tenantId, endDate])
+}
+
+/// Rent actually PAID against a lease, per season. The lease carries the
+/// obligation (rentAmount × area); this carries settlement, so the rent roll
+/// can answer "who hasn't been paid" rather than only "what is owed".
+model LeasePayment {
+  id         String    @id @default(cuid())
+  tenantId   String
+  leaseId    String
+  /// Agronomic season the payment settles (e.g. 2026).
+  seasonYear Int
+  amountPaid Decimal   @db.Decimal(14, 2)
+  /// Canonical unit of the payment (same set as `ParcelLease.rentUnit`) — rent
+  /// paid in grain („кг/дка") settles against a grain obligation, never money.
+  unit       String?
+  paidAt     DateTime
+  note       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lease  ParcelLease @relation(fields: [leaseId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@index([tenantId, leaseId])
+  // Roll aggregation scans a tenant's payments for a season.
+  @@index([tenantId, seasonYear])
 }
 
 /// GLOBAL soil-sample cache (NO tenantId — a shared catalog of open,

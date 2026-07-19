@@ -3212,6 +3212,18 @@
         }
     },
     "ag": {
+        "leasePayments": {
+            "title": "Плащания",
+            "loading": "Зареждане на плащанията…",
+            "none": "Няма записани плащания",
+            "season": "Сезон",
+            "amount": "Сума",
+            "amountWithUnit": "Сума ({unit})",
+            "add": "Добавяне",
+            "remove": "Премахване",
+            "amountInvalid": "Въведете валидна сума.",
+            "saveFailed": "Плащането не можа да се запази."
+        },
         "rentRoll": {
             "title": "Ведомост за наеми",
             "leasedArea": "Наета площ",
@@ -3220,7 +3232,8 @@
             "rentSeason": "Рента/сезон",
             "expiring": "Изтичащи скоро",
             "daysLeft": "{days} д",
-            "noActive": "Няма активни договори"
+            "noActive": "Няма активни договори",
+            "outstanding": "Оставащо"
         },
         "lease": {
             "owned": "Собствена",
@@ -3253,6 +3266,7 @@
             "statusActive": "Активен",
             "statusExpiring": "остават {days} д",
             "statusExpired": "Изтекъл",
+            "unpaidFilter": "Неплатени",
             "emptyTitle": "Все още няма договори",
             "emptyDesc": "Запишете договор за аренда или наем, за да следите рентата и изтичането.",
             "modalCreateTitle": "Нов договор",

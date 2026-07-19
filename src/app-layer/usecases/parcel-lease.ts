@@ -12,6 +12,7 @@ import { runInTenantContext } from '@/lib/db-context';
 import { logEvent } from '../events/audit';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { badRequest, notFound } from '@/lib/errors/types';
+import { canonicalRentUnit } from '@/lib/agro/rent-units';
 
 export type LeaseKindInput = 'ARENDA' | 'NAEM';
 
@@ -35,6 +36,7 @@ const LEASE_SELECT = {
     kind: true,
     rentAmount: true,
     rentUnit: true,
+    rentUnitRaw: true,
     startDate: true,
     endDate: true,
     documentRef: true,
@@ -53,12 +55,16 @@ function toDate(v?: string | null): Date | null {
 function mapLeaseData(input: ParcelLeaseInput) {
     const lessorName = sanitizePlainText((input.lessorName ?? '').trim());
     if (!lessorName) throw badRequest('Lessor name is required.');
+    const rawRentUnit = input.rentUnit ? sanitizePlainText(input.rentUnit.trim()) : null;
     return {
         lessorName,
         lessorEik: input.lessorEik ? sanitizePlainText(input.lessorEik.trim()) : null,
         kind: input.kind,
         rentAmount: input.rentAmount != null ? new Prisma.Decimal(input.rentAmount) : null,
-        rentUnit: input.rentUnit ? sanitizePlainText(input.rentUnit.trim()) : null,
+        // The roll GROUPs BY rentUnit, so it stores the CANONICAL form; the
+        // operator's original text is preserved verbatim alongside it.
+        rentUnit: canonicalRentUnit(rawRentUnit),
+        rentUnitRaw: rawRentUnit,
         startDate: toDate(input.startDate),
         endDate: toDate(input.endDate),
         documentRef: input.documentRef ? sanitizePlainText(input.documentRef.trim()) : null,

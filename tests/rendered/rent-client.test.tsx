@@ -22,6 +22,8 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/lib/tenant-context-provider', () => ({
     useTenantApiUrl: () => (p: string) => `/api/t/acme${p}`,
     useTenantHref: () => (p: string) => `/t/acme${p}`,
+    // RentRollCard's PDF link is wrapped in <UpgradeGate>, which reads the plan.
+    useTenantContext: () => ({ plan: 'ENTERPRISE' }),
 }));
 
 const apiPatch = jest.fn(async (..._a: unknown[]) => ({}));
@@ -41,7 +43,7 @@ const rentRollMutate = jest.fn(async () => undefined);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let leasesData: any = { leases: [] };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let rentRollData: any = { totalLeasedDca: 0, totalRent: 0, activeLeaseCount: 0, lessorCount: 0, expiringSoon: [] };
+let rentRollData: any = { totalLeasedDca: 0, totals: [], activeLeaseCount: 0, lessorCount: 0, seasonYear: 2026, byLessor: [], expiringSoon: [] };
 jest.mock('@/lib/hooks/use-tenant-swr', () => ({
     useTenantSWR: (key: string) => {
         if (key.startsWith('/leases/parcel-options')) {
@@ -89,7 +91,7 @@ function renderClient() {
 beforeEach(() => {
     jest.clearAllMocks();
     leasesData = { leases: [] };
-    rentRollData = { totalLeasedDca: 0, totalRent: 0, activeLeaseCount: 0, lessorCount: 0, expiringSoon: [] };
+    rentRollData = { totalLeasedDca: 0, totals: [], activeLeaseCount: 0, lessorCount: 0, seasonYear: 2026, byLessor: [], expiringSoon: [] };
 });
 
 it('opens the create modal from the header action', async () => {
@@ -116,7 +118,7 @@ it('drives the row status badge from the shared lease-expiry clock', async () =>
 
 it('revalidates the rent-roll card key when a lease is saved', async () => {
     leasesData = { leases: [lease({ id: 'l1' })] };
-    rentRollData = { totalLeasedDca: 60, totalRent: 3600, activeLeaseCount: 1, lessorCount: 1, expiringSoon: [] };
+    rentRollData = { totalLeasedDca: 60, totals: [{ unit: 'лв/дка', total: 3600, paid: 0, outstanding: 3600 }], activeLeaseCount: 1, lessorCount: 1, seasonYear: 2026, byLessor: [], expiringSoon: [] };
     renderClient();
     // Open the edit modal via the row, then submit.
     fireEvent.click(screen.getByText('Иван Петров'));
