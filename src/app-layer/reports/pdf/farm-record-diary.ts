@@ -24,6 +24,7 @@ import { assertCanRead } from '@/app-layer/policies/common';
 import { notFound } from '@/lib/errors/types';
 import { runInTenantContext } from '@/lib/db-context';
 import { resolveOperationType } from '@/app-layer/usecases/field-operation';
+import { sanitizePlainText } from '@/lib/security/sanitize';
 import { createPdfDocument, UNICODE_FONT, UNICODE_FONT_BOLD } from '@/lib/pdf/pdfKitFactory';
 import { getStorageProvider, buildTenantObjectKey } from '@/lib/storage';
 import type { ReportMeta } from '@/lib/pdf/types';
@@ -213,6 +214,14 @@ export interface FarmRecordData {
 
 const DAY_MS = 86_400_000;
 
+/**
+ * Upper bound on printed observation rows. A legal register must not
+ * silently truncate: this is generous headroom (a very active season logs
+ * tens of scouting entries, not hundreds), and the bound exists only to
+ * keep the query guardrail-compliant / the PDF finite.
+ */
+export const MAX_OBSERVATION_ROWS = 500;
+
 function fmtDate(d: Date | null | undefined): string {
     if (!d) return '';
     const dd = String(d.getUTCDate()).padStart(2, '0');
@@ -224,6 +233,26 @@ function fmtDate(d: Date | null | undefined): string {
 function toDka(areaHa: number | null): string {
     if (areaHa == null) return '';
     return String(Math.round(areaHa * 10 * 100) / 100);
+}
+
+/**
+ * Journal `notes` are stored as SANITIZED RICH-TEXT HTML (Epic C.5 —
+ * `sanitizeRichTextHtml` at the usecase boundary), but a PDF table cell
+ * renders text verbatim: `<p>` tags would print literally in the legal
+ * ДНЕВНИК. Convert to plain text for print: block/line-break boundaries
+ * become separators FIRST (so `<p>Мана</p><p>по листата</p>` reads
+ * "Мана по листата", not "Манапо листата"), then strip the remaining
+ * tags + decode entities via the shared `sanitizePlainText`, then
+ * collapse runs of whitespace. Null/blank in → null out (the row builder
+ * renders '' for null).
+ */
+export function htmlNotesToPlainText(html: string | null | undefined): string | null {
+    if (html == null) return null;
+    const withBreaks = html
+        .replace(/<\s*br\s*\/?\s*>/gi, ' ')
+        .replace(/<\s*\/\s*(p|div|li|h[1-6]|blockquote|tr)\s*>/gi, ' ');
+    const text = sanitizePlainText(withBreaks).replace(/\s+/g, ' ').trim();
+    return text.length ? text : null;
 }
 
 /** One 12-column row per completed spray line (химични обработки). */
@@ -702,6 +731,11 @@ export async function gatherFarmRecordData(
             : [];
 
         // Cert snapshots (frozen at completion) keyed by operationParcelId.
+        // diary-allow: soft-deleted — deliberate. The spray line itself prints
+        // from OperationParcel regardless of the journal entry's lifecycle, and
+        // the snapshot frozen at completion is the factual record of who held
+        // which certificate at that moment; falling back to LIVE membership
+        // certs (which may have changed since) would be LESS accurate.
         const lineIds = lines.map((l) => l.id);
         const logs = lineIds.length
             ? await db.logEntry.findMany({
@@ -780,20 +814,37 @@ export async function gatherFarmRecordData(
             }
         }
 
+        // Observations for the per-field register. Three correctness rules
+        // (each locked by tests/guardrails/farm-record-diary-integrity.test.ts):
+        //   • `deletedAt: null` — a soft-deleted (mistaken) observation must
+        //     NEVER print in the legally-filed ДНЕВНИК.
+        //   • Location scope — entries explicitly linked to ANOTHER field are
+        //     excluded from this field's register; entries with no location
+        //     link are farm-wide notes and stay included (best-effort).
+        //   • Bounded but roomy: MAX_OBSERVATION_ROWS is headroom, not a
+        //     cliff — a season of scouting entries fits far below it.
         const obs = await db.logEntry.findMany({
             where: {
                 tenantId: ctx.tenantId,
                 type: 'OBSERVATION',
+                deletedAt: null,
                 occurredAt: { gte: fromD, lte: toD },
+                OR: [
+                    { locations: { none: {} } },
+                    { locations: { some: { locationId } } },
+                ],
             },
             select: { occurredAt: true, title: true, notes: true },
             orderBy: { occurredAt: 'asc' },
-            take: 100,
+            take: MAX_OBSERVATION_ROWS,
         });
         const observations: ObservationData[] = obs.map((o) => ({
             occurredAt: o.occurredAt,
+            // `title` is already plain text (sanitizePlainText at the journal
+            // usecase boundary); `notes` is sanitized RICH-TEXT HTML and must
+            // be flattened before it lands in a printed cell.
             phenophase: o.title ?? null,
-            disease: o.notes ?? null,
+            disease: htmlNotesToPlainText(o.notes),
             pest: null,
         }));
 

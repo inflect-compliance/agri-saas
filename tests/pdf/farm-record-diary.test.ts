@@ -12,6 +12,7 @@ import {
     renderFarmRecordDiary,
     buildChemicalRows,
     buildFertilizerRows,
+    buildObservationRows,
     BG_LABELS,
     type FarmRecordData,
     type SprayLineData,
@@ -126,6 +127,25 @@ describe('farm-record-diary — pure row builders', () => {
         expect(rows).toHaveLength(1);
         expect(rows[0][2]).toBe('Амониев нитрат; N 34.4%');
         expect(rows[0][4]).toBe('35'); // 3.5 ha → 35 дка
+    });
+
+    test('buildObservationRows: 11 cells, disease/pest at their columns, blanks elsewhere', () => {
+        const rows = buildObservationRows([
+            {
+                occurredAt: new Date('2026-05-01T08:00:00Z'),
+                phenophase: 'BBCH 32',
+                disease: 'Брашнеста мана',
+                pest: 'Листни въшки',
+            },
+        ]);
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toHaveLength(BG_LABELS.obsCols.length);
+        expect(rows[0][0]).toBe('01.05.2026');
+        expect(rows[0][1]).toBe('BBCH 32');
+        expect(rows[0][2]).toBe('Брашнеста мана'); // Болест
+        expect(rows[0][6]).toBe('Листни въшки'); // Неприятел
+        // Manually-filled survey columns stay blank (ruled for hand entry).
+        for (const i of [3, 4, 5, 7, 8, 9, 10]) expect(rows[0][i]).toBe('');
     });
 });
 
