@@ -83,6 +83,11 @@ describe('CI Guard: No direct prisma in tenant-scoped code', () => {
         // There is no tenantId to filter on, so the global handle carries no
         // RLS risk.
         'agri-events.ts',
+        // #12 — `Company` is the GLOBAL supplier catalogue behind `Promotion`
+        // (no tenantId / no RLS, same class as `AgriEvent`). Writes come from
+        // platform support curating a cross-tenant catalogue, so there is no
+        // tenant transaction to borrow and no tenantId to filter on.
+        'company.ts',
         'sso.ts', 'mfa.ts', 'mfa-enrollment.ts', 'mfa-challenge.ts',
         'session-security.ts', 'webhook-processor.ts', 'scim-users.ts',
         // EI-3 — scim-groups resolves SCIM externalIds → IC users via a global

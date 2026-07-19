@@ -31,11 +31,21 @@ export interface PromotionDto {
 }
 
 /**
- * Active promotions, newest first. "Active" = inside the optional validity
- * window (validFrom in the past or unset, validTo in the future or unset).
+ * Active promotions, newest first. A promotion is shown only if it clears
+ * BOTH gates:
+ *
+ *   - **published** — `publishedAt` is set. A draft stays invisible however
+ *     its dates read, so support can save a half-finished ad without it
+ *     appearing in every tenant's feed.
+ *   - **in window** — `validFrom` in the past or unset, `validTo` in the
+ *     future or unset.
+ *
  * Bounded to a sensible page. The global catalogue carries no tenant scope,
  * but we still read it through the tenant transaction (no RLS on the table —
  * mirrors how the Unit / AgriEvent catalogues are read).
+ *
+ * Only the supplier's PUBLIC name is joined in — the encrypted contact fields
+ * on `Company` are internal and must never reach a tenant-facing DTO.
  */
 export async function listActivePromotions(
     ctx: RequestContext,
@@ -48,16 +58,18 @@ export async function listActivePromotions(
         const rows = await db.promotion.findMany({
             where: {
                 AND: [
+                    { publishedAt: { not: null } },
                     { OR: [{ validFrom: null }, { validFrom: { lte: now } }] },
                     { OR: [{ validTo: null }, { validTo: { gte: now } }] },
                 ],
             },
             orderBy: { createdAt: 'desc' },
             take: limit,
+            include: { company: { select: { name: true } } },
         });
         return rows.map((p) => ({
             id: p.id,
-            company: p.company,
+            company: p.company.name,
             title: p.title,
             body: p.body,
             mediaUrl: p.mediaUrl,
@@ -67,6 +79,16 @@ export async function listActivePromotions(
             validTo: p.validTo ? p.validTo.toISOString() : null,
         }));
     });
+}
+
+/**
+ * Normalised dedup key for a supplier name — lowercase, trimmed, internal
+ * whitespace collapsed. Mirrored in the `20260720100000_promotion_company`
+ * migration; the `Company.nameKey` unique index is the actual guarantee, this
+ * is just how callers compute the value to look up or insert.
+ */
+export function companyNameKey(name: string): string {
+    return name.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 export interface CreatePromotionLeadInput {
@@ -88,8 +110,15 @@ export async function createPromotionLead(ctx: RequestContext, input: CreateProm
     const sanitizedMessage = sanitizePlainText(input.message);
 
     const { lead, promotion } = await runInTenantContext(ctx, async (db) => {
-        const promotion = await db.promotion.findUnique({ where: { id: input.promotionId } });
+        const promotion = await db.promotion.findUnique({
+            where: { id: input.promotionId },
+            include: { company: { select: { name: true } } },
+        });
         if (!promotion) throw notFound('Promotion not found');
+        // A draft or expired promotion must not accept leads — the card is
+        // gone from the feed, so a request against it can only come from a
+        // stale page or a hand-made call.
+        if (!promotion.publishedAt) throw notFound('Promotion not found');
 
         let lead;
         try {
@@ -121,7 +150,7 @@ export async function createPromotionLead(ctx: RequestContext, input: CreateProm
                 entityName: 'PromotionLead',
                 operation: 'created',
                 after: { promotionId: promotion.id },
-                summary: `Offer request for ${promotion.company}: ${promotion.title}`,
+                summary: `Offer request for ${promotion.company.name}: ${promotion.title}`,
             },
         });
 
@@ -129,7 +158,7 @@ export async function createPromotionLead(ctx: RequestContext, input: CreateProm
     });
 
     // Best-effort, fail-open — the lead is already committed.
-    await notifyRequesterOfLead(ctx, promotion.company);
+    await notifyRequesterOfLead(ctx, promotion.company.name);
 
     return lead;
 }

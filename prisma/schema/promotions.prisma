@@ -1,26 +1,84 @@
+/// A supplier / advertiser that runs promotions ("Offers" / Промоции) — #12.
+///
+/// GLOBAL catalogue (NO tenantId, like `Promotion` / `Unit` / `AgriEvent`) →
+/// not tenant-scoped, no RLS: every tenant sees the same suppliers. Curated by
+/// platform support, never by tenants.
+///
+/// Replaces the free-text `Promotion.company` string. A supplier runs repeat
+/// campaigns, so the identity has to outlive any single promotion — with a
+/// bare string, "Syngenta" and "Syngenta " were two unrelated advertisers and
+/// the contact address had to be re-typed per campaign.
+///
+/// **Two privacy classes in one row.** `name` / `eik` / `websiteUrl` /
+/// `logoUrl` are PUBLIC — the name renders in every tenant's offers feed, and
+/// the ЕИК is commercial-register data. The contact fields and support notes
+/// are INTERNAL personal data of a named individual and are encrypted at rest
+/// (see `ENCRYPTED_FIELDS`). They are deliberately NOT exposed by
+/// `listActivePromotions`.
+model Company {
+  id           String   @id @default(cuid())
+  /// Public display name — rendered cross-tenant.
+  name         String
+  /// Normalised `name` (lowercased, whitespace-collapsed). The dedup key that
+  /// stops one supplier forking into several through typing variance.
+  nameKey      String   @unique
+  /// Bulgarian company registration number (ЕИК). Public register data for a
+  /// legal entity, so unlike `Lease.lessorEik` (often a natural person) it is
+  /// not encrypted.
+  eik          String?
+  websiteUrl   String?
+  logoUrl      String?
+  /// ── Internal, encrypted at rest ──
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  /// Support's free-text notes on the relationship. Encrypted + sanitised.
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  promotions Promotion[]
+
+  @@index([name])
+}
+
 /// Company promotions ("Offers" / Промоции) — #12.
 ///
 /// `Promotion` is a GLOBAL catalogue (NO tenantId, like `Unit` / `AgriEvent`)
 /// → not tenant-scoped, no RLS: every tenant reads the same shared feed of
-/// supplier promotions. Seeded / admin-posted; lead-gen only (no billing).
+/// supplier promotions. Curated by platform support; lead-gen only (no billing).
 /// `category` is a curated String from culture/fertilizer/seeds/products/service.
+///
+/// **Visibility is two gates, not one.** `publishedAt` is the editorial gate
+/// (null = draft, invisible however the dates read) and `validFrom`/`validTo`
+/// are the campaign window. Both must pass. Before `publishedAt` existed an
+/// insert WAS a publish — a half-finished row with blank dates went live in
+/// every tenant's feed immediately, which is the likeliest way support ships an
+/// unfinished ad.
 model Promotion {
-  id        String    @id @default(cuid())
-  company   String
-  title     String
-  body      String?
-  mediaUrl  String?
+  id          String    @id @default(cuid())
+  companyId   String
+  title       String
+  body        String?
+  mediaUrl    String?
   /// Curated category: "culture" | "fertilizer" | "seeds" | "products" | "service".
-  category  String    @default("service")
-  ctaUrl    String?
-  validFrom DateTime?
-  validTo   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  category    String    @default("service")
+  ctaUrl      String?
+  /// Editorial gate — null means draft. Set when support publishes.
+  publishedAt DateTime?
+  validFrom   DateTime?
+  validTo     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  leads PromotionLead[]
+  company Company         @relation(fields: [companyId], references: [id])
+  leads   PromotionLead[]
 
   @@index([createdAt])
+  @@index([companyId])
+  /// Backs the active-window predicate in `listActivePromotions`, which was
+  /// scanning unindexed before.
+  @@index([validTo])
 }
 
 /// A lead captured when a user clicks "Ask for offer" on a promotion.
