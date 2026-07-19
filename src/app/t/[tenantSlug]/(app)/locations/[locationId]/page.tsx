@@ -764,8 +764,8 @@ export default function LocationDetailPage() {
                             // page's px-4) and near-viewport-tall so the map is
                             // the operator's primary screen.
                             className={isMobile
-                                ? '-mx-4 h-[calc(100dvh-15rem)] min-h-[22rem] overflow-hidden border-y border-border-subtle'
-                                : undefined}
+                                ? '-mx-4 h-[calc(100dvh-15rem)] min-h-[22rem] overflow-hidden border-y-2 border-[var(--brand-default)]'
+                                : 'h-[360px] w-full overflow-hidden rounded-lg border-2 border-[var(--brand-default)] md:h-[480px]'}
                             indexOverlay={
                                 activeSpec && indexTileUrl
                                     ? { id: activeSpec.id, tileUrl: indexTileUrl }
