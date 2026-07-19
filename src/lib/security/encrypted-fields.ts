@@ -157,6 +157,17 @@ export const ENCRYPTED_FIELDS: Readonly<Record<string, readonly string[]>> = {
     //  columns), so in-place encryption is safe — no `contains`/`orderBy`.
     FarmProfile: ['egn', 'eik'],
 
+    // ─── Land administration — lease counterparty PII ──
+    //  The landlord's name (and ЕИК when they're a legal entity) is
+    //  personal data about a third party the farm contracts with — often a
+    //  private individual. Encrypted in place: no read site does
+    //  `contains` / `startsWith` / `orderBy` on either column, and the rent
+    //  roll's per-lessor grouping was moved OUT of raw SQL into the usecase
+    //  layer precisely because ciphertext can't GROUP BY (see
+    //  `getRentRoll`). Raw SQL bypasses the decryption extension, so any
+    //  future `$queryRaw` MUST NOT select these columns.
+    ParcelLease: ['lessorName', 'lessorEik'],
+
     // ─── Compliance audits (model: Audit, not AuditLog) ────
     Audit: [
         'auditScope',

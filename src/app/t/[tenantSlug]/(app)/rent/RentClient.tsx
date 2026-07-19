@@ -15,7 +15,7 @@ import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
 import { apiPost, apiPatch, apiDelete } from '@/lib/api-client';
 import { ListPageShell } from '@/components/layout/ListPageShell';
 import { PageBreadcrumbs } from '@/components/layout/PageBreadcrumbs';
-import { DataTable, createColumns } from '@/components/ui/table';
+import { DataTable, createColumns, useColumnsDropdown } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Heading } from '@/components/ui/typography';
 import { Modal } from '@/components/ui/modal';
@@ -29,6 +29,14 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { RentRollCard, type RentRollData } from '@/components/ui/map/RentRollCard';
 import { leaseExpiryTier, LEASE_EXPIRY_TONE, daysUntil } from '@/lib/agro/lease-expiry';
 import { LeasePaymentsPanel } from '@/components/agro/LeasePaymentsPanel';
+import {
+    LeaseFormFields,
+    EMPTY_LEASE_FORM,
+    leaseToForm,
+    leaseFormToBody,
+    validateLeaseForm,
+    type LeaseFormState,
+} from '@/components/agro/LeaseFormFields';
 import { Fab } from '@/components/ui/fab';
 import { PullToRefresh, useToastWithUndo } from '@/components/ui/hooks';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
@@ -62,39 +70,18 @@ interface ParcelOption {
     locationName: string;
 }
 
-interface FormState {
-    parcelId: string;
-    lessorName: string;
-    lessorEik: string;
-    kind: 'ARENDA' | 'NAEM';
-    rentAmount: string;
-    rentUnit: string;
-    startDate: Date | null;
-    endDate: Date | null;
-    documentRef: string;
-    notes: string;
-}
+// The lease field set lives in the shared <LeaseFormFields>; the Rent modal
+// adds only `parcelId` (a lease is parcel-bound and the modal picks it).
+type FormState = LeaseFormState & { parcelId: string };
+const EMPTY_FORM: FormState = { ...EMPTY_LEASE_FORM, parcelId: '' };
 
-const EMPTY_FORM: FormState = {
-    parcelId: '',
-    lessorName: '',
-    lessorEik: '',
-    kind: 'ARENDA',
-    rentAmount: '',
-    rentUnit: 'лв/дка',
-    startDate: null,
-    endDate: null,
-    documentRef: '',
-    notes: '',
-};
-
-const toYMD = (d: Date | null): string | null => (d ? d.toISOString().slice(0, 10) : null);
-const parseDate = (s: string | null): Date | null => {
-    if (!s) return null;
-    const d = new Date(s);
-    return Number.isNaN(d.getTime()) ? null : d;
-};
-export function RentClient({ tenantSlug }: { tenantSlug: string }) {
+export function RentClient({
+    tenantSlug,
+    permissions,
+}: {
+    tenantSlug: string;
+    permissions: { canWrite: boolean };
+}) {
     const t = useTranslations('ag.rent');
     const tl = useTranslations('ag.lease');
     const tc = useTranslations('common');
@@ -114,8 +101,13 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
     const leases = useMemo(() => leasesQ.data?.leases ?? [], [leasesQ.data]);
     const parcelOptions = useMemo(() => parcelsQ.data?.parcels ?? [], [parcelsQ.data]);
 
-    // The location name for the deep-linked filter chip, read off any row.
-    const locationName = locationId ? leases[0]?.parcel.location.name : undefined;
+    // The location name for the deep-linked filter chip. Read from the parcel
+    // catalogue (already fetched, tenant-wide) rather than `leases[0]` — off a
+    // row it disappears exactly when the location has no leases, which is when
+    // the chip matters most.
+    const locationName = locationId
+        ? parcelOptions.find((p) => p.locationId === locationId)?.locationName
+        : undefined;
 
     // „Неплатени" — narrow the register to lessors who still have outstanding
     // rent this season. Keyed by (lessor × unit) because the roll books each
@@ -149,30 +141,24 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
     };
     const openEdit = (l: LeaseRow) => {
         setEditingId(l.id);
-        setForm({
-            parcelId: l.parcelId,
-            lessorName: l.lessorName,
-            lessorEik: l.lessorEik ?? '',
-            kind: l.kind,
-            rentAmount: l.rentAmount != null ? String(l.rentAmount) : '',
-            rentUnit: l.rentUnit ?? '',
-            startDate: parseDate(l.startDate),
-            endDate: parseDate(l.endDate),
-            documentRef: l.documentRef ?? '',
-            notes: l.notes ?? '',
-        });
+        setForm({ ...leaseToForm(l), parcelId: l.parcelId });
         setError(null);
         setShowModal(true);
     };
 
     const parcelComboOptions: ComboboxOption<ParcelOption>[] = useMemo(
         () =>
-            parcelOptions.map((p) => ({
+            // While a location filter is active, only its parcels are
+            // selectable — creating a lease on an unrelated parcel from a
+            // location-scoped view would silently leave the view.
+            parcelOptions
+                .filter((p) => !locationId || p.locationId === locationId)
+                .map((p) => ({
                 label: p.name,
                 value: p.id,
                 meta: p,
             })),
-        [parcelOptions],
+        [parcelOptions, locationId],
     );
     const selectedParcel = parcelComboOptions.find((o) => o.value === form.parcelId) ?? null;
     const selectedParcelName = parcelOptions.find((p) => p.id === form.parcelId)?.name ?? '';
@@ -183,21 +169,12 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
             setError(t('parcelRequired'));
             return;
         }
-        if (!form.lessorName.trim()) {
-            setError(tl('lessorRequired'));
+        const invalid = validateLeaseForm(form);
+        if (invalid) {
+            setError(tl(invalid));
             return;
         }
-        const body = {
-            lessorName: form.lessorName.trim(),
-            lessorEik: form.lessorEik.trim() || null,
-            kind: form.kind,
-            rentAmount: form.rentAmount.trim() ? Number(form.rentAmount) : null,
-            rentUnit: form.rentUnit.trim() || null,
-            startDate: toYMD(form.startDate),
-            endDate: toYMD(form.endDate),
-            documentRef: form.documentRef.trim() || null,
-            notes: form.notes.trim() || null,
-        };
+        const body = leaseFormToBody(form);
         setBusy(true);
         setError(null);
         try {
@@ -213,6 +190,7 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
     };
 
     const remove = (l: LeaseRow) => {
+        if (!permissions.canWrite) return;
         // Epic 67 — optimistic remove + 5s undo window; the DELETE only fires
         // if the user doesn't hit Undo. SWR's `mutate` is referentially stable
         // and its functional updater sees the CURRENT cache, so this stays
@@ -314,9 +292,17 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                     meta: { mobileCard: { slot: 'status', label: t('colStatus') } },
                 },
                 {
+                    id: 'documentRef',
+                    header: tl('documentRef'),
+                    accessorFn: (l: LeaseRow) => l.documentRef || '—',
+                    meta: { mobileCard: { slot: 'meta', label: tl('documentRef') } },
+                },
+                {
                     id: 'actions',
                     header: '',
-                    cell: ({ row }) => (
+                    // Read-only members get no row actions (the server asserts
+                    // too — this just stops offering what would be refused).
+                    cell: ({ row }) => (permissions.canWrite ? (
                         <div className="flex items-center justify-end gap-tight">
                             <button
                                 type="button"
@@ -341,13 +327,29 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                                 <Trash className="size-4" aria-hidden="true" />
                             </button>
                         </div>
-                    ),
+                    ) : null),
                     meta: { mobileCard: { slot: 'actions' } },
                 },
             ]),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [t, tc, tl],
+        [t, tc, tl, permissions.canWrite],
     );
+
+    // Gear-toggleable columns — documentRef (Договор №) is off by default;
+    // most operators scan by owner/parcel, not contract number.
+    const { columnVisibility, setColumnVisibility, orderColumns, dropdown: columnsDropdown } =
+        useColumnsDropdown({
+            storageKey: 'inflect:col-vis:rent',
+            columns: [
+                { id: 'lessorName', label: t('colLessor') },
+                { id: 'parcel', label: t('colParcel') },
+                { id: 'kind', label: tl('kind') },
+                { id: 'rent', label: tl('rent') },
+                { id: 'term', label: t('colTerm') },
+                { id: 'documentRef', label: tl('documentRef'), defaultVisible: false },
+                { id: 'status', label: t('colStatus') },
+            ],
+        });
 
     return (
         <ListPageShell className="gap-section">
@@ -363,6 +365,11 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                         />
                         <Heading level={1}>{t('title')}</Heading>
                         <p className="text-sm text-content-secondary">{t('description')}</p>
+                        {rentRollQ.data?.truncated ? (
+                            <p className="mt-1 text-sm text-content-warning" id="rent-truncated-hint">
+                                {t('truncatedHint', { count: rentRollQ.data.leaseCap })}
+                            </p>
+                        ) : null}
                         {locationId ? (
                             <p className="mt-1 text-sm text-content-secondary">
                                 {locationName ? t('filteredTo', { location: locationName }) : null}{' '}
@@ -382,9 +389,12 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                         >
                             {t('unpaidFilter')}
                         </Button>
-                        <Button variant="primary" size="sm" icon={<Plus />} onClick={openCreate}>
-                            {tl('lease')}
-                        </Button>
+                        {columnsDropdown}
+                        {permissions.canWrite ? (
+                            <Button variant="primary" size="sm" icon={<Plus />} onClick={openCreate}>
+                                {tl('lease')}
+                            </Button>
+                        ) : null}
                     </div>
                 </div>
             </ListPageShell.Header>
@@ -405,17 +415,19 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                         mobileFallback="card"
                         data-testid="rent-table"
                         data={visibleLeases}
-                        columns={columns}
+                        columns={orderColumns(columns)}
+                        columnVisibility={columnVisibility}
+                        onColumnVisibilityChange={setColumnVisibility}
                         loading={leasesQ.isLoading && !leasesQ.data}
                         getRowId={(l) => l.id}
-                        onRowClick={(row) => openEdit(row.original)}
+                        onRowClick={permissions.canWrite ? (row) => openEdit(row.original) : undefined}
                         emptyState={(
                             <EmptyState
                                 size="sm"
                                 variant="no-records"
                                 title={t('emptyTitle')}
                                 description={t('emptyDesc')}
-                                primaryAction={{ label: tl('lease'), onClick: openCreate }}
+                                primaryAction={permissions.canWrite ? { label: tl('lease'), onClick: openCreate } : undefined}
                             />
                         )}
                     />
@@ -463,56 +475,10 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                                     />
                                 )}
                             </FormField>
-                            <FormField label={tl('lessor')} required>
-                                <Input
-                                    value={form.lessorName}
-                                    onChange={(e) => set('lessorName', e.target.value)}
-                                    placeholder={tl('lessorPlaceholder')}
-                                />
-                            </FormField>
-                            <FormField label={tl('kind')}>
-                                <ToggleGroup
-                                    size="sm"
-                                    ariaLabel={tl('kind')}
-                                    selected={form.kind}
-                                    selectAction={(v) => set('kind', v as 'ARENDA' | 'NAEM')}
-                                    options={[
-                                        { value: 'ARENDA', label: tl('kindArenda') },
-                                        { value: 'NAEM', label: tl('kindNaem') },
-                                    ]}
-                                />
-                            </FormField>
-                            <div className="grid grid-cols-2 gap-default">
-                                <FormField label={tl('rent')}>
-                                    <Input
-                                        type="number"
-                                        inputMode="decimal"
-                                        value={form.rentAmount}
-                                        onChange={(e) => set('rentAmount', e.target.value)}
-                                    />
-                                </FormField>
-                                <FormField label={tl('rentUnit')}>
-                                    <Input
-                                        value={form.rentUnit}
-                                        onChange={(e) => set('rentUnit', e.target.value)}
-                                    />
-                                </FormField>
-                            </div>
-                            <div className="grid grid-cols-2 gap-default">
-                                <FormField label={tl('startDate')}>
-                                    <DatePicker value={form.startDate} onChange={(d) => set('startDate', d)} />
-                                </FormField>
-                                <FormField label={tl('endDate')}>
-                                    <DatePicker value={form.endDate} onChange={(d) => set('endDate', d)} />
-                                </FormField>
-                            </div>
-                            <FormField label={tl('documentRef')}>
-                                <Input
-                                    value={form.documentRef}
-                                    onChange={(e) => set('documentRef', e.target.value)}
-                                    placeholder={tl('documentRefPlaceholder')}
-                                />
-                            </FormField>
+                            <LeaseFormFields
+                                form={form}
+                                setField={(k, v) => set(k, v as FormState[typeof k])}
+                            />
                             {/* Settlement log — only for a saved lease (a payment
                                 needs something to settle against). Revalidates the
                                 roll so paid/outstanding stay live. */}
@@ -520,7 +486,7 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                                 <LeasePaymentsPanel
                                     leaseId={editingId}
                                     rentUnit={form.rentUnit || null}
-                                    canWrite
+                                    canWrite={permissions.canWrite}
                                     onChanged={() => { void rentRollQ.mutate(); }}
                                 />
                             ) : null}
@@ -539,7 +505,9 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
 
             <PullToRefresh onRefresh={() => Promise.all([leasesQ.mutate(), rentRollQ.mutate()])} />
             <ScrollToTop />
-            <Fab onClick={openCreate} label={tl('lease')} icon={<Plus aria-hidden className="h-6 w-6" />} />
+            {permissions.canWrite ? (
+                <Fab onClick={openCreate} label={tl('lease')} icon={<Plus aria-hidden className="h-6 w-6" />} />
+            ) : null}
         </ListPageShell>
     );
 }

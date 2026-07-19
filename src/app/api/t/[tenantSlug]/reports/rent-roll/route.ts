@@ -64,7 +64,7 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
         // One row per (lessor × unit) — the unit column is now truthful for the
         // row's own figures, and paid/outstanding settle the same unit.
         const rows = [
-            ['Наемодател', 'ЕИК', 'Договори', 'Площ (дка)', 'Рента/сезон', 'Единица', 'Платено', 'Оставащо'],
+            ['Собственик', 'ЕИК', 'Договори', 'Площ (дка)', 'Рента/сезон', 'Единица', 'Платено', 'Оставащо'],
             ...data.byLessor.map((l) => [
                 l.lessorName,
                 l.lessorEik ?? '',

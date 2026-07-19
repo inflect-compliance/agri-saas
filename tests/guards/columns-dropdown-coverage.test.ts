@@ -45,9 +45,6 @@ const EXEMPTIONS: Record<string, string> = {
     // Agriculture (Feature 1) — lean locations roster, three fixed columns.
     "locations/LocationsClient.tsx":
         "(c) lean agriculture roster — three fixed columns (name/status/parcels); column-visibility gear deferred to the Phase 2 inventory module.",
-    // Land administration (roadmap 3/3) — lean lease register.
-    "rent/RentClient.tsx":
-        "(c) lean lease register — fixed columns (lessor/parcel/type/rent/term/status); column-visibility gear deferred until the register grows faceted needs.",
     // Agriculture (Phase 1) — lean inventory lots roster, four fixed columns.
     "inventory/InventoryClient.tsx":
         "(c) lean inventory roster — four fixed columns (lot/product/on-hand/expiry); column-visibility gear deferred until the lots table grows wider.",
