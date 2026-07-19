@@ -157,8 +157,17 @@ export function useNavSections(): NavSectionDef[] {
                 { href: tenantHref('/rent'), label: t('rent'), icon: ScrollText },
                 { href: tenantHref('/journal'), label: t('journal'), icon: NotebookPen },
                 // Agriculture events (#15) — global feed of fairs / trainings /
-                // webinars / subsidy deadlines, visible to every tenant.
-                { href: tenantHref('/events'), label: t('events'), icon: CalendarClock },
+                // webinars / subsidy deadlines, shared by every tenant. Hidden
+                // when the catalogue has nothing upcoming: the entry is
+                // permanent but the content is not, and a nav link to a
+                // guaranteed-empty page is worse than no link. `!== false` so
+                // an older provider that doesn't set the flag still shows it.
+                {
+                    href: tenantHref('/events'),
+                    label: t('events'),
+                    icon: CalendarClock,
+                    visible: tenant.agriEventsAvailable !== false,
+                },
                 // Offers (#12) — global feed of supplier promotions with an
                 // "Ask for offer" lead form, visible to every tenant. Reuses
                 // the already-imported Coins glyph (deals/pricing) — no new

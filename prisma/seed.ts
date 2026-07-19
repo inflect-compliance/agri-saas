@@ -11,6 +11,7 @@ import { getPermissionsForRole } from '@/lib/permissions';
 import { createLocation } from '@/app-layer/usecases/location';
 import { createParcel, type CreateParcelInput } from '@/app-layer/usecases/parcel';
 import { importUnits } from '../scripts/import-units';
+import { seedAgriEvents } from '../scripts/seed-agri-events';
 
 // Prisma 7 — adapter is required for PrismaClient construction.
 const prisma = new PrismaClient({
@@ -977,6 +978,12 @@ async function main() {
     // degrades to a warning instead of failing the whole seed.
     try {
         await importUnits(prisma);
+
+        // Global agriculture-events catalogue (shared, no tenantId). Demo rows
+        // only — see the header of scripts/seed-agri-events.ts. Without this the
+        // /events page renders its empty state and the nav entry hides itself.
+        await seedAgriEvents(prisma);
+
         const litre = await prisma.unit.findUnique({ where: { key: 'l' } });
         const kg = await prisma.unit.findUnique({ where: { key: 'kg' } });
         const demoProducts: Array<{ name: string; category: 'PESTICIDE' | 'FERTILIZER'; unitId?: string }> = [

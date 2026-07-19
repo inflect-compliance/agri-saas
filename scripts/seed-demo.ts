@@ -38,6 +38,7 @@ import { attachAutoEvidenceFromLogEntry } from '@/app-layer/usecases/auto-eviden
 import { loadAndValidateCatalogFile } from '../prisma/catalog-loader';
 import { applyCatalogFile } from '../prisma/catalog-applier';
 import { importUnits } from './import-units';
+import { seedAgriEvents } from './seed-agri-events';
 import { importKnowledge } from './import-knowledge';
 import { importCropVarieties } from './import-crop-varieties';
 import { importProducts } from './import-products';
@@ -456,6 +457,11 @@ async function main() {
 
     // Global unit catalog (shared) — needed before any item/lot.
     await importUnits(prisma);
+
+    // Global agriculture-events catalogue (shared, no tenantId). Demo rows only
+    // — see the header of scripts/seed-agri-events.ts. Without this the /events
+    // page renders its empty state and the nav entry hides itself.
+    await seedAgriEvents(prisma);
 
     // ── Persona 1: the startup farmer (simple mode, FREE) ──
     await seedFarm(

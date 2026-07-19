@@ -8,7 +8,16 @@ import { formatDate } from '@/lib/format-date';
 /**
  * Agriculture events (Събития) — #15. A scrollable feed of upcoming fairs,
  * trainings, webinars, and subsidy deadlines from the GLOBAL AgriEvent
- * catalogue (shared across tenants). Read-only; population is via seed/admin.
+ * catalogue (shared across tenants).
+ *
+ * Read-only by design — the catalogue is global, so a tenant-facing write would
+ * change what every other tenant sees. Rows come from the platform-admin API
+ * (`/api/admin/agri-events`) in production, and from
+ * `scripts/seed-agri-events.ts` in dev/demo/staging.
+ *
+ * The sidebar hides the entry for this page when the catalogue has nothing
+ * upcoming, so the empty state below is a fallback (direct link, or the
+ * catalogue emptying mid-session), not the common case.
  */
 export default async function AgriEventsPage({ params }: { params: Promise<{ tenantSlug: string }> }) {
     const { tenantSlug } = await params;

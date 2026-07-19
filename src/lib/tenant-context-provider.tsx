@@ -21,6 +21,15 @@ export interface TenantContextValue {
      * as "all available" (degrade gracefully).
      */
     availableModules?: ModuleKey[];
+    /**
+     * #15 — whether the GLOBAL agriculture-events catalogue has anything
+     * upcoming. Resolved server-side in the tenant layout so the sidebar can
+     * hide the Events entry rather than linking every tenant to an empty page.
+     * Not a module/permission flag: the catalogue is the same for all tenants,
+     * so this is data-driven. Absent ⇒ treat as "show" (degrade gracefully,
+     * matching `availableModules`).
+     */
+    agriEventsAvailable?: boolean;
     permissions: {
         canRead: boolean;
         canWrite: boolean;
