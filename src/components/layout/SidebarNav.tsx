@@ -219,8 +219,13 @@ export function useNavSections(): NavSectionDef[] {
             ]),
         },
         {
-            id: 'comply',
-            title: t('sectionComply'),
+            // The former "Comply" section was folded into Manage — its two
+            // surfaces (Schedule, Docs) are governance/reporting work like the
+            // rest of this group, and a two-item section didn't earn its own
+            // eyebrow. They lead the section so their existing position above
+            // Schemes / Knowledge is preserved.
+            id: 'manage',
+            title: t('sectionManage'),
             items: filterVisible([
                 {
                     href: tenantHref('/calendar'),
@@ -229,17 +234,10 @@ export function useNavSections(): NavSectionDef[] {
                     badge: calendarBadge,
                 },
                 { href: tenantHref('/evidence'), label: t('docs'), icon: Paperclip },
-            ]),
-        },
-        {
-            id: 'manage',
-            title: t('sectionManage'),
-            items: filterVisible([
                 // R13-PR12 — Frameworks dropped from the sidebar.
                 // The page stays reachable via the Frameworks pill on
                 // the Audits page header (R13-PR9) and via the command
                 // palette (⌘K → "Frameworks").
-                // R13-PR16 — Audit moved up to Comply (see above).
                 // Certification Schemes — the catalog of AG_SCHEME frameworks
                 // (Organic, GLOBALG.A.P., etc.) the tenant maps practices to.
                 // GRC surface — gated behind CERTIFICATION. Reuses the
