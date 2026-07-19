@@ -67,7 +67,6 @@ model LogEntry {
   updatedAt         DateTime       @updatedAt
   deletedAt         DateTime?
   deletedByUserId   String?
-  retentionUntil    DateTime?
 
   tenant          Tenant             @relation(fields: [tenantId], references: [id])
   operationParcel OperationParcel?   @relation(fields: [operationParcelId], references: [id])

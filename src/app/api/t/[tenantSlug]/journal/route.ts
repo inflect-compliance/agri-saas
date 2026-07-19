@@ -64,8 +64,21 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
         });
     }
 
-    // Backward-compat: flat array (the offline outbox + any consumer
-    // hitting `/journal` with no pagination params reads this shape).
+    // Backward-compat: a flat array (vs the paginated branch's
+    // `{ rows, nextCursor }`).
+    //
+    // The old comment credited "the offline outbox" — that is impossible:
+    // `OutboxMethod` is POST | PATCH | DELETE, so the outbox never GETs
+    // anything. And the two usecase consumers people reach for
+    // (`ag-dashboard`, `satellite-briefing`) import `listLogEntries`
+    // DIRECTLY — they never traverse this route, so they don't depend on
+    // this shape either.
+    //
+    // The only real consumer of the flat shape is the e2e verification GET
+    // in `journal-offline-create.spec.ts`, which casts the body to an array.
+    // The browser client always sends `limit`, so it takes the paginated
+    // branch. Naming this correctly so a future cleanup deletes the right
+    // branch — or knowingly updates that spec.
     const entries = await listLogEntries(ctx, filters);
     return jsonWithETag(req, entries);
 });

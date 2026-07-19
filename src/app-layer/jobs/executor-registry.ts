@@ -605,18 +605,6 @@ executorRegistry.register('agronomy-copilot', async (payload) => {
     return result;
 });
 
-// ── photo-pest-id (AI — on-demand LogEntry photo vision) ─────────────
-
-executorRegistry.register('photo-pest-id', async (payload) => {
-    const { runPhotoPestId } = await import('./photo-pest-id');
-    const { result } = await runPhotoPestId({
-        tenantId: payload.tenantId,
-        logEntryId: payload.logEntryId,
-        fileRecordId: payload.fileRecordId,
-    });
-    return result;
-});
-
 // ── classify-photo (AI vision — async LogEntry photo classification) ──
 //
 // Reads the image bytes, runs the vision orchestrator (on-device ONNX →

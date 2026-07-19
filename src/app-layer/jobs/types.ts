@@ -533,13 +533,6 @@ export interface AgronomyCopilotPayload {
     signalDateIso: string;
 }
 
-/** AI — on-demand pest/disease identification for a LogEntry photo. */
-export interface PhotoPestIdPayload {
-    tenantId: string;
-    logEntryId: string;
-    fileRecordId: string;
-}
-
 /**
  * AI vision (feat/ai-vision) — async leaf/crop photo → likely pest/disease
  * + grounded recommendation. Enqueued from the LogEntry photo-upload path;
@@ -734,7 +727,6 @@ export interface JobPayloadMap {
     'lease-expiry-sweep': LeaseExpirySweepPayload;
     'reconcile-inventory-ledgers': ReconcileInventoryLedgersPayload;
     'agronomy-copilot': AgronomyCopilotPayload;
-    'photo-pest-id': PhotoPestIdPayload;
     'classify-photo': ClassifyPhotoPayload;
     'weather-pull': WeatherPullPayload;
     'spatial-import': SpatialImportJobPayload;
@@ -914,14 +906,6 @@ export const JOB_DEFAULTS: Record<JobName, {
         // On-demand AI enrichment; one retry. Idempotent — re-running
         // re-generates and overwrites detailsJson.copilot; the
         // notification dedupeKey prevents a double-notify.
-        attempts: 2,
-        backoff: { type: 'exponential', delay: 15000 },
-        removeOnComplete: 100,
-        removeOnFail: 200,
-    },
-    'photo-pest-id': {
-        // On-demand AI vision; one retry. Idempotent — overwrites
-        // attributesJson.pestId; notification dedupeKey prevents re-notify.
         attempts: 2,
         backoff: { type: 'exponential', delay: 15000 },
         removeOnComplete: 100,

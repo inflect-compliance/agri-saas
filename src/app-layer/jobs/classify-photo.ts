@@ -32,6 +32,7 @@ import { logger } from '@/lib/observability/logger';
 import { getProviderByName } from '@/lib/storage';
 import { runInTenantContext } from '@/lib/db-context';
 import { logEvent } from '@/app-layer/events/audit';
+import { publishNotificationEvent } from '@/lib/notifications/notification-bus';
 import { getPermissionsForRole } from '@/lib/permissions';
 import { identifyPhoto } from '@/app-layer/ai/vision';
 import { askKnowledgeBase } from '@/app-layer/usecases/rag';
@@ -154,7 +155,15 @@ export async function runClassifyPhoto(payload: ClassifyPhotoPayload): Promise<C
             });
             const logEntry = await prisma.logEntry.findFirst({
                 where: { id: logEntryId, tenantId },
-                select: { title: true, notes: true, attributesJson: true },
+                select: {
+                    title: true,
+                    notes: true,
+                    attributesJson: true,
+                    // Ported from the deleted photo-pest-id twin: notify the
+                    // uploader when their photo has been analysed.
+                    createdByUserId: true,
+                    tenant: { select: { slug: true } },
+                },
             });
 
             const isImage = file?.mimeType?.startsWith('image/');
@@ -236,6 +245,49 @@ export async function runClassifyPhoto(payload: ClassifyPhotoPayload): Promise<C
                                     fileRecordId: fileId,
                                 },
                             });
+
+
+                            // ── Uploader notification (ported) ──
+                            // The only capability the dead photo-pest-id twin
+                            // had that this job lacked. Gated on the same
+                            // confidence threshold the storage path uses: a
+                            // low-confidence result is still stored, but it
+                            // announces "inconclusive" rather than naming a
+                            // pest the model isn't sure about.
+                            if (logEntry.createdByUserId) {
+                                const dedupeKey = `classify-photo:${tenantId}:${logEntryId}:${fileId}`;
+                                const linkUrl = `/t/${logEntry.tenant?.slug ?? ''}/journal/${logEntryId}`;
+                                const title = stored.lowConfidence
+                                    ? 'Снимката е анализирана — няма ясен резултат'
+                                    : `Възможен проблем: ${stored.identifiedPest}`;
+                                const message = `${stored.recommendation} ${stored.disclaimer}`.trim();
+                                const created = await db.notification.createMany({
+                                    data: [{
+                                        tenantId,
+                                        userId: logEntry.createdByUserId,
+                                        type: 'GENERAL' as const,
+                                        title,
+                                        message,
+                                        linkUrl,
+                                        dedupeKey,
+                                    }],
+                                    skipDuplicates: true,
+                                });
+                                // Publish ONLY on a real insert — the twin
+                                // published unconditionally, so a retry
+                                // re-notified even when the row deduped.
+                                if (created.count > 0) {
+                                    publishNotificationEvent(tenantId, logEntry.createdByUserId, {
+                                        id: dedupeKey,
+                                        type: 'GENERAL',
+                                        title,
+                                        message,
+                                        read: false,
+                                        linkUrl,
+                                        createdAt: new Date().toISOString(),
+                                    });
+                                }
+                            }
                         });
                         classified = true;
                     }
