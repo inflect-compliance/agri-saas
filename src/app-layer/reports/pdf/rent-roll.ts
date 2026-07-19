@@ -10,6 +10,7 @@ import type { ReportMeta } from '@/lib/pdf/types';
 import type { RequestContext } from '../../types';
 import { runInTenantContext } from '@/lib/db-context';
 import { getRentRoll } from '../../usecases/rent-roll';
+import { REPORT_DAYS } from '@/lib/agro/lease-expiry';
 
 const INK = '#0f172a';
 const MUTED = '#64748b';
@@ -59,7 +60,7 @@ export async function generateRentRollPdf(
     ctx: RequestContext,
     opts: { locationId?: string } = {},
 ): Promise<PDFKit.PDFDocument> {
-    const data = await getRentRoll(ctx, { expiringWithinDays: 90, locationId: opts.locationId });
+    const data = await getRentRoll(ctx, { expiringWithinDays: REPORT_DAYS, locationId: opts.locationId });
     const tenantName = await runInTenantContext(ctx, (db) =>
         db.tenant
             .findFirst({ where: { id: ctx.tenantId }, select: { name: true } })

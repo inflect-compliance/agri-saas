@@ -3219,7 +3219,8 @@
             "leases": "Договори",
             "rentSeason": "Рента/сезон",
             "expiring": "Изтичащи скоро",
-            "daysLeft": "{days} д"
+            "daysLeft": "{days} д",
+            "noActive": "Няма активни договори"
         },
         "lease": {
             "owned": "Собствена",

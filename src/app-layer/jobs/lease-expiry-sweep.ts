@@ -20,6 +20,7 @@ import prisma from '@/lib/prisma';
 import { runJob } from '@/lib/observability/job-runner';
 import { logger } from '@/lib/observability/logger';
 import { publishNotificationEvent } from '@/lib/notifications/notification-bus';
+import { ALERT_DAYS } from '@/lib/agro/lease-expiry';
 import type { JobRunResult } from './types';
 
 export interface LeaseExpirySweepOptions {
@@ -37,7 +38,9 @@ export interface LeaseExpirySweepResult {
     notified: number;
 }
 
-const DEFAULT_WITHIN_DAYS = 30;
+// The reminder window is the shared ALERT tier (30d) — when this sweep fires,
+// the Rent-table + card badges for the same lease are red by construction.
+const DEFAULT_WITHIN_DAYS = ALERT_DAYS;
 
 /** One alert per (lease, recipient, endDate) — buckets by the contract end. */
 function leaseExpiryDedupeKey(tenantId: string, leaseId: string, userId: string, endYmd: string): string {
@@ -70,7 +73,9 @@ export async function runLeaseExpirySweep(
                     tenantId: true,
                     lessorName: true,
                     endDate: true,
-                    parcel: { select: { name: true } },
+                    // locationId drives the notification deep-link into the
+                    // location-scoped Rent view.
+                    parcel: { select: { name: true, locationId: true } },
                 },
                 take: 10000,
             });
@@ -105,7 +110,10 @@ export async function runLeaseExpirySweep(
                         type: 'LEASE_EXPIRING' as const,
                         title: 'Изтичащ договор за наем',
                         message: `Договорът за „${lease.parcel.name}" с ${lease.lessorName} изтича на ${endYmd} (след ${daysLeft} дни).`,
-                        linkUrl: `/t/${r.slug}/reports`,
+                        // Deep-link to the Rent register — scoped to the parcel's
+                        // location when it has one (the location page deep-links
+                        // the same way).
+                        linkUrl: `/t/${r.slug}/rent${lease.parcel.locationId ? `?locationId=${lease.parcel.locationId}` : ''}`,
                         dedupeKey: leaseExpiryDedupeKey(lease.tenantId, lease.id, r.userId, endYmd),
                     }));
                 });

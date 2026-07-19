@@ -26,7 +26,8 @@ import { ToggleGroup } from '@/components/ui/toggle-group';
 import { DatePicker } from '@/components/ui/date-picker/date-picker';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { RentRollCard } from '@/components/ui/map/RentRollCard';
+import { RentRollCard, type RentRollData } from '@/components/ui/map/RentRollCard';
+import { leaseExpiryTier, LEASE_EXPIRY_TONE, daysUntil } from '@/lib/agro/lease-expiry';
 import { Fab } from '@/components/ui/fab';
 import { PullToRefresh, useToastWithUndo } from '@/components/ui/hooks';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
@@ -92,9 +93,6 @@ const parseDate = (s: string | null): Date | null => {
     const d = new Date(s);
     return Number.isNaN(d.getTime()) ? null : d;
 };
-const daysUntil = (iso: string): number =>
-    Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
-
 export function RentClient({ tenantSlug }: { tenantSlug: string }) {
     const t = useTranslations('ag.rent');
     const tl = useTranslations('ag.lease');
@@ -108,6 +106,10 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
 
     const leasesQ = useTenantSWR<{ leases: LeaseRow[] }>(`/leases${scope}`);
     const parcelsQ = useTenantSWR<{ parcels: ParcelOption[] }>('/leases/parcel-options');
+    // Lifted the rent-roll SWR up from RentRollCard so every lease mutation
+    // (save / undo-commit / pull-to-refresh) revalidates the KPI card too —
+    // otherwise the card stays stale (and the first-lease card never appears).
+    const rentRollQ = useTenantSWR<RentRollData>(`/reports/rent-roll${scope}`);
     const leases = useMemo(() => leasesQ.data?.leases ?? [], [leasesQ.data]);
     const parcelOptions = useMemo(() => parcelsQ.data?.parcels ?? [], [parcelsQ.data]);
 
@@ -185,7 +187,7 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
             if (editingId) await apiPatch(buildUrl(`/leases/${editingId}`), body);
             else await apiPost(buildUrl('/leases'), { ...body, parcelId: form.parcelId });
             setShowModal(false);
-            await leasesQ.mutate();
+            await Promise.all([leasesQ.mutate(), rentRollQ.mutate()]);
         } catch (err) {
             setError(err instanceof Error ? err.message : tl('saveFailed'));
         } finally {
@@ -214,6 +216,7 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
             undoAction: restore,
             onCommit: () => {
                 void leasesQ.mutate();
+                void rentRollQ.mutate();
             },
             onError: restore,
             message: t('leaseRemoved'),
@@ -235,14 +238,16 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
     const statusBadge = (l: LeaseRow) => {
         if (!l.endDate) return <StatusBadge variant="success">{t('statusActive')}</StatusBadge>;
         const d = daysUntil(l.endDate);
-        if (d < 0) return <StatusBadge variant="neutral">{t('statusExpired')}</StatusBadge>;
-        if (d <= 60)
-            return (
-                <StatusBadge variant={d <= 14 ? 'error' : 'warning'}>
-                    {t('statusExpiring', { days: d })}
-                </StatusBadge>
-            );
-        return <StatusBadge variant="success">{t('statusActive')}</StatusBadge>;
+        // One shared clock: the tier + tone come from lease-expiry so this badge
+        // and the card's expiring list are identical functions of daysLeft.
+        const tier = leaseExpiryTier(d);
+        if (tier === 'expired') return <StatusBadge variant="neutral">{t('statusExpired')}</StatusBadge>;
+        if (tier === 'ok') return <StatusBadge variant="success">{t('statusActive')}</StatusBadge>;
+        return (
+            <StatusBadge variant={LEASE_EXPIRY_TONE[tier]}>
+                {t('statusExpiring', { days: d })}
+            </StatusBadge>
+        );
     };
 
     const columns = useMemo(
@@ -361,7 +366,11 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                     {/* Summary stays anchored (shrink-0); the table body scrolls
                         beneath it via fillBody in the bounded flex column. */}
                     <div className="shrink-0">
-                        <RentRollCard locationId={locationId} />
+                        <RentRollCard
+                            locationId={locationId}
+                            data={rentRollQ.data}
+                            hasLeases={leases.length > 0}
+                        />
                     </div>
                     <DataTable
                         fillBody
@@ -489,7 +498,7 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                 </Modal.Form>
             </Modal>
 
-            <PullToRefresh onRefresh={() => leasesQ.mutate()} />
+            <PullToRefresh onRefresh={() => Promise.all([leasesQ.mutate(), rentRollQ.mutate()])} />
             <ScrollToTop />
             <Fab onClick={openCreate} label={tl('lease')} icon={<Plus aria-hidden className="h-6 w-6" />} />
         </ListPageShell>
