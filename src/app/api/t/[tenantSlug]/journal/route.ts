@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
+import { assertModuleEnabled } from '@/app-layer/usecases/modules';
 import { listLogEntries, listLogEntriesPaginated, createLogEntry } from '@/app-layer/usecases/journal';
 import { withValidatedBody } from '@/lib/validation/route';
 import { CreateLogEntrySchema } from '@/lib/schemas';
@@ -25,6 +26,7 @@ const JournalQuerySchema = z.object({
 export const GET = withApiErrorHandling(async (req: NextRequest, { params: paramsPromise }: { params: Promise<{ tenantSlug: string }> }) => {
     const params = await paramsPromise;
     const ctx = await getTenantCtx(params, req);
+    await assertModuleEnabled(ctx, 'JOURNAL');
     const sp = Object.fromEntries(req.nextUrl.searchParams.entries());
     const query = JournalQuerySchema.parse(sp);
 
@@ -65,6 +67,7 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
 export const POST = withApiErrorHandling(withValidatedBody(CreateLogEntrySchema, async (req, { params: paramsPromise }: { params: Promise<{ tenantSlug: string }> }, body) => {
     const params = await paramsPromise;
     const ctx = await getTenantCtx(params, req);
+    await assertModuleEnabled(ctx, 'JOURNAL');
     // Offline exactly-once — the outbox replays a queued journal entry with its
     // item id as the Idempotency-Key; the usecase dedupes on it so a re-send
     // over flaky rural LTE returns the original entry, not a duplicate.

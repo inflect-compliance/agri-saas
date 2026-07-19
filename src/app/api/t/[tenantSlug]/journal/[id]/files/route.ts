@@ -10,6 +10,7 @@
  */
 import { NextRequest } from 'next/server';
 import { getTenantCtx } from '@/app-layer/context';
+import { assertModuleEnabled } from '@/app-layer/usecases/modules';
 import {
     uploadLogEntryPhoto,
     attachLogEntryFile,
@@ -23,6 +24,7 @@ import { jsonResponse } from '@/lib/api-response';
 export const POST = withApiErrorHandling(async (req: NextRequest, { params: paramsPromise }: { params: Promise<{ tenantSlug: string; id: string }> }) => {
     const params = await paramsPromise;
     const ctx = await getTenantCtx(params, req);
+    await assertModuleEnabled(ctx, 'JOURNAL');
 
     const contentType = req.headers.get('content-type') || '';
 
@@ -56,6 +58,7 @@ export const POST = withApiErrorHandling(async (req: NextRequest, { params: para
 export const DELETE = withApiErrorHandling(async (req: NextRequest, { params: paramsPromise }: { params: Promise<{ tenantSlug: string; id: string }> }) => {
     const params = await paramsPromise;
     const ctx = await getTenantCtx(params, req);
+    await assertModuleEnabled(ctx, 'JOURNAL');
     const fileRecordId = req.nextUrl.searchParams.get('fileRecordId');
     if (!fileRecordId) throw badRequest('fileRecordId query parameter is required');
     const result = await detachLogEntryFile(ctx, params.id, fileRecordId);

@@ -7,6 +7,7 @@ import type { PrismaTx } from '@/lib/db-context';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { InventoryRepository } from '../repositories/InventoryRepository';
 import { JournalRepository } from '../repositories/JournalRepository';
+import { createLogEntryWithAudit } from './journal-write';
 import { ModuleSettingsRepository } from '../repositories/ModuleSettingsRepository';
 import { AuditLogRepository } from '../repositories/AuditLogRepository';
 import { resolveEnabledModules } from '@/lib/modules';
@@ -412,7 +413,10 @@ async function recordInputApplicationImpl(
     // 1 — journal record (the compliant spray record).
     let journalEntryId: string | null = null;
     if (journalOn) {
-        const entry = await JournalRepository.createLogEntry(db, ctx, {
+        // Goes through the audited seam so the auto-generated record gets a
+        // CREATE event too — these entries are freely editable, so the audit
+        // trail is what makes that safe (see createLogEntryWithAudit).
+        const entry = await createLogEntryWithAudit(db, ctx, {
             type: 'INPUT_APPLICATION',
             title: `Applied ${product.name} to ${parcel.name}`,
             operationParcelId: line.id,
@@ -427,7 +431,7 @@ async function recordInputApplicationImpl(
                           },
                       ]
                     : [],
-        });
+        }, 'field_operation');
         journalEntryId = entry.id;
     }
 

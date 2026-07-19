@@ -198,6 +198,17 @@ export default function JournalDetailPage() {
                                     : entry.status,
                             variant: STATUS_BADGE[entry.status] ?? 'neutral',
                         },
+                        // Provenance, not a restriction: an entry minted by a
+                        // field operation is still fully editable/deletable —
+                        // this just tells the farmer where it came from.
+                        ...(entry.operationParcelId
+                            ? [{
+                                  kind: 'status' as const,
+                                  label: t('metaOrigin'),
+                                  value: t('originFieldOperation'),
+                                  variant: 'info' as const,
+                              }]
+                            : []),
                     ]}
                 />
             }
