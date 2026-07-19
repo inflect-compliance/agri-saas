@@ -100,6 +100,16 @@ function PopoverRoot({
   // is OR'd in for on-page always-dropdown pickers.
   const overlayDepth = useOverlayDepth();
   const renderAsDropdown = forceDropdown || overlayDepth > 0;
+  // P3.2-follow — a popover nested inside an overlay can't stack a second Vaul
+  // drawer (above), so it falls through to the Radix dropdown. But on a phone a
+  // TRIGGER-ANCHORED dropdown inside a bottom Sheet lands cramped and clipped
+  // near the top of the screen. Bottom-anchor it instead so every mobile picker
+  // reads the same way — the drawer above and this one both rise from the
+  // bottom edge. `forceDropdown` callers opted into a dropdown explicitly, so
+  // they keep trigger anchoring. The re-anchoring itself lives in globals.css
+  // (Radix positions a WRAPPER element we can't put a className on) and keys
+  // off the `data-mobile-sheet` marker below.
+  const mobileSheetInOverlay = isMobile && !forceDropdown && overlayDepth > 0;
   // When a trigger tooltip is requested, wrap the whole Radix Trigger ELEMENT
   // (not the inner button) in <Tooltip>. Order matters: Tooltip OUTER →
   // Popover.Trigger INNER → button. The inner Popover.Trigger's asChild Slot
@@ -188,9 +198,10 @@ function PopoverRoot({
       )}
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
-          sideOffset={sideOffset}
+          sideOffset={mobileSheetInOverlay ? 0 : sideOffset}
           align={align}
           side={side}
+          data-mobile-sheet={mobileSheetInOverlay ? "true" : undefined}
           className={cn(
             // B3-follow (2026-06-08): popover surfaces (user menu,
             // notifications, tenant/org switchers, comboboxes) share the
@@ -198,8 +209,28 @@ function PopoverRoot({
             // — `.surface-popup-texture` owns background + border + the
             // glass-edge/drop-shadow, so no flat bg-bg-default/border here.
             "surface-popup-texture animate-slide-up-fade z-50 items-center rounded-lg sm:block",
+            // Bottom-sheet skin for the in-overlay mobile case: square off the
+            // bottom corners against the screen edge and cap the height so a
+            // long option list scrolls inside the sheet instead of running off.
+            mobileSheetInOverlay &&
+              "w-full max-w-none rounded-b-none rounded-t-[10px] max-h-[70svh] overflow-y-auto",
             popoverContentClassName,
           )}
+          // Keyboard-avoidance, mirroring the Vaul branch above: lift the sheet
+          // onto the soft keyboard's top edge so a focused search input inside
+          // it stays visible. The wrapper is pinned to the viewport bottom, so
+          // the lift is expressed as a bottom margin on the content itself.
+          style={
+            mobileSheetInOverlay && keyboardInset
+              ? {
+                  marginBottom: keyboardInset,
+                  maxHeight: viewportHeight,
+                  transition: reducedMotion
+                    ? undefined
+                    : "margin-bottom 150ms ease-out, max-height 150ms ease-out",
+                }
+              : undefined
+          }
           sticky={sticky}
           collisionBoundary={collisionBoundary}
           onOpenAutoFocus={onOpenAutoFocus}

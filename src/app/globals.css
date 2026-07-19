@@ -544,3 +544,30 @@ textarea.input { @apply resize-y min-h-[80px]; }
 }
 .animate-tab-enter-right { animation: tab-enter-from-right 0.2s ease-out; }
 .animate-tab-enter-left  { animation: tab-enter-from-left 0.2s ease-out; }
+
+/* ── Mobile bottom-anchored popovers inside an overlay ──────────────────
+ *
+ * A popover nested inside an overlay (Sheet / Modal) cannot stack a second
+ * Vaul drawer, so `popover.tsx` falls through to the Radix dropdown even on
+ * mobile. Anchored to its trigger, that dropdown lands cramped and clipped
+ * near the top of the screen inside a bottom Sheet — the parcel sheet's
+ * crop / product / unit / operator pickers were the reported case.
+ *
+ * Radix positions the content via a WRAPPER element it owns, so no React
+ * className can reach it; this rule re-anchors that wrapper to the viewport
+ * bottom whenever the content it holds carries `data-mobile-sheet="true"`
+ * (set by popover.tsx for exactly this case). The result matches the
+ * standalone mobile drawer: every picker rises from the bottom edge.
+ *
+ * The 639px ceiling is deliberate — it mirrors `useMediaQuery`'s `isMobile`
+ * (< 640px), so the CSS and the JS that sets the marker agree exactly.
+ */
+@media (max-width: 639px) {
+  [data-radix-popper-content-wrapper]:has(> [data-mobile-sheet='true']) {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    transform: none !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+  }
+}
