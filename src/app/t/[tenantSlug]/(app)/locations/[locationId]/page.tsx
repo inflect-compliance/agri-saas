@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
 import type { Geometry } from 'geojson';
@@ -165,14 +165,15 @@ export default function LocationDetailPage() {
     // Mobile: the tapped parcel surfaced in the bottom-sheet (vaul). The
     // sheet replaces the inline side panel below the map on phones; desktop
     // keeps the side panel.
-    const [sheetParcelId, setSheetParcelId] = useState<string | null>(null);
     // Deep-link entry (QR codes on parcels): `?parcelId` opens that parcel's
-    // detail sheet. The tab (defaulting to map) is resolved synchronously above.
-    useEffect(() => {
-        const pid = searchParams.get('parcelId');
-        if (pid) setSheetParcelId(pid);
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link read on mount only
-    }, []);
+    // detail sheet. Seeded from the URL in the state initializer — a mount-only
+    // effect would cascade a second render (and trip
+    // `react-hooks/set-state-in-effect`). The tab (defaulting to map) is
+    // resolved synchronously above, so reading searchParams during render is
+    // already this page's established pattern.
+    const [sheetParcelId, setSheetParcelId] = useState<string | null>(
+        () => searchParams.get('parcelId'),
+    );
     const [showImport, setShowImport] = useState(false);
     const [manageOpen, setManageOpen] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
@@ -762,9 +763,12 @@ export default function LocationDetailPage() {
                             liveTracking
                             // Full-bleed on phones — edge-to-edge (cancel the
                             // page's px-4) and near-viewport-tall so the map is
-                            // the operator's primary screen.
+                            // the operator's primary screen. The frame closes on
+                            // all four sides (`border-2`, not `border-y-2`): a
+                            // top/bottom-only rule read as an unfinished frame
+                            // against the page background.
                             className={isMobile
-                                ? '-mx-4 h-[calc(100dvh-15rem)] min-h-[22rem] overflow-hidden border-y-2 border-[var(--brand-default)]'
+                                ? '-mx-4 h-[calc(100dvh-15rem)] min-h-[22rem] overflow-hidden border-2 border-[var(--brand-default)]'
                                 : 'h-[360px] w-full overflow-hidden rounded-lg border-2 border-[var(--brand-default)] md:h-[480px]'}
                             indexOverlay={
                                 activeSpec && indexTileUrl
