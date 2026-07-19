@@ -4970,7 +4970,14 @@
             "removeQuantity": "Remove quantity",
             "cancel": "Cancel",
             "saveEntry": "Save entry",
-            "createEntry": "Create entry"
+            "createEntry": "Create entry",
+            "fieldEquipment": "Equipment",
+            "equipmentPlaceholder": "Select equipment…",
+            "equipmentEmpty": "No equipment registered",
+            "equipmentAria": "Equipment used",
+            "fieldCost": "Cost",
+            "costPlaceholder": "e.g. 120",
+            "costHint": "Optional — the intervention cost."
         },
         "photos": {
             "attachHint": "Attach field photos and documents to this entry.",
@@ -5017,7 +5024,29 @@
             "dnevnikFrom": "From",
             "dnevnikTo": "To",
             "dnevnikCancel": "Cancel",
-            "dnevnikDownload": "Download"
+            "dnevnikDownload": "Download",
+            "deleteEntry": "Delete entry",
+            "entryDeleted": "Entry deleted",
+            "undo": "Undo",
+            "cost": "Cost"
+        },
+        "trash": {
+            "title": "Deleted entries",
+            "breadcrumbDashboard": "Dashboard",
+            "breadcrumbJournal": "Journal",
+            "backToJournal": "Back to journal",
+            "restore": "Restore",
+            "deletePermanently": "Delete permanently",
+            "colTitle": "Entry",
+            "colType": "Type",
+            "colOccurred": "Occurred",
+            "colDeletedAt": "Deleted",
+            "colActions": "Actions",
+            "emptyTitle": "Trash is empty",
+            "emptyDescription": "Deleted entries appear here until you restore or permanently delete them.",
+            "purgeTitle": "Delete entry permanently",
+            "purgeDescription": "This cannot be undone — the entry and its history are removed for good.",
+            "purgeTypePrompt": "Type {name} to confirm"
         }
     },
     "tasks": {
@@ -7038,6 +7067,21 @@
             "type": "Type",
             "status": "Status",
             "crop": "Culture"
+        },
+        "measure": {
+            "COUNT": "Count",
+            "WEIGHT": "Weight",
+            "VOLUME": "Volume",
+            "AREA": "Area",
+            "LENGTH": "Length",
+            "RATE": "Rate",
+            "OTHER": "Other"
+        },
+        "operationType": {
+            "SPRAY": "Spraying",
+            "FERTILIZE": "Fertilizing",
+            "SEED": "Seeding",
+            "OTHER": "Other"
         }
     },
     "planningEnums": {

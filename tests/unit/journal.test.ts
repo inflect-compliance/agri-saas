@@ -37,6 +37,7 @@ jest.mock('@/app-layer/repositories/JournalRepository', () => ({
         validEquipmentIds: jest.fn(),
         createLogEntry: jest.fn(),
         updateLogEntry: jest.fn(),
+        listDeleted: jest.fn(),
         softDelete: jest.fn(),
         restore: jest.fn(),
         purge: jest.fn(),
@@ -68,6 +69,7 @@ import {
     createLogEntry,
     updateLogEntry,
     deleteLogEntry,
+    listDeletedLogEntries,
     restoreLogEntry,
     purgeLogEntry,
     attachLogEntryFile,
@@ -289,6 +291,23 @@ describe('deleteLogEntry', () => {
             mockDb, editorCtx,
             expect.objectContaining({ action: 'SOFT_DELETE', entityType: 'LogEntry' }),
         );
+    });
+});
+
+describe('listDeletedLogEntries', () => {
+    it('lists soft-deleted entries for an ADMIN (the Trash view)', async () => {
+        (JournalRepository.listDeleted as jest.Mock).mockResolvedValue([
+            { id: 'log-1', title: 'Old entry', deletedAt: new Date('2026-06-01') },
+        ]);
+        const out = await listDeletedLogEntries(adminCtx);
+        expect(out).toHaveLength(1);
+        expect(JournalRepository.listDeleted).toHaveBeenCalledWith(mockDb, adminCtx);
+    });
+
+    // Restore and purge are the only actions reachable from the Trash, and
+    // both are ADMIN — so listing it is too.
+    it('forbids a non-admin', async () => {
+        await expect(listDeletedLogEntries(editorCtx)).rejects.toThrow(/permission/i);
     });
 });
 

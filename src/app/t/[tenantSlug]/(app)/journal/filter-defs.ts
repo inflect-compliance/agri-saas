@@ -29,6 +29,18 @@ export const CROP_FILTER_LABELS = {
     Peas: 'Peas',
 } as const;
 
+/**
+ * FieldOperationType (Prisma enum) — the membership guard for localizing the
+ * journal list's Operation column. Values only; the labels live in
+ * `journalEnums.operationType.*`.
+ */
+export const FIELD_OPERATION_TYPES = {
+    SPRAY: 'SPRAY',
+    FERTILIZE: 'FERTILIZE',
+    SEED: 'SEED',
+    OTHER: 'OTHER',
+} as const;
+
 export const LOG_ENTRY_TYPE_LABELS = {
     ACTIVITY: 'Activity',
     OBSERVATION: 'Observation',

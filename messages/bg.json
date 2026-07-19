@@ -4970,7 +4970,14 @@
             "removeQuantity": "Премахни количество",
             "cancel": "Отказ",
             "saveEntry": "Запази записа",
-            "createEntry": "Създай запис"
+            "createEntry": "Създай запис",
+            "fieldEquipment": "Техника",
+            "equipmentPlaceholder": "Изберете техника…",
+            "equipmentEmpty": "Няма регистрирана техника",
+            "equipmentAria": "Използвана техника",
+            "fieldCost": "Разход",
+            "costPlaceholder": "напр. 120",
+            "costHint": "По избор — разход за операцията."
         },
         "photos": {
             "attachHint": "Прикачете земеделски снимки и документи към този запис.",
@@ -5017,7 +5024,29 @@
             "dnevnikFrom": "От",
             "dnevnikTo": "До",
             "dnevnikCancel": "Отказ",
-            "dnevnikDownload": "Изтегли"
+            "dnevnikDownload": "Изтегли",
+            "deleteEntry": "Изтриване на запис",
+            "entryDeleted": "Записът е изтрит",
+            "undo": "Отмяна",
+            "cost": "Разход"
+        },
+        "trash": {
+            "title": "Изтрити записи",
+            "breadcrumbDashboard": "Табло",
+            "breadcrumbJournal": "Дневник",
+            "backToJournal": "Обратно към дневника",
+            "restore": "Възстановяване",
+            "deletePermanently": "Изтриване завинаги",
+            "colTitle": "Запис",
+            "colType": "Тип",
+            "colOccurred": "Дата",
+            "colDeletedAt": "Изтрит на",
+            "colActions": "Действия",
+            "emptyTitle": "Кошчето е празно",
+            "emptyDescription": "Изтритите записи се показват тук, докато ги възстановите или изтриете завинаги.",
+            "purgeTitle": "Окончателно изтриване на запис",
+            "purgeDescription": "Това не може да бъде отменено — записът и историята му се премахват завинаги.",
+            "purgeTypePrompt": "Въведете {name}, за да потвърдите"
         }
     },
     "tasks": {
@@ -7038,6 +7067,21 @@
             "type": "Тип",
             "status": "Статус",
             "crop": "Култура"
+        },
+        "measure": {
+            "COUNT": "Брой",
+            "WEIGHT": "Тегло",
+            "VOLUME": "Обем",
+            "AREA": "Площ",
+            "LENGTH": "Дължина",
+            "RATE": "Норма",
+            "OTHER": "Друго"
+        },
+        "operationType": {
+            "SPRAY": "Пръскане",
+            "FERTILIZE": "Торене",
+            "SEED": "Сеитба",
+            "OTHER": "Друго"
         }
     },
     "planningEnums": {

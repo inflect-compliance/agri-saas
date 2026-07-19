@@ -174,6 +174,21 @@ export class JournalRepository {
         return { items: trimmedItems, pageInfo: { nextCursor, hasNextPage } };
     }
 
+    /**
+     * Soft-deleted entries only — the Trash view. Deliberately a separate
+     * method rather than an `includeDeleted` flag on `_buildWhere`, so the
+     * live-list invariant (`deletedAt: null`) stays unconditional and can't be
+     * switched off by a stray filter object.
+     */
+    static async listDeleted(db: PrismaTx, ctx: RequestContext) {
+        return db.logEntry.findMany({
+            where: { tenantId: ctx.tenantId, deletedAt: { not: null } },
+            include: ENTRY_LIST_INCLUDE,
+            orderBy: { deletedAt: 'desc' },
+            take: 200,
+        });
+    }
+
     private static _buildWhere(ctx: RequestContext, filters?: LogEntryFilters): Prisma.LogEntryWhereInput {
         const where: Prisma.LogEntryWhereInput = { tenantId: ctx.tenantId, deletedAt: null };
 
