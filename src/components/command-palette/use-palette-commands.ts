@@ -31,6 +31,7 @@
 
 import {
     Calendar as CalendarIcon,
+    CalendarClock,
     Layers,
     LayoutDashboard,
     LogOut,
@@ -43,6 +44,7 @@ import {
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 
 import { useTheme } from '@/components/theme/ThemeProvider';
 
@@ -65,6 +67,12 @@ function tenantPath(slug: string, path: string): string {
 
 export function usePaletteCommands(tenantSlug: string | null): PaletteCommand[] {
     const { toggle: toggleTheme } = useTheme();
+    // Labels are translated like the rest of the palette chrome (group
+    // headings, placeholder, empty states all already resolve through this
+    // namespace). They were the one hardcoded-English surface left in a
+    // Bulgarian-first product — and because they live in a .ts hook rather
+    // than JSX, the no-hardcoded-UI-strings AST scan never saw them.
+    const t = useTranslations('commandPalette');
     const doSignOut = useCallback(() => {
         void signOut({ callbackUrl: '/login' });
     }, []);
@@ -77,49 +85,64 @@ export function usePaletteCommands(tenantSlug: string | null): PaletteCommand[] 
             {
                 id: 'nav:dashboard',
                 group: 'Navigation',
-                label: 'Go to Dashboard',
+                label: t('navDashboard'),
                 icon: LayoutDashboard,
                 href: href('/dashboard'),
             },
             {
                 id: 'nav:risks',
                 group: 'Navigation',
-                label: 'Go to Risks',
+                label: t('navRisks'),
                 icon: Triangle,
                 href: href('/risks'),
             },
             {
                 id: 'nav:evidence',
                 group: 'Navigation',
-                label: 'Go to Evidence',
+                label: t('navEvidence'),
                 icon: Paperclip,
                 href: href('/evidence'),
             },
             {
                 id: 'nav:calendar',
                 group: 'Navigation',
-                label: 'Go to Calendar',
+                label: t('navCalendar'),
                 icon: CalendarIcon,
                 href: href('/calendar'),
             },
             {
                 id: 'nav:frameworks',
                 group: 'Navigation',
-                label: 'Go to Frameworks',
+                label: t('navFrameworks'),
                 icon: Layers,
                 href: href('/frameworks'),
             },
             {
                 id: 'nav:vendors',
                 group: 'Navigation',
-                label: 'Go to Vendors',
+                label: t('navVendors'),
                 icon: Truck,
                 href: href('/vendors'),
+            },
+            // Agriculture events (#15) — the global fairs / trainings /
+            // subsidy-deadline catalogue. The sidebar HIDES its entry when the
+            // catalogue is empty; this one is unconditional, matching the
+            // palette's documented model (it lists admin for every user and
+            // leans on server-side gates). The palette derives its tenant from
+            // the pathname precisely so it can render outside TenantProvider,
+            // so it has no access to the emptiness flag — and the page's own
+            // empty state makes the worst case honest rather than misleading.
+            {
+                id: 'nav:events',
+                group: 'Navigation',
+                label: t('navEvents'),
+                icon: CalendarClock,
+                href: href('/events'),
             },
             {
                 id: 'nav:admin',
                 group: 'Navigation',
-                label: 'Go to Admin',
+                label: t('navAdmin'),
                 icon: Settings,
                 href: href('/admin'),
             },
@@ -127,19 +150,19 @@ export function usePaletteCommands(tenantSlug: string | null): PaletteCommand[] 
             {
                 id: 'action:toggle-theme',
                 group: 'Actions',
-                label: 'Toggle theme',
+                label: t('actionToggleTheme'),
                 icon: Moon,
                 perform: toggleTheme,
             },
             {
                 id: 'action:sign-out',
                 group: 'Actions',
-                label: 'Sign out',
+                label: t('actionSignOut'),
                 icon: LogOut,
                 perform: doSignOut,
             },
         ];
-    }, [tenantSlug, toggleTheme, doSignOut]);
+    }, [tenantSlug, toggleTheme, doSignOut, t]);
 }
 
 /**

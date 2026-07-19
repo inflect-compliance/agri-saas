@@ -3900,7 +3900,17 @@
         "entEvidence": "Доказателства",
         "entFrameworks": "Рамки",
         "entAssets": "Активи",
-        "entKnowledge": "База знания"
+        "entKnowledge": "База знания",
+        "navDashboard": "Към таблото",
+        "navRisks": "Към рисковете",
+        "navEvidence": "Към доказателствата",
+        "navCalendar": "Към календара",
+        "navFrameworks": "Към рамките",
+        "navVendors": "Към доставчиците",
+        "navEvents": "Към земеделските събития",
+        "navAdmin": "Към администрацията",
+        "actionToggleTheme": "Смяна на темата",
+        "actionSignOut": "Изход"
     },
     "swrDevtools": {
         "label": "SWR",

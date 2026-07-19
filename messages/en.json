@@ -3900,7 +3900,17 @@
         "entEvidence": "Evidence",
         "entFrameworks": "Frameworks",
         "entAssets": "Assets",
-        "entKnowledge": "Knowledge"
+        "entKnowledge": "Knowledge",
+        "navDashboard": "Go to Dashboard",
+        "navRisks": "Go to Risks",
+        "navEvidence": "Go to Evidence",
+        "navCalendar": "Go to Calendar",
+        "navFrameworks": "Go to Frameworks",
+        "navVendors": "Go to Vendors",
+        "navEvents": "Go to Agriculture events",
+        "navAdmin": "Go to Admin",
+        "actionToggleTheme": "Toggle theme",
+        "actionSignOut": "Sign out"
     },
     "swrDevtools": {
         "label": "SWR",
