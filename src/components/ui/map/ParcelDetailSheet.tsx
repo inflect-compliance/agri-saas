@@ -23,12 +23,8 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Sheet } from '@/components/ui/sheet';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ToggleGroup } from '@/components/ui/toggle-group';
 import { UserCombobox } from '@/components/ui/user-combobox';
-import { SoilProfileCard } from '@/components/soil/SoilProfileCard';
-import { ParcelLeasePanel } from '@/components/ui/map/ParcelLeasePanel';
-import { ParcelCadastralInfo } from '@/components/ui/map/ParcelCadastralInfo';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
@@ -97,7 +93,6 @@ export function ParcelDetailSheet({
     const t = useTranslations('ag.map');
     const tc = useTranslations('common');
     const tCrops = useTranslations('crops');
-    const tSoil = useTranslations('ag.soil');
     const buildUrl = useTenantApiUrl();
     const { tenantSlug } = useParams<{ tenantSlug: string }>();
     const { submit } = useOfflineSync();
@@ -112,21 +107,21 @@ export function ParcelDetailSheet({
     const [kind, setKind] = useState<InputKind>('PRODUCT');
     const [itemId, setItemId] = useState('');
     const [dose, setDose] = useState('');
-    const [doseUnitId, setDoseUnitId] = useState('');
     const [waterRate, setWaterRate] = useState('');
-    const [waterRateUnitId, setWaterRateUnitId] = useState('');
     const [techniqueKey, setTechniqueKey] = useState('');
     const [techniqueOther, setTechniqueOther] = useState('');
     const [note, setNote] = useState('');
-    const [assigneeUserId, setAssigneeUserId] = useState<string | null>(null);
+    // Three fields default themselves from async-loaded data (units / the
+    // signed-in operator). Rather than seeding them from an effect — which
+    // cascades a second render and trips `react-hooks/set-state-in-effect` —
+    // each keeps only the USER'S explicit pick here and derives the effective
+    // value during render (see below). Empty override ⇒ fall back to default.
+    const [doseUnitIdOverride, setDoseUnitIdOverride] = useState('');
+    const [waterRateUnitIdOverride, setWaterRateUnitIdOverride] = useState('');
+    const [assigneeUserIdOverride, setAssigneeUserIdOverride] = useState<string | null>(null);
     const [cropValue, setCropValue] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    // Cadastral-identifier inline editor (link/clear a КАИ id on the parcel).
-    const [cadEditing, setCadEditing] = useState(false);
-    const [cadInput, setCadInput] = useState('');
-    const [cadSaving, setCadSaving] = useState(false);
-    const [cadError, setCadError] = useState<string | null>(null);
 
     // Reset the whole form whenever a different parcel takes the sheet.
     /* eslint-disable react-hooks/set-state-in-effect -- intentional form re-seed. */
@@ -134,48 +129,43 @@ export function ParcelDetailSheet({
         setKind('PRODUCT');
         setItemId('');
         setDose('');
-        setDoseUnitId('');
+        setDoseUnitIdOverride('');
         setWaterRate('');
-        setWaterRateUnitId('');
+        setWaterRateUnitIdOverride('');
         setTechniqueKey('');
         setTechniqueOther('');
-        setCadEditing(false);
-        setCadInput('');
-        setCadError(null);
         setNote('');
         setError(null);
         setCropValue(parcel?.cropType ?? '');
     }, [parcel?.id, parcel?.cropType]);
     /* eslint-enable react-hooks/set-state-in-effect */
 
-    // Default the assignee to the current operator once resolved (never clobber).
-    useEffect(() => {
-        if (open && me?.user?.id) setAssigneeUserId((prev) => prev ?? me.user?.id ?? null);
-    }, [open, me?.user?.id]);
+    // ── Derived defaults (computed during render, never seeded via an effect) ──
 
-    // Prefill the dose RATE unit: the location's most-recently-used unit IF
-    // it's still offered, else кг/дка (kg-per-dca) — the per-decare default.
-    // A legacy per-hectare smart-default is no longer in the offered list, so
-    // it falls through to the decare default rather than pre-selecting kg/ha.
-    useEffect(() => {
-        if (!open || doseUnitId) return;
+    // The dose RATE unit: the location's most-recently-used unit IF it's still
+    // offered, else кг/дка (kg-per-dca) — the per-decare default. A legacy
+    // per-hectare smart-default is no longer in the offered list, so it falls
+    // through to the decare default rather than pre-selecting kg/ha.
+    const defaultDoseUnitId = useMemo(() => {
         const list = units ?? [];
-        if (list.length === 0) return;
+        if (list.length === 0) return '';
         const smart = smartDefaults?.defaultUnitId;
-        const smartOffered = !!smart && list.some((u) => u.id === smart);
-        const fallback = list.find((u) => u.key === 'kg-per-dca') ?? list[0];
-        setDoseUnitId(smartOffered ? (smart as string) : (fallback?.id ?? ''));
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- prefill on open / units-resolve
-    }, [open, units, smartDefaults?.defaultUnitId]);
+        if (smart && list.some((u) => u.id === smart)) return smart;
+        return (list.find((u) => u.key === 'kg-per-dca') ?? list[0])?.id ?? '';
+    }, [units, smartDefaults?.defaultUnitId]);
 
-    // Default the water-carrier unit to л/дка (the standard tank rate) — by
+    // The water-carrier unit defaults to л/дка (the standard tank rate) — by
     // KEY, so it survives the symbol being Bulgarian.
-    useEffect(() => {
-        if (!open || waterRateUnitId) return;
-        const lPerDca = (units ?? []).find((u) => u.key === 'l-per-dca');
-        if (lPerDca) setWaterRateUnitId(lPerDca.id);
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- default on open / units-resolve
-    }, [open, units]);
+    const defaultWaterRateUnitId = useMemo(
+        () => (units ?? []).find((u) => u.key === 'l-per-dca')?.id ?? '',
+        [units],
+    );
+
+    // The operator defaults to the signed-in user once `/me` resolves. The
+    // override is only ever set by an explicit pick, so this never clobbers.
+    const doseUnitId = doseUnitIdOverride || defaultDoseUnitId;
+    const waterRateUnitId = waterRateUnitIdOverride || defaultWaterRateUnitId;
+    const assigneeUserId = assigneeUserIdOverride ?? me?.user?.id ?? null;
 
     const itemOptions = useMemo<ComboboxOption<ItemDTO>[]>(() => {
         const pool = (items ?? []).filter((it) =>
@@ -266,32 +256,6 @@ export function ParcelDetailSheet({
         }
     };
 
-    // Link (or clear) a КАИ cadastral identifier on this parcel. On success the
-    // parent revalidates → the КАИС link + legal-entity owner surface. Format is
-    // pre-checked client-side (ЕКАТТЕ.масив.парцел) for a friendly message; the
-    // usecase re-validates server-side.
-    const onCadastralSave = async () => {
-        if (!parcel) return;
-        const raw = cadInput.trim().replace(/\s+/g, '');
-        if (raw && !/^\d{5}\.\d+\.\d+$/.test(raw)) {
-            setCadError(t('parcelSheet.cadastralInvalid'));
-            return;
-        }
-        setCadSaving(true);
-        setCadError(null);
-        try {
-            await apiPatch(buildUrl(`/locations/${locationId}/parcels/${parcel.id}`), {
-                cadastralId: raw || null,
-            });
-            setCadEditing(false);
-            onCropChanged?.();
-        } catch (err) {
-            setCadError(err instanceof Error ? err.message : t('parcelSheet.createFailed'));
-        } finally {
-            setCadSaving(false);
-        }
-    };
-
     const doSubmit = async () => {
         if (!canSubmit || !parcel) return;
         setSubmitting(true);
@@ -353,51 +317,6 @@ export function ParcelDetailSheet({
                             {areaSummary ?? '—'}
                         </dd>
                     </div>
-                    {parcel && (cadEditing || !parcel.cadastralId) ? (
-                        <div className="col-span-2">
-                            <dt className="text-content-secondary">{t('parcelSheet.cadastralIdLabel')}</dt>
-                            <dd className="mt-1 flex flex-wrap items-center gap-tight">
-                                <Input
-                                    value={cadInput}
-                                    onChange={(e) => setCadInput(e.target.value)}
-                                    placeholder={t('parcelSheet.cadastralPlaceholder')}
-                                    className="max-w-[13rem]"
-                                    id="parcel-cadastral-input"
-                                    aria-label={t('parcelSheet.cadastralIdLabel')}
-                                />
-                                <Button variant="secondary" size="sm" onClick={onCadastralSave} disabled={cadSaving}>
-                                    {tc('save')}
-                                </Button>
-                                {parcel.cadastralId ? (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                            setCadEditing(false);
-                                            setCadError(null);
-                                        }}
-                                    >
-                                        {tc('cancel')}
-                                    </Button>
-                                ) : null}
-                            </dd>
-                            {cadError ? <p className="mt-1 text-xs text-content-error">{cadError}</p> : null}
-                        </div>
-                    ) : parcel?.cadastralId ? (
-                        <ParcelCadastralInfo
-                            cadastralId={parcel.cadastralId}
-                            areaHa={parcel.areaHa ?? null}
-                            properties={parcel.properties ?? null}
-                            companyOwners={parcel.companyOwners ?? []}
-                            layout="detail"
-                            className="col-span-2"
-                            onEdit={() => {
-                                setCadInput(parcel.cadastralId ?? '');
-                                setCadError(null);
-                                setCadEditing(true);
-                            }}
-                        />
-                    ) : null}
                     <div>
                         <dt className="text-content-secondary">{t('parcelSheet.crop')}</dt>
                         <dd data-testid="parcel-sheet-crop">
@@ -412,30 +331,6 @@ export function ParcelDetailSheet({
                         </dd>
                     </div>
                 </dl>
-
-                <Accordion type="single" collapsible className="rounded-lg border border-border-subtle">
-                    <AccordionItem value="soil" density="compact">
-                        <AccordionTrigger size="sm" className="px-4">
-                            <span className="font-medium">{tSoil('title')}</span>
-                        </AccordionTrigger>
-                        <AccordionContent size="sm">
-                            <div className="px-4 pb-4">
-                                <SoilProfileCard profile={parcel?.soilJson ?? null} />
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-
-                {parcel ? (
-                    <div className="rounded-lg border border-border-subtle p-4">
-                        <ParcelLeasePanel
-                            locationId={locationId}
-                            parcelId={parcel.id}
-                            prefillLessor={parcel.companyOwners?.[0]?.name ?? null}
-                            prefillEik={parcel.companyOwners?.[0]?.eik ?? null}
-                        />
-                    </div>
-                ) : null}
 
                 {/* The create-operation form — one exclusive input kind. Only
                     mounted with a parcel so the operator picker (react-query)
@@ -488,7 +383,7 @@ export function ParcelDetailSheet({
                             <Combobox
                                 options={unitOptions}
                                 selected={unitOptions.find((o) => o.value === doseUnitId) ?? null}
-                                setSelected={(o) => setDoseUnitId(o?.value ?? '')}
+                                setSelected={(o) => setDoseUnitIdOverride(o?.value ?? '')}
                                 placeholder={t('parcelSheet.unit')}
                                 aria-label={t('parcelSheet.unit')}
                                 matchTriggerWidth
@@ -517,7 +412,7 @@ export function ParcelDetailSheet({
                                 <Combobox
                                     options={unitOptions}
                                     selected={unitOptions.find((o) => o.value === waterRateUnitId) ?? null}
-                                    setSelected={(o) => setWaterRateUnitId(o?.value ?? '')}
+                                    setSelected={(o) => setWaterRateUnitIdOverride(o?.value ?? '')}
                                     placeholder={t('parcelSheet.unit')}
                                     aria-label={t('parcelSheet.waterUnit')}
                                     matchTriggerWidth
@@ -537,7 +432,7 @@ export function ParcelDetailSheet({
                             name="assigneeUserId"
                             tenantSlug={tenantSlug}
                             selectedId={assigneeUserId}
-                            onChange={(id) => setAssigneeUserId(id)}
+                            onChange={(id) => setAssigneeUserIdOverride(id)}
                             placeholder={t('parcelSheet.operatorPlaceholder')}
                             matchTriggerWidth
                         />
