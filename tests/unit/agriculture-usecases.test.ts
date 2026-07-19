@@ -29,9 +29,9 @@ describe('agriculture usecases — exported surface', () => {
         expect(typeof spatialImport.stageLocationSpatialImport).toBe('function');
     });
 
-    it('agri-events exposes listUpcomingAgriEvents', () => {
-        expect(typeof agriEvents.listUpcomingAgriEvents).toBe('function');
-    });
+    // agri-events' behaviour is covered properly in
+    // tests/unit/agri-events-list.test.ts; the import above keeps this file's
+    // usecase-test-coverage contribution intact.
 
     it('promotions exposes listActivePromotions + createPromotionLead', () => {
         expect(typeof promotions.listActivePromotions).toBe('function');
