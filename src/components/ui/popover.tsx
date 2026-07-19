@@ -27,6 +27,9 @@ import {
   ReactNode,
   WheelEventHandler,
   forwardRef,
+  useCallback,
+  useEffect,
+  useRef,
 } from "react";
 import { createPortal } from "react-dom";
 import { Drawer } from "vaul";
@@ -106,10 +109,59 @@ function PopoverRoot({
   // near the top of the screen. Bottom-anchor it instead so every mobile picker
   // reads the same way — the drawer above and this one both rise from the
   // bottom edge. `forceDropdown` callers opted into a dropdown explicitly, so
-  // they keep trigger anchoring. The re-anchoring itself lives in globals.css
-  // (Radix positions a WRAPPER element we can't put a className on) and keys
-  // off the `data-mobile-sheet` marker below.
+  // they keep trigger anchoring. Re-anchoring happens in TWO places, both
+  // keyed off the `data-mobile-sheet` marker below: a globals.css rule (the
+  // no-flash fast path) and the JS pin further down (the actual guarantee —
+  // see why the CSS alone isn't enough).
   const mobileSheetInOverlay = isMobile && !forceDropdown && overlayDepth > 0;
+
+  // Radix positions the content through a WRAPPER element it owns and writes
+  // inline styles onto (`position/left/top/transform/min-width`). No React
+  // className can reach that node, and the globals.css `:has()` rule that
+  // targets it is unreliable in the field: **Safari does not reliably
+  // re-evaluate `:has()` when the matching child is inserted dynamically**,
+  // which is exactly what happens when a popover opens — so on iOS the panel
+  // stayed anchored to its trigger while the content-level classes applied.
+  //
+  // Pin the wrapper from JS instead. Radix rewrites those inline styles on
+  // every reposition, so a MutationObserver re-applies ours; the guard makes
+  // the write idempotent so observing our own mutation can't loop.
+  const pinWrapperToBottom = useCallback((wrapper: HTMLElement) => {
+    if (wrapper.style.getPropertyValue("transform") === "none") return; // already pinned
+    wrapper.style.setProperty("position", "fixed", "important");
+    wrapper.style.setProperty("inset", "auto 0 0 0", "important");
+    wrapper.style.setProperty("transform", "none", "important");
+    wrapper.style.setProperty("min-width", "0", "important");
+    wrapper.style.setProperty("max-width", "100vw", "important");
+  }, []);
+
+  // A CALLBACK ref, not a ref object + effect: Radix mounts the content through
+  // a portal/Presence, so the node isn't attached yet when a mount effect runs
+  // (the ref reads null and the pin silently never happens). A callback ref
+  // fires exactly when the node lands.
+  const observerRef = useRef<MutationObserver | null>(null);
+  const attachContent = useCallback(
+    (node: HTMLDivElement | null) => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+      if (!node || !mobileSheetInOverlay) return;
+      // Walk up rather than assuming parentElement — Radix may nest the content
+      // below the positioned wrapper.
+      let wrapper: HTMLElement | null = node.parentElement;
+      while (wrapper && !wrapper.hasAttribute("data-radix-popper-content-wrapper")) {
+        wrapper = wrapper.parentElement;
+      }
+      if (!wrapper) return;
+      const target = wrapper;
+      pinWrapperToBottom(target);
+      const observer = new MutationObserver(() => pinWrapperToBottom(target));
+      observer.observe(target, { attributes: true, attributeFilter: ["style"] });
+      observerRef.current = observer;
+    },
+    [mobileSheetInOverlay, pinWrapperToBottom],
+  );
+
+  useEffect(() => () => observerRef.current?.disconnect(), []);
   // When a trigger tooltip is requested, wrap the whole Radix Trigger ELEMENT
   // (not the inner button) in <Tooltip>. Order matters: Tooltip OUTER →
   // Popover.Trigger INNER → button. The inner Popover.Trigger's asChild Slot
@@ -198,6 +250,7 @@ function PopoverRoot({
       )}
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
+          ref={attachContent}
           sideOffset={mobileSheetInOverlay ? 0 : sideOffset}
           align={align}
           side={side}

@@ -75,4 +75,46 @@ describe('Popover — mobile bottom-anchoring inside an overlay', () => {
         renderPopover({ inOverlay: false });
         expect(document.querySelector('[data-mobile-sheet="true"]')).toBeNull();
     });
+
+    // The CSS `:has()` rule is only the no-flash fast path — Safari doesn't
+    // reliably re-evaluate `:has()` for a dynamically inserted child, so the JS
+    // pin below is what actually fixes iOS. jsdom can't evaluate `:has()` at
+    // all, which makes this the only assertable half — and the important one.
+    describe('JS pin on Radix\'s positioning wrapper', () => {
+        it('pins the wrapper to the viewport bottom and kills its transform', () => {
+            mockMediaQuery.mockReturnValue({ isMobile: true });
+            renderPopover({ inOverlay: true });
+            const content = document.querySelector('[data-mobile-sheet="true"]');
+            const wrapper = content?.parentElement;
+            expect(wrapper).toBeTruthy();
+            expect(wrapper!.style.getPropertyValue('position')).toBe('fixed');
+            expect(wrapper!.style.getPropertyValue('transform')).toBe('none');
+            expect(wrapper!.style.getPropertyValue('inset')).toBe('auto 0 0 0');
+            // …and as !important, so Radix's inline styles can't win.
+            expect(wrapper!.style.getPropertyPriority('transform')).toBe('important');
+            expect(wrapper!.style.getPropertyPriority('inset')).toBe('important');
+        });
+
+        it('re-applies the pin when Radix rewrites the wrapper style (reposition)', async () => {
+            mockMediaQuery.mockReturnValue({ isMobile: true });
+            renderPopover({ inOverlay: true });
+            const wrapper = document.querySelector('[data-mobile-sheet="true"]')!
+                .parentElement as HTMLElement;
+            // Simulate Radix repositioning: it overwrites transform on scroll/resize.
+            wrapper.style.setProperty('transform', 'translate(12px, 340px)');
+            expect(wrapper.style.getPropertyValue('transform')).toBe('translate(12px, 340px)');
+            // The MutationObserver restores the pin on the next microtask.
+            await new Promise((r) => setTimeout(r, 0));
+            expect(wrapper.style.getPropertyValue('transform')).toBe('none');
+        });
+
+        it('leaves the wrapper alone when not a mobile in-overlay popover', () => {
+            mockMediaQuery.mockReturnValue({ isMobile: false });
+            renderPopover({ inOverlay: true });
+            const wrapper = document.querySelector('[data-radix-popper-content-wrapper]');
+            // Desktop keeps Radix's own trigger-anchored positioning.
+            expect((wrapper as HTMLElement | null)?.style.getPropertyValue('transform') ?? '')
+                .not.toBe('none');
+        });
+    });
 });

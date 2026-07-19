@@ -556,8 +556,17 @@ textarea.input { @apply resize-y min-h-[80px]; }
  * Radix positions the content via a WRAPPER element it owns, so no React
  * className can reach it; this rule re-anchors that wrapper to the viewport
  * bottom whenever the content it holds carries `data-mobile-sheet="true"`
- * (set by popover.tsx for exactly this case). The result matches the
- * standalone mobile drawer: every picker rises from the bottom edge.
+ * (set by popover.tsx for exactly this case).
+ *
+ * This is the FAST PATH only — it lands at first paint, avoiding a flash of
+ * trigger-anchored panel. It is NOT sufficient on its own: **Safari does not
+ * reliably re-evaluate `:has()` when the matching child is inserted
+ * dynamically** (an opening popover is exactly that), so on iOS this rule
+ * never fired and the panel stayed pinned to its trigger. popover.tsx
+ * therefore also pins the wrapper from JS (a MutationObserver re-applies it,
+ * since Radix rewrites the inline styles on every reposition). Keep BOTH:
+ * the JS is the guarantee, this is the no-flash optimisation. Deleting the JS
+ * silently regresses iOS.
  *
  * The 639px ceiling is deliberate — it mirrors `useMediaQuery`'s `isMobile`
  * (< 640px), so the CSS and the JS that sets the marker agree exactly.
