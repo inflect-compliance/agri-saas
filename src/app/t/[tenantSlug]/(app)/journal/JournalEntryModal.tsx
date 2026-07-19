@@ -52,6 +52,13 @@ interface LocationOption {
     name: string;
 }
 
+interface EquipmentOption {
+    id: string;
+    name: string;
+    make?: string | null;
+    model?: string | null;
+}
+
 interface ItemOption {
     id: string;
     name: string;
@@ -83,6 +90,9 @@ interface JournalSubmitBody {
     notes: string | null;
     quantities: Array<{ measure: QuantityMeasure; value: number; unitId: string; label: string | null }>;
     locationIds: string[];
+    equipmentIds: string[];
+    costAmount?: number | null;
+    costCurrency?: string | null;
     harvest?: HarvestPayload;
 }
 
@@ -95,6 +105,9 @@ export interface JournalEntryInitial {
     notes?: string | null;
     quantities?: Array<{ measure: string; value: number | string; unitId: string; label?: string | null }>;
     locationIds?: string[];
+    equipmentIds?: string[];
+    costAmount?: number | string | null;
+    costCurrency?: string | null;
 }
 
 /**
@@ -133,12 +146,6 @@ export interface JournalEntryModalProps {
     offlineSubmit?: OfflineSync['submit'];
 }
 
-const TYPE_OPTIONS: ComboboxOption[] = Object.entries(LOG_ENTRY_TYPE_LABELS).map(
-    ([value, label]) => ({ value, label }),
-);
-const STATUS_OPTIONS: ComboboxOption[] = Object.entries(LOG_ENTRY_STATUS_LABELS).map(
-    ([value, label]) => ({ value, label }),
-);
 
 export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved, onCreated, offlineSubmit }: JournalEntryModalProps) {
     const buildUrl = useTenantApiUrl();
@@ -147,6 +154,21 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved,
     // live); fall back to this modal's own hook at other call sites.
     const enqueueSubmit = offlineSubmit ?? localSync.submit;
     const t = useTranslations('journal.entryModal');
+    const te = useTranslations('journalEnums');
+    // Authoring dropdowns are localized from journalEnums — the English
+    // LOG_ENTRY_*_LABELS maps stay only as the value source.
+    const TYPE_OPTIONS: ComboboxOption[] = useMemo(
+        () => Object.keys(LOG_ENTRY_TYPE_LABELS).map((value) => ({ value, label: te(`logType.${value}`) })),
+        [te],
+    );
+    const STATUS_OPTIONS: ComboboxOption[] = useMemo(
+        () => Object.keys(LOG_ENTRY_STATUS_LABELS).map((value) => ({ value, label: te(`status.${value}`) })),
+        [te],
+    );
+    const MEASURE_OPTIONS: ComboboxOption[] = useMemo(
+        () => QUANTITY_MEASURES.map((m) => ({ value: m, label: te(`measure.${m}`) })),
+        [te],
+    );
     const isEdit = !!initial?.id;
 
     // Catalogs for the pickers.
@@ -158,6 +180,9 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved,
     const { data: locations } = useTenantSWR<LocationOption[]>(open ? '/locations' : null);
     // Items catalog — backs the optional harvest-output picker (HARVEST only).
     const { data: items } = useTenantSWR<ItemOption[]>(open ? '/items' : null);
+    // Equipment catalog — backs the multi-picker (schemas already accepted
+    // equipmentIds; the detail page already displayed them).
+    const { data: equipment } = useTenantSWR<EquipmentOption[]>(open ? '/equipment' : null);
 
     // ── Form state ──
     const [type, setType] = useState<string>(initial?.type ?? 'ACTIVITY');
@@ -176,6 +201,10 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved,
         })),
     );
     const [locationIds, setLocationIds] = useState<string[]>(initial?.locationIds ?? []);
+    const [equipmentIds, setEquipmentIds] = useState<string[]>(initial?.equipmentIds ?? []);
+    const [costAmount, setCostAmount] = useState<string>(
+        initial?.costAmount != null ? String(initial.costAmount) : '',
+    );
     // Harvest-output state — only consumed when type === 'HARVEST'. Editing an
     // existing entry never re-mints a lot, so these reset to empty on open.
     const [harvestItemId, setHarvestItemId] = useState<string>('');
@@ -203,6 +232,8 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved,
             })),
         );
         setLocationIds(initial?.locationIds ?? []);
+        setEquipmentIds(initial?.equipmentIds ?? []);
+        setCostAmount(initial?.costAmount != null ? String(initial.costAmount) : '');
         setHarvestItemId('');
         setHarvestQty('');
         setHarvestLotCode('');
@@ -219,6 +250,13 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved,
     const locationOptions: ComboboxOption[] = useMemo(
         () => (locations ?? []).map((l) => ({ value: l.id, label: l.name })),
         [locations],
+    );
+    const equipmentOptions: ComboboxOption[] = useMemo(
+        () => (equipment ?? []).map((e) => ({
+            value: e.id,
+            label: e.make || e.model ? `${e.name} (${[e.make, e.model].filter(Boolean).join(' ')})` : e.name,
+        })),
+        [equipment],
     );
     // Harvest item options — surface HARVESTED_PRODUCE first (the expected
     // output category) but keep every item selectable.
@@ -282,6 +320,8 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved,
                     label: q.label.trim() || null,
                 })),
                 locationIds,
+                equipmentIds,
+                costAmount: costAmount.trim() ? Number(costAmount) : null,
             };
             if (harvestPayload) body.harvest = harvestPayload;
             if (isEdit && initial?.id) {
@@ -457,6 +497,31 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved,
                             />
                         </FormField>
 
+                        <FormField label={t('fieldEquipment')}>
+                            <Combobox
+                                multiple
+                                options={equipmentOptions}
+                                selected={equipmentOptions.filter((o) => equipmentIds.includes(o.value))}
+                                setSelected={(opts) => {
+                                    setEquipmentIds(opts.map((o) => o.value));
+                                    markDirty();
+                                }}
+                                placeholder={equipmentOptions.length ? t('equipmentPlaceholder') : t('equipmentEmpty')}
+                                aria-label={t('equipmentAria')}
+                                matchTriggerWidth
+                            />
+                        </FormField>
+
+                        <FormField label={t('fieldCost')} hint={t('costHint')}>
+                            <Input
+                                id="journal-cost-input"
+                                inputMode="decimal"
+                                value={costAmount}
+                                onChange={(e) => { setCostAmount(e.target.value); markDirty(); }}
+                                placeholder={t('costPlaceholder')}
+                            />
+                        </FormField>
+
                         {/* Harvest output — HARVEST entries only. Optional: leave the
                             item blank and the entry submits with no lot minted. */}
                         {type === 'HARVEST' && (
@@ -541,8 +606,8 @@ export function JournalEntryModal({ open, setOpen, tenantSlug, initial, onSaved,
                                         >
                                             <div className="col-span-3">
                                                 <Combobox
-                                                    options={QUANTITY_MEASURES.map((m) => ({ value: m, label: m }))}
-                                                    selected={{ value: q.measure, label: q.measure }}
+                                                    options={MEASURE_OPTIONS}
+                                                    selected={MEASURE_OPTIONS.find((o) => o.value === q.measure) ?? null}
                                                     setSelected={(o) =>
                                                         updateQuantity(i, { measure: (o?.value as QuantityMeasure) ?? 'COUNT' })
                                                     }

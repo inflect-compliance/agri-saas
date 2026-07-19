@@ -22,8 +22,12 @@ export default async function JournalPage({
 
     const ctx = await getTenantCtx({ tenantSlug });
 
+    // The SSR allow-list mirrors the API's JournalQuerySchema exactly, so a
+    // shared filtered link paints correctly on first load instead of
+    // server-rendering an unfiltered page and re-fetching on the client —
+    // which matters on rural LTE.
     const filters: Record<string, string> = {};
-    for (const key of ['q', 'type', 'status']) {
+    for (const key of ['q', 'type', 'status', 'occurredFrom', 'occurredTo', 'crop', 'locationId']) {
         const val = sp[key];
         if (typeof val === 'string' && val) filters[key] = val;
     }
@@ -42,7 +46,7 @@ export default async function JournalPage({
                 initialNextCursor={firstPage.pageInfo.nextCursor ?? null}
                 initialFilters={filters}
                 tenantSlug={tenantSlug}
-                permissions={{ canWrite: ctx.permissions.canWrite }}
+                permissions={{ canWrite: ctx.permissions.canWrite, canAdmin: ctx.permissions.canAdmin }}
             />
         </div>
     );

@@ -146,6 +146,16 @@ export async function listLogEntries(ctx: RequestContext, filters?: LogEntryFilt
     return runInTenantContext(ctx, (db) => JournalRepository.list(db, ctx, filters));
 }
 
+/**
+ * The Trash view — soft-deleted entries awaiting restore or purge. ADMIN-gated
+ * to match `restoreLogEntry` / `purgeLogEntry`, the only two things you can do
+ * from here.
+ */
+export async function listDeletedLogEntries(ctx: RequestContext) {
+    assertCanAdmin(ctx);
+    return runInTenantContext(ctx, (db) => JournalRepository.listDeleted(db, ctx));
+}
+
 export async function listLogEntriesPaginated(ctx: RequestContext, params: LogEntryListParams) {
     assertCanRead(ctx);
     return runInTenantContext(ctx, (db) => JournalRepository.listPaginated(db, ctx, params));

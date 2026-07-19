@@ -1,20 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { CACHE_KEYS } from '@/lib/swr-keys';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import { Button } from '@/components/ui/button';
-import { Pen2, CalendarIcon } from '@/components/ui/icons/nucleo';
+import { Pen2, CalendarIcon, Trash } from '@/components/ui/icons/nucleo';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
 import { DatePicker, type DateValue } from '@/components/ui/date-picker';
 import { toYMD } from '@/components/ui/date-picker/date-utils';
-import { useToast } from '@/components/ui/hooks';
+import { useToast, useToastWithUndo } from '@/components/ui/hooks';
 import { Eyebrow, Heading } from '@/components/ui/typography';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
@@ -70,6 +70,8 @@ interface LogEntryDetail {
     files?: PhotoLink[];
     locations?: LocationLink[];
     equipment?: EquipmentLink[];
+    costAmount?: number | string | null;
+    costCurrency?: string | null;
     attributesJson?: { pestId?: PestSuggestionData } | null;
     /** БАБХ — set when this entry is the INPUT_APPLICATION record of a field
      * operation, so the journal offers manual ДНЕВНИК generation. */
@@ -92,6 +94,27 @@ export default function JournalDetailPage() {
     const [activeTab, setActiveTab] = useState<Tab>('details');
     const [editing, setEditing] = useState(false);
     const toast = useToast();
+    const triggerUndoToast = useToastWithUndo();
+    const router = useRouter();
+
+    /**
+     * Delete the entry — Epic 67 undo pattern. Entries are freely deletable by
+     * design (the ДНЕВНИК sources from OperationParcel, not LogEntry), and a
+     * soft delete is restorable from the journal Trash, so this is the routine
+     * reversible branch: navigate back to the list and let the DELETE fire
+     * after the 5s window.
+     */
+    const handleDeleteEntry = () => {
+        triggerUndoToast({
+            message: t('entryDeleted'),
+            undoMessage: t('undo'),
+            action: async () => {
+                const res = await fetch(apiUrl(`/journal/${entryId}`), { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed');
+            },
+        });
+        router.push(tenantHref('/journal'));
+    };
 
     // БАБХ ДНЕВНИК (PDF) — offered on entries that record a field operation.
     const [showDnevnik, setShowDnevnik] = useState(false);
@@ -214,6 +237,7 @@ export default function JournalDetailPage() {
             }
             actions={
                 <div className="flex items-center gap-compact">
+
                     {entry.fieldOperation && (
                         <Button
                             variant="secondary"
@@ -224,6 +248,19 @@ export default function JournalDetailPage() {
                         >
                             {t('dnevnikBtn')}
                         </Button>
+                    )}
+                    {permissions.canWrite && (
+                        <Tooltip content={t('deleteEntry')}>
+                            <Button
+                                variant="destructive-outline"
+                                size="icon"
+                                onClick={handleDeleteEntry}
+                                id="delete-journal-btn"
+                                aria-label={t('deleteEntry')}
+                            >
+                                <Trash className="size-4" />
+                            </Button>
+                        </Tooltip>
                     )}
                     {permissions.canWrite && (
                         <Tooltip content={t('editEntry')}>
@@ -265,6 +302,13 @@ export default function JournalDetailPage() {
                         locationIds: locations
                             .map((l) => l.locationId ?? l.location?.id)
                             .filter((id): id is string => Boolean(id)),
+                        // Seeded because updateLogEntry REPLACES these sets —
+                        // omitting them would silently clear the entry's
+                        // equipment links on every edit.
+                        equipmentIds: equipment
+                            .map((e) => e.equipmentId ?? e.equipment?.id)
+                            .filter((id): id is string => Boolean(id)),
+                        costAmount: entry.costAmount ?? null,
                     }}
                     onSaved={() => void mutate()}
                 />
@@ -290,6 +334,14 @@ export default function JournalDetailPage() {
                             <p className="text-sm">
                                 {equipment.length
                                     ? equipment.map((e) => e.equipment?.name).filter(Boolean).join(', ')
+                                    : '—'}
+                            </p>
+                        </div>
+                        <div>
+                            <Eyebrow>{t('cost')}</Eyebrow>
+                            <p className="text-sm tabular-nums">
+                                {entry.costAmount != null
+                                    ? `${Number(entry.costAmount)}${entry.costCurrency ? ` ${entry.costCurrency}` : ''}`
                                     : '—'}
                             </p>
                         </div>
@@ -340,7 +392,7 @@ export default function JournalDetailPage() {
                                 <li key={q.id} className="flex items-center justify-between py-2">
                                     <span className="text-sm">
                                         <StatusBadge variant="neutral" size="sm">
-                                            {q.measure}
+                                            {te(`measure.${q.measure}`)}
                                         </StatusBadge>{' '}
                                         {q.label || '—'}
                                     </span>

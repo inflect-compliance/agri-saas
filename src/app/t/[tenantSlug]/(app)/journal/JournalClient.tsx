@@ -11,7 +11,9 @@ import { CACHE_KEYS } from '@/lib/swr-keys';
 import { useOfflineSync } from '@/lib/offline/use-offline-sync';
 import { OfflineSyncBar } from '@/components/offline/OfflineSyncBar';
 import { Button } from '@/components/ui/button';
-import { Plus } from '@/components/ui/icons/nucleo';
+import { Plus, Trash } from '@/components/ui/icons/nucleo';
+import { Tooltip } from '@/components/ui/tooltip';
+import { DeletedJournalView } from './DeletedJournalView';
 import { Fab } from '@/components/ui/fab';
 import { createColumns } from '@/components/ui/table';
 import {
@@ -29,6 +31,7 @@ import {
     buildJournalFilters,
     JOURNAL_FILTER_KEYS,
     LOG_ENTRY_TYPE_LABELS,
+    FIELD_OPERATION_TYPES,
     CROP_FILTER_LABELS,
 } from './filter-defs';
 import { JournalEntryModal, type OptimisticJournalEntry } from './JournalEntryModal';
@@ -74,7 +77,7 @@ interface JournalClientProps {
     initialNextCursor: string | null;
     initialFilters: Record<string, string>;
     tenantSlug: string;
-    permissions: { canWrite: boolean };
+    permissions: { canWrite: boolean; canAdmin: boolean };
 }
 
 const STATUS_BADGE: Record<string, StatusBadgeVariant> = {
@@ -100,6 +103,9 @@ function JournalPageInner({ initialEntries, initialNextCursor, initialFilters, t
     const prefetchData = usePrefetchTenant();
     const t = useTranslations('journal');
     const te = useTranslations('journalEnums');
+    const tTrash = useTranslations('journal.trash');
+    // B1 — in-page ADMIN Trash (no new navbar entry).
+    const [showDeleted, setShowDeleted] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
     const filterCtx = useFilters();
@@ -254,11 +260,20 @@ function JournalPageInner({ initialEntries, initialNextCursor, initialFilters, t
                 {
                     id: 'operation',
                     header: t('colOperation'),
-                    accessorFn: (e) =>
-                        e.operationParcel?.task?.operationType ??
-                        (e.type in LOG_ENTRY_TYPE_LABELS
+                    // The primary branch is the FieldOperationType enum
+                    // (SPRAY/FERTILIZE/SEED/OTHER) — localized like the
+                    // fallback rather than printed raw.
+                    accessorFn: (e) => {
+                        const op = e.operationParcel?.task?.operationType;
+                        if (op) {
+                            return op in FIELD_OPERATION_TYPES
+                                ? te(`operationType.${op}`)
+                                : String(op).replace(/_/g, ' ');
+                        }
+                        return e.type in LOG_ENTRY_TYPE_LABELS
                             ? te(`logType.${e.type}`)
-                            : String(e.type).replace(/_/g, ' ')),
+                            : String(e.type).replace(/_/g, ' ');
+                    },
                     cell: ({ getValue }) => (
                         <StatusBadge variant="info" size="sm">
                             {String(getValue()).replace(/_/g, ' ')}
@@ -373,6 +388,12 @@ function JournalPageInner({ initialEntries, initialNextCursor, initialFilters, t
         [tenantSlug, t, te],
     );
 
+    // Swap the whole surface into the Trash view. Placed after every hook so
+    // hook order stays stable.
+    if (showDeleted && permissions.canAdmin) {
+        return <DeletedJournalView tenantSlug={tenantSlug} onBack={() => setShowDeleted(false)} />;
+    }
+
     return (
         <EntityListPage<JournalRow>
             className="gap-section"
@@ -383,16 +404,34 @@ function JournalPageInner({ initialEntries, initialNextCursor, initialFilters, t
                 ],
                 title: t('title'),
                 description: t('description'),
-                actions: permissions.canWrite ? (
-                    <Button
-                        variant="primary"
-                        icon={<Plus className="-ml-0.5 -mr-2.5" />}
-                        onClick={() => setIsCreateOpen(true)}
-                        id="new-journal-btn"
-                    >
-                        {t('addEntry')}
-                    </Button>
-                ) : null,
+                actions: (
+                    <>
+                        {/* Trash — ADMIN-only, matching restore/purge. */}
+                        {permissions.canAdmin && (
+                            <Tooltip content={tTrash('title')}>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={() => setShowDeleted(true)}
+                                    id="journal-trash-btn"
+                                    aria-label={tTrash('title')}
+                                >
+                                    <Trash className="size-4" />
+                                </Button>
+                            </Tooltip>
+                        )}
+                        {permissions.canWrite && (
+                            <Button
+                                variant="primary"
+                                icon={<Plus className="-ml-0.5 -mr-2.5" />}
+                                onClick={() => setIsCreateOpen(true)}
+                                id="new-journal-btn"
+                            >
+                                {t('addEntry')}
+                            </Button>
+                        )}
+                    </>
+                ),
             }}
             filters={{
                 defs: liveFilters,

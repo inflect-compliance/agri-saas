@@ -47,6 +47,11 @@ const EXEMPT_FILE_PATTERNS: RegExp[] = [
  * length to stop hand-waved exemptions.
  */
 const EXEMPTIONS: Record<string, string> = {
+    // Journal Trash — a bounded ADMIN-only soft-deleted list reached in-page
+    // from the journal toggle. Restore/purge affordances only; the parent
+    // journal list owns the faceted filters.
+    "src/app/t/[tenantSlug]/(app)/journal/DeletedJournalView.tsx":
+        "Bounded ADMIN Trash sub-view — restore/purge only, filters live on the parent journal list.",
     // Assets Trash (B2) — a bounded ADMIN-only soft-deleted list reached
     // in-page from the assets toggle. Restore/purge affordances only; no
     // faceted filtering (the parent list owns filters).
