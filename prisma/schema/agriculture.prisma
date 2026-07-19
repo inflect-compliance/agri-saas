@@ -57,9 +57,14 @@ model Unit {
 
 /// GLOBAL agriculture-events catalogue (#15) — fairs, trainings, webinars,
 /// subsidy deadlines. NO tenantId (like `Unit`) → not tenant-scoped, no RLS:
-/// every tenant reads the same shared list. Seeded (scripts) / admin-posted.
-/// `category` is a free String from the curated set fair/training/webinar/
-/// subsidy-deadline. A per-tenant event dimension is a future extension.
+/// every tenant reads the same shared list. Populated by the platform-admin
+/// API (`POST|PATCH|DELETE /api/admin/agri-events`, PLATFORM_ADMIN_API_KEY-
+/// gated) in production, and by `scripts/seed-agri-events.ts` in dev/demo/
+/// staging — never by tenants, who would otherwise edit a shared surface.
+/// `category` is a String column, but every write path validates it against
+/// `AGRI_EVENT_CATEGORIES` in `src/app-layer/schemas/agri-event.schemas.ts`
+/// (fair/training/webinar/subsidy-deadline). A per-tenant event dimension is a
+/// future extension.
 model AgriEvent {
   id          String    @id @default(cuid())
   title       String

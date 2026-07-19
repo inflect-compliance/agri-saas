@@ -70,6 +70,19 @@ describe('CI Guard: No direct prisma in tenant-scoped code', () => {
 
     // ─── Usecases ───
     const USECASE_ALLOWLIST: string[] = [
+        // #15 — `AgriEvent` is a GLOBAL catalogue (no tenantId / no RLS, like
+        // `Unit` / `Promotion` / `Framework`). The tenant-facing READ still goes
+        // through `runInTenantContext`; the global handle is used by exactly two
+        // kinds of caller that have no tenant transaction to borrow:
+        //   - `hasUpcomingAgriEvents`, the ctx-free existence check the tenant
+        //     layout uses to hide the Events nav entry on an empty catalogue;
+        //   - the platform-admin curation writes, invoked from
+        //     PLATFORM_ADMIN_API_KEY-gated routes where no user session and
+        //     therefore no RequestContext exists (the `tenant-lifecycle.ts`
+        //     pattern).
+        // There is no tenantId to filter on, so the global handle carries no
+        // RLS risk.
+        'agri-events.ts',
         'sso.ts', 'mfa.ts', 'mfa-enrollment.ts', 'mfa-challenge.ts',
         'session-security.ts', 'webhook-processor.ts', 'scim-users.ts',
         // EI-3 — scim-groups resolves SCIM externalIds → IC users via a global

@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { getTenantServerContext } from '@/lib/server/tenant-context.server';
 import { TenantProvider } from '@/lib/tenant-context-provider';
 import { getTenantPlan, getAvailableModulesForTenant } from '@/lib/entitlements-server';
+import { hasUpcomingAgriEvents } from '@/app-layer/usecases/agri-events';
 
 /**
  * This layout depends on auth cookies and database queries — it can never be statically generated.
@@ -52,9 +53,13 @@ export default async function TenantLayout({
         notFound();
     }
 
-    const [planRaw, availableModules] = await Promise.all([
+    // #15 — the agri-events probe joins the existing Promise.all so it costs no
+    // extra latency. It is memoised in-process (the answer is identical for
+    // every tenant), so this is not a per-navigation query.
+    const [planRaw, availableModules, agriEventsAvailable] = await Promise.all([
         getTenantPlan(serverCtx.tenant.id),
         getAvailableModulesForTenant(serverCtx.tenant.id),
+        hasUpcomingAgriEvents(),
     ]);
     const plan = planRaw ?? undefined;
 
@@ -67,6 +72,7 @@ export default async function TenantLayout({
             role: serverCtx.role,
             plan,
             availableModules,
+            agriEventsAvailable,
             permissions: serverCtx.permissions,
             appPermissions: serverCtx.appPermissions,
         }}>

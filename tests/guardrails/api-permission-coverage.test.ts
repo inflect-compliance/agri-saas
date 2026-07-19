@@ -122,6 +122,18 @@ const EXCLUDED_ROUTES: ReadonlyArray<{ relPath: string; reason: string }> = [
         relPath: 'api/admin/tenants/[slug]/transfer-ownership/route.ts',
         reason: 'Platform-admin-key-gated: transfer-ownership — tenant-scope does not apply.',
     },
+    {
+        relPath: 'api/admin/agri-events/route.ts',
+        reason:
+            'Platform-admin-key-gated: POST /api/admin/agri-events — AgriEvent is a GLOBAL ' +
+            'catalogue with no tenantId, so a tenant-scoped permission does not apply.',
+    },
+    {
+        relPath: 'api/admin/agri-events/[id]/route.ts',
+        reason:
+            'Platform-admin-key-gated: PATCH/DELETE /api/admin/agri-events/[id] — global ' +
+            'catalogue, tenant-scope does not apply.',
+    },
 ];
 
 const REPO_ROOT = path.resolve(__dirname, '../..');
