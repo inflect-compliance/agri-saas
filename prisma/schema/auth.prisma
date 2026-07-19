@@ -226,6 +226,7 @@ model Tenant {
   locations                Location[]
   parcels                  Parcel[]
   parcelLeases             ParcelLease[]
+  leasePayments            LeasePayment[]
   items                    Item[]
   operationParcels         OperationParcel[]
   // Crop planning domain.

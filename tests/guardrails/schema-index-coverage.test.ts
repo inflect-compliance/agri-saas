@@ -405,6 +405,9 @@ const LIST_MODELS_TENANT_INDEX_SUFFICIENT: Record<string, string> = {
     // ─── Land administration (roadmap 2/3) — parcel lease register ───
     ParcelLease:
         'listParcelLeases findMany filters by (tenantId, parcelId, deletedAt) — covered by @@index([tenantId, parcelId]); the endDate/createdAt orderBy runs over a parcel\'s handful of leases (take:100), no separate composite needed. listTenantLeases (Rent page, roadmap 3/3) is the tenant-wide register — filters (tenantId, deletedAt) with an optional parcel.locationId relation filter, orders by endDate/createdAt, take:500 — served by @@index([tenantId, endDate]) (the same index the rent-roll expiry scan uses); the createdAt tiebreak sorts a tenant\'s bounded lease set in memory.',
+    // ─── Rent roll — lease settlement leg ───
+    LeasePayment:
+        'listLeasePayments findMany filters by (tenantId, leaseId, deletedAt), orders by paidAt/createdAt desc, take:200 — covered by @@index([tenantId, leaseId]); a lease settles a handful of times per season so the date sort runs over a tiny set. The rent-roll aggregation reads payments through a raw-SQL LEFT JOIN grouped by leaseId and filtered on (tenantId, deletedAt, seasonYear) — served by @@index([tenantId, seasonYear]).',
     // ─── RAG (feat/ai-rag) — KnowledgeChunk retrieval store ───
     KnowledgeChunk:
         'retrieve() keyword branch findMany filters by (tenantId OR tenantId IS NULL) + text contains — covered by @@index([tenantId, articleId]) for the tenant predicate; the text match is a substring scan with no useful index (the ranked path is the vector branch, a raw ivfflat $queryRaw not a findMany). Both branches are take-bounded (topK*2). Nullable tenantId GLOBAL catalog.',

@@ -11,6 +11,7 @@ import type { RequestContext } from '../../types';
 import { runInTenantContext } from '@/lib/db-context';
 import { getRentRoll } from '../../usecases/rent-roll';
 import { REPORT_DAYS } from '@/lib/agro/lease-expiry';
+import { rentTotalSuffix } from '@/lib/agro/rent-units';
 
 const INK = '#0f172a';
 const MUTED = '#64748b';
@@ -91,9 +92,19 @@ export async function generateRentRollPdf(
     doc.moveDown(1);
 
     // Summary line.
+    // Season totals are rendered PER UNIT — money and produce are never summed.
+    const totalsLabel =
+        data.totals.length > 0
+            ? data.totals.map((s) => `${num(s.total)} ${rentTotalSuffix(s.unit)}`.trim()).join(' · ')
+            : '—';
+    const outstandingLabel =
+        data.totals.length > 0
+            ? data.totals.map((s) => `${num(s.outstanding)} ${rentTotalSuffix(s.unit)}`.trim()).join(' · ')
+            : '—';
     doc.font(UNICODE_FONT).fontSize(10).fillColor(INK).text(
         `Наета площ: ${num(data.totalLeasedDca)} дка   ·   Наемодатели: ${data.lessorCount}   ·   ` +
-            `Договори: ${data.activeLeaseCount}   ·   Рента/сезон: ${num(data.totalRent)} лв`,
+            `Договори: ${data.activeLeaseCount}   ·   Рента/сезон: ${totalsLabel}   ·   ` +
+            `Оставащо (${data.seasonYear}): ${outstandingLabel}`,
         m.left,
         doc.y,
         { width: contentW },
@@ -109,18 +120,26 @@ export async function generateRentRollPdf(
         drawTable(
             doc,
             [
-                { header: 'Наемодател', width: contentW * 0.38 },
-                { header: 'ЕИК', width: contentW * 0.16 },
-                { header: 'Договори', width: contentW * 0.12, align: 'right' },
-                { header: 'Площ (дка)', width: contentW * 0.16, align: 'right' },
-                { header: 'Рента/сезон', width: contentW * 0.18, align: 'right' },
+                { header: 'Наемодател', width: contentW * 0.26 },
+                { header: 'ЕИК', width: contentW * 0.12 },
+                { header: 'Дог.', width: contentW * 0.07, align: 'right' },
+                { header: 'Площ (дка)', width: contentW * 0.13, align: 'right' },
+                { header: 'Рента/сезон', width: contentW * 0.15, align: 'right' },
+                { header: 'Ед.', width: contentW * 0.09 },
+                { header: 'Платено', width: contentW * 0.09, align: 'right' },
+                { header: 'Оставащо', width: contentW * 0.09, align: 'right' },
             ],
+            // A row is one (lessor × unit) pair, so its unit labels its own
+            // figures — no лв is asserted over a кг/дка obligation.
             data.byLessor.map((l) => [
                 l.lessorName,
                 l.lessorEik ?? '—',
                 String(l.leaseCount),
                 num(l.leasedDca),
-                l.rentTotal != null ? `${num(l.rentTotal)} лв` : '—',
+                l.rentTotal != null ? num(l.rentTotal) : '—',
+                l.rentUnit ?? '—',
+                num(l.paid),
+                num(l.outstanding),
             ]),
         );
     }

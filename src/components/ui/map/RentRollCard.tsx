@@ -17,12 +17,27 @@ import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Heading } from '@/components/ui/typography';
 import { leaseExpiryTier, LEASE_EXPIRY_TONE } from '@/lib/agro/lease-expiry';
+import { rentTotalSuffix } from '@/lib/agro/rent-units';
+import { UpgradeGate } from '@/components/UpgradeGate';
 
 export interface RentRollData {
     totalLeasedDca: number;
-    totalRent: number;
+    /** Season totals PER UNIT — money and produce are never summed together. */
+    totals: Array<{ unit: string | null; total: number; paid: number; outstanding: number }>;
     activeLeaseCount: number;
     lessorCount: number;
+    seasonYear: number;
+    /** Per (lessor × unit) rows — drives the Rent page's „Неплатени" filter. */
+    byLessor: Array<{
+        lessorName: string;
+        lessorEik: string | null;
+        rentUnit: string | null;
+        leaseCount: number;
+        leasedDca: number;
+        rentTotal: number | null;
+        paid: number;
+        outstanding: number;
+    }>;
     expiringSoon: Array<{
         leaseId: string;
         parcelName: string;
@@ -71,12 +86,16 @@ export function RentRollCard({
             <div className="flex items-center justify-between gap-default">
                 <Heading level={3}>{t('title')}</Heading>
                 <div className="flex items-center gap-default text-sm">
+                    {/* CSV stays ungated (ReportsClient precedent); PDF is a
+                        PDF_EXPORTS feature and the route enforces it too. */}
                     <a href={exportUrl('csv')} className="text-brand hover:underline">CSV</a>
-                    <a href={exportUrl('pdf')} className="text-brand hover:underline">PDF</a>
+                    <UpgradeGate feature="PDF_EXPORTS">
+                        <a href={exportUrl('pdf')} className="text-brand hover:underline">PDF</a>
+                    </UpgradeGate>
                 </div>
             </div>
 
-            <dl className="grid grid-cols-2 gap-default text-sm sm:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-default text-sm sm:grid-cols-5">
                 <div>
                     <dt className="text-content-secondary">{t('leasedArea')}</dt>
                     <dd className="font-medium tabular-nums">{num(data.totalLeasedDca)} дка</dd>
@@ -91,7 +110,24 @@ export function RentRollCard({
                 </div>
                 <div>
                     <dt className="text-content-secondary">{t('rentSeason')}</dt>
-                    <dd className="font-medium tabular-nums">{num(data.totalRent)} лв</dd>
+                    {/* One figure PER UNIT — „12 300 лв · 4 200 кг", never blended. */}
+                    <dd className="font-medium tabular-nums">
+                        {data.totals.length > 0
+                            ? data.totals
+                                  .map((s) => `${num(s.total)} ${rentTotalSuffix(s.unit)}`.trim())
+                                  .join(' · ')
+                            : '—'}
+                    </dd>
+                </div>
+                <div>
+                    <dt className="text-content-secondary">{t('outstanding')}</dt>
+                    <dd className="font-medium tabular-nums">
+                        {data.totals.length > 0
+                            ? data.totals
+                                  .map((s) => `${num(s.outstanding)} ${rentTotalSuffix(s.unit)}`.trim())
+                                  .join(' · ')
+                            : '—'}
+                    </dd>
                 </div>
             </dl>
 

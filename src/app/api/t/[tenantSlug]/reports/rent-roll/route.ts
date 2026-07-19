@@ -11,6 +11,8 @@ import { getTenantCtx } from '@/app-layer/context';
 import { getRentRoll } from '@/app-layer/usecases/rent-roll';
 import { generateRentRollPdf } from '@/app-layer/reports/pdf/rent-roll';
 import { REPORT_DAYS } from '@/lib/agro/lease-expiry';
+import { requireFeature } from '@/lib/entitlements-server';
+import { FEATURES } from '@/lib/entitlements';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { jsonResponse } from '@/lib/api-response';
 
@@ -43,6 +45,9 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
     const locationId = url.searchParams.get('locationId') ?? undefined;
 
     if (format === 'pdf') {
+        // Plan check: PDF exports require PDF_EXPORTS (TRIAL+), matching every
+        // other PDF route. A client-side gate alone would be cosmetic.
+        await requireFeature(ctx.tenantId, FEATURES.PDF_EXPORTS);
         const doc = await generateRentRollPdf(ctx, { locationId });
         const buf = await collectPdfBuffer(doc);
         return new NextResponse(new Uint8Array(buf), {
@@ -56,8 +61,10 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
     const data = await getRentRoll(ctx, { expiringWithinDays: REPORT_DAYS, locationId });
 
     if (format === 'csv') {
+        // One row per (lessor × unit) — the unit column is now truthful for the
+        // row's own figures, and paid/outstanding settle the same unit.
         const rows = [
-            ['Наемодател', 'ЕИК', 'Договори', 'Площ (дка)', 'Рента/сезон', 'Единица'],
+            ['Наемодател', 'ЕИК', 'Договори', 'Площ (дка)', 'Рента/сезон', 'Единица', 'Платено', 'Оставащо'],
             ...data.byLessor.map((l) => [
                 l.lessorName,
                 l.lessorEik ?? '',
@@ -65,6 +72,8 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
                 l.leasedDca,
                 l.rentTotal ?? '',
                 l.rentUnit ?? '',
+                l.paid,
+                l.outstanding,
             ]),
         ];
         const csv = '﻿' + rows.map((r) => r.map(csvCell).join(',')).join('\n');

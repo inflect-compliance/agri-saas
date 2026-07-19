@@ -3212,6 +3212,18 @@
         }
     },
     "ag": {
+        "leasePayments": {
+            "title": "Payments",
+            "loading": "Loading payments…",
+            "none": "No payments recorded",
+            "season": "Season",
+            "amount": "Amount",
+            "amountWithUnit": "Amount ({unit})",
+            "add": "Add",
+            "remove": "Remove",
+            "amountInvalid": "Enter a valid amount.",
+            "saveFailed": "Could not save the payment."
+        },
         "rentRoll": {
             "title": "Rent roll",
             "leasedArea": "Leased area",
@@ -3220,7 +3232,8 @@
             "rentSeason": "Rent / season",
             "expiring": "Expiring soon",
             "daysLeft": "{days} d",
-            "noActive": "No active leases"
+            "noActive": "No active leases",
+            "outstanding": "Outstanding"
         },
         "lease": {
             "owned": "Owned",
@@ -3253,6 +3266,7 @@
             "statusActive": "Active",
             "statusExpiring": "{days} d left",
             "statusExpired": "Expired",
+            "unpaidFilter": "Unpaid",
             "emptyTitle": "No leases yet",
             "emptyDesc": "Record an аренда or наем agreement to start tracking rent and expiry.",
             "modalCreateTitle": "New lease",

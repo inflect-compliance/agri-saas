@@ -28,6 +28,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RentRollCard, type RentRollData } from '@/components/ui/map/RentRollCard';
 import { leaseExpiryTier, LEASE_EXPIRY_TONE, daysUntil } from '@/lib/agro/lease-expiry';
+import { LeasePaymentsPanel } from '@/components/agro/LeasePaymentsPanel';
 import { Fab } from '@/components/ui/fab';
 import { PullToRefresh, useToastWithUndo } from '@/components/ui/hooks';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
@@ -115,6 +116,22 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
 
     // The location name for the deep-linked filter chip, read off any row.
     const locationName = locationId ? leases[0]?.parcel.location.name : undefined;
+
+    // „Неплатени" — narrow the register to lessors who still have outstanding
+    // rent this season. Keyed by (lessor × unit) because the roll books each
+    // unit separately: a lessor can be settled in лв but not in кг.
+    const [unpaidOnly, setUnpaidOnly] = useState(false);
+    const unpaidKeys = useMemo(() => {
+        const set = new Set<string>();
+        for (const row of rentRollQ.data?.byLessor ?? []) {
+            if (row.outstanding > 0) set.add(`${row.lessorName}|${row.rentUnit ?? ''}`);
+        }
+        return set;
+    }, [rentRollQ.data]);
+    const visibleLeases = useMemo(
+        () => (unpaidOnly ? leases.filter((l) => unpaidKeys.has(`${l.lessorName}|${l.rentUnit ?? ''}`)) : leases),
+        [unpaidOnly, leases, unpaidKeys],
+    );
 
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -355,9 +372,20 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                             </p>
                         ) : null}
                     </div>
-                    <Button variant="primary" size="sm" icon={<Plus />} onClick={openCreate}>
-                        {tl('lease')}
-                    </Button>
+                    <div className="flex items-center gap-tight">
+                        <Button
+                            variant={unpaidOnly ? 'primary' : 'secondary'}
+                            size="sm"
+                            onClick={() => setUnpaidOnly((v) => !v)}
+                            id="rent-unpaid-filter"
+                            aria-pressed={unpaidOnly}
+                        >
+                            {t('unpaidFilter')}
+                        </Button>
+                        <Button variant="primary" size="sm" icon={<Plus />} onClick={openCreate}>
+                            {tl('lease')}
+                        </Button>
+                    </div>
                 </div>
             </ListPageShell.Header>
 
@@ -376,7 +404,7 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                         fillBody
                         mobileFallback="card"
                         data-testid="rent-table"
-                        data={leases}
+                        data={visibleLeases}
                         columns={columns}
                         loading={leasesQ.isLoading && !leasesQ.data}
                         getRowId={(l) => l.id}
@@ -485,6 +513,17 @@ export function RentClient({ tenantSlug }: { tenantSlug: string }) {
                                     placeholder={tl('documentRefPlaceholder')}
                                 />
                             </FormField>
+                            {/* Settlement log — only for a saved lease (a payment
+                                needs something to settle against). Revalidates the
+                                roll so paid/outstanding stay live. */}
+                            {editingId ? (
+                                <LeasePaymentsPanel
+                                    leaseId={editingId}
+                                    rentUnit={form.rentUnit || null}
+                                    canWrite
+                                    onChanged={() => { void rentRollQ.mutate(); }}
+                                />
+                            ) : null}
                         </div>
                     </Modal.Body>
                     <Modal.Actions>
