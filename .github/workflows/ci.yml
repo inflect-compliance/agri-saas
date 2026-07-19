@@ -204,19 +204,11 @@ jobs:
   #  Job 3: Test — Jest unit + integration + architectural guards
   #  Needs Postgres for integration tests.
   #
-  #  Sharded across N matrix jobs via `jest --shard=K/N`. TOTAL_SHARDS = 5
-  #  turns a ~30-min single-process run into ~5 parallel runs (each shard
-  #  owns ~1/N of the suite). Each shard still runs serially inside its own
-  #  process (`--runInBand`) to preserve the test-suite's "one DB per
-  #  worker" invariant.
-  #
-  #  Shard count is ALSO the memory lever: `--runInBand` keeps every file
-  #  in one process, so a shard's heap accumulates across its whole file
-  #  set. At 4 shards, shard 2 peaked at ~7.8 GB against the 8 GB
-  #  `--max-old-space-size` ceiling and OOM'd (exit 134) as the suite
-  #  grew. Raising the shard count is the structural fix — it shrinks the
-  #  per-process file set rather than just moving the ceiling. If a shard
-  #  OOMs again, add another shard here before reaching for more heap.
+  #  Sharded across N matrix jobs via `jest --shard=K/N`. The default
+  #  TOTAL_SHARDS = 4 turns a ~30-min single-process run into ~4×8-min
+  #  parallel runs (each shard owns ~1/N of the suite). Each shard
+  #  still runs serially inside its own process (`--runInBand`) to
+  #  preserve the test-suite's "one DB per worker" invariant.
   #
   #  When `vars.LARGE_RUNNER` is set on Team / Enterprise plans, the
   #  shards land on the larger runner — combined with sharding,
@@ -244,8 +236,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
-        total: [5]
+        shard: [1, 2, 3, 4]
+        total: [4]
 
     env:
       DATABASE_URL: postgresql://ci:ci_password@localhost:5432/ci_testdb?schema=public

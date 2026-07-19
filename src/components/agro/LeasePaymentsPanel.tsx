@@ -9,7 +9,7 @@
  * books against a money obligation. `onChanged` lets the parent revalidate the
  * roll (the KPI card) after a settlement is added or removed.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
 import { apiPost, apiDelete } from '@/lib/api-client';
@@ -49,10 +49,17 @@ export function LeasePaymentsPanel({
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // `buildUrl` is not guaranteed to be referentially stable across renders.
+    // Depending on it directly would make `load` unstable, so the effect below
+    // would re-fire on every render it triggers — an infinite fetch loop. Hold
+    // it in a ref and key the callback on `leaseId` alone.
+    const buildUrlRef = useRef(buildUrl);
+    buildUrlRef.current = buildUrl;
+
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch(buildUrl(`/leases/${leaseId}/payments`));
+            const res = await fetch(buildUrlRef.current(`/leases/${leaseId}/payments`));
             const data = res.ok ? await res.json() : { payments: [] };
             setRows(data.payments ?? []);
         } catch {
@@ -60,7 +67,7 @@ export function LeasePaymentsPanel({
         } finally {
             setLoading(false);
         }
-    }, [buildUrl, leaseId]);
+    }, [leaseId]);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { void load(); }, [load]);
