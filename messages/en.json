@@ -1938,7 +1938,8 @@
             "noRoles": "No custom roles defined yet. Click \"Create Custom Role\" to get started.",
             "customRolesPlural": "custom roles",
             "customRoleSingular": "custom role",
-            "newRoleButton": "Role"
+            "newRoleButton": "Role",
+            "ownerOnly": "OWNER-only — cannot be granted through a custom role"
         },
         "scim": {
             "noPermission": "You do not have permission to view SCIM tokens.",

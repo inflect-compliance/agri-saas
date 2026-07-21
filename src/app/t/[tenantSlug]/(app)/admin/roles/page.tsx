@@ -30,7 +30,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { Card, cardVariants } from '@/components/ui/card';
 import { useTenantApiUrl, useTenantHref } from '@/lib/tenant-context-provider';
-import { getPermissionsForRole, type PermissionSet } from '@/lib/permissions';
+import { PERMISSION_SCHEMA, OWNER_ONLY_PERMISSIONS, getPermissionsForRole, type PermissionSet } from '@/lib/permissions';
 import {
     Shield, Pencil, Trash2, Check,
     ChevronDown, ChevronUp, Users, Plus,
@@ -61,21 +61,20 @@ interface CustomRole {
     _count: { memberships: number };
 }
 
-// ─── Permission Schema (must match src/lib/permissions.ts PERMISSION_SCHEMA) ───
+// ─── Permission schema ───
+//
+// Imported from `@/lib/permissions`, NOT re-declared. This file used to keep a
+// hand-copied duplicate with a "must match" comment on top; it drifted anyway,
+// missing `admin.tenant_lifecycle` / `admin.owner_management` from the day they
+// were added. Because the grid renders from this constant, the two keys simply
+// never appeared — which is the only reason the OWNER-only escalation they
+// guard was not one click away. A copy that silently disagrees is worse than no
+// copy, so there is now exactly one.
 
-const PERMISSION_SCHEMA: Record<keyof PermissionSet, string[]> = {
-    controls: ['view', 'create', 'edit'],
-    evidence: ['view', 'upload', 'edit', 'download'],
-    policies: ['view', 'create', 'edit', 'approve'],
-    tasks: ['view', 'create', 'edit', 'assign'],
-    risks: ['view', 'create', 'edit'],
-    vendors: ['view', 'create', 'edit'],
-    tests: ['view', 'create', 'execute'],
-    frameworks: ['view', 'install'],
-    audits: ['view', 'manage', 'freeze', 'share'],
-    reports: ['view', 'export'],
-    admin: ['view', 'manage', 'members', 'sso', 'scim'],
-};
+/** Is this key OWNER-only, and therefore never grantable through a custom role? */
+function isOwnerOnly(resource: keyof PermissionSet, action: string): boolean {
+    return OWNER_ONLY_PERMISSIONS.some((p) => p.domain === resource && p.action === action);
+}
 
 const RESOURCE_LABELS: Record<string, string> = {
     controls: 'Controls',
@@ -156,12 +155,18 @@ function PermissionGrid({
                                         return <td key={action} className="text-center"><span className="text-content-subtle">—</span></td>;
                                     }
                                     const granted = (permissions[resource] as Record<string, boolean>)[action] ?? false;
+                                    // OWNER-only keys render, but locked. Showing
+                                    // them greyed with a reason is honest about the
+                                    // role model; hiding them is what let the gap
+                                    // go unnoticed. The server refuses them either
+                                    // way — this is signage, not the control.
+                                    const ownerOnly = isOwnerOnly(resource, action);
                                     return (
                                         <td key={action} className="text-center">
                                             <button
                                                 type="button"
-                                                onClick={() => toggle(resource, action)}
-                                                disabled={readonly}
+                                                onClick={() => !ownerOnly && toggle(resource, action)}
+                                                disabled={readonly || ownerOnly}
                                                 className={`
                                                     inline-flex items-center justify-center w-5 h-5 rounded transition
                                                     ${granted
@@ -170,7 +175,11 @@ function PermissionGrid({
                                                     }
                                                     ${readonly ? 'cursor-default' : 'cursor-pointer'}
                                                 `}
-                                                title={`${resource}.${action}: ${granted ? t('granted') : t('denied')}`}
+                                                title={
+                                                    ownerOnly
+                                                        ? t('ownerOnly')
+                                                        : `${resource}.${action}: ${granted ? t('granted') : t('denied')}`
+                                                }
                                                 id={`perm-${resource}-${action}`}
                                             >
                                                 {granted ? <Check size={10} /> : null}
