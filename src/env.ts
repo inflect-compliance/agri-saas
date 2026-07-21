@@ -503,6 +503,13 @@ export const env = createEnv({
         // The client Sentry SDK is gated on this DSN: absent ⇒ no-op (a
         // self-hosted deploy stays clean), mirroring how VAPID gates web push.
         // `RELEASE` tags field crashes to a specific deploy.
+        /**
+         * URL of the operator's privacy notice. OPTIONAL and unset by default,
+         * because this app ships no privacy page: the promotions consent notice
+         * renders its link only when this is configured, so a deployment
+         * without a policy shows the consent text rather than a 404.
+         */
+        NEXT_PUBLIC_PRIVACY_URL: z.string().url().optional(),
         NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
         NEXT_PUBLIC_SENTRY_RELEASE: z.string().optional(),
     },
@@ -619,6 +626,7 @@ export const env = createEnv({
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
         NEXT_PUBLIC_MAPTILER_KEY: process.env.NEXT_PUBLIC_MAPTILER_KEY,
         NEXT_PUBLIC_MAP_BASEMAP_STYLE: process.env.NEXT_PUBLIC_MAP_BASEMAP_STYLE,
+        NEXT_PUBLIC_PRIVACY_URL: process.env.NEXT_PUBLIC_PRIVACY_URL,
         NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
         NEXT_PUBLIC_SENTRY_RELEASE: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
     },

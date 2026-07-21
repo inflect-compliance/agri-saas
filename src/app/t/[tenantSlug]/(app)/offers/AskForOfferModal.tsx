@@ -8,9 +8,12 @@
  * Exchange InquiryModal shape.
  */
 import { useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Modal } from '@/components/ui/modal';
 import { FormField } from '@/components/ui/form-field';
+import { Checkbox } from '@/components/ui/checkbox';
+import { env } from '@/env';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { apiPost } from '@/lib/api-client';
@@ -29,8 +32,14 @@ export function AskForOfferModal({ promotionId, company }: AskForOfferModalProps
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [sent, setSent] = useState(false);
+    // Consent is a submit PRE-CONDITION, not a field that can be left blank:
+    // the request only exists to be forwarded to a supplier, so an unticked
+    // box means there is nothing lawful to send. Starts false every time —
+    // never remembered across opens.
+    const [consent, setConsent] = useState(false);
+    const privacyUrl = env.NEXT_PUBLIC_PRIVACY_URL;
 
-    const canSubmit = message.trim().length > 0 && !submitting;
+    const canSubmit = message.trim().length > 0 && consent && !submitting;
 
     async function submit() {
         setSubmitting(true);
@@ -39,6 +48,7 @@ export function AskForOfferModal({ promotionId, company }: AskForOfferModalProps
             await apiPost(buildUrl('/offers/leads'), {
                 promotionId,
                 message: message.trim(),
+                consent,
             });
             setOpen(false);
             setMessage('');
@@ -97,6 +107,42 @@ export function AskForOfferModal({ promotionId, company }: AskForOfferModalProps
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
                                     placeholder={t('messagePlaceholder')}
+                                />
+                            </FormField>
+                            {/* FormField owns the label element and the
+                                htmlFor/id wiring, so the consent sentence stays
+                                a real, clickable label without this file
+                                hand-rolling a raw <label> (the coverage guard's
+                                whole point). The privacy link renders only when
+                                an operator has configured a real policy URL —
+                                this app ships no privacy page, and pointing the
+                                consent notice at a 404 would be the same broken
+                                promise the rest of this work removes. */}
+                            <FormField
+                                label={
+                                    <span className="font-normal text-content-muted">
+                                        {t('consent', { company })}
+                                        {privacyUrl ? (
+                                            <>
+                                                {' '}
+                                                <Link
+                                                    href={privacyUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="underline hover:text-content-emphasis"
+                                                >
+                                                    {t('privacyLink')}
+                                                </Link>
+                                            </>
+                                        ) : null}
+                                    </span>
+                                }
+                                required
+                            >
+                                <Checkbox
+                                    id="offer-lead-consent"
+                                    checked={consent}
+                                    onCheckedChange={(v) => setConsent(v === true)}
                                 />
                             </FormField>
                         </fieldset>

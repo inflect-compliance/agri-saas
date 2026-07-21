@@ -13,7 +13,7 @@ import type { RequestContext } from '../types';
 import { assertCanRead, assertCanWrite } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { runInTenantContext } from '@/lib/db-context';
-import { notFound, conflict } from '@/lib/errors/types';
+import { notFound, conflict, badRequest } from '@/lib/errors/types';
 import { sanitizePlainText } from '@/lib/security/sanitize';
 import { translateFor } from '@/lib/i18n/server-messages';
 import { DEFAULT_LOCALE, isLocale } from '@/lib/i18n/locales';
@@ -150,6 +150,14 @@ export interface CreatePromotionLeadInput {
     promotionId: string;
     message: string;
     contextParcelId?: string | null;
+    /**
+     * The farmer's explicit consent to share their name and message with the
+     * supplier. Enforced twice on purpose: `z.literal(true)` rejects it at the
+     * HTTP edge, and the check below refuses it again here, because the
+     * usecase is also reachable from jobs and future callers that never pass
+     * through that schema.
+     */
+    consent: boolean;
 }
 
 /**
@@ -162,6 +170,13 @@ export interface CreatePromotionLeadInput {
  */
 export async function createPromotionLead(ctx: RequestContext, input: CreatePromotionLeadInput) {
     assertCanWrite(ctx);
+    // No lead without recorded consent. This is a lawfulness gate, not
+    // validation: the row is contact PII that exists to be forwarded to a
+    // third party, so without consent there is no basis to store it at all.
+    if (input.consent !== true) {
+        throw badRequest('Consent is required before a request can be sent to the supplier');
+    }
+    const consentedAt = new Date();
     const sanitizedMessage = sanitizePlainText(input.message);
 
     const { lead, promotion } = await runInTenantContext(ctx, async (db) => {
@@ -182,8 +197,9 @@ export async function createPromotionLead(ctx: RequestContext, input: CreateProm
                     promotionId: promotion.id,
                     inquirerTenantId: ctx.tenantId,
                     inquirerUserId: ctx.userId,
-                    message: sanitizedMessage,
+                    requestMessage: sanitizedMessage,
                     contextParcelId: input.contextParcelId ?? null,
+                    consentedAt,
                 },
             });
         } catch (err) {

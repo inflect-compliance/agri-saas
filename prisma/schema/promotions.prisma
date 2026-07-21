@@ -94,9 +94,36 @@ model PromotionLead {
   /// Inquiring tenant — plain FK to Tenant.id (NOT a tenantId RLS column).
   inquirerTenantId String
   inquirerUserId   String
-  message          String
+  /// ENCRYPTED at rest (Epic B manifest). Free text the farmer wrote — it
+  /// routinely names the farm, the field and what they are short of, and it
+  /// is destined for a third-party supplier. Encrypted under the INQUIRING
+  /// tenant's DEK (the write runs in that tenant's context), NOT the global
+  /// KEK: the message belongs to the farmer, so per-tenant key isolation is
+  /// the correct posture. A reader outside that tenant (the future digest
+  /// job) must therefore resolve each lead's tenant context to decrypt.
+  ///
+  /// NAMED `requestMessage`, NOT `message`, and that is load-bearing. The Epic
+  /// B middleware's fan-out encrypt path (`encryptDataNodeAllModels`, used when
+  /// a nested write's target model is structurally unknown) matches on a FLAT
+  /// set of field names across the whole manifest — it cannot tell which model
+  /// a key belongs to. `message` is shared by `Notification`, `ExchangeInquiry`
+  /// and `InsuranceLead`, so putting THAT name in the manifest silently
+  /// encrypted their columns too. (Caught by the automation suite: a
+  /// `Notification.message` came back as `v1:…`.) A model-unique name makes the
+  /// collision impossible. `@map("message")` keeps the physical column, so this
+  /// is a Prisma-level rename with no data migration.
+  requestMessage   String   @map("message")
   /// Optional parcel/context the request is about (free-form id, no FK).
   contextParcelId  String?
+  /// When the farmer ticked the consent box. NOT NULL by design: a lead
+  /// without recorded consent is one we may not lawfully forward to a
+  /// supplier, so the column is the enforcement point, not a flag. The
+  /// usecase rejects a request whose consent is absent, so this is always
+  /// set at creation.
+  consentedAt      DateTime
+  /// Soft-delete + retention. Contact PII does not live forever: see the
+  /// retention note in the implementation doc for the window and the sweep.
+  deletedAt        DateTime?
   /// Curated status: "PENDING" | "CONTACTED" | "CLOSED".
   status           String   @default("PENDING")
   createdAt        DateTime @default(now())
@@ -106,4 +133,6 @@ model PromotionLead {
   @@unique([promotionId, inquirerTenantId])
   @@index([promotionId])
   @@index([inquirerTenantId])
+  /// Retention sweep: find undeleted leads past the window without scanning.
+  @@index([deletedAt, createdAt])
 }
