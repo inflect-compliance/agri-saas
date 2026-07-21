@@ -168,11 +168,20 @@ export function useNavSections(): NavSectionDef[] {
                     icon: CalendarClock,
                     visible: tenant.agriEventsAvailable !== false,
                 },
-                // Offers (#12) — global feed of supplier promotions with an
-                // "Ask for offer" lead form, visible to every tenant. Reuses
-                // the already-imported Coins glyph (deals/pricing) — no new
-                // lucide import.
-                { href: tenantHref('/offers'), label: t('offers'), icon: Coins },
+                // Promotions (#12) — global feed of supplier promotions with an
+                // "Ask for offer" lead form. Reuses the already-imported Coins
+                // glyph (deals/pricing) — no new lucide import. Hidden when the
+                // catalogue holds nothing active, for exactly the reason the
+                // Events entry above is: the nav entry is permanent, the content
+                // is not, and a link to a guaranteed-empty page is worse than no
+                // link. `!== false` matches its sibling so an older provider
+                // that doesn't set the flag still shows it.
+                {
+                    href: tenantHref('/offers'),
+                    label: t('offers'),
+                    icon: Coins,
+                    visible: tenant.promotionsAvailable !== false,
+                },
                 // Climate (#14) — the tenant's Meteobot station embed, with an
                 // Open-Meteo weather fallback. Sits with the field surfaces.
                 { href: tenantHref('/climate'), label: t('climate'), icon: CloudSun },

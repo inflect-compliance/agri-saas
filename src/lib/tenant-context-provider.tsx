@@ -30,6 +30,14 @@ export interface TenantContextValue {
      * matching `availableModules`).
      */
     agriEventsAvailable?: boolean;
+    /**
+     * #12 — whether the GLOBAL promotions catalogue has anything active. Same
+     * shape and rationale as `agriEventsAvailable` above: data-driven, not a
+     * module/permission flag, resolved server-side in the tenant layout so the
+     * sidebar can hide the Promotions entry instead of linking every tenant to
+     * an empty page. Absent ⇒ treat as "show" (degrade gracefully).
+     */
+    promotionsAvailable?: boolean;
     permissions: {
         canRead: boolean;
         canWrite: boolean;

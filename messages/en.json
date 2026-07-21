@@ -6,7 +6,7 @@
         "location": "Location",
         "journal": "Journal",
         "events": "Events",
-        "offers": "Offers",
+        "offers": "Promotions",
         "climate": "Climate",
         "planting": "Planting",
         "inventory": "Inventory",
@@ -3325,7 +3325,7 @@
             "saveFailed": "Could not save the station URL."
         },
         "offers": {
-            "title": "Offers",
+            "title": "Promotions",
             "description": "Promotions and deals from agricultural suppliers.",
             "empty": "No offers available right now. Check back soon.",
             "breadcrumbDashboard": "Dashboard",
@@ -3336,11 +3336,15 @@
             "catSeeds": "Seeds",
             "catProducts": "Products",
             "catService": "Service",
-            "ask": {
+            "leadNotification": {
+            "title": "Request recorded — {company}",
+            "message": "We have saved your request. {company} is not notified automatically yet."
+        },
+        "ask": {
                 "open": "Ask for offer",
                 "sent": "Request sent",
                 "titleWithCompany": "Ask {company} for an offer",
-                "description": "Send your interest and the supplier will get back to you.",
+                "description": "Describe what you need. Your request is recorded for {company}.",
                 "message": "Message",
                 "messagePlaceholder": "Describe what you need…",
                 "cancel": "Cancel",

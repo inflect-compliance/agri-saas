@@ -68,11 +68,11 @@ export function AskForOfferModal({ promotionId, company }: AskForOfferModalProps
                 setShowModal={setOpen}
                 size="md"
                 title={title}
-                description={t('description')}
+                description={t('description', { company })}
                 preventDefaultClose={submitting}
                 isDirty={message !== ''}
             >
-                <Modal.Header title={title} description={t('description')} />
+                <Modal.Header title={title} description={t('description', { company })} />
                 <Modal.Form
                     id="offer-lead-form"
                     onSubmit={(e) => {
