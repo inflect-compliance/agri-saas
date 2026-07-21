@@ -2368,7 +2368,16 @@
                 "products": "Products",
                 "service": "Service"
             },
-            "urlPlaceholder": "https://"
+            "urlPlaceholder": "https://",
+            "fieldImage": "Artwork",
+            "imageUpload": "Upload image",
+            "imageReplace": "Replace image",
+            "imageRemove": "Remove",
+            "imageNone": "No image",
+            "imageAfterSave": "Save the draft first, then add artwork to it.",
+            "imageHint": "Resized and converted to WebP in your browser; camera metadata is stripped before upload. Scanned for malware on arrival.",
+            "imageNotAnImage": "That file could not be read as an image.",
+            "imageUploadFailed": "The image could not be uploaded."
         },
         "companies": {
             "title": "Suppliers",

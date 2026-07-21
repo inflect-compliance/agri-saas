@@ -55,6 +55,26 @@ export default async function OffersPage({ params }: { params: Promise<{ tenantS
                             className="rounded-lg border border-border-subtle bg-bg-default p-4"
                         >
                             <div className="flex items-start justify-between gap-default">
+                                {/*
+                                  * Supplier artwork. Fixed box + object-cover so a
+                                  * badly-proportioned upload cannot stretch the row
+                                  * — every card keeps the same rhythm whatever the
+                                  * source image. `alt` is empty on purpose: the
+                                  * company and title sit right beside it, so
+                                  * announcing the image again is noise to a screen
+                                  * reader. Hidden below sm, where the text needs
+                                  * the full width more than the feed needs
+                                  * decoration.
+                                  */}
+                                {p.mediaUrl && (
+                                    // eslint-disable-next-line @next/next/no-img-element -- streamed from our own auth-gated route, not a static asset next/image can optimise
+                                    <img
+                                        src={p.mediaUrl}
+                                        alt=""
+                                        loading="lazy"
+                                        className="hidden size-16 flex-shrink-0 rounded-md border border-border-subtle object-cover sm:block"
+                                    />
+                                )}
                                 <div className="min-w-0">
                                     <p className="text-xs font-medium uppercase tracking-wide text-content-subtle">
                                         {p.company}
