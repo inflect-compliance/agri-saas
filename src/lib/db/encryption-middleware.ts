@@ -141,6 +141,27 @@ interface TenantDekPair {
 const NO_DEK_PAIR: TenantDekPair = { primary: null, previous: null };
 
 /**
+ * Models that always encrypt under the GLOBAL KEK, never a per-tenant DEK.
+ *
+ * `Tenant` is here for the obvious reason — its own row holds the wrapped DEK,
+ * so it cannot be encrypted with it.
+ *
+ * `Company` (promotions #12) is here for a subtler one. It is a GLOBAL
+ * catalogue with no tenantId, but it is WRITTEN by platform support operating
+ * inside the designated platform tenant — so `ctx.tenantId` is set, and without
+ * this entry the middleware would happily encrypt global supplier contact
+ * details under that one tenant's DEK. That would bind global data to a
+ * tenant's key: the lead-digest job could only decrypt while running in that
+ * tenant's context, and changing `PLATFORM_TENANT_SLUG` (or rotating that
+ * tenant's DEK independently) would orphan every supplier's contact address.
+ *
+ * The rule: a model with no `tenantId` column belongs here if any of its
+ * fields are encrypted. Tenant-scoped models must NOT be added — they would
+ * lose per-tenant key isolation.
+ */
+const GLOBAL_KEK_MODELS: ReadonlySet<string> = new Set(['Tenant', 'Company']);
+
+/**
  * Resolve the per-tenant DEK pair for the current operation, or the
  * `{ null, null }` sentinel when the middleware should fall back to
  * the global KEK.
@@ -164,7 +185,7 @@ const NO_DEK_PAIR: TenantDekPair = { primary: null, previous: null };
 async function resolveTenantDekPair(
     model: string | undefined,
 ): Promise<TenantDekPair> {
-    if (model === 'Tenant') return NO_DEK_PAIR;
+    if (model && GLOBAL_KEK_MODELS.has(model)) return NO_DEK_PAIR;
 
     const ctx = getAuditContext();
     const tenantId = ctx?.tenantId;

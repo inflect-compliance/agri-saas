@@ -39,6 +39,7 @@ import { loadAndValidateCatalogFile } from '../prisma/catalog-loader';
 import { applyCatalogFile } from '../prisma/catalog-applier';
 import { importUnits } from './import-units';
 import { seedAgriEvents } from './seed-agri-events';
+import { seedPromotions } from './seed-promotions';
 import { importKnowledge } from './import-knowledge';
 import { importCropVarieties } from './import-crop-varieties';
 import { importProducts } from './import-products';
@@ -462,6 +463,10 @@ async function main() {
     // — see the header of scripts/seed-agri-events.ts. Without this the /events
     // page renders its empty state and the nav entry hides itself.
     await seedAgriEvents(prisma);
+
+    // Global supplier + promotions catalogue (shared, no tenantId). Demo rows
+    // only — see the header of scripts/seed-promotions.ts.
+    await seedPromotions(prisma);
 
     // ── Persona 1: the startup farmer (simple mode, FREE) ──
     await seedFarm(

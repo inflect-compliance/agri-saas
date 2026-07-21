@@ -101,6 +101,20 @@
  *      next tenant writes to the column.
  */
 export const ENCRYPTED_FIELDS: Readonly<Record<string, readonly string[]>> = {
+    // ─── Company (promotions #12) ──────────────────────
+    //  A supplier's PUBLIC identity (name / eik / websiteUrl / logoUrl)
+    //  stays plaintext — the name renders in every tenant's offers feed
+    //  and the ЕИК is commercial-register data. What is encrypted is the
+    //  named individual behind the account: their name, work email and
+    //  phone are personal data, and `notes` is support free-text that
+    //  routinely mentions people.
+    //
+    //  NOTE: `Company` is GLOBAL (no tenantId), so it encrypts under the
+    //  global KEK via GLOBAL_KEK_MODELS in encryption-middleware — NOT
+    //  under whichever tenant happens to be in context. See the comment
+    //  there for why binding this to the platform tenant would be a trap.
+    Company: ['contactName', 'contactEmail', 'contactPhone', 'notes'],
+
     // ─── Tenant security settings ──────────────────────
     //  Epic C.4 — audit-stream HMAC secret. URL stays plaintext so DBAs
     //  can audit which tenants are forwarding to which SIEM without
