@@ -36,7 +36,10 @@
         "closeNav": "Close navigation",
         "trends": "Trends",
         "news": "News",
-        "rent": "Rent"
+        "rent": "Rent",
+        "sectionPlatform": "Platform",
+        "platformPromotions": "Manage promotions",
+        "platformCompanies": "Manage suppliers"
     },
     "common": {
         "appName": "Agrent",
@@ -2314,6 +2317,80 @@
         "forbidden": {
             "title": "Admin Access Required",
             "message": "You do not have permission to access admin settings. Contact your workspace administrator to request access."
+        },
+        "promotions": {
+            "title": "Promotions",
+            "entity": "Promotion",
+            "description": "Supplier offers shown to every tenant. Drafts stay hidden until you publish.",
+            "breadcrumbAdmin": "Admin",
+            "colTitle": "Offer",
+            "colStatus": "Status",
+            "colWindow": "Campaign window",
+            "colLeads": "Enquiries",
+            "colActions": "Actions",
+            "emptyTitle": "No promotions yet",
+            "emptyDescription": "Create a draft when a company asks to advertise.",
+            "newTitle": "New promotion",
+            "editTitle": "Edit promotion",
+            "formDescription": "Offers appear in every tenant's feed once published and inside the campaign window.",
+            "fieldCompany": "Company",
+            "companyPlaceholder": "Select a supplier",
+            "companySearchPlaceholder": "Search suppliers…",
+            "companyCreate": "Add supplier \"{search}\"",
+            "fieldTitle": "Offer title",
+            "fieldBody": "Details",
+            "fieldCategory": "Category",
+            "fieldCtaUrl": "Link",
+            "fieldValidFrom": "Runs from",
+            "fieldValidTo": "Runs until",
+            "createsDraftHint": "Saved as a draft — nothing is shown to farms until you publish it.",
+            "createDraft": "Save draft",
+            "saveChanges": "Save changes",
+            "publish": "Publish",
+            "unpublish": "Unpublish",
+            "publishedToast": "Promotion published",
+            "unpublishedToast": "Promotion unpublished",
+            "publishFailed": "Could not change the publication state",
+            "deleteTitle": "Delete promotion",
+            "deleteDescription": "\"{title}\" will be removed permanently.",
+            "deleteConfirm": "Delete promotion",
+            "status": {
+                "DRAFT": "Draft",
+                "SCHEDULED": "Scheduled",
+                "LIVE": "Live",
+                "EXPIRED": "Expired"
+            },
+            "category": {
+                "culture": "Crop",
+                "fertilizer": "Fertiliser",
+                "seeds": "Seeds",
+                "products": "Products",
+                "service": "Service"
+            },
+            "urlPlaceholder": "https://"
+        },
+        "companies": {
+            "title": "Suppliers",
+            "description": "Companies that advertise in the offers feed. Contact details are internal and never shown to farms.",
+            "breadcrumbAdmin": "Admin",
+            "colName": "Company",
+            "colContact": "Contact",
+            "colPromotions": "Offers",
+            "colActions": "Actions",
+            "noContact": "No contact — enquiries cannot be delivered",
+            "emptyTitle": "No suppliers yet",
+            "emptyDescription": "Suppliers are added automatically when you name one on a promotion.",
+            "editTitle": "Edit supplier",
+            "editDescription": "The contact details here are where enquiries from farms are sent.",
+            "contactHint": "Internal only — encrypted at rest and never shown to farms.",
+            "fieldName": "Company name",
+            "fieldEik": "UIC",
+            "fieldWebsite": "Website",
+            "fieldContactName": "Contact name",
+            "fieldContactEmail": "Contact email",
+            "fieldContactPhone": "Contact phone",
+            "fieldNotes": "Internal notes",
+            "urlPlaceholder": "https://"
         }
     },
     "riskManager": {
@@ -3337,10 +3414,10 @@
             "catProducts": "Products",
             "catService": "Service",
             "leadNotification": {
-            "title": "Request recorded — {company}",
-            "message": "We have saved your request. {company} is not notified automatically yet."
-        },
-        "ask": {
+                "title": "Request recorded — {company}",
+                "message": "We have saved your request. {company} is not notified automatically yet."
+            },
+            "ask": {
                 "open": "Ask for offer",
                 "sent": "Request sent",
                 "titleWithCompany": "Ask {company} for an offer",

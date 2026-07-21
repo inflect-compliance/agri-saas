@@ -431,6 +431,17 @@ export const env = createEnv({
         // DATA_ENCRYPTION_KEY_PREVIOUS.
         PLATFORM_ADMIN_API_KEY_PREVIOUS: z.string().min(32).optional(),
 
+        // #12 — slug of the tenant whose admins curate the GLOBAL catalogues
+        // (companies + promotions) from the support console. Distinct from the
+        // API key above: that is a session-less shared secret for machine
+        // callers, this designates a tenant whose real, logged-in admins do
+        // recurring human curation — so audit rows carry a real userId.
+        //
+        // UNSET = the console is unreachable for every tenant (fail closed).
+        // Never default this: a blank value that matched any slug would hand
+        // every farm's owner write access to every other farm's feed.
+        PLATFORM_TENANT_SLUG: z.string().min(1).optional(),
+
         // Local zone for task-due deadline notifications — sets BOTH the
         // cron firing time AND the calendar-day classification ("due
         // today / tomorrow / in a week"). Must be one zone so a task
@@ -610,6 +621,7 @@ export const env = createEnv({
         AUDIT_STREAM_LEGACY_HEADERS: process.env.AUDIT_STREAM_LEGACY_HEADERS,
         PLATFORM_ADMIN_API_KEY: process.env.PLATFORM_ADMIN_API_KEY,
         PLATFORM_ADMIN_API_KEY_PREVIOUS: process.env.PLATFORM_ADMIN_API_KEY_PREVIOUS,
+        PLATFORM_TENANT_SLUG: process.env.PLATFORM_TENANT_SLUG,
         NOTIFICATIONS_TZ: process.env.NOTIFICATIONS_TZ,
         VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
         VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,

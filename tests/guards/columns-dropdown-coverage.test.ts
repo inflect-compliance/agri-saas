@@ -39,6 +39,11 @@ const SCAN_DIR = 'src/app/t/[tenantSlug]/(app)';
  * absence of a gear; PRs that mount a gear should REMOVE the entry.
  */
 const EXEMPTIONS: Record<string, string> = {
+    // Platform-support console (#12) — bounded global-catalogue rosters.
+    "admin/promotions/PromotionsAdminClient.tsx":
+        "(b) lean curation roster — five fixed columns (offer/status/window/enquiries/actions); every one is load-bearing for support, so there is nothing to hide behind a gear.",
+    "admin/companies/CompaniesAdminClient.tsx":
+        "(b) lean supplier roster — four fixed columns (company/contact/offers/actions); nothing optional to toggle.",
     // Journal Trash — bounded ADMIN soft-deleted sub-view.
     "journal/DeletedJournalView.tsx":
         "(c) lean Trash roster — five fixed columns (entry/type/occurred/deleted/actions); the parent journal list owns the column-visibility gear.",

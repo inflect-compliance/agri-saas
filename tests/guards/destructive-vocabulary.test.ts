@@ -105,6 +105,11 @@ const DYNAMIC_LABEL_EXEMPT: Record<string, string> = {
     //   sso      → t('confirmDeleteLabel') = "Delete configuration"
     'src/app/t/[tenantSlug]/(app)/admin/api-keys/page.tsx': 'confirmLabel i18n key t(revokeKey) → "Revoke key"',
     'src/app/t/[tenantSlug]/(app)/admin/scim/page.tsx': 'confirmLabel i18n key t(confirmRevokeLabel) → "Revoke token"',
+    // #12 support console — confirmLabel={t('deleteConfirm')}; resolved
+    // en = "Delete promotion", bg = "Изтриване на промоция" (both the
+    // canonical erasure verb for their locale).
+    'src/app/t/[tenantSlug]/(app)/admin/promotions/PromotionsAdminClient.tsx':
+        'confirmLabel i18n key t(deleteConfirm) → "Delete promotion"',
     'src/app/t/[tenantSlug]/(app)/admin/sso/page.tsx': 'confirmLabel i18n key t(confirmDeleteLabel) → "Delete configuration"',
     // T10 i18n migration — confirmLabel is now an i18n key
     // (`confirmLabel={t('deleteConfirmLabel')}`), resolved en+bg both

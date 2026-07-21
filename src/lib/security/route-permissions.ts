@@ -169,6 +169,31 @@ export const ROUTE_PERMISSIONS: readonly RoutePermissionRule[] = [
             'credential against the tenant; treat as admin-only.',
     },
 
+    // ── Platform-support console: global catalogues (#12) ───────────
+    // NOTE: `admin.manage` here is necessary but NOT sufficient. It resolves
+    // from Role, so every tenant's OWNER/ADMIN holds it — on its own it would
+    // grant write access to a feed every other tenant reads. The real gate is
+    // `assertPlatformSupport(ctx)` inside each handler, which restricts these
+    // to the designated PLATFORM_TENANT_SLUG and 404s elsewhere. The
+    // permission is still required: it is what makes a denial an audited
+    // AUTHZ_DENIED row and keeps these routes inside the Epic C.1 guardrail.
+    {
+        path: new RegExp(`^${T}\\/admin\\/promotions(\\/.*)?$`),
+        permission: 'admin.manage',
+        note:
+            'Global promotions feed — content published to EVERY tenant. ' +
+            'Platform-tenant gated in-handler; admin.manage is the audited ' +
+            'role floor, not the isolation control.',
+    },
+    {
+        path: new RegExp(`^${T}\\/admin\\/companies(\\/.*)?$`),
+        permission: 'admin.manage',
+        note:
+            'Global supplier catalogue, incl. DECRYPTED contact PII. ' +
+            'Platform-tenant gated in-handler; admin.manage is the audited ' +
+            'role floor, not the isolation control.',
+    },
+
     // ── Master-KEK rotation (Epic B.3) ──────────────────────────────
     {
         path: new RegExp(`^${T}\\/admin\\/key-rotation(\\/.*)?$`),
