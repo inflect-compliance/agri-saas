@@ -310,16 +310,25 @@ describe('OI-2 — migration Job (Helm pre-install/pre-upgrade hook)', () => {
         );
     });
 
-    it('runs `prisma migrate deploy` with the pinned 5.22.0 CLI (matches scripts/entrypoint.sh)', () => {
+    // The chart must invoke the VENDORED CLI, not `npx`. Two reasons, and
+    // the second is a hard requirement: the runtime image no longer ships
+    // npm at all (stripped in the Dockerfile to remove the bundled-npm CVE
+    // surface), so an `npx` command here would fail to execute. The old
+    // form also pinned prisma@5.22.0, which rejects the Prisma 7 schema and
+    // had already drifted from the entrypoint's 7.8.0.
+    it('runs `prisma migrate deploy` via the vendored CLI (matches scripts/entrypoint.sh)', () => {
         const v = yaml.load(read(`${CHART_DIR}/values.yaml`)) as any;
         expect(v.migration.command).toEqual([
-            'npx',
-            '--yes',
-            'prisma@5.22.0',
+            './node_modules/.bin/prisma',
             'migrate',
             'deploy',
             '--schema=./prisma/schema',
         ]);
+    });
+
+    it('the chart does NOT invoke npx (npm is absent from the runtime image)', () => {
+        const v = yaml.load(read(`${CHART_DIR}/values.yaml`)) as any;
+        expect(JSON.stringify(v.migration.command)).not.toContain('npx');
     });
 
     it('backoffLimit defaults to 0 (failed migration is an intentional stop)', () => {

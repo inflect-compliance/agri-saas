@@ -407,13 +407,21 @@ migration:
     tag: ""          # empty = use .Values.image.tag (→ .Chart.AppVersion)
     pullPolicy: ""
 
-  # Pinned Prisma CLI version — matches the entrypoint.sh comment
-  # documenting the Prisma 7 datasource breakage. `--yes` skips the
-  # npx install confirmation prompt.
+  # Run the CLI VENDORED in the app image (`prisma` is a production
+  # dependency), matching scripts/entrypoint.sh.
+  #
+  # This replaced `npx --yes prisma@5.22.0`, which was broken twice
+  # over: the 5.x CLI rejects the Prisma 7 schema outright ("Argument
+  # 'url' is missing in data source block 'db'" — the URLs moved to
+  # prisma.config.ts), and the hand-maintained pin had already drifted
+  # from the 7.8.0 the entrypoint used. Pointing at the vendored binary
+  # removes the pin entirely, so it cannot drift again.
+  #
+  # It is also now REQUIRED: the runtime image no longer ships npm
+  # (Dockerfile strips it to drop the bundled-npm CVE surface), so
+  # `npx` is not available in this Job's container.
   command:
-    - npx
-    - --yes
-    - prisma@5.22.0
+    - ./node_modules/.bin/prisma
     - migrate
     - deploy
     - --schema=./prisma/schema
