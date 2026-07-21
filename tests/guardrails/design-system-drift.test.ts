@@ -20,6 +20,16 @@ const COMPONENTS_DIR = path.resolve(__dirname, '../../src/components');
  * These pages must NOT regress to raw color utilities.
  */
 const MIGRATED_PAGES = [
+    // #12 platform-support console — design-system-native from birth
+    // (ListPageShell / DataTable / Modal / Combobox / DatePicker / FormField /
+    // StatusBadge / Button + semantic tokens only; no raw colors, no legacy
+    // btn/badge). Promoted on arrival rather than parked in the unmigrated
+    // tally, so these files carry the raw-colour and legacy-class assertions
+    // from day one.
+    'admin/promotions/page.tsx',
+    'admin/promotions/PromotionsAdminClient.tsx',
+    'admin/companies/page.tsx',
+    'admin/companies/CompaniesAdminClient.tsx',
     // MECHANISATOR operator screen — design-system-native from birth
     // (Card / Button / Heading / Skeleton + semantic tokens only; no raw
     // colors, no legacy btn/badge).

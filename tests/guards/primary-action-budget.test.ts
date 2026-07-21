@@ -52,6 +52,12 @@ const EXEMPT_FILE_PATTERNS: RegExp[] = [
  * as a separate visual zone.
  */
 const PRIMARY_BUDGET: Record<string, number> = {
+    // #12 support console — the list-create header "Promotion" button plus the
+    // create/edit modal confirm live in the same client file, so the scanner
+    // sees 2. Both are canonical: one create action per list page, one confirm
+    // per modal. (The companies client keeps the default 1 — it is edit-only,
+    // with no create action.)
+    "src/app/t/[tenantSlug]/(app)/admin/promotions/PromotionsAdminClient.tsx": 2,
     // SP-F1 — the file picker has two mutually-exclusive footer modes:
     // file-select ("Import/Select") and folder-select ("Use this folder").
     // Each is the single primary of its mode; the static scanner counts both.

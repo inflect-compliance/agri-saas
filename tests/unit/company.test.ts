@@ -19,11 +19,9 @@ const mockCompany = {
     update: jest.fn(),
     findUnique: jest.fn(),
 };
+const mockLogEvent = jest.fn();
 
-jest.mock('@/lib/prisma', () => ({ prisma: { company: mockCompany } }));
-jest.mock('@/lib/observability/logger', () => ({
-    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
-}));
+jest.mock('@/app-layer/events/audit', () => ({ logEvent: (...a: unknown[]) => mockLogEvent(...a) }));
 
 import {
     createCompany,
@@ -31,8 +29,15 @@ import {
     findOrCreateCompany,
 } from '@/app-layer/usecases/company';
 import { companyNameKey } from '@/app-layer/usecases/promotions';
+import { makeRequestContext } from '../helpers/make-context';
 
-const actor = { requestId: 'req-1', userId: 'support-1' };
+const ctx = makeRequestContext('ADMIN', {
+    userId: 'support-1',
+    tenantId: 'platform-t',
+    tenantSlug: 'agrent-platform',
+});
+// The write runs inside the caller's tenant transaction; `db` is that tx client.
+const db = { company: mockCompany } as never;
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -58,13 +63,11 @@ describe('companyNameKey', () => {
 
 describe('createCompany', () => {
     it('strips markup from support notes before they are persisted', async () => {
-        await createCompany(
-            {
+        await createCompany(db, ctx, {
                 name: 'Agropolychim',
                 notes: 'Called <script>alert(1)</script> on Tuesday',
                 contactName: '<b>Ivan</b> Petrov',
             },
-            actor,
         );
 
         const { data } = mockCompany.create.mock.calls[0][0];
@@ -75,14 +78,14 @@ describe('createCompany', () => {
     });
 
     it('derives the dedup key from the name', async () => {
-        await createCompany({ name: '  Syngenta  ' }, actor);
+        await createCompany(db, ctx, { name: '  Syngenta  ' });
         const { data } = mockCompany.create.mock.calls[0][0];
         expect(data.name).toBe('Syngenta');
         expect(data.nameKey).toBe('syngenta');
     });
 
     it('rejects a blank name rather than creating an unnameable supplier', async () => {
-        await expect(createCompany({ name: '   ' }, actor)).rejects.toThrow(/name is required/i);
+        await expect(createCompany(db, ctx, { name: '   ' })).rejects.toThrow(/name is required/i);
         expect(mockCompany.create).not.toHaveBeenCalled();
     });
 
@@ -92,7 +95,7 @@ describe('createCompany', () => {
             new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' }),
         );
 
-        await expect(createCompany({ name: 'Syngenta' }, actor)).rejects.toThrow(
+        await expect(createCompany(db, ctx, { name: 'Syngenta' })).rejects.toThrow(
             /already exists/i,
         );
     });
@@ -103,33 +106,33 @@ describe('updateCompany', () => {
 
     it('404s on a missing supplier', async () => {
         mockCompany.findUnique.mockResolvedValue(null);
-        await expect(updateCompany('nope', { name: 'X' }, actor)).rejects.toThrow(/not found/i);
+        await expect(updateCompany(db, ctx, 'nope', { name: 'X' })).rejects.toThrow(/not found/i);
         expect(mockCompany.update).not.toHaveBeenCalled();
     });
 
     it('moves the dedup key with the name on a rename', async () => {
-        await updateCompany('c-1', { name: 'Syngenta Bulgaria' }, actor);
+        await updateCompany(db, ctx, 'c-1', { name: 'Syngenta Bulgaria' });
         const { data } = mockCompany.update.mock.calls[0][0];
         expect(data.name).toBe('Syngenta Bulgaria');
         expect(data.nameKey).toBe('syngenta bulgaria');
     });
 
     it('leaves the dedup key alone when the name is not part of the update', async () => {
-        await updateCompany('c-1', { notes: 'Renewed for 2027' }, actor);
+        await updateCompany(db, ctx, 'c-1', { notes: 'Renewed for 2027' });
         const { data } = mockCompany.update.mock.calls[0][0];
         expect(data).not.toHaveProperty('nameKey');
         expect(data).not.toHaveProperty('name');
     });
 
     it('sanitises on the update path too, not just create', async () => {
-        await updateCompany('c-1', { notes: '<img src=x onerror=alert(1)>ok' }, actor);
+        await updateCompany(db, ctx, 'c-1', { notes: '<img src=x onerror=alert(1)>ok' });
         const { data } = mockCompany.update.mock.calls[0][0];
         expect(data.notes).not.toContain('onerror');
         expect(data.notes).toContain('ok');
     });
 
     it('preserves the three-state contract: null clears, undefined leaves alone', async () => {
-        await updateCompany('c-1', { notes: null, contactEmail: undefined }, actor);
+        await updateCompany(db, ctx, 'c-1', { notes: null, contactEmail: undefined });
         const { data } = mockCompany.update.mock.calls[0][0];
         expect(data.notes).toBeNull();
         expect(data).not.toHaveProperty('contactEmail');
@@ -140,7 +143,7 @@ describe('findOrCreateCompany', () => {
     it('reuses an existing supplier despite different spelling', async () => {
         mockCompany.findUnique.mockResolvedValue({ id: 'c-existing', name: 'Syngenta' });
 
-        const company = await findOrCreateCompany('  SYNGENTA ', actor);
+        const company = await findOrCreateCompany(db, ctx, '  SYNGENTA ');
 
         expect(company.id).toBe('c-existing');
         expect(mockCompany.findUnique).toHaveBeenCalledWith({ where: { nameKey: 'syngenta' } });
@@ -149,7 +152,7 @@ describe('findOrCreateCompany', () => {
 
     it('creates when the supplier is genuinely new', async () => {
         mockCompany.findUnique.mockResolvedValue(null);
-        await findOrCreateCompany('Brand New Co', actor);
+        await findOrCreateCompany(db, ctx, 'Brand New Co');
         expect(mockCompany.create).toHaveBeenCalledTimes(1);
     });
 });

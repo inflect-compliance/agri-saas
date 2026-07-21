@@ -6,6 +6,7 @@ import { TenantProvider } from '@/lib/tenant-context-provider';
 import { getTenantPlan, getAvailableModulesForTenant } from '@/lib/entitlements-server';
 import { hasUpcomingAgriEvents } from '@/app-layer/usecases/agri-events';
 import { hasVisiblePromotions } from '@/app-layer/usecases/promotions';
+import { isPlatformTenant } from '@/lib/auth/platform-support';
 
 /**
  * This layout depends on auth cookies and database queries — it can never be statically generated.
@@ -80,6 +81,7 @@ export default async function TenantLayout({
             availableModules,
             agriEventsAvailable,
             promotionsAvailable,
+            isPlatformTenant: isPlatformTenant(tenantSlug),
             permissions: serverCtx.permissions,
             appPermissions: serverCtx.appPermissions,
         }}>
