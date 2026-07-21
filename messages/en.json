@@ -7509,5 +7509,25 @@
             "ariaSparkline": "{commodity} price sparkline",
             "empty": "No market data yet"
         }
+    },
+    "privacy": {
+        "title": "Privacy notice",
+        "intro": "How Agrent handles the information you enter, and what happens to a request when you ask a supplier for an offer.",
+        "collectTitle": "What we hold",
+        "collectAccount": "Account details: your name, email address and the language you chose for the interface.",
+        "collectFarm": "Farm records you enter: fields and parcels, crops, field operations, journal entries, documents and the other operational data the application exists to keep.",
+        "collectRequests": "Offer requests: when you ask a supplier for an offer, the message you write and the promotion it refers to, together with the moment you gave consent.",
+        "useTitle": "What we use it for",
+        "useOperate": "Running the application for your farm — showing your records back to you, and producing the reports and exports you ask for.",
+        "useSuppliers": "When you tick the consent box on an offer request, your name and your message are shared with that supplier so they can contact you about it. Nothing is shared with a supplier unless you tick that box, and no offer request is stored without it.",
+        "protectTitle": "How it is protected",
+        "protectEncryption": "Sensitive free-text and contact fields are encrypted before they are written to the database, so they are not readable in a database dump.",
+        "protectIsolation": "Each farm`s data is isolated at the database level. One organisation cannot read another`s records, and that isolation is enforced by the database itself rather than only by application code.",
+        "protectConsent": "Your consent to share an offer request is stored with the moment you gave it, so it can be shown if you ever ask why a supplier received your details.",
+        "rightsTitle": "Your rights",
+        "rightsList": "Under the GDPR you may ask for a copy of your personal data, ask for it to be corrected or erased, object to how it is used, or withdraw a consent you previously gave. Contact the operator of this deployment using the details below.",
+        "controllerTitle": "Who is responsible",
+        "controllerBody": "Agrent is software operated by an organisation that decides what is collected and why. That organisation is the data controller for the records in this deployment and is the party to contact about them.",
+        "controllerContact": "Contact:"
     }
 }

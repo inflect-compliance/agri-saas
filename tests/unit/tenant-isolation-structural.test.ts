@@ -79,6 +79,12 @@ describe('Structural Guard: Tenant Isolation Conventions', () => {
             'layout.tsx',        // Root layout
             'global-error.tsx',  // Global error boundary
             'audit',             // Public auditor share view (/audit/shared/[token])
+            // Privacy notice. Deliberately public and tenant-LESS: the
+            // promotions consent box links to it before a farmer submits a
+            // request, and a prospective user must be able to read it without
+            // an account. It renders no tenant data — only a description of
+            // how the software handles data — so it has nothing to isolate.
+            'privacy',
             // Epic 1, PR 3 — invite preview page (sign-in gated, any tenant).
             // User is not yet a member of the target tenant — cannot go under /t/.
             'invite',

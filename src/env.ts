@@ -442,6 +442,12 @@ export const env = createEnv({
         // every farm's owner write access to every other farm's feed.
         PLATFORM_TENANT_SLUG: z.string().min(1).optional(),
 
+        // Contact address shown on the public /privacy page. The data
+        // CONTROLLER is the organisation operating this deployment, not the
+        // software, so the address cannot be baked in. UNSET renders no contact
+        // block at all rather than a placeholder that reads as a real address.
+        PRIVACY_CONTACT_EMAIL: z.string().email().optional(),
+
         // Local zone for task-due deadline notifications — sets BOTH the
         // cron firing time AND the calendar-day classification ("due
         // today / tomorrow / in a week"). Must be one zone so a task
@@ -515,10 +521,10 @@ export const env = createEnv({
         // self-hosted deploy stays clean), mirroring how VAPID gates web push.
         // `RELEASE` tags field crashes to a specific deploy.
         /**
-         * URL of the operator's privacy notice. OPTIONAL and unset by default,
-         * because this app ships no privacy page: the promotions consent notice
-         * renders its link only when this is configured, so a deployment
-         * without a policy shows the consent text rather than a 404.
+         * OVERRIDE for the operator's own privacy notice. The app now ships an
+         * in-app `/privacy` page, which the consent notice links to by default;
+         * set this only when a deployment hosts its own policy elsewhere and
+         * wants the link to point there instead.
          */
         NEXT_PUBLIC_PRIVACY_URL: z.string().url().optional(),
         NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
@@ -629,6 +635,7 @@ export const env = createEnv({
         PLATFORM_ADMIN_API_KEY: process.env.PLATFORM_ADMIN_API_KEY,
         PLATFORM_ADMIN_API_KEY_PREVIOUS: process.env.PLATFORM_ADMIN_API_KEY_PREVIOUS,
         PLATFORM_TENANT_SLUG: process.env.PLATFORM_TENANT_SLUG,
+        PRIVACY_CONTACT_EMAIL: process.env.PRIVACY_CONTACT_EMAIL,
         NOTIFICATIONS_TZ: process.env.NOTIFICATIONS_TZ,
         VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
         VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,

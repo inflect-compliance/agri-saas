@@ -37,7 +37,9 @@ export function AskForOfferModal({ promotionId, company }: AskForOfferModalProps
     // box means there is nothing lawful to send. Starts false every time —
     // never remembered across opens.
     const [consent, setConsent] = useState(false);
-    const privacyUrl = env.NEXT_PUBLIC_PRIVACY_URL;
+    // The in-app /privacy page now exists, so this always resolves. The env
+    // var stays as an override for an operator who hosts their own policy.
+    const privacyUrl = env.NEXT_PUBLIC_PRIVACY_URL ?? '/privacy';
 
     const canSubmit = message.trim().length > 0 && consent && !submitting;
 
@@ -122,19 +124,15 @@ export function AskForOfferModal({ promotionId, company }: AskForOfferModalProps
                                 label={
                                     <span className="font-normal text-content-muted">
                                         {t('consent', { company })}
-                                        {privacyUrl ? (
-                                            <>
-                                                {' '}
-                                                <Link
-                                                    href={privacyUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="underline hover:text-content-emphasis"
-                                                >
-                                                    {t('privacyLink')}
-                                                </Link>
-                                            </>
-                                        ) : null}
+                                        {' '}
+                                        <Link
+                                            href={privacyUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="underline hover:text-content-emphasis"
+                                        >
+                                            {t('privacyLink')}
+                                        </Link>
                                     </span>
                                 }
                                 required
