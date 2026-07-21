@@ -6,7 +6,7 @@
         "location": "Локации",
         "journal": "Дневник",
         "events": "Събития",
-        "offers": "Оферти",
+        "offers": "Промоции",
         "climate": "Климат",
         "planting": "Планиране",
         "inventory": "Склад",
@@ -3336,11 +3336,15 @@
             "catSeeds": "Семена",
             "catProducts": "Продукти",
             "catService": "Услуга",
-            "ask": {
+            "leadNotification": {
+            "title": "Заявката е записана — {company}",
+            "message": "Запазихме заявката ви. {company} все още не получава автоматично известие."
+        },
+        "ask": {
                 "open": "Поискай оферта",
                 "sent": "Заявката е изпратена",
                 "titleWithCompany": "Поискай оферта от {company}",
-                "description": "Изпратете интереса си и доставчикът ще се свърже с вас.",
+                "description": "Опишете какво ви е необходимо. Заявката се записва за {company}.",
                 "message": "Съобщение",
                 "messagePlaceholder": "Опишете какво ви е необходимо…",
                 "cancel": "Отказ",
