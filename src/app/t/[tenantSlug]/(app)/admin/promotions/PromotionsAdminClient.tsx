@@ -193,7 +193,9 @@ export function PromotionsAdminClient({ tenantSlug }: { tenantSlug: string }) {
         }
     };
 
-    const columns = createColumns<PromotionRow>([
+    const columns = useMemo(
+        () =>
+            createColumns<PromotionRow>([
         {
             id: 'title',
             header: t('colTitle'),
@@ -273,7 +275,12 @@ export function PromotionsAdminClient({ tenantSlug }: { tenantSlug: string }) {
             ),
             meta: { mobileCard: { slot: 'actions' as const } },
         },
-    ]);
+            ]),
+        // `t` is stable per render pass; the row-action closures read state
+        // through setters, so the defs don't need to churn on every keystroke
+        // in the modal.
+        [t, tc],
+    );
 
     const heading = editing ? t('editTitle') : t('newTitle');
 
@@ -307,6 +314,7 @@ export function PromotionsAdminClient({ tenantSlug }: { tenantSlug: string }) {
                 <DataTable
                     fillBody
                     mobileFallback="card"
+                    data-testid="promotions-table"
                     data={rows}
                     columns={columns}
                     getRowId={(p: PromotionRow) => p.id}

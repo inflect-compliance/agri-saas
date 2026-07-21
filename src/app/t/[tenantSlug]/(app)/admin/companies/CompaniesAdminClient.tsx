@@ -11,7 +11,7 @@
  * This is the one surface in the product that renders decrypted supplier
  * contact PII. It is reachable only inside the platform tenant.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
@@ -84,7 +84,9 @@ export function CompaniesAdminClient({ tenantSlug }: { tenantSlug: string }) {
         }
     };
 
-    const columns = createColumns<CompanyRow>([
+    const columns = useMemo(
+        () =>
+            createColumns<CompanyRow>([
         {
             id: 'name',
             header: t('colName'),
@@ -132,7 +134,9 @@ export function CompaniesAdminClient({ tenantSlug }: { tenantSlug: string }) {
             ),
             meta: { mobileCard: { slot: 'actions' as const } },
         },
-    ]);
+            ]),
+        [t, tc],
+    );
 
     return (
         <ListPageShell className="gap-section">
@@ -154,6 +158,7 @@ export function CompaniesAdminClient({ tenantSlug }: { tenantSlug: string }) {
                 <DataTable
                     fillBody
                     mobileFallback="card"
+                    data-testid="companies-table"
                     data={rows}
                     columns={columns}
                     getRowId={(c: CompanyRow) => c.id}
