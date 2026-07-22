@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { env } from '@/env';
+import {
+    PROMOTION_LEAD_RETENTION_DAYS,
+    PROMOTION_LEAD_PURGE_GRACE_DAYS,
+} from '@/app-layer/jobs/promotion-lead-retention';
 import { Heading } from '@/components/ui/typography';
 
 /**
@@ -17,11 +21,10 @@ import { Heading } from '@/components/ui/typography';
  *   - an offer request shares name + message         → the consent notice text
  *   - consent is recorded with a timestamp           → PromotionLead.consentedAt
  *
- * Deliberately ABSENT: any retention or auto-deletion period. `deletedAt`
- * exists on `PromotionLead`, but the only retention sweep that runs is
- * Evidence-only — promising "we delete after N months" would be a claim the
- * system does not keep, which is exactly the class of defect the promotions
- * work removed. When a lead sweep is scheduled, add the window here.
+ * The retention window is rendered from the SAME constants the sweep runs on
+ * (`promotion-lead-retention`), never restated as prose. A page saying "24
+ * months" while the job keeps them for 36 is the class of defect this work
+ * removed; importing the source of truth makes that drift impossible.
  *
  * The data CONTROLLER is the operator of this deployment, not the software, so
  * their identity and contact address come from configuration rather than being
@@ -44,6 +47,8 @@ export default async function PrivacyPage() {
         { key: 'rights', body: ['rightsList'] },
     ] as const;
 
+    const retentionMonths = Math.round(PROMOTION_LEAD_RETENTION_DAYS / 30);
+
     return (
         <main className="mx-auto max-w-3xl space-y-section px-4 py-12">
             <header className="space-y-default">
@@ -61,6 +66,16 @@ export default async function PrivacyPage() {
                     ))}
                 </section>
             ))}
+
+            <section className="space-y-default">
+                <Heading level={2}>{t('keepTitle')}</Heading>
+                <p className="text-content-muted">
+                    {t('keepRequests', {
+                        months: retentionMonths,
+                        graceDays: PROMOTION_LEAD_PURGE_GRACE_DAYS,
+                    })}
+                </p>
+            </section>
 
             <section className="space-y-default">
                 <Heading level={2}>{t('controllerTitle')}</Heading>

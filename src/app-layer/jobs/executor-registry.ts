@@ -557,6 +557,20 @@ executorRegistry.register('retention-sweep', async (payload) => {
     );
 });
 
+// ── promotion-lead-retention ─────────────────────────────────────────
+
+executorRegistry.register('promotion-lead-retention', async (payload) => {
+    const startedAt = new Date().toISOString();
+    const startMs = performance.now();
+    const { runPromotionLeadRetentionSweep } = await import('./promotion-lead-retention');
+    const r = await runPromotionLeadRetentionSweep({ dryRun: payload.dryRun });
+    return makeResult(
+        'promotion-lead-retention', startedAt, startMs,
+        r.expired + r.purged, r.expired, 0,
+        { expired: r.expired, purged: r.purged, dryRun: r.dryRun },
+    );
+});
+
 // ── vendor-renewal-check ─────────────────────────────────────────────
 
 executorRegistry.register('vendor-renewal-check', async (payload) => {
