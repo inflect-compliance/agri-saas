@@ -27,7 +27,7 @@
 import prisma from '@/lib/prisma';
 import type { RequestContext } from '@/app-layer/types';
 import { getPermissionsForRole } from '@/lib/permissions';
-import { runInTenantContext } from '@/lib/db-context';
+import { runInTenantContext, type PrismaTx } from '@/lib/db-context';
 import { ParcelRepository } from '@/app-layer/repositories/ParcelRepository';
 import { fetchDailyWeather, type DailyWeather } from '@/lib/weather/open-meteo-client';
 import { evaluateLocationSignals } from '@/app-layer/usecases/agro-signals';
@@ -40,12 +40,39 @@ import type { WeatherPullPayload } from './types';
 const MAX_TENANTS = 5000;
 /** Max locations processed per tenant per run. */
 const MAX_LOCATIONS = 500;
+/**
+ * Rolling retention window for WeatherObservation. Weather is reproducible and
+ * every consumer (spray-window, GDD, dashboard greeting) reads only a short
+ * recent window, so daily rows older than this are pruned rather than kept
+ * forever — keeping per-location growth bounded. ~2 years leaves ample history.
+ */
+export const WEATHER_RETENTION_DAYS = 730;
 
 export interface WeatherPullResult {
     tenants: number;
     scanned: number;
     created: number;
     signals: number;
+    /** Rows hard-deleted by the retention prune this run. */
+    pruned: number;
+}
+
+/**
+ * Hard-delete a location's WeatherObservation rows older than the retention
+ * window (measured from `now`). Tenant + location scoped; returns the count.
+ * Exported for direct testing.
+ */
+export async function pruneOldObservations(
+    db: PrismaTx,
+    tenantId: string,
+    locationId: string,
+    now: Date,
+): Promise<number> {
+    const cutoff = new Date(now.getTime() - WEATHER_RETENTION_DAYS * 86_400_000);
+    const res = await db.weatherObservation.deleteMany({
+        where: { tenantId, locationId, obsDate: { lt: cutoff } },
+    });
+    return res.count;
 }
 
 /** Build a write-capable admin tenant context (first ACTIVE OWNER/ADMIN). */
@@ -131,6 +158,10 @@ export async function runWeatherPull(
     let scanned = 0;
     let created = 0;
     let signals = 0;
+    let pruned = 0;
+    // One "now" for the whole run — the retention cutoff is stable across
+    // every location processed in this pull.
+    const now = new Date();
 
     // Bounded cross-tenant fan-out (the risk-appetite-jobs pattern): the
     // per-TENANT reads inside this loop — tenant slug lookup + that
@@ -187,7 +218,6 @@ export async function runWeatherPull(
                             // real "best spray window today" surface.
                             hourlyJson: day.hours as unknown as object,
                             utcOffsetSeconds: day.utcOffsetSeconds,
-                            rawJson: day as unknown as object,
                         };
                         await db.weatherObservation.upsert({
                             where: {
@@ -198,6 +228,11 @@ export async function runWeatherPull(
                         });
                         created++;
                     }
+                    // Retention: prune rows older than the rolling window so a
+                    // location's daily series stays bounded (weather is
+                    // reproducible; the derived consumers only ever read a short
+                    // recent window).
+                    pruned += await pruneOldObservations(db, tenantId, loc.id, now);
                     processed.push(loc.id);
                 }
                 return processed;
@@ -248,5 +283,5 @@ export async function runWeatherPull(
         }
     }
 
-    return { tenants: tenantIds.length, scanned, created, signals };
+    return { tenants: tenantIds.length, scanned, created, signals, pruned };
 }

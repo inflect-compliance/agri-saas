@@ -168,13 +168,23 @@ export function useNavSections(): NavSectionDef[] {
                     icon: CalendarClock,
                     visible: tenant.agriEventsAvailable !== false,
                 },
-                // Offers (#12) — global feed of supplier promotions with an
-                // "Ask for offer" lead form, visible to every tenant. Reuses
-                // the already-imported Coins glyph (deals/pricing) — no new
-                // lucide import.
-                { href: tenantHref('/offers'), label: t('offers'), icon: Coins },
-                // Climate (#14) — the tenant's Meteobot station embed, with an
-                // Open-Meteo weather fallback. Sits with the field surfaces.
+                // Promotions (#12) — global feed of supplier promotions with an
+                // "Ask for offer" lead form. Reuses the already-imported Coins
+                // glyph (deals/pricing) — no new lucide import. Hidden when the
+                // catalogue holds nothing active, for exactly the reason the
+                // Events entry above is: the nav entry is permanent, the content
+                // is not, and a link to a guaranteed-empty page is worse than no
+                // link. `!== false` matches its sibling so an older provider
+                // that doesn't set the flag still shows it.
+                {
+                    href: tenantHref('/offers'),
+                    label: t('offers'),
+                    icon: Coins,
+                    visible: tenant.promotionsAvailable !== false,
+                },
+                // Climate (#14) — the farm's Open-Meteo weather (current
+                // conditions, forecast, spray window) per field. Sits with the
+                // field surfaces.
                 { href: tenantHref('/climate'), label: t('climate'), icon: CloudSun },
                 // Crop Planning — season succession plans (PLANNING
                 // module). A simple-mode farm surface (NOT cert-gated), so
@@ -262,6 +272,31 @@ export function useNavSections(): NavSectionDef[] {
                 // farm-operations surface (growing guides / SOPs), useful
                 // to simple-mode tenants on its own.
                 { href: tenantHref('/knowledge'), label: t('knowledge'), icon: FileText },
+            ]),
+        },
+        // Platform support (#12) — curation of the GLOBAL catalogues. Appears
+        // ONLY inside the designated platform tenant, so ordinary farms never
+        // see that a cross-tenant console exists. `=== true` (not `!== false`)
+        // is deliberate: the sibling module flags degrade OPEN because hiding a
+        // farm's own feature is the worse failure, whereas here showing a
+        // global-catalogue console to the wrong tenant is. The server-side
+        // pages and API routes gate independently — this is discoverability,
+        // never the security boundary.
+        {
+            title: t('sectionPlatform'),
+            items: filterVisible([
+                {
+                    href: tenantHref('/admin/promotions'),
+                    label: t('platformPromotions'),
+                    icon: Coins,
+                    visible: tenant.isPlatformTenant === true,
+                },
+                {
+                    href: tenantHref('/admin/companies'),
+                    label: t('platformCompanies'),
+                    icon: Building2,
+                    visible: tenant.isPlatformTenant === true,
+                },
             ]),
         },
     ];

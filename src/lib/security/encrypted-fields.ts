@@ -101,6 +101,35 @@
  *      next tenant writes to the column.
  */
 export const ENCRYPTED_FIELDS: Readonly<Record<string, readonly string[]>> = {
+    // ─── Company (promotions #12) ──────────────────────
+    //  A supplier's PUBLIC identity (name / eik / websiteUrl / logoUrl)
+    //  stays plaintext — the name renders in every tenant's offers feed
+    //  and the ЕИК is commercial-register data. What is encrypted is the
+    //  named individual behind the account: their name, work email and
+    //  phone are personal data, and `notes` is support free-text that
+    //  routinely mentions people.
+    //
+    //  NOTE: `Company` is GLOBAL (no tenantId), so it encrypts under the
+    //  global KEK via GLOBAL_KEK_MODELS in encryption-middleware — NOT
+    //  under whichever tenant happens to be in context. See the comment
+    //  there for why binding this to the platform tenant would be a trap.
+    Company: ['contactName', 'contactEmail', 'contactPhone', 'notes'],
+
+    // ─── Promotion leads (promotions #12) ──────────────
+    //  The farmer's free-text request. It routinely names the farm, the
+    //  field and what they are short of, and it is written expressly to
+    //  be forwarded to a third-party supplier — so it is both personal
+    //  data and commercially sensitive.
+    //
+    //  NOTE: unlike `Company` above, this is NOT in `GLOBAL_KEK_MODELS`.
+    //  The row is written inside the INQUIRING tenant's context, so it
+    //  encrypts under that tenant's DEK and keeps per-tenant key
+    //  isolation — the message belongs to the farmer, not the platform.
+    //  The consequence is deliberate and must be honoured by any future
+    //  reader: a lead digest running outside that tenant cannot decrypt
+    //  it, and has to resolve each lead's tenant context first.
+    PromotionLead: ['requestMessage'],
+
     // ─── Tenant security settings ──────────────────────
     //  Epic C.4 — audit-stream HMAC secret. URL stays plaintext so DBAs
     //  can audit which tenants are forwarding to which SIEM without

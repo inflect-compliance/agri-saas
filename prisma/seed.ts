@@ -12,6 +12,7 @@ import { createLocation } from '@/app-layer/usecases/location';
 import { createParcel, type CreateParcelInput } from '@/app-layer/usecases/parcel';
 import { importUnits } from '../scripts/import-units';
 import { seedAgriEvents } from '../scripts/seed-agri-events';
+import { seedPromotions } from '../scripts/seed-promotions';
 
 // Prisma 7 — adapter is required for PrismaClient construction.
 const prisma = new PrismaClient({
@@ -983,6 +984,10 @@ async function main() {
         // only — see the header of scripts/seed-agri-events.ts. Without this the
         // /events page renders its empty state and the nav entry hides itself.
         await seedAgriEvents(prisma);
+
+        // Global supplier + promotions catalogue (shared, no tenantId). Demo
+        // rows only — see the header of scripts/seed-promotions.ts.
+        await seedPromotions(prisma);
 
         const litre = await prisma.unit.findUnique({ where: { key: 'l' } });
         const kg = await prisma.unit.findUnique({ where: { key: 'kg' } });

@@ -30,6 +30,18 @@ import * as path from 'path';
  * Every route file listed here is checked for the centralized admin guard import.
  */
 const ADMIN_ONLY_ROUTES = [
+    // Platform-support console (#12) — global catalogues. These carry
+    // requirePermission('admin.manage') like every other admin route, PLUS an
+    // assertPlatformSupport(ctx) call that restricts them to the designated
+    // PLATFORM_TENANT_SLUG. The extra gate is what stops one tenant's admin
+    // curating a feed that every other tenant reads.
+    'admin/promotions/route.ts',
+    'admin/promotions/[id]/route.ts',
+    // Artwork upload/removal. Same two gates as its siblings, and the one most
+    // worth having them: the bytes it accepts render in EVERY tenant's feed.
+    'admin/promotions/[id]/image/route.ts',
+    'admin/companies/route.ts',
+    'admin/companies/[id]/route.ts',
     // /admin/* routes
     'admin/members/route.ts',
     'admin/members/[membershipId]/route.ts',

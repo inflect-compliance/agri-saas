@@ -30,6 +30,11 @@ const GLOBAL_CATALOGUE_MODELS: Record<string, string> = {
     Promotion:
         '#12 — supplier promotions are a shared lead-gen feed. The tenant-scoped side of the ' +
         'relationship is PromotionLead, which DOES carry a tenantId.',
+    Company:
+        '#12 — the supplier catalogue behind Promotion. One advertiser is one row for every ' +
+        'tenant; a per-tenant copy would fork a supplier per farm. Its contact fields are ' +
+        'encrypted under the GLOBAL KEK (see GLOBAL_KEK_MODELS) precisely because it has no ' +
+        'tenant whose DEK could own them.',
     SoilSample:
         'Global soil-analysis cache keyed by geography, not by farm — two tenants sampling the ' +
         'same coordinates should hit the same row.',

@@ -59,6 +59,22 @@ const ORG_SCOPED_MODELS: ReadonlyMap<string, string> = new Map([
     ['OrgMembership', 'org_membership_self_isolation'],
 ]);
 
+// Promotions #12 — `PromotionLead` is CROSS-TENANT on a third axis.
+//
+// It holds one tenant's contact PII but keys on `inquirerTenantId`, a plain
+// FK that is deliberately NOT a `tenantId` RLS column. That is precisely why
+// it needed listing here: this file's inventory keys off `tenantId`, so the
+// table sat outside the ratchet while being readable by any tenant's session
+// — the failure mode the ratchet exists to prevent.
+//
+// Single policy (not the split isolation/insert pair): `inquirerTenantId` is
+// NOT NULL, so there is no nullable-row case needing a permissive USING, and
+// both USING and WITH CHECK are the strict own-tenant predicate.
+// See migration 20260721090000_promotion_lead_consent_rls.
+const CROSS_TENANT_SCOPED_MODELS: ReadonlyMap<string, string> = new Map([
+    ['PromotionLead', 'promotion_lead_inquirer_isolation'],
+]);
+
 const describeFn = DB_AVAILABLE ? describe : describe.skip;
 
 describeFn('Guardrail: RLS coverage (pg_policies ↔ schema)', () => {
@@ -319,6 +335,50 @@ describeFn('Guardrail: RLS coverage (pg_policies ↔ schema)', () => {
                         .map((m) => `${m.model} → policy '${m.policy}'`)
                         .join('\n  '),
             );
+        }
+    });
+
+    test('every cross-tenant model has its named isolation policy + bypass + FORCE', () => {
+        // The three properties together are what make the table safe; asserting
+        // only the policy name would pass a table whose RLS was never ENABLEd.
+        const problems: string[] = [];
+        for (const [model, expectedPolicy] of CROSS_TENANT_SCOPED_MODELS) {
+            const names = policiesFor(model);
+            if (!names.includes(expectedPolicy)) {
+                problems.push(`${model} → missing policy '${expectedPolicy}'`);
+            }
+            if (!names.includes('superuser_bypass')) {
+                problems.push(`${model} → missing 'superuser_bypass'`);
+            }
+            if (!forcedTables.has(model)) {
+                problems.push(`${model} → FORCE ROW LEVEL SECURITY not enabled`);
+            }
+        }
+        if (problems.length > 0) {
+            throw new Error(
+                `Cross-tenant RLS gap — a table holding one tenant's PII on a ` +
+                    `non-tenantId axis is unprotected. Restore the relevant ` +
+                    `statements in prisma/migrations/` +
+                    `20260721090000_promotion_lead_consent_rls:\n  ` +
+                    problems.join('\n  '),
+            );
+        }
+    });
+
+    test('cross-tenant isolation is symmetric — USING and WITH CHECK both strict', () => {
+        // `inquirerTenantId` is NOT NULL, so unlike the nullable-tenantId
+        // exceptions above there is no permissive-read case. A policy with a
+        // USING clause but no WITH CHECK would let a session write a row
+        // belonging to another tenant.
+        for (const [model] of CROSS_TENANT_SCOPED_MODELS) {
+            const row = policies.find(
+                (p) => p.tablename === model && p.policyname !== 'superuser_bypass',
+            );
+            expect(row).toBeDefined();
+            expect(row!.qual).toBeTruthy();
+            expect(row!.with_check).toBeTruthy();
+            expect(row!.qual).toContain('inquirerTenantId');
+            expect(row!.with_check).toContain('inquirerTenantId');
         }
     });
 

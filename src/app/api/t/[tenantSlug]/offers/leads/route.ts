@@ -23,6 +23,7 @@ export const POST = withApiErrorHandling(
                 promotionId: body.promotionId,
                 message: body.message,
                 contextParcelId: body.contextParcelId ?? null,
+                consent: body.consent,
             });
             return jsonResponse({ id: lead.id, status: lead.status }, { status: 201 });
         },

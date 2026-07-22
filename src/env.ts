@@ -431,6 +431,23 @@ export const env = createEnv({
         // DATA_ENCRYPTION_KEY_PREVIOUS.
         PLATFORM_ADMIN_API_KEY_PREVIOUS: z.string().min(32).optional(),
 
+        // #12 — slug of the tenant whose admins curate the GLOBAL catalogues
+        // (companies + promotions) from the support console. Distinct from the
+        // API key above: that is a session-less shared secret for machine
+        // callers, this designates a tenant whose real, logged-in admins do
+        // recurring human curation — so audit rows carry a real userId.
+        //
+        // UNSET = the console is unreachable for every tenant (fail closed).
+        // Never default this: a blank value that matched any slug would hand
+        // every farm's owner write access to every other farm's feed.
+        PLATFORM_TENANT_SLUG: z.string().min(1).optional(),
+
+        // Contact address shown on the public /privacy page. The data
+        // CONTROLLER is the organisation operating this deployment, not the
+        // software, so the address cannot be baked in. UNSET renders no contact
+        // block at all rather than a placeholder that reads as a real address.
+        PRIVACY_CONTACT_EMAIL: z.string().email().optional(),
+
         // Local zone for task-due deadline notifications — sets BOTH the
         // cron firing time AND the calendar-day classification ("due
         // today / tomorrow / in a week"). Must be one zone so a task
@@ -503,6 +520,13 @@ export const env = createEnv({
         // The client Sentry SDK is gated on this DSN: absent ⇒ no-op (a
         // self-hosted deploy stays clean), mirroring how VAPID gates web push.
         // `RELEASE` tags field crashes to a specific deploy.
+        /**
+         * OVERRIDE for the operator's own privacy notice. The app now ships an
+         * in-app `/privacy` page, which the consent notice links to by default;
+         * set this only when a deployment hosts its own policy elsewhere and
+         * wants the link to point there instead.
+         */
+        NEXT_PUBLIC_PRIVACY_URL: z.string().url().optional(),
         NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
         NEXT_PUBLIC_SENTRY_RELEASE: z.string().optional(),
     },
@@ -610,6 +634,8 @@ export const env = createEnv({
         AUDIT_STREAM_LEGACY_HEADERS: process.env.AUDIT_STREAM_LEGACY_HEADERS,
         PLATFORM_ADMIN_API_KEY: process.env.PLATFORM_ADMIN_API_KEY,
         PLATFORM_ADMIN_API_KEY_PREVIOUS: process.env.PLATFORM_ADMIN_API_KEY_PREVIOUS,
+        PLATFORM_TENANT_SLUG: process.env.PLATFORM_TENANT_SLUG,
+        PRIVACY_CONTACT_EMAIL: process.env.PRIVACY_CONTACT_EMAIL,
         NOTIFICATIONS_TZ: process.env.NOTIFICATIONS_TZ,
         VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
         VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
@@ -619,6 +645,7 @@ export const env = createEnv({
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
         NEXT_PUBLIC_MAPTILER_KEY: process.env.NEXT_PUBLIC_MAPTILER_KEY,
         NEXT_PUBLIC_MAP_BASEMAP_STYLE: process.env.NEXT_PUBLIC_MAP_BASEMAP_STYLE,
+        NEXT_PUBLIC_PRIVACY_URL: process.env.NEXT_PUBLIC_PRIVACY_URL,
         NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
         NEXT_PUBLIC_SENTRY_RELEASE: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
     },

@@ -246,7 +246,13 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // button + the create-lease modal confirm ("Create lease"). The modal's
 // Cancel is secondary, so the secondary:primary ratio stays healthy.
 // Measured = 168; ceiling at 168 (no headroom slot).
-const MAX_PRIMARY_COUNT = 168;
+// Platform-support console (#12): +3 primary — the promotions list-create
+// header "Promotion" button, the promotion create/edit modal confirm, and the
+// supplier-edit modal confirm. All three are the convention-mandated shape
+// (one create per list page, one confirm per modal) and every Cancel beside
+// them is secondary, so the secondary:primary ratio moves up, not down.
+// Measured = 170; ceiling at 170 (no headroom slot).
+const MAX_PRIMARY_COUNT = 170;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

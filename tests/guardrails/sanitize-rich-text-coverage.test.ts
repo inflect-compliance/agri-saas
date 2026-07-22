@@ -64,6 +64,17 @@ const RICH_TEXT_COVERAGE: Readonly<
     // Lease counterparty PII — sanitised at the single `mapLeaseData` write
     // seam that both create and update route through.
     ParcelLease: { usecases: ['src/app-layer/usecases/parcel-lease.ts'], sanitizer: 'sanitizePlainText' },
+    // Supplier contact PII + support notes (#12) — sanitised at the single
+    // `sanitizeCompanyInput` seam that both create and update route through,
+    // mirroring ParcelLease's `mapLeaseData`.
+    Company: { usecases: ['src/app-layer/usecases/company.ts'], sanitizer: 'sanitizePlainText' },
+    // The farmer's free-text offer request (#12). One write path only —
+    // `createPromotionLead` — and it sanitises before the row is created, so
+    // the ciphertext the supplier's digest later decrypts is already clean.
+    PromotionLead: {
+        usecases: ['src/app-layer/usecases/promotions.ts'],
+        sanitizer: 'sanitizePlainText',
+    },
     Risk: { usecases: ['src/app-layer/usecases/risk.ts'], sanitizer: 'sanitizePlainText' },
     // RQ3-6 — loss-event narrative + reviewer justification; sanitised
     // at the single createLossEvent write seam before the Epic B

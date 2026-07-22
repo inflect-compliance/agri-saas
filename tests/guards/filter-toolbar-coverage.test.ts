@@ -47,6 +47,14 @@ const EXEMPT_FILE_PATTERNS: RegExp[] = [
  * length to stop hand-waved exemptions.
  */
 const EXEMPTIONS: Record<string, string> = {
+    // Platform-support console (#12) — admin sub-pages over a GLOBAL catalogue
+    // that only platform staff can reach. Both are bounded curation rosters
+    // (hundreds of rows at most, not a tenant's operational data), and support
+    // works from the derived status column rather than faceted filters.
+    "src/app/t/[tenantSlug]/(app)/admin/promotions/PromotionsAdminClient.tsx":
+        "Admin sub-page, one fixed entity type + inline publish/edit controls — bounded global catalogue, no faceted filtering.",
+    "src/app/t/[tenantSlug]/(app)/admin/companies/CompaniesAdminClient.tsx":
+        "Admin sub-page, one fixed entity type + inline edit control — bounded supplier roster, no faceted filtering.",
     // Journal Trash — a bounded ADMIN-only soft-deleted list reached in-page
     // from the journal toggle. Restore/purge affordances only; the parent
     // journal list owns the faceted filters.

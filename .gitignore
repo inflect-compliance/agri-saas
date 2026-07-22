@@ -1,5 +1,10 @@
 # Dependencies
-node_modules/
+# Match BOTH the directory and a SYMLINK named node_modules. The trailing
+# slash form matches only a directory, so a symlinked node_modules (a common
+# local setup pointing at a shared install) slipped past it and got committed
+# by a `git add -A` — twice now (#331 cleaned it once). Without the slash the
+# pattern matches either.
+node_modules
 
 # Python — `scripts/coverage-by-domain.py` runs from repo root.
 __pycache__/

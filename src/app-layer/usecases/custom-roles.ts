@@ -15,8 +15,8 @@ import { RequestContext } from '../types';
 import { assertCanManageMembers } from '../policies/admin.policies';
 import { logEvent } from '../events/audit';
 import { runInTenantContext } from '@/lib/db-context';
-import { notFound, badRequest } from '@/lib/errors/types';
-import { validatePermissionsJson } from '@/lib/permissions';
+import { notFound, badRequest, forbidden } from '@/lib/errors/types';
+import { permissionsExceeding, validatePermissionsJson } from '@/lib/permissions';
 import type { Role } from '@prisma/client';
 
 const VALID_BASE_ROLES: Role[] = ['ADMIN', 'EDITOR', 'AUDITOR', 'READER'];
@@ -46,6 +46,27 @@ export interface CreateCustomRoleInput {
     permissionsJson: unknown;
 }
 
+/**
+ * Refuse a blob that grants more than the caller holds.
+ *
+ * `admin.manage` gates custom-role CRUD, so without this check that single
+ * permission is a grant of every permission in the system — an ADMIN could
+ * mint a role carrying anything and assign it to themselves. The OWNER-only
+ * keys were closed in #353; this is the general class.
+ *
+ * The comparison is against `ctx.appPermissions`, the caller's EFFECTIVE set,
+ * so it also holds transitively: a role granted through a custom role cannot
+ * be used to mint a stronger one.
+ */
+function assertWithinGrantorPermissions(ctx: RequestContext, permissionsJson: unknown): void {
+    const over = permissionsExceeding(permissionsJson, ctx.appPermissions);
+    if (over.length > 0) {
+        throw forbidden(
+            `You cannot grant permissions you do not hold: ${over.join(', ')}`,
+        );
+    }
+}
+
 export async function createCustomRole(ctx: RequestContext, input: CreateCustomRoleInput) {
     assertCanManageMembers(ctx);
 
@@ -64,6 +85,8 @@ export async function createCustomRole(ctx: RequestContext, input: CreateCustomR
     if (errors.length > 0) {
         throw badRequest(`Invalid permissions: ${errors.join('; ')}`);
     }
+
+    assertWithinGrantorPermissions(ctx, input.permissionsJson);
 
     return runInTenantContext(ctx, async (db) => {
         // Check for duplicate name within tenant
@@ -164,6 +187,9 @@ export async function updateCustomRole(
             if (errors.length > 0) {
                 throw badRequest(`Invalid permissions: ${errors.join('; ')}`);
             }
+            // Same ceiling as create — otherwise an ADMIN could create a
+            // within-bounds role and immediately edit it upward.
+            assertWithinGrantorPermissions(ctx, input.permissionsJson);
             data.permissionsJson = input.permissionsJson as object;
         }
 
@@ -342,6 +368,13 @@ export async function assignCustomRole(
             if (!customRole) {
                 throw notFound('Custom role not found or inactive.');
             }
+
+            // Re-check the ceiling at ASSIGN time, not just at create/update.
+            // A role can outlive the permissions of whoever is handing it out:
+            // an OWNER may legitimately create a role an ADMIN must not be able
+            // to distribute, and a grantor's own permissions can be reduced
+            // after the role was written.
+            assertWithinGrantorPermissions(ctx, customRole.permissionsJson);
         }
 
         const oldCustomRoleId = membership.customRoleId;

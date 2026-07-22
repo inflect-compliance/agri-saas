@@ -120,6 +120,26 @@ RUN chmod +x ./scripts/entrypoint.sh && \
     mkdir -p /data/uploads && \
     chown nextjs:nodejs /data/uploads
 
+# Strip the bundled npm CLI from the RUNTIME image.
+#
+# Nothing here needs it: the entrypoint runs the vendored
+# ./node_modules/.bin/prisma, and the worker/scheduler run `node
+# dist/*.mjs` directly. What it does carry is npm's own dependency
+# tree (tar, brace-expansion, js-yaml, …) living at
+# /usr/local/lib/node_modules/npm — which is where Trivy's CRITICAL
+# tar advisory (CVE-2026-59873, gzip-bomb DoS) and its HIGH siblings
+# come from. They are unreachable from application code and
+# unfixable via our package-lock, because they belong to the base
+# image's npm, not to us.
+#
+# Deleting the CLI removes the finding at the source rather than
+# suppressing it in .trivyignore, and shrinks the runtime image.
+# Node itself is untouched. If a future runtime step genuinely needs
+# a package manager, prefer vendoring the tool over restoring npm.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+           /usr/local/bin/npm \
+           /usr/local/bin/npx
+
 USER nextjs
 
 EXPOSE 3000

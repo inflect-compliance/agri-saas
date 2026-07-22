@@ -30,6 +30,26 @@ export interface TenantContextValue {
      * matching `availableModules`).
      */
     agriEventsAvailable?: boolean;
+    /**
+     * #12 — whether the GLOBAL promotions catalogue has anything active. Same
+     * shape and rationale as `agriEventsAvailable` above: data-driven, not a
+     * module/permission flag, resolved server-side in the tenant layout so the
+     * sidebar can hide the Promotions entry instead of linking every tenant to
+     * an empty page. Absent ⇒ treat as "show" (degrade gracefully).
+     */
+    promotionsAvailable?: boolean;
+    /**
+     * #12 — is this the designated platform tenant (PLATFORM_TENANT_SLUG)?
+     * Resolved server-side so the slug-comparison logic doesn't ship to the
+     * client. Gates the support console's nav entries.
+     *
+     * Note the polarity is the OPPOSITE of its two neighbours above: absent ⇒
+     * false, degrading CLOSED. For `availableModules` / `promotionsAvailable`
+     * the worse failure is hiding a tenant's own feature, so they degrade open;
+     * here the worse failure is showing a cross-tenant catalogue console to a
+     * farm that should never see it.
+     */
+    isPlatformTenant?: boolean;
     permissions: {
         canRead: boolean;
         canWrite: boolean;

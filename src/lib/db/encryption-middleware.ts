@@ -73,6 +73,7 @@ import {
     ALL_ENCRYPTED_FIELD_NAMES,
     nodeHasAnyEncryptedFieldKey,
 } from '@/lib/security/encrypted-fields';
+import { Prisma } from '@prisma/client';
 import { getAuditContext } from '@/lib/audit-context';
 import { logger } from '@/lib/observability/logger';
 // `import * as` (rather than a top-level named import) keeps the
@@ -141,6 +142,27 @@ interface TenantDekPair {
 const NO_DEK_PAIR: TenantDekPair = { primary: null, previous: null };
 
 /**
+ * Models that always encrypt under the GLOBAL KEK, never a per-tenant DEK.
+ *
+ * `Tenant` is here for the obvious reason — its own row holds the wrapped DEK,
+ * so it cannot be encrypted with it.
+ *
+ * `Company` (promotions #12) is here for a subtler one. It is a GLOBAL
+ * catalogue with no tenantId, but it is WRITTEN by platform support operating
+ * inside the designated platform tenant — so `ctx.tenantId` is set, and without
+ * this entry the middleware would happily encrypt global supplier contact
+ * details under that one tenant's DEK. That would bind global data to a
+ * tenant's key: the lead-digest job could only decrypt while running in that
+ * tenant's context, and changing `PLATFORM_TENANT_SLUG` (or rotating that
+ * tenant's DEK independently) would orphan every supplier's contact address.
+ *
+ * The rule: a model with no `tenantId` column belongs here if any of its
+ * fields are encrypted. Tenant-scoped models must NOT be added — they would
+ * lose per-tenant key isolation.
+ */
+const GLOBAL_KEK_MODELS: ReadonlySet<string> = new Set(['Tenant', 'Company']);
+
+/**
  * Resolve the per-tenant DEK pair for the current operation, or the
  * `{ null, null }` sentinel when the middleware should fall back to
  * the global KEK.
@@ -164,7 +186,7 @@ const NO_DEK_PAIR: TenantDekPair = { primary: null, previous: null };
 async function resolveTenantDekPair(
     model: string | undefined,
 ): Promise<TenantDekPair> {
-    if (model === 'Tenant') return NO_DEK_PAIR;
+    if (model && GLOBAL_KEK_MODELS.has(model)) return NO_DEK_PAIR;
 
     const ctx = getAuditContext();
     const tenantId = ctx?.tenantId;
@@ -267,8 +289,49 @@ function encryptDataNodeAllModels(
 }
 
 /**
+ * Relation map: `"ParentModel.relationField" -> "TargetModel"`.
+ *
+ * Nested writes (`{ promotion: { create: {...} } }`) don't name their target
+ * model anywhere in the payload, which is why the descent used to fall back to
+ * the `'*'` fan-out. But the target IS determined by the parent model plus the
+ * relation field name, and Prisma's DMMF knows both — so it never needed to be
+ * unknown.
+ *
+ * Built lazily and once: DMMF access is cheap but not free, and this module is
+ * on the hot path for every write.
+ */
+let relationTargets: Map<string, string> | null = null;
+
+function relationTargetFor(parentModel: string, field: string): string | undefined {
+    if (parentModel === '*') return undefined;
+    if (!relationTargets) {
+        relationTargets = new Map();
+        try {
+            for (const model of Prisma?.dmmf?.datamodel?.models ?? []) {
+                for (const f of model.fields ?? []) {
+                    if (f.kind === 'object' && typeof f.type === 'string') {
+                        relationTargets.set(`${model.name}.${f.name}`, f.type);
+                    }
+                }
+            }
+        } catch {
+            // DMMF unavailable (an unusual runtime) — every lookup misses and
+            // the caller falls back to the previous '*' behaviour.
+        }
+    }
+    return relationTargets.get(`${parentModel}.${field}`);
+}
+
+/**
  * Walk a Prisma write payload and encrypt every manifest field.
- * `modelName === '*'` triggers fan-out across all manifest models.
+ *
+ * `modelName === '*'` triggers fan-out across all manifest models — now only
+ * as a LAST RESORT, when the nested target cannot be resolved from the schema.
+ * The fan-out is the dangerous branch: it matches field NAMES across the whole
+ * manifest and cannot tell models apart, so a generic name like `message`
+ * (shared by Notification / ExchangeInquiry / InsuranceLead) would be
+ * encrypted on every model carrying it. Resolving the target model retires
+ * that whole class for nested writes.
  */
 function walkWriteArgument(
     payload: unknown,
@@ -291,27 +354,29 @@ function walkWriteArgument(
         encryptDataNode(node, modelName, dek);
     }
 
-    // 2. Descend into nested-writes shapes. Target model is unknown
-    //    from structure alone — fan out via '*' but keep the DEK.
-    for (const value of Object.values(node)) {
+    // 2. Descend into nested-writes shapes. The target model is resolved from
+    //    (parent model, relation field) via the schema; '*' is the fallback
+    //    only when that lookup misses.
+    for (const [key, value] of Object.entries(node)) {
         if (!value || typeof value !== 'object') continue;
         const nested = value as Record<string, unknown>;
-        if ('create' in nested) walkWriteArgument(nested.create, '*', dek);
-        if ('update' in nested) walkWriteArgument(nested.update, '*', dek);
+        const target = relationTargetFor(modelName, key) ?? '*';
+        if ('create' in nested) walkWriteArgument(nested.create, target, dek);
+        if ('update' in nested) walkWriteArgument(nested.update, target, dek);
         if ('upsert' in nested) {
             const u = nested.upsert as Record<string, unknown> | undefined;
-            if (u?.create) walkWriteArgument(u.create, '*', dek);
-            if (u?.update) walkWriteArgument(u.update, '*', dek);
+            if (u?.create) walkWriteArgument(u.create, target, dek);
+            if (u?.update) walkWriteArgument(u.update, target, dek);
         }
         if ('connectOrCreate' in nested) {
             const coc = nested.connectOrCreate as
                 | Record<string, unknown>
                 | undefined;
-            if (coc?.create) walkWriteArgument(coc.create, '*', dek);
+            if (coc?.create) walkWriteArgument(coc.create, target, dek);
         }
         if ('createMany' in nested) {
             const cm = nested.createMany as Record<string, unknown> | undefined;
-            if (cm?.data) walkWriteArgument(cm.data, '*', dek);
+            if (cm?.data) walkWriteArgument(cm.data, target, dek);
         }
     }
 }

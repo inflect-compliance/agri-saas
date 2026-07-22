@@ -100,3 +100,42 @@ CVE-2026-42338
 #   Upgrade plan:   Cleared by the next Node base-image bump that ships an
 #                   npm CLI bundling sigstore >= 4.1.1.
 CVE-2026-48815
+
+# CVE-2026-13149 — brace-expansion DoS via exponential-time complexity
+#   Affected path:  usr/local/lib/node_modules/npm/node_modules/brace-expansion (v5.0.6)
+#   Why exempt:     Same install path and reachability argument as
+#                   CVE-2026-33750 above — this is the brace-expansion
+#                   bundled INSIDE the npm CLI that ships with the
+#                   node:22-alpine base image, not our app's copy. Our
+#                   own tree resolves brace-expansion 5.0.7 (patched),
+#                   verified in package-lock.json. `overrides` cannot
+#                   reach npm's bundled dependencies, so a dependency
+#                   bump is structurally unable to clear this one.
+#                   The runtime container never execs `npm` (CMD is the
+#                   Next.js server), so app-level reachability is zero.
+#   Upgrade plan:   Retired by the base-image bump that ships an npm CLI
+#                   bundling brace-expansion >= 5.0.7 — the same bump
+#                   that clears CVE-2026-33750.
+CVE-2026-13149
+
+# CVE-2026-59873 — node-tar DoS via crafted gzip bomb (CRITICAL)
+#   Affected path:  usr/local/lib/node_modules/npm/node_modules/tar (v7.5.16)
+#   Why exempt:     `tar` appears ONLY inside the npm CLI bundled with the
+#                   base image — it is not a dependency of this app
+#                   (verified: the sole lockfile path is
+#                   node_modules/npm/node_modules/tar). npm uses it to
+#                   unpack registry tarballs during the build-time
+#                   `npm ci`, whose inputs are our own lockfile-pinned,
+#                   integrity-checked packages — not untrusted archives.
+#                   The runtime container never execs `npm`.
+#   Upgrade plan:   Retired by the base-image bump that ships an npm CLI
+#                   bundling tar >= 7.5.19 (published; not yet in the
+#                   node:22-alpine npm). Clears CVE-2026-59874 with it.
+CVE-2026-59873
+
+# CVE-2026-59874 — node-tar DoS via malformed tar archive
+#   Affected path:  usr/local/lib/node_modules/npm/node_modules/tar (v7.5.16)
+#   Why exempt:     Same bundled-npm install path and reachability
+#                   argument as CVE-2026-59873 above; fixed in tar 7.5.18.
+#   Upgrade plan:   Cleared by the same base-image bump as CVE-2026-59873.
+CVE-2026-59874
