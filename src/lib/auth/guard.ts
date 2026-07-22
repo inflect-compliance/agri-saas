@@ -23,6 +23,11 @@ const PUBLIC_PATH_PREFIXES = [
     '/api/readyz',       // Readiness probe (no auth)
     '/api/metrics',      // web-vitals telemetry sink (no auth — anonymous RUM beacons)
     '/api/staging/seed', // Staging seed endpoint (token-gated internally)
+    '/privacy',          // Privacy notice — MUST be readable without an account:
+                         // the promotions consent box links to it before a
+                         // request is submitted, and a prospective user has to
+                         // be able to read it before signing up. It renders no
+                         // tenant data, so there is nothing to gate.
     '/audit/shared',     // Shared audit pack read-only view (token-gated, no login)
     '/api/audit/shared', // Shared audit pack API endpoint (token-gated)
     '/vendor-assessment/',     // Epic G-3 — external respondent page (token-gated)
