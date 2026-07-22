@@ -124,7 +124,7 @@ export function ClimateClient({ tenantSlug, locations, selectedLocationId, clima
         return (
             <div className="space-y-section p-4">
                 {header}
-                <EmptyState title={t('noLocationsTitle')} description={t('noLocationsBody')}>
+                <EmptyState title={t('noLocationsTitle')} description={t('locationsEmptyBody')}>
                     <Button variant="primary" size="sm" onClick={() => router.push(`/t/${tenantSlug}/locations`)}>
                         {t('goToLocations')}
                     </Button>
@@ -153,7 +153,7 @@ export function ClimateClient({ tenantSlug, locations, selectedLocationId, clima
             </div>
 
             {!climate || climate.daily.length === 0 ? (
-                <EmptyState title={t('noWeatherTitle')} description={t('noWeatherBody')} />
+                <EmptyState title={t('noWeatherTitle')} description={t('weatherEmptyBody')} />
             ) : (
                 <div className="space-y-section">
                     {/* Current conditions + spray verdict */}
@@ -186,7 +186,7 @@ export function ClimateClient({ tenantSlug, locations, selectedLocationId, clima
                                         </span>
                                     </p>
                                 ) : (
-                                    <p className="text-sm text-content-muted">{t('noSprayWindow')}</p>
+                                    <p className="text-sm text-content-muted">{t('sprayNone')}</p>
                                 )}
                             </div>
                         )}
@@ -216,7 +216,7 @@ export function ClimateClient({ tenantSlug, locations, selectedLocationId, clima
                                 </TimeSeriesChart>
                             </div>
                         ) : (
-                            <p className="text-xs text-content-subtle">{t('noWeatherBody')}</p>
+                            <p className="text-xs text-content-subtle">{t('weatherEmptyBody')}</p>
                         )}
                         <p className="mt-2 text-xs text-content-subtle">
                             {t('source', { source: climate.source })}
