@@ -24,7 +24,14 @@
 // jose). `oauth4webapi` and `@auth/*` were v5-specific and can be
 // dropped from the allowlist.
 const ESM_TRANSFORM_ALLOW_LIST =
-    'jose|preact|preact-render-to-string|next-intl|use-intl|@formatjs|intl-messageformat';
+    'jose|preact|preact-render-to-string|next-intl|use-intl|@formatjs|intl-messageformat|' +
+    // sanitize-html (Epic C.5 server-side sanitiser) resolves an ESM
+    // htmlparser2 build (`dist/index.js` uses `import`) plus its DOM
+    // cluster. Many usecase suites transitively import the sanitiser, so
+    // the whole cluster must be transpiled by ts-jest or they fail to load
+    // with "Cannot use import statement outside a module". Over-inclusion
+    // is safe — ts-jest passes plain CJS through unchanged.
+    'sanitize-html|htmlparser2|domelementtype|domhandler|domutils|dom-serializer|entities';
 
 // ─── Coverage thresholds ─────────────────────────────────────────────
 //
