@@ -182,8 +182,9 @@ export function useNavSections(): NavSectionDef[] {
                     icon: Coins,
                     visible: tenant.promotionsAvailable !== false,
                 },
-                // Climate (#14) — the tenant's Meteobot station embed, with an
-                // Open-Meteo weather fallback. Sits with the field surfaces.
+                // Climate (#14) — the farm's Open-Meteo weather (current
+                // conditions, forecast, spray window) per field. Sits with the
+                // field surfaces.
                 { href: tenantHref('/climate'), label: t('climate'), icon: CloudSun },
                 // Crop Planning — season succession plans (PLANNING
                 // module). A simple-mode farm surface (NOT cert-gated), so
