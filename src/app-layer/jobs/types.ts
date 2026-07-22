@@ -182,6 +182,14 @@ export interface RetentionSweepPayload {
     dryRun?: boolean;
 }
 
+/**
+ * Promotion-lead retention sweep. No tenantId: leads span every tenant and the
+ * sweep decides purely from timestamps, so it runs globally in one pass.
+ */
+export interface PromotionLeadRetentionPayload {
+    dryRun?: boolean;
+}
+
 /** Vendor renewal/review deadline monitor */
 export interface VendorRenewalCheckPayload {
     tenantId?: string;
@@ -696,6 +704,7 @@ export interface JobPayloadMap {
     'policy-review-reminder': PolicyReviewReminderPayload;
     'exception-expiry-monitor': ExceptionExpiryMonitorPayload;
     'retention-sweep': RetentionSweepPayload;
+    'promotion-lead-retention': PromotionLeadRetentionPayload;
     'vendor-renewal-check': VendorRenewalCheckPayload;
     'deadline-monitor': DeadlineMonitorPayload;
     'evidence-expiry-monitor': EvidenceExpiryMonitorPayload;
@@ -964,6 +973,14 @@ export const JOB_DEFAULTS: Record<JobName, {
         removeOnFail: 500,
     },
     'retention-sweep': {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: 200,
+        removeOnFail: 500,
+    },
+    // Same shape as retention-sweep: idempotent, so a retry is safe — expiry
+    // only touches rows still live and purge only rows already past the grace.
+    'promotion-lead-retention': {
         attempts: 2,
         backoff: { type: 'exponential', delay: 10000 },
         removeOnComplete: 200,
