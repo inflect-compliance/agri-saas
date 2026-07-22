@@ -52,8 +52,6 @@ model WeatherObservation {
   /// Location UTC offset (seconds, Open-Meteo utc_offset_seconds) — recovers the
   /// location-local "now" so the hourly window drops hours already passed.
   utcOffsetSeconds Int?
-  /// Raw API slice for audit / reprocessing.
-  rawJson      Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
