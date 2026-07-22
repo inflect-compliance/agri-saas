@@ -1,6 +1,6 @@
 {
     "name": "inflect-compliance",
-    "version": "1.87.0",
+    "version": "1.88.0",
     "private": true,
     "engines": {
         "node": ">=22.0.0 <23.0.0",
@@ -320,6 +320,7 @@
         "npm": {
             "undici": "^6.27.0"
         },
-        "adm-zip": "^0.6.0"
+        "adm-zip": "^0.6.0",
+        "sharp": "^0.35.3"
     }
 }
