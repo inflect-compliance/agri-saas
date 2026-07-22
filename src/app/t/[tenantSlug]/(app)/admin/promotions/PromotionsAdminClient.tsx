@@ -35,6 +35,7 @@ import { Plus } from '@/components/ui/icons/nucleo';
 import { useToast } from '@/components/ui/hooks';
 import { formatDate } from '@/lib/format-date';
 import { PROMOTION_CATEGORIES } from '@/app-layer/schemas/promotion-admin.schemas';
+import { PromotionImageField } from './PromotionImageField';
 
 interface PromotionRow {
     id: string;
@@ -42,6 +43,7 @@ interface PromotionRow {
     companyName: string;
     title: string;
     body: string | null;
+    mediaUrl: string | null;
     category: string;
     ctaUrl: string | null;
     publishedAt: string | null;
@@ -93,6 +95,7 @@ export function PromotionsAdminClient({ tenantSlug }: { tenantSlug: string }) {
     const [ctaUrl, setCtaUrl] = useState('');
     const [validFrom, setValidFrom] = useState<Date | null>(null);
     const [validTo, setValidTo] = useState<Date | null>(null);
+    const [mediaUrl, setMediaUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const companyOptions = useMemo(
@@ -114,6 +117,7 @@ export function PromotionsAdminClient({ tenantSlug }: { tenantSlug: string }) {
         setCtaUrl('');
         setValidFrom(null);
         setValidTo(null);
+        setMediaUrl(null);
         setError(null);
         setOpen(true);
     };
@@ -128,6 +132,7 @@ export function PromotionsAdminClient({ tenantSlug }: { tenantSlug: string }) {
         setCtaUrl(row.ctaUrl ?? '');
         setValidFrom(isoToDate(row.validFrom));
         setValidTo(isoToDate(row.validTo));
+        setMediaUrl(row.mediaUrl);
         setError(null);
         setOpen(true);
     };
@@ -430,6 +435,23 @@ export function PromotionsAdminClient({ tenantSlug }: { tenantSlug: string }) {
                                 />
                             </FormField>
                         </div>
+
+                        <FormField label={t('fieldImage')}>
+                            {/*
+                              * Artwork attaches to a SAVED promotion — the storage
+                              * key is derived from its id, which does not exist
+                              * until the draft is created. Saying so beats a
+                              * disabled control with no explanation.
+                              */}
+                            <PromotionImageField
+                                promotionId={editing?.id ?? null}
+                                mediaUrl={mediaUrl}
+                                onChange={(url) => {
+                                    setMediaUrl(url);
+                                    void promos.mutate();
+                                }}
+                            />
+                        </FormField>
 
                         {!editing && (
                             <p className="text-xs text-content-muted">{t('createsDraftHint')}</p>
