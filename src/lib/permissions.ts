@@ -384,6 +384,49 @@ export function validatePermissionsJson(json: unknown): string[] {
  * Used at read-time to ensure the runtime always has a complete, valid PermissionSet
  * even if the stored JSON is partially malformed (defensive programming).
  */
+/**
+ * Permissions a custom-role blob would grant that the GRANTOR does not hold.
+ *
+ * The principle is "you cannot give away what you do not have". Without it,
+ * `admin.manage` — which gates custom-role CRUD — is effectively a grant of
+ * every permission in the system: an ADMIN could mint a role carrying anything
+ * and assign it to themselves. #353 closed the OWNER-only special case; this
+ * closes the general class it belonged to.
+ *
+ * Deliberately compared against the grantor's OWN effective permissions rather
+ * than the role's `baseRole`. Capping at the base role would forbid legitimate
+ * tailoring — giving an EDITOR-based role a report export the ADMIN genuinely
+ * holds is the entire point of custom roles. Capping at the grantor forbids
+ * only escalation.
+ *
+ * Returns the offending `domain.action` keys, empty when nothing exceeds.
+ */
+export function permissionsExceeding(
+    requested: unknown,
+    grantor: PermissionSet,
+): string[] {
+    if (typeof requested !== 'object' || requested === null || Array.isArray(requested)) {
+        return [];
+    }
+    const obj = requested as Record<string, Record<string, unknown>>;
+    const over: string[] = [];
+
+    for (const domain of Object.keys(PERMISSION_SCHEMA) as (keyof PermissionSet)[]) {
+        const bag = obj[domain];
+        if (typeof bag !== 'object' || bag === null) continue;
+        const held = grantor[domain] as unknown as Record<string, boolean>;
+
+        for (const action of PERMISSION_SCHEMA[domain]) {
+            // Only a GRANT can escalate. Revoking something the grantor holds,
+            // or leaving a key false, is always allowed.
+            if (bag[action] === true && held?.[action] !== true) {
+                over.push(`${domain}.${action}`);
+            }
+        }
+    }
+    return over;
+}
+
 export function parsePermissionsJson(json: unknown, baseRole: Role): PermissionSet {
     const defaults = getPermissionsForRole(baseRole);
 
