@@ -2368,7 +2368,16 @@
                 "products": "Products",
                 "service": "Service"
             },
-            "urlPlaceholder": "https://"
+            "urlPlaceholder": "https://",
+            "fieldImage": "Artwork",
+            "imageUpload": "Upload image",
+            "imageReplace": "Replace image",
+            "imageRemove": "Remove",
+            "imageNone": "No image",
+            "imageAfterSave": "Save the draft first, then add artwork to it.",
+            "imageHint": "Resized and converted to WebP in your browser; camera metadata is stripped before upload. Scanned for malware on arrival.",
+            "imageNotAnImage": "That file could not be read as an image.",
+            "imageUploadFailed": "The image could not be uploaded."
         },
         "companies": {
             "title": "Suppliers",
@@ -3386,21 +3395,33 @@
         },
         "climate": {
             "title": "Climate",
-            "description": "Live weather for your farm from your Meteobot station.",
-            "stationTitle": "Meteobot station",
-            "attribution": "Powered by Meteobot",
-            "openInNewTab": "Open in a new tab",
-            "noStation": "No Meteobot station is configured yet",
-            "fallbackHint": "In the meantime, the built-in Open-Meteo weather layer on the field map covers spray windows and disease risk.",
-            "openWeather": "Open field weather",
-            "settingsTitle": "Meteobot station",
-            "settingsHint": "Paste your Meteobot station's embed or share URL. Leave empty to use the weather fallback.",
-            "stationUrlLabel": "Station URL",
-            "urlPlaceholder": "Paste your station embed URL",
+            "description": "Weather for your fields — current conditions, forecast and today's spray window.",
             "breadcrumbDashboard": "Dashboard",
-            "save": "Save",
-            "clear": "Clear",
-            "saveFailed": "Could not save the station URL."
+            "selectLocation": "Select a field",
+            "noLocationsTitle": "No fields yet",
+            "locationsEmptyBody": "Add a field to see its weather, forecast and spray windows.",
+            "goToLocations": "Go to fields",
+            "noWeatherTitle": "No weather yet",
+            "weatherEmptyBody": "Weather is collected daily for each field. Check back after the next update.",
+            "currentTitle": "{location} — now",
+            "tempMean": "Avg temp",
+            "tempMax": "High",
+            "tempMin": "Low",
+            "precip": "Rain",
+            "wind": "Wind",
+            "humidity": "Humidity",
+            "mm": "mm",
+            "kmh": "km/h",
+            "sprayWindows": "Best spray window today:",
+            "sprayNone": "No suitable spray window left today.",
+            "tempTrendTitle": "Temperature trend",
+            "tempTrendAria": "Temperature high and low over {days} days",
+            "source": "Source: {source}",
+            "spray": {
+                "GOOD": "Good to spray",
+                "CAUTION": "Spray with caution",
+                "UNSUITABLE": "Not suitable to spray"
+            }
         },
         "offers": {
             "title": "Promotions",
@@ -7529,6 +7550,8 @@
         "rightsList": "Under the GDPR you may ask for a copy of your personal data, ask for it to be corrected or erased, object to how it is used, or withdraw a consent you previously gave. Contact the operator of this deployment using the details below.",
         "controllerTitle": "Who is responsible",
         "controllerBody": "Agrent is software operated by an organisation that decides what is collected and why. That organisation is the data controller for the records in this deployment and is the party to contact about them.",
-        "controllerContact": "Contact:"
+        "controllerContact": "Contact:",
+        "keepTitle": "How long we keep it",
+        "keepRequests": "An offer request is kept for {months} months from the day you send it, then marked for deletion and permanently removed {graceDays} days later. Farm records and account details are kept while your account is active."
     }
 }

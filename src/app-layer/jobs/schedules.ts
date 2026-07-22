@@ -62,6 +62,13 @@ export const SCHEDULED_JOBS: ScheduleDefinition[] = [
         defaultPayload: {},
     },
     {
+        name: 'promotion-lead-retention',
+        pattern: '30 3 * * *',    // daily at 03:30 UTC
+        description:
+            'Soft-delete promotion leads past the retention window, then purge those past the grace period',
+        defaultPayload: {},
+    },
+    {
         name: 'sla-monitor',
         pattern: '*/5 * * * *',   // every 5 minutes
         description: 'Detect automation executions that breached their rule SLA window and fire the breach action',

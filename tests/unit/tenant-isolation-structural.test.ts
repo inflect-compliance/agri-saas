@@ -207,6 +207,18 @@ describe('Structural Guard: Tenant Isolation Conventions', () => {
             // sits outside `/api/t/`. The avatar upload/delete acts
             // only on `session.user.id`; the serve route is read-only.
             'account',
+            // Promotions #12 — artwork for the GLOBAL promotions catalogue
+            // (`/api/promotions/[id]/image`). `Promotion` has no tenantId and
+            // the SAME image is rendered in every tenant's offers feed, so a
+            // tenant-scoped URL would be a lie — it would break the moment a
+            // second tenant rendered the same card, and would imply a
+            // per-tenant asset that does not exist. Read-only and
+            // session-gated (any authenticated user, never a RequestContext),
+            // exactly like the `account` avatar serve route above; anonymous
+            // access stays closed. The WRITE path is NOT here: uploads live at
+            // /api/t/[tenantSlug]/admin/promotions/[id]/image, behind
+            // requirePermission + assertPlatformSupport.
+            'promotions',
         ]);
 
         // Legacy routes are allowed as documented thin wrappers

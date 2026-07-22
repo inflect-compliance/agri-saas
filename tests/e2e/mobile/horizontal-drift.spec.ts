@@ -47,6 +47,9 @@ async function settle(page: Page): Promise<void> {
 // Key field surfaces. One line per page — this is the extension point.
 const PAGES: ReadonlyArray<{ label: string; path: (slug: string) => string }> = [
     { label: 'dashboard', path: (s) => `/t/${s}/dashboard` },
+    // Climate — per-field Open-Meteo weather (current + forecast + spray
+    // window). Renders empty states with no fields/weather, so no seed dependency.
+    { label: 'climate', path: (s) => `/t/${s}/climate` },
     { label: 'journal', path: (s) => `/t/${s}/journal` },
     { label: 'exchange', path: (s) => `/t/${s}/exchange` },
     // Trends — market-price charts. Renders on any tenant (empty/unconfigured

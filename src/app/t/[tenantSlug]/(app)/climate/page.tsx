@@ -1,23 +1,38 @@
 import { getTenantCtx } from '@/app-layer/context';
-import { getMeteobotStationUrl } from '@/app-layer/usecases/modules';
+import { listWeatherLocations, getLocationClimate } from '@/app-layer/usecases/climate';
 import { ClimateClient } from './ClimateClient';
 
 /**
- * Climate (Климат) — #14. Embeds the tenant's Meteobot station when
- * configured; otherwise links to the built-in Open-Meteo weather layer as a
- * fallback. Placeholder integration (embed/link) with a clear seam for the
- * real Meteobot API later.
+ * Climate (Климат) — the farm's weather page. Renders the tenant's own
+ * Open-Meteo `WeatherObservation` data (collected daily by the `weather-pull`
+ * job): current conditions, a recent + forecast temperature chart, and today's
+ * spray window, for a selected location (via the `?location=` query param,
+ * defaulting to the first location).
  */
-export default async function ClimatePage({ params }: { params: Promise<{ tenantSlug: string }> }) {
+export default async function ClimatePage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ tenantSlug: string }>;
+    searchParams: Promise<{ location?: string }>;
+}) {
     const { tenantSlug } = await params;
+    const { location } = await searchParams;
     const ctx = await getTenantCtx({ tenantSlug });
-    const meteobotStationUrl = await getMeteobotStationUrl(ctx);
+
+    const locations = await listWeatherLocations(ctx);
+    // Selected location: the ?location param when it's a real location of this
+    // tenant, else the first location. null when the tenant has no locations.
+    const selectedLocationId =
+        (location && locations.some((l) => l.id === location) ? location : locations[0]?.id) ?? null;
+    const climate = selectedLocationId ? await getLocationClimate(ctx, selectedLocationId) : null;
 
     return (
         <ClimateClient
             tenantSlug={tenantSlug}
-            meteobotStationUrl={meteobotStationUrl}
-            canAdmin={!!ctx.permissions.canAdmin}
+            locations={locations}
+            selectedLocationId={selectedLocationId}
+            climate={climate}
         />
     );
 }

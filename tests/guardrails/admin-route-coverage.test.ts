@@ -37,6 +37,9 @@ const ADMIN_ONLY_ROUTES = [
     // curating a feed that every other tenant reads.
     'admin/promotions/route.ts',
     'admin/promotions/[id]/route.ts',
+    // Artwork upload/removal. Same two gates as its siblings, and the one most
+    // worth having them: the bytes it accepts render in EVERY tenant's feed.
+    'admin/promotions/[id]/image/route.ts',
     'admin/companies/route.ts',
     'admin/companies/[id]/route.ts',
     // /admin/* routes

@@ -74,8 +74,8 @@ describe('Infrastructure Regression Guards', () => {
             }
         });
 
-        test('exactly 27 scheduled jobs exist', () => {
-            expect(SCHEDULED_JOBS).toHaveLength(27);
+        test('exactly 28 scheduled jobs exist', () => {
+            expect(SCHEDULED_JOBS).toHaveLength(28);
         });
 
         test('scheduled job names match expected set', () => {
@@ -120,6 +120,11 @@ describe('Infrastructure Regression Guards', () => {
                 'market-prices-pull',
                 'notification-dispatch',
                 'policy-review-reminder',
+                // Retention for promotion leads (contact PII): soft-delete past
+                // the window, then purge past the grace. Scheduled because the
+                // privacy notice states a deletion period — a sweep nobody runs
+                // would make that statement false.
+                'promotion-lead-retention',
                 // Data-integrity — daily cross-tenant stock-ledger
                 // reconciliation (hash chain + lot quantityOnHand vs
                 // SUM(transactions)); logs + alerts on drift.

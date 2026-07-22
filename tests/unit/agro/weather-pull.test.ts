@@ -18,7 +18,10 @@ jest.mock('@/lib/prisma', () => ({ __esModule: true, default: globalPrisma, pris
 // ── per-tenant tx db (location list + weather upsert) ──
 const txDb: any = {
     location: { findMany: jest.fn() },
-    weatherObservation: { upsert: jest.fn().mockResolvedValue({}) },
+    weatherObservation: {
+        upsert: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
 };
 jest.mock('@/lib/db-context', () => ({
     runInTenantContext: jest.fn(async (_ctx: any, fn: (db: any) => any) => fn(txDb)),
