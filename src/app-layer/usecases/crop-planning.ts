@@ -1,7 +1,7 @@
 import { Prisma, type PlantingStatus } from '@prisma/client';
 import { RequestContext } from '../types';
 import { runInTenantContext, type PrismaTx } from '@/lib/db-context';
-import { assertCanRead, assertCanWrite } from '../policies/common';
+import { assertCanRead, assertCanWrite, assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { createTask, addTaskLink } from './task';
 import { notFound, badRequest } from '@/lib/errors/types';
@@ -90,18 +90,6 @@ export async function listSeasons(ctx: RequestContext, opts: { take?: number } =
             take: opts.take ?? LIST_TAKE,
         }),
     );
-}
-
-export async function getSeason(ctx: RequestContext, id: string) {
-    assertCanRead(ctx);
-    return runInTenantContext(ctx, async (db) => {
-        const season = await db.season.findFirst({
-            where: { id, tenantId: ctx.tenantId, deletedAt: null },
-            include: { _count: { select: { cropPlans: true } } },
-        });
-        if (!season) throw notFound('Season not found');
-        return season;
-    });
 }
 
 export async function createSeason(ctx: RequestContext, input: CreateSeasonInput) {
@@ -588,6 +576,46 @@ export async function updateCropPlan(ctx: RequestContext, id: string, input: Upd
             },
         });
         return plan;
+    });
+}
+
+/**
+ * Soft-delete a crop plan. CropPlan is NOT registered with the Prisma
+ * soft-delete middleware, so — like the journal repository — we stamp
+ * `deletedAt` / `deletedByUserId` explicitly rather than hard-deleting.
+ * Every read (`listCropPlans` / `getCropPlan` / `getCropPlanProgress`)
+ * already filters `deletedAt: null`, so a soft-deleted plan disappears
+ * from the UI while its plantings + recorded actuals stay intact on the
+ * row (a hard delete would cascade them away). ADMIN-gated: deleting a
+ * plan is a heavier action than editing it.
+ */
+export async function deleteCropPlan(ctx: RequestContext, id: string) {
+    assertCanAdmin(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const existing = await db.cropPlan.findFirst({
+            where: { id, tenantId: ctx.tenantId, deletedAt: null },
+            select: { id: true, name: true },
+        });
+        if (!existing) throw notFound('Crop plan not found');
+
+        await db.cropPlan.update({
+            where: { id },
+            data: { deletedAt: new Date(), deletedByUserId: ctx.userId ?? null },
+        });
+        await logEvent(db, ctx, {
+            action: 'SOFT_DELETE',
+            entityType: 'CropPlan',
+            entityId: id,
+            details: `Crop plan deleted: ${existing.name}`,
+            detailsJson: {
+                category: 'entity_lifecycle',
+                entityName: 'CropPlan',
+                operation: 'deleted',
+                before: { name: existing.name },
+                summary: `Crop plan deleted: ${existing.name}`,
+            },
+        });
+        return { success: true };
     });
 }
 

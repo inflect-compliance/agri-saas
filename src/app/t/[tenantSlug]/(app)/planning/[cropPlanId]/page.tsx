@@ -14,19 +14,43 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTenantApiUrl, useTenantHref, useTenantContext } from '@/lib/tenant-context-provider';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
-import { apiPost } from '@/lib/api-client';
+import { apiPost, apiPatch, apiDelete } from '@/lib/api-client';
 import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { SkeletonDetailPage } from '@/components/ui/skeleton';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
+import { Popover } from '@/components/ui/popover';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/components/ui/hooks';
+import { Dots, PenWriting, Trash } from '@/components/ui/icons/nucleo';
 import { Card, cardVariants } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/format-date';
 import { PlantingBoard } from './PlantingBoard';
+import { EditCropPlanModal } from './EditCropPlanModal';
+
+/**
+ * Allowed lifecycle transitions from each status. The status enum + board
+ * intend a lifecycle (DRAFT → ACTIVE → COMPLETED, with CANCELLED as an
+ * off-ramp); these wire the transitions to PATCH { status }. Reopen sends
+ * a COMPLETED/CANCELLED plan back to an editable state.
+ */
+const STATUS_TRANSITIONS: Record<string, Array<{ to: string; labelKey: string }>> = {
+    DRAFT: [
+        { to: 'ACTIVE', labelKey: 'activate' },
+        { to: 'CANCELLED', labelKey: 'cancel' },
+    ],
+    ACTIVE: [
+        { to: 'COMPLETED', labelKey: 'complete' },
+        { to: 'CANCELLED', labelKey: 'cancel' },
+    ],
+    COMPLETED: [{ to: 'ACTIVE', labelKey: 'reopen' }],
+    CANCELLED: [{ to: 'DRAFT', labelKey: 'reopen' }],
+};
 
 type Tab = 'overview' | 'plantings' | 'journal';
 
@@ -69,8 +93,10 @@ export default function CropPlanDetailPage() {
     const tp = useTranslations('planning');
     const te = useTranslations('planningEnums');
     const params = useParams();
+    const router = useRouter();
     const apiUrl = useTenantApiUrl();
     const tenantHref = useTenantHref();
+    const toast = useToast();
     const { permissions, tenantSlug } = useTenantContext();
 
     const METHOD_LABELS: Record<string, string> = {
@@ -82,10 +108,34 @@ export default function CropPlanDetailPage() {
     const [tab, setTab] = useState<Tab>('overview');
     const [generating, setGenerating] = useState(false);
     const [genError, setGenError] = useState<string | null>(null);
+    const [actionsOpen, setActionsOpen] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
+    const [statusBusy, setStatusBusy] = useState(false);
 
     const planKey = cropPlanId ? `/planning/crop-plans/${cropPlanId}` : null;
     const planSWR = useTenantSWR<CropPlanDetail>(planKey);
     const plan = planSWR.data ?? null;
+
+    const changeStatus = async (to: string) => {
+        setActionsOpen(false);
+        setStatusBusy(true);
+        try {
+            await apiPatch(apiUrl(`/planning/crop-plans/${cropPlanId}`), { status: to });
+            await planSWR.mutate();
+            toast.success(t('statusChanged'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('statusChangeFailed'));
+        } finally {
+            setStatusBusy(false);
+        }
+    };
+
+    const runDelete = async () => {
+        await apiDelete(apiUrl(`/planning/crop-plans/${cropPlanId}`));
+        toast.success(t('deleteSuccess'));
+        router.push(tenantHref('/planning'));
+    };
 
     // Journal entries that link to this plan's plantings are surfaced via
     // the plan-vs-actual payload's actuals; the Journal tab lists the
@@ -151,15 +201,67 @@ export default function CropPlanDetailPage() {
         />
     );
 
+    const transitions = STATUS_TRANSITIONS[plan.status] ?? [];
     const headerActions = permissions.canWrite ? (
-        <Button
-            variant="primary"
-            onClick={runGenerate}
-            loading={generating}
-            id="crop-plan-generate-btn"
-        >
-            {t('generate')}
-        </Button>
+        <div className="flex items-center gap-tight">
+            <Button
+                variant="primary"
+                onClick={runGenerate}
+                loading={generating}
+                id="crop-plan-generate-btn"
+            >
+                {t('generate')}
+            </Button>
+            <Popover
+                openPopover={actionsOpen}
+                setOpenPopover={setActionsOpen}
+                align="end"
+                content={
+                    <Popover.Menu aria-label={t('actionsMenuLabel')}>
+                        <Popover.Item
+                            icon={<PenWriting className="h-3.5 w-3.5" aria-hidden />}
+                            onClick={() => {
+                                setActionsOpen(false);
+                                setEditOpen(true);
+                            }}
+                            id="crop-plan-edit-action"
+                        >
+                            {t('edit')}
+                        </Popover.Item>
+                        {transitions.map((tr) => (
+                            <Popover.Item
+                                key={tr.to}
+                                disabled={statusBusy}
+                                onClick={() => void changeStatus(tr.to)}
+                                id={`crop-plan-status-${tr.to.toLowerCase()}`}
+                            >
+                                {t(`lifecycle.${tr.labelKey}`)}
+                            </Popover.Item>
+                        ))}
+                        <Popover.Separator />
+                        <Popover.Item
+                            destructive
+                            icon={<Trash className="h-3.5 w-3.5" aria-hidden />}
+                            onClick={() => {
+                                setActionsOpen(false);
+                                setDeleteOpen(true);
+                            }}
+                            id="crop-plan-delete-action"
+                        >
+                            {t('delete')}
+                        </Popover.Item>
+                    </Popover.Menu>
+                }
+            >
+                <Button
+                    variant="secondary"
+                    icon={<Dots className="h-4 w-4" aria-hidden />}
+                    aria-label={t('actionsMenuLabel')}
+                    loading={statusBusy}
+                    id="crop-plan-actions-btn"
+                />
+            </Popover>
+        </div>
     ) : null;
 
     return (
@@ -280,6 +382,26 @@ export default function CropPlanDetailPage() {
                         </div>
                     )}
                 </div>
+            )}
+
+            {permissions.canWrite && (
+                <>
+                    <EditCropPlanModal
+                        open={editOpen}
+                        setOpen={setEditOpen}
+                        plan={plan}
+                        onSaved={() => void planSWR.mutate()}
+                    />
+                    <ConfirmDialog
+                        showModal={deleteOpen}
+                        setShowModal={setDeleteOpen}
+                        tone="danger"
+                        title={t('confirmDeleteTitle')}
+                        description={t('confirmDeleteDesc', { name: plan.name })}
+                        confirmLabel={t('confirmDeleteLabel')}
+                        onConfirm={runDelete}
+                    />
+                </>
             )}
         </EntityDetailLayout>
     );

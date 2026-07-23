@@ -59,10 +59,12 @@ import {
     getCropPlanProgress,
     listCropPlans,
     createCropPlan,
+    deleteCropPlan,
 } from '@/app-layer/usecases/crop-planning';
 import { generateSuccessions } from '@/lib/planning/succession';
 import { makeRequestContext } from '../helpers/make-context';
 
+const adminCtx = makeRequestContext('ADMIN', { userId: 'user-admin', tenantId: 'tenant-1' });
 const editorCtx = makeRequestContext('EDITOR', { userId: 'user-editor', tenantId: 'tenant-1' });
 const readerCtx = makeRequestContext('READER', { tenantId: 'tenant-1' });
 
@@ -430,5 +432,38 @@ describe('crop-plan CRUD gating', () => {
                 firstSowDate: '2026-04-01T00:00:00Z',
             }),
         ).rejects.toThrow(/season/i);
+    });
+});
+
+// ─── deleteCropPlan — soft-delete + admin gate ──────────────────────
+
+describe('deleteCropPlan', () => {
+    it('soft-deletes: stamps deletedAt + deletedByUserId (no hard delete)', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue({ id: 'plan-1', name: 'Summer lettuce' });
+        mockDb.cropPlan.update.mockResolvedValue({ id: 'plan-1' });
+
+        const result = await deleteCropPlan(adminCtx, 'plan-1');
+
+        expect(result).toEqual({ success: true });
+        const call = mockDb.cropPlan.update.mock.calls[0][0];
+        expect(call.where).toEqual({ id: 'plan-1' });
+        expect(call.data.deletedAt).toBeInstanceOf(Date);
+        expect(call.data.deletedByUserId).toBe('user-admin');
+        expect(logEvent).toHaveBeenCalledWith(
+            mockDb,
+            adminCtx,
+            expect.objectContaining({ action: 'SOFT_DELETE', entityType: 'CropPlan' }),
+        );
+    });
+
+    it('throws notFound for a missing (or already-deleted) plan', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue(null);
+        await expect(deleteCropPlan(adminCtx, 'nope')).rejects.toThrow(/not found/i);
+        expect(mockDb.cropPlan.update).not.toHaveBeenCalled();
+    });
+
+    it('refuses a non-admin writer (admin gate)', async () => {
+        await expect(deleteCropPlan(editorCtx, 'plan-1')).rejects.toThrow();
+        expect(mockDb.cropPlan.findFirst).not.toHaveBeenCalled();
     });
 });

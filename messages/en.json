@@ -6087,7 +6087,8 @@
             "emptyDesc": "Define a season succession plan — the engine expands it into dated plantings and field tasks.",
             "addPlan": "Add plan",
             "resourceSingular": "plan",
-            "resourcePlural": "plans"
+            "resourcePlural": "plans",
+            "seasons": "Seasons"
         },
         "newPlan": {
             "heading": "New crop plan",
@@ -6133,7 +6134,16 @@
             "genFailedWithMsg": "Plan created, but plantings could not be generated: {msg}",
             "genFailed": "Plan created, but plantings could not be generated.",
             "createFailed": "Failed to create crop plan",
-            "generateNeedsVariety": "Add a variety with days-to-maturity to generate the succession board now."
+            "generateNeedsVariety": "Add a variety with days-to-maturity to generate the succession board now.",
+            "createSeason": "Create season \"{name}\"",
+            "createCropType": "Create crop type \"{name}\"",
+            "newVariety": "New variety",
+            "newVarietyNeedsCrop": "Pick a crop type first",
+            "newVarietyName": "Variety name",
+            "newVarietyNamePlaceholder": "e.g. Cherry Belle",
+            "newVarietyMaturity": "Days to maturity",
+            "newVarietyMaturityPlaceholder": "Days to maturity (for scheduling)",
+            "newVarietyAdd": "Add variety"
         },
         "board": {
             "gddTooltip": "Base {temp}°C, sow → today",
@@ -6191,7 +6201,22 @@
             "loadingJournal": "Loading journal…",
             "journalEmpty": "No journal entries yet. Record a sow / transplant / harvest against a planting to track the actual date.",
             "emptyHintVariety": "No plantings yet — this variety needs days-to-maturity set before the succession board can be generated. Add it, then Generate.",
-            "emptyHintNoVariety": "No plantings yet. Add a variety with days-to-maturity, then Generate to build the succession board."
+            "emptyHintNoVariety": "No plantings yet. Add a variety with days-to-maturity, then Generate to build the succession board.",
+            "statusChanged": "Plan status updated",
+            "statusChangeFailed": "Couldn't update the plan status",
+            "deleteSuccess": "Crop plan deleted",
+            "actionsMenuLabel": "Plan actions",
+            "edit": "Edit plan",
+            "delete": "Delete plan",
+            "lifecycle": {
+                "activate": "Activate",
+                "complete": "Mark complete",
+                "cancel": "Cancel plan",
+                "reopen": "Reopen"
+            },
+            "confirmDeleteTitle": "Delete this crop plan?",
+            "confirmDeleteDesc": "Delete \"{name}\"? Its plantings and any recorded actuals are hidden with it. This can be restored by an admin.",
+            "confirmDeleteLabel": "Delete plan"
         },
         "seasons": {
             "statusPlanning": "Planning",
@@ -6224,7 +6249,21 @@
             "createSeason": "Create season",
             "createFailed": "Failed to create season",
             "resourceSingular": "season",
-            "resourcePlural": "seasons"
+            "resourcePlural": "seasons",
+            "editTooltip": "Edit season",
+            "editAria": "Edit season",
+            "editHeading": "Edit season",
+            "editDescription": "Update the season name, window, or status.",
+            "saveFailed": "Couldn't save the season",
+            "saveSeason": "Save changes"
+        },
+        "editPlan": {
+            "heading": "Edit crop plan",
+            "description": "Update the plan name, variety, and succession schedule. Season and crop type are fixed after creation.",
+            "save": "Save changes",
+            "saveFailed": "Couldn't save the plan",
+            "notes": "Notes",
+            "notesPlaceholder": "Optional notes"
         }
     },
     "processes": {

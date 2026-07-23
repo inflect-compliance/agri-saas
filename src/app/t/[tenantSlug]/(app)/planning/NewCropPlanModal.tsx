@@ -22,6 +22,7 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Plus } from '@/components/ui/icons/nucleo';
 
 interface SeasonOption {
     id: string;
@@ -96,6 +97,20 @@ export function NewCropPlanModal({
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Seasons + catalog start from the RSC-loaded props but grow when the
+    // user adds one inline (a fresh tenant has neither a season nor a
+    // catalog, so the create-plan flow must be able to mint them without
+    // leaving — the cold-start fix).
+    const [localSeasons, setLocalSeasons] = useState<SeasonOption[]>(seasons);
+    const [localCropTypes, setLocalCropTypes] = useState<CropTypeOption[]>(cropTypes);
+    const [localVarieties, setLocalVarieties] = useState<VarietyOption[]>(varieties);
+    // Inline "new variety" mini-form state (a variety needs a crop type +,
+    // for the succession engine, days-to-maturity).
+    const [showNewVariety, setShowNewVariety] = useState(false);
+    const [nvName, setNvName] = useState('');
+    const [nvMaturity, setNvMaturity] = useState('');
+    const [nvSaving, setNvSaving] = useState(false);
+
     /* eslint-disable react-hooks/set-state-in-effect -- intentional form re-seed on open. */
     useEffect(() => {
         if (!open) return;
@@ -113,25 +128,108 @@ export function NewCropPlanModal({
         setPlantsPerSuccession('');
         setGenerateNow(true);
         setError(null);
+        setLocalSeasons(seasons);
+        setLocalCropTypes(cropTypes);
+        setLocalVarieties(varieties);
+        setShowNewVariety(false);
+        setNvName('');
+        setNvMaturity('');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
     /* eslint-enable react-hooks/set-state-in-effect */
 
     const seasonOptions: ComboboxOption[] = useMemo(
-        () => seasons.map((s) => ({ value: s.id, label: s.name })),
-        [seasons],
+        () => localSeasons.map((s) => ({ value: s.id, label: s.name })),
+        [localSeasons],
     );
     const cropTypeOptions: ComboboxOption[] = useMemo(
-        () => cropTypes.map((c) => ({ value: c.id, label: c.name })),
-        [cropTypes],
+        () => localCropTypes.map((c) => ({ value: c.id, label: c.name })),
+        [localCropTypes],
     );
     // Varieties narrow to the chosen crop type once one is picked.
     const varietyOptions: ComboboxOption[] = useMemo(() => {
         const filtered = cropTypeId
-            ? varieties.filter((v) => v.cropType?.id === cropTypeId)
-            : varieties;
+            ? localVarieties.filter((v) => v.cropType?.id === cropTypeId)
+            : localVarieties;
         return filtered.map((v) => ({ value: v.id, label: v.name }));
-    }, [varieties, cropTypeId]);
+    }, [localVarieties, cropTypeId]);
+
+    // ── Inline season + catalog create (the fresh-tenant self-service path) ──
+    //
+    // Season: the Combobox's "Create <name>" affordance mints a season with
+    // a sensible current-year default window (editable later on the Seasons
+    // page). Removes the crop-plan cold-start without a tenant-creation hook.
+    const createSeasonInline = async (search: string): Promise<boolean> => {
+        const trimmed = search.trim();
+        if (!trimmed) return false;
+        try {
+            const year = new Date().getUTCFullYear();
+            const created = await apiPost<{ id: string; name: string }>(buildUrl('/planning/seasons'), {
+                name: trimmed,
+                status: 'PLANNING',
+                startDate: new Date(Date.UTC(year, 2, 1)).toISOString(),
+                endDate: new Date(Date.UTC(year, 9, 31)).toISOString(),
+                year,
+            });
+            setLocalSeasons((prev) => [...prev, { id: created.id, name: created.name }]);
+            setSeasonId(created.id);
+            return true;
+        } catch (err) {
+            setError(err instanceof Error ? err.message : t('createFailed'));
+            return false;
+        }
+    };
+
+    // Crop type: the Combobox's "Create <name>" affordance. Name-only —
+    // crop types carry no agronomic numbers (those live on the variety).
+    const createCropTypeInline = async (search: string): Promise<boolean> => {
+        const trimmed = search.trim();
+        if (!trimmed) return false;
+        try {
+            const created = await apiPost<{ id: string; name: string }>(
+                buildUrl('/planning/crop-types'),
+                { name: trimmed },
+            );
+            setLocalCropTypes((prev) => [...prev, { id: created.id, name: created.name }]);
+            setCropTypeId(created.id);
+            setCropVarietyId('');
+            return true;
+        } catch (err) {
+            setError(err instanceof Error ? err.message : t('createFailed'));
+            return false;
+        }
+    };
+
+    // Variety: a compact form so the created variety carries the
+    // days-to-maturity the succession engine needs to Generate. Belongs to
+    // the currently-selected crop type.
+    const addVarietyInline = async () => {
+        if (!cropTypeId || !nvName.trim() || nvSaving) return;
+        setNvSaving(true);
+        try {
+            const created = await apiPost<{ id: string; name: string }>(
+                buildUrl('/planning/crop-varieties'),
+                {
+                    cropTypeId,
+                    name: nvName.trim(),
+                    defaultMethod: method,
+                    daysToMaturity: nvMaturity.trim() === '' ? null : Number(nvMaturity),
+                },
+            );
+            setLocalVarieties((prev) => [
+                ...prev,
+                { id: created.id, name: created.name, cropType: { id: cropTypeId, name: '' }, defaultMethod: method },
+            ]);
+            setCropVarietyId(created.id);
+            setShowNewVariety(false);
+            setNvName('');
+            setNvMaturity('');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : t('createFailed'));
+        } finally {
+            setNvSaving(false);
+        }
+    };
 
     const locationOptions: ComboboxOption[] = useMemo(
         () => locations.map((l) => ({ value: l.id, label: l.name })),
@@ -180,7 +278,7 @@ export function NewCropPlanModal({
     // they aren't set yet (the variety is the more specific choice).
     const onVarietyChange = (id: string) => {
         setCropVarietyId(id);
-        const v = varieties.find((x) => x.id === id);
+        const v = localVarieties.find((x) => x.id === id);
         if (v) {
             if (v.cropType?.id) setCropTypeId(v.cropType.id);
             if (v.defaultMethod) setMethod(v.defaultMethod);
@@ -289,6 +387,8 @@ export function NewCropPlanModal({
                                     placeholder={seasonOptions.length ? t('selectSeason') : t('noSeasons')}
                                     aria-label={t('season')}
                                     matchTriggerWidth
+                                    onCreate={createSeasonInline}
+                                    createLabel={(search) => t('createSeason', { name: search })}
                                 />
                             </FormField>
                             <FormField label={t('cropType')} required>
@@ -303,21 +403,78 @@ export function NewCropPlanModal({
                                     placeholder={cropTypeOptions.length ? t('selectCrop') : t('noCrops')}
                                     aria-label={t('cropType')}
                                     matchTriggerWidth
+                                    onCreate={createCropTypeInline}
+                                    createLabel={(search) => t('createCropType', { name: search })}
                                 />
                             </FormField>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-default">
-                            <FormField label={t('variety')} hint={t('varietyHint')}>
-                                <Combobox
-                                    options={varietyOptions}
-                                    selected={varietyOptions.find((o) => o.value === cropVarietyId) ?? null}
-                                    setSelected={(o) => onVarietyChange(o?.value ?? '')}
-                                    placeholder={varietyOptions.length ? t('selectVariety') : t('noVarieties')}
-                                    aria-label={t('variety')}
-                                    matchTriggerWidth
-                                />
-                            </FormField>
+                            <div>
+                                <FormField label={t('variety')} hint={t('varietyHint')}>
+                                    <Combobox
+                                        options={varietyOptions}
+                                        selected={varietyOptions.find((o) => o.value === cropVarietyId) ?? null}
+                                        setSelected={(o) => onVarietyChange(o?.value ?? '')}
+                                        placeholder={varietyOptions.length ? t('selectVariety') : t('noVarieties')}
+                                        aria-label={t('variety')}
+                                        matchTriggerWidth
+                                    />
+                                </FormField>
+                                {!showNewVariety ? (
+                                    <button
+                                        type="button"
+                                        className="mt-1 inline-flex items-center gap-0.5 text-xs text-content-muted hover:text-content-emphasis disabled:opacity-50"
+                                        onClick={() => setShowNewVariety(true)}
+                                        disabled={!cropTypeId}
+                                        id="crop-plan-new-variety-toggle"
+                                    >
+                                        <Plus className="h-3 w-3" aria-hidden />
+                                        {cropTypeId ? t('newVariety') : t('newVarietyNeedsCrop')}
+                                    </button>
+                                ) : (
+                                    <div className="mt-2 space-y-tight rounded-md border border-border-subtle bg-bg-subtle p-2" id="crop-plan-new-variety-form">
+                                        <Input
+                                            value={nvName}
+                                            onChange={(e) => setNvName(e.target.value)}
+                                            placeholder={t('newVarietyNamePlaceholder')}
+                                            aria-label={t('newVarietyName')}
+                                            id="crop-plan-new-variety-name"
+                                        />
+                                        <Input
+                                            inputMode="numeric"
+                                            value={nvMaturity}
+                                            onChange={(e) => setNvMaturity(e.target.value.replace(/[^0-9]/g, ''))}
+                                            placeholder={t('newVarietyMaturityPlaceholder')}
+                                            aria-label={t('newVarietyMaturity')}
+                                            id="crop-plan-new-variety-maturity"
+                                        />
+                                        <div className="flex items-center gap-tight">
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                size="xs"
+                                                onClick={() => void addVarietyInline()}
+                                                disabled={!nvName.trim() || nvSaving}
+                                                loading={nvSaving}
+                                                id="crop-plan-new-variety-save"
+                                            >
+                                                {t('newVarietyAdd')}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="xs"
+                                                onClick={() => setShowNewVariety(false)}
+                                                disabled={nvSaving}
+                                                id="crop-plan-new-variety-cancel"
+                                            >
+                                                {t('cancel')}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <FormField label={t('method')}>
                                 <Combobox
                                     options={METHOD_OPTIONS}
