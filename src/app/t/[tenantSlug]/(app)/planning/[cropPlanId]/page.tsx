@@ -23,7 +23,7 @@ import { SkeletonDetailPage } from '@/components/ui/skeleton';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
-import { cardVariants } from '@/components/ui/card';
+import { Card, cardVariants } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/format-date';
 import { PlantingBoard } from './PlantingBoard';
@@ -185,6 +185,22 @@ export default function CropPlanDetailPage() {
                 >
                     {genError}
                 </div>
+            )}
+
+            {/* A freshly-created plan with no plantings — most often because
+                it has no maturity-bearing variety, so auto-generate was
+                skipped. Guide the writer to the next action instead of
+                leaving them on a silently-empty plan. */}
+            {permissions.canWrite && (plan._count?.plantings ?? 0) === 0 && (
+                <Card
+                    elevation="inset"
+                    density="none"
+                    className="px-3 py-2 text-sm text-content-muted"
+                    role="note"
+                    id="crop-plan-empty-hint"
+                >
+                    {plan.variety ? t('emptyHintVariety') : t('emptyHintNoVariety')}
+                </Card>
             )}
 
             {tab === 'overview' && (

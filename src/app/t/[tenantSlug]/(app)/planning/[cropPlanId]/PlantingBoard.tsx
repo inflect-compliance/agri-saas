@@ -16,9 +16,11 @@
  *      exists, so the farmer sees plan vs reality at a glance.
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
+import { useTenantApiUrl, useTenantContext } from '@/lib/tenant-context-provider';
+import { apiPost } from '@/lib/api-client';
 import { createColumns, DataTable } from '@/components/ui/table';
 import { GanttTimeline } from '@/components/ui/GanttTimeline';
 import { AgStatusBadge } from '@/components/ag/ag-status';
@@ -28,11 +30,23 @@ import { InlineEmptyState } from '@/components/ui/inline-empty-state';
 import { SkeletonCard, SkeletonLine } from '@/components/ui/skeleton';
 import { Heading } from '@/components/ui/typography';
 import { Tooltip } from '@/components/ui/tooltip';
-import { CircleCheck } from '@/components/ui/icons/nucleo';
+import { Button } from '@/components/ui/button';
+import { Popover } from '@/components/ui/popover';
+import { CircleCheck, Plus } from '@/components/ui/icons/nucleo';
 import { formatDate } from '@/lib/format-date';
 import { cardVariants } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 import type { CalendarEvent } from '@/app-layer/schemas/calendar.schemas';
+
+/** Lifecycle stage a "record actual" click realises. */
+type Stage = 'SOW' | 'TRANSPLANT' | 'HARVEST';
+
+/** stage → the LogEntry type its journal record carries. */
+const STAGE_LOG_TYPE: Record<Stage, string> = {
+    SOW: 'SEEDING',
+    TRANSPLANT: 'TRANSPLANTING',
+    HARVEST: 'HARVEST',
+};
 
 interface PlantingProgressRow {
     plantingId: string;
@@ -131,6 +145,97 @@ function PlannedActual({ planned, actual }: { planned: string | null; actual: st
     );
 }
 
+/**
+ * Per-row "record actual" affordance — closes the plan-vs-actual loop.
+ *
+ * A menu of the planting's applicable lifecycle stages (SOW always;
+ * TRANSPLANT only for transplanted plantings; HARVEST always). Choosing a
+ * stage POSTs a journal entry linked to this planting (`plantingLinks`),
+ * which writes the LogPlanting row — the ACTUAL date for that milestone —
+ * and advances the Planting status server-side. A stage that already has
+ * an actual shows a check and can still be re-recorded (the board keeps
+ * the earliest occurredAt). On success the board revalidates so the
+ * actual + check appear immediately.
+ */
+function RecordActualMenu({
+    row,
+    planName,
+    onRecorded,
+}: {
+    row: PlantingProgressRow;
+    planName: string;
+    onRecorded: () => Promise<unknown>;
+}) {
+    const t = useTranslations('planning.board');
+    const buildUrl = useTenantApiUrl();
+    const [open, setOpen] = useState(false);
+    const [busy, setBusy] = useState<Stage | null>(null);
+
+    const stages: Stage[] = useMemo(
+        () => (row.method === 'TRANSPLANT' ? ['SOW', 'TRANSPLANT', 'HARVEST'] : ['SOW', 'HARVEST']),
+        [row.method],
+    );
+
+    const record = async (stage: Stage) => {
+        if (busy) return;
+        setBusy(stage);
+        try {
+            await apiPost(buildUrl('/journal'), {
+                type: STAGE_LOG_TYPE[stage],
+                title: t('recordTitle', {
+                    stage: t(`stageLabel.${stage}`),
+                    num: row.successionNumber,
+                    plan: planName,
+                }),
+                occurredAt: new Date().toISOString(),
+                status: 'DONE',
+                plantingLinks: [{ plantingId: row.plantingId, stage }],
+            });
+            setOpen(false);
+            await onRecorded();
+        } finally {
+            setBusy(null);
+        }
+    };
+
+    return (
+        <Popover
+            openPopover={open}
+            setOpenPopover={setOpen}
+            align="end"
+            content={
+                <Popover.Menu aria-label={t('recordMenuLabel')}>
+                    {stages.map((s) => {
+                        const done = row.actual[s] != null;
+                        return (
+                            <Popover.Item
+                                key={s}
+                                selected={done}
+                                disabled={busy != null}
+                                right={done ? <CircleCheck className="h-3.5 w-3.5 text-content-success" aria-hidden /> : null}
+                                onClick={() => void record(s)}
+                            >
+                                {t(`recordStage.${s}`)}
+                            </Popover.Item>
+                        );
+                    })}
+                </Popover.Menu>
+            }
+        >
+            <Button
+                variant="ghost"
+                size="xs"
+                icon={<Plus className="h-3 w-3" aria-hidden />}
+                loading={busy != null}
+                aria-label={t('recordAria', { num: row.successionNumber })}
+                id={`record-actual-${row.plantingId}`}
+            >
+                {t('record')}
+            </Button>
+        </Popover>
+    );
+}
+
 export function PlantingBoard({
     tenantSlug,
     cropPlanId,
@@ -140,6 +245,8 @@ export function PlantingBoard({
 }) {
     const t = useTranslations('planning.board');
     const tSoil = useTranslations('ag.soil');
+    const { permissions } = useTenantContext();
+    const canWrite = permissions.canWrite;
     // Plan-vs-actual progress + the planting rows (for seed/plant-count).
     const progressSWR = useTenantSWR<ProgressPayload>(
         `/planning/crop-plans/${cropPlanId}?include=progress`,
@@ -154,6 +261,17 @@ export function PlantingBoard({
         for (const p of plantingsSWR.data ?? []) map.set(p.id, p);
         return map;
     }, [plantingsSWR.data]);
+
+    // Recording an actual writes a journal entry + advances the planting;
+    // revalidate both reads so the actual date, the check, and the new
+    // status land on the board immediately.
+    const planName = progressSWR.data?.plan?.name ?? '';
+    const { mutate: mutateProgress } = progressSWR;
+    const { mutate: mutatePlantings } = plantingsSWR;
+    const onRecorded = useCallback(
+        () => Promise.all([mutateProgress(), mutatePlantings()]),
+        [mutateProgress, mutatePlantings],
+    );
 
     // ── Gantt range + events ──
     const { from, to, events } = useMemo(() => {
@@ -290,8 +408,27 @@ export function PlantingBoard({
                         <AgStatusBadge entity="planting" status={row.original.status} />
                     ),
                 },
+                // Record-actual affordance — write-gated, closes the
+                // plan-vs-actual loop from the board itself.
+                ...(canWrite
+                    ? [
+                          {
+                              id: 'actions',
+                              header: '',
+                              enableSorting: false,
+                              cell: ({ row }: { row: { original: PlantingProgressRow } }) => (
+                                  <RecordActualMenu
+                                      row={row.original}
+                                      planName={planName}
+                                      onRecorded={onRecorded}
+                                  />
+                              ),
+                              meta: { disableTruncate: true },
+                          },
+                      ]
+                    : []),
             ]),
-        [plantingById, t, tSoil],
+        [plantingById, t, tSoil, canWrite, planName, onRecorded],
     );
 
     if (progressSWR.isLoading && !progressSWR.data) {

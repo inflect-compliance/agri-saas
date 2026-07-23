@@ -6132,7 +6132,8 @@
             "createPlan": "Create plan",
             "genFailedWithMsg": "Plan created, but plantings could not be generated: {msg}",
             "genFailed": "Plan created, but plantings could not be generated.",
-            "createFailed": "Failed to create crop plan"
+            "createFailed": "Failed to create crop plan",
+            "generateNeedsVariety": "Add a variety with days-to-maturity to generate the succession board now."
         },
         "board": {
             "gddTooltip": "Base {temp}°C, sow → today",
@@ -6150,7 +6151,21 @@
             "loadErrorDesc": "Something went wrong fetching this plan's plantings. Reload the page to try again.",
             "emptyTitle": "No plantings yet",
             "emptyDesc": "Generate this plan's plantings to populate the succession board with dated sow / transplant / harvest rows.",
-            "successionTimeline": "Succession timeline"
+            "successionTimeline": "Succession timeline",
+            "record": "Record",
+            "recordAria": "Record an actual for succession {num}",
+            "recordMenuLabel": "Record an actual milestone",
+            "recordTitle": "{stage} — {plan} (succession {num})",
+            "stageLabel": {
+                "SOW": "Sow",
+                "TRANSPLANT": "Transplant",
+                "HARVEST": "Harvest"
+            },
+            "recordStage": {
+                "SOW": "Record sow",
+                "TRANSPLANT": "Record transplant",
+                "HARVEST": "Record harvest"
+            }
         },
         "detail": {
             "methodDirectSow": "Direct sow",
@@ -6174,7 +6189,9 @@
             "parcel": "Parcel",
             "notes": "Notes",
             "loadingJournal": "Loading journal…",
-            "journalEmpty": "No journal entries yet. Record a sow / transplant / harvest against a planting to track the actual date."
+            "journalEmpty": "No journal entries yet. Record a sow / transplant / harvest against a planting to track the actual date.",
+            "emptyHintVariety": "No plantings yet — this variety needs days-to-maturity set before the succession board can be generated. Add it, then Generate.",
+            "emptyHintNoVariety": "No plantings yet. Add a variety with days-to-maturity, then Generate to build the succession board."
         },
         "seasons": {
             "statusPlanning": "Planning",

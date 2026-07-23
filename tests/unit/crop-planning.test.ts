@@ -7,10 +7,11 @@
  *
  * Covers:
  *   - generatePlantings: wires the REAL engine (generateSuccessions)
- *     → persists N Planting rows (createMany) → fans out field tasks
- *     via createTask + addTaskLink('PLANTING', …); is idempotent
- *     (deletes only PLANNED rows; skips a stage whose task already
- *     exists).
+ *     → UPSERTS Planting rows by the stable (cropPlanId,
+ *     successionNumber) identity → fans out field tasks via createTask +
+ *     addTaskLink('PLANTING', …); is idempotent + regenerate-safe
+ *     (creates missing successions, refreshes still-PLANNED rows,
+ *     preserves SOWN+ rows, skips a stage whose task already exists).
  *   - getCropPlanProgress: maps planned dates beside the actuals from
  *     LogPlanting → LogEntry.occurredAt, grouped by stage, in ONE pass.
  *   - read/write authorization gating.
@@ -23,7 +24,7 @@
 
 const mockDb = {
     cropPlan: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn(), findMany: jest.fn() },
-    planting: { deleteMany: jest.fn(), createMany: jest.fn(), findMany: jest.fn() },
+    planting: { deleteMany: jest.fn(), createMany: jest.fn(), update: jest.fn(), findMany: jest.fn() },
     taskLink: { findMany: jest.fn() },
     logPlanting: { findMany: jest.fn() },
     season: { findFirst: jest.fn(), create: jest.fn() },
@@ -101,23 +102,33 @@ const basePlan = {
 };
 
 let createdPlantings: any[];
+/** Rows the FIRST (existing-state) findMany returns — a fresh plan is []. */
+let existingPlantings: any[];
 
 beforeEach(() => {
     jest.clearAllMocks();
     createdPlantings = [];
+    existingPlantings = [];
     createTask.mockResolvedValue({ id: 'task-new' });
     addTaskLink.mockResolvedValue({ id: 'link-new' });
 
     // findFirst returns the plan with its variety joined.
     mockDb.cropPlan.findFirst.mockResolvedValue(basePlan);
     mockDb.planting.deleteMany.mockResolvedValue({ count: 0 });
+    mockDb.planting.update.mockResolvedValue({});
     // createMany records what would be persisted; the re-read returns the
     // same rows with synthetic ids so the task fan-out can run.
     mockDb.planting.createMany.mockImplementation(async ({ data }: any) => {
         createdPlantings = data.map((d: any, i: number) => ({ ...d, id: `planting-${i + 1}` }));
         return { count: data.length };
     });
-    mockDb.planting.findMany.mockImplementation(async () => createdPlantings);
+    // Two distinct findMany shapes: the existing-state read (select
+    // id/successionNumber/status) → existingPlantings; the re-read for the
+    // task fan-out (orderBy, no select) → the created rows.
+    mockDb.planting.findMany.mockImplementation(async (args: any) => {
+        if (args?.select && 'successionNumber' in args.select) return existingPlantings;
+        return createdPlantings;
+    });
     // No pre-existing PLANTING task links by default (fresh fan-out).
     mockDb.taskLink.findMany.mockResolvedValue([]);
     mockDb.logPlanting.findMany.mockResolvedValue([]);
@@ -129,12 +140,19 @@ describe('generatePlantings', () => {
     it('runs the engine and persists exactly the computed plantings', async () => {
         const result = await generatePlantings(editorCtx, 'plan-1');
 
-        // The usecase deletes only PLANNED rows before re-creating.
+        // Regenerate only prunes PLANNED rows whose succession is no longer
+        // part of the plan (none, for a fresh 3-succession plan). SOWN+ rows
+        // are never in scope.
         expect(mockDb.planting.deleteMany).toHaveBeenCalledWith({
-            where: { tenantId: 'tenant-1', cropPlanId: 'plan-1', status: 'PLANNED' },
+            where: {
+                tenantId: 'tenant-1',
+                cropPlanId: 'plan-1',
+                status: 'PLANNED',
+                successionNumber: { notIn: [1, 2, 3] },
+            },
         });
 
-        // It persisted N = successions rows.
+        // A fresh plan has no existing rows, so all N = successions are created.
         expect(mockDb.planting.createMany).toHaveBeenCalledTimes(1);
         const persisted = mockDb.planting.createMany.mock.calls[0][0].data;
         expect(persisted).toHaveLength(3);
@@ -223,6 +241,50 @@ describe('generatePlantings', () => {
             (c, i) => `${addTaskLink.mock.calls[i][3]}:${c[1].metadataJson.plantingStage}`,
         );
         expect(made).not.toContain('planting-1:SOW');
+    });
+
+    it('regenerate PRESERVES a SOWN succession — no re-create, no delete', async () => {
+        // Succession 1 has already been sown (has recorded actuals); 2 + 3
+        // are still to plant. A re-Generate must keep succession 1 intact.
+        existingPlantings = [
+            { id: 'planting-sown-1', successionNumber: 1, status: 'SOWN' },
+        ];
+
+        await generatePlantings(editorCtx, 'plan-1');
+
+        // Only the MISSING successions (2, 3) are created — succession 1 is
+        // never re-created (that would mint a new id + orphan its actuals).
+        expect(mockDb.planting.createMany).toHaveBeenCalledTimes(1);
+        const created = mockDb.planting.createMany.mock.calls[0][0].data;
+        expect(created.map((d: any) => d.successionNumber)).toEqual([2, 3]);
+
+        // The SOWN row is neither updated (it's not PLANNED) nor deleted
+        // (its succession is still in the plan).
+        expect(mockDb.planting.update).not.toHaveBeenCalled();
+        const delWhere = mockDb.planting.deleteMany.mock.calls[0][0].where;
+        expect(delWhere.status).toBe('PLANNED');
+        expect(delWhere.successionNumber).toEqual({ notIn: [1, 2, 3] });
+    });
+
+    it('regenerate REFRESHES a still-PLANNED row in place (update, not re-create)', async () => {
+        // Succession 1 already exists but is still PLANNED — a re-Generate
+        // updates its dates/allocation in place, preserving its id.
+        existingPlantings = [
+            { id: 'planting-old-1', successionNumber: 1, status: 'PLANNED' },
+        ];
+
+        await generatePlantings(editorCtx, 'plan-1');
+
+        // Succession 1 is UPDATED in place, keyed on its stable id.
+        expect(mockDb.planting.update).toHaveBeenCalledTimes(1);
+        expect(mockDb.planting.update.mock.calls[0][0].where).toEqual({ id: 'planting-old-1' });
+        const updData = mockDb.planting.update.mock.calls[0][0].data;
+        expect(updData).not.toHaveProperty('status'); // stays PLANNED
+        expect(updData.method).toBe('TRANSPLANT');
+
+        // Only the missing successions (2, 3) are created.
+        const created = mockDb.planting.createMany.mock.calls[0][0].data;
+        expect(created.map((d: any) => d.successionNumber)).toEqual([2, 3]);
     });
 
     it('reads the idempotency set in ONE batched taskLink query (no N+1)', async () => {

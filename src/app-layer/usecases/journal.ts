@@ -10,6 +10,7 @@ import {
 } from '../repositories/JournalRepository';
 import { FileRepository } from '../repositories/FileRepository';
 import { recordHarvestLot } from './inventory';
+import { advancePlantingStatusForLinks } from './crop-planning';
 import { attachAutoEvidenceFromLogEntry } from './auto-evidence';
 import { assertCanRead, assertCanWrite, assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
@@ -278,6 +279,15 @@ async function createLogEntryImpl(
         }
 
         const entry = await createLogEntryWithAudit(db, ctx, input, 'manual');
+
+        // Plan-vs-actual — a DONE entry that realises a planting milestone
+        // advances that Planting's lifecycle status (SOW→SOWN, …), in the
+        // SAME transaction so the LogPlanting row + the status move commit
+        // atomically. A PLANNED (future-dated) entry records the intent but
+        // does not advance status. Monotonic-forward only (see the helper).
+        if (data.plantingLinks?.length && entry.status === 'DONE') {
+            await advancePlantingStatusForLinks(db, ctx, data.plantingLinks);
+        }
 
         // A HARVEST entry can mint its output lot + record genealogy in the
         // same transaction (INVENTORY-module gated inside recordHarvestLot).

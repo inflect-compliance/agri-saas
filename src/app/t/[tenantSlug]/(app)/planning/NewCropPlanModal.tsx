@@ -213,20 +213,22 @@ export function NewCropPlanModal({
                 plantsPerSuccession:
                     plantsPerSuccession.trim() === '' ? null : Number(plantsPerSuccession),
             });
-            if (generateNow) {
-                // Best-effort — a plan with no maturity-bearing variety
-                // can't generate; surface that but keep the created plan.
+            // Generate the succession board only when a variety is chosen —
+            // the engine needs a variety with days-to-maturity to schedule
+            // (variety is optional on a plan, but Generate requires it). With
+            // no variety we skip generation entirely and land the user on the
+            // plan, where an inline hint guides them to add a variety + Generate.
+            // A variety that lacks maturity still throws server-side
+            // (CROP_PLAN_NOT_READY); we swallow it for the same reason — the
+            // plan page's empty-state hint covers it — rather than flashing an
+            // error that the immediate navigation would hide (the old bug:
+            // setError then setOpen(false) on the same tick).
+            if (generateNow && cropVarietyId) {
                 try {
                     await apiPost(buildUrl(`/planning/crop-plans/${plan.id}/generate`), {});
-                } catch (genErr) {
-                    setError(
-                        genErr instanceof Error
-                            ? t('genFailedWithMsg', { msg: genErr.message })
-                            : t('genFailed'),
-                    );
-                    setOpen(false);
-                    onSaved?.(plan);
-                    return;
+                } catch {
+                    /* Plan is created; the board's empty-state hint prompts
+                       adding a maturity-bearing variety, then Generate. */
                 }
             }
             setOpen(false);
@@ -404,15 +406,22 @@ export function NewCropPlanModal({
                             />
                         </FormField>
 
-                        <label className="flex items-center gap-tight text-sm text-content-default">
-                            <input
-                                type="checkbox"
-                                checked={generateNow}
-                                onChange={(e) => setGenerateNow(e.target.checked)}
-                                id="crop-plan-generate-now"
-                            />
-                            {t('generateNow')}
-                        </label>
+                        <div className="space-y-tight">
+                            <label className="flex items-center gap-tight text-sm text-content-default">
+                                <input
+                                    type="checkbox"
+                                    checked={generateNow}
+                                    onChange={(e) => setGenerateNow(e.target.checked)}
+                                    id="crop-plan-generate-now"
+                                />
+                                {t('generateNow')}
+                            </label>
+                            {generateNow && !cropVarietyId && (
+                                <p className="text-xs text-content-subtle" id="crop-plan-generate-hint">
+                                    {t('generateNeedsVariety')}
+                                </p>
+                            )}
+                        </div>
                     </fieldset>
                 </Modal.Body>
                 <Modal.Actions>
