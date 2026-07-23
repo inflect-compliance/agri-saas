@@ -103,5 +103,13 @@ integration test surfaced it — exactly what it's for.
 - **Soil/GDD defaults are per-crop, applied crop-wide** — soil preferences
   and base temp barely vary between varieties of one crop, so a per-crop map
   keeps the catalog honest and maintainable.
+- **`drainagePreference` is calibrated against the engine's own
+  `DRAINAGE_BY_TEXTURE` table** — Loam / Silt loam classify as
+  *moderate*-draining, so a moisture-loving crop (kale, chard, spinach,
+  brassicas, sweet-corn, leek) whose preferred texture is Loam uses
+  `'moderate'`, not `'well'`. A `'well'` preference there would fire a false
+  `caution` on an otherwise-ideal Loam parcel (texture matches, drainage
+  tendency doesn't). `'well'` is reserved for crops that genuinely want sharp
+  drainage — root crops on sand, cucurbits, alliums prone to rot in wet ground.
 - **Allocation fields render only when set** — a plan uses ONE allocation
   method, so showing three mostly-empty cells would be noise.

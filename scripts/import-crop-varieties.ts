@@ -311,6 +311,13 @@ export const CROP_VARIETIES: CropSeed[] = [
  *   - `soil` → written to `CropVariety.soilDefaultsJson`; the pure
  *     suitability engine (`src/lib/soil/suitability.ts`) compares a
  *     parcel's modelled soil against these. Textures are USDA classes.
+ *     `drainagePreference` is calibrated against `DRAINAGE_BY_TEXTURE`
+ *     (`src/lib/soil/texture.ts`): Loam / Silt loam classify as
+ *     *moderate*-draining, so a moisture-loving crop whose preferred
+ *     texture is Loam MUST use `'moderate'` — `'well'` would raise a
+ *     false caution on an otherwise-ideal Loam parcel. Reserve `'well'`
+ *     for crops that genuinely want sharp drainage (root crops on sand,
+ *     cucurbits, alliums prone to rot in wet ground).
  *   - `gddBaseC` → the crop's GDD base temperature (°C). Warm-season ≈ 10,
  *     cool-season ≈ 4–5.
  *   - `gddPerDay` → typical daily heat units during the crop's growing
@@ -343,19 +350,19 @@ const CROP_AGRO_DEFAULTS: Record<string, CropAgroDefaults> = {
     watermelon: { gddBaseC: 10, gddPerDay: 14, soil: { phMin: 6.0, phMax: 6.8, texturePreference: ['Sandy loam', 'Loamy sand', 'Loam'], drainagePreference: 'well' } },
     pepper: { gddBaseC: 10, gddPerDay: 13, soil: { phMin: 6.0, phMax: 6.8, texturePreference: ['Sandy loam', 'Loam'], drainagePreference: 'well' } },
     eggplant: { gddBaseC: 10, gddPerDay: 13, soil: { phMin: 6.0, phMax: 6.8, texturePreference: ['Sandy loam', 'Loam'], drainagePreference: 'well' } },
-    kale: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.5, texturePreference: ['Loam', 'Silt loam', 'Sandy loam'], drainagePreference: 'well' } },
-    chard: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.5, texturePreference: ['Loam', 'Silt loam', 'Sandy loam'], drainagePreference: 'well' } },
-    spinach: { gddBaseC: 4, gddPerDay: 10, soil: { phMin: 6.5, phMax: 7.5, texturePreference: ['Loam', 'Silt loam'], drainagePreference: 'well' } },
+    kale: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.5, texturePreference: ['Loam', 'Silt loam', 'Sandy loam'], drainagePreference: 'moderate' } },
+    chard: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.5, texturePreference: ['Loam', 'Silt loam', 'Sandy loam'], drainagePreference: 'moderate' } },
+    spinach: { gddBaseC: 4, gddPerDay: 10, soil: { phMin: 6.5, phMax: 7.5, texturePreference: ['Loam', 'Silt loam'], drainagePreference: 'moderate' } },
     arugula: { gddBaseC: 4, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Loam', 'Silt loam', 'Sandy loam'], drainagePreference: 'moderate' } },
-    broccoli: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Loam', 'Silt loam'], drainagePreference: 'well' } },
-    cauliflower: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Loam', 'Silt loam'], drainagePreference: 'well' } },
-    cabbage: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.5, texturePreference: ['Loam', 'Silt loam', 'Clay loam'], drainagePreference: 'well' } },
-    'sweet-corn': { gddBaseC: 10, gddPerDay: 14, soil: { phMin: 5.8, phMax: 7.0, texturePreference: ['Loam', 'Sandy loam', 'Silt loam'], drainagePreference: 'well' } },
+    broccoli: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Loam', 'Silt loam'], drainagePreference: 'moderate' } },
+    cauliflower: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Loam', 'Silt loam'], drainagePreference: 'moderate' } },
+    cabbage: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.5, texturePreference: ['Loam', 'Silt loam', 'Clay loam'], drainagePreference: 'moderate' } },
+    'sweet-corn': { gddBaseC: 10, gddPerDay: 14, soil: { phMin: 5.8, phMax: 7.0, texturePreference: ['Loam', 'Sandy loam', 'Silt loam'], drainagePreference: 'moderate' } },
     radish: { gddBaseC: 4, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Sandy loam', 'Loamy sand', 'Loam'], drainagePreference: 'well' } },
     turnip: { gddBaseC: 4, gddPerDay: 10, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Sandy loam', 'Loam'], drainagePreference: 'well' } },
     parsnip: { gddBaseC: 4, gddPerDay: 9, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Sandy loam', 'Loamy sand', 'Loam'], drainagePreference: 'well' } },
     onion: { gddBaseC: 5, gddPerDay: 9, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Loam', 'Sandy loam', 'Silt loam'], drainagePreference: 'well' } },
-    leek: { gddBaseC: 5, gddPerDay: 9, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Loam', 'Silt loam', 'Sandy loam'], drainagePreference: 'well' } },
+    leek: { gddBaseC: 5, gddPerDay: 9, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Loam', 'Silt loam', 'Sandy loam'], drainagePreference: 'moderate' } },
     garlic: { gddBaseC: 5, gddPerDay: 9, soil: { phMin: 6.0, phMax: 7.0, texturePreference: ['Sandy loam', 'Loam'], drainagePreference: 'well' } },
     potato: { gddBaseC: 7, gddPerDay: 12, soil: { phMin: 5.0, phMax: 6.5, texturePreference: ['Sandy loam', 'Loamy sand', 'Loam'], drainagePreference: 'well' } },
     strawberry: { gddBaseC: 5, gddPerDay: 10, soil: { phMin: 5.5, phMax: 6.8, texturePreference: ['Sandy loam', 'Loam'], drainagePreference: 'well' } },

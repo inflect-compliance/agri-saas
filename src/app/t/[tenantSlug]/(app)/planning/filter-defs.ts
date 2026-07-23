@@ -1,9 +1,10 @@
 /**
  * Crop-plan list-page filter configuration.
  *
- * Keys align with the crop-plans GET query: status. Values MUST match
- * the Prisma `CropPlanStatus` enum — the UI selection passes straight
- * through to Prisma.
+ * Keys align with the crop-plans GET query: status, seasonId, cropTypeId.
+ * The `status` values MUST match the Prisma `CropPlanStatus` enum — the UI
+ * selection passes straight through to Prisma; `seasonId` / `cropTypeId`
+ * options are injected at runtime from the catalog the page loads.
  *
  * Icons are Nucleo (the canonical family) cast to the icon shape the
  * `FilterDefInput` contract types. The cast is sourced from
