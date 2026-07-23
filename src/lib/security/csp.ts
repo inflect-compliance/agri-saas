@@ -31,7 +31,13 @@
  *     lower blast radius than JS injection, and script-src stays strict
  *     (nonce + strict-dynamic).
  *   - script-src dev: 'unsafe-eval' required for Next.js HMR/Fast Refresh eval().
+ *   - frame-src: 'self' + the Meteobot station host(s) so a tenant's
+ *     configured dashboard can be embedded on /climate. The host allowlist is
+ *     shared with the stored-URL validator (see `@/lib/security/meteobot`) so
+ *     the two can never drift.
  */
+
+import { METEOBOT_FRAME_SRC } from '@/lib/security/meteobot';
 
 // Edge-compatible crypto — works in both Node.js and Edge Runtime
 function getRandomBytes(size: number): Uint8Array {
@@ -66,6 +72,7 @@ export interface CspDirectives {
     'object-src': string[];
     'base-uri': string[];
     'frame-ancestors': string[];
+    'frame-src': string[];
     'form-action': string[];
     'worker-src'?: string[];
     'manifest-src'?: string[];
@@ -163,6 +170,11 @@ export function buildCspHeader(nonce: string, isDev = false): string {
         'object-src': ["'none'"],
         'base-uri': ["'self'"],
         'frame-ancestors': ["'none'"],
+        // Embedding: same-origin + the Meteobot station dashboard on /climate
+        // (the tenant-configured `meteobotStationUrl`). Shared allowlist with
+        // the stored-URL validator so they can't drift; everything else is
+        // blocked (it would otherwise fall back to `default-src 'self'`).
+        'frame-src': ["'self'", ...METEOBOT_FRAME_SRC],
         'form-action': ["'self'"],
         // Workers: restrict to same-origin
         'worker-src': ["'self'", 'blob:'],

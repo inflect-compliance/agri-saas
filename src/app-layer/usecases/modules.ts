@@ -2,7 +2,8 @@ import { RequestContext } from '../types';
 import { ModuleSettingsRepository } from '../repositories/ModuleSettingsRepository';
 import { assertCanRead, assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
-import { forbidden } from '@/lib/errors/types';
+import { forbidden, badRequest } from '@/lib/errors/types';
+import { isAllowedMeteobotUrl } from '@/lib/security/meteobot';
 import { runInTenantContext } from '@/lib/db-context';
 import { ModuleKey } from '@prisma/client';
 import { ALL_MODULES, resolveEnabledModules, coerceModuleKeys } from '@/lib/modules';
@@ -63,6 +64,46 @@ export async function setEnabledModules(ctx: RequestContext, enabledModules: Mod
             },
         });
         return { enabledModules: row.enabledModules };
+    });
+}
+
+/** Read the tenant's Meteobot station URL (#14) — null when unset. */
+export async function getMeteobotStationUrl(ctx: RequestContext): Promise<string | null> {
+    assertCanRead(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const row = await ModuleSettingsRepository.get(db, ctx);
+        return row?.meteobotStationUrl ?? null;
+    });
+}
+
+/**
+ * Set (or clear) the tenant's Meteobot station URL (#14). ADMIN-gated. A
+ * non-empty URL must be an https link on an allowed Meteobot host — the SAME
+ * allowlist the CSP `frame-src` uses (see `@/lib/security/meteobot`), so we
+ * never persist a URL the browser would then refuse to frame. Clearing
+ * (null/empty) is always allowed.
+ */
+export async function setMeteobotStationUrl(ctx: RequestContext, url: string | null) {
+    assertCanAdmin(ctx);
+    const trimmed = url && url.trim().length > 0 ? url.trim() : null;
+    if (trimmed !== null && !isAllowedMeteobotUrl(trimmed)) {
+        throw badRequest('The station URL must be an https link on a meteobot.com domain.');
+    }
+    return runInTenantContext(ctx, async (db) => {
+        const row = await ModuleSettingsRepository.setMeteobotUrl(db, ctx, trimmed);
+        await logEvent(db, ctx, {
+            action: 'TENANT_MODULES_UPDATED',
+            entityType: 'TenantModuleSettings',
+            entityId: row.id,
+            details: trimmed ? 'Meteobot station URL set' : 'Meteobot station URL cleared',
+            detailsJson: {
+                category: 'entity_lifecycle',
+                entityName: 'TenantModuleSettings',
+                operation: 'updated',
+                summary: 'Meteobot station URL updated',
+            },
+        });
+        return { meteobotStationUrl: row.meteobotStationUrl };
     });
 }
 

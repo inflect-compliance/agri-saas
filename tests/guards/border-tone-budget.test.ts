@@ -103,16 +103,17 @@ const ROOT = path.resolve(__dirname, '../..');
 // B4 (2026-06-20): +1 — two delight features landed discrete-surface cards
 // that legitimately use the `border-border-default` "discrete surface" tone:
 // the shareables ShareableStatCard and the onboarding CoachMark popover.
-// B5 (2026-07-07, reclaimed 2026-07-22): a since-removed Climate-page
-// external-content iframe wrapper had used `border-border-default` (+1). It was
-// replaced by the native Open-Meteo weather surface, which uses only
-// `border-border-subtle`, so that instance is gone and the budget drops by −1.
+// B5 (2026-07-07, restored 2026-07-23): +1 — the Climate page's Meteobot
+// station embed wraps the dashboard iframe in a discrete external-content
+// surface (same register as a card / table outer border), so it legitimately
+// uses `border-border-default`. (Briefly reclaimed 2026-07-22 while the embed
+// was dropped, then restored with the scoped-CSP embed.)
 // mobile-native-feel (2026-07-12): +2 — two mobile floating affordances that
 // are discrete surfaces floating over arbitrary list content (same register
 // as a popover/tooltip outline, which the policy assigns to `default`): the
 // pull-to-refresh spinner pill (use-pull-to-refresh.tsx) and the
 // scroll-to-top button (scroll-to-top.tsx).
-const BORDER_DEFAULT_BUDGET = 117;
+const BORDER_DEFAULT_BUDGET = 118;
 
 function countMatches(re: RegExp): number {
     let total = 0;

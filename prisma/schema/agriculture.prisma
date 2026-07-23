@@ -451,6 +451,9 @@ model TenantModuleSettings {
   id             String      @id @default(cuid())
   tenantId       String      @unique
   enabledModules ModuleKey[]
+  // Optional per-tenant Meteobot station dashboard URL, embedded on /climate
+  // via a scoped CSP frame-src (validated to a meteobot.com host — #14).
+  meteobotStationUrl String?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 

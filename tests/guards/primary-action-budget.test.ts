@@ -121,6 +121,11 @@ const PRIMARY_BUDGET: Record<string, number> = {
     // Farm-tasks list — two separate primary regions: the page "Task"
     // header CTA + the create-modal "Create task" confirm.
     "src/app/t/[tenantSlug]/(app)/farm-tasks/FarmTasksClient.tsx": 2,
+    // Climate — two distinct primary regions, each the single earned primary of
+    // its card: the no-locations empty-state "Go to locations" CTA (Open-Meteo
+    // weather region) and the Meteobot station config "Save" CTA (the station
+    // card). Different regions; the static scanner counts both.
+    "src/app/t/[tenantSlug]/(app)/climate/ClimateClient.tsx": 2,
     // Exchange (cross-tenant marketplace) — two separate primary regions:
     // the page-header "Offer" CTA (opens the create modal) and the detail
     // Sheet's "Express interest" CTA. The Sheet only mounts when a listing
