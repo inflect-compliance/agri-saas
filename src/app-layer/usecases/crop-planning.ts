@@ -289,6 +289,12 @@ export interface CreateCropVarietyInput {
     seedsPerGram?: number | null;
     germinationRate?: number | null;
     seedsPerCell?: number | null;
+    /** Curated soil preferences (soil-suitability engine). Passed through
+     *  as JSON; the parser tolerates a loose shape. */
+    soilDefaultsJson?: Prisma.InputJsonValue | null;
+    /** GDD base temperature (°C) + accumulated-GDD-to-maturity target. */
+    gddBaseC?: number | null;
+    gddToMaturity?: number | null;
     sourceUrn?: string | null;
     notes?: string | null;
 }
@@ -322,6 +328,11 @@ export async function createCropVariety(ctx: RequestContext, input: CreateCropVa
                 seedsPerGram: input.seedsPerGram ?? null,
                 germinationRate: input.germinationRate ?? null,
                 seedsPerCell: input.seedsPerCell ?? null,
+                // Optional JSON — spread only when present so a null never
+                // trips Prisma's DbNull/JsonNull ambiguity.
+                ...(input.soilDefaultsJson != null ? { soilDefaultsJson: input.soilDefaultsJson } : {}),
+                gddBaseC: input.gddBaseC ?? null,
+                gddToMaturity: input.gddToMaturity ?? null,
                 sourceUrn: input.sourceUrn ?? null,
                 notes: input.notes != null ? sanitizePlainText(input.notes) : null,
             },
@@ -396,7 +407,7 @@ export interface UpdateCropPlanInput {
 
 export async function listCropPlans(
     ctx: RequestContext,
-    filters: { seasonId?: string; status?: string } = {},
+    filters: { seasonId?: string; cropTypeId?: string; status?: string } = {},
     opts: { take?: number } = {},
 ) {
     assertCanRead(ctx);
@@ -406,6 +417,7 @@ export async function listCropPlans(
                 tenantId: ctx.tenantId,
                 deletedAt: null,
                 ...(filters.seasonId ? { seasonId: filters.seasonId } : {}),
+                ...(filters.cropTypeId ? { cropTypeId: filters.cropTypeId } : {}),
                 ...(filters.status ? { status: filters.status as Prisma.EnumCropPlanStatusFilter['equals'] } : {}),
             },
             orderBy: [{ createdAt: 'desc' }],

@@ -41,10 +41,18 @@ export const GET = withApiErrorHandling(
         const ctx = await getTenantCtx(params, req);
         await assertModuleEnabled(ctx, 'PLANNING');
         const QuerySchema = z
-            .object({ seasonId: z.string().optional(), status: z.string().optional() })
+            .object({
+                seasonId: z.string().optional(),
+                cropTypeId: z.string().optional(),
+                status: z.string().optional(),
+            })
             .strip();
         const query = QuerySchema.parse(Object.fromEntries(req.nextUrl.searchParams.entries()));
-        const plans = await listCropPlans(ctx, { seasonId: query.seasonId, status: query.status });
+        const plans = await listCropPlans(ctx, {
+            seasonId: query.seasonId,
+            cropTypeId: query.cropTypeId,
+            status: query.status,
+        });
         return jsonResponse(plans);
     },
 );

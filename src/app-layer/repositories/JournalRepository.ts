@@ -84,6 +84,11 @@ export interface LogEntryFilters {
     crop?: string;
     /** Filter to entries logged against this location (#10). */
     locationId?: string;
+    /**
+     * Filter to entries linked (via LogPlanting) to a planting of this crop
+     * plan — scopes the plan-detail Journal tab to just this plan's actuals.
+     */
+    cropPlanId?: string;
 }
 
 export interface LogEntryListParams {
@@ -220,6 +225,11 @@ export class JournalRepository {
         if (filters?.locationId) {
             where.locations = { some: { locationId: filters.locationId } };
         }
+        // Crop plan — entries linked (LogPlanting) to a planting of this plan.
+        // LogEntry → plantings (LogPlanting[]) → planting (Planting).cropPlanId.
+        if (filters?.cropPlanId) {
+            where.plantings = { some: { planting: { is: { cropPlanId: filters.cropPlanId } } } };
+        }
 
         return where;
     }
@@ -352,8 +362,14 @@ export class JournalRepository {
                 ...(input.plantingLinks && input.plantingLinks.length
                     ? {
                           plantings: {
+                              // tenantId is populated by Prisma from the parent
+                              // LogEntry via the composite [logEntryId, tenantId]
+                              // relation FK — and because LogPlanting.planting
+                              // ALSO keys on tenantId, passing it explicitly is
+                              // rejected ("Unknown argument tenantId"). Provide
+                              // only plantingId + stage; tenantId flows from the
+                              // parent (mirrors the `quantities` nested create).
                               create: input.plantingLinks.map((p) => ({
-                                  tenantId: ctx.tenantId,
                                   plantingId: p.plantingId,
                                   stage: p.stage,
                               })),

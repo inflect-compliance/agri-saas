@@ -85,9 +85,12 @@ interface ProgressPayload {
  */
 function GddCell({ plantingId }: { plantingId: string }) {
     const t = useTranslations('planning.board');
-    const { data, isLoading } = useTenantSWR<{ totalGdd: number; baseTempC: number; days: unknown[] }>(
-        `/planning/plantings/${plantingId}/gdd`,
-    );
+    const { data, isLoading } = useTenantSWR<{
+        totalGdd: number;
+        baseTempC: number;
+        targetGdd: number | null;
+        days: unknown[];
+    }>(`/planning/plantings/${plantingId}/gdd`);
     if (isLoading && !data) {
         return <SkeletonLine className="h-3 w-8" />;
     }
@@ -95,9 +98,24 @@ function GddCell({ plantingId }: { plantingId: string }) {
     if (!data || (data.days?.length ?? 0) === 0) {
         return <span className="text-xs text-content-subtle">—</span>;
     }
+    // Maturity % — only when the variety carries a real GDD target
+    // (`gddToMaturity`); otherwise the cell stays raw accumulated GDD.
+    const pct =
+        data.targetGdd && data.targetGdd > 0
+            ? Math.min(100, Math.round((total / data.targetGdd) * 100))
+            : null;
     return (
-        <Tooltip content={t('gddTooltip', { temp: data.baseTempC })}>
-            <span className="text-xs text-content-muted tabular-nums">{total.toLocaleString()}</span>
+        <Tooltip
+            content={
+                pct != null
+                    ? t('gddTooltipTarget', { temp: data.baseTempC, target: data.targetGdd! })
+                    : t('gddTooltip', { temp: data.baseTempC })
+            }
+        >
+            <span className="text-xs text-content-muted tabular-nums">
+                {total.toLocaleString()}
+                {pct != null ? <span className="text-content-subtle"> · {pct}%</span> : null}
+            </span>
         </Tooltip>
     );
 }

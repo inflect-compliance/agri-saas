@@ -81,6 +81,16 @@ model CropVariety {
   /// { phMin?, phMax?, texturePreference?: string[], drainagePreference? }.
   /// Thresholds come from catalog/import data — never invented at runtime.
   soilDefaultsJson    Json?
+  /// Growing-Degree-Day base temperature (°C) for this crop — the floor
+  /// below which no heat units accrue. Warm-season crops ≈ 10 °C, cool-
+  /// season ≈ 4–5 °C. Null ⇒ the GDD accumulator falls back to the 10 °C
+  /// conventional default. Modelled agronomic norm (catalog/import data).
+  gddBaseC            Decimal?        @db.Decimal(4, 1)
+  /// Accumulated GDD from sow to first harvest for this variety (the
+  /// maturity target). Null ⇒ the board shows raw accumulated GDD only
+  /// (no maturity %). Modelled: daysToMaturity × the crop's typical daily
+  /// heat units — an estimate, never a guaranteed figure.
+  gddToMaturity       Int?
   /// OpenFarm (CC0) or other provenance URN.
   sourceUrn           String?
   notes               String?

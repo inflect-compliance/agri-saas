@@ -6143,7 +6143,16 @@
             "newVarietyNamePlaceholder": "e.g. Cherry Belle",
             "newVarietyMaturity": "Days to maturity",
             "newVarietyMaturityPlaceholder": "Days to maturity (for scheduling)",
-            "newVarietyAdd": "Add variety"
+            "newVarietyAdd": "Add variety",
+            "bedLength": "Bed length (m)",
+            "allocationHint": "Alternative to plants/succession — bed geometry or area drives the count.",
+            "bedLengthPlaceholder": "e.g. 30",
+            "rowsPerBed": "Rows / bed",
+            "rowsPerBedPlaceholder": "e.g. 3",
+            "targetArea": "Target area (m²)",
+            "targetAreaPlaceholder": "e.g. 100",
+            "notes": "Notes",
+            "notesPlaceholder": "Optional notes"
         },
         "board": {
             "gddTooltip": "Base {temp}°C, sow → today",
@@ -6175,7 +6184,8 @@
                 "SOW": "Record sow",
                 "TRANSPLANT": "Record transplant",
                 "HARVEST": "Record harvest"
-            }
+            },
+            "gddTooltipTarget": "Base {temp}°C · {target} GDD to maturity"
         },
         "detail": {
             "methodDirectSow": "Direct sow",
@@ -6216,7 +6226,10 @@
             },
             "confirmDeleteTitle": "Delete this crop plan?",
             "confirmDeleteDesc": "Delete \"{name}\"? Its plantings and any recorded actuals are hidden with it. This can be restored by an admin.",
-            "confirmDeleteLabel": "Delete plan"
+            "confirmDeleteLabel": "Delete plan",
+            "bedLength": "Bed length (m)",
+            "rowsPerBed": "Rows / bed",
+            "targetArea": "Target area (m²)"
         },
         "seasons": {
             "statusPlanning": "Planning",
@@ -7270,7 +7283,9 @@
             "CANCELLED": "Cancelled"
         },
         "filter": {
-            "status": "Status"
+            "status": "Status",
+            "season": "Season",
+            "crop": "Crop"
         },
         "method": {
             "DIRECT_SOW": "Direct sow",

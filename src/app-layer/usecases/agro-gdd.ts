@@ -7,10 +7,10 @@
  * (average method, base-temp floor). The usecase's only job is to load
  * the right window of weather and feed it in.
  *
- * Base temperature: `GDD_BASE_TEMP_C = 10` °C — the conventional default
- * for many warm-season crops. CropVariety carries no per-variety base
- * temperature column today; a per-variety base temp is a documented
- * follow-up (add a `gddBaseC` column to CropVariety + thread it here).
+ * Base temperature: sourced per-variety from `CropVariety.gddBaseC` (a
+ * crop-specific floor — warm-season ≈ 10 °C, cool-season ≈ 4–5 °C),
+ * falling back to `GDD_BASE_TEMP_C = 10` °C when the variety carries none.
+ * The maturity target comes from `CropVariety.gddToMaturity`.
  *
  * @module usecases/agro-gdd
  */
@@ -22,8 +22,8 @@ import { accumulateGdd, type DailyTemp, type GddDay } from '@/lib/agro/gdd';
 import { cachedListRead } from '@/lib/cache/list-cache';
 
 /**
- * Default GDD base temperature (°C). Module constant — see the file
- * header for the per-variety follow-up note.
+ * Fallback GDD base temperature (°C) — used when a variety carries no
+ * `gddBaseC`. The conventional default for many warm-season crops.
  */
 export const GDD_BASE_TEMP_C = 10;
 
@@ -41,9 +41,9 @@ export interface PlantingGddResult {
     /** Per-day GDD + running cumulative — for plotting the curve. */
     days: GddDay[];
     /**
-     * GDD-to-maturity target for the variety, when known. CropVariety
-     * has no GDD column today, so this is always null — reserved for the
-     * per-variety follow-up.
+     * GDD-to-maturity target for the variety (`CropVariety.gddToMaturity`),
+     * when known — else null (the board then shows raw accumulated GDD
+     * only, no maturity %).
      */
     targetGdd: number | null;
 }
@@ -72,17 +72,30 @@ export async function getPlantingGdd(
     return runInTenantContext(ctx, async (db) => {
         const planting = await db.planting.findFirst({
             where: { id: plantingId, tenantId: ctx.tenantId, deletedAt: null },
-            select: { id: true, sowDate: true, locationId: true },
+            select: {
+                id: true,
+                sowDate: true,
+                locationId: true,
+                // Per-variety GDD parameters (feat: real maturity %). Both
+                // nullable — a variety without them falls back to the 10 °C
+                // conventional base and a null target (raw GDD only).
+                variety: { select: { gddBaseC: true, gddToMaturity: true } },
+            },
         });
         if (!planting) throw notFound('Planting not found');
+
+        // Base temperature: the variety's crop-specific floor, else the
+        // conventional GDD_BASE_TEMP_C default. Decimal → number.
+        const baseTempC = num(planting.variety?.gddBaseC) ?? GDD_BASE_TEMP_C;
+        const targetGdd = planting.variety?.gddToMaturity ?? null;
 
         const empty: PlantingGddResult = {
             plantingId: planting.id,
             sowDate: planting.sowDate ? planting.sowDate.toISOString().slice(0, 10) : null,
-            baseTempC: GDD_BASE_TEMP_C,
+            baseTempC,
             totalGdd: 0,
             days: [],
-            targetGdd: null,
+            targetGdd,
         };
 
         // No sow date or no location ⇒ no accumulation window. Returned
@@ -108,6 +121,8 @@ export async function getPlantingGdd(
                 locationId,
                 sowDate: sowDate.toISOString().slice(0, 10),
                 day: now.toISOString().slice(0, 10),
+                // Part of the key so a variety base-temp change invalidates.
+                baseTempC,
             },
             ttlSeconds: 21600,
             loader: () =>
@@ -133,7 +148,7 @@ export async function getPlantingGdd(
                         series.push({ date: o.obsDate.toISOString().slice(0, 10), tempMaxC: tMax, tempMinC: tMin });
                     }
 
-                    const acc = accumulateGdd(series, { baseTempC: GDD_BASE_TEMP_C });
+                    const acc = accumulateGdd(series, { baseTempC });
                     return { totalGdd: acc.totalGdd, days: acc.days };
                 }),
         });

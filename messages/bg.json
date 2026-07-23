@@ -6143,7 +6143,16 @@
             "newVarietyNamePlaceholder": "напр. Cherry Belle",
             "newVarietyMaturity": "Дни до зрялост",
             "newVarietyMaturityPlaceholder": "Дни до зрялост (за графика)",
-            "newVarietyAdd": "Добави сорт"
+            "newVarietyAdd": "Добави сорт",
+            "bedLength": "Дължина на лехата (м)",
+            "allocationHint": "Алтернатива на растения/последователност — геометрията на лехата или площта определя броя.",
+            "bedLengthPlaceholder": "напр. 30",
+            "rowsPerBed": "Редове / леха",
+            "rowsPerBedPlaceholder": "напр. 3",
+            "targetArea": "Целева площ (м²)",
+            "targetAreaPlaceholder": "напр. 100",
+            "notes": "Бележки",
+            "notesPlaceholder": "Бележки по избор"
         },
         "board": {
             "gddTooltip": "База {temp}°C, засяване → днес",
@@ -6175,7 +6184,8 @@
                 "SOW": "Запиши засяване",
                 "TRANSPLANT": "Запиши разсаждане",
                 "HARVEST": "Запиши прибиране"
-            }
+            },
+            "gddTooltipTarget": "База {temp}°C · {target} GDD до зрялост"
         },
         "detail": {
             "methodDirectSow": "Директно засяване",
@@ -6216,7 +6226,10 @@
             },
             "confirmDeleteTitle": "Да се изтрие ли този план за култура?",
             "confirmDeleteDesc": "Да се изтрие ли „{name}“? Насажденията му и записаните действителни данни се скриват заедно с него. Може да бъде възстановен от администратор.",
-            "confirmDeleteLabel": "Изтрий плана"
+            "confirmDeleteLabel": "Изтрий плана",
+            "bedLength": "Дължина на лехата (м)",
+            "rowsPerBed": "Редове / леха",
+            "targetArea": "Целева площ (м²)"
         },
         "seasons": {
             "statusPlanning": "Планиране",
@@ -7270,7 +7283,9 @@
             "CANCELLED": "Отказан"
         },
         "filter": {
-            "status": "Статус"
+            "status": "Статус",
+            "season": "Сезон",
+            "crop": "Култура"
         },
         "method": {
             "DIRECT_SOW": "Директна сеитба",

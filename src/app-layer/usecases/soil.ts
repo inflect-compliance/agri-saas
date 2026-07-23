@@ -68,7 +68,7 @@ export async function getPlantingSoilSuitability(
     assertCanRead(ctx);
     return runInTenantContext(ctx, async (db) => {
         const planting = await db.planting.findFirst({
-            where: { id: plantingId, tenantId: ctx.tenantId },
+            where: { id: plantingId, tenantId: ctx.tenantId, deletedAt: null },
             select: {
                 parcel: { select: { soilJson: true, soilType: true } },
                 variety: { select: { soilDefaultsJson: true } },

@@ -93,6 +93,11 @@ export function NewCropPlanModal({
     const [successions, setSuccessions] = useState('1');
     const [intervalDays, setIntervalDays] = useState('0');
     const [plantsPerSuccession, setPlantsPerSuccession] = useState('');
+    // Alternative allocation drivers (bed geometry / area) + free-text notes.
+    const [bedLengthM, setBedLengthM] = useState('');
+    const [rowsPerBed, setRowsPerBed] = useState('');
+    const [targetAreaM2, setTargetAreaM2] = useState('');
+    const [notes, setNotes] = useState('');
     const [generateNow, setGenerateNow] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -126,6 +131,10 @@ export function NewCropPlanModal({
         setSuccessions('1');
         setIntervalDays('0');
         setPlantsPerSuccession('');
+        setBedLengthM('');
+        setRowsPerBed('');
+        setTargetAreaM2('');
+        setNotes('');
         setGenerateNow(true);
         setError(null);
         setLocalSeasons(seasons);
@@ -310,6 +319,10 @@ export function NewCropPlanModal({
                 intervalDays: Number(intervalDays) || 0,
                 plantsPerSuccession:
                     plantsPerSuccession.trim() === '' ? null : Number(plantsPerSuccession),
+                bedLengthM: bedLengthM.trim() === '' ? null : Number(bedLengthM),
+                rowsPerBed: rowsPerBed.trim() === '' ? null : Number(rowsPerBed),
+                targetAreaM2: targetAreaM2.trim() === '' ? null : Number(targetAreaM2),
+                notes: notes.trim() === '' ? null : notes.trim(),
             });
             // Generate the succession board only when a variety is chosen —
             // the engine needs a variety with days-to-maturity to schedule
@@ -560,6 +573,47 @@ export function NewCropPlanModal({
                                 onChange={(e) => setPlantsPerSuccession(e.target.value.replace(/[^0-9]/g, ''))}
                                 placeholder={t('plantsPlaceholder')}
                                 id="crop-plan-plants"
+                            />
+                        </FormField>
+
+                        {/* Alternative allocation — bed geometry or area drive
+                            plant count when plants/succession is left blank. */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-default">
+                            <FormField label={t('bedLength')} hint={t('allocationHint')}>
+                                <Input
+                                    inputMode="decimal"
+                                    value={bedLengthM}
+                                    onChange={(e) => setBedLengthM(e.target.value.replace(/[^0-9.]/g, ''))}
+                                    placeholder={t('bedLengthPlaceholder')}
+                                    id="crop-plan-bed-length"
+                                />
+                            </FormField>
+                            <FormField label={t('rowsPerBed')}>
+                                <Input
+                                    inputMode="numeric"
+                                    value={rowsPerBed}
+                                    onChange={(e) => setRowsPerBed(e.target.value.replace(/[^0-9]/g, ''))}
+                                    placeholder={t('rowsPerBedPlaceholder')}
+                                    id="crop-plan-rows-per-bed"
+                                />
+                            </FormField>
+                            <FormField label={t('targetArea')}>
+                                <Input
+                                    inputMode="decimal"
+                                    value={targetAreaM2}
+                                    onChange={(e) => setTargetAreaM2(e.target.value.replace(/[^0-9.]/g, ''))}
+                                    placeholder={t('targetAreaPlaceholder')}
+                                    id="crop-plan-target-area"
+                                />
+                            </FormField>
+                        </div>
+
+                        <FormField label={t('notes')}>
+                            <Input
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                placeholder={t('notesPlaceholder')}
+                                id="crop-plan-notes"
                             />
                         </FormField>
 

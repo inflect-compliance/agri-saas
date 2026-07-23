@@ -17,8 +17,9 @@ import {
     optionsFromEnum,
 } from '@/components/ui/filter/filter-definitions';
 import type { FilterType } from '@/components/ui/filter';
+import type { FilterOption } from '@/components/ui/filter/types';
 import type { useTranslations } from 'next-intl';
-import { CircleDotted } from '@/components/ui/icons/nucleo';
+import { CircleDotted, CalendarIcon } from '@/components/ui/icons/nucleo';
 
 /** The icon shape the filter contract expects, derived from the
  *  contract type itself (no direct legacy-icon-package dependency). */
@@ -42,29 +43,65 @@ const STATIC_DEFS = {
         multiple: true,
         resetBehavior: 'clearable',
     },
+    // Season + crop are tenant-specific — the filter KEYS map straight to the
+    // crop-plans GET query (?seasonId / ?cropTypeId). `options: null` marks
+    // them as runtime-derived; `buildPlanningFilters` swaps in the real
+    // options from the seasons / crop types the page already loaded.
+    seasonId: {
+        label: 'Season',
+        description: 'Filter to plans in a season.',
+        group: 'Attributes',
+        icon: asIcon(CalendarIcon),
+        options: null,
+        resetBehavior: 'clearable',
+    },
+    cropTypeId: {
+        label: 'Crop',
+        description: 'Filter to plans of a crop type.',
+        group: 'Attributes',
+        icon: asIcon(CircleDotted),
+        options: null,
+        shouldFilter: true,
+        resetBehavior: 'clearable',
+    },
 } satisfies Record<string, FilterDefInput>;
 
 export const cropPlanFilterDefs = createTypedFilterDefs()(STATIC_DEFS);
 export const CROP_PLAN_FILTER_KEYS = cropPlanFilterDefs.filterKeys;
 
+interface NamedOption {
+    id: string;
+    name: string;
+}
+
 /**
- * Localize the crop-plan filter defs. Enum VALUES (option `value`s, filter
- * keys, icons) are preserved; only display labels are swapped for the
- * `planningEnums` catalogue. `t` is a `useTranslations('planningEnums')`
- * translator supplied by the consuming client component.
+ * Localize the crop-plan filter defs + inject the runtime-derived season /
+ * crop options from the catalog the page already loaded. Enum VALUES
+ * (option `value`s, filter keys, icons) are preserved; only display labels
+ * are localized. `t` is a `useTranslations('planningEnums')` translator.
  */
 export function buildPlanningFilters(
     t: ReturnType<typeof useTranslations>,
+    seasons: ReadonlyArray<NamedOption> = [],
+    cropTypes: ReadonlyArray<NamedOption> = [],
 ): FilterType[] {
-    return cropPlanFilterDefs.filters.map((f) =>
-        f.key === 'status'
-            ? {
-                  ...f,
-                  label: t('filter.status'),
-                  options: f.options
-                      ? f.options.map((o) => ({ ...o, label: t(`status.${o.value}`) }))
-                      : f.options,
-              }
-            : f,
-    );
+    const toOptions = (rows: ReadonlyArray<NamedOption>): FilterOption[] =>
+        rows.map((r) => ({ value: r.id, label: r.name }));
+    const seasonOpts = toOptions(seasons);
+    const cropOpts = toOptions(cropTypes);
+
+    return cropPlanFilterDefs.filters.map((f) => {
+        if (f.key === 'status') {
+            return {
+                ...f,
+                label: t('filter.status'),
+                options: f.options
+                    ? f.options.map((o) => ({ ...o, label: t(`status.${o.value}`) }))
+                    : f.options,
+            };
+        }
+        if (f.key === 'seasonId') return { ...f, label: t('filter.season'), options: seasonOpts };
+        if (f.key === 'cropTypeId') return { ...f, label: t('filter.crop'), options: cropOpts };
+        return f;
+    });
 }

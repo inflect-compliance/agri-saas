@@ -99,7 +99,7 @@ function CropPlansPageInner({
     const plans = plansQuery.data ?? [];
     const loading = plansQuery.isLoading && !plansQuery.data;
 
-    const liveFilters = useMemo(() => buildPlanningFilters(te), [te]);
+    const liveFilters = useMemo(() => buildPlanningFilters(te, seasons, cropTypes), [te, seasons, cropTypes]);
 
     const columns = useMemo(
         () =>

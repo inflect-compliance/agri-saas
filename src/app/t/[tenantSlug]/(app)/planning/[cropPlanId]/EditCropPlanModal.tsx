@@ -36,6 +36,9 @@ export interface EditablePlan {
     successions: number;
     intervalDays: number;
     plantsPerSuccession: number | null;
+    bedLengthM: number | string | null;
+    rowsPerBed: number | null;
+    targetAreaM2: number | string | null;
     notes: string | null;
     cropType?: { id: string; name: string } | null;
     variety?: { id: string; name: string } | null;
@@ -81,6 +84,9 @@ export function EditCropPlanModal({
     const [plantsPerSuccession, setPlantsPerSuccession] = useState(
         plan.plantsPerSuccession != null ? String(plan.plantsPerSuccession) : '',
     );
+    const [bedLengthM, setBedLengthM] = useState(plan.bedLengthM != null ? String(plan.bedLengthM) : '');
+    const [rowsPerBed, setRowsPerBed] = useState(plan.rowsPerBed != null ? String(plan.rowsPerBed) : '');
+    const [targetAreaM2, setTargetAreaM2] = useState(plan.targetAreaM2 != null ? String(plan.targetAreaM2) : '');
     const [notes, setNotes] = useState(plan.notes ?? '');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -97,6 +103,9 @@ export function EditCropPlanModal({
         setSuccessions(String(plan.successions));
         setIntervalDays(String(plan.intervalDays));
         setPlantsPerSuccession(plan.plantsPerSuccession != null ? String(plan.plantsPerSuccession) : '');
+        setBedLengthM(plan.bedLengthM != null ? String(plan.bedLengthM) : '');
+        setRowsPerBed(plan.rowsPerBed != null ? String(plan.rowsPerBed) : '');
+        setTargetAreaM2(plan.targetAreaM2 != null ? String(plan.targetAreaM2) : '');
         setNotes(plan.notes ?? '');
         setError(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,6 +127,9 @@ export function EditCropPlanModal({
                 successions: Number(successions) || 1,
                 intervalDays: Number(intervalDays) || 0,
                 plantsPerSuccession: plantsPerSuccession.trim() === '' ? null : Number(plantsPerSuccession),
+                bedLengthM: bedLengthM.trim() === '' ? null : Number(bedLengthM),
+                rowsPerBed: rowsPerBed.trim() === '' ? null : Number(rowsPerBed),
+                targetAreaM2: targetAreaM2.trim() === '' ? null : Number(targetAreaM2),
                 notes: notes.trim() === '' ? null : notes.trim(),
             });
             setOpen(false);
@@ -228,6 +240,36 @@ export function EditCropPlanModal({
                                 id="edit-crop-plan-plants"
                             />
                         </FormField>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-default">
+                            <FormField label={t('bedLength')} hint={t('allocationHint')}>
+                                <Input
+                                    inputMode="decimal"
+                                    value={bedLengthM}
+                                    onChange={(e) => setBedLengthM(e.target.value.replace(/[^0-9.]/g, ''))}
+                                    placeholder={t('bedLengthPlaceholder')}
+                                    id="edit-crop-plan-bed-length"
+                                />
+                            </FormField>
+                            <FormField label={t('rowsPerBed')}>
+                                <Input
+                                    inputMode="numeric"
+                                    value={rowsPerBed}
+                                    onChange={(e) => setRowsPerBed(e.target.value.replace(/[^0-9]/g, ''))}
+                                    placeholder={t('rowsPerBedPlaceholder')}
+                                    id="edit-crop-plan-rows-per-bed"
+                                />
+                            </FormField>
+                            <FormField label={t('targetArea')}>
+                                <Input
+                                    inputMode="decimal"
+                                    value={targetAreaM2}
+                                    onChange={(e) => setTargetAreaM2(e.target.value.replace(/[^0-9.]/g, ''))}
+                                    placeholder={t('targetAreaPlaceholder')}
+                                    id="edit-crop-plan-target-area"
+                                />
+                            </FormField>
+                        </div>
 
                         <FormField label={te('notes')}>
                             <Input

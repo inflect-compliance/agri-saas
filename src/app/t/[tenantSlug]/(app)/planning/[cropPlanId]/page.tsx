@@ -22,6 +22,7 @@ import { EntityDetailLayout } from '@/components/layout/EntityDetailLayout';
 import { SkeletonDetailPage } from '@/components/ui/skeleton';
 import { MetaStrip } from '@/components/ui/meta-strip';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { AgStatusBadge } from '@/components/ag/ag-status';
 import { Button } from '@/components/ui/button';
 import { Popover } from '@/components/ui/popover';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -82,12 +83,6 @@ interface JournalRow {
     occurredAt: string;
 }
 
-const STATUS_VARIANT: Record<string, 'neutral' | 'info' | 'success' | 'warning'> = {
-    DRAFT: 'neutral',
-    ACTIVE: 'info',
-    COMPLETED: 'success',
-    CANCELLED: 'warning',
-};
 export default function CropPlanDetailPage() {
     const t = useTranslations('planning.detail');
     const tp = useTranslations('planning');
@@ -137,11 +132,11 @@ export default function CropPlanDetailPage() {
         router.push(tenantHref('/planning'));
     };
 
-    // Journal entries that link to this plan's plantings are surfaced via
-    // the plan-vs-actual payload's actuals; the Journal tab lists the
-    // tenant journal so the farmer can jump to recording an actual.
+    // Journal tab — SCOPED to this plan's plantings (via the LogPlanting
+    // links Prompt 1 landed), so it shows only the actuals recorded against
+    // this plan, not the whole tenant journal.
     const journalSWR = useTenantSWR<JournalRow[]>(
-        cropPlanId && tab === 'journal' ? '/journal' : null,
+        cropPlanId && tab === 'journal' ? `/journal?cropPlanId=${cropPlanId}` : null,
     );
 
     const runGenerate = async () => {
@@ -189,11 +184,11 @@ export default function CropPlanDetailPage() {
         <MetaStrip
             items={[
                 {
-                    kind: 'status' as const,
+                    // Humanized via AgStatusBadge (same treatment as the list),
+                    // so the detail header shows "Draft" not the raw "DRAFT".
                     id: 'crop-plan-status',
                     label: t('statusLabel'),
-                    value: plan.status,
-                    variant: STATUS_VARIANT[plan.status] ?? 'neutral',
+                    value: <AgStatusBadge entity="cropPlan" status={plan.status} />,
                 },
                 { label: t('season'), value: plan.season?.name ?? '—' },
                 { label: t('crop'), value: plan.variety?.name ?? plan.cropType?.name ?? '—' },
@@ -332,6 +327,31 @@ export default function CropPlanDetailPage() {
                                 {plan.plantsPerSuccession ?? '—'}
                             </p>
                         </div>
+                        {/* Allocation — the alternative drivers of plant count.
+                            Shown only when set (a plan uses ONE of plants /
+                            bed geometry / area), so the grid stays honest. */}
+                        {plan.bedLengthM != null && (
+                            <div>
+                                <span className="text-xs text-content-subtle uppercase">{t('bedLength')}</span>
+                                <p className="text-sm text-content-default mt-1">
+                                    {Number(plan.bedLengthM).toLocaleString()} m
+                                </p>
+                            </div>
+                        )}
+                        {plan.rowsPerBed != null && (
+                            <div>
+                                <span className="text-xs text-content-subtle uppercase">{t('rowsPerBed')}</span>
+                                <p className="text-sm text-content-default mt-1">{plan.rowsPerBed}</p>
+                            </div>
+                        )}
+                        {plan.targetAreaM2 != null && (
+                            <div>
+                                <span className="text-xs text-content-subtle uppercase">{t('targetArea')}</span>
+                                <p className="text-sm text-content-default mt-1">
+                                    {Number(plan.targetAreaM2).toLocaleString()} m²
+                                </p>
+                            </div>
+                        )}
                         <div>
                             <span className="text-xs text-content-subtle uppercase">{t('variety')}</span>
                             <p className="text-sm text-content-default mt-1">{plan.variety?.name ?? '—'}</p>
