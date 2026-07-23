@@ -52,7 +52,7 @@ function stripIcu(s: string): string {
 /** Latin tokens that are NOT English copy: brands, product names, standards,
  *  acronyms, units. A value made only of these (+ symbols) is never flagged. */
 const TOKEN =
-    /^(Agrent|Inflect|Meteobot|SoilGrids|ISRIC|USDA|Sentinel|Copernicus|Microsoft|Google|Azure|Entra|SharePoint|Markdown|OAuth|SAML|SCIM|SSO|IdP|SOC|NIS2?|ISO|GDPR|HIPAA|PCI|DSS|WYSIWYG|SWR|DevTools|ALE|LEF|FAIR|ROI|VaR|GDD|SLA|NDVI|NDMI|GPS|API|URL|URI|HTTPS?|PDF|CSV|XLSX|PPTX|JSON|GeoJSON|BGN|EUR|USD|CO2|pH|ha|Bow|Tie|Esc|IP|ID|TLS|BG|EU|v\d[\d.]*)$/i;
+    /^(Agrent|Inflect|SoilGrids|ISRIC|USDA|Sentinel|Copernicus|Microsoft|Google|Azure|Entra|SharePoint|Markdown|OAuth|SAML|SCIM|SSO|IdP|SOC|NIS2?|ISO|GDPR|HIPAA|PCI|DSS|WYSIWYG|SWR|DevTools|ALE|LEF|FAIR|ROI|VaR|GDD|SLA|NDVI|NDMI|GPS|API|URL|URI|HTTPS?|PDF|CSV|XLSX|PPTX|JSON|GeoJSON|BGN|EUR|USD|CO2|pH|ha|Bow|Tie|Esc|IP|ID|TLS|BG|EU|v\d[\d.]*)$/i;
 
 function isEmailOrUrl(v: string): boolean {
     return /@|\b[\w-]+\.(com|io|app|bg|org|net|eu)\b|https?:\/\//.test(v);

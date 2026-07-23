@@ -232,9 +232,10 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // CTA on the task detail page (the reviewer's one earned approval moment;
 // "Request changes" is intentionally secondary). Measured = 163; ceiling at
 // 163 (no headroom slot).
-// #14 (climate): +1 primary — the Meteobot station "Save" CTA on the Climate
-// settings card (one earned page primary; "Clear" is secondary). Measured =
-// 164 (165 with #12 below).
+// #14 (climate): +1 primary — the Climate page's single earned primary: the
+// empty-state "Go to locations" CTA on the native weather page (originally a
+// since-removed config-card "Save" CTA, reworked 2026-07-22). One primary
+// either way. Measured = 164 (165 with #12 below).
 // #12 (Offers): +1 primary — the "Ask for offer" lead-modal confirm (Send
 // request) on the promotions feed. The modal's trigger + Cancel are both
 // secondary, so the secondary:primary ratio stays healthy. Measured = 165;
