@@ -103,9 +103,11 @@ const ROOT = path.resolve(__dirname, '../..');
 // B4 (2026-06-20): +1 — two delight features landed discrete-surface cards
 // that legitimately use the `border-border-default` "discrete surface" tone:
 // the shareables ShareableStatCard and the onboarding CoachMark popover.
-// B5 (2026-07-07): +1 — the Climate (Meteobot) page's embedded-station iframe
-// wrapper is a discrete external-content surface (same register as a card /
-// table outer border), so it legitimately uses `border-border-default`.
+// B5 (2026-07-07, restored 2026-07-23): +1 — the Climate page's Meteobot
+// station embed wraps the dashboard iframe in a discrete external-content
+// surface (same register as a card / table outer border), so it legitimately
+// uses `border-border-default`. (Briefly reclaimed 2026-07-22 while the embed
+// was dropped, then restored with the scoped-CSP embed.)
 // mobile-native-feel (2026-07-12): +2 — two mobile floating affordances that
 // are discrete surfaces floating over arbitrary list content (same register
 // as a popover/tooltip outline, which the policy assigns to `default`): the

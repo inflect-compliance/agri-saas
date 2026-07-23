@@ -343,11 +343,12 @@ describe('New page token discipline', () => {
         //   - 141 (+1, #15 Agriculture events): events/page.tsx — the global
         //     upcoming-events feed. Token-clean (semantic tokens only +
         //     Heading/PageBreadcrumbs); new surface, not yet promoted.
-        //   - 143 (+2, #14 Climate/Meteobot): climate/page.tsx shim +
-        //     climate/ClimateClient.tsx — the Meteobot embed / weather-fallback
-        //     surface. Token-clean (semantic tokens only + Heading/
-        //     PageBreadcrumbs/Button/FormField/Input); new surfaces, not yet
-        //     promoted to MIGRATED_PAGES.
+        //   - 143 (+2, #14 Climate): climate/page.tsx +
+        //     climate/ClimateClient.tsx — the native Open-Meteo weather surface
+        //     (current conditions, temperature-trend chart, spray window).
+        //     Token-clean (semantic tokens only + Heading/PageBreadcrumbs/
+        //     Combobox/StatusBadge/EmptyState/Card/TimeSeriesChart); new
+        //     surfaces, not yet promoted to MIGRATED_PAGES.
         //   - 144 (+1, #12 Offers): offers/page.tsx — the global company-
         //     promotions feed. Token-clean (semantic tokens only +
         //     Heading/PageBreadcrumbs/Button/Modal via AskForOfferModal);
