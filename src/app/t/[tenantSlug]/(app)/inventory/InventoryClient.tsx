@@ -257,6 +257,36 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
         showTrace && activeLotId ? `/inventory/lots/${activeLotId}/trace` : null,
     );
 
+    // FLAG 6 — humanize raw enums for the UI. Static `t()` calls (no
+    // dynamic template-literal keys) so next-intl's key typing holds; the
+    // helpers fall back to the raw value for any unmapped enum member.
+    const stockTypeLabels = useMemo<Record<string, string>>(
+        () => ({
+            RECEIPT: t('stockType.RECEIPT'),
+            CONSUMPTION: t('stockType.CONSUMPTION'),
+            HARVEST_IN: t('stockType.HARVEST_IN'),
+            TRANSFER: t('stockType.TRANSFER'),
+            ADJUSTMENT: t('stockType.ADJUSTMENT'),
+            SALE_OUT: t('stockType.SALE_OUT'),
+            DISPOSAL: t('stockType.DISPOSAL'),
+        }),
+        [t],
+    );
+    const categoryLabels = useMemo<Record<string, string>>(
+        () => ({
+            SEED: t('itemCategory.SEED'),
+            PESTICIDE: t('itemCategory.PESTICIDE'),
+            FERTILIZER: t('itemCategory.FERTILIZER'),
+            AMENDMENT: t('itemCategory.AMENDMENT'),
+            FUEL: t('itemCategory.FUEL'),
+            HARVESTED_PRODUCE: t('itemCategory.HARVESTED_PRODUCE'),
+            OTHER: t('itemCategory.OTHER'),
+        }),
+        [t],
+    );
+    const humanizeStockType = (type: string) => stockTypeLabels[type] ?? type;
+    const humanizeCategory = (cat: string) => categoryLabels[cat] ?? cat;
+
     const itemOptions = useMemo(
         () => (items ?? []).map((i) => ({ label: `${i.name}`, value: i.id })),
         [items],
@@ -266,8 +296,9 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
         [units],
     );
     const categoryOptions = useMemo(
-        () => CATEGORIES.map((c) => ({ label: c.replace('_', ' '), value: c })),
-        [],
+        () => CATEGORIES.map((c) => ({ label: humanizeCategory(c), value: c })),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- humanizeCategory closes over categoryLabels (memoized on t)
+        [t],
     );
 
     const resetProductForm = () => {
@@ -425,6 +456,13 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                     cell: ({ row }) => (row.original.expiresAt ? formatDate(row.original.expiresAt) : '—'),
                     // Mobile card key/value row — expiry date.
                     meta: { mobileCard: { slot: 'meta', label: t('colExpires') } },
+                },
+                {
+                    id: 'location',
+                    header: t('colLocation'),
+                    cell: ({ row }) => row.original.location?.name ?? '—',
+                    // Mobile card key/value row — storage location.
+                    meta: { mobileCard: { slot: 'meta', label: t('colLocation') } },
                 },
             ]),
         [t],
@@ -671,7 +709,7 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                             <FormField label={mvMode === 'receive' ? t('quantityIn') : t('signedDelta')} className="flex-1">
                                 <Input inputMode="decimal" value={mvQty} onChange={(e) => setMvQty(e.target.value)} placeholder={mvMode === 'receive' ? '0' : t('deltaPlaceholder')} />
                             </FormField>
-                            <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!mvQty || (mvMode === 'adjust' && !mvReason) || busy}>
+                            <Button variant="primary" size="sm" type="submit" loading={busy} disabled={!mvQty || (mvMode === 'adjust' && !mvReason) || (mvMode === 'receive' && !(Number(mvQty) > 0)) || busy}>
                                 {t('post')}
                             </Button>
                         </div>
@@ -689,7 +727,7 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
                                 {ledgerRows.map((entry) => (
                                     <li key={entry.id} className="flex items-center justify-between border-b border-border-subtle py-1.5">
                                         <span className="flex items-center gap-compact">
-                                            <StatusBadge variant={entry.quantityDelta < 0 ? 'error' : 'success'}>{entry.type}</StatusBadge>
+                                            <StatusBadge variant={entry.quantityDelta < 0 ? 'error' : 'success'}>{humanizeStockType(entry.type)}</StatusBadge>
                                             <span className="text-content-muted">{formatDate(entry.occurredAt)}</span>
                                             {entry.reason && <span className="text-content-subtle">· {entry.reason}</span>}
                                         </span>
@@ -789,6 +827,20 @@ function TraceGroup({
     nodes: TraceLotNode[];
 }) {
     const t = useTranslations('inventory');
+    // FLAG 6 — own category label map (this sub-component has its own `t`).
+    const categoryLabels = useMemo<Record<string, string>>(
+        () => ({
+            SEED: t('itemCategory.SEED'),
+            PESTICIDE: t('itemCategory.PESTICIDE'),
+            FERTILIZER: t('itemCategory.FERTILIZER'),
+            AMENDMENT: t('itemCategory.AMENDMENT'),
+            FUEL: t('itemCategory.FUEL'),
+            HARVESTED_PRODUCE: t('itemCategory.HARVESTED_PRODUCE'),
+            OTHER: t('itemCategory.OTHER'),
+        }),
+        [t],
+    );
+    const humanizeCategory = (cat: string) => categoryLabels[cat] ?? cat;
     return (
         <section className="space-y-tight">
             <Eyebrow>{title}</Eyebrow>
@@ -804,7 +856,7 @@ function TraceGroup({
                             <div className="flex items-center justify-between gap-compact">
                                 <span className="flex items-center gap-compact">
                                     <span className="font-medium text-content-emphasis">{n.lotCode}</span>
-                                    <StatusBadge variant="neutral">{n.item.category.replace('_', ' ')}</StatusBadge>
+                                    <StatusBadge variant="neutral">{humanizeCategory(n.item.category)}</StatusBadge>
                                 </span>
                                 <span className="text-sm text-content-muted">
                                     {n.quantityOnHand} {n.unitSymbol}
