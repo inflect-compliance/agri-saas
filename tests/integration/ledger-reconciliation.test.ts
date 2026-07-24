@@ -25,7 +25,11 @@ import {
     verifyStockChain,
     verifyLotBalances,
 } from '@/lib/inventory/stock-ledger';
-import { recordInputApplication } from '@/app-layer/usecases/inventory';
+import {
+    recordInputApplication,
+    reconcileStockLedger,
+    listLedgerReconciliationHistory,
+} from '@/app-layer/usecases/inventory';
 import { createFieldOperation, markOperationParcel } from '@/app-layer/usecases/field-operation';
 import { createLogEntry } from '@/app-layer/usecases/journal';
 import { runReconcileInventoryLedgers } from '@/app-layer/jobs/reconcile-inventory-ledgers';
@@ -237,5 +241,35 @@ describeFn('stock-ledger reconciliation + idempotency (DB)', () => {
             where: { id: lotId },
             data: { quantityOnHand: agg._sum.quantityDelta ?? 0 },
         });
+    });
+
+    // ── Flag 4: the on-demand admin reconcile surfaces BOTH halves ──
+    test('E — reconcileStockLedger reports chain AND balance health (negative surfaced)', async () => {
+        const ctx = ownerCtx();
+        // A fresh lot over-consumed into the negative (the spray path records
+        // the true consumption; conservation is enforced by DETECTION here).
+        const negLot = await prisma.inventoryLot.create({
+            data: { tenantId: TENANT_ID, itemId, lotCode: `RECNEG-${TAG}`, unitId: unitLId, quantityOnHand: 0 },
+        });
+        await runInTenantContext(ctx, (db) =>
+            appendStockTransaction(db, ctx, { lotId: negLot.id, type: 'RECEIPT', quantityDelta: 2, unitId: unitLId }),
+        );
+        await runInTenantContext(ctx, (db) =>
+            appendStockTransaction(db, ctx, { lotId: negLot.id, type: 'CONSUMPTION', quantityDelta: -6, unitId: unitLId }),
+        );
+
+        const report = await reconcileStockLedger(ctx);
+        // Chain intact, but the balance half is NOT healthy — "verified
+        // intact" can no longer hide the negative on-hand.
+        expect(report.valid).toBe(true);
+        expect(report.balances.healthy).toBe(false);
+        expect(report.balances.negative.some((n) => n.lotId === negLot.id)).toBe(true);
+
+        // The run is recorded in history carrying the balance status.
+        const history = await listLedgerReconciliationHistory(ctx);
+        expect(history[0].valid).toBe(true);
+        expect(history[0].balanceHealthy).toBe(false);
+        expect(history[0].negativeCount ?? 0).toBeGreaterThanOrEqual(1);
+        expect(history[0].lotsChecked ?? 0).toBeGreaterThanOrEqual(1);
     });
 });

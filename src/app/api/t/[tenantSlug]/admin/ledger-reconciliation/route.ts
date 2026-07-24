@@ -32,6 +32,13 @@ export const POST = withApiErrorHandling(
                 totalEntries: report.totalEntries,
                 firstBreakAt: report.firstBreakAt ?? null,
                 firstBreakId: report.firstBreakId ?? null,
+                // Balance half — the reconcile now checks both, so the
+                // client can show cache drift + negative on-hand, not just
+                // chain integrity.
+                balanceHealthy: report.balances.healthy,
+                lotsChecked: report.balances.lotsChecked,
+                driftCount: report.balances.drift.length,
+                negativeCount: report.balances.negative.length,
             },
             // A detected break is a 200 report, not an error — the
             // caller needs the payload to triage. The drift signal goes

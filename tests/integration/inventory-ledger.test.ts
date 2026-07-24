@@ -21,8 +21,9 @@ import { DB_URL, DB_AVAILABLE } from './db-helper';
 import { hashForLookup } from '@/lib/security/encryption';
 import { makeRequestContext } from '../helpers/make-context';
 import { runInTenantContext } from '@/lib/db-context';
-import { appendStockTransaction, verifyStockChain } from '@/lib/inventory/stock-ledger';
+import { appendStockTransaction, verifyStockChain, verifyLotBalances } from '@/lib/inventory/stock-ledger';
 import { createFieldOperation, markOperationParcel } from '@/app-layer/usecases/field-operation';
+import { adjustStock } from '@/app-layer/usecases/inventory';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: DB_URL }) });
 const describeFn = DB_AVAILABLE ? describe : describe.skip;
@@ -198,5 +199,101 @@ describeFn('inventory ledger (DB)', () => {
             (await prisma.inventoryLot.findUnique({ where: { id: lotId }, select: { quantityOnHand: true } }))!.quantityOnHand,
         );
         expect(onHandAfter).toBe(onHandBefore - 20);
+    });
+
+    // ── Flag 1: chain ordering under concurrency ────────────────────
+    test('concurrent appends with staggered pre-lock work verify with no fork', async () => {
+        const ctx = ownerCtx();
+        const lot = await prisma.inventoryLot.create({
+            data: { tenantId: TENANT_ID, itemId, lotCode: `CONC-${TAG}`, unitId: unitLId, quantityOnHand: 0 },
+        });
+
+        // Reproduce the staggered-lock race DETERMINISTICALLY (no wall-clock
+        // timing / pg_sleep): two barriers force TX-A's transaction to OPEN
+        // FIRST — so pre-fix its CURRENT_TIMESTAMP-default createdAt is the
+        // EARLIER transaction-start — then WAIT while TX-B runs to completion
+        // and links FIRST (previousHash = the pre-existing tail); only then
+        // does TX-A append, linking onto B. Pre-fix, createdAt order (A
+        // before B) disagreed with link order (B before A) and verifyStockChain
+        // saw a false fork. The post-lock, strictly-monotonic createdAt makes
+        // createdAt order == link order, so the chain verifies.
+        let releaseA!: () => void;
+        const aMayAppend = new Promise<void>((r) => { releaseA = r; });
+        let markAOpen!: () => void;
+        const aIsOpen = new Promise<void>((r) => { markAOpen = r; });
+
+        const appendA = runInTenantContext(ctx, async (db) => {
+            await db.$executeRawUnsafe('SELECT 1'); // pin TX-A's transaction start
+            markAOpen();
+            await aMayAppend;                       // wait until TX-B has committed
+            return appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 11, unitId: unitLId });
+        });
+        const appendB = (async () => {
+            await aIsOpen;                          // start TX-B only after TX-A is open
+            const r = await runInTenantContext(ctx, (db) =>
+                appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 22, unitId: unitLId }),
+            );
+            releaseA();                             // TX-B committed → let TX-A append
+            return r;
+        })();
+
+        const [rA, rB] = await Promise.all([appendA, appendB]);
+        // B linked first (its previousHash is the pre-existing tail), A
+        // linked onto B — never the reverse, despite A's earlier start.
+        expect(rA.previousHash).toBe(rB.entryHash);
+
+        const verify = await runInTenantContext(ctx, (db) => verifyStockChain(db, TENANT_ID));
+        expect(verify.valid).toBe(true);
+
+        // Both movements landed; the lot on-hand is the ledger sum.
+        const onHand = Number(
+            (await prisma.inventoryLot.findUnique({ where: { id: lot.id }, select: { quantityOnHand: true } }))!.quantityOnHand,
+        );
+        expect(onHand).toBe(33);
+    });
+
+    // ── Flag 3: conservation — negative on-hand is FLAGGED ──────────
+    test('verifyLotBalances flags a lot whose ledger sum went negative', async () => {
+        const ctx = ownerCtx();
+        const lot = await prisma.inventoryLot.create({
+            data: { tenantId: TENANT_ID, itemId, lotCode: `NEG-${TAG}`, unitId: unitLId, quantityOnHand: 0 },
+        });
+        await runInTenantContext(ctx, (db) =>
+            appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 5, unitId: unitLId }),
+        );
+        // Over-consume (no disallowNegative — the spray path records truth).
+        await runInTenantContext(ctx, (db) =>
+            appendStockTransaction(db, ctx, { lotId: lot.id, type: 'CONSUMPTION', quantityDelta: -8, unitId: unitLId }),
+        );
+
+        const bal = await runInTenantContext(ctx, (db) => verifyLotBalances(db, TENANT_ID));
+        const neg = bal.negative.find((n) => n.lotId === lot.id);
+        expect(neg).toBeDefined();
+        expect(Number(neg!.onHand)).toBe(-3);
+        // The cache faithfully mirrors the negative sum (so `balanced` for
+        // THIS lot), but `healthy` must be false — the negative can't pass.
+        expect(bal.healthy).toBe(false);
+    });
+
+    // ── Flag 3: adjustStock rejects a negative-driving correction ───
+    test('adjustStock rejects an adjustment that would drive on-hand below zero', async () => {
+        const ctx = ownerCtx();
+        const lot = await prisma.inventoryLot.create({
+            data: { tenantId: TENANT_ID, itemId, lotCode: `ADJ-${TAG}`, unitId: unitLId, quantityOnHand: 0 },
+        });
+        await runInTenantContext(ctx, (db) =>
+            appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 5, unitId: unitLId }),
+        );
+
+        // −10 against on-hand 5 → −5: rejected atomically, no row written.
+        await expect(adjustStock(ctx, lot.id, -10, 'overcorrection')).rejects.toThrow(/negative_on_hand/);
+        const stillFive = Number(
+            (await prisma.inventoryLot.findUnique({ where: { id: lot.id }, select: { quantityOnHand: true } }))!.quantityOnHand,
+        );
+        expect(stillFive).toBe(5);
+
+        // A correction that stays ≥ 0 is allowed.
+        const ok = await adjustStock(ctx, lot.id, -3, 'valid correction');
+        expect(Number(ok.quantityOnHand)).toBe(2);
     });
 });

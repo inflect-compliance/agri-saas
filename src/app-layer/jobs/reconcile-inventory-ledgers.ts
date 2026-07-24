@@ -48,6 +48,8 @@ export interface TenantReconciliation {
     lotsChecked: number;
     balanced: boolean;
     driftCount: number;
+    /** Lots whose ledger sum is below zero (conservation violation). */
+    negativeCount: number;
 }
 
 export interface ReconcileInventoryLedgersResult {
@@ -90,7 +92,10 @@ export async function runReconcileInventoryLedgers(
                 const tenantStart = performance.now();
                 const chain = await verifyStockChain(prisma as unknown as PrismaTx, tenantId);
                 const balances = await verifyLotBalances(prisma as unknown as PrismaTx, tenantId);
-                const hasDrift = !chain.valid || !balances.balanced;
+                // Drift on EITHER axis, plus the third check (`healthy`
+                // folds in negative on-hand — a conservation violation the
+                // cache can faithfully mirror, so `balanced` alone misses it).
+                const hasDrift = !chain.valid || !balances.healthy;
 
                 if (hasDrift) {
                     tenantsWithDrift += 1;
@@ -107,6 +112,11 @@ export async function runReconcileInventoryLedgers(
                             lotCode: d.lotCode,
                             cached: d.cached,
                             computed: d.computed,
+                        })),
+                        negativeLots: balances.negative.map((n) => ({
+                            lotId: n.lotId,
+                            lotCode: n.lotCode,
+                            onHand: n.onHand,
                         })),
                     });
                 }
@@ -127,6 +137,7 @@ export async function runReconcileInventoryLedgers(
                     lotsChecked: balances.lotsChecked,
                     balanced: balances.balanced,
                     driftCount: balances.drift.length,
+                    negativeCount: balances.negative.length,
                 });
             }
 

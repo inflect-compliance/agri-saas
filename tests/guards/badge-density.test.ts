@@ -88,6 +88,12 @@ const STATUS_BADGE_BUDGET: Record<string, number> = {
     "src/app/t/[tenantSlug]/(app)/vendors/[vendorId]/page.tsx": 9,
     "src/app/t/[tenantSlug]/(app)/tasks/dashboard/page.tsx": 5,
     "src/app/t/[tenantSlug]/(app)/coverage/CoverageClient.tsx": 5,
+    // Ledger reconciliation surfaces TWO independent verdicts per run —
+    // the hash-chain result (intact/drift) AND the balance result
+    // (balanced/drift/negative). Each has its own history column badge
+    // (ResultBadge: 3 tones; BalanceBadge: 2 tones), so 5 is the honest
+    // floor for a two-dimensional integrity report.
+    "src/app/t/[tenantSlug]/(app)/admin/ledger-integrity/LedgerIntegrityClient.tsx": 5,
     // Files at exactly the default 4 are not listed (the test
     // forbids redundant entries). Migration target: bring the
     // 5+ entries above down via subtle-tone demotion or by
