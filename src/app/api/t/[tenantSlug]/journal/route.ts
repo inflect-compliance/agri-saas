@@ -23,6 +23,8 @@ const JournalQuerySchema = z.object({
     // dnevnik filters (#10)
     crop: z.string().optional(),
     locationId: z.string().optional(),
+    // Scope to a crop plan's plantings (plan-detail Journal tab).
+    cropPlanId: z.string().optional(),
 }).strip();
 
 export const GET = withApiErrorHandling(async (req: NextRequest, { params: paramsPromise }: { params: Promise<{ tenantSlug: string }> }) => {
@@ -44,6 +46,7 @@ export const GET = withApiErrorHandling(async (req: NextRequest, { params: param
         occurredTo: query.occurredTo,
         crop: query.crop,
         locationId: query.locationId,
+        cropPlanId: query.cropPlanId,
     };
 
     const hasPagination = query.limit || query.cursor;

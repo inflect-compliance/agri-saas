@@ -257,7 +257,10 @@ const MIN_SECONDARY_TO_PRIMARY_RATIO = 0.9;
 // Climate page's Meteobot station config form (one earned settings-save
 // primary; "Remove" is secondary). The station embed returned as a scoped-CSP
 // iframe after being briefly dropped. Measured = 171; ceiling at 171.
-const MAX_PRIMARY_COUNT = 171;
+// EditCropPlanModal (2026-07-23): +1 primary — the "Save changes" CTA on the
+// new crop-plan edit modal (one earned modal-confirm primary; the inline
+// "Add variety" sub-action is secondary). Measured = 172; ceiling at 172.
+const MAX_PRIMARY_COUNT = 172;
 
 describe("primary:secondary ratio direction", () => {
     const counts = (() => {

@@ -120,6 +120,30 @@ describeFn('importCropVarieties (DB)', () => {
         }
     });
 
+    test('varieties carry the soil + GDD defaults the board surfaces', async () => {
+        // A tomato variety should carry curated soil preferences (feeds the
+        // suitability engine) + per-crop GDD params (feeds maturity %).
+        const cherry = await prisma.cropVariety.findFirst({
+            where: { tenantId: TENANT_ID, key: 'tomato-cherry' },
+            select: { soilDefaultsJson: true, gddBaseC: true, gddToMaturity: true, daysToMaturity: true },
+        });
+        expect(cherry).not.toBeNull();
+        const soil = cherry!.soilDefaultsJson as { phMin?: number; texturePreference?: string[] } | null;
+        expect(soil?.phMin).toBeGreaterThan(0);
+        expect(Array.isArray(soil?.texturePreference)).toBe(true);
+        // Tomato base 10 °C; target scales with days-to-maturity (× 14/day).
+        expect(Number(cherry!.gddBaseC)).toBe(10);
+        expect(cherry!.gddToMaturity).toBe(Math.round((cherry!.daysToMaturity ?? 0) * 14));
+
+        // Every crop in the catalog is in CROP_AGRO_DEFAULTS, so every
+        // variety gets a GDD base temp.
+        const withGdd = await prisma.cropVariety.count({
+            where: { tenantId: TENANT_ID, gddBaseC: { not: null } },
+        });
+        const total = await prisma.cropVariety.count({ where: { tenantId: TENANT_ID } });
+        expect(withGdd).toBe(total);
+    });
+
     test('second run is fully idempotent', async () => {
         const before = {
             cropTypes: await prisma.cropType.count({ where: { tenantId: TENANT_ID } }),

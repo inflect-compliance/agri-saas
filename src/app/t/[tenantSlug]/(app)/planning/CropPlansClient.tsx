@@ -99,7 +99,7 @@ function CropPlansPageInner({
     const plans = plansQuery.data ?? [];
     const loading = plansQuery.isLoading && !plansQuery.data;
 
-    const liveFilters = useMemo(() => buildPlanningFilters(te), [te]);
+    const liveFilters = useMemo(() => buildPlanningFilters(te, seasons, cropTypes), [te, seasons, cropTypes]);
 
     const columns = useMemo(
         () =>
@@ -178,16 +178,27 @@ function CropPlansPageInner({
                 ],
                 title: t('title'),
                 description: t('description'),
-                actions: permissions.canWrite ? (
-                    <Button
-                        variant="primary"
-                        icon={<Plus className="-ml-0.5 -mr-2.5" />}
-                        onClick={() => setIsCreateOpen(true)}
-                        id="new-crop-plan-btn"
-                    >
-                        {t('newPlan')}
-                    </Button>
-                ) : null,
+                actions: (
+                    <div className="flex items-center gap-tight">
+                        <Button
+                            variant="secondary"
+                            onClick={() => router.push(tenantHref('/planning/seasons'))}
+                            id="planning-seasons-btn"
+                        >
+                            {t('seasons')}
+                        </Button>
+                        {permissions.canWrite ? (
+                            <Button
+                                variant="primary"
+                                icon={<Plus className="-ml-0.5 -mr-2.5" />}
+                                onClick={() => setIsCreateOpen(true)}
+                                id="new-crop-plan-btn"
+                            >
+                                {t('newPlan')}
+                            </Button>
+                        ) : null}
+                    </div>
+                ),
             }}
             filters={{
                 defs: liveFilters,

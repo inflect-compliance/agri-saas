@@ -119,6 +119,10 @@ const MODULE_GATED_ROUTES: ReadonlyArray<{
         module: 'PLANNING',
     },
     {
+        file: 'src/app/api/t/[tenantSlug]/planning/seasons/[seasonId]/route.ts',
+        module: 'PLANNING',
+    },
+    {
         file: 'src/app/api/t/[tenantSlug]/planning/crop-types/route.ts',
         module: 'PLANNING',
     },

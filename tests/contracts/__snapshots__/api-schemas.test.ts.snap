@@ -3342,13 +3342,38 @@ exports[`API contract — per-schema snapshots schema: LogEntryCreateRequest 1`]
         "itemId",
         "quantity"
       ]
+    },
+    "plantingLinks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "plantingId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "SOW",
+              "TRANSPLANT",
+              "HARVEST"
+            ]
+          }
+        },
+        "required": [
+          "plantingId",
+          "stage"
+        ]
+      },
+      "maxItems": 100
     }
   },
   "required": [
     "type",
     "title"
   ],
-  "description": "Create a field-journal entry (LogEntry). title is sanitized as plain text; notes is sanitized as rich-text HTML (TipTap). quantities carry the farmOS measure+value+unit lines (an INPUT_APPLICATION entry records the applied amount); locationIds / equipmentIds link the entry to field blocks and equipment. occurredAt defaults to now. On a HARVEST entry, an optional harvest payload mints a HARVEST_IN inventory lot of the harvested item and records lot genealogy (the input lots consumed on parcelId become DERIVATION parents)."
+  "description": "Create a field-journal entry (LogEntry). title is sanitized as plain text; notes is sanitized as rich-text HTML (TipTap). quantities carry the farmOS measure+value+unit lines (an INPUT_APPLICATION entry records the applied amount); locationIds / equipmentIds link the entry to field blocks and equipment. occurredAt defaults to now. plantingLinks record plan-vs-actual: each links the entry to a Planting + lifecycle stage (SOW/TRANSPLANT/HARVEST), writing a LogPlanting row (the entry becomes the ACTUAL for that milestone) and advancing the Planting status. On a HARVEST entry, an optional harvest payload mints a HARVEST_IN inventory lot of the harvested item and records lot genealogy (the input lots consumed on parcelId become DERIVATION parents)."
 }"
 `;
 

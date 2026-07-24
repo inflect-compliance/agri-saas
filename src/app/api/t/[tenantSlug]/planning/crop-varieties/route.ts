@@ -30,6 +30,18 @@ const CreateCropVarietySchema = z
         seedsPerGram: z.number().min(0).max(1000000).nullable().optional(),
         germinationRate: z.number().min(0).max(1).nullable().optional(),
         seedsPerCell: z.number().int().min(0).max(100).nullable().optional(),
+        soilDefaultsJson: z
+            .object({
+                phMin: z.number().min(0).max(14).nullable().optional(),
+                phMax: z.number().min(0).max(14).nullable().optional(),
+                texturePreference: z.array(z.string().max(40)).max(12).nullable().optional(),
+                drainagePreference: z.enum(['well', 'moderate', 'poor']).nullable().optional(),
+            })
+            .strip()
+            .nullable()
+            .optional(),
+        gddBaseC: z.number().min(0).max(30).nullable().optional(),
+        gddToMaturity: z.number().int().min(0).max(10000).nullable().optional(),
         sourceUrn: z.string().max(500).nullable().optional(),
         notes: z.string().max(5000).nullable().optional(),
     })

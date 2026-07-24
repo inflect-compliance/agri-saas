@@ -951,6 +951,16 @@ const LogQuantitySchema = z.object({
     label: z.string().max(255).nullable().optional(),
 }).strip();
 
+/** One plan-vs-actual link on a LogEntry — the Planting + lifecycle
+ *  stage this entry realises. Mirrors LogLocation/LogEquipment: each
+ *  becomes a LogPlanting row so a sow/transplant/harvest journal entry
+ *  records the ACTUAL date against the planned Planting (PLANNING module,
+ *  server-validated per-tenant). */
+const LogPlantingLinkSchema = z.object({
+    plantingId: z.string().min(1, 'A planting is required'),
+    stage: z.enum(['SOW', 'TRANSPLANT', 'HARVEST']),
+}).strip();
+
 /** Optional output-lot payload on a HARVEST entry — mints a HARVEST_IN
  *  inventory lot + DERIVATION genealogy (INVENTORY-module gated
  *  server-side; silently no-ops when inventory is off). */
@@ -979,8 +989,9 @@ export const CreateLogEntrySchema = z.object({
     costAmount: z.coerce.number().nonnegative().optional().nullable(),
     costCurrency: z.string().max(8).optional().nullable(),
     harvest: HarvestLotPayloadSchema.optional().nullable(),
+    plantingLinks: z.array(LogPlantingLinkSchema).max(100).optional(),
 }).strip().openapi('LogEntryCreateRequest', {
-    description: 'Create a field-journal entry (LogEntry). title is sanitized as plain text; notes is sanitized as rich-text HTML (TipTap). quantities carry the farmOS measure+value+unit lines (an INPUT_APPLICATION entry records the applied amount); locationIds / equipmentIds link the entry to field blocks and equipment. occurredAt defaults to now. On a HARVEST entry, an optional harvest payload mints a HARVEST_IN inventory lot of the harvested item and records lot genealogy (the input lots consumed on parcelId become DERIVATION parents).',
+    description: 'Create a field-journal entry (LogEntry). title is sanitized as plain text; notes is sanitized as rich-text HTML (TipTap). quantities carry the farmOS measure+value+unit lines (an INPUT_APPLICATION entry records the applied amount); locationIds / equipmentIds link the entry to field blocks and equipment. occurredAt defaults to now. plantingLinks record plan-vs-actual: each links the entry to a Planting + lifecycle stage (SOW/TRANSPLANT/HARVEST), writing a LogPlanting row (the entry becomes the ACTUAL for that milestone) and advancing the Planting status. On a HARVEST entry, an optional harvest payload mints a HARVEST_IN inventory lot of the harvested item and records lot genealogy (the input lots consumed on parcelId become DERIVATION parents).',
 });
 
 export const UpdateLogEntrySchema = z.object({

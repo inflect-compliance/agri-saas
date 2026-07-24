@@ -1,7 +1,7 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, type PlantingStatus } from '@prisma/client';
 import { RequestContext } from '../types';
-import { runInTenantContext } from '@/lib/db-context';
-import { assertCanRead, assertCanWrite } from '../policies/common';
+import { runInTenantContext, type PrismaTx } from '@/lib/db-context';
+import { assertCanRead, assertCanWrite, assertCanAdmin } from '../policies/common';
 import { logEvent } from '../events/audit';
 import { createTask, addTaskLink } from './task';
 import { notFound, badRequest } from '@/lib/errors/types';
@@ -90,18 +90,6 @@ export async function listSeasons(ctx: RequestContext, opts: { take?: number } =
             take: opts.take ?? LIST_TAKE,
         }),
     );
-}
-
-export async function getSeason(ctx: RequestContext, id: string) {
-    assertCanRead(ctx);
-    return runInTenantContext(ctx, async (db) => {
-        const season = await db.season.findFirst({
-            where: { id, tenantId: ctx.tenantId, deletedAt: null },
-            include: { _count: { select: { cropPlans: true } } },
-        });
-        if (!season) throw notFound('Season not found');
-        return season;
-    });
 }
 
 export async function createSeason(ctx: RequestContext, input: CreateSeasonInput) {
@@ -301,6 +289,12 @@ export interface CreateCropVarietyInput {
     seedsPerGram?: number | null;
     germinationRate?: number | null;
     seedsPerCell?: number | null;
+    /** Curated soil preferences (soil-suitability engine). Passed through
+     *  as JSON; the parser tolerates a loose shape. */
+    soilDefaultsJson?: Prisma.InputJsonValue | null;
+    /** GDD base temperature (°C) + accumulated-GDD-to-maturity target. */
+    gddBaseC?: number | null;
+    gddToMaturity?: number | null;
     sourceUrn?: string | null;
     notes?: string | null;
 }
@@ -334,6 +328,11 @@ export async function createCropVariety(ctx: RequestContext, input: CreateCropVa
                 seedsPerGram: input.seedsPerGram ?? null,
                 germinationRate: input.germinationRate ?? null,
                 seedsPerCell: input.seedsPerCell ?? null,
+                // Optional JSON — spread only when present so a null never
+                // trips Prisma's DbNull/JsonNull ambiguity.
+                ...(input.soilDefaultsJson != null ? { soilDefaultsJson: input.soilDefaultsJson } : {}),
+                gddBaseC: input.gddBaseC ?? null,
+                gddToMaturity: input.gddToMaturity ?? null,
                 sourceUrn: input.sourceUrn ?? null,
                 notes: input.notes != null ? sanitizePlainText(input.notes) : null,
             },
@@ -408,7 +407,7 @@ export interface UpdateCropPlanInput {
 
 export async function listCropPlans(
     ctx: RequestContext,
-    filters: { seasonId?: string; status?: string } = {},
+    filters: { seasonId?: string; cropTypeId?: string; status?: string } = {},
     opts: { take?: number } = {},
 ) {
     assertCanRead(ctx);
@@ -418,6 +417,7 @@ export async function listCropPlans(
                 tenantId: ctx.tenantId,
                 deletedAt: null,
                 ...(filters.seasonId ? { seasonId: filters.seasonId } : {}),
+                ...(filters.cropTypeId ? { cropTypeId: filters.cropTypeId } : {}),
                 ...(filters.status ? { status: filters.status as Prisma.EnumCropPlanStatusFilter['equals'] } : {}),
             },
             orderBy: [{ createdAt: 'desc' }],
@@ -591,6 +591,46 @@ export async function updateCropPlan(ctx: RequestContext, id: string, input: Upd
     });
 }
 
+/**
+ * Soft-delete a crop plan. CropPlan is NOT registered with the Prisma
+ * soft-delete middleware, so — like the journal repository — we stamp
+ * `deletedAt` / `deletedByUserId` explicitly rather than hard-deleting.
+ * Every read (`listCropPlans` / `getCropPlan` / `getCropPlanProgress`)
+ * already filters `deletedAt: null`, so a soft-deleted plan disappears
+ * from the UI while its plantings + recorded actuals stay intact on the
+ * row (a hard delete would cascade them away). ADMIN-gated: deleting a
+ * plan is a heavier action than editing it.
+ */
+export async function deleteCropPlan(ctx: RequestContext, id: string) {
+    assertCanAdmin(ctx);
+    return runInTenantContext(ctx, async (db) => {
+        const existing = await db.cropPlan.findFirst({
+            where: { id, tenantId: ctx.tenantId, deletedAt: null },
+            select: { id: true, name: true },
+        });
+        if (!existing) throw notFound('Crop plan not found');
+
+        await db.cropPlan.update({
+            where: { id },
+            data: { deletedAt: new Date(), deletedByUserId: ctx.userId ?? null },
+        });
+        await logEvent(db, ctx, {
+            action: 'SOFT_DELETE',
+            entityType: 'CropPlan',
+            entityId: id,
+            details: `Crop plan deleted: ${existing.name}`,
+            detailsJson: {
+                category: 'entity_lifecycle',
+                entityName: 'CropPlan',
+                operation: 'deleted',
+                before: { name: existing.name },
+                summary: `Crop plan deleted: ${existing.name}`,
+            },
+        });
+        return { success: true };
+    });
+}
+
 // ═════════════════════════════════════════════════════════════════════
 //  generatePlantings — the core integration (engine → plantings → tasks)
 // ═════════════════════════════════════════════════════════════════════
@@ -655,26 +695,109 @@ const STAGE_VERB: Record<'SOW' | 'TRANSPLANT' | 'HARVEST', string> = {
     HARVEST: 'Harvest',
 };
 
+// ─── Plan-vs-actual status advancement ───────────────────────────────
+//
+// Recording an actual (a journal LogPlanting) advances the Planting's
+// lifecycle status. The stage a journal entry realises maps to the
+// status it implies: a sown planting is SOWN, a transplanted one is
+// TRANSPLANTED, a harvested one is HARVESTED.
+const STAGE_TO_STATUS: Record<'SOW' | 'TRANSPLANT' | 'HARVEST', PlantingStatus> = {
+    SOW: 'SOWN',
+    TRANSPLANT: 'TRANSPLANTED',
+    HARVEST: 'HARVESTED',
+};
+
+// Monotonic lifecycle rank — status only ever moves FORWARD. Recording a
+// sow after a harvest must never regress HARVESTED→SOWN, so an actual
+// advances the status only when its implied rank is higher than the
+// current one.
+const STATUS_RANK: Record<PlantingStatus, number> = {
+    PLANNED: 0,
+    SOWN: 1,
+    TRANSPLANTED: 2,
+    HARVESTING: 3,
+    HARVESTED: 4,
+    TERMINATED: 5,
+};
+
+/**
+ * Advance the status of each linked Planting to the highest stage the
+ * journal entry realises — but only ever FORWARD (see {@link STATUS_RANK}).
+ *
+ * Runs inside the journal-create transaction (called from
+ * `journal.createLogEntry` after the LogPlanting rows are written), so
+ * recording the actual and advancing the planting commit atomically. The
+ * planting ids are already validated as tenant-owned by the caller; the
+ * single batched read here re-confirms the current status per planting
+ * (no read-in-loop — one `findMany` with `id in [...]`, then per-row
+ * writes).
+ */
+export async function advancePlantingStatusForLinks(
+    db: PrismaTx,
+    ctx: RequestContext,
+    links: { plantingId: string; stage: 'SOW' | 'TRANSPLANT' | 'HARVEST' }[],
+): Promise<void> {
+    if (!links.length) return;
+
+    // Highest implied status per planting from this entry's stages.
+    const targetByPlanting = new Map<string, PlantingStatus>();
+    for (const link of links) {
+        const target = STAGE_TO_STATUS[link.stage];
+        const prev = targetByPlanting.get(link.plantingId);
+        if (!prev || STATUS_RANK[target] > STATUS_RANK[prev]) {
+            targetByPlanting.set(link.plantingId, target);
+        }
+    }
+
+    const ids = [...targetByPlanting.keys()];
+    const current = await db.planting.findMany({
+        where: { tenantId: ctx.tenantId, id: { in: ids } },
+        select: { id: true, status: true },
+        take: ids.length,
+    });
+
+    for (const row of current) {
+        const target = targetByPlanting.get(row.id);
+        if (target && STATUS_RANK[target] > STATUS_RANK[row.status]) {
+            await db.planting.update({
+                where: { id: row.id },
+                data: { status: target },
+            });
+        }
+    }
+}
+
 /**
  * Regenerate the Planting rows for a crop plan from the succession
  * engine, then fan out the auto-generated field tasks.
  *
- * Idempotent + safe-to-re-run:
+ * Idempotent + safe-to-re-run — keyed on the STABLE identity
+ * `(cropPlanId, successionNumber)` (a DB unique), so a re-Generate
+ * UPSERTS rather than delete-and-recreates. Planting ids are preserved,
+ * which is what keeps a re-run from wiping recorded actuals (LogPlanting
+ * rows FK to the planting id) or orphaning + duplicating the auto tasks
+ * (TaskLink.entityId is the stable planting id, so the idempotency batch
+ * still resolves them):
  *   1. (tx) Load the plan + its variety defaults (RLS-bound).
  *   2.      Build engine inputs (mergeTiming/mergeSpacing) + run
  *           `generateSuccessions` → ComputedPlanting[].
- *   3. (tx) DELETE existing `PLANNED` plantings for the plan, then
- *           `createMany` the new ones — SOWN+ plantings are NEVER
- *           touched (a farmer who has already sown succession 1 keeps
- *           it; regenerating only replaces the not-yet-started rows).
- *   4.      AFTER the tx commits, loop the freshly-created plantings and
+ *   3. (tx) Reconcile against the existing rows by successionNumber:
+ *           CREATE the successions that don't exist yet, UPDATE the
+ *           still-`PLANNED` ones in place (their dates/allocation may
+ *           have shifted with the plan config), and leave SOWN+ rows
+ *           untouched (a farmer who has already sown succession 1 keeps
+ *           it — its id, its actuals, its status). Only `PLANNED` rows
+ *           whose succession is no longer part of the plan (it shrank)
+ *           are deleted.
+ *   4.      AFTER the tx commits, loop ALL the plan's plantings and
  *           create SOW / TRANSPLANT / HARVEST tasks via createTask +
  *           addTaskLink('PLANTING', …). createTask + addTaskLink each
  *           open their OWN tenant context (and createTask enqueues
  *           notifications), so they MUST run at the usecase level, not
  *           inside a raw db tx. The idempotency check is BATCHED (one
  *           taskLink query resolves whether a stage task already
- *           exists) — no read-in-loop.
+ *           exists) — no read-in-loop, so a re-run creates zero
+ *           duplicate tasks for rows that kept their id.
  */
 export async function generatePlantings(ctx: RequestContext, cropPlanId: string) {
     return traceAgUsecase('crop-planning.generatePlantings', ctx, () =>
@@ -739,38 +862,82 @@ async function generatePlantingsImpl(ctx: RequestContext, cropPlanId: string) {
 
         const computed: ComputedPlanting[] = generateSuccessions(config, timing, alloc, spacing);
 
-        // Idempotent regenerate: drop only the not-yet-started plantings.
-        // SOWN/TRANSPLANTED/HARVESTING/HARVESTED/TERMINATED rows survive.
-        await db.planting.deleteMany({
-            where: { tenantId: ctx.tenantId, cropPlanId: plan.id, status: 'PLANNED' },
+        // ── Stable-identity reconcile (upsert by successionNumber) ──
+        //
+        // Read the existing rows ONCE (no read-in-loop), then decide per
+        // computed succession whether to CREATE, UPDATE-in-place, or leave
+        // a started row alone. Preserving planting ids is what keeps a
+        // re-Generate from wiping actuals or duplicating tasks.
+        const existing = await db.planting.findMany({
+            where: { tenantId: ctx.tenantId, cropPlanId: plan.id, deletedAt: null },
+            select: { id: true, successionNumber: true, status: true },
+            take: LIST_TAKE,
+        });
+        const existingByNumber = new Map(existing.map((p) => [p.successionNumber, p]));
+
+        // Fields every generated planting carries — the plan's variety /
+        // location / parcel (#9: the parcel so per-parcel AgroSignals
+        // resolve) plus the engine-computed schedule + allocation.
+        const plantingFields = (c: ComputedPlanting) => ({
+            cropVarietyId: plan.cropVarietyId ?? null,
+            locationId: plan.locationId ?? null,
+            parcelId: plan.parcelId ?? null,
+            method: timing.method,
+            sowDate: c.sowDate,
+            transplantDate: c.transplantDate,
+            harvestStartDate: c.harvestStartDate,
+            harvestEndDate: c.harvestEndDate,
+            seedQuantityGrams: c.seedQuantityGrams,
+            plantCount: c.plantCount,
+            areaM2: c.areaM2,
         });
 
-        await db.planting.createMany({
-            data: computed.map((c) => ({
+        // CREATE the successions that don't exist yet.
+        const toCreate = computed.filter((c) => !existingByNumber.has(c.successionNumber));
+        if (toCreate.length) {
+            await db.planting.createMany({
+                data: toCreate.map((c) => ({
+                    tenantId: ctx.tenantId,
+                    cropPlanId: plan.id,
+                    successionNumber: c.successionNumber,
+                    status: 'PLANNED' as const,
+                    ...plantingFields(c),
+                })),
+            });
+        }
+
+        // REFRESH the still-PLANNED rows in place — the plan config may
+        // have shifted their dates/allocation. SOWN+ rows are left
+        // untouched: once a farmer starts a succession, its recorded
+        // schedule + status are theirs. (Writes-in-loop, bounded by the
+        // plan's succession count — not a read-in-loop.)
+        for (const c of computed) {
+            const prior = existingByNumber.get(c.successionNumber);
+            if (prior && prior.status === 'PLANNED') {
+                await db.planting.update({
+                    where: { id: prior.id },
+                    data: plantingFields(c),
+                });
+            }
+        }
+
+        // The plan may have SHRUNK (fewer successions than last time). Drop
+        // only the now-orphaned PLANNED rows; started rows beyond the new
+        // count survive so their actuals are never lost.
+        const computedNumbers = computed.map((c) => c.successionNumber);
+        await db.planting.deleteMany({
+            where: {
                 tenantId: ctx.tenantId,
                 cropPlanId: plan.id,
-                cropVarietyId: plan.cropVarietyId ?? null,
-                locationId: plan.locationId ?? null,
-                // #9 — every generated planting inherits the plan's parcel so
-                // per-parcel signals (AgroSignal.plantingId → parcel) resolve.
-                parcelId: plan.parcelId ?? null,
-                successionNumber: c.successionNumber,
-                method: timing.method,
-                sowDate: c.sowDate,
-                transplantDate: c.transplantDate,
-                harvestStartDate: c.harvestStartDate,
-                harvestEndDate: c.harvestEndDate,
-                seedQuantityGrams: c.seedQuantityGrams,
-                plantCount: c.plantCount,
-                areaM2: c.areaM2,
-                status: 'PLANNED' as const,
-            })),
+                status: 'PLANNED',
+                successionNumber: { notIn: computedNumbers },
+            },
         });
 
-        // Re-read the rows we just created (need their ids for task links).
+        // Re-read ALL the plan's plantings (need their ids for task links).
         // Bounded by the plan's succession count.
         const created = await db.planting.findMany({
-            where: { tenantId: ctx.tenantId, cropPlanId: plan.id, status: 'PLANNED' },
+            where: { tenantId: ctx.tenantId, cropPlanId: plan.id, deletedAt: null },
             orderBy: [{ successionNumber: 'asc' }],
             take: LIST_TAKE,
         });

@@ -3,6 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { createTenantWithOwner } from '@/app-layer/usecases/tenant-lifecycle';
+import { seedDefaultSeason } from '@/app-layer/usecases/planning-defaults';
 import { hashForLookup } from '@/lib/security/encryption';
 import { seedDefaultOrgDashboard } from '@/app-layer/usecases/org-dashboard-presets';
 import type { RequestContext } from '@/app-layer/types';
@@ -105,6 +106,10 @@ async function main() {
         where: { id: tenant.id },
         data: { industry: 'Technology', maxRiskScale: 5 },
     });
+    // Ensure the default planning season exists (idempotent). Fresh tenants
+    // get it inside `createTenantWithOwner`; this backfills a dev tenant
+    // that pre-dates that seeding on a re-seed.
+    await seedDefaultSeason(prisma, tenant.id);
     console.log('✅ Tenant:', tenant.name, '(OWNER:', admin.email + ')');
 
     // ─── Tenant Memberships (non-owner roles) ───

@@ -122,6 +122,9 @@ const DYNAMIC_LABEL_EXEMPT: Record<string, string> = {
     // (`confirmLabel={t('deleteParcelConfirmLabel')}`); resolved en+bg both
     // begin with the canonical "Delete" verb → "Delete parcel".
     'src/app/t/[tenantSlug]/(app)/locations/[locationId]/page.tsx': 'confirmLabel i18n key t(deleteParcelConfirmLabel) → "Delete parcel"',
+    // Crop-plan delete — confirmLabel is `t('confirmDeleteLabel')`; resolved
+    // en+bg both begin with the canonical "Delete" verb → "Delete plan".
+    'src/app/t/[tenantSlug]/(app)/planning/[cropPlanId]/page.tsx': 'confirmLabel i18n key t(confirmDeleteLabel) → "Delete plan"',
 };
 
 describe('Destructive-action vocabulary (Roadmap-4 PR-9)', () => {

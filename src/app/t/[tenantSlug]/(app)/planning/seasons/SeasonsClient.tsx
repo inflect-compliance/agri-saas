@@ -4,9 +4,9 @@ import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } fr
 import { useTranslations } from 'next-intl';
 import { useTenantSWR } from '@/lib/hooks/use-tenant-swr';
 import { useTenantApiUrl } from '@/lib/tenant-context-provider';
-import { apiPost } from '@/lib/api-client';
+import { apiPost, apiPatch } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
-import { Plus, CalendarIcon } from '@/components/ui/icons/nucleo';
+import { Plus, CalendarIcon, PenWriting } from '@/components/ui/icons/nucleo';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useToast } from '@/components/ui/hooks';
 import { createColumns } from '@/components/ui/table';
@@ -42,6 +42,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
     const buildUrl = useTenantApiUrl();
     const toast = useToast();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editSeason, setEditSeason] = useState<SeasonRow | null>(null);
 
     // Season-wide БАБХ ДНЕВНИК — one combined diary across every location with
     // completed ops in the season (one section-set per location, page-break
@@ -120,6 +121,22 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                     enableHiding: false,
                     cell: ({ row }) => (
                         <div className="flex items-center justify-end gap-tight">
+                            {permissions.canWrite && (
+                                <Tooltip content={t('editTooltip')}>
+                                    <button
+                                        type="button"
+                                        aria-label={t('editAria')}
+                                        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-content-muted hover:bg-bg-muted hover:text-content-emphasis"
+                                        id={`season-edit-${row.original.id}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditSeason(row.original);
+                                        }}
+                                    >
+                                        <PenWriting className="h-3.5 w-3.5" aria-hidden />
+                                    </button>
+                                </Tooltip>
+                            )}
                             <Tooltip content={t('diaryTooltip')}>
                                 <button
                                     type="button"
@@ -138,7 +155,7 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
                     ),
                 },
             ]),
-        [downloadSeasonDiary, t],
+        [downloadSeasonDiary, t, permissions.canWrite],
     );
 
     return (
@@ -188,27 +205,44 @@ export function SeasonsClient({ initialSeasons, tenantSlug, permissions }: Seaso
             }}
         >
             {permissions.canWrite && (
-                <NewSeasonModal
-                    open={isCreateOpen}
-                    setOpen={setIsCreateOpen}
-                    onSaved={() => void seasonsSWR.mutate()}
-                />
+                <>
+                    <SeasonModal
+                        open={isCreateOpen}
+                        setOpen={setIsCreateOpen}
+                        onSaved={() => void seasonsSWR.mutate()}
+                    />
+                    {editSeason && (
+                        <SeasonModal
+                            open
+                            setOpen={(o) => {
+                                const next = typeof o === 'function' ? o(true) : o;
+                                if (!next) setEditSeason(null);
+                            }}
+                            season={editSeason}
+                            onSaved={() => void seasonsSWR.mutate()}
+                        />
+                    )}
+                </>
             )}
         </EntityListPage>
     );
 }
 
-function NewSeasonModal({
+function SeasonModal({
     open,
     setOpen,
+    season,
     onSaved,
 }: {
     open: boolean;
     setOpen: Dispatch<SetStateAction<boolean>>;
+    /** When provided, the modal edits this season (PATCH) instead of creating. */
+    season?: SeasonRow | null;
     onSaved?: () => void;
 }) {
     const t = useTranslations('planning.seasons');
     const buildUrl = useTenantApiUrl();
+    const isEdit = !!season;
     const STATUS_OPTIONS: ComboboxOption[] = useMemo(
         () => [
             { value: 'PLANNING', label: t('statusPlanning') },
@@ -217,10 +251,10 @@ function NewSeasonModal({
         ],
         [t],
     );
-    const [name, setName] = useState('');
-    const [status, setStatus] = useState('PLANNING');
-    const [startDate, setStartDate] = useState<Date | null>(new Date());
-    const [endDate, setEndDate] = useState<Date | null>(null);
+    const [name, setName] = useState(season?.name ?? '');
+    const [status, setStatus] = useState(season?.status ?? 'PLANNING');
+    const [startDate, setStartDate] = useState<Date | null>(season ? new Date(season.startDate) : new Date());
+    const [endDate, setEndDate] = useState<Date | null>(season ? new Date(season.endDate) : null);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -231,28 +265,33 @@ function NewSeasonModal({
         setSubmitting(true);
         setError(null);
         try {
-            await apiPost(buildUrl('/planning/seasons'), {
+            const body = {
                 name: name.trim(),
                 status,
                 startDate: startDate.toISOString(),
                 endDate: endDate.toISOString(),
                 year: startDate.getUTCFullYear(),
-            });
-            setName('');
-            setStatus('PLANNING');
-            setStartDate(new Date());
-            setEndDate(null);
+            };
+            if (isEdit && season) {
+                await apiPatch(buildUrl(`/planning/seasons/${season.id}`), body);
+            } else {
+                await apiPost(buildUrl('/planning/seasons'), body);
+                setName('');
+                setStatus('PLANNING');
+                setStartDate(new Date());
+                setEndDate(null);
+            }
             setOpen(false);
             onSaved?.();
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('createFailed'));
+            setError(err instanceof Error ? err.message : isEdit ? t('saveFailed') : t('createFailed'));
         } finally {
             setSubmitting(false);
         }
     };
 
-    const heading = t('modalHeading');
-    const description = t('modalDescription');
+    const heading = isEdit ? t('editHeading') : t('modalHeading');
+    const description = isEdit ? t('editDescription') : t('modalDescription');
 
     return (
         <Modal
@@ -328,7 +367,7 @@ function NewSeasonModal({
                         loading={submitting}
                         id="season-submit"
                     >
-                        {t('createSeason')}
+                        {isEdit ? t('saveSeason') : t('createSeason')}
                     </Button>
                 </Modal.Actions>
             </Modal.Form>

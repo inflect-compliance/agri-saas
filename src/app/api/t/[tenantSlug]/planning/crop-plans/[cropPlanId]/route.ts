@@ -2,16 +2,17 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getTenantCtx } from '@/app-layer/context';
 import { assertModuleEnabled } from '@/app-layer/usecases/modules';
-import { getCropPlan, updateCropPlan, getCropPlanProgress } from '@/app-layer/usecases/crop-planning';
+import { getCropPlan, updateCropPlan, deleteCropPlan, getCropPlanProgress } from '@/app-layer/usecases/crop-planning';
 import { withApiErrorHandling } from '@/lib/errors/api';
 import { withValidatedBody } from '@/lib/validation/route';
 import { jsonResponse } from '@/lib/api-response';
 
 /**
  * A single crop plan (PLANNING module).
- *   GET   → the plan (season + crop + variety + planting count). Pass
- *           ?include=progress to also return the plan-vs-actual rows.
- *   PATCH → update plan fields (write-gated).
+ *   GET    → the plan (season + crop + variety + planting count). Pass
+ *            ?include=progress to also return the plan-vs-actual rows.
+ *   PATCH  → update plan fields incl. lifecycle status (write-gated).
+ *   DELETE → soft-delete the plan (admin-gated).
  */
 
 const UpdateCropPlanSchema = z
@@ -65,4 +66,17 @@ export const PATCH = withApiErrorHandling(
             return jsonResponse(plan);
         },
     ),
+);
+
+export const DELETE = withApiErrorHandling(
+    async (
+        req: NextRequest,
+        { params: paramsPromise }: { params: Promise<{ tenantSlug: string; cropPlanId: string }> },
+    ) => {
+        const params = await paramsPromise;
+        const ctx = await getTenantCtx(params, req);
+        await assertModuleEnabled(ctx, 'PLANNING');
+        const result = await deleteCropPlan(ctx, params.cropPlanId);
+        return jsonResponse(result);
+    },
 );
