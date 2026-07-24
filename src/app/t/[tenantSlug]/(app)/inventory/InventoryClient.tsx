@@ -241,14 +241,19 @@ export function InventoryClient({ tenantSlug }: { tenantSlug: string }) {
         },
         [buildUrl, seedLedger],
     );
-    // Reset/refetch page 1 whenever the active lot changes.
+    // Reset/refetch page 1 whenever the active lot changes. `activeLotId` is
+    // the sole trigger — `refreshLedger` / `seedLedger` are stable (memoized
+    // on a stable `buildUrl`), and listing them would re-run this effect on
+    // any incidental identity churn of the URL builder, re-seeding an empty
+    // page every render in a setState loop.
     useEffect(() => {
         if (!activeLotId) {
             seedLedger([], null, false);
             return;
         }
         void refreshLedger(activeLotId);
-    }, [activeLotId, refreshLedger, seedLedger]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- activeLotId is the sole reactive trigger; refreshLedger/seedLedger are stable
+    }, [activeLotId]);
 
     // Lot traceability (food-safety recall walk) — fetched lazily when the
     // operator opens the genealogy section for the active lot.

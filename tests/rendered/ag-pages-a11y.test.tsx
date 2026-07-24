@@ -26,18 +26,25 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 
 // ─── Shared module mocks ─────────────────────────────────────────────
 
-jest.mock('@/lib/tenant-context-provider', () => ({
-    useTenantApiUrl:
-        () =>
-        (path: string) =>
-            `/api/t/acme${path.startsWith('/') ? path : `/${path}`}`,
-    useTenantHref: () => (path: string) => `/t/acme${path}`,
-    useTenantContext: () => ({
-        tenantName: 'Acme Farms',
-        tenantSlug: 'acme',
-        currencySymbol: '€',
-    }),
-}));
+jest.mock('@/lib/tenant-context-provider', () => {
+    // Mirror the real hooks' referential stability: production
+    // useTenantApiUrl / useTenantHref are useCallback-memoized (one stable
+    // fn per tenant). Returning a fresh closure per call would make any
+    // consumer effect that lists the builder in its deps re-run every
+    // render — so hoist the builders to module scope here.
+    const apiUrl = (path: string) =>
+        `/api/t/acme${path.startsWith('/') ? path : `/${path}`}`;
+    const href = (path: string) => `/t/acme${path}`;
+    return {
+        useTenantApiUrl: () => apiUrl,
+        useTenantHref: () => href,
+        useTenantContext: () => ({
+            tenantName: 'Acme Farms',
+            tenantSlug: 'acme',
+            currencySymbol: '€',
+        }),
+    };
+});
 
 jest.mock('next-intl', () => {
     // next-intl's `useTranslations` returns a CALLABLE that also carries
