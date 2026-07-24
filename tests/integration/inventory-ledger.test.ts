@@ -208,27 +208,38 @@ describeFn('inventory ledger (DB)', () => {
             data: { tenantId: TENANT_ID, itemId, lotCode: `CONC-${TAG}`, unitId: unitLId, quantityOnHand: 0 },
         });
 
-        // TX-A opens its transaction FIRST (so its old-bug default createdAt
-        // = the earlier transaction-START), but sleeps 250ms BEFORE its
-        // append reaches the advisory lock — so TX-B, which starts ~60ms
-        // later, wins the lock and links FIRST. Pre-fix, createdAt order
-        // (A before B) disagreed with link order (B before A) → a false
-        // fork. The post-lock, strictly-monotonic createdAt makes the
-        // writer tail-pick and verifyStockChain agree → the chain verifies.
+        // Reproduce the staggered-lock race DETERMINISTICALLY (no wall-clock
+        // timing / pg_sleep): two barriers force TX-A's transaction to OPEN
+        // FIRST — so pre-fix its CURRENT_TIMESTAMP-default createdAt is the
+        // EARLIER transaction-start — then WAIT while TX-B runs to completion
+        // and links FIRST (previousHash = the pre-existing tail); only then
+        // does TX-A append, linking onto B. Pre-fix, createdAt order (A
+        // before B) disagreed with link order (B before A) and verifyStockChain
+        // saw a false fork. The post-lock, strictly-monotonic createdAt makes
+        // createdAt order == link order, so the chain verifies.
+        let releaseA!: () => void;
+        const aMayAppend = new Promise<void>((r) => { releaseA = r; });
+        let markAOpen!: () => void;
+        const aIsOpen = new Promise<void>((r) => { markAOpen = r; });
+
         const appendA = runInTenantContext(ctx, async (db) => {
-            await db.$queryRawUnsafe('SELECT pg_sleep(0.25)');
+            await db.$executeRawUnsafe('SELECT 1'); // pin TX-A's transaction start
+            markAOpen();
+            await aMayAppend;                       // wait until TX-B has committed
             return appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 11, unitId: unitLId });
         });
         const appendB = (async () => {
-            await new Promise((r) => setTimeout(r, 60));
-            return runInTenantContext(ctx, (db) =>
+            await aIsOpen;                          // start TX-B only after TX-A is open
+            const r = await runInTenantContext(ctx, (db) =>
                 appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 22, unitId: unitLId }),
             );
+            releaseA();                             // TX-B committed → let TX-A append
+            return r;
         })();
 
         const [rA, rB] = await Promise.all([appendA, appendB]);
         // B linked first (its previousHash is the pre-existing tail), A
-        // linked onto B — never the reverse, whatever the start order.
+        // linked onto B — never the reverse, despite A's earlier start.
         expect(rA.previousHash).toBe(rB.entryHash);
 
         const verify = await runInTenantContext(ctx, (db) => verifyStockChain(db, TENANT_ID));
