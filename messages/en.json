@@ -6070,7 +6070,15 @@
         "produced": "Produced",
         "close": "Close",
         "groupNone": "None.",
-        "fields": "Fields: {fields}"
+        "fields": "Fields: {fields}",
+        "reorderLevel": "Reorder level",
+        "reorderLevelHint": "When on-hand falls below this, the lot shows a Low badge and a daily reorder alert is sent.",
+        "reorderLevelPlaceholder": "e.g. 5",
+        "editProduct": "Edit product",
+        "editProductModalTitle": "Edit product",
+        "editProductModalHeaderDescription": "Update the product's details and reorder level.",
+        "saveProduct": "Save product",
+        "loadMore": "Load more"
     },
     "planning": {
         "bcDashboard": "Dashboard",

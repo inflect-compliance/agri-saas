@@ -6070,7 +6070,15 @@
         "produced": "Произведено",
         "close": "Затвори",
         "groupNone": "Няма.",
-        "fields": "Полета: {fields}"
+        "fields": "Полета: {fields}",
+        "reorderLevel": "Праг за поръчка",
+        "reorderLevelHint": "Когато наличността падне под тази стойност, партидата показва етикет „Ниско“ и се изпраща дневно известие за презареждане.",
+        "reorderLevelPlaceholder": "напр. 5",
+        "editProduct": "Редактирай продукт",
+        "editProductModalTitle": "Редактиране на продукт",
+        "editProductModalHeaderDescription": "Актуализирайте данните на продукта и прага за поръчка.",
+        "saveProduct": "Запази продукт",
+        "loadMore": "Зареди още"
     },
     "planning": {
         "bcDashboard": "Табло",
