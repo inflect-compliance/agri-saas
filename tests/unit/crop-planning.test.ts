@@ -27,9 +27,10 @@ const mockDb = {
     planting: { deleteMany: jest.fn(), createMany: jest.fn(), update: jest.fn(), findMany: jest.fn() },
     taskLink: { findMany: jest.fn() },
     logPlanting: { findMany: jest.fn() },
-    season: { findFirst: jest.fn(), create: jest.fn() },
-    cropType: { findFirst: jest.fn() },
-    cropVariety: { findFirst: jest.fn() },
+    season: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn(), findMany: jest.fn() },
+    cropType: { findFirst: jest.fn(), create: jest.fn(), findMany: jest.fn() },
+    cropVariety: { findFirst: jest.fn(), create: jest.fn(), findMany: jest.fn() },
+    parcel: { findFirst: jest.fn() },
 } as any;
 
 jest.mock('@/lib/db-context', () => ({
@@ -42,6 +43,15 @@ jest.mock('@/app-layer/events/audit', () => ({
 
 jest.mock('@/lib/security/sanitize', () => ({
     sanitizePlainText: jest.fn((s: string) => s),
+}));
+
+// The catalog list-reads (crop types / varieties) go through the cache
+// layer; mock it to run the loader straight through (no Redis) and make
+// the version-bump a no-op.
+const bumpEntityCacheVersion = jest.fn();
+jest.mock('@/lib/cache/list-cache', () => ({
+    cachedListRead: jest.fn(async (opts: any) => opts.loader()),
+    bumpEntityCacheVersion: (...args: any[]) => bumpEntityCacheVersion(...args),
 }));
 
 const createTask = jest.fn();
@@ -60,6 +70,17 @@ import {
     listCropPlans,
     createCropPlan,
     deleteCropPlan,
+    advancePlantingStatusForLinks,
+    listSeasons,
+    createSeason,
+    updateSeason,
+    listCropTypes,
+    createCropType,
+    listCropVarieties,
+    createCropVariety,
+    getCropPlan,
+    updateCropPlan,
+    listPlantings,
 } from '@/app-layer/usecases/crop-planning';
 import { generateSuccessions } from '@/lib/planning/succession';
 import { makeRequestContext } from '../helpers/make-context';
@@ -465,5 +486,345 @@ describe('deleteCropPlan', () => {
     it('refuses a non-admin writer (admin gate)', async () => {
         await expect(deleteCropPlan(editorCtx, 'plan-1')).rejects.toThrow();
         expect(mockDb.cropPlan.findFirst).not.toHaveBeenCalled();
+    });
+});
+
+// ─── advancePlantingStatusForLinks — monotonic-forward status ───────
+describe('advancePlantingStatusForLinks', () => {
+    it('is a no-op for an empty link set (no DB access)', async () => {
+        await advancePlantingStatusForLinks(mockDb, adminCtx, []);
+        expect(mockDb.planting.findMany).not.toHaveBeenCalled();
+        expect(mockDb.planting.update).not.toHaveBeenCalled();
+    });
+
+    it('advances a PLANNED planting forward to the stage implied by the link', async () => {
+        mockDb.planting.findMany.mockImplementation(async () => [{ id: 'p1', status: 'PLANNED' }]);
+        await advancePlantingStatusForLinks(mockDb, adminCtx, [{ plantingId: 'p1', stage: 'SOW' }]);
+        // Query is tenant-scoped + bounded to the ids asked for.
+        const findArg = mockDb.planting.findMany.mock.calls[0][0];
+        expect(findArg.where).toMatchObject({ tenantId: 'tenant-1', id: { in: ['p1'] } });
+        expect(mockDb.planting.update).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { status: 'SOWN' } });
+    });
+
+    it('never moves a planting BACKWARD (already ahead of the link stage)', async () => {
+        mockDb.planting.findMany.mockImplementation(async () => [{ id: 'p1', status: 'HARVESTED' }]);
+        await advancePlantingStatusForLinks(mockDb, adminCtx, [{ plantingId: 'p1', stage: 'SOW' }]);
+        expect(mockDb.planting.update).not.toHaveBeenCalled();
+    });
+
+    it('collapses multiple stages for one planting to the HIGHEST implied status', async () => {
+        mockDb.planting.findMany.mockImplementation(async () => [{ id: 'p1', status: 'PLANNED' }]);
+        await advancePlantingStatusForLinks(mockDb, adminCtx, [
+            { plantingId: 'p1', stage: 'SOW' },
+            { plantingId: 'p1', stage: 'HARVEST' },
+        ]);
+        expect(mockDb.planting.update).toHaveBeenCalledTimes(1);
+        expect(mockDb.planting.update).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { status: 'HARVESTED' } });
+    });
+});
+
+// ─── Season CRUD ─────────────────────────────────────────────────────
+describe('season CRUD', () => {
+    it('listSeasons: reader allowed, tenant-scoped + bounded', async () => {
+        mockDb.season.findMany.mockResolvedValue([{ id: 's-1' }]);
+        const rows = await listSeasons(readerCtx);
+        expect(rows).toEqual([{ id: 's-1' }]);
+        const arg = mockDb.season.findMany.mock.calls[0][0];
+        expect(arg.where).toMatchObject({ tenantId: 'tenant-1', deletedAt: null });
+        expect(arg.take).toBe(500);
+    });
+
+    it('createSeason: writes the row (default status) + emits an audit event', async () => {
+        mockDb.season.create.mockResolvedValue({ id: 's-1', name: 'Spring', status: 'PLANNING' });
+        const s = await createSeason(editorCtx, { name: 'Spring', startDate: '2026-03-01', endDate: '2026-06-01' });
+        expect(s.id).toBe('s-1');
+        expect(mockDb.season.create.mock.calls[0][0].data).toMatchObject({
+            tenantId: 'tenant-1',
+            name: 'Spring',
+            status: 'PLANNING',
+        });
+        expect(logEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('createSeason: refuses a reader (write gate)', async () => {
+        await expect(
+            createSeason(readerCtx, { name: 'X', startDate: '2026-01-01', endDate: '2026-02-01' }),
+        ).rejects.toThrow();
+        expect(mockDb.season.create).not.toHaveBeenCalled();
+    });
+
+    it('createSeason: rejects an empty name', async () => {
+        await expect(
+            createSeason(editorCtx, { name: '', startDate: '2026-01-01', endDate: '2026-02-01' }),
+        ).rejects.toThrow(/name is required/i);
+    });
+
+    it('createSeason: rejects an invalid date', async () => {
+        await expect(
+            createSeason(editorCtx, { name: 'X', startDate: 'not-a-date', endDate: '2026-02-01' }),
+        ).rejects.toThrow(/valid date/i);
+    });
+
+    it('createSeason: rejects an end date before the start date', async () => {
+        await expect(
+            createSeason(editorCtx, { name: 'X', startDate: '2026-06-01', endDate: '2026-03-01' }),
+        ).rejects.toThrow(/on or after/i);
+    });
+
+    it('updateSeason: patches only the provided fields + emits an audit event', async () => {
+        mockDb.season.findFirst.mockResolvedValue({ id: 's-1' });
+        mockDb.season.update.mockResolvedValue({ id: 's-1', name: 'Renamed', status: 'ACTIVE' });
+        const s = await updateSeason(editorCtx, 's-1', { name: 'Renamed', status: 'ACTIVE' });
+        expect(s.name).toBe('Renamed');
+        const data = mockDb.season.update.mock.calls[0][0].data;
+        expect(data).toMatchObject({ name: 'Renamed', status: 'ACTIVE' });
+        expect(data.startDate).toBeUndefined();
+        expect(logEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('updateSeason: throws notFound for a missing (or deleted) season', async () => {
+        mockDb.season.findFirst.mockResolvedValue(null);
+        await expect(updateSeason(editorCtx, 'nope', { name: 'X' })).rejects.toThrow(/not found/i);
+        expect(mockDb.season.update).not.toHaveBeenCalled();
+    });
+
+    it('updateSeason: rejects an empty name before touching the DB', async () => {
+        await expect(updateSeason(editorCtx, 's-1', { name: '' })).rejects.toThrow(/name is required/i);
+        expect(mockDb.season.findFirst).not.toHaveBeenCalled();
+    });
+});
+
+// ─── Catalog: CropType + CropVariety ─────────────────────────────────
+describe('catalog CRUD', () => {
+    it('listCropTypes: reader allowed, returns the cached loader result', async () => {
+        mockDb.cropType.findMany.mockResolvedValue([{ id: 'ct-1', name: 'Tomato' }]);
+        const rows = await listCropTypes(readerCtx);
+        expect(rows).toEqual([{ id: 'ct-1', name: 'Tomato' }]);
+    });
+
+    it('createCropType: writes the row, audits, and bumps the cache version', async () => {
+        mockDb.cropType.create.mockResolvedValue({ id: 'ct-1', name: 'Tomato' });
+        const ct = await createCropType(editorCtx, { name: 'Tomato', family: 'Solanaceae' });
+        expect(ct.id).toBe('ct-1');
+        expect(mockDb.cropType.create.mock.calls[0][0].data).toMatchObject({ tenantId: 'tenant-1', name: 'Tomato' });
+        expect(logEvent).toHaveBeenCalledTimes(1);
+        expect(bumpEntityCacheVersion).toHaveBeenCalledWith(editorCtx, 'crop-type');
+    });
+
+    it('createCropType: refuses a reader', async () => {
+        await expect(createCropType(readerCtx, { name: 'Tomato' })).rejects.toThrow();
+        expect(mockDb.cropType.create).not.toHaveBeenCalled();
+    });
+
+    it('listCropVarieties: forwards a cropTypeId filter through the loader', async () => {
+        mockDb.cropVariety.findMany.mockResolvedValue([{ id: 'v-1' }]);
+        const rows = await listCropVarieties(readerCtx, { cropTypeId: 'ct-1' });
+        expect(rows).toEqual([{ id: 'v-1' }]);
+        expect(mockDb.cropVariety.findMany.mock.calls[0][0].where).toMatchObject({
+            tenantId: 'tenant-1',
+            cropTypeId: 'ct-1',
+        });
+    });
+
+    it('createCropVariety: persists the soil + GDD defaults when supplied', async () => {
+        mockDb.cropType.findFirst.mockResolvedValue({ id: 'ct-1' });
+        mockDb.cropVariety.create.mockResolvedValue({ id: 'v-1', name: 'Cherry', cropTypeId: 'ct-1' });
+        const soil = { phMin: 6, phMax: 6.8, texturePreference: ['Loam'], drainagePreference: 'well' };
+        const v = await createCropVariety(editorCtx, {
+            cropTypeId: 'ct-1',
+            name: 'Cherry',
+            gddBaseC: 10,
+            gddToMaturity: 700,
+            soilDefaultsJson: soil,
+        });
+        expect(v.id).toBe('v-1');
+        const data = mockDb.cropVariety.create.mock.calls[0][0].data;
+        expect(data).toMatchObject({ gddBaseC: 10, gddToMaturity: 700, soilDefaultsJson: soil });
+        expect(bumpEntityCacheVersion).toHaveBeenCalledWith(editorCtx, 'crop-variety');
+    });
+
+    it('createCropVariety: rejects a crop type from another tenant', async () => {
+        mockDb.cropType.findFirst.mockResolvedValue(null);
+        await expect(
+            createCropVariety(editorCtx, { cropTypeId: 'foreign', name: 'Cherry' }),
+        ).rejects.toThrow(/INVALID_CROP_TYPE/);
+        expect(mockDb.cropVariety.create).not.toHaveBeenCalled();
+    });
+
+    it('createCropVariety: omits soilDefaultsJson from the write when not supplied', async () => {
+        mockDb.cropType.findFirst.mockResolvedValue({ id: 'ct-1' });
+        mockDb.cropVariety.create.mockResolvedValue({ id: 'v-2', name: 'Beefsteak', cropTypeId: 'ct-1' });
+        await createCropVariety(editorCtx, { cropTypeId: 'ct-1', name: 'Beefsteak' });
+        const data = mockDb.cropVariety.create.mock.calls[0][0].data;
+        expect('soilDefaultsJson' in data).toBe(false);
+        expect(data.gddBaseC).toBeNull();
+    });
+});
+
+// ─── CropPlan read + update + listPlantings ──────────────────────────
+describe('getCropPlan / updateCropPlan / listPlantings', () => {
+    it('getCropPlan: returns the tenant-scoped plan', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue({ id: 'plan-1', name: 'Summer lettuce' });
+        const plan = await getCropPlan(readerCtx, 'plan-1');
+        expect(plan.name).toBe('Summer lettuce');
+        expect(mockDb.cropPlan.findFirst.mock.calls[0][0].where).toMatchObject({
+            id: 'plan-1',
+            tenantId: 'tenant-1',
+            deletedAt: null,
+        });
+    });
+
+    it('getCropPlan: throws notFound for a missing plan', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue(null);
+        await expect(getCropPlan(readerCtx, 'nope')).rejects.toThrow(/not found/i);
+    });
+
+    it('updateCropPlan: applies a lifecycle status transition + audits it', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue({ id: 'plan-1' });
+        mockDb.cropPlan.update.mockResolvedValue({ id: 'plan-1', name: 'Summer lettuce', status: 'ACTIVE' });
+        const plan = await updateCropPlan(editorCtx, 'plan-1', { status: 'ACTIVE' });
+        expect(plan.status).toBe('ACTIVE');
+        expect(mockDb.cropPlan.update.mock.calls[0][0].data).toMatchObject({ status: 'ACTIVE' });
+        expect(logEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('updateCropPlan: throws notFound for a missing plan', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue(null);
+        await expect(updateCropPlan(editorCtx, 'nope', { name: 'X' })).rejects.toThrow(/not found/i);
+        expect(mockDb.cropPlan.update).not.toHaveBeenCalled();
+    });
+
+    it('updateCropPlan: refuses a reader (write gate)', async () => {
+        await expect(updateCropPlan(readerCtx, 'plan-1', { status: 'ACTIVE' })).rejects.toThrow();
+        expect(mockDb.cropPlan.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('listPlantings: reader allowed, forwards cropPlanId + status filters', async () => {
+        mockDb.planting.findMany.mockImplementation(async () => [{ id: 'p-1', successionNumber: 1 }]);
+        const rows = await listPlantings(readerCtx, { cropPlanId: 'plan-1', status: 'SOWN' });
+        expect(rows).toEqual([{ id: 'p-1', successionNumber: 1 }]);
+        expect(mockDb.planting.findMany.mock.calls[0][0].where).toMatchObject({
+            tenantId: 'tenant-1',
+            cropPlanId: 'plan-1',
+            status: 'SOWN',
+        });
+    });
+});
+
+// ─── createCropPlan — full validation chain + create ─────────────────
+describe('createCropPlan validation chain', () => {
+    /** Wire the season/cropType/variety/parcel lookups to all resolve. */
+    function wireValidLookups() {
+        mockDb.season.findFirst.mockResolvedValue({ id: 's-1' });
+        mockDb.cropType.findFirst.mockResolvedValue({ id: 'ct-1' });
+        mockDb.cropVariety.findFirst.mockResolvedValue({ id: 'v-1' });
+        mockDb.parcel.findFirst.mockResolvedValue({ id: 'parcel-1', locationId: 'loc-1' });
+        mockDb.cropPlan.create.mockResolvedValue({ id: 'plan-1', name: 'Summer lettuce', successions: 3, status: 'DRAFT' });
+    }
+
+    it('creates the plan after validating season + type + variety + parcel, then audits', async () => {
+        wireValidLookups();
+        const plan = await createCropPlan(editorCtx, {
+            seasonId: 's-1',
+            cropTypeId: 'ct-1',
+            cropVarietyId: 'v-1',
+            locationId: 'loc-1',
+            parcelId: 'parcel-1',
+            name: 'Summer lettuce',
+            firstSowDate: '2026-04-01T00:00:00Z',
+            successions: 3,
+        });
+        expect(plan.id).toBe('plan-1');
+        expect(mockDb.cropPlan.create.mock.calls[0][0].data).toMatchObject({
+            tenantId: 'tenant-1',
+            seasonId: 's-1',
+            cropTypeId: 'ct-1',
+            name: 'Summer lettuce',
+            status: 'DRAFT',
+        });
+        expect(logEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects an invalid firstSowDate before any lookup', async () => {
+        await expect(
+            createCropPlan(editorCtx, { seasonId: 's-1', cropTypeId: 'ct-1', name: 'X', firstSowDate: 'nope' }),
+        ).rejects.toThrow(/valid date/i);
+        expect(mockDb.season.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects a variety from another tenant (INVALID_VARIETY)', async () => {
+        mockDb.season.findFirst.mockResolvedValue({ id: 's-1' });
+        mockDb.cropType.findFirst.mockResolvedValue({ id: 'ct-1' });
+        mockDb.cropVariety.findFirst.mockResolvedValue(null);
+        await expect(
+            createCropPlan(editorCtx, {
+                seasonId: 's-1',
+                cropTypeId: 'ct-1',
+                cropVarietyId: 'foreign',
+                name: 'X',
+                firstSowDate: '2026-04-01T00:00:00Z',
+            }),
+        ).rejects.toThrow(/INVALID_VARIETY/);
+        expect(mockDb.cropPlan.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a parcel that does not sit within the selected location', async () => {
+        mockDb.season.findFirst.mockResolvedValue({ id: 's-1' });
+        mockDb.cropType.findFirst.mockResolvedValue({ id: 'ct-1' });
+        mockDb.parcel.findFirst.mockResolvedValue({ id: 'parcel-1', locationId: 'other-loc' });
+        await expect(
+            createCropPlan(editorCtx, {
+                seasonId: 's-1',
+                cropTypeId: 'ct-1',
+                locationId: 'loc-1',
+                parcelId: 'parcel-1',
+                name: 'X',
+                firstSowDate: '2026-04-01T00:00:00Z',
+            }),
+        ).rejects.toThrow(/PARCEL_LOCATION_MISMATCH/);
+    });
+});
+
+// ─── updateCropPlan — the guarded relation branches ──────────────────
+describe('updateCropPlan relation validation', () => {
+    it('rejects an invalid firstSowDate before touching the DB', async () => {
+        await expect(updateCropPlan(editorCtx, 'plan-1', { firstSowDate: 'nope' })).rejects.toThrow(/valid date/i);
+        expect(mockDb.cropPlan.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects a re-pointed variety from another tenant', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue({ id: 'plan-1' });
+        mockDb.cropVariety.findFirst.mockResolvedValue(null);
+        await expect(updateCropPlan(editorCtx, 'plan-1', { cropVarietyId: 'foreign' })).rejects.toThrow(/INVALID_VARIETY/);
+        expect(mockDb.cropPlan.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a re-pointed parcel from another tenant', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue({ id: 'plan-1' });
+        mockDb.parcel.findFirst.mockResolvedValue(null);
+        await expect(updateCropPlan(editorCtx, 'plan-1', { parcelId: 'foreign' })).rejects.toThrow(/INVALID_PARCEL/);
+        expect(mockDb.cropPlan.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a re-pointed parcel outside the selected location', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue({ id: 'plan-1' });
+        mockDb.parcel.findFirst.mockResolvedValue({ id: 'parcel-1', locationId: 'other-loc' });
+        await expect(
+            updateCropPlan(editorCtx, 'plan-1', { parcelId: 'parcel-1', locationId: 'loc-1' }),
+        ).rejects.toThrow(/PARCEL_LOCATION_MISMATCH/);
+    });
+
+    it('applies a valid firstSowDate + in-location parcel move', async () => {
+        mockDb.cropPlan.findFirst.mockResolvedValue({ id: 'plan-1' });
+        mockDb.parcel.findFirst.mockResolvedValue({ id: 'parcel-1', locationId: 'loc-1' });
+        mockDb.cropPlan.update.mockResolvedValue({ id: 'plan-1', name: 'Summer lettuce', status: 'ACTIVE' });
+        await updateCropPlan(editorCtx, 'plan-1', {
+            firstSowDate: '2026-05-01T00:00:00Z',
+            parcelId: 'parcel-1',
+            locationId: 'loc-1',
+        });
+        const data = mockDb.cropPlan.update.mock.calls[0][0].data;
+        expect(data.firstSowDate).toBeInstanceOf(Date);
+        expect(logEvent).toHaveBeenCalledTimes(1);
     });
 });
