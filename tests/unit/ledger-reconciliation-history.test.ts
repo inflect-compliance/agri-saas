@@ -46,12 +46,23 @@ describe('listLedgerReconciliationHistory', () => {
         );
     });
 
-    it('maps an intact run from detailsJson.data', async () => {
+    it('maps an intact + balanced run from detailsJson.data', async () => {
         listByAction.mockResolvedValue([
             {
                 id: 'a1',
                 createdAt: AT,
-                detailsJson: { data: { valid: true, totalEntries: 42, firstBreakAt: null, firstBreakId: null } },
+                detailsJson: {
+                    data: {
+                        valid: true,
+                        totalEntries: 42,
+                        firstBreakAt: null,
+                        firstBreakId: null,
+                        balanceHealthy: true,
+                        lotsChecked: 5,
+                        driftCount: 0,
+                        negativeCount: 0,
+                    },
+                },
                 user: { name: 'Dana Grower', email: 'dana@farm.test' },
             },
         ]);
@@ -65,8 +76,42 @@ describe('listLedgerReconciliationHistory', () => {
             totalEntries: 42,
             firstBreakAt: null,
             firstBreakId: null,
+            balanceHealthy: true,
+            lotsChecked: 5,
+            driftCount: 0,
+            negativeCount: 0,
             runBy: 'Dana Grower',
         });
+    });
+
+    it('maps a chain-intact run whose BALANCE half drifted (negative on-hand)', async () => {
+        listByAction.mockResolvedValue([
+            {
+                id: 'd4',
+                createdAt: AT,
+                detailsJson: {
+                    data: {
+                        valid: true,
+                        totalEntries: 30,
+                        firstBreakAt: null,
+                        firstBreakId: null,
+                        balanceHealthy: false,
+                        lotsChecked: 8,
+                        driftCount: 1,
+                        negativeCount: 2,
+                    },
+                },
+                user: { name: 'Ops', email: null },
+            },
+        ]);
+
+        const [run] = await listLedgerReconciliationHistory(makeRequestContext());
+
+        expect(run.valid).toBe(true);
+        expect(run.balanceHealthy).toBe(false);
+        expect(run.driftCount).toBe(1);
+        expect(run.negativeCount).toBe(2);
+        expect(run.lotsChecked).toBe(8);
     });
 
     it('maps a drift run with the break location', async () => {
@@ -102,6 +147,10 @@ describe('listLedgerReconciliationHistory', () => {
             totalEntries: null,
             firstBreakAt: null,
             firstBreakId: null,
+            balanceHealthy: null,
+            lotsChecked: null,
+            driftCount: null,
+            negativeCount: null,
             runBy: null,
         });
     });

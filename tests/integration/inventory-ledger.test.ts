@@ -21,8 +21,9 @@ import { DB_URL, DB_AVAILABLE } from './db-helper';
 import { hashForLookup } from '@/lib/security/encryption';
 import { makeRequestContext } from '../helpers/make-context';
 import { runInTenantContext } from '@/lib/db-context';
-import { appendStockTransaction, verifyStockChain } from '@/lib/inventory/stock-ledger';
+import { appendStockTransaction, verifyStockChain, verifyLotBalances } from '@/lib/inventory/stock-ledger';
 import { createFieldOperation, markOperationParcel } from '@/app-layer/usecases/field-operation';
+import { adjustStock } from '@/app-layer/usecases/inventory';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: DB_URL }) });
 const describeFn = DB_AVAILABLE ? describe : describe.skip;
@@ -198,5 +199,90 @@ describeFn('inventory ledger (DB)', () => {
             (await prisma.inventoryLot.findUnique({ where: { id: lotId }, select: { quantityOnHand: true } }))!.quantityOnHand,
         );
         expect(onHandAfter).toBe(onHandBefore - 20);
+    });
+
+    // ── Flag 1: chain ordering under concurrency ────────────────────
+    test('concurrent appends with staggered pre-lock work verify with no fork', async () => {
+        const ctx = ownerCtx();
+        const lot = await prisma.inventoryLot.create({
+            data: { tenantId: TENANT_ID, itemId, lotCode: `CONC-${TAG}`, unitId: unitLId, quantityOnHand: 0 },
+        });
+
+        // TX-A opens its transaction FIRST (so its old-bug default createdAt
+        // = the earlier transaction-START), but sleeps 250ms BEFORE its
+        // append reaches the advisory lock — so TX-B, which starts ~60ms
+        // later, wins the lock and links FIRST. Pre-fix, createdAt order
+        // (A before B) disagreed with link order (B before A) → a false
+        // fork. The post-lock, strictly-monotonic createdAt makes the
+        // writer tail-pick and verifyStockChain agree → the chain verifies.
+        const appendA = runInTenantContext(ctx, async (db) => {
+            await db.$queryRawUnsafe('SELECT pg_sleep(0.25)');
+            return appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 11, unitId: unitLId });
+        });
+        const appendB = (async () => {
+            await new Promise((r) => setTimeout(r, 60));
+            return runInTenantContext(ctx, (db) =>
+                appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 22, unitId: unitLId }),
+            );
+        })();
+
+        const [rA, rB] = await Promise.all([appendA, appendB]);
+        // B linked first (its previousHash is the pre-existing tail), A
+        // linked onto B — never the reverse, whatever the start order.
+        expect(rA.previousHash).toBe(rB.entryHash);
+
+        const verify = await runInTenantContext(ctx, (db) => verifyStockChain(db, TENANT_ID));
+        expect(verify.valid).toBe(true);
+
+        // Both movements landed; the lot on-hand is the ledger sum.
+        const onHand = Number(
+            (await prisma.inventoryLot.findUnique({ where: { id: lot.id }, select: { quantityOnHand: true } }))!.quantityOnHand,
+        );
+        expect(onHand).toBe(33);
+    });
+
+    // ── Flag 3: conservation — negative on-hand is FLAGGED ──────────
+    test('verifyLotBalances flags a lot whose ledger sum went negative', async () => {
+        const ctx = ownerCtx();
+        const lot = await prisma.inventoryLot.create({
+            data: { tenantId: TENANT_ID, itemId, lotCode: `NEG-${TAG}`, unitId: unitLId, quantityOnHand: 0 },
+        });
+        await runInTenantContext(ctx, (db) =>
+            appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 5, unitId: unitLId }),
+        );
+        // Over-consume (no disallowNegative — the spray path records truth).
+        await runInTenantContext(ctx, (db) =>
+            appendStockTransaction(db, ctx, { lotId: lot.id, type: 'CONSUMPTION', quantityDelta: -8, unitId: unitLId }),
+        );
+
+        const bal = await runInTenantContext(ctx, (db) => verifyLotBalances(db, TENANT_ID));
+        const neg = bal.negative.find((n) => n.lotId === lot.id);
+        expect(neg).toBeDefined();
+        expect(Number(neg!.onHand)).toBe(-3);
+        // The cache faithfully mirrors the negative sum (so `balanced` for
+        // THIS lot), but `healthy` must be false — the negative can't pass.
+        expect(bal.healthy).toBe(false);
+    });
+
+    // ── Flag 3: adjustStock rejects a negative-driving correction ───
+    test('adjustStock rejects an adjustment that would drive on-hand below zero', async () => {
+        const ctx = ownerCtx();
+        const lot = await prisma.inventoryLot.create({
+            data: { tenantId: TENANT_ID, itemId, lotCode: `ADJ-${TAG}`, unitId: unitLId, quantityOnHand: 0 },
+        });
+        await runInTenantContext(ctx, (db) =>
+            appendStockTransaction(db, ctx, { lotId: lot.id, type: 'RECEIPT', quantityDelta: 5, unitId: unitLId }),
+        );
+
+        // −10 against on-hand 5 → −5: rejected atomically, no row written.
+        await expect(adjustStock(ctx, lot.id, -10, 'overcorrection')).rejects.toThrow(/negative_on_hand/);
+        const stillFive = Number(
+            (await prisma.inventoryLot.findUnique({ where: { id: lot.id }, select: { quantityOnHand: true } }))!.quantityOnHand,
+        );
+        expect(stillFive).toBe(5);
+
+        // A correction that stays ≥ 0 is allowed.
+        const ok = await adjustStock(ctx, lot.id, -3, 'valid correction');
+        expect(Number(ok.quantityOnHand)).toBe(2);
     });
 });

@@ -16,9 +16,11 @@ import {
     appendStockTransaction,
     appendLotLink,
     verifyStockChain,
-    type StockChainVerification,
+    verifyLotBalances,
+    type StockLedgerReconciliation,
 } from '@/lib/inventory/stock-ledger';
 import { traceAgUsecase, traceUsecase, recordAgOperationMetrics } from '@/lib/observability';
+import { logger } from '@/lib/observability/logger';
 import { trace } from '@opentelemetry/api';
 
 /**
@@ -278,6 +280,13 @@ export async function adjustStock(ctx: RequestContext, lotId: string, delta: num
             quantityDelta: delta,
             unitId: lot.unit.id,
             reason: cleanReason,
+            // Conservation guard: a manual count correction must never
+            // create physically-impossible negative stock. Rejected
+            // atomically under the advisory lock (see StockAppendInput).
+            // The operational spray CONSUMPTION path does NOT set this —
+            // it records the true consumption and lets reconciliation flag
+            // any resulting negative.
+            disallowNegative: true,
         });
         await logEvent(db, ctx, {
             action: 'STOCK_ADJUSTED',
@@ -309,8 +318,13 @@ export interface InputApplicationResult {
     journalEntryId: string | null;
     consumed: number;
     deductedFromLotId: string | null;
-    /** Why no deduction happened, when applicable. */
-    note?: 'inventory_disabled' | 'no_lot_available' | 'zero_quantity' | 'already_applied';
+    /**
+     * Why no deduction happened — OR (`over_consumption`) that the
+     * deduction landed but drove the lot's on-hand below zero: the spray
+     * consumed more than the tracked stock, so the ledger recorded the
+     * true amount and the lot is now negative (flagged by reconciliation).
+     */
+    note?: 'inventory_disabled' | 'no_lot_available' | 'zero_quantity' | 'already_applied' | 'over_consumption';
 }
 
 /**
@@ -441,7 +455,7 @@ async function recordInputApplicationImpl(
     if (inventoryOn && consumed > 0) {
         const lot = await InventoryRepository.getFefoLot(db, ctx, product.id);
         if (lot) {
-            await appendStockTransaction(db, ctx, {
+            const res = await appendStockTransaction(db, ctx, {
                 lotId: lot.id,
                 type: 'CONSUMPTION',
                 quantityDelta: -consumed,
@@ -452,8 +466,27 @@ async function recordInputApplicationImpl(
                 // STABLE operationParcelId, never the per-call logEntryId, so
                 // a concurrent retry can't double-deduct the lot.
                 idempotencyKey: `spray:${line.id}`,
+                // Intentionally NOT disallowNegative: the spray HAPPENED, so
+                // the ledger records the true consumption for traceability
+                // even when it exceeds tracked stock. Clamping would falsify
+                // the food-safety record; splitting across lots would break
+                // the single-key idempotency this path relies on. An
+                // over-draw surfaces here (note + warn) and is durably
+                // flagged by verifyLotBalances at reconciliation.
             });
             deductedFromLotId = lot.id;
+            if (Number(res.quantityOnHand) < 0) {
+                note = 'over_consumption';
+                logger.warn('spray consumption drove lot on-hand negative', {
+                    component: 'usecase',
+                    operation: 'inventory.recordInputApplication',
+                    tenantId: ctx.tenantId,
+                    lotId: lot.id,
+                    operationParcelId: line.id,
+                    consumed,
+                    onHand: res.quantityOnHand,
+                });
+            }
         } else {
             note = 'no_lot_available';
         }
@@ -477,45 +510,64 @@ async function recordInputApplicationImpl(
 // ─── Ledger reconciliation (integrity sweep + drift alerting) ──────
 
 /**
- * Re-walk the tenant's hash-chained stock ledger from scratch and report
- * integrity. The operator-facing "is my inventory ledger intact?" check,
- * surfaced at `POST /api/t/:slug/admin/ledger-reconciliation`.
+ * Re-walk the tenant's hash-chained stock ledger from scratch AND
+ * reconcile every lot's on-hand cache against the authoritative ledger
+ * sum — BOTH integrity halves, so an intact chain can't hide a drifted or
+ * negative balance. The operator-facing "is my inventory ledger intact?"
+ * check, surfaced at `POST /api/t/:slug/admin/ledger-reconciliation`.
  *
  * Observability is deliberately hand-rolled rather than reusing
  * `traceAgUsecase`: a reconciliation that RUNS cleanly but DETECTS drift
- * (`valid === false`, no throw) is exactly the event the
- * `AgLedgerReconciliationDrift` SLO alert pages on. So the
- * `ag.operation` metric outcome is keyed on `verification.valid`, not on
- * "did the function throw" — a found break records `ag_outcome="failure"`
- * so the alert fires, while still returning the report to the caller
- * (200, not 500). An actual exception also records failure via the
- * `finally`. The span (via `traceUsecase`) carries the full trace.
+ * (no throw) is exactly the event the `AgLedgerReconciliationDrift` SLO
+ * alert pages on. So the `ag.operation` metric outcome is keyed on the
+ * COMBINED health (chain valid AND balance healthy), not on "did the
+ * function throw" — a found break OR a balance drift/negative records
+ * `ag_outcome="failure"` so the alert fires, while still returning the
+ * report to the caller (200, not 500). An actual exception also records
+ * failure via the `finally`. The span (via `traceUsecase`) carries the
+ * full trace.
  */
-export async function reconcileStockLedger(ctx: RequestContext): Promise<StockChainVerification> {
+export async function reconcileStockLedger(ctx: RequestContext): Promise<StockLedgerReconciliation> {
     assertCanWrite(ctx);
     const startMs = performance.now();
-    let valid = false;
+    let healthy = false;
     try {
         const verification = await traceUsecase('inventory.reconcileStockLedger', ctx, async () => {
             const result = await runInTenantContext(ctx, async (db) => {
-                const v = await verifyStockChain(db, ctx.tenantId);
+                const chain = await verifyStockChain(db, ctx.tenantId);
+                const balances = await verifyLotBalances(db, ctx.tenantId);
+                const v: StockLedgerReconciliation = { ...chain, balances };
+                const clean = chain.valid && balances.healthy;
+                const balanceIssue = balances.drift.length > 0 || balances.negative.length > 0;
                 await logEvent(db, ctx, {
                     action: 'LEDGER_RECONCILIATION_RUN',
                     entityType: 'StockTransaction',
                     entityId: ctx.tenantId,
-                    details: v.valid
-                        ? `Stock ledger verified intact across ${v.totalEntries} entries`
-                        : `Stock ledger DRIFT detected at entry ${v.firstBreakAt} (${v.firstBreakId})`,
+                    details: clean
+                        ? `Stock ledger verified intact: chain OK across ${chain.totalEntries} entries, ${balances.lotsChecked} lot balances reconciled`
+                        : !chain.valid
+                            ? `Stock ledger DRIFT detected at entry ${chain.firstBreakAt} (${chain.firstBreakId})`
+                            : `Stock ledger balance drift: ${balances.drift.length} cache mismatch(es), ${balances.negative.length} negative on-hand`,
                     detailsJson: {
                         category: 'data_lifecycle',
-                        summary: v.valid
-                            ? `Ledger reconciliation passed (${v.totalEntries} entries)`
-                            : `Ledger reconciliation FAILED — drift at entry ${v.firstBreakAt}`,
+                        summary: clean
+                            ? `Ledger reconciliation passed (${chain.totalEntries} entries, ${balances.lotsChecked} balances)`
+                            : !chain.valid
+                                ? `Ledger reconciliation FAILED — chain drift at entry ${chain.firstBreakAt}`
+                                : `Ledger reconciliation FAILED — ${balances.drift.length} balance drift, ${balances.negative.length} negative on-hand`,
                         data: {
-                            valid: v.valid,
-                            totalEntries: v.totalEntries,
-                            firstBreakAt: v.firstBreakAt ?? null,
-                            firstBreakId: v.firstBreakId ?? null,
+                            valid: chain.valid,
+                            totalEntries: chain.totalEntries,
+                            firstBreakAt: chain.firstBreakAt ?? null,
+                            firstBreakId: chain.firstBreakId ?? null,
+                            // Balance half — so "verified intact" can't hide a
+                            // drifted or negative cache in the history rows.
+                            balanced: balances.balanced,
+                            balanceHealthy: balances.healthy,
+                            lotsChecked: balances.lotsChecked,
+                            driftCount: balances.drift.length,
+                            negativeCount: balances.negative.length,
+                            balanceIssue,
                         },
                     },
                 });
@@ -525,17 +577,22 @@ export async function reconcileStockLedger(ctx: RequestContext): Promise<StockCh
                 'ag.operation': 'inventory.reconcileStockLedger',
                 'ag.ledgerValid': result.valid,
                 'ag.ledgerEntries': result.totalEntries,
+                'ag.balanceHealthy': result.balances.healthy,
+                'ag.balanceDriftCount': result.balances.drift.length,
+                'ag.balanceNegativeCount': result.balances.negative.length,
                 ...(result.firstBreakId ? { 'ag.firstBreakId': result.firstBreakId } : {}),
                 ...(result.firstBreakAt !== undefined ? { 'ag.firstBreakAt': result.firstBreakAt } : {}),
             });
             return result;
         });
-        valid = verification.valid;
+        healthy = verification.valid && verification.balances.healthy;
         return verification;
     } finally {
         recordAgOperationMetrics({
             operation: 'inventory.reconcileStockLedger',
-            success: valid,
+            // Success only when BOTH halves are clean — a drifted/negative
+            // balance fires the same drift alert as a broken chain.
+            success: healthy,
             durationMs: Math.round(performance.now() - startMs),
         });
     }
@@ -551,6 +608,14 @@ export interface LedgerReconciliationRun {
     totalEntries: number | null;
     firstBreakAt: number | null;
     firstBreakId: string | null;
+    /**
+     * Balance-half status. null on rows written before the balance check
+     * was reconciled here (chain-only runs) — the UI degrades to "—".
+     */
+    balanceHealthy: boolean | null;
+    lotsChecked: number | null;
+    driftCount: number | null;
+    negativeCount: number | null;
     /** Display name (or email) of who ran it; null for system runs. */
     runBy: string | null;
 }
@@ -579,6 +644,10 @@ export async function listLedgerReconciliationHistory(
             totalEntries: typeof data.totalEntries === 'number' ? data.totalEntries : null,
             firstBreakAt: typeof data.firstBreakAt === 'number' ? data.firstBreakAt : null,
             firstBreakId: typeof data.firstBreakId === 'string' ? data.firstBreakId : null,
+            balanceHealthy: typeof data.balanceHealthy === 'boolean' ? data.balanceHealthy : null,
+            lotsChecked: typeof data.lotsChecked === 'number' ? data.lotsChecked : null,
+            driftCount: typeof data.driftCount === 'number' ? data.driftCount : null,
+            negativeCount: typeof data.negativeCount === 'number' ? data.negativeCount : null,
             runBy: r.user?.name ?? r.user?.email ?? null,
         };
     });

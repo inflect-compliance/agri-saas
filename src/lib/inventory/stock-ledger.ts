@@ -22,6 +22,7 @@
  */
 import type { PrismaTx } from '@/lib/db-context';
 import type { RequestContext } from '@/app-layer/types';
+import { badRequest } from '@/lib/errors/types';
 import {
     computeStockEntryHash,
     decimalToCanonical,
@@ -62,6 +63,17 @@ export interface StockAppendInput {
      * `spray:<operationParcelId>`), never the per-call `logEntryId`.
      */
     idempotencyKey?: string | null;
+    /**
+     * Conservation guard (opt-in). When true, the append is REJECTED
+     * (`badRequest('negative_on_hand')`) if it would drive the lot's
+     * on-hand below zero. The check runs under the per-tenant advisory
+     * lock, so the read-then-write is race-free. Used by the manual
+     * `adjustStock` correction path; the operational spray CONSUMPTION
+     * deliberately leaves this UNSET — it records the true consumption
+     * even when it exceeds tracked stock (clamping would falsify the
+     * food-safety record) and lets `verifyLotBalances` flag any negative.
+     */
+    disallowNegative?: boolean;
 }
 
 export interface StockAppendResult {
@@ -117,15 +129,53 @@ export async function appendStockTransaction(
         }
     }
 
-    // 2 — the tail of the chain (deterministic total order).
+    // 1c — conservation guard (opt-in; see StockAppendInput.disallowNegative).
+    //      Runs under the advisory lock so the sum read + the insert below
+    //      are one race-free step: no concurrent append can slip between
+    //      them and turn a green check into a negative balance.
+    if (input.disallowNegative) {
+        const guardAgg = await db.stockTransaction.aggregate({
+            where: { tenantId: ctx.tenantId, lotId: input.lotId },
+            _sum: { quantityDelta: true },
+        });
+        const current = Number(guardAgg._sum.quantityDelta ?? 0);
+        const resulting = Math.round((current + input.quantityDelta) * 10 ** QUANTITY_SCALE) / 10 ** QUANTITY_SCALE;
+        if (resulting < 0) {
+            throw badRequest(
+                'negative_on_hand',
+                `Movement would drive lot on-hand to ${resulting} (below zero).`,
+            );
+        }
+    }
+
+    // 2 — the tail of the chain (deterministic total order). Read the
+    //     tail's createdAt too — the append timestamp below is clamped
+    //     strictly above it.
     const last = await db.stockTransaction.findFirst({
         where: { tenantId: ctx.tenantId },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        select: { entryHash: true },
+        select: { entryHash: true, createdAt: true },
     });
     const previousHash = last?.entryHash ?? null;
 
-    const occurredAt = input.occurredAt ?? new Date();
+    // Stamp `createdAt` HERE — AFTER the advisory lock — so the ledger's
+    // physical order matches the lock-serialized CHAIN order. Mirrors the
+    // AuditLog writer (audit-writer.ts: `now` captured post-lock, inserted
+    // as createdAt). The buggy default was CURRENT_TIMESTAMP = the
+    // transaction's START time, captured BEFORE the lock (migration) — so
+    // under concurrent appends with staggered pre-lock work, createdAt
+    // order could disagree with the actual link order and fake a "DRIFT"
+    // fork. We additionally CLAMP the timestamp strictly above the tail's
+    // createdAt (+1ms) so the order is monotonic even for two appends in
+    // the same millisecond: createdAt is the sole ordering key the writer
+    // tail-pick and verifyStockChain agree on, and the cuid `id` tiebreak
+    // is not time-ordered. Safe to nudge — createdAt is NOT part of the
+    // entry hash (only occurredAt is).
+    const nowMs = Date.now();
+    const tailMs = last?.createdAt ? last.createdAt.getTime() : 0;
+    const createdAt = new Date(Math.max(nowMs, tailMs + 1));
+
+    const occurredAt = input.occurredAt ?? createdAt;
     const quantityCanonical = decimalToCanonical(input.quantityDelta, QUANTITY_SCALE)!;
     const costCanonical = decimalToCanonical(input.costAmount ?? null, COST_SCALE);
 
@@ -154,6 +204,7 @@ export async function appendStockTransaction(
             quantityDelta: input.quantityDelta,
             unitId: input.unitId,
             occurredAt,
+            createdAt,
             logEntryId: input.logEntryId ?? null,
             reason: input.reason ?? null,
             costAmount: input.costAmount ?? null,
@@ -322,12 +373,39 @@ export interface LotBalanceDrift {
     computed: string;
 }
 
+export interface LotNegativeBalance {
+    lotId: string;
+    lotCode: string;
+    /** The ledger-derived on-hand that is below zero (canonical 4dp). */
+    onHand: string;
+}
+
 export interface LotBalanceVerification {
     tenantId: string;
     lotsChecked: number;
+    /** True when every lot's cache equals its ledger sum (cache consistency). */
     balanced: boolean;
     /** Lots whose cache disagrees with the ledger sum (empty when balanced). */
     drift: LotBalanceDrift[];
+    /**
+     * Lots whose AUTHORITATIVE ledger sum is below zero — a conservation
+     * violation (more consumed than ever received). Distinct from `drift`:
+     * the cache can faithfully mirror a negative sum, so this is a SEPARATE
+     * anomaly the reconciliation must not silently pass.
+     */
+    negative: LotNegativeBalance[];
+    /** The single "is the balance layer clean?" flag: balanced AND no negatives. */
+    healthy: boolean;
+}
+
+/**
+ * The full on-demand reconciliation result — BOTH integrity halves.
+ * "Verified intact" can no longer hide a drifted or negative cache: the
+ * admin reconcile returns the chain verification EXTENDED with the balance
+ * verification (`healthy` folds cache-drift + negative on-hand together).
+ */
+export interface StockLedgerReconciliation extends StockChainVerification {
+    balances: LotBalanceVerification;
 }
 
 /**
@@ -355,18 +433,36 @@ export async function verifyLotBalances(
     const sumByLot = new Map<string, unknown>(sums.map((s) => [s.lotId, s._sum.quantityDelta ?? 0]));
 
     const drift: LotBalanceDrift[] = [];
+    const negative: LotNegativeBalance[] = [];
     for (const lot of lots) {
+        const rawSum = sumByLot.get(lot.id) ?? 0;
         const cached = decimalToCanonical(
             lot.quantityOnHand as unknown as { toFixed(n: number): string },
             QUANTITY_SCALE,
         )!;
         const computed = decimalToCanonical(
-            (sumByLot.get(lot.id) ?? 0) as { toFixed(n: number): string },
+            rawSum as { toFixed(n: number): string },
             QUANTITY_SCALE,
         )!;
         if (cached !== computed) {
             drift.push({ lotId: lot.id, lotCode: lot.lotCode, cached, computed });
         }
+        // Conservation: the AUTHORITATIVE ledger sum must never be
+        // negative. A negative sum means more was consumed than ever
+        // received (over-consumption / untracked stock) — flag it even
+        // when the cache faithfully mirrors it, so a "balanced" cache
+        // can't hide an impossible on-hand.
+        if (Number(rawSum) < 0) {
+            negative.push({ lotId: lot.id, lotCode: lot.lotCode, onHand: computed });
+        }
     }
-    return { tenantId, lotsChecked: lots.length, balanced: drift.length === 0, drift };
+    const balanced = drift.length === 0;
+    return {
+        tenantId,
+        lotsChecked: lots.length,
+        balanced,
+        drift,
+        negative,
+        healthy: balanced && negative.length === 0,
+    };
 }

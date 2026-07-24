@@ -22,6 +22,10 @@ interface LedgerReconciliationRun {
     totalEntries: number | null;
     firstBreakAt: number | null;
     firstBreakId: string | null;
+    balanceHealthy: boolean | null;
+    lotsChecked: number | null;
+    driftCount: number | null;
+    negativeCount: number | null;
     runBy: string | null;
 }
 
@@ -85,6 +89,11 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
                     },
                 },
                 {
+                    accessorKey: 'balanceHealthy',
+                    header: t('colBalance'),
+                    cell: ({ row }) => <BalanceBadge run={row.original} />,
+                },
+                {
                     accessorKey: 'runBy',
                     header: t('colRunBy'),
                     cell: ({ row }) => (
@@ -107,11 +116,19 @@ export function LedgerIntegrityClient({ history }: { history: LedgerReconciliati
                 toast.error(msg);
                 return;
             }
-            const report = (await res.json()) as { valid: boolean; totalEntries: number };
-            if (report.valid) {
-                toast.success(t('verifiedAcross', { count: report.totalEntries }));
-            } else {
+            const report = (await res.json()) as {
+                valid: boolean;
+                totalEntries: number;
+                balanceHealthy?: boolean;
+            };
+            if (!report.valid) {
                 toast.error(t('foundBreak'));
+            } else if (report.balanceHealthy === false) {
+                // Chain intact but the lot balances drifted — surface the
+                // balance half so "verified intact" can't mislead.
+                toast.error(t('toastBalanceDrift'));
+            } else {
+                toast.success(t('verifiedAcross', { count: report.totalEntries }));
             }
             // Re-fetch the server-rendered history so the hero + timeline update.
             router.refresh();
@@ -186,13 +203,39 @@ function StatusHero({ latest }: { latest: LedgerReconciliationRun | null }) {
             />
         );
     }
+    if (latest.valid === true && latest.balanceHealthy === false) {
+        // Chain intact, but the lot on-hand cache drifted or went
+        // negative — a "verified" chain must not mask this.
+        return (
+            <HeroLayout
+                icon={<ShieldAlert className="w-8 h-8 text-content-warning" />}
+                title={t('balanceDriftTitle')}
+                titleClassName="text-content-warning"
+                subtitle={t('balanceDriftSubtitle', {
+                    drift: latest.driftCount ?? 0,
+                    negative: latest.negativeCount ?? 0,
+                    when,
+                })}
+            />
+        );
+    }
     if (latest.valid === true) {
+        // balanceHealthy true → mention both halves; null (legacy chain-only
+        // run) → the original chain-only subtitle.
         return (
             <HeroLayout
                 icon={<ShieldCheck className="w-8 h-8 text-content-success" />}
                 title={t('verifiedIntact')}
                 titleClassName="text-content-success"
-                subtitle={t('intactSubtitle', { count: latest.totalEntries ?? 0, when })}
+                subtitle={
+                    latest.balanceHealthy === true
+                        ? t('intactBothSubtitle', {
+                              count: latest.totalEntries ?? 0,
+                              lots: latest.lotsChecked ?? 0,
+                              when,
+                          })
+                        : t('intactSubtitle', { count: latest.totalEntries ?? 0, when })
+                }
             />
         );
     }
@@ -232,4 +275,17 @@ function ResultBadge({ valid }: { valid: boolean | null }) {
     if (valid === true) return <StatusBadge variant="success" size="sm">{t('intact')}</StatusBadge>;
     if (valid === false) return <StatusBadge variant="error" size="sm">{t('drift')}</StatusBadge>;
     return <StatusBadge variant="neutral" size="sm">{t('unknown')}</StatusBadge>;
+}
+
+/** The balance-half verdict per run: healthy / drift-or-negative / unknown. */
+function BalanceBadge({ run }: { run: LedgerReconciliationRun }) {
+    const t = useTranslations('admin.ledgerIntegrity');
+    if (run.balanceHealthy === null) return <span className="text-content-subtle">—</span>;
+    if (run.balanceHealthy) return <StatusBadge variant="success" size="sm">{t('balanceOk')}</StatusBadge>;
+    // Unhealthy: prefer the sharper "negative on-hand" signal, else cache drift.
+    const label =
+        (run.negativeCount ?? 0) > 0
+            ? t('balanceNegativeN', { count: run.negativeCount ?? 0 })
+            : t('balanceDriftN', { count: run.driftCount ?? 0 });
+    return <StatusBadge variant="error" size="sm">{label}</StatusBadge>;
 }
